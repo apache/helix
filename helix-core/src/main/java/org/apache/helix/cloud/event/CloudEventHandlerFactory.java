@@ -41,13 +41,13 @@ public class CloudEventHandlerFactory {
   public static AbstractEventHandler getInstance(String eventHandlerClassName)
       throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     synchronized (CloudEventHandlerFactory.class) {
-      if (INSTANCE_MAP.get(eventHandlerClassName) == null) {
-        AbstractEventHandler eventHandlerObject = (AbstractEventHandler) (HelixUtil
+      AbstractEventHandler instance = INSTANCE_MAP.get(eventHandlerClassName);
+      if (instance == null) {
+         instance = (AbstractEventHandler) (HelixUtil
             .loadClass(AbstractEventHandler.class, eventHandlerClassName)).newInstance();
-        INSTANCE_MAP.put(eventHandlerClassName, eventHandlerObject);
-        return eventHandlerObject;
+        INSTANCE_MAP.put(eventHandlerClassName, instance);
       }
-      return INSTANCE_MAP.get(eventHandlerClassName);
+      return instance;
     }
   }
 }

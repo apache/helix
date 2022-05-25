@@ -13,5 +13,4 @@ public class HelixTestCloudEventHandler extends CloudEventHandler {
     System.out.println("in child register");
   }
 
-
 }

@@ -149,12 +149,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // For workflows that have already reached final states, STOP should not take into effect.
     if (!TaskConstants.FINAL_STATES.contains(workflowCtx.getWorkflowState())
         && TargetState.STOP.equals(targetState)) {
-      if (workflowCtx.getWorkflowState() == TaskState.STOPPED) {
-        return;
-      }
-      LOG.debug("Workflow {} is marked as stopped. Workflow state is {}", workflow,
-          workflowCtx.getWorkflowState());
-      if (isWorkflowStopped(workflowCtx, workflowCfg)) {
+      if (isWorkflowStopped(workflowCtx, workflowCfg) && workflowCtx.getWorkflowState() != TaskState.STOPPED) {
+        LOG.debug("Workflow {} is marked as stopped. Workflow state is {}", workflow,
+            workflowCtx.getWorkflowState());
         workflowCtx.setWorkflowState(TaskState.STOPPED);
         _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
       }

@@ -99,7 +99,8 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
             _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
             .unregisterCloudEventListener(_cloudEventListener);
       } catch (Exception e) {
-        System.out.println("Failed to unregister cloudEventListener." + e.getMessage());
+        System.out.println("Failed to unregister cloudEventListener." );
+        e.printStackTrace();
       }
     }
   }

@@ -197,6 +197,25 @@ public class TestCloudEventCallbackProperty {
         .performAction(HelixCloudEventListener.EventType.ON_PAUSE, null);
   }
 
+  @Test
+  public void testUsingInvalidHandlerClassName() throws Exception {
+    // Cloud event callback property
+    CloudEventCallbackProperty property = new CloudEventCallbackProperty(Collections
+        .singletonMap(CloudEventCallbackProperty.UserArgsInputKey.CLOUD_EVENT_HANDLER_CLASS_NAME,
+            "org.apache.helix.cloud.InvalidClassName"));
+    _cloudProperty.setCloudEventCallbackProperty(property);
+
+    try{
+    _helixManager.connect();}
+    catch (Exception ex){
+      Assert.assertEquals(ex.getClass(), java.lang.ClassNotFoundException.class);
+    }
+
+    // Manually trigger event
+    ((CloudEventHandler) CloudEventHandlerFactory.getInstance(CloudEventHandler.class.getCanonicalName()))
+        .performAction(HelixCloudEventListener.EventType.ON_PAUSE, null);
+  }
+
   private boolean callbackTriggered(MockCloudEventCallbackImpl.OperationType type) {
     return MockCloudEventCallbackImpl.triggeredOperation.contains(type);
   }

@@ -1,5 +1,5 @@
 import { TestBed, inject } from '@angular/core/testing';
-import { HttpModule } from '@angular/http';
+import { HttpClientModule } from '@angular/common/http';
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { HelixService } from './helix.service';
@@ -7,7 +7,7 @@ import { HelixService } from './helix.service';
 describe('HelixService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpModule, RouterTestingModule],
+      imports: [HttpClientModule, RouterTestingModule],
       providers: [HelixService]
     });
   });

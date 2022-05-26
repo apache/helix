@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 })
 public class DistViewAggregatorStateModel extends AbstractHelixLeaderStandbyStateModel {
   private final static Logger logger = LoggerFactory.getLogger(DistViewAggregatorStateModel.class);
-  private final static Object stateTransitionLock = new Object();
   private HelixViewAggregator _aggregator;
 
   public DistViewAggregatorStateModel(String zkAddr) {
@@ -48,25 +47,22 @@ public class DistViewAggregatorStateModel extends AbstractHelixLeaderStandbyStat
   public void onBecomeLeaderFromStandby(Message message, NotificationContext context)
       throws Exception {
     String viewClusterName = message.getPartitionName();
-
-    synchronized (stateTransitionLock) {
-      if (_aggregator != null) {
-        logger.warn("Aggregator already exists for view cluster {}: {}: cleaning it up.",
-            viewClusterName, _aggregator.getAggregatorInstanceName());
-        reset();
-      }
-      logger.info("Creating new HelixViewAggregator for view cluster {}", viewClusterName);
-      try {
-        _aggregator = new HelixViewAggregator(viewClusterName, _zkAddr);
-        _aggregator.start();
-      } catch (Exception e) {
-        logger.error("Aggregator failed to become leader from stand by for view cluster {}",
-            viewClusterName, e);
-        reset();
-        throw e;
-      }
-      logStateTransition("STANDBY", "LEADER", message.getPartitionName(), message.getTgtName());
+    if (_aggregator != null) {
+      logger.warn("Aggregator already exists for view cluster {}: {}: cleaning it up.",
+          viewClusterName, _aggregator.getAggregatorInstanceName());
+      reset();
     }
+    logger.info("Creating new HelixViewAggregator for view cluster {}", viewClusterName);
+    try {
+      _aggregator = new HelixViewAggregator(viewClusterName, _zkAddr);
+      _aggregator.start();
+    } catch (Exception e) {
+      logger.error("Aggregator failed to become leader from stand by for view cluster {}",
+          viewClusterName, e);
+      reset();
+      throw e;
+    }
+    logStateTransition("STANDBY", "LEADER", message.getPartitionName(), message.getTgtName());
 
   }
 
@@ -86,15 +82,12 @@ public class DistViewAggregatorStateModel extends AbstractHelixLeaderStandbyStat
     logStateTransition("OFFLINE", "DROPPED", message.getPartitionName(), message.getTgtName());
   }
 
-
   @Override
   public void reset() {
-    synchronized (stateTransitionLock) {
-      if (_aggregator != null) {
-        logger.error("Resetting view aggregator {}", _aggregator.getAggregatorInstanceName());
-        _aggregator.shutdown();
-        _aggregator = null;
-      }
+    if (_aggregator != null) {
+      logger.info("Resetting view aggregator {}", _aggregator.getAggregatorInstanceName());
+      _aggregator.shutdown();
+      _aggregator = null;
     }
   }
 

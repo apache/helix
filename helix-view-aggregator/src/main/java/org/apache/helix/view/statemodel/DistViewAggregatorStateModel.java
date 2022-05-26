@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class DistViewAggregatorStateModel extends AbstractHelixLeaderStandbyStateModel {
   private final static Logger logger = LoggerFactory.getLogger(DistViewAggregatorStateModel.class);
   private final static Object stateTransitionLock = new Object();
-  private static HelixViewAggregator _aggregator;
+  private HelixViewAggregator _aggregator;
 
   public DistViewAggregatorStateModel(String zkAddr) {
     super(zkAddr);

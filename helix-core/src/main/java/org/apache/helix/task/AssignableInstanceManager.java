@@ -419,7 +419,6 @@ public class AssignableInstanceManager {
     }
     LOG.info(
         "AssignableInstanceManager updated AssignableInstances due to LiveInstance/InstanceConfig change.");
-
     computeGlobalThreadBasedCapacity();
   }
 

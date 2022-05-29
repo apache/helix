@@ -1,7 +1,8 @@
 import { TestBed, async } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { Angulartics2, Angulartics2Piwik } from 'angulartics2';
+// import { Angulartics2 } from 'angulartics2';
+// import { Angulartics2Piwik } from 'angulartics2/piwik';
 
 import { TestingModule } from '../testing/testing.module';
 import { AppComponent } from './app.component';
@@ -10,7 +11,7 @@ describe('AppComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        TestingModule
+        TestingModule,
       ],
       declarations: [
         AppComponent
@@ -21,8 +22,8 @@ describe('AppComponent', () => {
       ],
       // TODO vxu: I don't want to add the following two but ...
       providers: [
-        Angulartics2,
-        Angulartics2Piwik
+        // Angulartics2,
+        // Angulartics2Piwik,
       ]
     }).compileComponents();
   }));

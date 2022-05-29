@@ -10,17 +10,11 @@ import { Observable, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
-import { VisNode, VisNodes, VisEdges, VisNetworkService, VisNetworkData, VisNetworkOptions } from 'ngx-vis';
+import {Data, Edge, Node, Options, VisNetworkService } from 'ngx-vis';
 
 import { ResourceService } from '../resource/shared/resource.service';
 import { InstanceService } from '../instance/shared/instance.service';
 import { HelperService } from '../shared/helper.service';
-
-class DashboardNetworkData implements VisNetworkData {
-    public nodes: VisNodes;
-    public edges: VisEdges;
-}
-
 @Component({
   selector: 'hi-dashboard',
   templateUrl: './dashboard.component.html',
@@ -29,37 +23,40 @@ class DashboardNetworkData implements VisNetworkData {
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
-  visNetwork = 'cluster-dashboard';
-  visNetworkData: DashboardNetworkData;
-  visNetworkOptions: VisNetworkOptions;
+  public visNetwork = 'cluster-dashboard';
+  public visNetworkData: Data;
+  public visNetworkOptions: Options;
+  public nodes: Node[];
+  public edges: Edge[]; 
 
-  clusterName: string;
-  isLoading = false;
-  resourceToId = {};
-  instanceToId = {};
-  selectedResource: any;
-  selectedInstance: any;
-  updateSubscription: Subscription;
-  updateInterval = 3000;
+  public clusterName: string;
+  public isLoading = false;
+  public resourceToId = {};
+  public instanceToId = {};
+  public selectedResource: any;
+  public selectedInstance: any;
+  public updateSubscription: Subscription;
+  public updateInterval = 3000;
 
-  constructor(
+  public constructor(
     private el:ElementRef,
     private route: ActivatedRoute,
-    protected visService: VisNetworkService,
+    protected visNetworkService: VisNetworkService,
     protected resourceService: ResourceService,
     protected instanceService: InstanceService,
     protected helper: HelperService
   ) { }
 
   networkInitialized() {
-    this.visService.on(this.visNetwork, 'click');
-    this.visService.on(this.visNetwork, 'zoom');
+    this.visNetworkService.on(this.visNetwork, 'click');
+    this.visNetworkService.on(this.visNetwork, 'zoom');
 
-    this.visService.click
+    this.visNetworkService.click
       .subscribe((eventData: any[]) => {
         if (eventData[0] === this.visNetwork) {
-          // clear the edges first
-          this.visNetworkData.edges.clear();
+
+          // clear the edges
+          this.visNetworkData.edges = []
           this.selectedResource = null;
           this.selectedInstance = null;
 
@@ -71,7 +68,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
 
-    this.visService.zoom
+    this.visNetworkService.zoom
       .subscribe((eventData: any) => {
         if (eventData[0] === this.visNetwork) {
           const scale = eventData[1].scale;
@@ -85,10 +82,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit() {
-    const nodes = new VisNodes();
-    const edges = new VisEdges();
-    this.visNetworkData = { nodes, edges };
-
+    this.nodes = 
+    this.edges = [];
+    this.visNetworkData = { nodes: this.nodes, edges: this.edges }
     this.visNetworkOptions = {
       interaction: {
         navigationButtons: true,
@@ -160,8 +156,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       this.updateSubscription.unsubscribe();
     }
 
-    this.visService.off(this.visNetwork, 'zoom');
-    this.visService.off(this.visNetwork, 'click');
+    this.visNetworkService.off(this.visNetwork, 'zoom');
+    this.visNetworkService.off(this.visNetwork, 'click');
   }
 
   protected fetchResources() {
@@ -172,17 +168,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe(
         result => {
           _.forEach(result, (resource) => {
-            const newId = this.visNetworkData.nodes.getLength() + 1;
+            const lastId = this.nodes.length;
+            const newId = this.nodes.length + 1;
             this.resourceToId[resource.name] = newId;
-            this.visNetworkData.nodes.add({
+            (this.visNetworkData.nodes as Node[])[this.visNetworkData.nodes.length] = {
               id: newId,
               label: resource.name,
               group: 'resource',
               title: JSON.stringify(resource)
-            });
+            };
           });
 
-          this.visService.fit(this.visNetwork);
+          this.visNetworkService.fit(this.visNetwork);
         },
         error => this.helper.showError(error),
         () => this.isLoading = false
@@ -193,17 +190,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe(
         result => {
           _.forEach(result, (instance) => {
-            const newId = this.visNetworkData.nodes.getLength() + 1;
+            const newId = this.visNetworkData.nodes.length + 1;
             this.instanceToId[instance.name] = newId;
-            this.visNetworkData.nodes.add({
+            (this.visNetworkData.nodes as Node[])[this.visNetworkData.nodes.length] = {
               id: newId,
               label: instance.name,
               group: instance.healthy ? 'instance' : 'instance_bad',
               title: JSON.stringify(instance),
-            });
+            };
           });
 
-          this.visService.fit(this.visNetwork);
+          this.visNetworkService.fit(this.visNetwork);
         },
         error => this.helper.showError(error),
         () => this.isLoading = false
@@ -218,12 +215,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.instanceService.getAll(this.clusterName)
       .subscribe(
         result => {
-          _.forEach(result, instance => {
-            const id = this.instanceToId[instance.name];
-            this.visNetworkData.nodes.update([{
-              id: id,
+          _.forEach(result, (instance, index, _collection) => {
+            (this.visNetworkData.nodes as Node[])[index] = {
+              id: this.instanceToId[instance.name],
               group: instance.healthy ? 'instance' : 'instance_bad'
-            }]);
+            };
           });
         }
       );
@@ -239,10 +235,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         .subscribe(
           resources => {
             _.forEach(resources, (resource) => {
-              this.visNetworkData.edges.add({
+              (this.visNetworkData.edges as Edge[])[this.visNetworkData.nodes.length] = {
                 from: id,
                 to: this.resourceToId[resource.name]
-              });
+              };
             });
           },
           error => this.helper.showError(error)
@@ -260,10 +256,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 .unionBy('instanceName')
                 .map('instanceName')
                 .forEach((instanceName) => {
-                  this.visNetworkData.edges.add({
+                  (this.visNetworkData.edges as Edge[])[this.visNetworkData.nodes.length] = {
                     from: this.instanceToId[instanceName],
                     to: this.resourceToId[resourceName]
-                  });
+                  };
                 });
             },
             error => this.helper.showError(error)

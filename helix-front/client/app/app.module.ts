@@ -3,8 +3,8 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 
-import { Angulartics2Module, Angulartics2Piwik } from 'angulartics2';
-
+// import { Angulartics2Module } from 'angulartics2';
+// import { Angulartics2Piwik } from 'angulartics2/piwik';
 import { AppRoutingModule } from './app-routing.module';
 import { CoreModule } from './core/core.module';
 import { SharedModule } from './shared/shared.module';
@@ -28,7 +28,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     FormsModule,
     HttpClientModule,
     AppRoutingModule,
-    Angulartics2Module.forRoot([ Angulartics2Piwik ]),
+    // Angulartics2Module.forRoot(),
     CoreModule,
     SharedModule,
     ClusterModule,

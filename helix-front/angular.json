@@ -11,6 +11,10 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
+<<<<<<< HEAD
+=======
+            "aot": true,
+>>>>>>> 5d503075c (upgrade helix-front to Angular 9.1. fix #2092)
             "outputPath": "dist/public",
             "index": "client/index.html",
             "main": "client/main.ts",
@@ -28,6 +32,15 @@
           },
           "configurations": {
             "production": {
+<<<<<<< HEAD
+=======
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "3503kb"
+                }
+              ],
+>>>>>>> 5d503075c (upgrade helix-front to Angular 9.1. fix #2092)
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,

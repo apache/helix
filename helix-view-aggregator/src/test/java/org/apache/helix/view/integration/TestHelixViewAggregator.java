@@ -56,6 +56,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
   private HelixAdmin _helixAdmin;
   private MockViewClusterSpectator _monitor;
   private Set<String> _allResources = new HashSet<>();
+  // TODO: add test coverage on multiple statemodel instances for different view clusters
   private DistViewAggregatorStateModel _viewAggregatorStateModel;
 
   @BeforeClass

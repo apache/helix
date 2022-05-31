@@ -29,6 +29,7 @@ import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.helix.TestHelper;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.authValidator.AuthValidator;
@@ -44,6 +45,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.mockito.Mockito;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -54,20 +56,27 @@ public class TestAuthValidator extends AbstractTestClass {
   private String _mockBaseUri;
   private CloseableHttpClient _httpClient;
 
+  private static String CLASSNAME_TEST_DEFAULT_AUTH = "testDefaultAuthValidator";
+  private static String CLASSNAME_TEST_CST_AUTH = "testCustomAuthValidator";
+
+  @AfterClass
+  public void afterClass() {
+    TestHelper.dropCluster(CLASSNAME_TEST_DEFAULT_AUTH, _gZkClient);
+    TestHelper.dropCluster(CLASSNAME_TEST_CST_AUTH, _gZkClient);
+  }
+
   @Test
   public void testDefaultAuthValidator() throws JsonProcessingException {
-    String testClusterName = "testDefaultAuthValidator";
-    put("clusters/" + testClusterName, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+    put("clusters/" + CLASSNAME_TEST_DEFAULT_AUTH, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
     String body = get("clusters/", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String clustersStr = node.get(ClusterAccessor.ClusterProperties.clusters.name()).toString();
-    Assert.assertTrue(clustersStr.contains(testClusterName));
+    Assert.assertTrue(clustersStr.contains(CLASSNAME_TEST_DEFAULT_AUTH));
   }
 
   @Test(dependsOnMethods = "testDefaultAuthValidator")
   public void testCustomAuthValidator() throws IOException, InterruptedException {
-    String testClusterName = "testCustomAuthValidator";
     int newPort = getBaseUri().getPort() + 1;
 
     // Start a second server for testing Distributed Leader Election for writes
@@ -91,9 +100,9 @@ public class TestAuthValidator extends AbstractTestClass {
     server.start();
 
     HttpUriRequest request =
-        buildRequest("/clusters/" + testClusterName, HttpConstants.RestVerbs.PUT, "");
+        buildRequest("/clusters/" + CLASSNAME_TEST_CST_AUTH, HttpConstants.RestVerbs.PUT, "");
     sendRequestAndValidate(request, Response.Status.CREATED.getStatusCode());
-    request = buildRequest("/clusters/" + testClusterName, HttpConstants.RestVerbs.GET, "");
+    request = buildRequest("/clusters/" + CLASSNAME_TEST_CST_AUTH, HttpConstants.RestVerbs.GET, "");
     sendRequestAndValidate(request, Response.Status.FORBIDDEN.getStatusCode());
 
     server.shutdown();
@@ -107,7 +116,7 @@ public class TestAuthValidator extends AbstractTestClass {
     server.start();
     _httpClient = HttpClients.createDefault();
 
-    request = buildRequest("/clusters/" + testClusterName, HttpConstants.RestVerbs.GET, "");
+    request = buildRequest("/clusters/" + CLASSNAME_TEST_CST_AUTH, HttpConstants.RestVerbs.GET, "");
     sendRequestAndValidate(request, Response.Status.OK.getStatusCode());
     request = buildRequest("/clusters", HttpConstants.RestVerbs.GET, "");
     sendRequestAndValidate(request, Response.Status.FORBIDDEN.getStatusCode());

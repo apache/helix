@@ -1,6 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "importHelpers": true,
     "outDir": "./dist/out-tsc",
     "baseUrl": "client",
     "sourceMap": true,
@@ -9,6 +10,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "target": "es5",
+    "skipLibCheck": true,
     "typeRoots": [
       "node_modules/@types"
     ],

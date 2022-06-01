@@ -192,6 +192,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
 
     // Clean up
     _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+    System.clearProperty("zookeeper.extendedTypesEnabled");
   }
 
   /**
@@ -199,6 +200,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
    */
   @Test(dependsOnMethods = "testRealmAwareZkClientCreateContainer")
   public void testRealmAwareZkClientCreateSequentialWithTTL() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // Create a dummy ZNRecord
     ZNRecord znRecord = new ZNRecord("DummyRecord");
     znRecord.setSimpleField("Dummy", "Value");
@@ -214,6 +216,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
 
     // Clean up
     _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+    System.clearProperty("zookeeper.extendedTypesEnabled");
   }
 
   /**
@@ -221,6 +224,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
    */
   @Test(dependsOnMethods = "testRealmAwareZkClientCreateSequentialWithTTL")
   public void testRealmAwareZkClientCreateWithTTL() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // Create a dummy ZNRecord
     ZNRecord znRecord = new ZNRecord("DummyRecord");
     znRecord.setSimpleField("Dummy", "Value");

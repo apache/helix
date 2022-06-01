@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.cloud.event.HelixEventHandlingUtil;
 import org.apache.helix.util.InstanceValidationUtil;
 
 /**
@@ -43,8 +42,9 @@ public class DefaultCloudEventCallbackImpl {
     if (InstanceValidationUtil
         .isEnabled(manager.getHelixDataAccessor(), manager.getInstanceName())) {
       HelixEventHandlingUtil
-          .enableInstanceForCloudEvent(manager.getClusterName(), manager.getInstanceName(), false, System.currentTimeMillis(),
-              manager.getHelixDataAccessor().getBaseDataAccessor());
+          .enableInstanceForCloudEvent(manager.getClusterName(), manager.getInstanceName(), String
+                  .format(_reason, "disableInstance", _className, manager, System.currentTimeMillis()),
+              false, manager.getHelixDataAccessor().getBaseDataAccessor());
     }
   }
 
@@ -59,8 +59,9 @@ public class DefaultCloudEventCallbackImpl {
     if (HelixEventHandlingUtil
         .IsInstanceDisabledForCloudEvent(manager.getClusterName(), instanceName, accessor.getBaseDataAccessor())) {
       HelixEventHandlingUtil
-          .enableInstanceForCloudEvent(manager.getClusterName(), manager.getInstanceName(), true, System.currentTimeMillis(),
-              manager.getHelixDataAccessor().getBaseDataAccessor());
+          .enableInstanceForCloudEvent(manager.getClusterName(), manager.getInstanceName(), String
+                  .format(_reason, "disableInstance", _className, manager, System.currentTimeMillis()),
+              true, manager.getHelixDataAccessor().getBaseDataAccessor());
     }
   }
 

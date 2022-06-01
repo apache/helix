@@ -23,12 +23,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.util.HelixUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * This class is the factory for singleton class {@link AbstractEventHandler}
  */
 public class CloudEventHandlerFactory {
+  private static final Logger LOG = LoggerFactory.getLogger(CloudEventHandlerFactory.class);
   private static Map<String, AbstractEventHandler> INSTANCE_MAP = new HashMap();
 
   private CloudEventHandlerFactory() {
@@ -43,7 +46,8 @@ public class CloudEventHandlerFactory {
     synchronized (CloudEventHandlerFactory.class) {
       AbstractEventHandler instance = INSTANCE_MAP.get(eventHandlerClassName);
       if (instance == null) {
-         instance = (AbstractEventHandler) (HelixUtil
+        LOG.info("Initiating an object of {}", eventHandlerClassName);
+        instance = (AbstractEventHandler) (HelixUtil
             .loadClass(AbstractEventHandler.class, eventHandlerClassName)).newInstance();
         INSTANCE_MAP.put(eventHandlerClassName, instance);
       }

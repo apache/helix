@@ -832,10 +832,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
         _cloudEventListener =
             new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
-        LOG.info("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
         CloudEventHandlerFactory.getInstance(
             _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
             .registerCloudEventListener(_cloudEventListener);
+        LOG.info("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
       }
     }
   }

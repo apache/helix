@@ -191,10 +191,26 @@ public class TestCloudEventCallbackProperty {
     _cloudProperty.setCloudEventCallbackProperty(property);
 
     _helixManager.connect();
+  }
 
-    // Manually trigger event
-    ((CloudEventHandler) CloudEventHandlerFactory.getInstance(CloudEventHandler.class.getCanonicalName()))
-        .performAction(HelixCloudEventListener.EventType.ON_PAUSE, null);
+  @Test
+  public void testRegisterAndUnregister() throws Exception {
+    // Cloud event callback property
+    Map<String, String> paramMap = new HashMap<>();
+    paramMap.put(CloudEventCallbackProperty.UserArgsInputKey.CALLBACK_IMPL_CLASS_NAME,
+        MockCloudEventCallbackImpl.class.getCanonicalName());
+    paramMap.put(CloudEventCallbackProperty.UserArgsInputKey.CLOUD_EVENT_HANDLER_CLASS_NAME,
+        HelixTestCloudEventHandler.class.getCanonicalName());
+    CloudEventCallbackProperty property = new CloudEventCallbackProperty(paramMap);
+    property.setHelixOperationEnabled(HelixOperation.ENABLE_DISABLE_INSTANCE, true);
+    _cloudProperty.setCloudEventCallbackProperty(property);
+
+    _helixManager.connect();
+
+    Assert.assertTrue(HelixTestCloudEventHandler.anyListenerIsRegisterFlag);
+
+    _helixManager.disconnect();
+    Assert.assertFalse(HelixTestCloudEventHandler.anyListenerIsRegisterFlag);
   }
 
   @Test
@@ -205,7 +221,7 @@ public class TestCloudEventCallbackProperty {
             "org.apache.helix.cloud.InvalidClassName"));
     _cloudProperty.setCloudEventCallbackProperty(property);
 
-    try{
+    try {
     _helixManager.connect();}
     catch (Exception ex){
       Assert.assertEquals(ex.getClass(), java.lang.ClassNotFoundException.class);

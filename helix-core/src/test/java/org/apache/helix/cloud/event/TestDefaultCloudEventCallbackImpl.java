@@ -45,7 +45,7 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
     _admin = _instanceManager.getClusterManagmentTool();
   }
 
-  @Test
+  @Test (enabled = false)
   public void testDisableInstance() {
     Assert.assertTrue(InstanceValidationUtil
         .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
@@ -71,7 +71,7 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
   }
 
-  @Test(dependsOnMethods = "testDisableInstance")
+  @Test/*(dependsOnMethods = "testDisableInstance")*/ (enabled = false)
   public void testEnableInstance() {
     Assert.assertFalse(InstanceValidationUtil
         .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
@@ -89,14 +89,14 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
         true);
   }
 
-  @Test
+  @Test (enabled = false)
   public void testEnterMaintenanceMode() {
     Assert.assertFalse(_admin.isInMaintenanceMode(CLUSTER_NAME));
     _impl.enterMaintenanceMode(_instanceManager, null);
     Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
   }
 
-  @Test(dependsOnMethods = "testEnterMaintenanceMode")
+  @Test(enabled = false) //(dependsOnMethods = "testEnterMaintenanceMode")
   public void testExitMaintenanceMode() {
     Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
     // Should not exit maintenance mode if there is remaining live instance that is disabled due to cloud event

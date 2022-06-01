@@ -28,14 +28,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -63,7 +61,6 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
-import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -246,10 +243,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       refreshedType.add(HelixConstants.ChangeType.CLUSTER_CONFIG);
       // TODO: This is a temp function to clean up incompatible batched disabled instances format.
       // Remove in later version.
-      if (needReformatBatchedDIsabledInstance(_clusterConfig) && updateBatchDisableFormat(
-          accessor)) {
+      if (needCleanUpBatchedDisabledInstance(_clusterConfig.getRecord())
+          && cleanBatchDisableMapField(accessor)) {
         LogUtil.logInfo(logger, getClusterEventId(), String
-            .format("Clean ClusterConfig change for cluster %s, pipeline %s", _clusterName,
+            .format("Clean ClusterConfig mapField for cluster %s, pipeline %s", _clusterName,
                 getPipelineName()));
       }
       refreshAbnormalStateResolverMap(_clusterConfig);
@@ -260,10 +257,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-  // TODO: This function is used to clean up incompatible batched disabled instances format for
-  // "DISABLED_INSTANCES" introduced in 1.0.3.0. This temp change shoul dbe reverted after 1.0.5.0 \
+  // TODO: This function is used to clean up batched disabled instances for
+  // "DISABLED_INSTANCES" introduced in 1.0.3.0. This temp change should be reverted after 1.0.5.0 \
   // or later version.
-  private boolean updateBatchDisableFormat(final HelixDataAccessor accessor) {
+  private boolean cleanBatchDisableMapField(final HelixDataAccessor accessor) {
     boolean successful =
         accessor.updateProperty(accessor.keyBuilder().clusterConfig(), new DataUpdater<ZNRecord>() {
           @Override
@@ -272,12 +269,17 @@ public class BaseControllerDataProvider implements ControlContextProvider {
               throw new HelixException(
                   "Cluster: " + _clusterConfig.getClusterName() + ": cluster config is null");
             }
-            return updateBatchDisableFormatHelper(new ClusterConfig(currentData)).getRecord();
+            ZNRecord newRecord = new ZNRecord(currentData);
+            String batchDisabledInstanceMapFieldKey =
+                ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name();
+            if (needCleanUpBatchedDisabledInstance(currentData)) {
+              newRecord.getMapFields().remove(batchDisabledInstanceMapFieldKey);
+
+            }
+            return newRecord;
           }
         }, null);
-    if (successful) {
-      _clusterConfig = updateBatchDisableFormatHelper(_clusterConfig);
-    } else {
+    if (!successful) {
       LogUtil.logError(logger, getClusterEventId(), String
           .format("Failed to clean ClusterConfig change for cluster %s, pipeline %s", _clusterName,
               getPipelineName()));
@@ -285,48 +287,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return successful;
   }
 
-  private ClusterConfig updateBatchDisableFormatHelper(ClusterConfig oldConfig) {
-    Map<String, String> disabledInstances = oldConfig.getDisabledInstances();
-    Map<String, String> disabledInstancesWithInfo = oldConfig.getDisabledInstancesWithInfo();
-
-    ClusterConfig newClusterConfig = new ClusterConfig(oldConfig.getRecord());
-    Map<String, String> newDisabledInstances =
-        new TreeMap<>(newClusterConfig.getDisabledInstances());
-    Map<String, String> newDisabledInstancesWithInfo =
-        new TreeMap<>(newClusterConfig.getDisabledInstancesWithInfo());
-
-    // iterate through all k,v pairs and check for string format.
-    for (Map.Entry<String, String> instanceInfo : disabledInstances.entrySet()) {
-      String instanceName = instanceInfo.getKey();
-      if (!StringUtils.isNumeric(instanceInfo.getValue())) {
-        newDisabledInstances.put(instanceName,
-            ConfigStringUtil.parseConcatenatedConfig(instanceInfo.getValue())
-                .get(ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.name()));
-        newDisabledInstancesWithInfo.put(instanceName, instanceInfo.getValue());
-      } else if (!disabledInstancesWithInfo.containsKey(instanceName)) {
-        newDisabledInstancesWithInfo.put(instanceName, ConfigStringUtil.concatenateMapping(
-            Collections.singletonMap(
-                ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.name(),
-                instanceInfo.getValue())));
-      }
-    }
-    newClusterConfig.setDisabledInstances(newDisabledInstances);
-    newClusterConfig.setDisabledInstancesWithInfo(newDisabledInstancesWithInfo);
-    return newClusterConfig;
-  }
-
-  private boolean needReformatBatchedDIsabledInstance(ClusterConfig clusterConfig) {
-    Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
-    Map<String, String> DisabledInstancesWithInfo = clusterConfig.getDisabledInstancesWithInfo();
-
-    // interate through all k,v pairs and check for string format.
-    for (Map.Entry<String, String> instanceInfo : disabledInstances.entrySet()) {
-      if (!StringUtils.isNumeric(instanceInfo.getValue()) || !DisabledInstancesWithInfo
-          .containsKey(instanceInfo.getKey())) {
-        return true;
-      }
-    }
-    return false;
+  private boolean needCleanUpBatchedDisabledInstance(ZNRecord record) {
+    return record.getMapFields()
+        .containsKey(ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name());
   }
 
   private void refreshIdealState(final HelixDataAccessor accessor,
@@ -335,8 +298,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       _idealStateCache.refresh(accessor);
       refreshedType.add(HelixConstants.ChangeType.IDEAL_STATE);
     } else {
-      LogUtil.logInfo(logger, getClusterEventId(), String
-          .format("No ideal state change for %s cluster, %s pipeline", _clusterName,
+      LogUtil.logInfo(logger, getClusterEventId(),
+          String.format("No ideal state change for %s cluster, %s pipeline", _clusterName,
               getPipelineName()));
     }
   }

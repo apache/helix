@@ -114,12 +114,12 @@ public class TestControllerLeadershipChange extends ZkTestBase {
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
 
-    // Wait for rebalance
+    // Wait for rebalanced
     Assert.assertTrue(clusterVerifier.verifyByPolling());
     ZKHelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, baseDataAccessor);
     ClusterConfig cls = helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().clusterConfig());
-    // Now the format of value in DISABLED_Instance should be parseble.
-    Long.parseLong(cls.getDisabledInstances().get("DISABLED_Instance"));
+    Assert.assertFalse(cls.getRecord().getMapFields()
+        .containsKey(ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name()));
 
     controller.syncStop();
     verifyControllerIsNotLeader(controller);

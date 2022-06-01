@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
 
@@ -59,7 +60,7 @@ export class ResourceListComponent implements OnInit {
           );
       } else {
         this.route.parent.params
-          .map(p => p.name)
+          .pipe(map(p => p.name))
           .subscribe(name => {
             this.clusterName = name;
             this.fetchResources();

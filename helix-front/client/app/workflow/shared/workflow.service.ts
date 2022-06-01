@@ -1,3 +1,5 @@
+
+import {map} from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 
 import { Workflow } from './workflow.model';
@@ -8,14 +10,14 @@ export class WorkflowService extends HelixService {
 
   public getAll(clusterName: string) {
     return this
-      .request(`/clusters/${ clusterName }/workflows`)
-      .map(data => data.Workflows.sort());
+      .request(`/clusters/${ clusterName }/workflows`).pipe(
+      map(data => data.Workflows.sort()));
   }
 
   public get(clusterName: string, workflowName: string) {
     return this
-      .request(`/clusters/${ clusterName }/workflows/${ workflowName }`)
-      .map(data => new Workflow(data, clusterName));
+      .request(`/clusters/${ clusterName }/workflows/${ workflowName }`).pipe(
+      map(data => new Workflow(data, clusterName)));
   }
 
   public stop(clusterName: string, workflowName: string) {

@@ -233,10 +233,16 @@ export class NodeViewerComponent implements OnInit {
       case 'list':
         if (key) {
           const entry = _.find(this.node.listFields, {'name': key});
+  //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+  // Property 'value' does not exist on type 'number'.ts(2339)
+  // @ts-ignore
           entry.value.push({
             name: '',
             value: data.value.value
           });
+          // Argument of type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...' is not assignable to parameter of type 'ListFieldObject'.
+  // Type 'number' is not assignable to type 'ListFieldObject'.ts(2345)
+  // @ts-ignore
           newNode.listFields.push(entry);
         }
         break;
@@ -244,6 +250,9 @@ export class NodeViewerComponent implements OnInit {
       case 'map':
         if (key) {
           const entry = _.find(this.node.mapFields, {'name': key});
+  //         Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
+  // Property 'value' does not exist on type 'number'.ts(2339)
+  // @ts-ignore
           _.forEach(entry.value, (item: any) => {
             newNode.appendMapField(key, item.name, item.value);
           });
@@ -270,12 +279,24 @@ export class NodeViewerComponent implements OnInit {
       case 'list':
         if (key) {
           const entry = _.find(this.node.listFields, {'name': key});
+  //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+  // Property 'value' does not exist on type 'number'.ts(2339)
+  // @ts-ignore
           const index = _.findIndex(entry.value, {'value': row.value});
           if (isDeleting) {
+  //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+  // Property 'value' does not exist on type 'number'.ts(2339)
+  // @ts-ignore
             entry.value.splice(index, 1);
           } else {
+  //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+  // Property 'value' does not exist on type 'number'.ts(2339)
+  // @ts-ignore
             entry.value[index].value = value;
           }
+          // Argument of type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...' is not assignable to parameter of type 'ListFieldObject'.
+          // Type 'number' is not assignable to type 'ListFieldObject'.ts(2345)
+          // @ts-ignore
           newNode.listFields.push(entry);
         }
         break;
@@ -286,6 +307,9 @@ export class NodeViewerComponent implements OnInit {
           const entry = _.find(this.node.mapFields, {'name': key});
           newNode.mapFields =  [{ name: key, value: [] }];
 
+          // Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
+          //   Property 'value' does not exist on type 'number'.ts(2339)
+          // @ts-ignore
           _.forEach(entry.value, (item: any) => {
             if (item.name === row.name) {
               if (!isDeleting) {

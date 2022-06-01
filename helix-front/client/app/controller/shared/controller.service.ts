@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { map } from 'rxjs/operators'
 
 import { HelixService } from '../../core/helix.service';
 import { Controller } from './controller.model';
@@ -9,7 +10,7 @@ export class ControllerService extends HelixService {
   public get(clusterName: string) {
     return this
       .request(`/clusters/${clusterName}/controller`)
-      .map(data => {
+      .pipe(map(data => {
         return new Controller(
           data.controller,
           clusterName,
@@ -17,7 +18,7 @@ export class ControllerService extends HelixService {
           data.SESSION_ID,
           data.HELIX_VERSION
         );
-      });
+      }));
   }
 
 }

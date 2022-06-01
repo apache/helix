@@ -1,3 +1,5 @@
+
+import {map} from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 
 import * as _ from 'lodash';
@@ -11,8 +13,8 @@ export class ResourceService extends HelixService {
 
   public getAll(clusterName: string) {
     return this
-      .request(`/clusters/${ clusterName }/resources`)
-      .map(data => {
+      .request(`/clusters/${ clusterName }/resources`).pipe(
+      map(data => {
         let res: Resource[] = [];
         for (let name of data.idealStates) {
           res.push(<Resource>({
@@ -22,13 +24,13 @@ export class ResourceService extends HelixService {
           }));
         }
         return _.sortBy(res, 'name');
-      });
+      }));
   }
 
   public getAllOnInstance(clusterName: string, instanceName: string) {
     return this
-      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources`)
-      .map(data => {
+      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources`).pipe(
+      map(data => {
         let res: any[] = [];
         if (data) {
           for (let resource of data.resources) {
@@ -38,13 +40,13 @@ export class ResourceService extends HelixService {
           }
         }
         return res;
-      });
+      }));
   }
 
   public get(clusterName: string, resourceName: string) {
     return this
-      .request(`/clusters/${ clusterName }/resources/${ resourceName }`)
-      .map(data => {
+      .request(`/clusters/${ clusterName }/resources/${ resourceName }`).pipe(
+      map(data => {
         return new Resource(
           clusterName,
           resourceName,
@@ -52,13 +54,13 @@ export class ResourceService extends HelixService {
           data.idealState,
           data.externalView
         );
-      });
+      }));
   }
 
   public getOnInstance(clusterName: string, instanceName: string, resourceName: string) {
     return this
-      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources/${ resourceName }`)
-      .map(data => {
+      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources/${ resourceName }`).pipe(
+      map(data => {
         let ret = {
           bucketSize: data.simpleFields.BUCKET_SIZE,
           sessionId: data.simpleFields.SESSION_ID,
@@ -78,7 +80,7 @@ export class ResourceService extends HelixService {
         }
 
         return ret;
-      });
+      }));
   }
 
   public enable(clusterName: string, resourceName: string) {

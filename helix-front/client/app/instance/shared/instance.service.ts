@@ -1,3 +1,5 @@
+
+import {map} from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 
 import { Instance } from './instance.model';
@@ -9,8 +11,8 @@ export class InstanceService extends HelixService {
 
   public getAll(clusterName: string) {
     return this
-      .request(`/clusters/${ clusterName }/instances`)
-      .map(data => {
+      .request(`/clusters/${ clusterName }/instances`).pipe(
+      map(data => {
         const onlineInstances = data.online;
         const disabledInstances = data.disabled;
 
@@ -23,13 +25,13 @@ export class InstanceService extends HelixService {
             disabledInstances.indexOf(name) < 0,
             onlineInstances.indexOf(name) >= 0
           ));
-      });
+      }));
   }
 
   public get(clusterName: string, instanceName: string) {
     return this
-      .request(`/clusters/${ clusterName }/instances/${ instanceName }`)
-      .map(data => {
+      .request(`/clusters/${ clusterName }/instances/${ instanceName }`).pipe(
+      map(data => {
         const liveInstance = data.liveInstance;
         const config = data.config;
         // there are two cases meaning enabled both:
@@ -44,7 +46,7 @@ export class InstanceService extends HelixService {
           liveInstance.simpleFields.SESSION_ID,
           liveInstance.simpleFields.HELIX_VERSION
         ) : new Instance(data.id, clusterName, enabled, null);
-      });
+      }));
   }
 
   public create(clusterName: string, host: string, port: string, enabled: boolean) {

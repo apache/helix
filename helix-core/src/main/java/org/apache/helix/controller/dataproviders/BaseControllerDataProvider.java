@@ -243,7 +243,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       refreshedType.add(HelixConstants.ChangeType.CLUSTER_CONFIG);
       // TODO: This is a temp function to clean up incompatible batched disabled instances format.
       // Remove in later version.
-      if (needCleanUpBatchedDisabledInstance(_clusterConfig.getRecord())
+      if (_clusterConfig!=null && needCleanUpBatchedDisabledInstance(_clusterConfig.getRecord())
           && cleanBatchDisableMapField(accessor)) {
         LogUtil.logInfo(logger, getClusterEventId(), String
             .format("Clean ClusterConfig mapField for cluster %s, pipeline %s", _clusterName,
@@ -288,7 +288,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   private boolean needCleanUpBatchedDisabledInstance(ZNRecord record) {
-    return record.getMapFields()
+    return record.getMapFields()!=null && record.getMapFields()
         .containsKey(ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name());
   }
 

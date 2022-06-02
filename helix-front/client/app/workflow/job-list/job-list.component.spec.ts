@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
@@ -9,7 +9,7 @@ describe('JobListComponent', () => {
   let component: JobListComponent;
   let fixture: ComponentFixture<JobListComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [ TestingModule ],
       declarations: [ JobListComponent ],

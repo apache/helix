@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { JsonViewerComponent } from './json-viewer.component';
@@ -7,9 +7,9 @@ describe('JsonViewerComponent', () => {
   let component: JsonViewerComponent;
   let fixture: ComponentFixture<JsonViewerComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports:[
+      imports: [
         RouterTestingModule
       ],
       declarations: [ JsonViewerComponent ]

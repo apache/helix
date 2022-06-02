@@ -5,8 +5,8 @@ import {
   AfterViewInit,
   OnDestroy
 } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, Subscription } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
@@ -27,7 +27,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   public visNetworkData: Data;
   public visNetworkOptions: Options;
   public nodes: Node[];
-  public edges: Edge[]; 
+  public edges: Edge[];
 
   public clusterName: string;
   public isLoading = false;
@@ -39,7 +39,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   public updateInterval = 3000;
 
   public constructor(
-    private el:ElementRef,
+    private el: ElementRef,
     private route: ActivatedRoute,
     protected visNetworkService: VisNetworkService,
     protected resourceService: ResourceService,
@@ -82,7 +82,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.nodes = 
+    this.nodes = [];
     this.edges = [];
     this.visNetworkData = { nodes: this.nodes, edges: this.edges }
     this.visNetworkOptions = {
@@ -131,20 +131,22 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   initDashboard() {
     // resize container according to the parent
-    let width = this.el.nativeElement.offsetWidth;
-    let height = this.el.nativeElement.offsetHeight - 36;
-    let dashboardDom = this.el.nativeElement.getElementsByClassName(this.visNetwork)[0];
+    const width = this.el.nativeElement.offsetWidth;
+    const height = this.el.nativeElement.offsetHeight - 36;
+    const dashboardDom = this.el.nativeElement.getElementsByClassName(this.visNetwork)[0];
     dashboardDom.style.width = `${ width }px`;
     dashboardDom.style.height = `${ height }px`;
 
     // load data
-    this.route.parent.params
-      .pipe(map(p => p.name))
-      .subscribe(name => {
-        this.clusterName = name;
-        this.fetchResources();
-        // this.updateResources();
+    if (this.route && this.route.parent) {
+      this.route.parent.params
+        .pipe(map(p => p.name))
+        .subscribe(name => {
+          this.clusterName = name;
+          this.fetchResources();
+          // this.updateResources();
       });
+    }
   }
 
   ngAfterViewInit() {

@@ -12,7 +12,7 @@
     ],
     "curly": true,
     "eofline": true,
-    "forin": true,
+    "forin": { "severity": "off" },
     "import-blacklist": [true],
     "import-spacing": true,
     "indent": [
@@ -22,7 +22,7 @@
     "interface-over-type-literal": true,
     "label-position": true,
     "max-line-length": [
-      true,
+      "off",
       140
     ],
     "member-access": false,
@@ -48,13 +48,12 @@
     "no-empty-interface": true,
     "no-eval": true,
     "no-inferrable-types": [true, "ignore-params"],
-    "no-shadowed-variable": true,
+    "no-shadowed-variable": { "severity": "off" },
     "no-string-literal": false,
     "no-string-throw": true,
     "no-switch-case-fall-through": true,
     "no-trailing-whitespace": true,
     "no-unused-expression": true,
-    "no-use-before-declare": true,
     "no-var-keyword": true,
     "object-literal-sort-keys": false,
     "one-line": [
@@ -69,12 +68,12 @@
       true,
       "single"
     ],
-    "radix": true,
+    "radix": { "severity": "off" },
     "semicolon": [
       "always"
     ],
     "triple-equals": [
-      true,
+      "off",
       "allow-null-check"
     ],
     "typedef-whitespace": [
@@ -87,7 +86,6 @@
         "variable-declaration": "nospace"
       }
     ],
-    "typeof-compare": true,
     "unified-signatures": true,
     "variable-name": false,
     "whitespace": [
@@ -99,13 +97,10 @@
       "check-type"
     ],
 
-    "directive-selector": [true, "attribute", "hi", "camelCase"],
+    "directive-selector": ["off", "attribute", "hi", "camelCase"],
     "component-selector": [true, "element", "hi", "kebab-case"],
-    "use-input-property-decorator": true,
-    "use-output-property-decorator": true,
-    "use-host-property-decorator": true,
     "no-input-rename": true,
-    "no-output-rename": true,
+    "no-output-rename": { "severity": "off" },
     "use-life-cycle-interface": true,
     "use-pipe-transform-interface": true,
     "component-class-suffix": true,

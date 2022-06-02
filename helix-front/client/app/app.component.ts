@@ -88,13 +88,29 @@ export class AppComponent implements OnInit {
             .subscribe(
               isAuthorized => {
                 if (!isAuthorized) {
-                  this.helper.showError("You're not part of helix-admin group or password incorrect");
+                  this.helper.showError('You\'re not part of helix-admin group or password incorrect');
                 }
                 this.currentUser = this.service.getCurrentUser();
               },
-              error => this.helper.showError(error)
+              error => {
+                // since rest API simply throws 404 instead of empty config when config is not initialized yet
+                // frontend has to treat 404 as normal result
+                if (error != 'Not Found') {
+                  this.helper.showError(error);
+                }
+                this.isLoading = false;
+              },
             );
         }
-      });
+      },
+      error => {
+        // since rest API simply throws 404 instead of empty config when config is not initialized yet
+        // frontend has to treat 404 as normal result
+        if (error != 'Not Found') {
+          this.helper.showError(error);
+        }
+        this.isLoading = false;
+      },
+      );
   }
 }

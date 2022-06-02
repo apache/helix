@@ -1,8 +1,9 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
-
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { Observable } from 'rxjs/Observable';
+import { waitForAsync, ComponentFixture, TestBed,  } from '@angular/core/testing';
+import { of, Observable } from 'rxjs';
+
+import { } from '@angular/core';
+
 
 import { TestingModule } from '../../../testing/testing.module';
 import { JobDetailComponent } from './job-detail.component';
@@ -12,7 +13,7 @@ describe('JobDetailComponent', () => {
   let component: JobDetailComponent;
   let fixture: ComponentFixture<JobDetailComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [ TestingModule ],
       providers: [

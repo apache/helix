@@ -64,7 +64,7 @@ export class Workflow {
   }
 
   protected parseJobs(list: string[], parents: any): Job[] {
-    let result: Job[] = [];
+    const result: Job[] = [];
 
     _.forEach(list, jobName => {
       result.push(new Job(

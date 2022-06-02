@@ -37,6 +37,7 @@ import org.apache.helix.BaseDataAccessor;
    */
    static boolean enableInstanceForCloudEvent(String clusterName, String instanceName, String message,
       boolean isEnable, BaseDataAccessor dataAccessor) {
+    // TODO add impl here
     return true;
   }
 
@@ -50,6 +51,7 @@ import org.apache.helix.BaseDataAccessor;
    */
    static boolean IsInstanceDisabledForCloudEvent(String clusterName, String instanceName,
       BaseDataAccessor dataAccessor) {
+    // TODO add impl here
     return true;
   }
 

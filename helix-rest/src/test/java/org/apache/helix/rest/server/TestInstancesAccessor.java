@@ -137,7 +137,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(enabled = false)
   public void testUpdateInstances() throws IOException {
     // TODO: Reenable the test after storage node fix the problem
     // Batch disable instances

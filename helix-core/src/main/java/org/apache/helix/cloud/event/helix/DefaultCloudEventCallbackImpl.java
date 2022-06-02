@@ -19,19 +19,13 @@ package org.apache.helix.cloud.event.helix;
  * under the License.
  */
 
-import java.util.List;
-
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.util.InstanceValidationUtil;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * A default callback implementation class to be used in {@link HelixCloudEventListener}
  */
 public class DefaultCloudEventCallbackImpl {
-  private final String _reason =
-      "Cloud event callback %s in class %s triggered in listener HelixManager %s, at time %s .";
-  protected final String _className = this.getClass().getSimpleName();
 
   /**
    * Disable the instance
@@ -39,13 +33,8 @@ public class DefaultCloudEventCallbackImpl {
    * @param eventInfo Detailed information about the event
    */
   public void disableInstance(HelixManager manager, Object eventInfo) {
-    if (InstanceValidationUtil
-        .isEnabled(manager.getHelixDataAccessor(), manager.getInstanceName())) {
-      HelixEventHandlingUtil
-          .enableInstanceForCloudEvent(manager.getClusterName(), manager.getInstanceName(), String
-                  .format(_reason, "disableInstance", _className, manager, System.currentTimeMillis()),
-              false, manager.getHelixDataAccessor().getBaseDataAccessor());
-    }
+    // To be implemented
+    throw new NotImplementedException();
   }
 
   /**
@@ -54,49 +43,27 @@ public class DefaultCloudEventCallbackImpl {
    * @param eventInfo Detailed information about the event
    */
   public void enableInstance(HelixManager manager, Object eventInfo) {
-    String instanceName = manager.getInstanceName();
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    if (HelixEventHandlingUtil
-        .IsInstanceDisabledForCloudEvent(manager.getClusterName(), instanceName, accessor.getBaseDataAccessor())) {
-      HelixEventHandlingUtil
-          .enableInstanceForCloudEvent(manager.getClusterName(), manager.getInstanceName(), String
-                  .format(_reason, "disableInstance", _className, manager, System.currentTimeMillis()),
-              true, manager.getHelixDataAccessor().getBaseDataAccessor());
-    }
+    // To be implemented
+    throw new NotImplementedException();
   }
 
   /**
-   * Put cluster into maintenance mode if the cluster is not currently in maintenance mode
+   *
    * @param manager The helix manager associated with the listener
    * @param eventInfo Detailed information about the event
    */
   public void enterMaintenanceMode(HelixManager manager, Object eventInfo) {
-    if (!manager.getClusterManagmentTool().isInMaintenanceMode(manager.getClusterName())) {
-      manager.getClusterManagmentTool()
-          .manuallyEnableMaintenanceMode(manager.getClusterName(), true, String
-              .format(_reason, "enterMaintenanceMode", _className, manager,
-                  System.currentTimeMillis()), null);
-    }
+    // To be implemented
+    throw new NotImplementedException();
   }
 
   /**
-   * Exit maintenance mode for the cluster, if there is no more live instances disabled for cloud event
+   *
    * @param manager The helix manager associated with the listener
    * @param eventInfo Detailed information about the event
    */
   public void exitMaintenanceMode(HelixManager manager, Object eventInfo) {
-    List<String> instances =
-        manager.getClusterManagmentTool().getInstancesInCluster(manager.getClusterName());
-    // Check if there is any disabled live instance that was disabled due to cloud event,
-    // if none left, exit maintenance mode
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    if (instances.stream().noneMatch(instance -> HelixEventHandlingUtil
-        .IsInstanceDisabledForCloudEvent(manager.getClusterName(), instance, accessor.getBaseDataAccessor())
-        && InstanceValidationUtil.isAlive(accessor, instance))) {
-      manager.getClusterManagmentTool()
-          .manuallyEnableMaintenanceMode(manager.getClusterName(), false, String
-              .format(_reason, "exitMaintenanceMode", _className, manager,
-                  System.currentTimeMillis()), null);
-    }
+    // To be implemented
+    throw new NotImplementedException();
   }
 }

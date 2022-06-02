@@ -15,7 +15,7 @@ export class JobListComponent implements OnInit {
   @Input()
   jobs: Job[];
 
-  @ViewChild('jobsTable')
+  @ViewChild('jobsTable', {static: true})
   table: any;
 
   rowHeight = Settings.tableRowHeight;

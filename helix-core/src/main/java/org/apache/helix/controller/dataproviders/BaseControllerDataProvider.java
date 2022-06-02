@@ -274,7 +274,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
                 ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name();
             if (needCleanUpBatchedDisabledInstance(currentData)) {
               newRecord.getMapFields().remove(batchDisabledInstanceMapFieldKey);
-
             }
             return newRecord;
           }

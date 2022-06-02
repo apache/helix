@@ -54,7 +54,6 @@ import {
 import {
   MatExpansionModule
 } from '@angular/material/expansion';
-import 'hammerjs';
 
 @NgModule({
   imports: [

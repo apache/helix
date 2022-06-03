@@ -22,7 +22,7 @@ export class InputDialogComponent implements OnInit {
     this.title = (this.data && this.data.title) || 'Input';
     this.message = (this.data && this.data.message) || 'Please enter:';
     this.values = (this.data && this.data.values) || {
-      'input': {
+      input: {
         label: 'Anything you want',
         type: 'input'
       }

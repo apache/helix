@@ -19,7 +19,7 @@ export class ResourceService extends HelixService {
         for (const name of data.idealStates) {
           res.push(<Resource>({
             cluster: clusterName,
-            name: name,
+            name,
             alive: data.externalViews.indexOf(name) >= 0
           }));
         }
@@ -46,15 +46,13 @@ export class ResourceService extends HelixService {
   public get(clusterName: string, resourceName: string) {
     return this
       .request(`/clusters/${ clusterName }/resources/${ resourceName }`).pipe(
-      map(data => {
-        return new Resource(
+      map(data => new Resource(
           clusterName,
           resourceName,
           data.resourceConfig,
           data.idealState,
           data.externalView
-        );
-      }));
+        )));
   }
 
   public getOnInstance(clusterName: string, instanceName: string, resourceName: string) {

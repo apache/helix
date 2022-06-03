@@ -47,7 +47,7 @@ process.on('uncaughtException', function(err){
 
 // setup SSL
 if (SSL.port > 0 && fs.existsSync(SSL.keyfile) && fs.existsSync(SSL.certfile)) {
-  let credentials: any = {
+  const credentials: any = {
     key: fs.readFileSync(SSL.keyfile, 'ascii'),
     cert: fs.readFileSync(SSL.certfile, 'ascii'),
     ca: []

@@ -16,7 +16,7 @@ export class Cluster {
 
   config: Object;
 
-  constructor (obj: any) {
+  constructor(obj: any) {
     this.name = obj.id;
     this.controller = obj.controller;
     this.enabled = !obj.paused;

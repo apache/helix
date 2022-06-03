@@ -34,7 +34,7 @@
         <mat-icon>menu</mat-icon>
       </button>
       <mat-menu #menu="matMenu">
-        <button mat-menu-item *ngIf="cluster?.controller == 'No Lead Controller!'" (click)="activateCluster()">
+        <button mat-menu-item *ngIf="cluster?.controller === 'No Lead Controller!'" (click)="activateCluster()">
           <mat-icon>settings_input_antenna</mat-icon>
           <span>Activate this Cluster</span>
         </button>

@@ -8,7 +8,7 @@
     "declaration": false,
     "moduleResolution": "node",
     "experimentalDecorators": true,
-    "target": "ES2015",
+    "target": "es2015",
     "skipLibCheck": true,
     "typeRoots": [
       "node_modules/@types"

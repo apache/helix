@@ -37,9 +37,9 @@ export class DataTableComponent implements OnInit {
     // only emit when value changes
     if (row[prop] !== value) {
       this.update.emit({
-        row: row,
-        column: column,
-        value: value
+        row,
+        column,
+        value
       });
     }
   }
@@ -60,7 +60,7 @@ export class DataTableComponent implements OnInit {
 
     this.dialog
       .open(InputDialogComponent, {
-        data: data
+        data
       })
       .afterClosed()
       .subscribe(result => {
@@ -82,7 +82,7 @@ export class DataTableComponent implements OnInit {
       .subscribe(result => {
         if (result) {
           this.delete.emit({
-            row: row
+            row
           });
         }
       });

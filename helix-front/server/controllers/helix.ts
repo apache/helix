@@ -3,6 +3,7 @@ import { Request, Response, Router } from 'express';
 import * as request from 'request';
 
 import { HELIX_ENDPOINTS } from '../config';
+import { HelixUserRequest } from './d';
 
 export class HelixCtrl {
 
@@ -13,7 +14,7 @@ export class HelixCtrl {
     router.route('/helix/*').all(this.proxy);
   }
 
-  protected proxy(req: Request, res: Response) {
+  protected proxy(req: HelixUserRequest, res: Response) {
     const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
     const helixKey = url.split('/')[1];
 
@@ -61,6 +62,12 @@ export class HelixCtrl {
   }
 
   protected list(req: Request, res: Response) {
-    res.json(HELIX_ENDPOINTS);
+    try {
+      res.json(HELIX_ENDPOINTS);
+    } catch(err) {
+      console.log('error from helix/list/')
+      console.log(err)
+    }
+
   }
 }

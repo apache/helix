@@ -54,13 +54,13 @@ export class HistoryListComponent implements OnInit {
 
   getControllerCellClass({ value }): any {
     return {
-      'current': value == this.rows[this.rows.length - 1].controller
+      current: value == this.rows[this.rows.length - 1].controller
     };
   }
 
   getSessionCellClass({ value }): any {
     return {
-      'current': value == this.rows[this.rows.length - 1].session
+      current: value == this.rows[this.rows.length - 1].session
     };
   }
 

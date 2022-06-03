@@ -287,7 +287,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   private boolean needCleanUpBatchedDisabledInstance(ZNRecord record) {
-    return record.getMapFields()!=null && record.getMapFields()
+    return record!=null && record.getMapFields()!=null && record.getMapFields()
         .containsKey(ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name());
   }
 

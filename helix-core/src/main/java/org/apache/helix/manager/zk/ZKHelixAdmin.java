@@ -359,30 +359,19 @@ public class ZKHelixAdmin implements HelixAdmin {
     // Eventually we will have all instances' enable/disable information in clusterConfig. Now we
     // update both instanceConfig and clusterConfig in transition period.
     enableSingleInstance(clusterName, instanceName, enabled, baseAccessor, disabledType, reason);
-    enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled,
-        baseAccessor, disabledType, reason);
+//    enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled,
+//        baseAccessor, disabledType, reason);
 
-  }
-
-  @Override
-  public void enableInstance(String clusterName, List<String> instances, boolean enabled,
-      InstanceConstants.InstanceDisabledType disabledType, String reason) {
-    logger.info("Batch {} instances {} in cluster {}.", enabled ? "enable" : "disable",
-        HelixUtil.serializeByComma(instances), clusterName);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-    // Eventually we will have all instances' enable/disable information in clusterConfig. Now we
-    // update both instanceConfig and clusterConfig in transition period.
-    if (enabled) {
-      for (String instance : instances) {
-        enableSingleInstance(clusterName, instance, enabled, baseAccessor, disabledType, reason);
-      }
-    }
-    enableBatchInstances(clusterName, instances, enabled, baseAccessor, disabledType, reason);
   }
 
   @Override
   public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
-    enableInstance(clusterName, instances, enabled, null, null);
+    // TODO: batch enable/disable is breaking backward compatibility on instance enable with older library
+    // re-enable once batch enable/disable is ready
+    if (true) {
+      throw new HelixException("Batch enable/disable is not supported");
+    }
+    //enableInstance(clusterName, instances, enabled, null, null);
   }
 
   @Override
@@ -1918,6 +1907,11 @@ public class ZKHelixAdmin implements HelixAdmin {
       final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor,
       InstanceConstants.InstanceDisabledType disabledType, String reason) {
 
+    // TODO: batch enable/disable is breaking backward compatibility on instance enable with older library
+    // re-enable once batch enable/disable is ready
+    if (true) {
+      throw new HelixException("enableBatchInstances is not supported.");
+    }
     String path = PropertyPathBuilder.clusterConfig(clusterName);
 
     if (!baseAccessor.exists(path, 0)) {

@@ -35,7 +35,7 @@
     "@angular/cdk": "12.2.13",
     "@angular/common": "12.2.16",
     "@angular/compiler": "12.2.16",
-    "@angular/core": "12.2.16",
+    "@angular/core": "11.0.5",
     "@angular/flex-layout": "^12.0.0-beta.35",
     "@angular/forms": "12.2.16",
     "@angular/material": "^12.2.13",

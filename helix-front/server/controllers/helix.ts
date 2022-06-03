@@ -68,6 +68,6 @@ export class HelixCtrl {
       console.log('error from helix/list/')
       console.log(err)
     }
-    
+
   }
 }

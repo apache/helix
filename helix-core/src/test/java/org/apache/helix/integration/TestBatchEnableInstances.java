@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
@@ -43,7 +42,6 @@ public class TestBatchEnableInstances extends TaskTestBase {
     super.beforeClass();
   }
 
-<<<<<<< HEAD
   @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Batch.*is not supported")
   public void testBatchModeNotSupported() {
     // ensure batch enable/disable is not supported and shouldn't be used yet
@@ -51,9 +49,6 @@ public class TestBatchEnableInstances extends TaskTestBase {
   }
 
   @Test(enabled = false)
-=======
-  @Test (enabled = false)
->>>>>>> 9caadab5b... remove field
   public void testOldEnableDisable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         _participants[0].getInstanceName(), false);
@@ -65,24 +60,11 @@ public class TestBatchEnableInstances extends TaskTestBase {
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
       Assert.assertTrue(!stateMap.keySet().contains(_participants[0].getInstanceName()));
     }
-<<<<<<< HEAD
-=======
-    HelixDataAccessor dataAccessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
-    ClusterConfig clusterConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
-    Assert.assertEquals(Long.parseLong(
-        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[0].getInstanceName())),
-        Long.parseLong(clusterConfig.getDisabledInstances().get(_participants[0].getInstanceName())));
->>>>>>> 9caadab5b... remove field
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         _participants[0].getInstanceName(), true);
   }
 
-<<<<<<< HEAD
   @Test(enabled = false)
-=======
-  @Test (enabled = false)
->>>>>>> 9caadab5b... remove field
   public void testBatchEnableDisable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
@@ -96,30 +78,12 @@ public class TestBatchEnableInstances extends TaskTestBase {
       Assert.assertTrue(!stateMap.keySet().contains(_participants[0].getInstanceName()));
       Assert.assertTrue(!stateMap.keySet().contains(_participants[1].getInstanceName()));
     }
-<<<<<<< HEAD
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
         true);
   }
 
   @Test(enabled = false)
-=======
-    HelixDataAccessor dataAccessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
-    ClusterConfig clusterConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
-    Assert.assertEquals(Long.parseLong(
-        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[1].getInstanceName())),
-        Long.parseLong(clusterConfig.getDisabledInstances().get(_participants[1].getInstanceName())));
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
-        Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
-        true);
-    Assert.assertEquals(Long.parseLong(
-        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[0].getInstanceName())),
-        Long.parseLong(clusterConfig.getDisabledInstances().get(_participants[0].getInstanceName())));
-  }
-
-  @Test (enabled = false)
->>>>>>> 9caadab5b... remove field
   public void testOldDisableBatchEnable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         _participants[0].getInstanceName(), false);
@@ -142,11 +106,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
         _participants[0].getInstanceName(), true);
   }
 
-<<<<<<< HEAD
   @Test(enabled = false)
-=======
-  @Test (enabled = false)
->>>>>>> 9caadab5b... remove field
   public void testBatchDisableOldEnable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),

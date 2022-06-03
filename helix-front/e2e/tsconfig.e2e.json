@@ -2,14 +2,13 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "../out-tsc/e2e",
-    "target": "es2015",
     "types":[
       "jasmine",
       "node"
     ],
-    "files": [
-      "app.e2e-spec.ts",
-      "app.po.ts"
-    ]
-  }
+  },
+  "files": [
+    "app.e2e-spec.ts",
+    "app.po.ts"
+  ]
 }

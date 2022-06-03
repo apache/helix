@@ -1,17 +1,17 @@
-@import '~@angular/material/theming';
+@use '~@angular/material' as mat;
 
 .content {
   padding: 20px;
 }
 
 .state-default {
-  color: mat-color(mat-palette($mat-deep-orange));
+  color: mat.get-color-from-palette(mat.define-palette(mat.$deep-orange-palette));
 }
 
 .state-COMPLETED {
-  color: mat-color(mat-palette($mat-green));
+  color: mat.get-color-from-palette(mat.define-palette(mat.$green-palette));
 }
 
 .state-PENDING {
-  color: mat-color(mat-palette($mat-grey));
+  color: mat.get-color-from-palette(mat.define-palette(mat.$grey-palette));
 }

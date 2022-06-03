@@ -5,7 +5,7 @@
     "types":[
       "jasmine",
       "node"
-    ],
+    ]
   },
   "files": [
     "app.e2e-spec.ts",

@@ -15,7 +15,7 @@ const app = express();
 const server = http.createServer(app);
 
 dotenv.load({ path: '.env' });
-app.set('port', (process.env.PORT || 3000));
+app.set('port', (process.env.PORT || 4200));
 
 app.use('/', express.static(path.join(__dirname, '../public')));
 app.use(bodyParser.json());

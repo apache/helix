@@ -84,6 +84,7 @@
     "zone.js": "~0.11.4"
   },
   "devDependencies": {
+    "@angular-builders/jest": "^13.0.4",
     "@angular-devkit/build-angular": "~13.3.6",
     "@angular-eslint/builder": "13.2.1",
     "@angular-eslint/eslint-plugin": "13.2.1",
@@ -93,7 +94,7 @@
     "@angular/cli": "13.3.6",
     "@angular/compiler-cli": "13.3.9",
     "@types/hammerjs": "^2.0.34",
-    "@types/jest": "^28.1.0",
+    "@types/jest": "^28.1.1",
     "@types/lodash": "4.14.120",
     "@types/node": "^12.11.1",
     "@types/request": "^2.0.0",
@@ -104,6 +105,8 @@
     "eslint-plugin-import": "latest",
     "eslint-plugin-jsdoc": "^39.3.0",
     "eslint-plugin-prefer-arrow": "latest",
+    "jest": "^28.1.1",
+    "jest-preset-angular": "^12.1.0",
     "nodemon": "^2.0.16",
     "protractor": "~7.0.0",
     "ts-node": "~2.0.0",

@@ -1,4 +1,8 @@
 {
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.cy.ts"      
+  ],
   "compileOnSave": false,
   "compilerOptions": {
     "importHelpers": true,
@@ -19,6 +23,6 @@
       "es2016",
       "dom"
     ],
-    "module": "es2020"
+    "module": "es2020",
   }
 }

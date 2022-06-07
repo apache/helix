@@ -83,9 +83,13 @@
         "test": {
           "builder": "@angular-builders/jest:run",
           "options": {
-            "main": ["setupJest.ts"],
+            "main": [
+              "setupJest.ts"
+            ],
             "tsConfig": "client/tsconfig.spec.json",
-            "polyfills": ["client/polyfills.ts"],
+            "polyfills": [
+              "client/polyfills.ts"
+            ],
             "no-cache": true,
             "scripts": [],
             "styles": [
@@ -103,13 +107,45 @@
           "options": {
             "tsConfig": [
               "client/tsconfig.app.json",
-              "client/tsconfig.spec.json"
+              "client/tsconfig.spec.json",
+              "cypress/tsconfig.json"
             ],
             "exclude": [],
             "lintFilePatterns": [
               "src/**/*.ts",
               "src/**/*.html"
             ]
+          }
+        },
+        "cypress-run": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "devServerTarget": "helix-front:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "helix-front:serve:production"
+            }
+          }
+        },
+        "cypress-open": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "watch": true,
+            "headless": false
+          }
+        },
+        "e2e": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "devServerTarget": "helix-front:serve",
+            "watch": true,
+            "headless": false
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "helix-front:serve:production"
+            }
           }
         }
       }
@@ -120,12 +156,17 @@
       "projectType": "application",
       "architect": {
         "e2e": {
-          "builder": "@angular-devkit/build-angular:protractor",
+          "builder": "@cypress/schematic:cypress",
           "options": {
-            "protractorConfig": "./protractor.conf.js",
-            "devServerTarget": "helix-front:serve"
+            "devServerTarget": "helix-front-e2e:serve",
+            "watch": true,
+            "headless": false
           },
-          "configurations": {}
+          "configurations": {
+            "production": {
+              "devServerTarget": "helix-front-e2e:serve:production"
+            }
+          }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
@@ -134,6 +175,26 @@
               "e2e/**/*.ts",
               "e2e/**/*.html"
             ]
+          }
+        },
+        "cypress-run": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "devServerTarget": "helix-front-e2e:serve",
+            "configFile": "e2e/cypress.config.js"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "helix-front-e2e:serve:production"
+            }
+          }
+        },
+        "cypress-open": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "watch": true,
+            "headless": false,
+            "configFile": "e2e/cypress.config.js"
           }
         }
       }

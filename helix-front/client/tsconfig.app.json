@@ -1,5 +1,8 @@
 {
   "extends": "../tsconfig.json",
+  "include": [
+    "client/**/*.d.ts"
+  ],
   "compilerOptions": {
     "outDir": "../out-tsc/app",
     "baseUrl": "",
@@ -8,8 +11,5 @@
   "files": [
     "main.ts",
     "polyfills.ts"
-  ],
-  "include": [
-    "client/**/*.d.ts"
   ]
 }

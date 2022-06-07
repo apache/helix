@@ -1,5 +1,9 @@
 {
   "extends": "../tsconfig.json",
+  "include": [
+    "**/*.spec.ts",
+    "**/*.d.ts"
+  ],
   "compilerOptions": {
     "outDir": "../out-tsc/spec",
     "baseUrl": "",
@@ -12,8 +16,4 @@
     "../setupJest.ts",
     "polyfills.ts"
   ],
-  "include": [
-    "**/*.spec.ts",
-    "**/*.d.ts"
-  ]
 }

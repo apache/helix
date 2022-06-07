@@ -1,6 +1,10 @@
 describe('helix-ui App', () => {
-  it('Displays a message that contains Cluster', () => {
+  it('Displays the page title', () => {
     cy.visit('/')
-    cy.contains('Cluster')
+    cy.get('.helix-title').contains('Helix')
+  })
+  it('Displays the footer', () => {
+    cy.visit('/')
+    cy.get('.footer').contains(/©\s\d\d\d\d\sHelix\.\sAll\srights\sreserved\./)
   })
 })

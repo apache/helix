@@ -1,9 +1,9 @@
 {
-  "exclude": [
-    "**/*.spec.ts",
-    "**/*.cy.ts"      
-  ],
   "compileOnSave": false,
+  "exclude": [
+    "**/*.cy.ts",
+    "**/*.spec.ts",      
+  ],
   "compilerOptions": {
     "importHelpers": true,
     "outDir": "./dist/out-tsc",

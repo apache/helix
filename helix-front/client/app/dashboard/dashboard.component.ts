@@ -9,7 +9,8 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import * as _ from 'lodash';
+import _ from 'lodash';
+import { forEach as lodashForEach } from 'lodash';
 import {Data, Edge, Node, Options, VisNetworkService } from 'ngx-vis';
 
 import { ResourceService } from '../resource/shared/resource.service';
@@ -169,7 +170,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .getAll(this.clusterName)
       .subscribe(
         result => {
-          _.forEach(result, (resource) => {
+          lodashForEach(result, (resource) => {
             const lastId = this.nodes.length;
             const newId = this.nodes.length + 1;
             this.resourceToId[resource.name] = newId;
@@ -191,7 +192,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .getAll(this.clusterName)
       .subscribe(
         result => {
-          _.forEach(result, (instance) => {
+          lodashForEach(result, (instance) => {
             const newId = this.visNetworkData.nodes.length + 1;
             this.instanceToId[instance.name] = newId;
             (this.visNetworkData.nodes as Node[])[this.visNetworkData.nodes.length] = {
@@ -236,7 +237,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         .getAllOnInstance(this.clusterName, instanceName)
         .subscribe(
           resources => {
-            _.forEach(resources, (resource) => {
+            lodashForEach(resources, (resource) => {
               (this.visNetworkData.edges as Edge[])[this.visNetworkData.nodes.length] = {
                 from: id,
                 to: this.resourceToId[resource.name]

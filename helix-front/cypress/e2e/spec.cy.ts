@@ -1,7 +1,6 @@
-describe('My First Test', () => {
-  it('Visits the initial project page', () => {
+describe('helix-ui App', () => {
+  it('Displays a message that contains Cluster', () => {
     cy.visit('/')
-    cy.contains('Welcome')
-    cy.contains('sandbox app is running!')
+    cy.contains('Cluster')
   })
 })

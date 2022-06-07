@@ -151,8 +151,8 @@
       }
     },
     "helix-front-e2e": {
-      "root": "e2e",
-      "sourceRoot": "e2e",
+      "root": "cypress",
+      "sourceRoot": "cypress",
       "projectType": "application",
       "architect": {
         "e2e": {
@@ -172,8 +172,8 @@
           "builder": "@angular-eslint/builder:lint",
           "options": {
             "lintFilePatterns": [
-              "e2e/**/*.ts",
-              "e2e/**/*.html"
+              "cypress/**/*.ts",
+              "cypress/**/*.html"
             ]
           }
         },
@@ -181,7 +181,7 @@
           "builder": "@cypress/schematic:cypress",
           "options": {
             "devServerTarget": "helix-front-e2e:serve",
-            "configFile": "e2e/cypress.config.js"
+            "configFile": "./cypress.config.ts"
           },
           "configurations": {
             "production": {
@@ -194,7 +194,7 @@
           "options": {
             "watch": true,
             "headless": false,
-            "configFile": "e2e/cypress.config.js"
+            "configFile": "./cypress.config.js"
           }
         }
       }

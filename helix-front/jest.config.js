@@ -3,7 +3,7 @@ module.exports = {
   roots: ['./client'],
   testMatch: ['**/+(*.)+(spec).+(ts)'],
   collectCoverage: true,
-  coverageReporters: ['html', 'lcov', 'json', 'text'],
+  coverageReporters: ['html', 'lcov', 'json', 'text', 'jest-html-reporters'],
   coverageDirectory: './coverage',
   moduleFileExtensions: ['ts', 'html', 'js', 'json'],
 };

@@ -5475,7 +5475,7 @@ fs-extra@^10.1.0:
     jsonfile "^6.0.1"
     universalify "^2.0.0"
 
-fs-extra@^9.1.0:
+fs-extra@^9.0.1, fs-extra@^9.1.0:
   version "9.1.0"
   resolved "https://registry.yarnpkg.com/fs-extra/-/fs-extra-9.1.0.tgz#5954460c764a8da2094ba3554bf839e6b9a7c86d"
   integrity sha512-hcg3ZmepS30/7BSFqRvoo3DOMQu7IjqxO5nCDt+zM9XWjb33Wg7ziNT+Qvqbuc3+gWpzO02JubVyk2G4Zvo1OQ==
@@ -6765,6 +6765,14 @@ jest-haste-map@^28.1.1:
     walker "^1.0.8"
   optionalDependencies:
     fsevents "^2.3.2"
+
+jest-html-reporters@^3.0.9:
+  version "3.0.9"
+  resolved "https://registry.yarnpkg.com/jest-html-reporters/-/jest-html-reporters-3.0.9.tgz#2045132345cc33b487f91dcf29430f318e965022"
+  integrity sha512-fQVlFfaI+BNf2llJd/BKrQY9R0SlcOfmcxLtZ/pFurgPLzxaHvEjZsbG33uPq0Dc1sru0SRg1R8Df9FYiJ6dBg==
+  dependencies:
+    fs-extra "^9.0.1"
+    open "^8.0.3"
 
 jest-leak-detector@^28.1.1:
   version "28.1.1"
@@ -8241,7 +8249,7 @@ onetime@^5.1.0, onetime@^5.1.2:
   dependencies:
     mimic-fn "^2.1.0"
 
-open@8.4.0, open@^8.0.9, open@^8.4.0:
+open@8.4.0, open@^8.0.3, open@^8.0.9, open@^8.4.0:
   version "8.4.0"
   resolved "https://registry.yarnpkg.com/open/-/open-8.4.0.tgz#345321ae18f8138f82565a910fdc6b39e8c244f8"
   integrity sha512-XgFPPM+B28FtCCgSb9I+s9szOC1vZRSwgWsRUA5ylIxRTgKozqjOCrVOqGsYABPYK5qnfqClxZTFBa8PKt2v6Q==

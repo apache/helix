@@ -81,12 +81,12 @@
           }
         },
         "test": {
-          "builder": "@angular-devkit/build-angular:karma",
+          "builder": "@angular-builders/jest:run",
           "options": {
-            "main": "client/test.ts",
-            "karmaConfig": "./karma.conf.js",
-            "polyfills": "client/polyfills.ts",
+            "main": "setupJest.ts",
             "tsConfig": "client/tsconfig.spec.json",
+            "polyfills": "client/polyfills.ts",
+            "no-cache": true,
             "scripts": [],
             "styles": [
               "client/styles.scss",

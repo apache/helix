@@ -2,15 +2,14 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "../out-tsc/spec",
-    "target": "es5",
     "baseUrl": "",
     "types": [
-      "jasmine",
+      "jest",
       "node"
     ]
   },
   "files": [
-    "test.ts",
+    "../setupJest.ts",
     "polyfills.ts"
   ],
   "include": [

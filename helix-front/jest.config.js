@@ -4,6 +4,6 @@ module.exports = {
   testMatch: ['**/+(*.)+(spec).+(ts)'],
   collectCoverage: true,
   coverageReporters: ['html', 'lcov', 'json', 'text'],
-  coverageDirectory: 'client/coverage',
+  coverageDirectory: './coverage',
   moduleFileExtensions: ['ts', 'html', 'js', 'json'],
 };

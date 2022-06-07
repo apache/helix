@@ -6,9 +6,5 @@
       "jest",
       "node"
     ]
-  },
-  "files": [
-    "app.e2e-spec.ts",
-    "app.po.ts"
-  ]
+  }
 }

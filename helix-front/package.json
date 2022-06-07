@@ -27,7 +27,7 @@
   },
   "engines": {
     "node": "14.17.6",
-    "yarn": "1.22.18"
+    "yarn": "^1.22.18"
   },
   "browserslist": [
     "last 2 Edge versions",
@@ -93,7 +93,6 @@
     "@angular/cli": "13.3.6",
     "@angular/compiler-cli": "13.3.9",
     "@types/hammerjs": "^2.0.34",
-    "@types/jasmine": "~3.6.0",
     "@types/jest": "^28.1.0",
     "@types/lodash": "4.14.120",
     "@types/node": "^12.11.1",
@@ -105,15 +104,6 @@
     "eslint-plugin-import": "latest",
     "eslint-plugin-jsdoc": "^39.3.0",
     "eslint-plugin-prefer-arrow": "latest",
-    "jasmine-core": "^3.8.0",
-    "jasmine-spec-reporter": "~5.0.0",
-    "karma": "~6.3.20",
-    "karma-chrome-launcher": "~3.1.0",
-    "karma-cli": "~1.0.1",
-    "karma-coverage-istanbul-reporter": "~3.0.2",
-    "karma-jasmine": "~4.0.0",
-    "karma-jasmine-html-reporter": "^1.5.0",
-    "karma-phantomjs-launcher": "^1.0.4",
     "nodemon": "^2.0.16",
     "protractor": "~7.0.0",
     "ts-node": "~2.0.0",

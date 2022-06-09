@@ -58,9 +58,13 @@ Release Notes for Apache Helix 1.0.4
 
     * Issue #1970: allow clients to prevent HelixProperty from cloning the ZNRecord #2072
 
+    * Fix issue #2117: improve efficiency of ClusterStatusMonitor and PerInstanceResourceMonitor, plus misc code cleanup (#2118)
+
     * support common input for operational input on Maintenance Management API #2055
 
     * MaintenanceManagementService improvement - Allow implementation of OperationInterface to return null #2035
+
+    * Allow using passed in connection config when reading cloud config (#2099)
 
     * Replace non-inclusive terms in tutorial.md (#2039)
 
@@ -73,6 +77,8 @@ Release Notes for Apache Helix 1.0.4
     * upgrade snakeyaml to v1.30 due to cve (#2041)
 
     * move to Apache Analytics(Matomo) 
+
+    * Bump up helix front from 5 to 13 for angular JS.
 
 []
 

@@ -26,8 +26,7 @@
     "type:check:watch": "yarn type:check -- --watch"
   },
   "engines": {
-    "node": "14.17.6",
-    "yarn": "1.22.1"
+    "node": "14.17.6"
   },
   "browserslist": [
     "last 2 Edge versions",

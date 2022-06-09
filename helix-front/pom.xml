@@ -71,6 +71,7 @@
         <executions>
           <execution>
             <id>install node and yarn</id>
+            <phase>process-resources</phase>
             <goals>
               <goal>install-node-and-yarn</goal>
             </goals>
@@ -82,6 +83,7 @@
 
           <execution>
             <id>yarn install</id>
+            <phase>compile</phase>
             <goals>
               <goal>yarn</goal>
             </goals>
@@ -92,13 +94,13 @@
 
           <execution>
             <id>build</id>
+            <phase>process-test-resources</phase>
             <goals>
               <goal>yarn</goal>
             </goals>
             <configuration>
               <arguments>build</arguments>
             </configuration>
-            <phase>generate-resources</phase>
           </execution>
         </executions>
       </plugin>

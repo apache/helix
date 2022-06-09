@@ -78,7 +78,6 @@
     "tsickle": "github:angular/tsickle#8f11720637b7bb1c7b0e271e16bebbcdc8189617",
     "tslib": "^2.0.0",
     "uuid": "^7.0.3",
-    "vis": "^4.21.0",
     "vis-data": "^6.5.1",
     "vis-util": "^4.0.0",
     "xss": "^1.0.11",

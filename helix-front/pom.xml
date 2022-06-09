@@ -99,7 +99,7 @@
               <goal>yarn</goal>
             </goals>
             <configuration>
-              <arguments>build</arguments>
+              <arguments>run build</arguments>
             </configuration>
           </execution>
         </executions>

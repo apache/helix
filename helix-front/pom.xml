@@ -96,7 +96,7 @@
               <goal>yarn</goal>
             </goals>
             <configuration>
-              <arguments>run-script build</arguments>
+              <arguments>build</arguments>
             </configuration>
             <phase>generate-resources</phase>
           </execution>

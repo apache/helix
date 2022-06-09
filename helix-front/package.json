@@ -27,7 +27,7 @@
   },
   "engines": {
     "node": "14.17.6",
-    "yarn": "1.22.1"
+    "yarn": "1.22.18"
   },
   "browserslist": [
     "last 2 Edge versions",
@@ -36,18 +36,18 @@
     "Chrome > 60"
   ],
   "dependencies": {
-    "@angular/animations": "13.3.9",
-    "@angular/cdk": "13.3.7",
-    "@angular/common": "13.3.9",
-    "@angular/compiler": "13.3.9",
-    "@angular/core": "13.3.9",
+    "@angular/animations": "^13.3.9",
+    "@angular/cdk": "^13.3.7",
+    "@angular/common": "^13.3.9",
+    "@angular/compiler": "^13.3.9",
+    "@angular/core": "^13.3.9",
     "@angular/flex-layout": "^13.0.0-beta.38",
-    "@angular/forms": "13.3.9",
+    "@angular/forms": "^13.3.9",
     "@angular/material": "^13.3.7",
-    "@angular/platform-browser": "13.3.9",
-    "@angular/platform-browser-dynamic": "13.3.9",
-    "@angular/platform-server": "13.3.9",
-    "@angular/router": "13.3.9",
+    "@angular/platform-browser": "^13.3.9",
+    "@angular/platform-browser-dynamic": "^13.3.9",
+    "@angular/platform-server": "^13.3.9",
+    "@angular/router": "^13.3.9",
     "@egjs/hammerjs": "^2.0.17",
     "@swimlane/ngx-charts": "^16.0.0",
     "@swimlane/ngx-datatable": "^20.0.0",
@@ -78,7 +78,6 @@
     "tsickle": "github:angular/tsickle#8f11720637b7bb1c7b0e271e16bebbcdc8189617",
     "tslib": "^2.0.0",
     "uuid": "^7.0.3",
-    "vis": "^4.21.0",
     "vis-data": "^6.5.1",
     "vis-util": "^4.0.0",
     "xss": "^1.0.11",

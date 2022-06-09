@@ -58,7 +58,7 @@
       <plugin>
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
-        <version>0.0.22</version>
+        <version>1.12.1</version>
 
         <dependencies>
           <dependency>
@@ -70,20 +70,22 @@
 
         <executions>
           <execution>
-            <id>install node and npm</id>
+            <id>install node and yarn</id>
+            <phase>process-resources</phase>
             <goals>
-              <goal>install-node-and-npm</goal>
+              <goal>install-node-and-yarn</goal>
             </goals>
             <configuration>
-              <nodeVersion>v8.11.1</nodeVersion>
-              <npmVersion>5.8.0</npmVersion>
+              <nodeVersion>v14.17.6</nodeVersion>
+              <yarnVersion>v1.22.18</yarnVersion>
             </configuration>
           </execution>
 
           <execution>
-            <id>npm install</id>
+            <id>yarn install</id>
+            <phase>compile</phase>
             <goals>
-              <goal>npm</goal>
+              <goal>yarn</goal>
             </goals>
             <configuration>
               <arguments>install</arguments>
@@ -92,13 +94,13 @@
 
           <execution>
             <id>build</id>
+            <phase>process-test-resources</phase>
             <goals>
-              <goal>npm</goal>
+              <goal>yarn</goal>
             </goals>
             <configuration>
-              <arguments>run-script build</arguments>
+              <arguments>run build</arguments>
             </configuration>
-            <phase>generate-resources</phase>
           </execution>
         </executions>
       </plugin>

@@ -70,20 +70,20 @@
 
         <executions>
           <execution>
-            <id>install node and npm</id>
+            <id>install node and yarn</id>
             <goals>
-              <goal>install-node-and-npm</goal>
+              <goal>install-node-and-yarn</goal>
             </goals>
             <configuration>
-              <nodeVersion>v8.11.1</nodeVersion>
-              <npmVersion>5.8.0</npmVersion>
+              <nodeVersion>14.17.6</nodeVersion>
+              <yarnVersion>1.22.18</yarnVersion>
             </configuration>
           </execution>
 
           <execution>
-            <id>npm install</id>
+            <id>yarn install</id>
             <goals>
-              <goal>npm</goal>
+              <goal>yarn</goal>
             </goals>
             <configuration>
               <arguments>install</arguments>
@@ -93,7 +93,7 @@
           <execution>
             <id>build</id>
             <goals>
-              <goal>npm</goal>
+              <goal>yarn</goal>
             </goals>
             <configuration>
               <arguments>run-script build</arguments>

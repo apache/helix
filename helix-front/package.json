@@ -110,6 +110,7 @@
     "concurrently": "^3.5.0",
     "cypress": "^10.0.3",
     "eslint": "^8.12.0",
+    "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "latest",
     "eslint-plugin-jsdoc": "^39.3.0",
     "eslint-plugin-prefer-arrow": "latest",

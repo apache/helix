@@ -1,11 +1,11 @@
-import { map } from "rxjs/operators";
-import { Injectable } from "@angular/core";
+import { map } from 'rxjs/operators';
+import { Injectable } from '@angular/core';
 
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
-import { HelixService } from "../../core/helix.service";
-import { Resource } from "./resource.model";
-import { Cluster } from "../../cluster/shared/cluster.model";
+import { HelixService } from '../../core/helix.service';
+import { Resource } from './resource.model';
+import { Cluster } from '../../cluster/shared/cluster.model';
 
 @Injectable()
 export class ResourceService extends HelixService {
@@ -20,7 +20,7 @@ export class ResourceService extends HelixService {
             alive: data.externalViews.indexOf(name) >= 0,
           });
         }
-        return _.sortBy(res, "name");
+        return _.sortBy(res, 'name');
       })
     );
   }

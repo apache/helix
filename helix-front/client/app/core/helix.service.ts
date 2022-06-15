@@ -1,11 +1,11 @@
-import { throwError as observableThrowError, Observable } from "rxjs";
+import { throwError as observableThrowError, Observable } from 'rxjs';
 
-import { catchError } from "rxjs/operators";
-import { Injectable } from "@angular/core";
-import { HttpHeaders, HttpClient, HttpResponse } from "@angular/common/http";
-import { Router } from "@angular/router";
+import { catchError } from 'rxjs/operators';
+import { Injectable } from '@angular/core';
+import { HttpHeaders, HttpClient, HttpResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 
-import { Settings } from "./settings";
+import { Settings } from './settings';
 
 @Injectable()
 export class HelixService {
@@ -55,25 +55,25 @@ export class HelixService {
 
   protected getHelixKey(): string {
     // fetch helix key from url
-    return `/${this.router.url.split("/")[1]}`;
+    return `/${this.router.url.split('/')[1]}`;
   }
 
   protected getHeaders() {
     const headers = new HttpHeaders();
-    headers.append("Accept", "application/json");
-    headers.append("Content-Type", "application/json");
+    headers.append('Accept', 'application/json');
+    headers.append('Content-Type', 'application/json');
     return headers;
   }
 
   protected errorHandler(error: any) {
     console.error(error);
 
-    let message = error.message || "Cannot reach Helix restful service.";
+    let message = error.message || 'Cannot reach Helix restful service.';
 
     if (error instanceof HttpResponse) {
       if (error.status == 404) {
         // rest api throws 404 directly to app without any wrapper
-        message = "Not Found";
+        message = 'Not Found';
       } else {
         message = error;
         try {

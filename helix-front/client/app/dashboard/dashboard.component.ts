@@ -4,26 +4,26 @@ import {
   OnInit,
   AfterViewInit,
   OnDestroy,
-} from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
-import { Subscription } from "rxjs";
-import { map } from "rxjs/operators";
+} from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 
-import _ from "lodash";
-import { forEach as lodashForEach } from "lodash";
-import { Data, Edge, Node, Options, VisNetworkService } from "ngx-vis";
+import _ from 'lodash';
+import { forEach as lodashForEach } from 'lodash';
+import { Data, Edge, Node, Options, VisNetworkService } from 'ngx-vis';
 
-import { ResourceService } from "../resource/shared/resource.service";
-import { InstanceService } from "../instance/shared/instance.service";
-import { HelperService } from "../shared/helper.service";
+import { ResourceService } from '../resource/shared/resource.service';
+import { InstanceService } from '../instance/shared/instance.service';
+import { HelperService } from '../shared/helper.service';
 @Component({
-  selector: "hi-dashboard",
-  templateUrl: "./dashboard.component.html",
-  styleUrls: ["./dashboard.component.scss"],
+  selector: 'hi-dashboard',
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.scss'],
   providers: [ResourceService, InstanceService],
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
-  public visNetwork = "cluster-dashboard";
+  public visNetwork = 'cluster-dashboard';
   public visNetworkData: Data;
   public visNetworkOptions: Options;
   public nodes: Node[];
@@ -48,8 +48,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   networkInitialized() {
-    this.visNetworkService.on(this.visNetwork, "click");
-    this.visNetworkService.on(this.visNetwork, "zoom");
+    this.visNetworkService.on(this.visNetwork, 'click');
+    this.visNetworkService.on(this.visNetwork, 'zoom');
 
     this.visNetworkService.click.subscribe((eventData: any[]) => {
       if (eventData[0] === this.visNetwork) {
@@ -93,7 +93,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       physics: {
         // default is barnesHut
-        solver: "forceAtlas2Based",
+        solver: 'forceAtlas2Based',
         forceAtlas2Based: {
           // default: -50
           gravitationalConstant: -30,
@@ -103,23 +103,23 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       groups: {
         resource: {
-          color: "#7FCAC3",
-          shape: "ellipse",
+          color: '#7FCAC3',
+          shape: 'ellipse',
           widthConstraint: { maximum: 140 },
         },
         instance: {
-          color: "#90CAF9",
-          shape: "box",
+          color: '#90CAF9',
+          shape: 'box',
           widthConstraint: { maximum: 140 },
         },
         instance_bad: {
-          color: "#CA7F86",
-          shape: "box",
+          color: '#CA7F86',
+          shape: 'box',
           widthConstraint: { maximum: 140 },
         },
         partition: {
-          color: "#98D4B1",
-          shape: "ellipse",
+          color: '#98D4B1',
+          shape: 'ellipse',
           widthConstraint: { maximum: 140 },
         },
       },
@@ -155,8 +155,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       this.updateSubscription.unsubscribe();
     }
 
-    this.visNetworkService.off(this.visNetwork, "zoom");
-    this.visNetworkService.off(this.visNetwork, "click");
+    this.visNetworkService.off(this.visNetwork, 'zoom');
+    this.visNetworkService.off(this.visNetwork, 'click');
   }
 
   protected fetchResources() {
@@ -173,7 +173,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           ] = {
             id: newId,
             label: resource.name,
-            group: "resource",
+            group: 'resource',
             title: JSON.stringify(resource),
           };
         });
@@ -194,7 +194,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           ] = {
             id: newId,
             label: instance.name,
-            group: instance.healthy ? "instance" : "instance_bad",
+            group: instance.healthy ? 'instance' : 'instance_bad',
             title: JSON.stringify(instance),
           };
         });
@@ -215,7 +215,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       _.forEach(result, (instance, index, _collection) => {
         (this.visNetworkData.nodes as Node[])[index] = {
           id: this.instanceToId[instance.name],
-          group: instance.healthy ? "instance" : "instance_bad",
+          group: instance.healthy ? 'instance' : 'instance_bad',
         };
       });
     });
@@ -251,9 +251,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.resourceService.get(this.clusterName, resourceName).subscribe(
           (resource) => {
             _(resource.partitions)
-              .flatMap("replicas")
-              .unionBy("instanceName")
-              .map("instanceName")
+              .flatMap('replicas')
+              .unionBy('instanceName')
+              .map('instanceName')
               .forEach((instanceName) => {
                 (this.visNetworkData.edges as Edge[])[
                   this.visNetworkData.nodes.length

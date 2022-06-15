@@ -1,18 +1,18 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-import { Settings } from "../../core/settings";
-import { Partition, IReplica, Resource } from "../shared/resource.model";
-import { HelperService } from "../../shared/helper.service";
-import { ResourceService } from "../shared/resource.service";
+import { Settings } from '../../core/settings';
+import { Partition, IReplica, Resource } from '../shared/resource.model';
+import { HelperService } from '../../shared/helper.service';
+import { ResourceService } from '../shared/resource.service';
 
 @Component({
-  selector: "hi-partition-list",
-  templateUrl: "./partition-list.component.html",
-  styleUrls: ["./partition-list.component.scss"],
+  selector: 'hi-partition-list',
+  templateUrl: './partition-list.component.html',
+  styleUrls: ['./partition-list.component.scss'],
 })
 export class PartitionListComponent implements OnInit {
-  @ViewChild("partitionsTable", { static: true })
+  @ViewChild('partitionsTable', { static: true })
   table: any;
 
   isLoading = true;
@@ -22,8 +22,8 @@ export class PartitionListComponent implements OnInit {
   headerHeight = Settings.tableHeaderHeight;
   rowHeight = Settings.tableRowHeight;
   sorts = [
-    { prop: "isReady", dir: "asc" },
-    { prop: "name", dir: "asc" },
+    { prop: 'isReady', dir: 'asc' },
+    { prop: 'name', dir: 'asc' },
   ];
 
   constructor(
@@ -48,10 +48,10 @@ export class PartitionListComponent implements OnInit {
   getReasonWhyCannotAnalyse(): boolean | string {
     if (!this.canAnalyse()) {
       if (!this.resource.online) {
-        return "The resource is OFFLINE and does not have partition information available.";
+        return 'The resource is OFFLINE and does not have partition information available.';
       }
       if (this.resource.partitionCount < 1) {
-        return "This resource does not contain any partition information.";
+        return 'This resource does not contain any partition information.';
       }
     }
 

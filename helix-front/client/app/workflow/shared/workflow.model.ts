@@ -1,4 +1,4 @@
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
 export class Task {}
 
@@ -26,14 +26,14 @@ export class Job {
   ) {
     this.rawName = rawName;
     // try to reduce the name
-    this.name = _.replace(rawName, workflowName + "_", "");
+    this.name = _.replace(rawName, workflowName + '_', '');
     this.workflowName = workflowName;
     this.clusterName = clusterName;
     this.startTime = startTime;
     this.state = state;
     // try to reduce parent names
     this.parents = _.map(parents, (parent) =>
-      _.replace(parent, workflowName + "_", "")
+      _.replace(parent, workflowName + '_', '')
     );
   }
 }
@@ -50,12 +50,12 @@ export class Workflow {
     return (
       this.config &&
       this.config.IsJobQueue &&
-      this.config.IsJobQueue.toLowerCase() == "true"
+      this.config.IsJobQueue.toLowerCase() == 'true'
     );
   }
 
   get state(): string {
-    return this.context.STATE || "NOT STARTED";
+    return this.context.STATE || 'NOT STARTED';
   }
 
   constructor(obj: any, clusterName: string) {
@@ -76,8 +76,8 @@ export class Workflow {
           jobName,
           this.name,
           this.clusterName,
-          _.get(this.context, ["StartTime", jobName]),
-          _.get(this.context, ["JOB_STATES", jobName]),
+          _.get(this.context, ['StartTime', jobName]),
+          _.get(this.context, ['JOB_STATES', jobName]),
           parents[jobName]
         )
       );

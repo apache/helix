@@ -1,10 +1,10 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { TestingModule } from "../../../testing/testing.module";
-import { ClusterDetailComponent } from "./cluster-detail.component";
+import { TestingModule } from '../../../testing/testing.module';
+import { ClusterDetailComponent } from './cluster-detail.component';
 
-describe("ClusterDetailComponent", () => {
+describe('ClusterDetailComponent', () => {
   let component: ClusterDetailComponent;
   let fixture: ComponentFixture<ClusterDetailComponent>;
 
@@ -25,7 +25,7 @@ describe("ClusterDetailComponent", () => {
     fixture.detectChanges();
   });
 
-  xit("should create", () => {
+  xit('should create', () => {
     expect(component).toBeTruthy();
   });
 });

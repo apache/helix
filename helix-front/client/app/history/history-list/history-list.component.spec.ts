@@ -1,11 +1,11 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
-import { HttpClientModule } from "@angular/common/http";
-import { RouterTestingModule } from "@angular/router/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientModule } from '@angular/common/http';
+import { RouterTestingModule } from '@angular/router/testing';
 
-import { HistoryListComponent } from "./history-list.component";
+import { HistoryListComponent } from './history-list.component';
 
-describe("HistoryListComponent", () => {
+describe('HistoryListComponent', () => {
   let component: HistoryListComponent;
   let fixture: ComponentFixture<HistoryListComponent>;
 
@@ -26,7 +26,7 @@ describe("HistoryListComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should create", () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 });

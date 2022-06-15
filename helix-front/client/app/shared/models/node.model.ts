@@ -1,4 +1,4 @@
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
 interface SimpleFieldObject {
   name: string;
@@ -27,7 +27,7 @@ export class Node {
       this.id = obj.id;
       this.simpleFields = this.keyValueToArray(obj.simpleFields);
 
-      _.forOwn(obj["listFields"], (v, k) => {
+      _.forOwn(obj['listFields'], (v, k) => {
         this.listFields.push(<ListFieldObject>{
           name: k,
           value: _.map(
@@ -40,7 +40,7 @@ export class Node {
         });
       });
 
-      _.forOwn(obj["mapFields"], (v, k) => {
+      _.forOwn(obj['mapFields'], (v, k) => {
         this.mapFields.push(<MapFieldObject>{
           name: k,
           value: this.keyValueToArray(v),

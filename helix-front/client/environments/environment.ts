@@ -6,7 +6,7 @@
 export const environment = {
   production: false,
   piwik: {
-    url: "//vxu-ld1.linkedin.biz/piwik/",
-    id: "3",
+    url: '//vxu-ld1.linkedin.biz/piwik/',
+    id: '3',
   },
 };

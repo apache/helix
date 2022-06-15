@@ -1,11 +1,11 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { TestingModule } from "../../../testing/testing.module";
-import { ResourceNodeViewerComponent } from "./resource-node-viewer.component";
-import { ResourceService } from "../shared/resource.service";
+import { TestingModule } from '../../../testing/testing.module';
+import { ResourceNodeViewerComponent } from './resource-node-viewer.component';
+import { ResourceService } from '../shared/resource.service';
 
-describe("ResourceNodeViewerComponent", () => {
+describe('ResourceNodeViewerComponent', () => {
   let component: ResourceNodeViewerComponent;
   let fixture: ComponentFixture<ResourceNodeViewerComponent>;
 
@@ -27,7 +27,7 @@ describe("ResourceNodeViewerComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

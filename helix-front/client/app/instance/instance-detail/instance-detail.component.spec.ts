@@ -1,10 +1,10 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { TestingModule } from "../../../testing/testing.module";
-import { InstanceDetailComponent } from "./instance-detail.component";
+import { TestingModule } from '../../../testing/testing.module';
+import { InstanceDetailComponent } from './instance-detail.component';
 
-describe("InstanceDetailComponent", () => {
+describe('InstanceDetailComponent', () => {
   let component: InstanceDetailComponent;
   let fixture: ComponentFixture<InstanceDetailComponent>;
 
@@ -25,7 +25,7 @@ describe("InstanceDetailComponent", () => {
     fixture.detectChanges();
   });
 
-  xit("should create", () => {
+  xit('should create', () => {
     expect(component).toBeTruthy();
   });
 });

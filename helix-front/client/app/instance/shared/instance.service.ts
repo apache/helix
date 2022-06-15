@@ -1,9 +1,9 @@
-import { map } from "rxjs/operators";
-import { Injectable } from "@angular/core";
+import { map } from 'rxjs/operators';
+import { Injectable } from '@angular/core';
 
-import { Instance } from "./instance.model";
-import { HelixService } from "../../core/helix.service";
-import { Node } from "../../shared/models/node.model";
+import { Instance } from './instance.model';
+import { HelixService } from '../../core/helix.service';
+import { Node } from '../../shared/models/node.model';
 
 @Injectable()
 export class InstanceService extends HelixService {
@@ -40,7 +40,7 @@ export class InstanceService extends HelixService {
         const enabled =
           config &&
           config.simpleFields &&
-          config.simpleFields.HELIX_ENABLED != "false";
+          config.simpleFields.HELIX_ENABLED != 'false';
 
         return liveInstance && liveInstance.simpleFields
           ? new Instance(
@@ -65,9 +65,9 @@ export class InstanceService extends HelixService {
     const name = `${host}_${port}`;
 
     const node = new Node(null);
-    node.appendSimpleField("HELIX_ENABLED", enabled ? "true" : "false");
-    node.appendSimpleField("HELIX_HOST", host);
-    node.appendSimpleField("HELIX_PORT", port);
+    node.appendSimpleField('HELIX_ENABLED', enabled ? 'true' : 'false');
+    node.appendSimpleField('HELIX_HOST', host);
+    node.appendSimpleField('HELIX_PORT', port);
 
     return this.put(
       `/clusters/${clusterName}/instances/${name}`,

@@ -1,11 +1,11 @@
-import { Component, OnInit, Inject } from "@angular/core";
-import { MatDialogRef } from "@angular/material/dialog";
-import { MAT_DIALOG_DATA } from "@angular/material/dialog";
+import { Component, OnInit, Inject } from '@angular/core';
+import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 @Component({
-  selector: "hi-input-dialog",
-  templateUrl: "./input-dialog.component.html",
-  styleUrls: ["./input-dialog.component.scss"],
+  selector: 'hi-input-dialog',
+  templateUrl: './input-dialog.component.html',
+  styleUrls: ['./input-dialog.component.scss'],
 })
 export class InputDialogComponent implements OnInit {
   title: string;
@@ -18,12 +18,12 @@ export class InputDialogComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.title = (this.data && this.data.title) || "Input";
-    this.message = (this.data && this.data.message) || "Please enter:";
+    this.title = (this.data && this.data.title) || 'Input';
+    this.message = (this.data && this.data.message) || 'Please enter:';
     this.values = (this.data && this.data.values) || {
       input: {
-        label: "Anything you want",
-        type: "input",
+        label: 'Anything you want',
+        type: 'input',
       },
     };
   }

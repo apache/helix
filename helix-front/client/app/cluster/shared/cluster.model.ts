@@ -1,4 +1,4 @@
-import { Instance } from "../../instance/shared/instance.model";
+import { Instance } from '../../instance/shared/instance.model';
 
 export class Cluster {
   readonly name: string;

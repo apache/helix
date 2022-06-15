@@ -1,9 +1,9 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { RouterTestingModule } from "@angular/router/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
-import { JsonViewerComponent } from "./json-viewer.component";
+import { JsonViewerComponent } from './json-viewer.component';
 
-describe("JsonViewerComponent", () => {
+describe('JsonViewerComponent', () => {
   let component: JsonViewerComponent;
   let fixture: ComponentFixture<JsonViewerComponent>;
 
@@ -20,7 +20,7 @@ describe("JsonViewerComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

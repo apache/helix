@@ -1,8 +1,8 @@
-import { Injectable } from "@angular/core";
-import { map } from "rxjs/operators";
+import { Injectable } from '@angular/core';
+import { map } from 'rxjs/operators';
 
-import { Job } from "./workflow.model";
-import { HelixService } from "../../core/helix.service";
+import { Job } from './workflow.model';
+import { HelixService } from '../../core/helix.service';
 
 @Injectable()
 export class JobService extends HelixService {

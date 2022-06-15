@@ -1,12 +1,12 @@
-import { Component, OnInit, Input } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { Component, OnInit, Input } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
 @Component({
-  selector: "hi-json-viewer",
-  templateUrl: "./json-viewer.component.html",
-  styleUrls: ["./json-viewer.component.scss"],
+  selector: 'hi-json-viewer',
+  templateUrl: './json-viewer.component.html',
+  styleUrls: ['./json-viewer.component.scss'],
 })
 export class JsonViewerComponent implements OnInit {
   // MODE 1: use directly in components

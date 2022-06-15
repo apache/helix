@@ -1,13 +1,13 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { VisModule } from "ngx-vis";
+import { VisModule } from 'ngx-vis';
 
-import { TestingModule } from "../../testing/testing.module";
-import { DashboardComponent } from "./dashboard.component";
+import { TestingModule } from '../../testing/testing.module';
+import { DashboardComponent } from './dashboard.component';
 
-describe("DashboardComponent", () => {
+describe('DashboardComponent', () => {
   let component: DashboardComponent;
   let fixture: ComponentFixture<DashboardComponent>;
 
@@ -25,7 +25,7 @@ describe("DashboardComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

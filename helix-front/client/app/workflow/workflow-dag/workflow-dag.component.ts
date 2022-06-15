@@ -5,17 +5,17 @@ import {
   ElementRef,
   AfterViewInit,
   ViewChild,
-} from "@angular/core";
+} from '@angular/core';
 
-import * as shape from "d3-shape";
-import * as _ from "lodash";
+import * as shape from 'd3-shape';
+import * as _ from 'lodash';
 
-import { Workflow, Job } from "../shared/workflow.model";
+import { Workflow, Job } from '../shared/workflow.model';
 
 @Component({
-  selector: "hi-workflow-dag",
-  templateUrl: "./workflow-dag.component.html",
-  styleUrls: ["./workflow-dag.component.scss"],
+  selector: 'hi-workflow-dag',
+  templateUrl: './workflow-dag.component.html',
+  styleUrls: ['./workflow-dag.component.scss'],
 })
 export class WorkflowDagComponent implements OnInit, AfterViewInit {
   @Input()
@@ -28,7 +28,7 @@ export class WorkflowDagComponent implements OnInit, AfterViewInit {
   };
   jobNameToId = {};
 
-  @ViewChild("graph", { static: true })
+  @ViewChild('graph', { static: true })
   graph;
 
   constructor(protected el: ElementRef) {}

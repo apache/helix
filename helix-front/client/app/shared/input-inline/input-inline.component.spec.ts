@@ -1,10 +1,10 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { InputInlineComponent } from "./input-inline.component";
+import { InputInlineComponent } from './input-inline.component';
 
-describe("InputInlineComponent", () => {
+describe('InputInlineComponent', () => {
   let component: InputInlineComponent;
   let fixture: ComponentFixture<InputInlineComponent>;
 
@@ -25,7 +25,7 @@ describe("InputInlineComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

@@ -1,13 +1,13 @@
-import { Component, OnInit } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-import { Controller } from "../shared/controller.model";
-import { ControllerService } from "../shared/controller.service";
+import { Controller } from '../shared/controller.model';
+import { ControllerService } from '../shared/controller.service';
 
 @Component({
-  selector: "hi-controller-detail",
-  templateUrl: "./controller-detail.component.html",
-  styleUrls: ["./controller-detail.component.scss"],
+  selector: 'hi-controller-detail',
+  templateUrl: './controller-detail.component.html',
+  styleUrls: ['./controller-detail.component.scss'],
   providers: [ControllerService],
 })
 export class ControllerDetailComponent implements OnInit {
@@ -21,7 +21,7 @@ export class ControllerDetailComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.clusterName = this.route.snapshot.params["cluster_name"];
+    this.clusterName = this.route.snapshot.params['cluster_name'];
     this.service.get(this.clusterName).subscribe(
       (controller) => (this.controller = controller),
       (error) => {},

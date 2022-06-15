@@ -1,16 +1,16 @@
-import { Component, OnInit, ViewEncapsulation } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
-import { Settings } from "../../core/settings";
-import { HistoryService } from "../shared/history.service";
-import { History } from "../shared/history.model";
+import { Settings } from '../../core/settings';
+import { HistoryService } from '../shared/history.service';
+import { History } from '../shared/history.model';
 
 @Component({
-  selector: "hi-history-list",
-  templateUrl: "./history-list.component.html",
-  styleUrls: ["./history-list.component.scss"],
+  selector: 'hi-history-list',
+  templateUrl: './history-list.component.html',
+  styleUrls: ['./history-list.component.scss'],
   providers: [HistoryService],
   // FIXME: have to turn off shadow dom or .current-controller won't work
   encapsulation: ViewEncapsulation.None,
@@ -21,7 +21,7 @@ export class HistoryListComponent implements OnInit {
   headerHeight = Settings.tableHeaderHeight;
   isController: boolean;
   isLoading = true;
-  sorts = [{ prop: "date", dir: "desc" }];
+  sorts = [{ prop: 'date', dir: 'desc' }];
 
   // to let ngx-datatable helper funcs have 'this' context
   bindFunc = _.bind;
@@ -30,8 +30,8 @@ export class HistoryListComponent implements OnInit {
 
   ngOnInit() {
     if (this.route.parent) {
-      const clusterName = this.route.parent.snapshot.params["cluster_name"];
-      const instanceName = this.route.parent.snapshot.params["instance_name"];
+      const clusterName = this.route.parent.snapshot.params['cluster_name'];
+      const instanceName = this.route.parent.snapshot.params['instance_name'];
       const observable = instanceName
         ? this.service.getInstanceHistory(clusterName, instanceName)
         : this.service.getControllerHistory(clusterName);

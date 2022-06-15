@@ -1,8 +1,8 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { DisabledLabelComponent } from "./disabled-label.component";
+import { DisabledLabelComponent } from './disabled-label.component';
 
-describe("DisabledLabelComponent", () => {
+describe('DisabledLabelComponent', () => {
   let component: DisabledLabelComponent;
   let fixture: ComponentFixture<DisabledLabelComponent>;
 
@@ -18,7 +18,7 @@ describe("DisabledLabelComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

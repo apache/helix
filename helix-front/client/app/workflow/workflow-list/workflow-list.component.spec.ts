@@ -1,12 +1,12 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
-import { RouterTestingModule } from "@angular/router/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { RouterTestingModule } from '@angular/router/testing';
 
-import { WorkflowListComponent } from "./workflow-list.component";
-import { WorkflowService } from "../shared/workflow.service";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { WorkflowListComponent } from './workflow-list.component';
+import { WorkflowService } from '../shared/workflow.service';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-describe("WorkflowListComponent", () => {
+describe('WorkflowListComponent', () => {
   let component: WorkflowListComponent;
   let fixture: ComponentFixture<WorkflowListComponent>;
 
@@ -28,7 +28,7 @@ describe("WorkflowListComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

@@ -1,15 +1,15 @@
-import { Request, Response, Router } from "express";
-import * as LdapClient from "ldapjs";
+import { Request, Response, Router } from 'express';
+import * as LdapClient from 'ldapjs';
 
-import { LDAP } from "../config";
-import { HelixUserRequest } from "./d";
+import { LDAP } from '../config';
+import { HelixUserRequest } from './d';
 
 export class UserCtrl {
   constructor(router: Router) {
-    router.route("/user/authorize").get(this.authorize);
-    router.route("/user/login").post(this.login.bind(this));
-    router.route("/user/current").get(this.current);
-    router.route("/user/can").get(this.can);
+    router.route('/user/authorize').get(this.authorize);
+    router.route('/user/login').post(this.login.bind(this));
+    router.route('/user/current').get(this.current);
+    router.route('/user/can').get(this.can);
   }
 
   protected authorize(req: HelixUserRequest, res: Response) {
@@ -18,12 +18,12 @@ export class UserCtrl {
     if (req.query.url) {
       res.redirect(req.query.url as string);
     } else {
-      res.redirect("/");
+      res.redirect('/');
     }
   }
 
   protected current(req: HelixUserRequest, res: Response) {
-    res.json(req.session.username || "Sign In");
+    res.json(req.session.username || 'Sign In');
   }
 
   protected can(req: HelixUserRequest, res: Response) {
@@ -54,19 +54,19 @@ export class UserCtrl {
           // login success
           const opts = {
             filter:
-              "(&(sAMAccountName=" +
+              '(&(sAMAccountName=' +
               credential.username +
-              ")(objectcategory=person))",
-            scope: "sub",
+              ')(objectcategory=person))',
+            scope: 'sub',
           };
 
           ldap.search(LDAP.base, opts, function (err, result) {
             let isInAdminGroup = false;
-            result.on("searchEntry", function (entry) {
+            result.on('searchEntry', function (entry) {
               if (entry.object && !err) {
-                const groups = entry.object["memberOf"];
+                const groups = entry.object['memberOf'];
                 for (const group of groups) {
-                  const groupName = group.split(",", 1)[0].split("=")[1];
+                  const groupName = group.split(',', 1)[0].split('=')[1];
                   if (groupName == LDAP.adminGroup) {
                     isInAdminGroup = true;
                     break;

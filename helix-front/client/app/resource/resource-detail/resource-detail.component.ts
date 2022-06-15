@@ -1,21 +1,21 @@
-import { Component, OnInit } from "@angular/core";
-import { Router, ActivatedRoute } from "@angular/router";
+import { Component, OnInit } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
 
-import { Resource } from "../shared/resource.model";
-import { HelperService } from "../../shared/helper.service";
-import { ResourceService } from "../shared/resource.service";
+import { Resource } from '../shared/resource.model';
+import { HelperService } from '../../shared/helper.service';
+import { ResourceService } from '../shared/resource.service';
 
 @Component({
-  selector: "hi-resource-detail",
-  templateUrl: "./resource-detail.component.html",
-  styleUrls: ["./resource-detail.component.scss"],
+  selector: 'hi-resource-detail',
+  templateUrl: './resource-detail.component.html',
+  styleUrls: ['./resource-detail.component.scss'],
 })
 export class ResourceDetailComponent implements OnInit {
   readonly tabLinks = [
-    { label: "Partitions", link: "partitions" },
-    { label: "External View", link: "externalView" },
-    { label: "Ideal State", link: "idealState" },
-    { label: "Configuration", link: "configs" },
+    { label: 'Partitions', link: 'partitions' },
+    { label: 'External View', link: 'externalView' },
+    { label: 'Ideal State', link: 'idealState' },
+    { label: 'Configuration', link: 'configs' },
   ];
 
   clusterName: string;
@@ -54,7 +54,7 @@ export class ResourceDetailComponent implements OnInit {
 
   removeResource() {
     this.helper
-      .showConfirmation("Are you sure you want to remove this Resource?")
+      .showConfirmation('Are you sure you want to remove this Resource?')
       .then((result) => {
         console.log(result);
         if (result) {
@@ -64,7 +64,7 @@ export class ResourceDetailComponent implements OnInit {
               this.helper.showSnackBar(
                 `Resource: ${this.resourceName} removed!`
               );
-              this.router.navigate([".."], { relativeTo: this.route });
+              this.router.navigate(['..'], { relativeTo: this.route });
             });
         }
       });

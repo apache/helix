@@ -30,7 +30,7 @@
       <section *ngSwitchCase="'boolean'">
         {{ values[name].label }}:
         <mat-slide-toggle [name]="name" [(ngModel)]="values[name].value">
-          {{ values[name].value ? "True" : "False" }}
+          {{ values[name].value ? 'True' : 'False' }}
         </mat-slide-toggle>
       </section>
       <mat-form-field *ngSwitchCase="'password'">

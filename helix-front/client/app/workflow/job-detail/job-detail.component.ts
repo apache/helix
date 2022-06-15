@@ -1,13 +1,13 @@
-import { Component, OnInit, Input } from "@angular/core";
+import { Component, OnInit, Input } from '@angular/core';
 
-import { Job } from "../shared/workflow.model";
-import { JobService } from "../shared/job.service";
-import { HelperService } from "../../shared/helper.service";
+import { Job } from '../shared/workflow.model';
+import { JobService } from '../shared/job.service';
+import { HelperService } from '../../shared/helper.service';
 
 @Component({
-  selector: "hi-job-detail",
-  templateUrl: "./job-detail.component.html",
-  styleUrls: ["./job-detail.component.scss"],
+  selector: 'hi-job-detail',
+  templateUrl: './job-detail.component.html',
+  styleUrls: ['./job-detail.component.scss'],
 })
 export class JobDetailComponent implements OnInit {
   @Input()

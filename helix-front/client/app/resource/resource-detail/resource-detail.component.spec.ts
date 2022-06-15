@@ -1,11 +1,11 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { TestingModule } from "../../../testing/testing.module";
-import { ResourceDetailComponent } from "./resource-detail.component";
-import { ResourceService } from "../shared/resource.service";
+import { TestingModule } from '../../../testing/testing.module';
+import { ResourceDetailComponent } from './resource-detail.component';
+import { ResourceService } from '../shared/resource.service';
 
-describe("ResourceDetailComponent", () => {
+describe('ResourceDetailComponent', () => {
   let component: ResourceDetailComponent;
   let fixture: ComponentFixture<ResourceDetailComponent>;
 
@@ -27,7 +27,7 @@ describe("ResourceDetailComponent", () => {
     fixture.detectChanges();
   });
 
-  xit("should create", () => {
+  xit('should create', () => {
     expect(component).toBeTruthy();
   });
 });

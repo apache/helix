@@ -1,13 +1,13 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit } from '@angular/core';
 
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
-import { ChooserService } from "../shared/chooser.service";
+import { ChooserService } from '../shared/chooser.service';
 
 @Component({
-  selector: "hi-helix-list",
-  templateUrl: "./helix-list.component.html",
-  styleUrls: ["./helix-list.component.scss"],
+  selector: 'hi-helix-list',
+  templateUrl: './helix-list.component.html',
+  styleUrls: ['./helix-list.component.scss'],
 })
 export class HelixListComponent implements OnInit {
   groups: any;

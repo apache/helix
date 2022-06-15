@@ -1,4 +1,4 @@
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
 export interface IReplica {
   instanceName: string;
@@ -47,7 +47,7 @@ export class Resource {
   get enabled(): boolean {
     // there are two cases meaning enabled both:
     //   HELIX_ENABLED: true or no such item in idealState
-    return _.get(this.idealState, "simpleFields.HELIX_ENABLED") != "false";
+    return _.get(this.idealState, 'simpleFields.HELIX_ENABLED') != 'false';
   }
 
   get online(): boolean {
@@ -82,38 +82,38 @@ export class Resource {
       // in FULL_ATUO mode, externalView is more important
       // if preferences list exists, fetch instances from it, else whatever
       if (
-        this.rebalanceMode != "FULL_AUTO" &&
+        this.rebalanceMode != 'FULL_AUTO' &&
         idealState.listFields[partitionName]
       ) {
         for (const replicaName of idealState.listFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
             externalView: _.get(externalView, [
-              "mapFields",
+              'mapFields',
               partitionName,
               replicaName,
             ]),
             idealState: _.get(idealState, [
-              "mapFields",
+              'mapFields',
               partitionName,
               replicaName,
             ]),
           });
         }
       } else if (
-        this.rebalanceMode != "FULL_AUTO" &&
+        this.rebalanceMode != 'FULL_AUTO' &&
         idealState.mapFields[partitionName]
       ) {
         for (const replicaName in idealState.mapFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
             externalView: _.get(externalView, [
-              "mapFields",
+              'mapFields',
               partitionName,
               replicaName,
             ]),
             idealState: _.get(idealState, [
-              "mapFields",
+              'mapFields',
               partitionName,
               replicaName,
             ]),
@@ -124,12 +124,12 @@ export class Resource {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
             externalView: _.get(externalView, [
-              "mapFields",
+              'mapFields',
               partitionName,
               replicaName,
             ]),
             idealState: _.get(idealState, [
-              "mapFields",
+              'mapFields',
               partitionName,
               replicaName,
             ]),
@@ -138,7 +138,7 @@ export class Resource {
       }
 
       // sort replicas by states
-      partition.replicas = _.sortBy(partition.replicas, "externalView");
+      partition.replicas = _.sortBy(partition.replicas, 'externalView');
 
       this.partitions.push(partition);
     }

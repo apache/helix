@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit } from '@angular/core';
 import {
   Router,
   ActivatedRoute,
@@ -6,19 +6,19 @@ import {
   NavigationEnd,
   NavigationCancel,
   NavigationError,
-} from "@angular/router";
-import { MatDialog } from "@angular/material/dialog";
+} from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 
 // import { Angulartics2Piwik } from 'angulartics2/piwik';
 
-import { UserService } from "./core/user.service";
-import { InputDialogComponent } from "./shared/dialog/input-dialog/input-dialog.component";
-import { HelperService } from "./shared/helper.service";
+import { UserService } from './core/user.service';
+import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';
+import { HelperService } from './shared/helper.service';
 
 @Component({
-  selector: "hi-root",
-  templateUrl: "./app.component.html",
-  styleUrls: ["./app.component.scss"],
+  selector: 'hi-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss'],
   providers: [UserService /*, Angulartics2Piwik */],
 })
 export class AppComponent implements OnInit {
@@ -56,7 +56,7 @@ export class AppComponent implements OnInit {
     this.currentUser = this.service.getCurrentUser();
 
     this.route.queryParams.subscribe((params) => {
-      if (params["embed"] == "true") {
+      if (params['embed'] == 'true') {
         this.headerEnabled = this.footerEnabled = false;
       }
     });
@@ -66,15 +66,15 @@ export class AppComponent implements OnInit {
     this.dialog
       .open(InputDialogComponent, {
         data: {
-          title: "Sign In",
-          message: "Please enter your LDAP username and password to continue:",
+          title: 'Sign In',
+          message: 'Please enter your LDAP username and password to continue:',
           values: {
             username: {
-              label: "Username",
+              label: 'Username',
             },
             password: {
-              label: "Password",
-              type: "password",
+              label: 'Password',
+              type: 'password',
             },
           },
         },
@@ -97,7 +97,7 @@ export class AppComponent implements OnInit {
                 (error) => {
                   // since rest API simply throws 404 instead of empty config when config is not initialized yet
                   // frontend has to treat 404 as normal result
-                  if (error != "Not Found") {
+                  if (error != 'Not Found') {
                     this.helper.showError(error);
                   }
                   this.isLoading = false;
@@ -108,7 +108,7 @@ export class AppComponent implements OnInit {
         (error) => {
           // since rest API simply throws 404 instead of empty config when config is not initialized yet
           // frontend has to treat 404 as normal result
-          if (error != "Not Found") {
+          if (error != 'Not Found') {
             this.helper.showError(error);
           }
           this.isLoading = false;

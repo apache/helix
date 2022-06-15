@@ -1,13 +1,13 @@
-import { Component, OnInit } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-import { ConfigurationService } from "../shared/configuration.service";
-import { HelperService } from "../../shared/helper.service";
+import { ConfigurationService } from '../shared/configuration.service';
+import { HelperService } from '../../shared/helper.service';
 
 @Component({
-  selector: "hi-config-detail",
-  templateUrl: "./config-detail.component.html",
-  styleUrls: ["./config-detail.component.scss"],
+  selector: 'hi-config-detail',
+  templateUrl: './config-detail.component.html',
+  styleUrls: ['./config-detail.component.scss'],
   providers: [ConfigurationService],
 })
 export class ConfigDetailComponent implements OnInit {
@@ -62,7 +62,7 @@ export class ConfigDetailComponent implements OnInit {
         (error) => {
           // since rest API simply throws 404 instead of empty config when config is not initialized yet
           // frontend has to treat 404 as normal result
-          if (error != "Not Found") {
+          if (error != 'Not Found') {
             this.helper.showError(error);
           }
           this.isLoading = false;
@@ -95,7 +95,7 @@ export class ConfigDetailComponent implements OnInit {
       this.isLoading = true;
       observer.subscribe(
         () => {
-          this.helper.showSnackBar("Configuration updated!");
+          this.helper.showSnackBar('Configuration updated!');
           this.loadConfig();
         },
         (error) => this.helper.showError(error),
@@ -127,7 +127,7 @@ export class ConfigDetailComponent implements OnInit {
       this.isLoading = true;
       observer.subscribe(
         () => {
-          this.helper.showSnackBar("Configuration deleted!");
+          this.helper.showSnackBar('Configuration deleted!');
           this.loadConfig();
         },
         (error) => this.helper.showError(error),

@@ -1,12 +1,12 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
-import { HttpClientModule } from "@angular/common/http";
-import { RouterTestingModule } from "@angular/router/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientModule } from '@angular/common/http';
+import { RouterTestingModule } from '@angular/router/testing';
 
-import { ResourceService } from "../shared/resource.service";
-import { ResourceDetailForInstanceComponent } from "./resource-detail-for-instance.component";
+import { ResourceService } from '../shared/resource.service';
+import { ResourceDetailForInstanceComponent } from './resource-detail-for-instance.component';
 
-describe("ResourceDetailForInstanceComponent", () => {
+describe('ResourceDetailForInstanceComponent', () => {
   let component: ResourceDetailForInstanceComponent;
   let fixture: ComponentFixture<ResourceDetailForInstanceComponent>;
 
@@ -28,7 +28,7 @@ describe("ResourceDetailForInstanceComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

@@ -1,8 +1,8 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AlertDialogComponent } from "./alert-dialog.component";
+import { AlertDialogComponent } from './alert-dialog.component';
 
-describe("AlertDialogComponent", () => {
+describe('AlertDialogComponent', () => {
   let component: AlertDialogComponent;
   let fixture: ComponentFixture<AlertDialogComponent>;
 
@@ -19,7 +19,7 @@ describe("AlertDialogComponent", () => {
   });
 
   // disable this test until I figure out a way to test
-  xit("should be created", () => {
+  xit('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

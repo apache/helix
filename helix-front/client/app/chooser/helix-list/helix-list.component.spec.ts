@@ -1,11 +1,11 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { TestingModule } from "../../../testing/testing.module";
-import { HelixListComponent } from "./helix-list.component";
-import { ChooserService } from "../shared/chooser.service";
+import { TestingModule } from '../../../testing/testing.module';
+import { HelixListComponent } from './helix-list.component';
+import { ChooserService } from '../shared/chooser.service';
 
-describe("HelixListComponent", () => {
+describe('HelixListComponent', () => {
   let component: HelixListComponent;
   let fixture: ComponentFixture<HelixListComponent>;
 
@@ -27,7 +27,7 @@ describe("HelixListComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

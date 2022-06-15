@@ -6,37 +6,37 @@ import {
   ViewChild,
   ViewEncapsulation,
   EventEmitter,
-} from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
-import { MatDialog } from "@angular/material/dialog";
+} from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
-import { Node } from "../models/node.model";
-import { Settings } from "../../core/settings";
-import { InputDialogComponent } from "../dialog/input-dialog/input-dialog.component";
-import { ConfirmDialogComponent } from "../dialog/confirm-dialog/confirm-dialog.component";
+import { Node } from '../models/node.model';
+import { Settings } from '../../core/settings';
+import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
+import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: "hi-node-viewer",
-  templateUrl: "./node-viewer.component.html",
-  styleUrls: ["./node-viewer.component.scss"],
+  selector: 'hi-node-viewer',
+  templateUrl: './node-viewer.component.html',
+  styleUrls: ['./node-viewer.component.scss'],
   // Since we are importing external styles in this component
   // we will not use Shadow DOM at all to make sure the styles apply
   encapsulation: ViewEncapsulation.None,
 })
 export class NodeViewerComponent implements OnInit {
-  @ViewChild("simpleTable", { static: true }) simpleTable;
-  @ViewChild("listTable", { static: true }) listTable;
-  @ViewChild("mapTable", { static: true }) mapTable;
+  @ViewChild('simpleTable', { static: true }) simpleTable;
+  @ViewChild('listTable', { static: true }) listTable;
+  @ViewChild('mapTable', { static: true }) mapTable;
 
-  @Output("update")
+  @Output('update')
   change: EventEmitter<Node> = new EventEmitter<Node>();
 
-  @Output("create")
+  @Output('create')
   create: EventEmitter<Node> = new EventEmitter<Node>();
 
-  @Output("delete")
+  @Output('delete')
   delete: EventEmitter<Node> = new EventEmitter<Node>();
 
   @Input()
@@ -52,22 +52,22 @@ export class NodeViewerComponent implements OnInit {
 
   headerHeight = Settings.tableHeaderHeight;
   rowHeight = Settings.tableRowHeight;
-  sorts = [{ prop: "name", dir: "asc" }];
-  keyword = "";
+  sorts = [{ prop: 'name', dir: 'asc' }];
+  keyword = '';
   columns = {
     simpleConfigs: [
       {
-        name: "Name",
+        name: 'Name',
         editable: false,
       },
       {
-        name: "Value",
+        name: 'Value',
         editable: false,
       },
     ],
     listConfigs: [
       {
-        name: "Value",
+        name: 'Value',
         editable: false,
       },
     ],
@@ -186,7 +186,7 @@ export class NodeViewerComponent implements OnInit {
             "Please enter the name of the new configuration. You'll be able to add values later:",
           values: {
             name: {
-              label: "the name of the new configuration",
+              label: 'the name of the new configuration',
             },
           },
         },
@@ -202,9 +202,9 @@ export class NodeViewerComponent implements OnInit {
           ];
 
           const newNode: Node = new Node(null);
-          if (type === "list") {
+          if (type === 'list') {
             newNode.listFields = entry;
-          } else if (type === "map") {
+          } else if (type === 'map') {
             newNode.mapFields = entry;
           }
 
@@ -217,8 +217,8 @@ export class NodeViewerComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: "Confirmation",
-          message: "Are you sure you want to delete this configuration?",
+          title: 'Confirmation',
+          message: 'Are you sure you want to delete this configuration?',
         },
       })
       .afterClosed()
@@ -232,11 +232,11 @@ export class NodeViewerComponent implements OnInit {
   onDelete(type, row) {
     const newNode: Node = new Node(null);
 
-    if (type === "simple") {
-      newNode.appendSimpleField(row.name, "");
-    } else if (type === "list") {
+    if (type === 'simple') {
+      newNode.appendSimpleField(row.name, '');
+    } else if (type === 'list') {
       newNode.listFields = [{ name: row.name, value: [] }];
-    } else if (type === "map") {
+    } else if (type === 'map') {
       newNode.mapFields = [{ name: row.name, value: null }];
     }
 
@@ -247,18 +247,18 @@ export class NodeViewerComponent implements OnInit {
     const newNode: Node = new Node(null);
 
     switch (type) {
-      case "simple":
+      case 'simple':
         newNode.appendSimpleField(data.name.value, data.value.value);
         break;
 
-      case "list":
+      case 'list':
         if (key) {
           const entry = _.find(this.node.listFields, { name: key });
           //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
           // Property 'value' does not exist on type 'number'.ts(2339)
           // @ts-ignore
           entry.value.push({
-            name: "",
+            name: '',
             value: data.value.value,
           });
           // Argument of type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...' is not assignable to parameter of type 'ListFieldObject'.
@@ -268,7 +268,7 @@ export class NodeViewerComponent implements OnInit {
         }
         break;
 
-      case "map":
+      case 'map':
         if (key) {
           const entry = _.find(this.node.mapFields, { name: key });
           //         Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
@@ -286,18 +286,18 @@ export class NodeViewerComponent implements OnInit {
   }
 
   edited(type, { row, column, value }, key, isDeleting) {
-    if (!isDeleting && column.name !== "Value") {
+    if (!isDeleting && column.name !== 'Value') {
       return;
     }
 
     const newNode: Node = new Node(null);
 
     switch (type) {
-      case "simple":
+      case 'simple':
         newNode.appendSimpleField(row.name, value);
         break;
 
-      case "list":
+      case 'list':
         if (key) {
           const entry = _.find(this.node.listFields, { name: key });
           //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
@@ -322,7 +322,7 @@ export class NodeViewerComponent implements OnInit {
         }
         break;
 
-      case "map":
+      case 'map':
         if (key) {
           // have to fetch all other configs under this key
           const entry = _.find(this.node.mapFields, { name: key });

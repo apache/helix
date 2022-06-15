@@ -1,11 +1,11 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
-import { RouterTestingModule } from "@angular/router/testing";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
-import { ControllerDetailComponent } from "./controller-detail.component";
+import { ControllerDetailComponent } from './controller-detail.component';
 
-describe("ControllerDetailComponent", () => {
+describe('ControllerDetailComponent', () => {
   let component: ControllerDetailComponent;
   let fixture: ComponentFixture<ControllerDetailComponent>;
 
@@ -26,7 +26,7 @@ describe("ControllerDetailComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should create", () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 });

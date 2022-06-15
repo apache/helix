@@ -1,21 +1,21 @@
-import { Component, OnInit } from "@angular/core";
-import { ActivatedRoute, Router } from "@angular/router";
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 
-import { Instance } from "../shared/instance.model";
-import { HelperService } from "../../shared/helper.service";
-import { InstanceService } from "../shared/instance.service";
+import { Instance } from '../shared/instance.model';
+import { HelperService } from '../../shared/helper.service';
+import { InstanceService } from '../shared/instance.service';
 
 @Component({
-  selector: "hi-instance-detail",
-  templateUrl: "./instance-detail.component.html",
-  styleUrls: ["./instance-detail.component.scss"],
+  selector: 'hi-instance-detail',
+  templateUrl: './instance-detail.component.html',
+  styleUrls: ['./instance-detail.component.scss'],
   providers: [InstanceService],
 })
 export class InstanceDetailComponent implements OnInit {
   readonly tabLinks = [
-    { label: "Resources", link: "resources" },
-    { label: "Configuration", link: "configs" },
-    { label: "History", link: "history" },
+    { label: 'Resources', link: 'resources' },
+    { label: 'Configuration', link: 'configs' },
+    { label: 'History', link: 'history' },
   ];
 
   clusterName: string;
@@ -40,7 +40,7 @@ export class InstanceDetailComponent implements OnInit {
 
   removeInstance() {
     this.helperService
-      .showConfirmation("Are you sure you want to remove this Instance?")
+      .showConfirmation('Are you sure you want to remove this Instance?')
       .then((result) => {
         if (result) {
           this.service
@@ -49,7 +49,7 @@ export class InstanceDetailComponent implements OnInit {
               this.helperService.showSnackBar(
                 `Instance: ${this.instance.name} removed!`
               );
-              this.router.navigate([".."], { relativeTo: this.route });
+              this.router.navigate(['..'], { relativeTo: this.route });
             });
         }
       });

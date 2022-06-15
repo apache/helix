@@ -1,24 +1,24 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
-import { Router, ActivatedRoute } from "@angular/router";
-import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
-import { Settings } from "../../core/settings";
-import { Resource } from "../shared/resource.model";
-import { ResourceService } from "../shared/resource.service";
-import { WorkflowService } from "../../workflow/shared/workflow.service";
-import { HelperService } from "../../shared/helper.service";
+import { Settings } from '../../core/settings';
+import { Resource } from '../shared/resource.model';
+import { ResourceService } from '../shared/resource.service';
+import { WorkflowService } from '../../workflow/shared/workflow.service';
+import { HelperService } from '../../shared/helper.service';
 
 @Component({
-  selector: "hi-resource-list",
-  templateUrl: "./resource-list.component.html",
-  styleUrls: ["./resource-list.component.scss"],
+  selector: 'hi-resource-list',
+  templateUrl: './resource-list.component.html',
+  styleUrls: ['./resource-list.component.scss'],
   providers: [WorkflowService],
 })
 export class ResourceListComponent implements OnInit {
-  @ViewChild("resourcesTable", { static: true })
+  @ViewChild('resourcesTable', { static: true })
   table: any;
 
   isForInstance = false;
@@ -29,8 +29,8 @@ export class ResourceListComponent implements OnInit {
   clusterName: string;
   instanceName: string;
   sorts = [
-    { prop: "alive", dir: "asc" },
-    { prop: "name", dir: "asc" },
+    { prop: 'alive', dir: 'asc' },
+    { prop: 'name', dir: 'asc' },
   ];
 
   constructor(

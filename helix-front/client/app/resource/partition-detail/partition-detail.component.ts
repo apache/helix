@@ -1,12 +1,12 @@
-import { Component, OnInit, Input, ViewEncapsulation } from "@angular/core";
+import { Component, OnInit, Input, ViewEncapsulation } from '@angular/core';
 
-import { Settings } from "../../core/settings";
-import { Partition, IReplica } from "../shared/resource.model";
+import { Settings } from '../../core/settings';
+import { Partition, IReplica } from '../shared/resource.model';
 
 @Component({
-  selector: "hi-partition-detail",
-  templateUrl: "./partition-detail.component.html",
-  styleUrls: ["./partition-detail.component.scss"],
+  selector: 'hi-partition-detail',
+  templateUrl: './partition-detail.component.html',
+  styleUrls: ['./partition-detail.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
 export class PartitionDetailComponent implements OnInit {

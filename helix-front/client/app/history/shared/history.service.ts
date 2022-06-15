@@ -1,9 +1,9 @@
-import { Injectable } from "@angular/core";
-import { map } from "rxjs/operators";
-import * as _ from "lodash";
+import { Injectable } from '@angular/core';
+import { map } from 'rxjs/operators';
+import * as _ from 'lodash';
 
-import { HelixService } from "../../core/helix.service";
-import { History } from "./history.model";
+import { HelixService } from '../../core/helix.service';
+import { History } from './history.model';
 
 @Injectable()
 export class HistoryService extends HelixService {
@@ -32,13 +32,13 @@ export class HistoryService extends HelixService {
         for (const seg of _.words(record, /[^{}, ]+/g)) {
           const name = _.words(seg, /[^=]+/g)[0];
           const value = _.words(seg, /[^=]+/g)[1];
-          if (name == "DATE") {
+          if (name == 'DATE') {
             history.date = value;
-          } else if (name == "CONTROLLER") {
+          } else if (name == 'CONTROLLER') {
             history.controller = value;
-          } else if (name == "SESSION") {
+          } else if (name == 'SESSION') {
             history.session = value;
-          } else if (name == "TIME") {
+          } else if (name == 'TIME') {
             history.time = +value;
           }
         }

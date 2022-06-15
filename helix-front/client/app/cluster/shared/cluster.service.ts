@@ -1,13 +1,13 @@
-import { map } from "rxjs/operators";
-import { Injectable } from "@angular/core";
+import { map } from 'rxjs/operators';
+import { Injectable } from '@angular/core';
 
-import { Cluster } from "./cluster.model";
-import { HelixService } from "../../core/helix.service";
+import { Cluster } from './cluster.model';
+import { HelixService } from '../../core/helix.service';
 
 @Injectable()
 export class ClusterService extends HelixService {
   public getAll() {
-    return this.request("/clusters").pipe(
+    return this.request('/clusters').pipe(
       map((data) => data.clusters.sort().map((name) => <Cluster>{ name }))
     );
   }

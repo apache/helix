@@ -1,16 +1,16 @@
-import { Component, OnInit } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
-import { Resource } from "../shared/resource.model";
-import { HelperService } from "../../shared/helper.service";
-import { ResourceService } from "../shared/resource.service";
+import { Resource } from '../shared/resource.model';
+import { HelperService } from '../../shared/helper.service';
+import { ResourceService } from '../shared/resource.service';
 
 @Component({
-  selector: "hi-resource-node-viewer",
-  templateUrl: "./resource-node-viewer.component.html",
-  styleUrls: ["./resource-node-viewer.component.scss"],
+  selector: 'hi-resource-node-viewer',
+  templateUrl: './resource-node-viewer.component.html',
+  styleUrls: ['./resource-node-viewer.component.scss'],
 })
 export class ResourceNodeViewerComponent implements OnInit {
   isLoading = true;

@@ -1,28 +1,28 @@
-import { map } from "rxjs/operators";
-import { Component, OnInit } from "@angular/core";
-import { ActivatedRoute, Router } from "@angular/router";
-import { MatDialog } from "@angular/material/dialog";
+import { map } from 'rxjs/operators';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 
-import { Cluster } from "../shared/cluster.model";
-import { HelperService } from "../../shared/helper.service";
-import { ClusterService } from "../shared/cluster.service";
-import { InstanceService } from "../../instance/shared/instance.service";
-import { AlertDialogComponent } from "../../shared/dialog/alert-dialog/alert-dialog.component";
-import { InputDialogComponent } from "../../shared/dialog/input-dialog/input-dialog.component";
+import { Cluster } from '../shared/cluster.model';
+import { HelperService } from '../../shared/helper.service';
+import { ClusterService } from '../shared/cluster.service';
+import { InstanceService } from '../../instance/shared/instance.service';
+import { AlertDialogComponent } from '../../shared/dialog/alert-dialog/alert-dialog.component';
+import { InputDialogComponent } from '../../shared/dialog/input-dialog/input-dialog.component';
 
 @Component({
-  selector: "hi-cluster-detail",
-  templateUrl: "./cluster-detail.component.html",
-  styleUrls: ["./cluster-detail.component.scss"],
+  selector: 'hi-cluster-detail',
+  templateUrl: './cluster-detail.component.html',
+  styleUrls: ['./cluster-detail.component.scss'],
   providers: [InstanceService],
 })
 export class ClusterDetailComponent implements OnInit {
   readonly tabLinks = [
-    { label: "Dashboard (beta)", link: "dashboard" },
-    { label: "Resources", link: "resources" },
-    { label: "Workflows", link: "workflows" },
-    { label: "Instances", link: "instances" },
-    { label: "Configuration", link: "configs" },
+    { label: 'Dashboard (beta)', link: 'dashboard' },
+    { label: 'Resources', link: 'resources' },
+    { label: 'Workflows', link: 'workflows' },
+    { label: 'Instances', link: 'instances' },
+    { label: 'Configuration', link: 'configs' },
   ];
 
   isLoading = false;
@@ -60,18 +60,18 @@ export class ClusterDetailComponent implements OnInit {
     this.dialog
       .open(InputDialogComponent, {
         data: {
-          title: "Add a new Instance",
-          message: "Please enter the following information to continue:",
+          title: 'Add a new Instance',
+          message: 'Please enter the following information to continue:',
           values: {
             host: {
-              label: "Hostname",
+              label: 'Hostname',
             },
             port: {
-              label: "Port",
+              label: 'Port',
             },
             enabled: {
-              label: "Enabled",
-              type: "boolean",
+              label: 'Enabled',
+              type: 'boolean',
             },
           },
         },
@@ -88,12 +88,12 @@ export class ClusterDetailComponent implements OnInit {
             )
             .subscribe(
               (data) => {
-                this.helperService.showSnackBar("New Instance added!");
+                this.helperService.showSnackBar('New Instance added!');
                 // temporarily navigate back to instance view to refresh
                 // will fix this using ngrx/store
-                this.router.navigate(["workflows"], { relativeTo: this.route });
+                this.router.navigate(['workflows'], { relativeTo: this.route });
                 setTimeout(() => {
-                  this.router.navigate(["instances"], {
+                  this.router.navigate(['instances'], {
                     relativeTo: this.route,
                   });
                 }, 100);
@@ -123,12 +123,12 @@ export class ClusterDetailComponent implements OnInit {
     this.dialog
       .open(InputDialogComponent, {
         data: {
-          title: "Activate this Cluster",
+          title: 'Activate this Cluster',
           message:
-            "To link this cluster to a Helix super cluster (controller), please enter the super cluster name:",
+            'To link this cluster to a Helix super cluster (controller), please enter the super cluster name:',
           values: {
             name: {
-              label: "super cluster name",
+              label: 'super cluster name',
             },
           },
         },
@@ -145,7 +145,7 @@ export class ClusterDetailComponent implements OnInit {
                 this.dialog
                   .open(AlertDialogComponent, {
                     data: {
-                      title: "Cluster Activated",
+                      title: 'Cluster Activated',
                       message: `Cluster '${this.clusterName}' is linked to super cluster '${result.name.value}'.`,
                     },
                   })
@@ -164,12 +164,12 @@ export class ClusterDetailComponent implements OnInit {
     this.dialog
       .open(InputDialogComponent, {
         data: {
-          title: "Enable maintenance mode",
+          title: 'Enable maintenance mode',
           message:
-            "What reason do you want to use to put the cluster in maintenance mode?",
+            'What reason do you want to use to put the cluster in maintenance mode?',
           values: {
             reason: {
-              label: "reason",
+              label: 'reason',
             },
           },
         },
@@ -196,13 +196,13 @@ export class ClusterDetailComponent implements OnInit {
 
   deleteCluster() {
     this.helperService
-      .showConfirmation("Are you sure you want to delete this cluster?")
+      .showConfirmation('Are you sure you want to delete this cluster?')
       .then((result) => {
         if (result) {
           this.clusterService.remove(this.cluster.name).subscribe((data) => {
-            this.helperService.showSnackBar("Cluster deleted!");
+            this.helperService.showSnackBar('Cluster deleted!');
             // FIXME: should reload cluster list as well
-            this.router.navigate([".."], { relativeTo: this.route });
+            this.router.navigate(['..'], { relativeTo: this.route });
           });
         }
       });

@@ -1,7 +1,7 @@
-import { Injectable } from "@angular/core";
+import { Injectable } from '@angular/core';
 
-import { HelixService } from "../../core/helix.service";
-import { Node } from "../../shared/models/node.model";
+import { HelixService } from '../../core/helix.service';
+import { Node } from '../../shared/models/node.model';
 
 @Injectable()
 export class ConfigurationService extends HelixService {

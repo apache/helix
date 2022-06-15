@@ -1,14 +1,14 @@
-import { Component, OnInit } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
-import { Workflow } from "../shared/workflow.model";
-import { WorkflowService } from "../shared/workflow.service";
-import { HelperService } from "../../shared/helper.service";
+import { Workflow } from '../shared/workflow.model';
+import { WorkflowService } from '../shared/workflow.service';
+import { HelperService } from '../../shared/helper.service';
 
 @Component({
-  selector: "hi-workflow-detail",
-  templateUrl: "./workflow-detail.component.html",
-  styleUrls: ["./workflow-detail.component.scss"],
+  selector: 'hi-workflow-detail',
+  templateUrl: './workflow-detail.component.html',
+  styleUrls: ['./workflow-detail.component.scss'],
 })
 export class WorkflowDetailComponent implements OnInit {
   isLoading = true;
@@ -24,8 +24,8 @@ export class WorkflowDetailComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.clusterName = this.route.snapshot.params["cluster_name"];
-    this.workflowName = this.route.snapshot.params["workflow_name"];
+    this.clusterName = this.route.snapshot.params['cluster_name'];
+    this.workflowName = this.route.snapshot.params['workflow_name'];
 
     this.service.can().subscribe((data) => (this.can = data));
 
@@ -35,7 +35,7 @@ export class WorkflowDetailComponent implements OnInit {
   stopWorkflow() {
     this.service.stop(this.clusterName, this.workflowName).subscribe(
       () => {
-        this.helper.showSnackBar("Pause command sent.");
+        this.helper.showSnackBar('Pause command sent.');
         this.loadWorkflow();
       },
       (error) => this.helper.showError(error)
@@ -45,7 +45,7 @@ export class WorkflowDetailComponent implements OnInit {
   resumeWorkflow() {
     this.service.resume(this.clusterName, this.workflowName).subscribe(
       () => {
-        this.helper.showSnackBar("Resume command sent.");
+        this.helper.showSnackBar('Resume command sent.');
         this.loadWorkflow();
       },
       (error) => this.helper.showError(error)

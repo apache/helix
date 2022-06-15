@@ -6,36 +6,36 @@ import {
   ViewChild,
   ElementRef,
   EventEmitter,
-} from "@angular/core";
-import { ControlValueAccessor } from "@angular/forms";
+} from '@angular/core';
+import { ControlValueAccessor } from '@angular/forms';
 
 @Component({
-  selector: "hi-input-inline",
-  templateUrl: "./input-inline.component.html",
-  styleUrls: ["./input-inline.component.scss"],
+  selector: 'hi-input-inline',
+  templateUrl: './input-inline.component.html',
+  styleUrls: ['./input-inline.component.scss'],
 })
 export class InputInlineComponent implements ControlValueAccessor, OnInit {
-  @ViewChild("inputControl", { static: true }) inputControl: ElementRef;
+  @ViewChild('inputControl', { static: true }) inputControl: ElementRef;
 
-  @Output("update") change: EventEmitter<string> = new EventEmitter<string>();
+  @Output('update') change: EventEmitter<string> = new EventEmitter<string>();
 
-  @Input() label = "";
+  @Input() label = '';
   @Input() min = -9999;
   @Input() max = 99999999;
   @Input() minlength = 0;
   @Input() maxlength = 2555;
-  @Input() type = "text";
+  @Input() type = 'text';
   @Input() required = false;
   @Input() pattern: string = null;
-  @Input() errorLabel = "Invalid input value";
-  @Input() editLabel = "Click to edit";
+  @Input() errorLabel = 'Invalid input value';
+  @Input() editLabel = 'Click to edit';
   @Input() disabled = false;
 
   editing = false;
 
-  private _value = "";
+  private _value = '';
 
-  private lastValue = "";
+  private lastValue = '';
 
   // Required forControlValueAccessor interface
   public onChange: any = Function.prototype;

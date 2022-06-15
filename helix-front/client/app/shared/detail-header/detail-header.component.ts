@@ -1,9 +1,9 @@
-import { Component, Input } from "@angular/core";
+import { Component, Input } from '@angular/core';
 
 @Component({
-  selector: "hi-detail-header",
-  templateUrl: "./detail-header.component.html",
-  styleUrls: ["./detail-header.component.scss"],
+  selector: 'hi-detail-header',
+  templateUrl: './detail-header.component.html',
+  styleUrls: ['./detail-header.component.scss'],
 })
 export class DetailHeaderComponent {
   @Input() cluster;
@@ -20,17 +20,17 @@ export class DetailHeaderComponent {
 
   getTag() {
     if (this.controller) {
-      return "controller";
+      return 'controller';
     }
     if (this.instance) {
-      return "instance";
+      return 'instance';
     }
     if (this.resource) {
-      return "resource";
+      return 'resource';
     }
     if (this.workflow) {
-      return "workflow";
+      return 'workflow';
     }
-    return "cluster";
+    return 'cluster';
   }
 }

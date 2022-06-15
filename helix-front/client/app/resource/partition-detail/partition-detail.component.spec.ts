@@ -1,9 +1,9 @@
-import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { PartitionDetailComponent } from "./partition-detail.component";
+import { PartitionDetailComponent } from './partition-detail.component';
 
-describe("PartitionDetailComponent", () => {
+describe('PartitionDetailComponent', () => {
   let component: PartitionDetailComponent;
   let fixture: ComponentFixture<PartitionDetailComponent>;
 
@@ -23,7 +23,7 @@ describe("PartitionDetailComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should be created", () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

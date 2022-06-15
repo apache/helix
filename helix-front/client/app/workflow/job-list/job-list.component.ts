@@ -1,32 +1,32 @@
-import { Component, OnInit, Input, ViewChild } from "@angular/core";
+import { Component, OnInit, Input, ViewChild } from '@angular/core';
 
-import moment from "moment";
+import moment from 'moment';
 
-import { Settings } from "../../core/settings";
-import { Job } from "../shared/workflow.model";
+import { Settings } from '../../core/settings';
+import { Job } from '../shared/workflow.model';
 
 @Component({
-  selector: "hi-job-list",
-  templateUrl: "./job-list.component.html",
-  styleUrls: ["./job-list.component.scss"],
+  selector: 'hi-job-list',
+  templateUrl: './job-list.component.html',
+  styleUrls: ['./job-list.component.scss'],
 })
 export class JobListComponent implements OnInit {
   @Input()
   jobs: Job[];
 
-  @ViewChild("jobsTable", { static: true })
+  @ViewChild('jobsTable', { static: true })
   table: any;
 
   rowHeight = Settings.tableRowHeight;
   headerHeight = Settings.tableHeaderHeight;
   sorts = [
-    { prop: "startTime", dir: "desc" },
-    { prop: "name", dir: "asc" },
+    { prop: 'startTime', dir: 'desc' },
+    { prop: 'name', dir: 'asc' },
   ];
   messages = {
-    emptyMessage: "The list is empty.",
-    totalMessage: "total",
-    selectedMessage: "selected",
+    emptyMessage: 'The list is empty.',
+    totalMessage: 'total',
+    selectedMessage: 'selected',
   };
 
   constructor() {}

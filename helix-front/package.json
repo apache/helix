@@ -25,7 +25,9 @@
     "lint:fix": "eslint --fix --ext .ts,.html .",
     "type:check": "tsc --project tsconfig.json --noEmit",
     "type:check:stats": "yarn type:check -- --diagnostics true",
-    "type:check:watch": "yarn type:check -- --watch"
+    "type:check:watch": "yarn type:check -- --watch",
+    "format:check": "npx prettier --check .",
+    "format": "yarn prettier --write ."
   },
   "engines": {
     "node": "14.17.6",

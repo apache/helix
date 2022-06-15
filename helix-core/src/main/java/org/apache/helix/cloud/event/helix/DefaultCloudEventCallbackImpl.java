@@ -19,14 +19,10 @@ package org.apache.helix.cloud.event.helix;
  * under the License.
  */
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,22 +102,19 @@ public class DefaultCloudEventCallbackImpl {
    * @param eventInfo Detailed information about the event
    */
   public void exitMaintenanceMode(HelixManager manager, Object eventInfo) {
-    List<String> instances =
-        manager.getClusterManagmentTool().getInstancesInCluster(manager.getClusterName());
     ClusterConfig clusterConfig = manager.getHelixDataAccessor()
         .getProperty(manager.getHelixDataAccessor().keyBuilder().clusterConfig());
-    Map<String, String> clusterConfigTrackedEvent = clusterConfig.getDisabledInstancesWithInfo();
-    if (clusterConfigTrackedEvent == null || clusterConfigTrackedEvent.isEmpty()
-        || clusterConfigTrackedEvent.entrySet().stream().noneMatch(
-        e -> ConfigStringUtil.parseConcatenatedConfig(e.getValue())
-            .get(ClusterConfig.ClusterConfigProperty.HELIX_DISABLED_TYPE.toString())
-            .equals(InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name()))) {
+    if (HelixEventHandlingUtil.checkNoInstanceUnderCloudEvent(clusterConfig)) {
       LOG.info("DefaultCloudEventCallbackImpl exitMaintenanceMode by {}",
           manager.getInstanceName());
       manager.getClusterManagmentTool()
           .manuallyEnableMaintenanceMode(manager.getClusterName(), false,
               String.format(_emmReason, manager.getInstanceName(), System.currentTimeMillis()),
               null);
+    } else {
+      LOG.info(
+          "DefaultCloudEventCallbackImpl will not exitMaintenanceMode as instances {} are under cloud event",
+          clusterConfig.getDisabledInstancesWithInfo().keySet().toString());
     }
   }
 }

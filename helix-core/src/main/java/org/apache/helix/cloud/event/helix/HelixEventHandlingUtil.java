@@ -31,6 +31,7 @@ import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -95,5 +96,26 @@ class HelixEventHandlingUtil {
       LOG.error("Failed to update cluster config {} for {} instance {}. {}", clusterName,
           enable ? "enable" : "disable", instanceName, message);
     }
+  }
+
+  /**
+   * Return true if no instance is under cloud event handling
+   * @param clusterConfig
+   * @return
+   */
+  static boolean checkNoInstanceUnderCloudEvent(ClusterConfig clusterConfig) {
+    Map<String, String> clusterConfigTrackedEvent = clusterConfig.getDisabledInstancesWithInfo();
+    if (clusterConfigTrackedEvent == null || clusterConfigTrackedEvent.isEmpty()) {
+      return true;
+    }
+
+    for (Map.Entry<String, String> entry : clusterConfigTrackedEvent.entrySet()) {
+      if (ConfigStringUtil.parseConcatenatedConfig(entry.getValue())
+          .get(ClusterConfig.ClusterConfigProperty.HELIX_DISABLED_TYPE.toString())
+          .equals(InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name())) {
+        return false;
+      }
+    }
+    return true;
   }
 }

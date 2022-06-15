@@ -28,7 +28,7 @@
     "type:check:watch": "yarn type:check -- --watch"
   },
   "engines": {
-    "node": "14.17.6",
+    "node": "~14.17.5",
     "yarn": "^1.22.18"
   },
   "browserslist": [

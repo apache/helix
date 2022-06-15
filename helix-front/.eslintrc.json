@@ -11,7 +11,8 @@
       "extends": [
         "plugin:@angular-eslint/ng-cli-compat",
         "plugin:@angular-eslint/ng-cli-compat--formatting-add-on",
-        "plugin:@angular-eslint/template/process-inline-templates"
+        "plugin:@angular-eslint/template/process-inline-templates",
+        "prettier"
       ],
       "rules": {
         "@angular-eslint/component-selector": [
@@ -59,7 +60,6 @@
           }
         ],
         "@typescript-eslint/semi": ["off", null],
-        "brace-style": ["error", "1tbs"],
         "eqeqeq": ["off", "smart"],
         "guard-for-in": "off",
         "id-blacklist": "off",
@@ -73,6 +73,7 @@
         "no-redeclare": "error",
         "no-underscore-dangle": "off",
         "radix": "off",
+        "arrow-body-style": "off",
         "prefer-arrow/prefer-arrow-functions": "off",
         "@typescript-eslint/naming-convention": "off",
         "@typescript-eslint/member-ordering": "off",
@@ -84,7 +85,7 @@
     },
     {
       "files": ["*.html"],
-      "extends": ["plugin:@angular-eslint/template/recommended"],
+      "extends": ["plugin:@angular-eslint/template/recommended", "prettier"],
       "rules": {
         "@angular-eslint/template/eqeqeq": "off"
       }

@@ -1,21 +1,21 @@
-import { TestBed, inject } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
-import { HttpClientModule } from '@angular/common/http';
+import { TestBed, inject } from "@angular/core/testing";
+import { RouterTestingModule } from "@angular/router/testing";
+import { HttpClientModule } from "@angular/common/http";
 
-import { ChooserService } from './chooser.service';
+import { ChooserService } from "./chooser.service";
 
-describe('ChooserService', () => {
+describe("ChooserService", () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule,
-        HttpClientModule
-      ],
-      providers: [ChooserService]
+      imports: [RouterTestingModule, HttpClientModule],
+      providers: [ChooserService],
     });
   });
 
-  it('should be created', inject([ChooserService], (service: ChooserService) => {
-    expect(service).toBeTruthy();
-  }));
+  it("should be created", inject(
+    [ChooserService],
+    (service: ChooserService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

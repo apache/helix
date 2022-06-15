@@ -1,36 +1,34 @@
-import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { waitForAsync, ComponentFixture, TestBed,  } from '@angular/core/testing';
-import { of, Observable } from 'rxjs';
+import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
+import { of, Observable } from "rxjs";
 
-import { } from '@angular/core';
+import {} from "@angular/core";
 
+import { TestingModule } from "../../../testing/testing.module";
+import { JobDetailComponent } from "./job-detail.component";
+import { JobService } from "../shared/job.service";
 
-import { TestingModule } from '../../../testing/testing.module';
-import { JobDetailComponent } from './job-detail.component';
-import { JobService } from '../shared/job.service';
-
-describe('JobDetailComponent', () => {
+describe("JobDetailComponent", () => {
   let component: JobDetailComponent;
   let fixture: ComponentFixture<JobDetailComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule ],
+      imports: [TestingModule],
       providers: [
         {
           provide: JobService,
           useValue: {
-            get: job => of()
-          }
-        }
+            get: (job) => of(),
+          },
+        },
       ],
-      declarations: [ JobDetailComponent ],
+      declarations: [JobDetailComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -39,7 +37,7 @@ describe('JobDetailComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 });

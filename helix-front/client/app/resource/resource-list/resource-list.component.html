@@ -29,7 +29,8 @@
     selectionType="single"
     [sorts]="sorts"
     [loadingIndicator]="isLoading"
-    (select)="onSelect($event)">
+    (select)="onSelect($event)"
+  >
     <ngx-datatable-column
       *ngIf="!isForInstance"
       name="Status"
@@ -37,22 +38,29 @@
       [width]="88"
       [resizeable]="false"
       [draggable]="false"
-      [canAutoResize]="false">
+      [canAutoResize]="false"
+    >
       <ng-template let-value="value" ngx-datatable-cell-template>
         <mat-icon *ngIf="value" color="primary">lens</mat-icon>
-        <mat-icon *ngIf="!value" color="warn" matTooltip="The resource is offline.">panorama_fish_eye</mat-icon>
+        <mat-icon
+          *ngIf="!value"
+          color="warn"
+          matTooltip="The resource is offline."
+          >panorama_fish_eye</mat-icon
+        >
       </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column
       *ngIf="isForInstance"
-     [width]="50"
-     [resizeable]="false"
-     [sortable]="false"
-     [draggable]="false"
-     [canAutoResize]="false">
-     <ng-template let-expanded="expanded" ngx-datatable-cell-template>
-       <mat-icon>{{ expanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
-     </ng-template>
+      [width]="50"
+      [resizeable]="false"
+      [sortable]="false"
+      [draggable]="false"
+      [canAutoResize]="false"
+    >
+      <ng-template let-expanded="expanded" ngx-datatable-cell-template>
+        <mat-icon>{{ expanded ? "expand_more" : "chevron_right" }}</mat-icon>
+      </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column name="Name"></ngx-datatable-column>
     <ngx-datatable-row-detail rowHeight="auto">
@@ -60,7 +68,8 @@
         <hi-resource-detail-for-instance
           [clusterName]="clusterName"
           [instanceName]="instanceName"
-          [resourceName]="row.name">
+          [resourceName]="row.name"
+        >
         </hi-resource-detail-for-instance>
       </ng-template>
     </ngx-datatable-row-detail>

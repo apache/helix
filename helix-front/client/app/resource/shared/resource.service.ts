@@ -1,70 +1,80 @@
+import { map } from "rxjs/operators";
+import { Injectable } from "@angular/core";
 
-import {map} from 'rxjs/operators';
-import { Injectable } from '@angular/core';
+import * as _ from "lodash";
 
-import * as _ from 'lodash';
-
-import { HelixService } from '../../core/helix.service';
-import { Resource } from './resource.model';
-import { Cluster } from '../../cluster/shared/cluster.model';
+import { HelixService } from "../../core/helix.service";
+import { Resource } from "./resource.model";
+import { Cluster } from "../../cluster/shared/cluster.model";
 
 @Injectable()
 export class ResourceService extends HelixService {
-
   public getAll(clusterName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/resources`).pipe(
-      map(data => {
+    return this.request(`/clusters/${clusterName}/resources`).pipe(
+      map((data) => {
         const res: Resource[] = [];
         for (const name of data.idealStates) {
-          res.push(<Resource>({
+          res.push(<Resource>{
             cluster: clusterName,
             name,
-            alive: data.externalViews.indexOf(name) >= 0
-          }));
+            alive: data.externalViews.indexOf(name) >= 0,
+          });
         }
-        return _.sortBy(res, 'name');
-      }));
+        return _.sortBy(res, "name");
+      })
+    );
   }
 
   public getAllOnInstance(clusterName: string, instanceName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources`).pipe(
-      map(data => {
+    return this.request(
+      `/clusters/${clusterName}/instances/${instanceName}/resources`
+    ).pipe(
+      map((data) => {
         const res: any[] = [];
         if (data) {
           for (const resource of data.resources) {
             res.push({
-              name: resource
+              name: resource,
             });
           }
         }
         return res;
-      }));
+      })
+    );
   }
 
   public get(clusterName: string, resourceName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/resources/${ resourceName }`).pipe(
-      map(data => new Resource(
-          clusterName,
-          resourceName,
-          data.resourceConfig,
-          data.idealState,
-          data.externalView
-        )));
+    return this.request(
+      `/clusters/${clusterName}/resources/${resourceName}`
+    ).pipe(
+      map(
+        (data) =>
+          new Resource(
+            clusterName,
+            resourceName,
+            data.resourceConfig,
+            data.idealState,
+            data.externalView
+          )
+      )
+    );
   }
 
-  public getOnInstance(clusterName: string, instanceName: string, resourceName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources/${ resourceName }`).pipe(
-      map(data => {
+  public getOnInstance(
+    clusterName: string,
+    instanceName: string,
+    resourceName: string
+  ) {
+    return this.request(
+      `/clusters/${clusterName}/instances/${instanceName}/resources/${resourceName}`
+    ).pipe(
+      map((data) => {
         const ret = {
           bucketSize: data.simpleFields.BUCKET_SIZE,
           sessionId: data.simpleFields.SESSION_ID,
           stateModelDef: data.simpleFields.STATE_MODEL_DEF,
           stateModelFactoryName: data.simpleFields.STATE_MODEL_FACTORY_NAME,
-          partitions: []
+          partitions: [],
         };
 
         for (const partition in data.mapFields) {
@@ -73,26 +83,30 @@ export class ResourceService extends HelixService {
           ret.partitions.push({
             name: partition,
             currentState: par.CURRENT_STATE,
-            info: par.INFO
+            info: par.INFO,
           });
         }
 
         return ret;
-      }));
+      })
+    );
   }
 
   public enable(clusterName: string, resourceName: string) {
-    return this
-      .post(`/clusters/${ clusterName }/resources/${ resourceName }?command=enable`, null);
+    return this.post(
+      `/clusters/${clusterName}/resources/${resourceName}?command=enable`,
+      null
+    );
   }
 
   public disable(clusterName: string, resourceName: string) {
-    return this
-      .post(`/clusters/${ clusterName }/resources/${ resourceName }?command=disable`, null);
+    return this.post(
+      `/clusters/${clusterName}/resources/${resourceName}?command=disable`,
+      null
+    );
   }
 
   public remove(clusterName: string, resourceName: string) {
-    return this
-      .delete(`/clusters/${ clusterName }/resources/${ resourceName }`);
+    return this.delete(`/clusters/${clusterName}/resources/${resourceName}`);
   }
 }

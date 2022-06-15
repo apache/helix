@@ -1,18 +1,11 @@
 {
   "root": true,
-  "ignorePatterns": [
-    "projects/**/*"
-  ],
+  "ignorePatterns": ["projects/**/*"],
   "overrides": [
     {
-      "files": [
-        "*.ts"
-      ],
+      "files": ["*.ts"],
       "parserOptions": {
-        "project": [
-          "tsconfig.json",
-          "cypress/tsconfig.json"
-        ],
+        "project": ["tsconfig.json", "cypress/tsconfig.json"],
         "createDefaultProgram": true
       },
       "extends": [
@@ -65,18 +58,9 @@
             "hoist": "all"
           }
         ],
-        "@typescript-eslint/semi": [
-          "off",
-          null
-        ],
-        "brace-style": [
-          "error",
-          "1tbs"
-        ],
-        "eqeqeq": [
-          "off",
-          "smart"
-        ],
+        "@typescript-eslint/semi": ["off", null],
+        "brace-style": ["error", "1tbs"],
+        "eqeqeq": ["off", "smart"],
         "guard-for-in": "off",
         "id-blacklist": "off",
         "id-match": "off",
@@ -99,12 +83,8 @@
       }
     },
     {
-      "files": [
-        "*.html"
-      ],
-      "extends": [
-        "plugin:@angular-eslint/template/recommended"
-      ],
+      "files": ["*.html"],
+      "extends": ["plugin:@angular-eslint/template/recommended"],
       "rules": {
         "@angular-eslint/template/eqeqeq": "off"
       }

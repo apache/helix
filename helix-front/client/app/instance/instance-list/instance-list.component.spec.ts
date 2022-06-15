@@ -1,27 +1,22 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { RouterTestingModule } from '@angular/router/testing';
+import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
+import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { RouterTestingModule } from "@angular/router/testing";
 
-import { InstanceListComponent } from './instance-list.component';
+import { InstanceListComponent } from "./instance-list.component";
 
-describe('InstanceListComponent', () => {
+describe("InstanceListComponent", () => {
   let component: InstanceListComponent;
   let fixture: ComponentFixture<InstanceListComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule
-      ],
-      declarations: [
-        InstanceListComponent
-      ],
+      imports: [RouterTestingModule],
+      declarations: [InstanceListComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -30,7 +25,7 @@ describe('InstanceListComponent', () => {
     fixture.detectChanges();
   });
 
-  xit('should create', () => {
+  xit("should create", () => {
     expect(component).toBeTruthy();
   });
 });

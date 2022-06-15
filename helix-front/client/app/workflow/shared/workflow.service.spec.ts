@@ -1,18 +1,21 @@
-import { TestBed, inject } from '@angular/core/testing';
+import { TestBed, inject } from "@angular/core/testing";
 
-import { TestingModule } from '../../../testing/testing.module';
+import { TestingModule } from "../../../testing/testing.module";
 
-import { WorkflowService } from './workflow.service';
+import { WorkflowService } from "./workflow.service";
 
-describe('WorkflowService', () => {
+describe("WorkflowService", () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestingModule],
-      providers: [WorkflowService]
+      providers: [WorkflowService],
     });
   });
 
-  it('should be created', inject([WorkflowService], (service: WorkflowService) => {
-    expect(service).toBeTruthy();
-  }));
+  it("should be created", inject(
+    [WorkflowService],
+    (service: WorkflowService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

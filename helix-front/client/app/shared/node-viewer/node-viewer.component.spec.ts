@@ -1,25 +1,22 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { TestingModule } from '../../../testing/testing.module';
+import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
+import { NO_ERRORS_SCHEMA } from "@angular/core";
+import { TestingModule } from "../../../testing/testing.module";
 
-import { NodeViewerComponent } from './node-viewer.component';
+import { NodeViewerComponent } from "./node-viewer.component";
 
-describe('NodeViewerComponent', () => {
+describe("NodeViewerComponent", () => {
   let component: NodeViewerComponent;
   let fixture: ComponentFixture<NodeViewerComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      declarations: [ NodeViewerComponent ],
+      imports: [TestingModule],
+      declarations: [NodeViewerComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -28,7 +25,7 @@ describe('NodeViewerComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should be created', () => {
+  it("should be created", () => {
     expect(component).toBeTruthy();
   });
 });

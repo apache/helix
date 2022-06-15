@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import * as _ from "lodash";
 
 interface SimpleFieldObject {
   name: string;
@@ -27,19 +27,23 @@ export class Node {
       this.id = obj.id;
       this.simpleFields = this.keyValueToArray(obj.simpleFields);
 
-      _.forOwn(obj['listFields'], (v, k) => {
+      _.forOwn(obj["listFields"], (v, k) => {
         this.listFields.push(<ListFieldObject>{
           name: k,
-          value: _.map(v, item => <SimpleFieldObject>{
-              value: item
-            })
+          value: _.map(
+            v,
+            (item) =>
+              <SimpleFieldObject>{
+                value: item,
+              }
+          ),
         });
       });
 
-      _.forOwn(obj['mapFields'], (v, k) => {
+      _.forOwn(obj["mapFields"], (v, k) => {
         this.mapFields.push(<MapFieldObject>{
           name: k,
-          value: this.keyValueToArray(v)
+          value: this.keyValueToArray(v),
         });
       });
     }
@@ -48,24 +52,26 @@ export class Node {
   public appendSimpleField(name: string, value: string) {
     this.simpleFields.push(<SimpleFieldObject>{
       name,
-      value
+      value,
     });
   }
 
   public appendMapField(key: string, name: string, value: string) {
-    const index = _.findIndex(this.mapFields, {name: key});
+    const index = _.findIndex(this.mapFields, { name: key });
     if (index >= 0) {
       this.mapFields[index].value.push(<SimpleFieldObject>{
         name,
-        value
+        value,
       });
     } else {
       this.mapFields.push(<MapFieldObject>{
         name: key,
-        value: [<SimpleFieldObject>{
-          name,
-          value
-        }]
+        value: [
+          <SimpleFieldObject>{
+            name,
+            value,
+          },
+        ],
       });
     }
   }
@@ -75,7 +81,7 @@ export class Node {
       id,
       simpleFields: {},
       listFields: {},
-      mapFields: {}
+      mapFields: {},
     };
 
     _.forEach(this.simpleFields, (item: SimpleFieldObject) => {
@@ -106,7 +112,7 @@ export class Node {
       if (obj.hasOwnProperty(k)) {
         result.push(<SimpleFieldObject>{
           name: k,
-          value: obj[k]
+          value: obj[k],
         });
       }
     }

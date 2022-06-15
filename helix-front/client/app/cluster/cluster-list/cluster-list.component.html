@@ -19,9 +19,7 @@
 
 <section class="cluster-list">
   <section *ngIf="isLoading" fxLayout="row" fxLayoutAlign="center center">
-    <mat-spinner>
-      Loading all clusters ...
-    </mat-spinner>
+    <mat-spinner> Loading all clusters ... </mat-spinner>
   </section>
   <mat-nav-list *ngIf="!isLoading && !errorMessage">
     <button mat-button routerLink="/">
@@ -31,10 +29,12 @@
       <mat-icon>add</mat-icon>
     </button>
     <h3 mat-subheader>Clusters in {{ service }} ({{ clusters.length }})</h3>
-    <a *ngFor="let cluster of clusters"
+    <a
+      *ngFor="let cluster of clusters"
       mat-list-item
       [routerLink]="[cluster.name]"
-      routerLinkActive="cluster-list-item-selected">
+      routerLinkActive="cluster-list-item-selected"
+    >
       <mat-icon mat-list-icon>blur_circular</mat-icon>
       <h4 mat-line>{{ cluster.name }}</h4>
     </a>

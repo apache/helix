@@ -1,4 +1,4 @@
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 div.message {
   padding: 20px;
@@ -9,7 +9,10 @@ div.message {
 }
 
 .status-not-ready {
-  color: mat.get-color-from-palette(mat.define-palette(mat.$grey-palette, 900, 900, 900), darker);
+  color: mat.get-color-from-palette(
+    mat.define-palette(mat.$grey-palette, 900, 900, 900),
+    darker
+  );
 }
 
 .footer {

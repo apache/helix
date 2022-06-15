@@ -1,27 +1,22 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
+import { NO_ERRORS_SCHEMA } from "@angular/core";
 
-import { TestingModule } from '../../../testing/testing.module';
-import { ClusterListComponent } from './cluster-list.component';
+import { TestingModule } from "../../../testing/testing.module";
+import { ClusterListComponent } from "./cluster-list.component";
 
-describe('ClusterListComponent', () => {
+describe("ClusterListComponent", () => {
   let component: ClusterListComponent;
   let fixture: ComponentFixture<ClusterListComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      declarations: [
-        ClusterListComponent
-      ],
+      imports: [TestingModule],
+      declarations: [ClusterListComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -31,7 +26,7 @@ describe('ClusterListComponent', () => {
   });
 
   // disable this test until I figure out a way to test
-  xit('should create', () => {
+  xit("should create", () => {
     expect(component).toBeTruthy();
   });
 });

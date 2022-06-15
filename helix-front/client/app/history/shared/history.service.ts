@@ -1,28 +1,26 @@
-import { Injectable } from '@angular/core';
-import { map } from 'rxjs/operators';
-import * as _ from 'lodash';
+import { Injectable } from "@angular/core";
+import { map } from "rxjs/operators";
+import * as _ from "lodash";
 
-import { HelixService } from '../../core/helix.service';
-import { History } from './history.model';
+import { HelixService } from "../../core/helix.service";
+import { History } from "./history.model";
 
 @Injectable()
 export class HistoryService extends HelixService {
-
   getControllerHistory(clusterName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/controller/history`)
-      .pipe(map(data => this.parseHistory(data.history)));
+    return this.request(`/clusters/${clusterName}/controller/history`).pipe(
+      map((data) => this.parseHistory(data.history))
+    );
   }
 
   getInstanceHistory(clusterName: string, instanceName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/instances/${ instanceName }/history`)
-      .pipe(map(data => this.parseHistory(data.listFields.HISTORY)));
+    return this.request(
+      `/clusters/${clusterName}/instances/${instanceName}/history`
+    ).pipe(map((data) => this.parseHistory(data.listFields.HISTORY)));
     // TODO: implement data.simpleFields.LAST_OFFLINE_TIME
   }
 
   protected parseHistory(data: any): History[] {
-
     const histories: History[] = [];
 
     if (data) {
@@ -34,13 +32,13 @@ export class HistoryService extends HelixService {
         for (const seg of _.words(record, /[^{}, ]+/g)) {
           const name = _.words(seg, /[^=]+/g)[0];
           const value = _.words(seg, /[^=]+/g)[1];
-          if (name == 'DATE') {
+          if (name == "DATE") {
             history.date = value;
-          } else if (name == 'CONTROLLER') {
+          } else if (name == "CONTROLLER") {
             history.controller = value;
-          } else if (name == 'SESSION') {
+          } else if (name == "SESSION") {
             history.session = value;
-          } else if (name == 'TIME') {
+          } else if (name == "TIME") {
             history.time = +value;
           }
         }

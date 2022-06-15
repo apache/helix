@@ -1,7 +1,9 @@
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 .state-default {
-  fill: mat.get-color-from-palette(mat.define-palette(mat.$deep-orange-palette));
+  fill: mat.get-color-from-palette(
+    mat.define-palette(mat.$deep-orange-palette)
+  );
 }
 
 .state-COMPLETED {

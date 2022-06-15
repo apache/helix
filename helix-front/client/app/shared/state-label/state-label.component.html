@@ -17,10 +17,12 @@
   ~ under the License.
   -->
 
-<span [ngClass]="{
-  'state-label': true,
-  'state-label-ready': isReady,
-  'state-label-not-ready': isReady == false
-}">
-  {{ state || 'NO STATE' }}
+<span
+  [ngClass]="{
+    'state-label': true,
+    'state-label-ready': isReady,
+    'state-label-not-ready': isReady == false
+  }"
+>
+  {{ state || "NO STATE" }}
 </span>

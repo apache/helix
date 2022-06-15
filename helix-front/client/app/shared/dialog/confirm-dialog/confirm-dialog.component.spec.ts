@@ -1,16 +1,15 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { ConfirmDialogComponent } from './confirm-dialog.component';
+import { ConfirmDialogComponent } from "./confirm-dialog.component";
 
-describe('ConfirmDialogComponent', () => {
+describe("ConfirmDialogComponent", () => {
   let component: ConfirmDialogComponent;
   let fixture: ComponentFixture<ConfirmDialogComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ ConfirmDialogComponent ]
-    })
-    .compileComponents();
+      declarations: [ConfirmDialogComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -20,7 +19,7 @@ describe('ConfirmDialogComponent', () => {
   });
 
   // disable this test until I figure out a way to test
-  xit('should be created', () => {
+  xit("should be created", () => {
     expect(component).toBeTruthy();
   });
 });

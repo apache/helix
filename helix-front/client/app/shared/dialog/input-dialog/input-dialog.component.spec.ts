@@ -1,16 +1,15 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { InputDialogComponent } from './input-dialog.component';
+import { InputDialogComponent } from "./input-dialog.component";
 
-describe('InputDialogComponent', () => {
+describe("InputDialogComponent", () => {
   let component: InputDialogComponent;
   let fixture: ComponentFixture<InputDialogComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ InputDialogComponent ]
-    })
-    .compileComponents();
+      declarations: [InputDialogComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -20,7 +19,7 @@ describe('InputDialogComponent', () => {
   });
 
   // disable this test until I figure out a way to test
-  xit('should create', () => {
+  xit("should create", () => {
     expect(component).toBeTruthy();
   });
 });

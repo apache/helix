@@ -18,7 +18,11 @@
   -->
 
 <section class="app" fxLayout="column" fxFill>
-  <mat-toolbar *ngIf="headerEnabled" class="header mat-elevation-z7" color="primary">
+  <mat-toolbar
+    *ngIf="headerEnabled"
+    class="header mat-elevation-z7"
+    color="primary"
+  >
     <a mat-button routerLink="/">
       <img class="helix-logo" src="assets/logo.png" />
       <span class="helix-title">Helix</span>
@@ -29,11 +33,20 @@
       {{ currentUser | async }}
     </a>
   </mat-toolbar>
-  <mat-progress-bar *ngIf="isLoading" mode="indeterminate" [ngClass]="{'no-header': !headerEnabled}"></mat-progress-bar>
-  <section class="main-container" [ngClass]="{'no-header': !headerEnabled}">
+  <mat-progress-bar
+    *ngIf="isLoading"
+    mode="indeterminate"
+    [ngClass]="{ 'no-header': !headerEnabled }"
+  ></mat-progress-bar>
+  <section class="main-container" [ngClass]="{ 'no-header': !headerEnabled }">
     <router-outlet></router-outlet>
   </section>
-  <section *ngIf="footerEnabled" class="footer mat-elevation-z7" fxLayout="row" fxLayoutAlign="center center">
+  <section
+    *ngIf="footerEnabled"
+    class="footer mat-elevation-z7"
+    fxLayout="row"
+    fxLayoutAlign="center center"
+  >
     <span>&copy; 2018 Helix. All rights reserved.</span>
   </section>
 </section>

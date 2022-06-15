@@ -22,24 +22,30 @@
   [headerHeight]="headerHeight"
   [rowHeight]="rowHeight"
   columnMode="force"
-  [rows]="partition?.replicas">
+  [rows]="partition?.replicas"
+>
   <ngx-datatable-column
     name="Replica"
     [width]="80"
     [resizeable]="false"
-    [canAutoResize]="false">
-    <ng-template let-row="row" let-rowIndex="rowIndex" ngx-datatable-cell-template>
+    [canAutoResize]="false"
+  >
+    <ng-template
+      let-row="row"
+      let-rowIndex="rowIndex"
+      ngx-datatable-cell-template
+    >
       <strong>#{{ rowIndex + 1 }}</strong>
     </ng-template>
   </ngx-datatable-column>
-  <ngx-datatable-column
-    name="Instance"
-    prop="instanceName">
+  <ngx-datatable-column name="Instance" prop="instanceName">
     <ng-template let-value="value" ngx-datatable-cell-template>
       {{ value }}
-      <a mat-icon-button
+      <a
+        mat-icon-button
         color="accent"
-        [routerLink]="['../../..', 'instances', value, 'resources']">
+        [routerLink]="['../../..', 'instances', value, 'resources']"
+      >
         <mat-icon>arrow_forward</mat-icon>
       </a>
     </ng-template>
@@ -48,18 +54,26 @@
     name="External View"
     [width]="120"
     [resizeable]="false"
-    [canAutoResize]="false">
+    [canAutoResize]="false"
+  >
     <ng-template let-row="row" ngx-datatable-cell-template>
-      <hi-state-label [state]="row.externalView" [isReady]="row.externalView && row.externalView == row.idealState"></hi-state-label>
+      <hi-state-label
+        [state]="row.externalView"
+        [isReady]="row.externalView && row.externalView == row.idealState"
+      ></hi-state-label>
     </ng-template>
   </ngx-datatable-column>
   <ngx-datatable-column
     name="Ideal State"
     [width]="120"
     [resizeable]="false"
-    [canAutoResize]="false">
+    [canAutoResize]="false"
+  >
     <ng-template let-row="row" ngx-datatable-cell-template>
-      <hi-state-label [state]="row.idealState" [isReady]="row.externalView && row.externalView == row.idealState"></hi-state-label>
+      <hi-state-label
+        [state]="row.idealState"
+        [isReady]="row.externalView && row.externalView == row.idealState"
+      ></hi-state-label>
     </ng-template>
   </ngx-datatable-column>
 </ngx-datatable>

@@ -1,14 +1,14 @@
 // Material Icons & Fonts
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic');
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+@import url("https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic");
 
 // ngx-vis styles (vis styles)
-@import '~vis-network/styles/vis-network.min.css';
+@import "~vis-network/styles/vis-network.min.css";
 
 // ngx-datatable styles
-@import '~@swimlane/ngx-datatable/index.css';
-@import '~@swimlane/ngx-datatable/themes/material.css';
-@import '~@swimlane/ngx-datatable/assets/icons.css';
+@import "~@swimlane/ngx-datatable/index.css";
+@import "~@swimlane/ngx-datatable/themes/material.css";
+@import "~@swimlane/ngx-datatable/assets/icons.css";
 // with overrides
 .ngx-datatable.material {
   &.single-selection,
@@ -20,10 +20,10 @@
 
       &.active,
       &.active .datatable-row-group {
-        background-color: #0077B5 !important;
+        background-color: #0077b5 !important;
 
         .datatable-body-cell {
-          color: #FFF !important;
+          color: #fff !important;
         }
       }
     }

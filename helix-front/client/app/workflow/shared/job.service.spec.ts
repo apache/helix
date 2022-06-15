@@ -1,18 +1,18 @@
-import { TestBed, inject } from '@angular/core/testing';
+import { TestBed, inject } from "@angular/core/testing";
 
-import { TestingModule } from '../../../testing/testing.module';
+import { TestingModule } from "../../../testing/testing.module";
 
-import { JobService } from './job.service';
+import { JobService } from "./job.service";
 
-describe('JobService', () => {
+describe("JobService", () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestingModule],
-      providers: [JobService]
+      providers: [JobService],
     });
   });
 
-  it('should be created', inject([JobService], (service: JobService) => {
+  it("should be created", inject([JobService], (service: JobService) => {
     expect(service).toBeTruthy();
   }));
 });

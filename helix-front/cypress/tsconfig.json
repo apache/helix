@@ -12,18 +12,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "outDir": "../out-tsc/e2e",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
-    "types": [
-      "cypress",
-      "jest",
-      "node"
-    ],    
-    "lib": [
-      "es2016",
-      "dom"
-    ],
-    "module": "es2020",
+    "typeRoots": ["node_modules/@types"],
+    "types": ["cypress", "jest", "node"],
+    "lib": ["es2016", "dom"],
+    "module": "es2020"
   }
 }

@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import * as _ from "lodash";
 
 export interface IReplica {
   instanceName: string;
@@ -11,7 +11,11 @@ export class Partition {
   replicas: IReplica[];
 
   get isReady() {
-    return !_.some(this.replicas, replica => !replica.externalView || replica.externalView != replica.idealState);
+    return !_.some(
+      this.replicas,
+      (replica) =>
+        !replica.externalView || replica.externalView != replica.idealState
+    );
   }
 
   constructor(name: string) {
@@ -21,7 +25,6 @@ export class Partition {
 }
 
 export class Resource {
-
   readonly name: string;
 
   // TODO vxu: convert it to an enum in future if necessary
@@ -44,14 +47,20 @@ export class Resource {
   get enabled(): boolean {
     // there are two cases meaning enabled both:
     //   HELIX_ENABLED: true or no such item in idealState
-    return _.get(this.idealState, 'simpleFields.HELIX_ENABLED') != 'false';
+    return _.get(this.idealState, "simpleFields.HELIX_ENABLED") != "false";
   }
 
   get online(): boolean {
-     return !_.isEmpty(this.externalView);
+    return !_.isEmpty(this.externalView);
   }
 
-  constructor(cluster: string, name: string, config: any, idealState: any, externalView: any) {
+  constructor(
+    cluster: string,
+    name: string,
+    config: any,
+    idealState: any,
+    externalView: any
+  ) {
     this.cluster = cluster;
     this.name = name;
 
@@ -72,34 +81,64 @@ export class Resource {
 
       // in FULL_ATUO mode, externalView is more important
       // if preferences list exists, fetch instances from it, else whatever
-      if (this.rebalanceMode != 'FULL_AUTO' && idealState.listFields[partitionName]) {
+      if (
+        this.rebalanceMode != "FULL_AUTO" &&
+        idealState.listFields[partitionName]
+      ) {
         for (const replicaName of idealState.listFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
-            externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
-            idealState: _.get(idealState, ['mapFields', partitionName, replicaName])
+            externalView: _.get(externalView, [
+              "mapFields",
+              partitionName,
+              replicaName,
+            ]),
+            idealState: _.get(idealState, [
+              "mapFields",
+              partitionName,
+              replicaName,
+            ]),
           });
         }
-      } else if (this.rebalanceMode != 'FULL_AUTO' && idealState.mapFields[partitionName]) {
+      } else if (
+        this.rebalanceMode != "FULL_AUTO" &&
+        idealState.mapFields[partitionName]
+      ) {
         for (const replicaName in idealState.mapFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
-            externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
-            idealState: _.get(idealState, ['mapFields', partitionName, replicaName])
+            externalView: _.get(externalView, [
+              "mapFields",
+              partitionName,
+              replicaName,
+            ]),
+            idealState: _.get(idealState, [
+              "mapFields",
+              partitionName,
+              replicaName,
+            ]),
           });
         }
       } else {
         for (const replicaName in externalView.mapFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
-            externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
-            idealState: _.get(idealState, ['mapFields', partitionName, replicaName])
+            externalView: _.get(externalView, [
+              "mapFields",
+              partitionName,
+              replicaName,
+            ]),
+            idealState: _.get(idealState, [
+              "mapFields",
+              partitionName,
+              replicaName,
+            ]),
           });
         }
       }
 
       // sort replicas by states
-      partition.replicas = _.sortBy(partition.replicas, 'externalView');
+      partition.replicas = _.sortBy(partition.replicas, "externalView");
 
       this.partitions.push(partition);
     }

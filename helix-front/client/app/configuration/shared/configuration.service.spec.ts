@@ -1,18 +1,21 @@
-import { TestBed, inject } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
-import { HttpClientModule } from '@angular/common/http';
+import { TestBed, inject } from "@angular/core/testing";
+import { RouterTestingModule } from "@angular/router/testing";
+import { HttpClientModule } from "@angular/common/http";
 
-import { ConfigurationService } from './configuration.service';
+import { ConfigurationService } from "./configuration.service";
 
-describe('ConfigurationService', () => {
+describe("ConfigurationService", () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
-      providers: [ConfigurationService]
+      providers: [ConfigurationService],
     });
   });
 
-  it('should be ready', inject([ConfigurationService], (service: ConfigurationService) => {
-    expect(service).toBeTruthy();
-  }));
+  it("should be ready", inject(
+    [ConfigurationService],
+    (service: ConfigurationService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

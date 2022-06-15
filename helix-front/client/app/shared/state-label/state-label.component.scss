@@ -1,4 +1,4 @@
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 .state-label {
   font-size: 12px;
@@ -9,9 +9,15 @@
 }
 
 .state-label-ready {
-  border-color: mat.get-color-from-palette(mat.define-palette(mat.$blue-palette), darker);
+  border-color: mat.get-color-from-palette(
+    mat.define-palette(mat.$blue-palette),
+    darker
+  );
 }
 
 .state-label-not-ready {
-  border-color: mat.get-color-from-palette(mat.define-palette(mat.$grey-palette, 900, 900, 900), darker);
+  border-color: mat.get-color-from-palette(
+    mat.define-palette(mat.$grey-palette, 900, 900, 900),
+    darker
+  );
 }

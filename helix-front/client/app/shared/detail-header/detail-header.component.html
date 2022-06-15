@@ -18,7 +18,7 @@
   -->
 
 <h4 fxLayout="row" fxLayoutAlign="center center">
-  <span [ngClass]="{'secondary': isSecondary()}">{{ cluster }}</span>
+  <span [ngClass]="{ secondary: isSecondary() }">{{ cluster }}</span>
   <mat-icon *ngIf="isSecondary()" class="secondary">navigate_next</mat-icon>
   <span *ngIf="controller">{{ controller }}</span>
   <span *ngIf="instance">{{ instance }}</span>

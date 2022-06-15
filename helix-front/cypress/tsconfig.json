@@ -1,14 +1,9 @@
 {
+  "include": ["**/*.cy.ts"],
   "compileOnSave": false,
-  "exclude": [
-    "**/*.cy.ts",
-    "**/*.spec.ts",      
-  ],
   "compilerOptions": {
     "importHelpers": true,
-    "outDir": "./dist/out-tsc",
-    "baseUrl": "client",
-    "sourceMap": true,
+    "sourceMap": false,
     "declaration": false,
     "moduleResolution": "node",
     "experimentalDecorators": true,
@@ -16,13 +11,19 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "outDir": "../out-tsc/e2e",
     "typeRoots": [
       "node_modules/@types"
     ],
+    "types": [
+      "cypress",
+      "jest",
+      "node"
+    ],    
     "lib": [
       "es2016",
       "dom"
     ],
-    "module": "es2020"
+    "module": "es2020",
   }
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, ViewChild } from '@angular/core';
 
-import * as moment from 'moment';
+import moment from 'moment';
 
 import { Settings } from '../../core/settings';
 import { Job } from '../shared/workflow.model';

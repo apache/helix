@@ -1,12 +1,12 @@
-import * as bodyParser from 'body-parser';
-import * as dotenv from 'dotenv';
-import * as express from 'express';
-import * as morgan from 'morgan';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as http from 'http';
-import * as https from 'https';
-import * as session from 'express-session';
+import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import express from 'express';
+import morgan from 'morgan';
+import path from 'path';
+import fs from 'fs';
+import http from 'http';
+import https from 'https';
+import session from 'express-session';
 
 import { SSL, SESSION_STORE } from './config';
 import setRoutes from './routes';
@@ -15,7 +15,7 @@ const app = express();
 const server = http.createServer(app);
 
 dotenv.load({ path: '.env' });
-app.set('port', (process.env.PORT || 3000));
+app.set('port', (process.env.PORT || 4200));
 
 app.use('/', express.static(path.join(__dirname, '../public')));
 app.use(bodyParser.json());

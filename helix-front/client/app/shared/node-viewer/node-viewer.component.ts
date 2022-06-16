@@ -113,7 +113,7 @@ export class NodeViewerComponent implements OnInit {
   // MODE 1: use directly in components
   @Input()
   set obj(value: any) {
-    if (value != null) {
+    if (value !== null) {
       this._obj = value;
       this.node = new Node(value);
     }
@@ -122,8 +122,7 @@ export class NodeViewerComponent implements OnInit {
     return this._obj;
   }
   set objString(value: string) {
-    if (value !== null) {
-      console.log('value from node-viewer.component after null check', value);
+    if (value && value !== null) {
       const parsedValue = value ? JSON.parse(value) : JSON.parse('');
       this.obj = parsedValue;
       this.node = new Node(parsedValue);

@@ -11,14 +11,13 @@ describe('WorkflowDagComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule ],
-      declarations: [ WorkflowDagComponent ],
+      imports: [TestingModule],
+      declarations: [WorkflowDagComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

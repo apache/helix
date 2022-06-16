@@ -17,14 +17,8 @@
             "main": "client/main.ts",
             "tsConfig": "client/tsconfig.app.json",
             "polyfills": "client/polyfills.ts",
-            "assets": [
-              "client/assets",
-              "client/favicon.ico"
-            ],
-            "styles": [
-              "client/styles.scss",
-              "client/theme.scss"
-            ],
+            "assets": ["client/assets", "client/favicon.ico"],
+            "styles": ["client/styles.scss", "client/theme.scss"],
             "scripts": [],
             "vendorChunk": true,
             "extractLicenses": false,
@@ -83,23 +77,13 @@
         "test": {
           "builder": "@angular-builders/jest:run",
           "options": {
-            "main": [
-              "setupJest.ts"
-            ],
+            "main": ["setupJest.ts"],
             "tsConfig": "client/tsconfig.spec.json",
-            "polyfills": [
-              "client/polyfills.ts"
-            ],
+            "polyfills": ["client/polyfills.ts"],
             "no-cache": true,
             "scripts": [],
-            "styles": [
-              "client/styles.scss",
-              "client/theme.scss"
-            ],
-            "assets": [
-              "client/assets",
-              "client/favicon.ico"
-            ]
+            "styles": ["client/styles.scss", "client/theme.scss"],
+            "assets": ["client/assets", "client/favicon.ico"]
           }
         },
         "lint": {
@@ -111,10 +95,7 @@
               "cypress/tsconfig.json"
             ],
             "exclude": [],
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         },
         "cypress-run": {
@@ -172,10 +153,7 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "cypress/**/*.ts",
-              "cypress/**/*.html"
-            ]
+            "lintFilePatterns": ["cypress/**/*.ts", "cypress/**/*.html"]
           }
         },
         "cypress-run": {

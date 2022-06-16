@@ -11,17 +11,13 @@ describe('ClusterComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        FlexLayoutModule,
-        TestingModule
-      ],
-      declarations: [ ClusterComponent ],
+      imports: [FlexLayoutModule, TestingModule],
+      declarations: [ClusterComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
+        NO_ERRORS_SCHEMA,
       ],
-    })
-    .compileComponents();
+    }).compileComponents();
   }));
 
   beforeEach(() => {

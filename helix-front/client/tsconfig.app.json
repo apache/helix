@@ -1,15 +1,10 @@
 {
   "extends": "../tsconfig.json",
-  "include": [
-    "client/**/*.d.ts"
-  ],
+  "include": ["client/**/*.d.ts"],
   "compilerOptions": {
     "outDir": "../out-tsc/app",
     "baseUrl": "",
     "types": []
   },
-  "files": [
-    "main.ts",
-    "polyfills.ts"
-  ]
+  "files": ["main.ts", "polyfills.ts"]
 }

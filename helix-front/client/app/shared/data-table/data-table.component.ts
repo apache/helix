@@ -8,10 +8,9 @@ import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.
 @Component({
   selector: 'hi-data-table',
   templateUrl: './data-table.component.html',
-  styleUrls: ['./data-table.component.scss']
+  styleUrls: ['./data-table.component.scss'],
 })
 export class DataTableComponent implements OnInit {
-
   @Input() rows = [];
   @Input() columns = [];
   @Input() sorts = [];
@@ -24,12 +23,9 @@ export class DataTableComponent implements OnInit {
 
   rowHeight = Settings.tableRowHeight;
 
-  constructor(
-    protected dialog: MatDialog
-  ) { }
+  constructor(protected dialog: MatDialog) {}
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   onEdited(row, column, value) {
     const prop = this.getPropName(column);
@@ -39,7 +35,7 @@ export class DataTableComponent implements OnInit {
       this.update.emit({
         row,
         column,
-        value
+        value,
       });
     }
   }
@@ -48,22 +44,22 @@ export class DataTableComponent implements OnInit {
     const data = {
       title: 'Create a new item',
       message: 'Please enter the following information to continue:',
-      values: {}
+      values: {},
     };
 
     for (const column of this.columns) {
       const prop = this.getPropName(column);
       data.values[prop] = {
-        label: column.name
+        label: column.name,
       };
     }
 
     this.dialog
       .open(InputDialogComponent, {
-        data
+        data,
       })
       .afterClosed()
-      .subscribe(result => {
+      .subscribe((result) => {
         if (result) {
           this.create.emit(result);
         }
@@ -75,14 +71,14 @@ export class DataTableComponent implements OnInit {
       .open(ConfirmDialogComponent, {
         data: {
           title: 'Confirmation',
-          message: 'Are you sure you want to delete this configuration?'
-        }
+          message: 'Are you sure you want to delete this configuration?',
+        },
       })
       .afterClosed()
-      .subscribe(result => {
+      .subscribe((result) => {
         if (result) {
           this.delete.emit({
-            row
+            row,
           });
         }
       });
@@ -91,5 +87,4 @@ export class DataTableComponent implements OnInit {
   getPropName(column): string {
     return column.prop ? column.prop : column.name.toLowerCase();
   }
-
 }

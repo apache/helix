@@ -21,36 +21,65 @@
   <mat-toolbar class="mat-elevation-z1" fxFlex="none">
     <mat-toolbar-row>
       <hi-detail-header [cluster]="clusterName"></hi-detail-header>
-      <hi-disabled-label *ngIf="!cluster?.enabled" text="DISABLED"></hi-disabled-label>
-      <hi-disabled-label *ngIf="cluster?.inMaintenance" text="In Maintenance Mode"></hi-disabled-label>
+      <hi-disabled-label
+        *ngIf="!cluster?.enabled"
+        text="DISABLED"
+      ></hi-disabled-label>
+      <hi-disabled-label
+        *ngIf="cluster?.inMaintenance"
+        text="In Maintenance Mode"
+      ></hi-disabled-label>
     </mat-toolbar-row>
     <mat-toolbar-row class="information">
       <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>
-      <h6 *ngIf="!isLoading">Controller:
-        <a mat-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
+      <h6 *ngIf="!isLoading">
+        Controller:
+        <a mat-button color="accent" routerLink="controller">{{
+          cluster.controller
+        }}</a>
       </h6>
       <span fxFlex="1 1 auto"></span>
       <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">
         <mat-icon>menu</mat-icon>
       </button>
       <mat-menu #menu="matMenu">
-        <button mat-menu-item *ngIf="cluster?.controller === 'No Lead Controller!'" (click)="activateCluster()">
+        <button
+          mat-menu-item
+          *ngIf="cluster?.controller === 'No Lead Controller!'"
+          (click)="activateCluster()"
+        >
           <mat-icon>settings_input_antenna</mat-icon>
           <span>Activate this Cluster</span>
         </button>
-        <button mat-menu-item *ngIf="!cluster?.inMaintenance" (click)="enableMaintenanceMode()">
+        <button
+          mat-menu-item
+          *ngIf="!cluster?.inMaintenance"
+          (click)="enableMaintenanceMode()"
+        >
           <mat-icon>music_off</mat-icon>
           <span>Enable maintenance mode</span>
         </button>
-        <button mat-menu-item *ngIf="cluster?.inMaintenance" (click)="disableMaintenanceMode()">
+        <button
+          mat-menu-item
+          *ngIf="cluster?.inMaintenance"
+          (click)="disableMaintenanceMode()"
+        >
           <mat-icon>music_note</mat-icon>
           <span>Disable maintenance mode</span>
         </button>
-        <button mat-menu-item *ngIf="cluster?.enabled" (click)="disableCluster()">
+        <button
+          mat-menu-item
+          *ngIf="cluster?.enabled"
+          (click)="disableCluster()"
+        >
           <mat-icon>not_interested</mat-icon>
           <span>Disable this Cluster</span>
         </button>
-        <button mat-menu-item *ngIf="!cluster?.enabled" (click)="enableCluster()">
+        <button
+          mat-menu-item
+          *ngIf="!cluster?.enabled"
+          (click)="enableCluster()"
+        >
           <mat-icon>play_circle_outline</mat-icon>
           <span>Enable this Cluster</span>
         </button>
@@ -70,11 +99,14 @@
     </mat-toolbar-row>
   </mat-toolbar>
   <nav mat-tab-nav-bar>
-    <a mat-tab-link
+    <a
+      mat-tab-link
       *ngFor="let tabLink of tabLinks"
       [routerLink]="tabLink.link"
-      routerLinkActive #rla="routerLinkActive"
-      [active]="rla.isActive">
+      routerLinkActive
+      #rla="routerLinkActive"
+      [active]="rla.isActive"
+    >
       {{ tabLink.label }}
     </a>
   </nav>

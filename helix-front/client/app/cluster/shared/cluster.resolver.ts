@@ -8,7 +8,6 @@ import { Cluster } from './cluster.model';
 
 @Injectable()
 export class ClusterResolver implements Resolve<Cluster> {
-
   constructor(private clusterService: ClusterService) {}
 
   resolve(route: ActivatedRouteSnapshot) {

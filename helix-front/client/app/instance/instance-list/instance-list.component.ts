@@ -8,18 +8,17 @@ import { HelperService } from '../../shared/helper.service';
 @Component({
   selector: 'hi-instance-list',
   templateUrl: './instance-list.component.html',
-  styleUrls: ['./instance-list.component.scss']
+  styleUrls: ['./instance-list.component.scss'],
 })
 export class InstanceListComponent implements OnInit {
-
   isLoading = true;
   clusterName: string;
   instances: any[];
   rowHeight = Settings.tableRowHeight;
   headerHeight = Settings.tableHeaderHeight;
   sorts = [
-    { prop: 'liveInstance', dir: 'asc'},
-    { prop: 'name', dir: 'asc'}
+    { prop: 'liveInstance', dir: 'asc' },
+    { prop: 'name', dir: 'asc' },
   ];
 
   constructor(
@@ -27,18 +26,16 @@ export class InstanceListComponent implements OnInit {
     protected router: Router,
     protected service: InstanceService,
     protected helper: HelperService
-  ) { }
+  ) {}
 
   ngOnInit() {
     if (this.route.parent) {
       this.clusterName = this.route.parent.snapshot.params['name'];
-      this.service
-        .getAll(this.clusterName)
-        .subscribe(
-          data => this.instances = data,
-          error => this.helper.showError(error),
-          () => this.isLoading = false
-        );
+      this.service.getAll(this.clusterName).subscribe(
+        (data) => (this.instances = data),
+        (error) => this.helper.showError(error),
+        () => (this.isLoading = false)
+      );
     }
   }
 
@@ -46,5 +43,4 @@ export class InstanceListComponent implements OnInit {
     const row = selected[0];
     this.router.navigate([row.name], { relativeTo: this.route });
   }
-
 }

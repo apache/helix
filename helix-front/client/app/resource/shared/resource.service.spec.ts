@@ -8,11 +8,14 @@ describe('ResourceService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
-      providers: [ResourceService]
+      providers: [ResourceService],
     });
   });
 
-  it('should be ready', inject([ResourceService], (service: ResourceService) => {
-    expect(service).toBeTruthy();
-  }));
+  it('should be ready', inject(
+    [ResourceService],
+    (service: ResourceService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

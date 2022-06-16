@@ -1,7 +1,6 @@
 import { Instance } from '../../instance/shared/instance.model';
 
 export class Cluster {
-
   readonly name: string;
   readonly controller: string;
   readonly enabled: boolean;
@@ -25,11 +24,13 @@ export class Cluster {
 
     const ins: Instance[] = [];
     for (const instance of obj.instances) {
-      ins.push(new Instance(
-        instance,
-        this.name,
-        false, // here's a dummy value. should not be used
-        obj.liveInstances.indexOf(instance) >= 0)
+      ins.push(
+        new Instance(
+          instance,
+          this.name,
+          false, // here's a dummy value. should not be used
+          obj.liveInstances.indexOf(instance) >= 0
+        )
       );
     }
     this.instances = ins;

@@ -12,19 +12,19 @@ import { HelperServiceStub } from './stubs';
     HttpClientModule,
     MaterialModule,
     RouterTestingModule,
-    NoopAnimationsModule
+    NoopAnimationsModule,
   ],
   providers: [
     {
       provide: HelperService,
-      useValue: HelperServiceStub
-    }
+      useValue: HelperServiceStub,
+    },
   ],
   exports: [
     HttpClientModule,
     MaterialModule,
     RouterTestingModule,
-    NoopAnimationsModule
-  ]
+    NoopAnimationsModule,
+  ],
 })
-export class TestingModule { }
+export class TestingModule {}

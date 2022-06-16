@@ -13,11 +13,10 @@ describe('DashboardComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule, VisModule, HttpClientTestingModule ],
-      schemas: [ NO_ERRORS_SCHEMA ],
-      declarations: [ DashboardComponent ]
-    })
-    .compileComponents();
+      imports: [TestingModule, VisModule, HttpClientTestingModule],
+      schemas: [NO_ERRORS_SCHEMA],
+      declarations: [DashboardComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

@@ -20,9 +20,7 @@ import { ChooserModule } from './chooser/chooser.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
 @NgModule({
-  declarations: [
-    AppComponent
-  ],
+  declarations: [AppComponent],
   imports: [
     BrowserModule,
     FormsModule,
@@ -39,9 +37,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
     HistoryModule,
     WorkflowModule,
     ChooserModule,
-    DashboardModule
+    DashboardModule,
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

@@ -5,7 +5,7 @@ import {
   NavigationStart,
   NavigationEnd,
   NavigationCancel,
-  NavigationError
+  NavigationError,
 } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 
@@ -18,11 +18,10 @@ import { HelperService } from './shared/helper.service';
 @Component({
   selector: 'hi-root',
   templateUrl: './app.component.html',
-  styleUrls: [ './app.component.scss' ],
-  providers: [ UserService/*, Angulartics2Piwik */ ]
+  styleUrls: ['./app.component.scss'],
+  providers: [UserService /*, Angulartics2Piwik */],
 })
 export class AppComponent implements OnInit {
-
   headerEnabled = true;
   footerEnabled = true;
   isLoading = true;
@@ -36,7 +35,7 @@ export class AppComponent implements OnInit {
     protected service: UserService,
     protected helper: HelperService
   ) {
-    router.events.subscribe(event => {
+    router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
         this.isLoading = true;
       }
@@ -56,7 +55,7 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     this.currentUser = this.service.getCurrentUser();
 
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       if (params['embed'] == 'true') {
         this.headerEnabled = this.footerEnabled = false;
       }
@@ -71,46 +70,49 @@ export class AppComponent implements OnInit {
           message: 'Please enter your LDAP username and password to continue:',
           values: {
             username: {
-              label: 'Username'
+              label: 'Username',
             },
             password: {
               label: 'Password',
-              type: 'password'
-            }
-          }
-        }
+              type: 'password',
+            },
+          },
+        },
       })
       .afterClosed()
-      .subscribe(result => {
-        if (result && result.username.value && result.password.value) {
-          this.service
-            .login(result.username.value, result.password.value)
-            .subscribe(
-              isAuthorized => {
-                if (!isAuthorized) {
-                  this.helper.showError('You\'re not part of helix-admin group or password incorrect');
+      .subscribe(
+        (result) => {
+          if (result && result.username.value && result.password.value) {
+            this.service
+              .login(result.username.value, result.password.value)
+              .subscribe(
+                (isAuthorized) => {
+                  if (!isAuthorized) {
+                    this.helper.showError(
+                      "You're not part of helix-admin group or password incorrect"
+                    );
+                  }
+                  this.currentUser = this.service.getCurrentUser();
+                },
+                (error) => {
+                  // since rest API simply throws 404 instead of empty config when config is not initialized yet
+                  // frontend has to treat 404 as normal result
+                  if (error != 'Not Found') {
+                    this.helper.showError(error);
+                  }
+                  this.isLoading = false;
                 }
-                this.currentUser = this.service.getCurrentUser();
-              },
-              error => {
-                // since rest API simply throws 404 instead of empty config when config is not initialized yet
-                // frontend has to treat 404 as normal result
-                if (error != 'Not Found') {
-                  this.helper.showError(error);
-                }
-                this.isLoading = false;
-              },
-            );
+              );
+          }
+        },
+        (error) => {
+          // since rest API simply throws 404 instead of empty config when config is not initialized yet
+          // frontend has to treat 404 as normal result
+          if (error != 'Not Found') {
+            this.helper.showError(error);
+          }
+          this.isLoading = false;
         }
-      },
-      error => {
-        // since rest API simply throws 404 instead of empty config when config is not initialized yet
-        // frontend has to treat 404 as normal result
-        if (error != 'Not Found') {
-          this.helper.showError(error);
-        }
-        this.isLoading = false;
-      },
       );
   }
 }

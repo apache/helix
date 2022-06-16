@@ -12,15 +12,14 @@ describe('ResourceDetailForInstanceComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ HttpClientModule, RouterTestingModule ],
-      declarations: [ ResourceDetailForInstanceComponent ],
+      imports: [HttpClientModule, RouterTestingModule],
+      declarations: [ResourceDetailForInstanceComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
+        NO_ERRORS_SCHEMA,
       ],
-      providers: [ ResourceService ]
-    })
-    .compileComponents();
+      providers: [ResourceService],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

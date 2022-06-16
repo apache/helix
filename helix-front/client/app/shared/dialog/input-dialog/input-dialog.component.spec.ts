@@ -8,9 +8,8 @@ describe('InputDialogComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ InputDialogComponent ]
-    })
-    .compileComponents();
+      declarations: [InputDialogComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

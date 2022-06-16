@@ -1,0 +1,6 @@
+.angular
+dist
+node
+node_modules
+target
+package.json

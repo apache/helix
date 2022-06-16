@@ -10,23 +10,13 @@ import { ClusterDetailComponent } from './cluster-detail/cluster-detail.componen
 import { ClusterComponent } from './cluster.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    SharedModule
-  ],
+  imports: [CommonModule, HttpClientModule, SharedModule],
   declarations: [
     ClusterListComponent,
     ClusterDetailComponent,
-    ClusterComponent
+    ClusterComponent,
   ],
-  providers: [
-    ClusterService,
-    ClusterResolver
-  ],
-  exports: [
-    ClusterListComponent,
-    ClusterDetailComponent
-  ]
+  providers: [ClusterService, ClusterResolver],
+  exports: [ClusterListComponent, ClusterDetailComponent],
 })
-export class ClusterModule { }
+export class ClusterModule {}

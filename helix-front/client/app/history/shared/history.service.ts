@@ -7,22 +7,20 @@ import { History } from './history.model';
 
 @Injectable()
 export class HistoryService extends HelixService {
-
   getControllerHistory(clusterName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/controller/history`)
-      .pipe(map(data => this.parseHistory(data.history)));
+    return this.request(`/clusters/${clusterName}/controller/history`).pipe(
+      map((data) => this.parseHistory(data.history))
+    );
   }
 
   getInstanceHistory(clusterName: string, instanceName: string) {
-    return this
-      .request(`/clusters/${ clusterName }/instances/${ instanceName }/history`)
-      .pipe(map(data => this.parseHistory(data.listFields.HISTORY)));
+    return this.request(
+      `/clusters/${clusterName}/instances/${instanceName}/history`
+    ).pipe(map((data) => this.parseHistory(data.listFields.HISTORY)));
     // TODO: implement data.simpleFields.LAST_OFFLINE_TIME
   }
 
   protected parseHistory(data: any): History[] {
-
     const histories: History[] = [];
 
     if (data) {

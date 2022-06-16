@@ -20,18 +20,15 @@ import { JobDetailComponent } from './job-detail/job-detail.component';
     SharedModule,
     NgxDatatableModule,
     NgxChartsModule,
-    NgxGraphModule
+    NgxGraphModule,
   ],
-  providers: [
-    WorkflowService,
-    JobService
-  ],
+  providers: [WorkflowService, JobService],
   declarations: [
     WorkflowListComponent,
     WorkflowDetailComponent,
     WorkflowDagComponent,
     JobListComponent,
-    JobDetailComponent
-  ]
+    JobDetailComponent,
+  ],
 })
-export class WorkflowModule { }
+export class WorkflowModule {}

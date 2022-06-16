@@ -9,12 +9,9 @@ describe('JsonViewerComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule
-      ],
-      declarations: [ JsonViewerComponent ]
-    })
-    .compileComponents();
+      imports: [RouterTestingModule],
+      declarations: [JsonViewerComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

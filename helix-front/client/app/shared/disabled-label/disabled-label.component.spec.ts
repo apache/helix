@@ -8,9 +8,8 @@ describe('DisabledLabelComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DisabledLabelComponent ]
-    })
-    .compileComponents();
+      declarations: [DisabledLabelComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

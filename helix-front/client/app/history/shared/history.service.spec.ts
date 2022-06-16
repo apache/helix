@@ -8,7 +8,7 @@ describe('HistoryService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
-      providers: [HistoryService]
+      providers: [HistoryService],
     });
   });
 

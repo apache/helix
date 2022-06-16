@@ -8,11 +8,14 @@ describe('ControllerService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
-      providers: [ControllerService]
+      providers: [ControllerService],
     });
   });
 
-  it('should be ready', inject([ControllerService], (service: ControllerService) => {
-    expect(service).toBeTruthy();
-  }));
+  it('should be ready', inject(
+    [ControllerService],
+    (service: ControllerService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

@@ -30,16 +30,18 @@
     [sorts]="sorts"
     [limit]="20"
     selectionType="single"
-    (select)="onSelect($event)">
+    (select)="onSelect($event)"
+  >
     <ngx-datatable-column
-     [width]="50"
-     [resizeable]="false"
-     [sortable]="false"
-     [draggable]="false"
-     [canAutoResize]="false">
-     <ng-template let-expanded="expanded" ngx-datatable-cell-template>
-       <mat-icon>{{ expanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
-     </ng-template>
+      [width]="50"
+      [resizeable]="false"
+      [sortable]="false"
+      [draggable]="false"
+      [canAutoResize]="false"
+    >
+      <ng-template let-expanded="expanded" ngx-datatable-cell-template>
+        <mat-icon>{{ expanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
+      </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column
       name="Status"
@@ -47,9 +49,12 @@
       [width]="85"
       [resizeable]="false"
       [draggable]="false"
-      [canAutoResize]="false">
+      [canAutoResize]="false"
+    >
       <ng-template let-value="value" ngx-datatable-cell-template>
-        <mat-icon *ngIf="value" [ngClass]="'status-ready'">check_circle</mat-icon>
+        <mat-icon *ngIf="value" [ngClass]="'status-ready'"
+          >check_circle</mat-icon
+        >
         <mat-icon *ngIf="!value" [ngClass]="'status-not-ready'">error</mat-icon>
       </ng-template>
     </ngx-datatable-column>
@@ -58,16 +63,25 @@
       name="Replicas"
       [width]="100 * partitions[0].replicas.length"
       [resizeable]="false"
-      [canAutoResize]="false">
+      [canAutoResize]="false"
+    >
       <ng-template let-value="value" ngx-datatable-cell-template>
         <span *ngFor="let replica of value" [matTooltip]="replica.instanceName">
-          <hi-state-label [state]="replica.externalView" [isReady]="replica.externalView && replica.externalView == replica.idealState"></hi-state-label>
+          <hi-state-label
+            [state]="replica.externalView"
+            [isReady]="
+              replica.externalView && replica.externalView == replica.idealState
+            "
+          ></hi-state-label>
         </span>
       </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-row-detail rowHeight="auto">
       <ng-template let-row="row" ngx-datatable-row-detail-template>
-        <hi-partition-detail [clusterName]="resource.cluster" [partition]="row"></hi-partition-detail>
+        <hi-partition-detail
+          [clusterName]="resource.cluster"
+          [partition]="row"
+        ></hi-partition-detail>
       </ng-template>
     </ngx-datatable-row-detail>
     <ngx-datatable-footer>
@@ -75,11 +89,14 @@
         ngx-datatable-footer-template
         let-rowCount="rowCount"
         let-pageSize="pageSize"
-        let-curPage="curPage">
-        <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
-          <section>
-            {{ rowCount }} total
-          </section>
+        let-curPage="curPage"
+      >
+        <section
+          class="footer"
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+        >
+          <section>{{ rowCount }} total</section>
           <section>
             <datatable-pager
               [pagerLeftArrowIcon]="'datatable-icon-left'"
@@ -89,21 +106,30 @@
               [page]="curPage"
               [size]="pageSize"
               [count]="rowCount"
-              [hidden]="!((rowCount / pageSize) > 1)"
-              (change)="partitionsTable.onFooterPage($event)">
+              [hidden]="!(rowCount / pageSize > 1)"
+              (change)="partitionsTable.onFooterPage($event)"
+            >
             </datatable-pager>
           </section>
         </section>
       </ng-template>
     </ngx-datatable-footer>
   </ngx-datatable>
-  <div *ngIf="!canAnalyse()" class="message" fxLayout="column" fxLayoutAlign="center center">
+  <div
+    *ngIf="!canAnalyse()"
+    class="message"
+    fxLayout="column"
+    fxLayoutAlign="center center"
+  >
     <mat-spinner *ngIf="isLoading"></mat-spinner>
     <section *ngIf="!isLoading && getReasonWhyCannotAnalyse()" fxFlexFill>
       {{ getReasonWhyCannotAnalyse() }}
     </section>
     <section *ngIf="!isLoading && !getReasonWhyCannotAnalyse()" fxFlexFill>
-      <div>Sorry, we do not support this kind of partition information yet. Detailed debugging information:</div>
+      <div>
+        Sorry, we do not support this kind of partition information yet.
+        Detailed debugging information:
+      </div>
       <ngx-json-viewer [json]="resource"></ngx-json-viewer>
     </section>
   </div>

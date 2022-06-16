@@ -11,17 +11,14 @@ describe('HelixListComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      declarations: [ HelixListComponent ],
-      providers: [ ChooserService ],
+      imports: [TestingModule],
+      declarations: [HelixListComponent],
+      providers: [ChooserService],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

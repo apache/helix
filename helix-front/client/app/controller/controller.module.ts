@@ -5,10 +5,7 @@ import { SharedModule } from '../shared/shared.module';
 import { ControllerDetailComponent } from './controller-detail/controller-detail.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    SharedModule
-  ],
-  declarations: [ControllerDetailComponent]
+  imports: [CommonModule, SharedModule],
+  declarations: [ControllerDetailComponent],
 })
-export class ControllerModule { }
+export class ControllerModule {}

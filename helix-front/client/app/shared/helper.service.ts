@@ -7,18 +7,14 @@ import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.c
 
 @Injectable()
 export class HelperService {
-
-  constructor(
-    protected snackBar: MatSnackBar,
-    protected dialog: MatDialog
-  ) { }
+  constructor(protected snackBar: MatSnackBar, protected dialog: MatDialog) {}
 
   showError(message: string) {
     this.dialog.open(AlertDialogComponent, {
       data: {
         title: 'Error',
-        message
-      }
+        message,
+      },
     });
   }
 
@@ -33,8 +29,8 @@ export class HelperService {
       .open(ConfirmDialogComponent, {
         data: {
           title: 'Confirmation',
-          message
-        }
+          message,
+        },
       })
       .afterClosed()
       .toPromise();

@@ -9,5 +9,7 @@
 }
 
 .status-not-healthy {
-  color: mat.get-color-from-palette(mat.define-palette(mat.$grey-palette, 900, 900, 900));
+  color: mat.get-color-from-palette(
+    mat.define-palette(mat.$grey-palette, 900, 900, 900)
+  );
 }

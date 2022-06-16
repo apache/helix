@@ -15,11 +15,10 @@ import { HelperService } from '../../shared/helper.service';
   selector: 'hi-resource-list',
   templateUrl: './resource-list.component.html',
   styleUrls: ['./resource-list.component.scss'],
-  providers: [WorkflowService]
+  providers: [WorkflowService],
 })
 export class ResourceListComponent implements OnInit {
-
-  @ViewChild('resourcesTable', {static: true})
+  @ViewChild('resourcesTable', { static: true })
   table: any;
 
   isForInstance = false;
@@ -30,8 +29,8 @@ export class ResourceListComponent implements OnInit {
   clusterName: string;
   instanceName: string;
   sorts = [
-    { prop: 'alive', dir: 'asc'},
-    { prop: 'name', dir: 'asc'}
+    { prop: 'alive', dir: 'asc' },
+    { prop: 'name', dir: 'asc' },
   ];
 
   constructor(
@@ -40,11 +39,10 @@ export class ResourceListComponent implements OnInit {
     private service: ResourceService,
     private workflowService: WorkflowService,
     protected helper: HelperService
-  ) { }
+  ) {}
 
   ngOnInit() {
     if (this.route.parent) {
-
       if (this.route.snapshot.data.forInstance) {
         this.isForInstance = true;
         this.isLoading = true;
@@ -54,17 +52,15 @@ export class ResourceListComponent implements OnInit {
         this.service
           .getAllOnInstance(this.clusterName, this.instanceName)
           .subscribe(
-            resources => this.resources = resources,
-            error => console.log(error),
-            () => this.isLoading = false
+            (resources) => (this.resources = resources),
+            (error) => console.log(error),
+            () => (this.isLoading = false)
           );
       } else {
-        this.route.parent.params
-          .pipe(map(p => p.name))
-          .subscribe(name => {
-            this.clusterName = name;
-            this.fetchResources();
-          });
+        this.route.parent.params.pipe(map((p) => p.name)).subscribe((name) => {
+          this.clusterName = name;
+          this.fetchResources();
+        });
       }
     }
   }
@@ -80,22 +76,23 @@ export class ResourceListComponent implements OnInit {
     this.isLoading = true;
     this.resources = null;
 
-    this.workflowService
-      .getAll(this.clusterName)
-      .subscribe(
-        workflows => {
-          this.service
-            .getAll(this.clusterName)
-            .subscribe(
-              result => {
-                this.resources = _.differenceWith(result, workflows, (resource: Resource, prefix: string) => _.startsWith(resource.name, prefix));
-              },
-              error => this.helper.showError(error),
-              () => this.isLoading = false
+    this.workflowService.getAll(this.clusterName).subscribe(
+      (workflows) => {
+        this.service.getAll(this.clusterName).subscribe(
+          (result) => {
+            this.resources = _.differenceWith(
+              result,
+              workflows,
+              (resource: Resource, prefix: string) =>
+                _.startsWith(resource.name, prefix)
             );
-        },
-        error => this.helper.showError(error)
-      );
+          },
+          (error) => this.helper.showError(error),
+          () => (this.isLoading = false)
+        );
+      },
+      (error) => this.helper.showError(error)
+    );
   }
 
   onSelect({ selected }) {
@@ -107,5 +104,4 @@ export class ResourceListComponent implements OnInit {
       this.router.navigate([row.name], { relativeTo: this.route });
     }
   }
-
 }

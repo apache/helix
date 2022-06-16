@@ -6,7 +6,6 @@ import { HELIX_ENDPOINTS } from '../config';
 import { HelixUserRequest } from './d';
 
 export class HelixCtrl {
-
   static readonly ROUTE_PREFIX = '/api/helix';
 
   constructor(router: Router) {
@@ -33,7 +32,7 @@ export class HelixCtrl {
 
     let apiPrefix = null;
     if (HELIX_ENDPOINTS[group]) {
-      HELIX_ENDPOINTS[group].forEach(section => {
+      HELIX_ENDPOINTS[group].forEach((section) => {
         if (section[name]) {
           apiPrefix = section[name];
         }
@@ -41,13 +40,13 @@ export class HelixCtrl {
     }
 
     if (apiPrefix) {
-      const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
+      const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');
       const options = {
         url: realUrl,
         json: req.body,
         headers: {
-          'Helix-User': user
-        }
+          'Helix-User': user,
+        },
       };
       request[method](options, (error, response, body) => {
         if (error) {
@@ -64,10 +63,9 @@ export class HelixCtrl {
   protected list(req: Request, res: Response) {
     try {
       res.json(HELIX_ENDPOINTS);
-    } catch(err) {
-      console.log('error from helix/list/')
-      console.log(err)
+    } catch (err) {
+      console.log('error from helix/list/');
+      console.log(err);
     }
-
   }
 }

@@ -1,15 +1,21 @@
-import { Component, OnInit, Input, Output, ViewChild, ElementRef, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  Output,
+  ViewChild,
+  ElementRef,
+  EventEmitter,
+} from '@angular/core';
 import { ControlValueAccessor } from '@angular/forms';
 
 @Component({
   selector: 'hi-input-inline',
   templateUrl: './input-inline.component.html',
-  styleUrls: ['./input-inline.component.scss']
+  styleUrls: ['./input-inline.component.scss'],
 })
 export class InputInlineComponent implements ControlValueAccessor, OnInit {
-;
-
-  @ViewChild('inputControl', {static: true}) inputControl: ElementRef;
+  @ViewChild('inputControl', { static: true }) inputControl: ElementRef;
 
   @Output('update') change: EventEmitter<string> = new EventEmitter<string>();
 
@@ -44,21 +50,21 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
       this.onChange(v);
     }
   }
-  @Input() focus: Function = _ => { };
-  @Input() blur: Function = _ => { };
+  @Input() focus: Function = (_) => {};
+  @Input() blur: Function = (_) => {};
   public registerOnChange(fn: (_: any) => {}): void {
- this.onChange = fn;
-}
+    this.onChange = fn;
+  }
   public registerOnTouched(fn: () => {}): void {
- this.onTouched = fn;
-}  writeValue(value: any) {
+    this.onTouched = fn;
+  }
+  writeValue(value: any) {
     this._value = value;
   }
 
-  constructor() { }
+  constructor() {}
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   hasError() {
     const exp = new RegExp(this.pattern);
@@ -81,7 +87,7 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
 
     this.lastValue = value;
     this.editing = true;
-    setTimeout(_ => {
+    setTimeout((_) => {
       this.inputControl.nativeElement.focus();
     });
   }
@@ -100,5 +106,4 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
     this._value = this.lastValue;
     this.editing = false;
   }
-
 }

@@ -8,7 +8,7 @@ describe('ClusterService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
-      providers: [ClusterService]
+      providers: [ClusterService],
     });
   });
 

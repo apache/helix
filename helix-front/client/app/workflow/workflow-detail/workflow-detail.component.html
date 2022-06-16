@@ -19,17 +19,38 @@
 
 <mat-toolbar class="mat-elevation-z1">
   <mat-toolbar-row>
-    <hi-detail-header [cluster]="clusterName" [workflow]="workflow?.name"></hi-detail-header>
-    <hi-disabled-label *ngIf="!isLoading && workflow.state !== 'IN_PROGRESS'" [text]="workflow.state"></hi-disabled-label>
+    <hi-detail-header
+      [cluster]="clusterName"
+      [workflow]="workflow?.name"
+    ></hi-detail-header>
+    <hi-disabled-label
+      *ngIf="!isLoading && workflow.state !== 'IN_PROGRESS'"
+      [text]="workflow.state"
+    ></hi-disabled-label>
   </mat-toolbar-row>
   <mat-toolbar-row class="information">
     <a mat-mini-fab routerLink="../"><mat-icon>arrow_back</mat-icon></a>
     <hi-key-value-pairs [obj]="workflow">
-      <hi-key-value-pair name="Capacity" prop="config.capacity"></hi-key-value-pair>
-      <hi-key-value-pair name="Target State" prop="config.TargetState"></hi-key-value-pair>
-      <hi-key-value-pair name="Terminable" prop="config.Terminable"></hi-key-value-pair>
-      <hi-key-value-pair name="Parallel Jobs" prop="config.ParallelJobs"></hi-key-value-pair>
-      <hi-key-value-pair name="Failure Threshold" prop="config.FailureThreshold"></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Capacity"
+        prop="config.capacity"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Target State"
+        prop="config.TargetState"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Terminable"
+        prop="config.Terminable"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Parallel Jobs"
+        prop="config.ParallelJobs"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Failure Threshold"
+        prop="config.FailureThreshold"
+      ></hi-key-value-pair>
       <hi-key-value-pair name="Expiry" prop="config.Expiry"></hi-key-value-pair>
     </hi-key-value-pairs>
     <span fxFlex="1 1 auto"></span>
@@ -50,22 +71,45 @@
 </mat-toolbar>
 <section fxLayout="column" fxLayoutAlign="center center">
   <mat-spinner *ngIf="isLoading"></mat-spinner>
-  <section *ngIf="!isLoading" class="content" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="10px" fxFlexFill>
-    <mat-button-toggle-group #group="matButtonToggleGroup" [value]="workflow.isJobQueue ? 'list' : 'graph'">
+  <section
+    *ngIf="!isLoading"
+    class="content"
+    fxLayout="column"
+    fxLayoutAlign="center center"
+    fxLayoutGap="10px"
+    fxFlexFill
+  >
+    <mat-button-toggle-group
+      #group="matButtonToggleGroup"
+      [value]="workflow.isJobQueue ? 'list' : 'graph'"
+    >
       <mat-button-toggle *ngIf="!workflow.isJobQueue" value="graph">
         Graph View
       </mat-button-toggle>
-      <mat-button-toggle value="list">
-        List View
-      </mat-button-toggle>
-      <mat-button-toggle value="json">
-        JSON View
-      </mat-button-toggle>
+      <mat-button-toggle value="list"> List View </mat-button-toggle>
+      <mat-button-toggle value="json"> JSON View </mat-button-toggle>
     </mat-button-toggle-group>
-    <section class="viewer" [ngSwitch]="group.value" fxLayout="column" fxLayoutAlign="center center" fxFill>
-      <hi-workflow-dag *ngSwitchCase="'graph'" [workflow]="workflow"></hi-workflow-dag>
-      <hi-job-list *ngSwitchCase="'list'" [jobs]="workflow.jobs" fxFill></hi-job-list>
-      <ngx-json-viewer *ngSwitchCase="'json'" [json]="workflow.json" fxFill></ngx-json-viewer>
+    <section
+      class="viewer"
+      [ngSwitch]="group.value"
+      fxLayout="column"
+      fxLayoutAlign="center center"
+      fxFill
+    >
+      <hi-workflow-dag
+        *ngSwitchCase="'graph'"
+        [workflow]="workflow"
+      ></hi-workflow-dag>
+      <hi-job-list
+        *ngSwitchCase="'list'"
+        [jobs]="workflow.jobs"
+        fxFill
+      ></hi-job-list>
+      <ngx-json-viewer
+        *ngSwitchCase="'json'"
+        [json]="workflow.json"
+        fxFill
+      ></ngx-json-viewer>
     </section>
   </section>
 </section>

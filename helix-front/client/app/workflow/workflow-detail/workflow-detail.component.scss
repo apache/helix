@@ -5,7 +5,9 @@
 }
 
 .state-default {
-  color: mat.get-color-from-palette(mat.define-palette(mat.$deep-orange-palette));
+  color: mat.get-color-from-palette(
+    mat.define-palette(mat.$deep-orange-palette)
+  );
 }
 
 .state-COMPLETED {

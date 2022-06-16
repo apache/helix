@@ -8,11 +8,14 @@ describe('InstanceService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
-      providers: [InstanceService]
+      providers: [InstanceService],
     });
   });
 
-  it('should be created', inject([InstanceService], (service: InstanceService) => {
-    expect(service).toBeTruthy();
-  }));
+  it('should be created', inject(
+    [InstanceService],
+    (service: InstanceService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

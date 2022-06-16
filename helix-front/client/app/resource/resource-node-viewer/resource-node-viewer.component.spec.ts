@@ -11,15 +11,14 @@ describe('ResourceNodeViewerComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule ],
-      declarations: [ ResourceNodeViewerComponent ],
-      providers: [ ResourceService ],
+      imports: [TestingModule],
+      declarations: [ResourceNodeViewerComponent],
+      providers: [ResourceService],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

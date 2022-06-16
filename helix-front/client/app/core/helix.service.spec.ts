@@ -8,7 +8,7 @@ describe('HelixService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
-      providers: [HelixService]
+      providers: [HelixService],
     });
   });
 

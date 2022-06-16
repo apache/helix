@@ -17,35 +17,46 @@
   ~ under the License.
   -->
 
-<section class="node-viewer" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="10px">
-  <mat-progress-bar *ngIf="loadingIndicator" mode="indeterminate"></mat-progress-bar>
+<section
+  class="node-viewer"
+  fxLayout="column"
+  fxLayoutAlign="center center"
+  fxLayoutGap="10px"
+>
+  <mat-progress-bar
+    *ngIf="loadingIndicator"
+    mode="indeterminate"
+  ></mat-progress-bar>
   <mat-button-toggle-group #group="matButtonToggleGroup" value="table">
-    <mat-button-toggle value="table">
-      Table View
-    </mat-button-toggle>
-    <mat-button-toggle value="json">
-      JSON View
-    </mat-button-toggle>
+    <mat-button-toggle value="table"> Table View </mat-button-toggle>
+    <mat-button-toggle value="json"> JSON View </mat-button-toggle>
   </mat-button-toggle-group>
   <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
     <ngx-json-viewer *ngSwitchCase="'json'" [json]="obj"></ngx-json-viewer>
     <section *ngSwitchCase="'table'">
-
       <!-- TODO vxu: use mat-simple-table when it's available -->
 
       <section fxLayout="row" fxLayoutAlign="center center">
         <span fxFlex="1 1 auto"></span>
         <mat-icon>search</mat-icon>
         <mat-form-field class="search-form-field">
-          <input matInput
+          <input
+            matInput
             placeholder="Type to filter the fields..."
-            (keyup)="updateFilter($event)"/>
+            (keyup)="updateFilter($event)"
+          />
         </mat-form-field>
         <span fxFlex="1 1 auto"></span>
-        <button mat-button
+        <button
+          mat-button
           *ngIf="unlockable"
           (click)="editable = !editable"
-          [matTooltip]="editable ? 'Click to prevent further changes' : 'Click to make changes'">
+          [matTooltip]="
+            editable
+              ? 'Click to prevent further changes'
+              : 'Click to make changes'
+          "
+        >
           <mat-icon>{{ editable ? 'lock_open' : 'lock' }}</mat-icon>
           {{ editable ? 'Unlocked' : 'Locked' }}
         </button>
@@ -69,7 +80,8 @@
             [insertable]="editable"
             (update)="edited('simple', $event)"
             (create)="created('simple', $event)"
-            (delete)="onDelete('simple', $event.row)">
+            (delete)="onDelete('simple', $event.row)"
+          >
           </hi-data-table>
         </mat-card-content>
       </mat-card>
@@ -93,22 +105,37 @@
             columnMode="force"
             [rows]="listConfigs"
             [sorts]="sorts"
-            [limit]="10">
+            [limit]="10"
+          >
             <ngx-datatable-column
               *ngIf="editable"
               [width]="40"
               [resizeable]="false"
               [draggable]="false"
-              [canAutoResize]="false">
+              [canAutoResize]="false"
+            >
               <ng-template let-row="row" ngx-datatable-cell-template>
-                <button mat-icon-button class="delete-button" matTooltip="Click to delete" (click)="beforeDelete('list', row)">
+                <button
+                  mat-icon-button
+                  class="delete-button"
+                  matTooltip="Click to delete"
+                  (click)="beforeDelete('list', row)"
+                >
                   <mat-icon>delete_forever</mat-icon>
                 </button>
               </ng-template>
             </ngx-datatable-column>
-            <ngx-datatable-column name="Name" [width]="80" [cellClass]="getNameCellClass"></ngx-datatable-column>
+            <ngx-datatable-column
+              name="Name"
+              [width]="80"
+              [cellClass]="getNameCellClass"
+            ></ngx-datatable-column>
             <ngx-datatable-column name="Value" [width]="400">
-              <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+              <ng-template
+                let-row="row"
+                let-value="value"
+                ngx-datatable-cell-template
+              >
                 <hi-data-table
                   [rows]="value"
                   [sorts]="sorts"
@@ -117,7 +144,8 @@
                   [insertable]="editable"
                   (update)="edited('list', $event, row.name)"
                   (create)="created('list', $event, row.name)"
-                  (delete)="edited('list', $event, row.name, true)">
+                  (delete)="edited('list', $event, row.name, true)"
+                >
                 </hi-data-table>
               </ng-template>
             </ngx-datatable-column>
@@ -126,15 +154,22 @@
                 ngx-datatable-footer-template
                 let-rowCount="rowCount"
                 let-pageSize="pageSize"
-                let-curPage="curPage">
-                <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
-                  <button mat-button *ngIf="editable" (click)="onCreate('list')">
+                let-curPage="curPage"
+              >
+                <section
+                  class="footer"
+                  fxLayout="row"
+                  fxLayoutAlign="space-between center"
+                >
+                  <button
+                    mat-button
+                    *ngIf="editable"
+                    (click)="onCreate('list')"
+                  >
                     <mat-icon>add</mat-icon>
                     Add new entry
                   </button>
-                  <section>
-                    {{ rowCount }} total
-                  </section>
+                  <section>{{ rowCount }} total</section>
                   <section>
                     <datatable-pager
                       [pagerLeftArrowIcon]="'datatable-icon-left'"
@@ -144,8 +179,9 @@
                       [page]="curPage"
                       [size]="pageSize"
                       [count]="rowCount"
-                      [hidden]="!((rowCount / pageSize) > 1)"
-                      (change)="listTable.onFooterPage($event)">
+                      [hidden]="!(rowCount / pageSize > 1)"
+                      (change)="listTable.onFooterPage($event)"
+                    >
                     </datatable-pager>
                   </section>
                 </section>
@@ -174,22 +210,37 @@
             columnMode="force"
             [rows]="mapConfigs"
             [sorts]="sorts"
-            [limit]="10">
+            [limit]="10"
+          >
             <ngx-datatable-column
               *ngIf="editable"
               [width]="40"
               [resizeable]="false"
               [draggable]="false"
-              [canAutoResize]="false">
+              [canAutoResize]="false"
+            >
               <ng-template let-row="row" ngx-datatable-cell-template>
-                <button mat-icon-button class="delete-button" matTooltip="Click to delete" (click)="beforeDelete('map', row)">
+                <button
+                  mat-icon-button
+                  class="delete-button"
+                  matTooltip="Click to delete"
+                  (click)="beforeDelete('map', row)"
+                >
                   <mat-icon>delete_forever</mat-icon>
                 </button>
               </ng-template>
             </ngx-datatable-column>
-            <ngx-datatable-column name="Name" [width]="80" [cellClass]="getNameCellClass"></ngx-datatable-column>
+            <ngx-datatable-column
+              name="Name"
+              [width]="80"
+              [cellClass]="getNameCellClass"
+            ></ngx-datatable-column>
             <ngx-datatable-column name="Value" [width]="500">
-              <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+              <ng-template
+                let-row="row"
+                let-value="value"
+                ngx-datatable-cell-template
+              >
                 <hi-data-table
                   [rows]="value"
                   [sorts]="sorts"
@@ -198,7 +249,8 @@
                   [insertable]="editable"
                   (update)="edited('map', $event, row.name)"
                   (create)="created('map', $event, row.name)"
-                  (delete)="edited('map', $event, row.name, true)">
+                  (delete)="edited('map', $event, row.name, true)"
+                >
                 </hi-data-table>
               </ng-template>
             </ngx-datatable-column>
@@ -207,15 +259,18 @@
                 ngx-datatable-footer-template
                 let-rowCount="rowCount"
                 let-pageSize="pageSize"
-                let-curPage="curPage">
-                <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
+                let-curPage="curPage"
+              >
+                <section
+                  class="footer"
+                  fxLayout="row"
+                  fxLayoutAlign="space-between center"
+                >
                   <button mat-button *ngIf="editable" (click)="onCreate('map')">
                     <mat-icon>add</mat-icon>
                     Add new entry
                   </button>
-                  <section>
-                    {{ rowCount }} total
-                  </section>
+                  <section>{{ rowCount }} total</section>
                   <section>
                     <datatable-pager
                       [pagerLeftArrowIcon]="'datatable-icon-left'"
@@ -225,8 +280,9 @@
                       [page]="curPage"
                       [size]="pageSize"
                       [count]="rowCount"
-                      [hidden]="!((rowCount / pageSize) > 1)"
-                      (change)="mapTable.onFooterPage($event)">
+                      [hidden]="!(rowCount / pageSize > 1)"
+                      (change)="mapTable.onFooterPage($event)"
+                    >
                     </datatable-pager>
                   </section>
                 </section>
@@ -235,7 +291,6 @@
           </ngx-datatable>
         </mat-card-content>
       </mat-card>
-
     </section>
   </section>
 </section>

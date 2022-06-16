@@ -8,32 +8,30 @@ import { Job } from '../shared/workflow.model';
 @Component({
   selector: 'hi-job-list',
   templateUrl: './job-list.component.html',
-  styleUrls: ['./job-list.component.scss']
+  styleUrls: ['./job-list.component.scss'],
 })
 export class JobListComponent implements OnInit {
-
   @Input()
   jobs: Job[];
 
-  @ViewChild('jobsTable', {static: true})
+  @ViewChild('jobsTable', { static: true })
   table: any;
 
   rowHeight = Settings.tableRowHeight;
   headerHeight = Settings.tableHeaderHeight;
   sorts = [
-    { prop: 'startTime', dir: 'desc'},
-    { prop: 'name', dir: 'asc'}
+    { prop: 'startTime', dir: 'desc' },
+    { prop: 'name', dir: 'asc' },
   ];
   messages = {
     emptyMessage: 'The list is empty.',
     totalMessage: 'total',
-    selectedMessage: 'selected'
+    selectedMessage: 'selected',
   };
 
-  constructor() { }
+  constructor() {}
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   parseTime(rawTime: string): string {
     return moment(parseInt(rawTime)).fromNow();

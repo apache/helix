@@ -25,7 +25,9 @@
     "lint:fix": "eslint --fix --ext .ts,.html .",
     "type:check": "tsc --project tsconfig.json --noEmit",
     "type:check:stats": "yarn type:check -- --diagnostics true",
-    "type:check:watch": "yarn type:check -- --watch"
+    "type:check:watch": "yarn type:check -- --watch",
+    "format:check": "npx prettier --check .",
+    "format": "yarn prettier --write ."
   },
   "engines": {
     "node": "14.17.6",
@@ -108,6 +110,7 @@
     "concurrently": "^3.5.0",
     "cypress": "^10.0.3",
     "eslint": "^8.12.0",
+    "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "latest",
     "eslint-plugin-jsdoc": "^39.3.0",
     "eslint-plugin-prefer-arrow": "latest",
@@ -115,6 +118,7 @@
     "jest-html-reporters": "^3.0.9",
     "jest-preset-angular": "^12.1.0",
     "nodemon": "^2.0.16",
+    "prettier": "2.7.0",
     "ts-node": "~2.0.0",
     "typescript": "4.6.4"
   }

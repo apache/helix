@@ -11,17 +11,13 @@ describe('HistoryListComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        HttpClientModule,
-        RouterTestingModule
-      ],
-      declarations: [ HistoryListComponent ],
+      imports: [HttpClientModule, RouterTestingModule],
+      declarations: [HistoryListComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

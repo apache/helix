@@ -1,4 +1,12 @@
-import { Component, OnInit, Input, Output, ViewChild, ViewEncapsulation, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  Output,
+  ViewChild,
+  ViewEncapsulation,
+  EventEmitter,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 
@@ -15,13 +23,12 @@ import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.
   styleUrls: ['./node-viewer.component.scss'],
   // Since we are importing external styles in this component
   // we will not use Shadow DOM at all to make sure the styles apply
-  encapsulation: ViewEncapsulation.None
+  encapsulation: ViewEncapsulation.None,
 })
 export class NodeViewerComponent implements OnInit {
-
-  @ViewChild('simpleTable', {static: true}) simpleTable;
-  @ViewChild('listTable', {static: true}) listTable;
-  @ViewChild('mapTable', {static: true}) mapTable;
+  @ViewChild('simpleTable', { static: true }) simpleTable;
+  @ViewChild('listTable', { static: true }) listTable;
+  @ViewChild('mapTable', { static: true }) mapTable;
 
   @Output('update')
   change: EventEmitter<Node> = new EventEmitter<Node>();
@@ -45,27 +52,25 @@ export class NodeViewerComponent implements OnInit {
 
   headerHeight = Settings.tableHeaderHeight;
   rowHeight = Settings.tableRowHeight;
-  sorts = [
-    { prop: 'name', dir: 'asc'}
-  ];
+  sorts = [{ prop: 'name', dir: 'asc' }];
   keyword = '';
   columns = {
     simpleConfigs: [
       {
         name: 'Name',
-        editable: false
+        editable: false,
       },
       {
         name: 'Value',
-        editable: false
-      }
+        editable: false,
+      },
     ],
     listConfigs: [
       {
         name: 'Value',
-        editable: false
-      }
-    ]
+        editable: false,
+      },
+    ],
   };
 
   _simpleConfigs: any[];
@@ -94,23 +99,46 @@ export class NodeViewerComponent implements OnInit {
     return this._editable;
   }
   get simpleConfigs(): any[] {
-    return this.node ? _.filter(this.node.simpleFields, config => config.name.toLowerCase().indexOf(this.keyword) >= 0
-        || config.value.toLowerCase().indexOf(this.keyword) >= 0) : [];
+    return this.node
+      ? _.filter(
+          this.node.simpleFields,
+          (config) =>
+            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||
+            config.value.toLowerCase().indexOf(this.keyword) >= 0
+        )
+      : [];
   }
   get listConfigs(): any[] {
-    return this.node ?  _.filter(this.node.listFields, config => config.name.toLowerCase().indexOf(this.keyword) >= 0
-        || _.some(config.value as any[], subconfig => subconfig.value.toLowerCase().indexOf(this.keyword) >= 0)) : [];
+    return this.node
+      ? _.filter(
+          this.node.listFields,
+          (config) =>
+            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||
+            _.some(
+              config.value as any[],
+              (subconfig) =>
+                subconfig.value.toLowerCase().indexOf(this.keyword) >= 0
+            )
+        )
+      : [];
   }
   get mapConfigs(): any[] {
-    return this.node ?  _.filter(this.node.mapFields, config => config.name.toLowerCase().indexOf(this.keyword) >= 0
-        || _.some(config.value as any[], subconfig => subconfig.name.toLowerCase().indexOf(this.keyword) >= 0
-            || subconfig.value.toLowerCase().indexOf(this.keyword) >= 0)) : [];
+    return this.node
+      ? _.filter(
+          this.node.mapFields,
+          (config) =>
+            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||
+            _.some(
+              config.value as any[],
+              (subconfig) =>
+                subconfig.name.toLowerCase().indexOf(this.keyword) >= 0 ||
+                subconfig.value.toLowerCase().indexOf(this.keyword) >= 0
+            )
+        )
+      : [];
   }
 
-  constructor(
-    protected dialog: MatDialog,
-    protected route: ActivatedRoute
-  ) { }
+  constructor(protected dialog: MatDialog, protected route: ActivatedRoute) {}
 
   ngOnInit() {
     // MODE 2: use in router
@@ -118,7 +146,7 @@ export class NodeViewerComponent implements OnInit {
       const path = this.route.snapshot.data.path;
 
       // try parent data first
-      this.obj = _.get(this.route.parent, `snapshot.data.${ path }`);
+      this.obj = _.get(this.route.parent, `snapshot.data.${path}`);
 
       if (this.obj == null) {
         // try self data then
@@ -145,7 +173,7 @@ export class NodeViewerComponent implements OnInit {
   getNameCellClass({ value }): any {
     return {
       // highlight HELIX own configs
-      primary: _.snakeCase(value).toUpperCase() === value
+      primary: _.snakeCase(value).toUpperCase() === value,
     };
   }
 
@@ -153,22 +181,25 @@ export class NodeViewerComponent implements OnInit {
     this.dialog
       .open(InputDialogComponent, {
         data: {
-          title: `Create a new ${ type } configuration`,
-          message: 'Please enter the name of the new configuration. You\'ll be able to add values later:',
+          title: `Create a new ${type} configuration`,
+          message:
+            "Please enter the name of the new configuration. You'll be able to add values later:",
           values: {
             name: {
-              label: 'the name of the new configuration'
-            }
-          }
-        }
+              label: 'the name of the new configuration',
+            },
+          },
+        },
       })
       .afterClosed()
-      .subscribe(result => {
+      .subscribe((result) => {
         if (result) {
-          const entry = [{
-            name: result.name.value,
-            value: []
-          }];
+          const entry = [
+            {
+              name: result.name.value,
+              value: [],
+            },
+          ];
 
           const newNode: Node = new Node(null);
           if (type === 'list') {
@@ -187,11 +218,11 @@ export class NodeViewerComponent implements OnInit {
       .open(ConfirmDialogComponent, {
         data: {
           title: 'Confirmation',
-          message: 'Are you sure you want to delete this configuration?'
-        }
+          message: 'Are you sure you want to delete this configuration?',
+        },
       })
       .afterClosed()
-      .subscribe(result => {
+      .subscribe((result) => {
         if (result) {
           this.onDelete(type, row);
         }
@@ -206,7 +237,7 @@ export class NodeViewerComponent implements OnInit {
     } else if (type === 'list') {
       newNode.listFields = [{ name: row.name, value: [] }];
     } else if (type === 'map') {
-      newNode.mapFields =  [{ name: row.name, value: null }];
+      newNode.mapFields = [{ name: row.name, value: null }];
     }
 
     this.delete.emit(newNode);
@@ -222,27 +253,27 @@ export class NodeViewerComponent implements OnInit {
 
       case 'list':
         if (key) {
-          const entry = _.find(this.node.listFields, {name: key});
-  //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-  // Property 'value' does not exist on type 'number'.ts(2339)
-  // @ts-ignore
+          const entry = _.find(this.node.listFields, { name: key });
+          //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+          // Property 'value' does not exist on type 'number'.ts(2339)
+          // @ts-ignore
           entry.value.push({
             name: '',
-            value: data.value.value
+            value: data.value.value,
           });
           // Argument of type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...' is not assignable to parameter of type 'ListFieldObject'.
-  // Type 'number' is not assignable to type 'ListFieldObject'.ts(2345)
-  // @ts-ignore
+          // Type 'number' is not assignable to type 'ListFieldObject'.ts(2345)
+          // @ts-ignore
           newNode.listFields.push(entry);
         }
         break;
 
       case 'map':
         if (key) {
-          const entry = _.find(this.node.mapFields, {name: key});
-  //         Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
-  // Property 'value' does not exist on type 'number'.ts(2339)
-  // @ts-ignore
+          const entry = _.find(this.node.mapFields, { name: key });
+          //         Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
+          // Property 'value' does not exist on type 'number'.ts(2339)
+          // @ts-ignore
           _.forEach(entry.value, (item: any) => {
             newNode.appendMapField(key, item.name, item.value);
           });
@@ -254,7 +285,7 @@ export class NodeViewerComponent implements OnInit {
     this.create.emit(newNode);
   }
 
-  edited(type, {row, column, value}, key, isDeleting) {
+  edited(type, { row, column, value }, key, isDeleting) {
     if (!isDeleting && column.name !== 'Value') {
       return;
     }
@@ -268,20 +299,20 @@ export class NodeViewerComponent implements OnInit {
 
       case 'list':
         if (key) {
-          const entry = _.find(this.node.listFields, {name: key});
-  //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-  // Property 'value' does not exist on type 'number'.ts(2339)
-  // @ts-ignore
-          const index = _.findIndex(entry.value, {value: row.value});
+          const entry = _.find(this.node.listFields, { name: key });
+          //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+          // Property 'value' does not exist on type 'number'.ts(2339)
+          // @ts-ignore
+          const index = _.findIndex(entry.value, { value: row.value });
           if (isDeleting) {
-  //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-  // Property 'value' does not exist on type 'number'.ts(2339)
-  // @ts-ignore
+            //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+            // Property 'value' does not exist on type 'number'.ts(2339)
+            // @ts-ignore
             entry.value.splice(index, 1);
           } else {
-  //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-  // Property 'value' does not exist on type 'number'.ts(2339)
-  // @ts-ignore
+            //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
+            // Property 'value' does not exist on type 'number'.ts(2339)
+            // @ts-ignore
             entry.value[index].value = value;
           }
           // Argument of type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...' is not assignable to parameter of type 'ListFieldObject'.
@@ -294,8 +325,8 @@ export class NodeViewerComponent implements OnInit {
       case 'map':
         if (key) {
           // have to fetch all other configs under this key
-          const entry = _.find(this.node.mapFields, {name: key});
-          newNode.mapFields =  [{ name: key, value: [] }];
+          const entry = _.find(this.node.mapFields, { name: key });
+          newNode.mapFields = [{ name: key, value: [] }];
 
           // Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
           //   Property 'value' does not exist on type 'number'.ts(2339)

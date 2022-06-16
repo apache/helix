@@ -1,4 +1,10 @@
-import { Component, ContentChildren, Directive, Input, QueryList } from '@angular/core';
+import {
+  Component,
+  ContentChildren,
+  Directive,
+  Input,
+  QueryList,
+} from '@angular/core';
 
 import * as _ from 'lodash';
 
@@ -16,10 +22,10 @@ export class KeyValuePairDirective {
   styleUrls: ['./key-value-pairs.component.scss'],
 })
 export class KeyValuePairsComponent {
-
   getProp = _.get;
 
-  @ContentChildren(KeyValuePairDirective) pairs: QueryList<KeyValuePairDirective>;
+  @ContentChildren(KeyValuePairDirective)
+  pairs: QueryList<KeyValuePairDirective>;
 
   @Input() obj: any;
 }

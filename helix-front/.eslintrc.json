@@ -1,24 +1,18 @@
 {
   "root": true,
-  "ignorePatterns": [
-    "projects/**/*"
-  ],
+  "ignorePatterns": ["projects/**/*"],
   "overrides": [
     {
-      "files": [
-        "*.ts"
-      ],
+      "files": ["*.ts"],
       "parserOptions": {
-        "project": [
-          "tsconfig.json",
-          "cypress/tsconfig.json"
-        ],
+        "project": ["tsconfig.json", "cypress/tsconfig.json"],
         "createDefaultProgram": true
       },
       "extends": [
         "plugin:@angular-eslint/ng-cli-compat",
         "plugin:@angular-eslint/ng-cli-compat--formatting-add-on",
-        "plugin:@angular-eslint/template/process-inline-templates"
+        "plugin:@angular-eslint/template/process-inline-templates",
+        "prettier"
       ],
       "rules": {
         "@angular-eslint/component-selector": [
@@ -65,18 +59,8 @@
             "hoist": "all"
           }
         ],
-        "@typescript-eslint/semi": [
-          "off",
-          null
-        ],
-        "brace-style": [
-          "error",
-          "1tbs"
-        ],
-        "eqeqeq": [
-          "off",
-          "smart"
-        ],
+        "@typescript-eslint/semi": ["off", null],
+        "eqeqeq": ["off", "smart"],
         "guard-for-in": "off",
         "id-blacklist": "off",
         "id-match": "off",
@@ -89,6 +73,7 @@
         "no-redeclare": "error",
         "no-underscore-dangle": "off",
         "radix": "off",
+        "arrow-body-style": "off",
         "prefer-arrow/prefer-arrow-functions": "off",
         "@typescript-eslint/naming-convention": "off",
         "@typescript-eslint/member-ordering": "off",
@@ -99,12 +84,8 @@
       }
     },
     {
-      "files": [
-        "*.html"
-      ],
-      "extends": [
-        "plugin:@angular-eslint/template/recommended"
-      ],
+      "files": ["*.html"],
+      "extends": ["plugin:@angular-eslint/template/recommended", "prettier"],
       "rules": {
         "@angular-eslint/template/eqeqeq": "off"
       }

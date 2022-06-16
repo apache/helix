@@ -12,15 +12,14 @@ describe('WorkflowListComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ HttpClientTestingModule, RouterTestingModule ],
-      declarations: [ WorkflowListComponent ],
-      providers: [ WorkflowService ],
+      imports: [HttpClientTestingModule, RouterTestingModule],
+      declarations: [WorkflowListComponent],
+      providers: [WorkflowService],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

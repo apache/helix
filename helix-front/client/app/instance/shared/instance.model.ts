@@ -1,8 +1,7 @@
 export class Instance {
-
   readonly name: string;
   readonly clusterName: string;
-  readonly enabled: boolean
+  readonly enabled: boolean;
   readonly liveInstance: boolean | string;
   readonly sessionId: string;
   readonly helixVersion: string;
@@ -15,7 +14,7 @@ export class Instance {
     name: string,
     clusterName: string,
     enabled: boolean,
-    liveInstance: boolean|string,
+    liveInstance: boolean | string,
     sessionId?: string,
     helixVersion?: string
   ) {

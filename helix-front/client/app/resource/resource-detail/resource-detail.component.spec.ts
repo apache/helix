@@ -11,19 +11,14 @@ describe('ResourceDetailComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      providers: [
-        ResourceService
-      ],
-      declarations: [ ResourceDetailComponent ],
+      imports: [TestingModule],
+      providers: [ResourceService],
+      declarations: [ResourceDetailComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

@@ -8,7 +8,7 @@ describe('JobService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestingModule],
-      providers: [JobService]
+      providers: [JobService],
     });
   });
 

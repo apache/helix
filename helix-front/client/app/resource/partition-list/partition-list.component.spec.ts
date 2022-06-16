@@ -11,19 +11,14 @@ describe('PartitionListComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      providers: [
-        ResourceService
-      ],
-      declarations: [ PartitionListComponent ],
+      imports: [TestingModule],
+      providers: [ResourceService],
+      declarations: [PartitionListComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

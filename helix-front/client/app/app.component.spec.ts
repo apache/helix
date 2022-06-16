@@ -10,21 +10,17 @@ import { AppComponent } from './app.component';
 describe('AppComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule,
-      ],
-      declarations: [
-        AppComponent
-      ],
+      imports: [TestingModule],
+      declarations: [AppComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
+        NO_ERRORS_SCHEMA,
       ],
       // TODO vxu: I don't want to add the following two but ...
       providers: [
         // Angulartics2,
         // Angulartics2Piwik,
-      ]
+      ],
     }).compileComponents();
   }));
 
@@ -44,6 +40,8 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.debugElement.nativeElement;
-    expect(compiled.querySelector('mat-toolbar').textContent).toContain('Helix');
+    expect(compiled.querySelector('mat-toolbar').textContent).toContain(
+      'Helix'
+    );
   }));
 });

@@ -7,15 +7,15 @@ import { ChooserService } from './chooser.service';
 describe('ChooserService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule,
-        HttpClientModule
-      ],
-      providers: [ChooserService]
+      imports: [RouterTestingModule, HttpClientModule],
+      providers: [ChooserService],
     });
   });
 
-  it('should be created', inject([ChooserService], (service: ChooserService) => {
-    expect(service).toBeTruthy();
-  }));
+  it('should be created', inject(
+    [ChooserService],
+    (service: ChooserService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

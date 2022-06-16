@@ -6,8 +6,8 @@ import { TestingModule } from '../../testing/testing.module';
 describe('HelperService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule ],
-      providers: [ HelperService ]
+      imports: [TestingModule],
+      providers: [HelperService],
     });
   });
 

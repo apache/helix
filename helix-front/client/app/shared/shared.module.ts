@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
+import { AceEditorModule } from 'ng2-ace-editor';
 
 import { MaterialModule } from './material.module';
 import { HelperService } from './helper.service';
@@ -33,6 +34,7 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     FormsModule,
     NgxDatatableModule,
     NgxJsonViewerModule,
+    AceEditorModule
   ],
   declarations: [
     InputDialogComponent,

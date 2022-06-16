@@ -17,9 +17,24 @@
             "main": "client/main.ts",
             "tsConfig": "client/tsconfig.app.json",
             "polyfills": "client/polyfills.ts",
-            "assets": ["client/assets", "client/favicon.ico"],
+            "assets": [
+              "client/assets",
+              "client/favicon.ico",
+              {
+                "glob": "worker-html.js",
+                "input": "node_modules/ace-builds/src-min/",
+                "output": "/"
+              }
+            ],
             "styles": ["client/styles.scss", "client/theme.scss"],
-            "scripts": [],
+            "scripts": [
+              "node_modules/ace-builds/src-min/ace.js",
+              "node_modules/ace-builds/src-min/theme-eclipse.js",
+              "node_modules/ace-builds/src-min/mode-javascript.js",
+              "node_modules/ace-builds/src-min/mode-html.js",
+              "node_modules/ace-builds/src-min/mode-css.js",
+              "node_modules/ace-builds/src-min/mode-json.js"
+            ],
             "vendorChunk": true,
             "extractLicenses": false,
             "buildOptimizer": false,
@@ -81,9 +96,24 @@
             "tsConfig": "client/tsconfig.spec.json",
             "polyfills": ["client/polyfills.ts"],
             "no-cache": true,
-            "scripts": [],
+            "scripts": [
+              "node_modules/ace-builds/src-min/ace.js",
+              "node_modules/ace-builds/src-min/theme-eclipse.js",
+              "node_modules/ace-builds/src-min/mode-javascript.js",
+              "node_modules/ace-builds/src-min/mode-html.js",
+              "node_modules/ace-builds/src-min/mode-css.js",
+              "node_modules/ace-builds/src-min/mode-json.js"
+            ],
             "styles": ["client/styles.scss", "client/theme.scss"],
-            "assets": ["client/assets", "client/favicon.ico"]
+            "assets": [
+              "client/assets",
+              "client/favicon.ico",
+              {
+                "glob": "worker-html.js",
+                "input": "node_modules/ace-builds/src-min/",
+                "output": "/"
+              }
+            ]
           }
         },
         "lint": {

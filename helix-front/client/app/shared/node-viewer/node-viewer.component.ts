@@ -11,12 +11,29 @@ import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 
 import * as _ from 'lodash';
+// import * as ace from 'ace-builds/src-noconflict/ace';
+import 'ace-builds/webpack-resolver';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/theme-chrome';
+// import { config } from 'ace-builds';
+
 
 import { Node } from '../models/node.model';
 import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
 import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';
 
+// ace.config.set('basePath', '');
+// ace.config.set('modePath', '');
+// ace.config.set('themePath', '');
+// config.set(
+//   'basePath',
+//   'https://cdn.jsdelivr.net/npm/ace-builds@1.4.8/src-noconflict/'
+// );
+// config.setModuleUrl(
+//   'ace/mode/javascript_worker',
+//   'https://cdn.jsdelivr.net/npm/ace-builds@1.4.8/src-noconflict/worker-javascript.js'
+// );
 @Component({
   selector: 'hi-node-viewer',
   templateUrl: './node-viewer.component.html',
@@ -29,6 +46,23 @@ export class NodeViewerComponent implements OnInit {
   @ViewChild('simpleTable', { static: true }) simpleTable;
   @ViewChild('listTable', { static: true }) listTable;
   @ViewChild('mapTable', { static: true }) mapTable;
+  // @ViewChild('editor') editor;
+  // text: string = '';
+
+  // ngAfterViewInit() {
+  //   // this.editor.setTheme('chrome');
+
+  //   this.editor.getEditor().setOptions({
+  //     enableBasicAutocompletion: false,
+  //     readOnly: true,
+  //   });
+
+  //   this.editor.getEditor().commands.addCommand({
+  //     name: 'showOtherCompletions',
+  //     bindKey: 'Ctrl-.',
+  //     exec: function (editor) {},
+  //   });
+  // }
 
   @Output('update')
   change: EventEmitter<Node> = new EventEmitter<Node>();
@@ -89,6 +123,16 @@ export class NodeViewerComponent implements OnInit {
   }
   get obj(): any {
     return this._obj;
+  }
+  set objString(value: string) {
+    if (value !== null) {
+      const parsedValue = value ? JSON.parse(value) : '';
+      this.obj = parsedValue;
+      this.node = new Node(parsedValue);
+    }
+  }
+  get objString(): string {
+    return JSON.stringify(this.obj, null, 2);
   }
   set editable(value: boolean) {
     this._editable = value;
@@ -152,6 +196,8 @@ export class NodeViewerComponent implements OnInit {
         // try self data then
         this.obj = _.get(this.route.snapshot.data, path);
       }
+
+      this.objString = JSON.stringify(this.obj, null, 2);
     }
   }
 

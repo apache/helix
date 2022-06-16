@@ -33,6 +33,16 @@
     <mat-button-toggle value="json"> JSON View </mat-button-toggle>
   </mat-button-toggle-group>
   <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
+    <section>
+      <button mat-button *ngIf="unlockable" (click)="editable = !editable" [matTooltip]="
+                                      editable
+                                        ? 'Click to prevent further changes'
+                                        : 'Click to make changes'
+                                    ">
+        <mat-icon>{{ editable ? 'lock_open' : 'lock' }}</mat-icon>
+        {{ editable ? 'Unlocked' : 'Locked' }}
+      </button>
+    </section>
     <ngx-json-viewer *ngSwitchCase="'tree'" [json]="obj"></ngx-json-viewer>
     <ace-editor *ngSwitchCase="'json'" [(text)]="objString" mode="json" theme="chrome"
       [options]="{useWorker: false}" style="min-height:300px;"
@@ -52,9 +62,9 @@
           />
         </mat-form-field>
         <span fxFlex="1 1 auto"></span>
+        <!-- *ngIf="unlockable" -->
         <button
           mat-button
-          *ngIf="unlockable"
           (click)="editable = !editable"
           [matTooltip]="
             editable

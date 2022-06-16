@@ -29,12 +29,12 @@
   ></mat-progress-bar>
   <mat-button-toggle-group #group="matButtonToggleGroup" value="table">
     <mat-button-toggle value="table"> Table View </mat-button-toggle>
+    <mat-button-toggle value="tree"> Tree View </mat-button-toggle>
     <mat-button-toggle value="json"> JSON View </mat-button-toggle>
-    <mat-button-toggle value="properJson"> Proper JSON View </mat-button-toggle>
   </mat-button-toggle-group>
   <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
-    <ngx-json-viewer *ngSwitchCase="'json'" [json]="obj"></ngx-json-viewer>
-    <ace-editor *ngSwitchCase="'properJson'" [(text)]="objString" mode="json" theme="chrome"
+    <ngx-json-viewer *ngSwitchCase="'tree'" [json]="obj"></ngx-json-viewer>
+    <ace-editor *ngSwitchCase="'json'" [(text)]="objString" mode="json" theme="chrome"
       [options]="{useWorker: false}" style="height:400px;"
       #editor>
     </ace-editor>

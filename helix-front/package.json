@@ -15,7 +15,7 @@
     "ng": "ng",
     "build": "rm -rf dist && mkdir dist && ng build --aot --configuration production && tsc -p server",
     "build:dev": "rm -rf dist && mkdir dist && ng build --aot --configuration development && tsc -p server",
-    "start": "concurrently -r \"ng serve\" \"tsc -w -p server\"",
+    "start": "concurrently -r \"ng serve\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",
     "cypress:open": "cypress open --e2e --browser chrome",

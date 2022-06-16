@@ -12,28 +12,25 @@ import { MatDialog } from '@angular/material/dialog';
 
 import * as _ from 'lodash';
 // import * as ace from 'ace-builds/src-noconflict/ace';
+import 'ace-builds';
 import 'ace-builds/webpack-resolver';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-chrome';
-// import { config } from 'ace-builds';
-
+import { config } from 'ace-builds';
 
 import { Node } from '../models/node.model';
 import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
 import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';
 
-// ace.config.set('basePath', '');
-// ace.config.set('modePath', '');
-// ace.config.set('themePath', '');
-// config.set(
-//   'basePath',
-//   'https://cdn.jsdelivr.net/npm/ace-builds@1.4.8/src-noconflict/'
-// );
-// config.setModuleUrl(
-//   'ace/mode/javascript_worker',
-//   'https://cdn.jsdelivr.net/npm/ace-builds@1.4.8/src-noconflict/worker-javascript.js'
-// );
+config.set(
+  'basePath',
+  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/'
+);
+config.setModuleUrl(
+  'ace/mode/javascript_worker',
+  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/worker-json.js'
+);
 @Component({
   selector: 'hi-node-viewer',
   templateUrl: './node-viewer.component.html',

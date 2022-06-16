@@ -14,6 +14,7 @@
   "scripts": {
     "ng": "ng",
     "build": "rm -rf dist && mkdir dist && ng build --aot --configuration production && tsc -p server",
+    "build:dev": "rm -rf dist && mkdir dist && ng build --aot --configuration development && tsc -p server",
     "start": "tsc -p server && concurrently -r \"ng serve\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",

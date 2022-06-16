@@ -184,16 +184,16 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
 
     try {
-      clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
+      getAclRegister().createACL(_servletRequest);
     } catch (Exception ex) {
-      LOG.error("Failed to create cluster {}. Exception: {}.", clusterId, ex);
+      LOG.error("Failed to create ACL for cluster {}. Exception: {}.", clusterId, ex);
       return serverError(ex);
     }
 
     try {
-      getAclRegister().createACL(_servletRequest);
+      clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
     } catch (Exception ex) {
-      LOG.error("Failed to create ACL for cluster {}. Exception: {}.", clusterId, ex);
+      LOG.error("Failed to create cluster {}. Exception: {}.", clusterId, ex);
       return serverError(ex);
     }
     return created();

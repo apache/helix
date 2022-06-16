@@ -87,7 +87,9 @@ public class TestAclRegister extends AbstractTestClass {
     HttpUriRequest request =
         buildRequest("/clusters/testCluster", HttpConstants.RestVerbs.PUT, "");
     sendRequestAndValidate(request, Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-    TestHelper.dropCluster("testCluster", _gZkClient);
+    request =
+        buildRequest("/clusters/testCluster", HttpConstants.RestVerbs.GET, "");
+    sendRequestAndValidate(request, Response.Status.NOT_FOUND.getStatusCode());
 
     server.shutdown();
     _httpClient.close();

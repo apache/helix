@@ -123,6 +123,7 @@ export class NodeViewerComponent implements OnInit {
   }
   set objString(value: string) {
     if (value !== null) {
+      console.log('value from node-viewer.component after null check', value);
       const parsedValue = value ? JSON.parse(value) : JSON.parse('');
       this.obj = parsedValue;
       this.node = new Node(parsedValue);

@@ -109,7 +109,7 @@ public class HelixCloudEventListener implements CloudEventListener {
       implClass = (DefaultCloudEventCallbackImpl) HelixUtil.loadClass(getClass(), implClassName)
           .getConstructor().newInstance();
     } catch (Exception e) {
-      implClass = DefaultCloudEventCallbackImpl.class.newInstance();
+      implClass = new DefaultCloudEventCallbackImpl();
       LOG.error(
           "No cloud event callback implementation class found for: {}. message: {}. Using default callback impl class instead.",
           implClassName, e.getMessage());

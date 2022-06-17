@@ -21,9 +21,11 @@ package org.apache.helix.view.integration;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.ClusterConfig;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -37,14 +39,20 @@ public class ViewAggregatorIntegrationTestBase extends ZkTestBase {
   protected List<String> _allSourceClusters = new ArrayList<>();
   protected List<MockParticipantManager> _allParticipants = new ArrayList<>();
   protected List<ClusterControllerManager> _allControllers = new ArrayList<>();
+  protected ConfigAccessor _configAccessor;
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _configAccessor = new ConfigAccessor(_gZkClient);
     for (int i = 0; i < getNumSourceCluster(); i++) {
       // Setup cluster
       String clusterName =
           String.format("%s-%s-%s", testSourceClusterNamePrefix, this.hashCode(), i);
       _gSetupTool.addCluster(clusterName, false);
+      ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
+      clusterConfig.setDelayRebalaceEnabled(false);
+      _configAccessor.updateClusterConfig(clusterName, clusterConfig);
+
       // Setup participants
       for (int j = 0; j < numParticipant; j++) {
         String instanceName = String.format("%s-%s-%s", clusterName, testParticipantNamePrefix, j);

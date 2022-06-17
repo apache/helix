@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
@@ -51,11 +50,11 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
   private static final String resourceNamePrefix = "testResource";
   private static final String viewClusterName = "ViewCluster-TestHelixViewAggregator";
   private static final StateModelParser stateModelParser = new StateModelParser();
+  private final Set<String> _allResources = new HashSet<>();
+
   private int _viewClusterRefreshPeriodSec = 5;
-  private ConfigAccessor _configAccessor;
   private HelixAdmin _helixAdmin;
   private MockViewClusterSpectator _monitor;
-  private Set<String> _allResources = new HashSet<>();
   // TODO: add test coverage on multiple statemodel instances for different view clusters
   private DistViewAggregatorStateModel _viewAggregatorStateModel;
 
@@ -65,7 +64,6 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     super.beforeClass();
 
     // Setup tools
-    _configAccessor = new ConfigAccessor(_gZkClient);
     _helixAdmin = new ZKHelixAdmin(_gZkClient);
 
     // Set up view cluster

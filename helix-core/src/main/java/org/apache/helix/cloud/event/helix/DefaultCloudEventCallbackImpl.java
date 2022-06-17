@@ -46,7 +46,7 @@ public class DefaultCloudEventCallbackImpl {
    */
   public void disableInstance(HelixManager manager, Object eventInfo) {
     String message = String.format(_instanceReason, System.currentTimeMillis());
-    LOG.info("DefaultCloudEventCallbackImpl disabled Instance {}", manager.getInstanceName());
+    LOG.info("DefaultCloudEventCallbackImpl disable Instance {}", manager.getInstanceName());
     if (InstanceValidationUtil
         .isEnabled(manager.getHelixDataAccessor(), manager.getInstanceName())) {
       manager.getClusterManagmentTool()
@@ -59,7 +59,7 @@ public class DefaultCloudEventCallbackImpl {
   }
 
   /**
-   * Enable the instance
+   * Remove tracked cloud event in cluster config and enable the instance
    * We only enable instance that is disabled because of cloud event.
    * @param manager The helix manager associated with the listener
    * @param eventInfo Detailed information about the event
@@ -113,8 +113,8 @@ public class DefaultCloudEventCallbackImpl {
               null);
     } else {
       LOG.info(
-          "DefaultCloudEventCallbackImpl will not exitMaintenanceMode as instances {} are under cloud event",
-          clusterConfig.getDisabledInstancesWithInfo().keySet().toString());
+          "DefaultCloudEventCallbackImpl will not exitMaintenanceMode as there are {} instances under cloud event",
+          clusterConfig.getDisabledInstancesWithInfo().keySet().size());
     }
   }
 }

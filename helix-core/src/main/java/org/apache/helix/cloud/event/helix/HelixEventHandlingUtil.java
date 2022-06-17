@@ -53,6 +53,10 @@ class HelixEventHandlingUtil {
       HelixDataAccessor dataAccessor) {
     InstanceConfig instanceConfig =
         dataAccessor.getProperty(dataAccessor.keyBuilder().instanceConfig(instanceName));
+    if (instanceConfig == null) {
+      throw new HelixException("Instance: " + instanceName
+          + ", instance config does not exist");
+    }
     return !InstanceValidationUtil.isEnabled(dataAccessor, instanceName) && instanceConfig
         .getInstanceDisabledType()
         .equals(InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name());

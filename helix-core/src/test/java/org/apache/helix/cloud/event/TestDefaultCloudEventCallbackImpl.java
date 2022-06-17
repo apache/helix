@@ -30,8 +30,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
-  private final DefaultCloudEventCallbackImpl _impl =
-      DefaultCloudEventCallbackImpl.class.newInstance();
+  private final DefaultCloudEventCallbackImpl _impl = new DefaultCloudEventCallbackImpl();
   private MockParticipantManager _instanceManager;
   private HelixAdmin _admin;
 

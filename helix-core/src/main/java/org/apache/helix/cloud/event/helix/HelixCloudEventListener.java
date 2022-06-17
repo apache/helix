@@ -107,7 +107,7 @@ public class HelixCloudEventListener implements CloudEventListener {
     try {
       LOG.info("Loading class: " + implClassName);
       implClass = (DefaultCloudEventCallbackImpl) HelixUtil.loadClass(getClass(), implClassName)
-          .newInstance();
+          .getConstructor().newInstance();
     } catch (Exception e) {
       implClass = DefaultCloudEventCallbackImpl.class.newInstance();
       LOG.error(

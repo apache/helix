@@ -328,6 +328,15 @@ export class NodeViewerComponent implements OnInit {
       return;
     }
 
+    console.log('edited function in node-viewer component was called with', {
+      type,
+      row,
+      column,
+      value,
+      key,
+      isDeleting,
+    });
+
     const newNode: Node = new Node(null);
 
     switch (type) {
@@ -368,6 +377,8 @@ export class NodeViewerComponent implements OnInit {
         }
         break;
     }
+
+    console.log('newNode from node-viewer component', newNode);
 
     this.change.emit(newNode);
   }

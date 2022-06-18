@@ -88,7 +88,7 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
     this.lastValue = value;
     this.editing = true;
     setTimeout((_) => {
-      this.inputControl.nativeElement.focus();
+      this.inputControl?.nativeElement.focus();
     });
   }
 

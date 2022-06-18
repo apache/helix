@@ -49,23 +49,6 @@ export class NodeViewerComponent implements OnInit {
   @ViewChild('simpleTable', { static: true }) simpleTable;
   @ViewChild('listTable', { static: true }) listTable;
   @ViewChild('mapTable', { static: true }) mapTable;
-  // @ViewChild('editor') editor;
-  // text: string = '';
-
-  // ngAfterViewInit() {
-  //   // this.editor.setTheme('chrome');
-
-  //   this.editor.getEditor().setOptions({
-  //     enableBasicAutocompletion: false,
-  //     readOnly: true,
-  //   });
-
-  //   this.editor.getEditor().commands.addCommand({
-  //     name: 'showOtherCompletions',
-  //     bindKey: 'Ctrl-.',
-  //     exec: function (editor) {},
-  //   });
-  // }
 
   @Output('update')
   change: EventEmitter<Node> = new EventEmitter<Node>();

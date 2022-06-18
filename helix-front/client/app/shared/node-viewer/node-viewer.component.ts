@@ -18,6 +18,7 @@ import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-chrome';
 import { config } from 'ace-builds';
 
+import { ResourceService } from '../../resource/shared/resource.service';
 import { Node } from '../models/node.model';
 import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
@@ -35,11 +36,14 @@ config.setModuleUrl(
   selector: 'hi-node-viewer',
   templateUrl: './node-viewer.component.html',
   styleUrls: ['./node-viewer.component.scss'],
+  providers: [ResourceService],
   // Since we are importing external styles in this component
   // we will not use Shadow DOM at all to make sure the styles apply
   encapsulation: ViewEncapsulation.None,
 })
 export class NodeViewerComponent implements OnInit {
+  clusterName: string;
+  resourceName: string;
   @ViewChild('simpleTable', { static: true }) simpleTable;
   @ViewChild('listTable', { static: true }) listTable;
   @ViewChild('mapTable', { static: true }) mapTable;
@@ -179,7 +183,11 @@ export class NodeViewerComponent implements OnInit {
       : [];
   }
 
-  constructor(protected dialog: MatDialog, protected route: ActivatedRoute) {}
+  constructor(
+    protected dialog: MatDialog,
+    protected route: ActivatedRoute,
+    protected resourceService: ResourceService
+  ) {}
 
   ngOnInit() {
     // MODE 2: use in router
@@ -379,6 +387,14 @@ export class NodeViewerComponent implements OnInit {
     }
 
     console.log('newNode from node-viewer component', newNode);
+    const path = this?.route?.snapshot?.data?.path;
+    if (path && path === 'idealState') {
+      this.resourceService.setIdealState(
+        this.clusterName,
+        this.resourceName,
+        newNode
+      );
+    }
 
     this.change.emit(newNode);
   }

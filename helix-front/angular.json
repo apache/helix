@@ -21,7 +21,7 @@
               "client/assets",
               "client/favicon.ico",
               {
-                "glob": "worker-html.js",
+                "glob": "**/*",
                 "input": "node_modules/ace-builds/src-min/",
                 "output": "/"
               }

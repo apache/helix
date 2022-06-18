@@ -123,7 +123,8 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
 
     // Wait for refresh and verify
     Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyViewClusterEventChanges(false, true, true);
+    verifyInstanceConfigChange();
+    verifyLiveInstanceChange();
     Set<String> allParticipantNames = new HashSet<>();
     for (MockParticipantManager participant : _allParticipants) {
       allParticipantNames.add(participant.getInstanceName());
@@ -142,7 +143,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
 
     // Wait for refresh and verify
     Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyViewClusterEventChanges(true, false, false);
+    verifyExternalViewChange();
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
         _allResources);
@@ -155,7 +156,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
 
     // Wait for refresh and verify
     Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyViewClusterEventChanges(true, false, false);
+    verifyExternalViewChange();
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)), _allResources);
     _monitor.reset();
@@ -169,7 +170,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
 
     // Wait for refresh and verify
     Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyViewClusterEventChanges(false, false, true);
+    verifyLiveInstanceChange();
     Assert.assertEquals(_monitor.getPropertyNamesFromViewCluster(PropertyType.LIVEINSTANCES).size(), 0);
     _monitor.reset();
 
@@ -199,7 +200,9 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
 
     // Wait for refresh and verify
     Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyViewClusterEventChanges(true, true, true);
+    verifyExternalViewChange();
+    verifyInstanceConfigChange();
+    verifyLiveInstanceChange();
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
         _allResources);
@@ -224,11 +227,16 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     _configAccessor.setClusterConfig(viewClusterName, viewClusterConfig);
   }
 
-  private void verifyViewClusterEventChanges(boolean externalViewChange,
-      boolean instanceConfigChange, boolean liveInstancesChange) {
-    Assert.assertEquals(_monitor.getExternalViewChangeCount() > 0, externalViewChange);
-    Assert.assertEquals(_monitor.getInstanceConfigChangeCount() > 0, instanceConfigChange);
-    Assert.assertEquals(_monitor.getLiveInstanceChangeCount() > 0, liveInstancesChange);
+  private void verifyExternalViewChange() {
+    Assert.assertTrue(_monitor.getExternalViewChangeCount() > 0);
+  }
+
+  private void verifyInstanceConfigChange() {
+    Assert.assertTrue(_monitor.getInstanceConfigChangeCount() > 0);
+  }
+
+  private void verifyLiveInstanceChange() {
+    Assert.assertTrue(_monitor.getLiveInstanceChangeCount() > 0);
   }
 
   /**

@@ -19,6 +19,7 @@ import 'ace-builds/src-noconflict/theme-chrome';
 import { config } from 'ace-builds';
 
 import { ResourceService } from '../../resource/shared/resource.service';
+import { HelperService } from '../../shared/helper.service';
 import { Node } from '../models/node.model';
 import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
@@ -42,6 +43,7 @@ config.setModuleUrl(
   encapsulation: ViewEncapsulation.None,
 })
 export class NodeViewerComponent implements OnInit {
+  isLoading = true;
   clusterName: string;
   resourceName: string;
   @ViewChild('simpleTable', { static: true }) simpleTable;
@@ -183,10 +185,11 @@ export class NodeViewerComponent implements OnInit {
       : [];
   }
 
-  constructor(
+  public constructor(
     protected dialog: MatDialog,
     protected route: ActivatedRoute,
-    protected resourceService: ResourceService
+    protected resourceService: ResourceService,
+    protected helper: HelperService
   ) {}
 
   ngOnInit() {
@@ -391,12 +394,24 @@ export class NodeViewerComponent implements OnInit {
     console.log('this.route from node-viewer component', this.route);
     console.log('path', path);
     if (path && path === 'idealState') {
+      let observer: any;
       console.log('calling this.resourceService.setIdealState()');
-      this.resourceService.setIdealState(
+      observer = this.resourceService.setIdealState(
         this.clusterName,
         this.resourceName,
         newNode
       );
+
+      if (observer) {
+        this.isLoading = true;
+        observer.subscribe(
+          () => {
+            this.helper.showSnackBar('Configuration updated!');
+          },
+          (error) => this.helper.showError(error),
+          () => (this.isLoading = false)
+        );
+      }
     }
 
     this.change.emit(newNode);

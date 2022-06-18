@@ -207,6 +207,13 @@ export class NodeViewerComponent implements OnInit {
 
       this.objString = JSON.stringify(this.obj, null, 2);
     }
+
+    if (this.route.parent) {
+      this.clusterName =
+        this.route.parent.snapshot.params.name ||
+        this.route.parent.snapshot.params.cluster_name;
+      this.resourceName = this.route.parent.snapshot.params.resource_name;
+    }
   }
 
   updateFilter(event) {

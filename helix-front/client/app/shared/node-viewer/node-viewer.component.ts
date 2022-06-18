@@ -389,7 +389,9 @@ export class NodeViewerComponent implements OnInit {
     console.log('newNode from node-viewer component', newNode);
     const path = this?.route?.snapshot?.data?.path;
     console.log('this.route from node-viewer component', this.route);
+    console.log('path', path);
     if (path && path === 'idealState') {
+      console.log('calling this.resourceService.setIdealState()');
       this.resourceService.setIdealState(
         this.clusterName,
         this.resourceName,

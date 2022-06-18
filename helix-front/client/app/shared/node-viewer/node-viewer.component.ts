@@ -346,15 +346,6 @@ export class NodeViewerComponent implements OnInit {
       return;
     }
 
-    console.log('edited function in node-viewer component was called with', {
-      type,
-      row,
-      column,
-      value,
-      key,
-      isDeleting,
-    });
-
     const newNode: Node = new Node(null);
 
     switch (type) {
@@ -396,15 +387,9 @@ export class NodeViewerComponent implements OnInit {
         break;
     }
 
-    console.log('newNode from node-viewer component', newNode);
     const path = this?.route?.snapshot?.data?.path;
-    console.log('this.route from node-viewer component', this.route);
-    console.log('this from node-viewer component', this);
-    console.log('path', path);
     if (path && path === 'idealState') {
-      let observer: any;
-      console.log('calling this.resourceService.setIdealState()');
-      observer = this.resourceService.setIdealState(
+      const observer = this.resourceService.setIdealState(
         this.clusterName,
         this.resourceName,
         newNode

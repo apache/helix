@@ -414,7 +414,7 @@ export class NodeViewerComponent implements OnInit {
         this.isLoading = true;
         observer.subscribe(
           () => {
-            this.helper.showSnackBar('Configuration updated!');
+            this.helper.showSnackBar('Ideal State updated!');
           },
           (error) => this.helper.showError(error),
           () => (this.isLoading = false)

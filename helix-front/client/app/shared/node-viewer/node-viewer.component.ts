@@ -392,6 +392,7 @@ export class NodeViewerComponent implements OnInit {
     console.log('newNode from node-viewer component', newNode);
     const path = this?.route?.snapshot?.data?.path;
     console.log('this.route from node-viewer component', this.route);
+    console.log('this from node-viewer component', this);
     console.log('path', path);
     if (path && path === 'idealState') {
       let observer: any;

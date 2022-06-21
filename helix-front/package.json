@@ -123,6 +123,7 @@
     "nodemon": "^2.0.16",
     "prettier": "2.7.0",
     "ts-node": "~2.0.0",
-    "typescript": "4.6.4"
+    "typescript": "4.6.4",
+    "yargs-parser": "21"
   }
 }

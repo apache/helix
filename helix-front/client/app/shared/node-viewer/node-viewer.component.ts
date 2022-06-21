@@ -111,11 +111,16 @@ export class NodeViewerComponent implements OnInit {
     return this._obj;
   }
   set objString(value: string) {
+    let parsedValue;
     if (value && value !== null) {
-      const parsedValue = value ? JSON.parse(value) : JSON.parse('');
-      this.obj = parsedValue;
-      this.node = new Node(parsedValue);
+      parsedValue = JSON.parse(value);
+    } else {
+      // default empty JSON string value
+      parsedValue = JSON.parse('');
     }
+
+    this.obj = parsedValue;
+    this.node = new Node(parsedValue);
   }
   get objString(): string {
     return JSON.stringify(this.obj, null, 2);

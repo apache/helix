@@ -135,7 +135,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>assemble/package.sh</executable>
+              <executable>assemble/assemble.sh</executable>
             </configuration>
           </execution>
         </executions>

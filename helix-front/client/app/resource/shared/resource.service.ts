@@ -6,6 +6,7 @@ import * as _ from 'lodash';
 import { HelixService } from '../../core/helix.service';
 import { Resource } from './resource.model';
 import { Cluster } from '../../cluster/shared/cluster.model';
+import { Node } from '../../shared/models/node.model';
 
 @Injectable()
 export class ResourceService extends HelixService {
@@ -109,4 +110,16 @@ export class ResourceService extends HelixService {
   public remove(clusterName: string, resourceName: string) {
     return this.delete(`/clusters/${clusterName}/resources/${resourceName}`);
   }
+
+  public setIdealState(
+    clusterName: string,
+    resourceName: string,
+    idealState: Node
+  ) {
+    return this.post(
+      `/clusters/${clusterName}/resources/${resourceName}/idealState?command=update`,
+      JSON.stringify(idealState)
+    );
+  }
 }
+

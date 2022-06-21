@@ -29,10 +29,15 @@
   ></mat-progress-bar>
   <mat-button-toggle-group #group="matButtonToggleGroup" value="table">
     <mat-button-toggle value="table"> Table View </mat-button-toggle>
+    <mat-button-toggle value="tree"> Tree View </mat-button-toggle>
     <mat-button-toggle value="json"> JSON View </mat-button-toggle>
   </mat-button-toggle-group>
   <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
-    <ngx-json-viewer *ngSwitchCase="'json'" [json]="obj"></ngx-json-viewer>
+    <ngx-json-viewer *ngSwitchCase="'tree'" [json]="obj"></ngx-json-viewer>
+    <ace-editor *ngSwitchCase="'json'" [(text)]="objString" mode="json" theme="chrome"
+      [options]="{useWorker: false}" style="min-height:300px;"
+      #editor>
+    </ace-editor>
     <section *ngSwitchCase="'table'">
       <!-- TODO vxu: use mat-simple-table when it's available -->
 
@@ -47,9 +52,9 @@
           />
         </mat-form-field>
         <span fxFlex="1 1 auto"></span>
+        <!-- *ngIf="unlockable" -->
         <button
           mat-button
-          *ngIf="unlockable"
           (click)="editable = !editable"
           [matTooltip]="
             editable

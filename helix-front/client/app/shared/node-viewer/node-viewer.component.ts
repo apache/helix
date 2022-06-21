@@ -11,21 +11,41 @@ import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 
 import * as _ from 'lodash';
+// import * as ace from 'ace-builds/src-noconflict/ace';
+import 'ace-builds';
+import 'ace-builds/webpack-resolver';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/theme-chrome';
+import { config } from 'ace-builds';
 
+import { ResourceService } from '../../resource/shared/resource.service';
+import { HelperService } from '../../shared/helper.service';
 import { Node } from '../models/node.model';
 import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
 import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';
 
+config.set(
+  'basePath',
+  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/'
+);
+config.setModuleUrl(
+  'ace/mode/javascript_worker',
+  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/worker-json.js'
+);
 @Component({
   selector: 'hi-node-viewer',
   templateUrl: './node-viewer.component.html',
   styleUrls: ['./node-viewer.component.scss'],
+  providers: [ResourceService],
   // Since we are importing external styles in this component
   // we will not use Shadow DOM at all to make sure the styles apply
   encapsulation: ViewEncapsulation.None,
 })
 export class NodeViewerComponent implements OnInit {
+  isLoading = true;
+  clusterName: string;
+  resourceName: string;
   @ViewChild('simpleTable', { static: true }) simpleTable;
   @ViewChild('listTable', { static: true }) listTable;
   @ViewChild('mapTable', { static: true }) mapTable;
@@ -82,13 +102,25 @@ export class NodeViewerComponent implements OnInit {
   // MODE 1: use directly in components
   @Input()
   set obj(value: any) {
-    if (value != null) {
+    if (value !== null) {
       this._obj = value;
       this.node = new Node(value);
     }
   }
   get obj(): any {
     return this._obj;
+  }
+  set objString(value: string | null) {
+    let parsedValue = null;
+    if (value && value !== null) {
+      parsedValue = JSON.parse(value);
+    }
+
+    this.obj = parsedValue;
+    this.node = new Node(parsedValue);
+  }
+  get objString(): string {
+    return JSON.stringify(this.obj, null, 2);
   }
   set editable(value: boolean) {
     this._editable = value;
@@ -138,7 +170,12 @@ export class NodeViewerComponent implements OnInit {
       : [];
   }
 
-  constructor(protected dialog: MatDialog, protected route: ActivatedRoute) {}
+  public constructor(
+    protected dialog: MatDialog,
+    protected route: ActivatedRoute,
+    protected resourceService: ResourceService,
+    protected helper: HelperService
+  ) {}
 
   ngOnInit() {
     // MODE 2: use in router
@@ -152,6 +189,15 @@ export class NodeViewerComponent implements OnInit {
         // try self data then
         this.obj = _.get(this.route.snapshot.data, path);
       }
+
+      this.objString = JSON.stringify(this.obj, null, 2);
+    }
+
+    if (this.route.parent) {
+      this.clusterName =
+        this.route.parent.snapshot.params.name ||
+        this.route.parent.snapshot.params.cluster_name;
+      this.resourceName = this.route.parent.snapshot.params.resource_name;
     }
   }
 
@@ -254,16 +300,12 @@ export class NodeViewerComponent implements OnInit {
       case 'list':
         if (key) {
           const entry = _.find(this.node.listFields, { name: key });
-          //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-          // Property 'value' does not exist on type 'number'.ts(2339)
-          // @ts-ignore
+
           entry.value.push({
             name: '',
             value: data.value.value,
           });
-          // Argument of type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...' is not assignable to parameter of type 'ListFieldObject'.
-          // Type 'number' is not assignable to type 'ListFieldObject'.ts(2345)
-          // @ts-ignore
+
           newNode.listFields.push(entry);
         }
         break;
@@ -271,12 +313,11 @@ export class NodeViewerComponent implements OnInit {
       case 'map':
         if (key) {
           const entry = _.find(this.node.mapFields, { name: key });
-          //         Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
-          // Property 'value' does not exist on type 'number'.ts(2339)
-          // @ts-ignore
+
           _.forEach(entry.value, (item: any) => {
             newNode.appendMapField(key, item.name, item.value);
           });
+
           newNode.appendMapField(key, data.name.value, data.value.value);
         }
         break;
@@ -300,24 +341,14 @@ export class NodeViewerComponent implements OnInit {
       case 'list':
         if (key) {
           const entry = _.find(this.node.listFields, { name: key });
-          //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-          // Property 'value' does not exist on type 'number'.ts(2339)
-          // @ts-ignore
           const index = _.findIndex(entry.value, { value: row.value });
+
           if (isDeleting) {
-            //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-            // Property 'value' does not exist on type 'number'.ts(2339)
-            // @ts-ignore
             entry.value.splice(index, 1);
           } else {
-            //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
-            // Property 'value' does not exist on type 'number'.ts(2339)
-            // @ts-ignore
             entry.value[index].value = value;
           }
-          // Argument of type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...' is not assignable to parameter of type 'ListFieldObject'.
-          // Type 'number' is not assignable to type 'ListFieldObject'.ts(2345)
-          // @ts-ignore
+
           newNode.listFields.push(entry);
         }
         break;
@@ -328,9 +359,6 @@ export class NodeViewerComponent implements OnInit {
           const entry = _.find(this.node.mapFields, { name: key });
           newNode.mapFields = [{ name: key, value: [] }];
 
-          // Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
-          //   Property 'value' does not exist on type 'number'.ts(2339)
-          // @ts-ignore
           _.forEach(entry.value, (item: any) => {
             if (item.name === row.name) {
               if (!isDeleting) {
@@ -342,6 +370,26 @@ export class NodeViewerComponent implements OnInit {
           });
         }
         break;
+    }
+
+    const path = this?.route?.snapshot?.data?.path;
+    if (path && path === 'idealState') {
+      const observer = this.resourceService.setIdealState(
+        this.clusterName,
+        this.resourceName,
+        newNode
+      );
+
+      if (observer) {
+        this.isLoading = true;
+        observer.subscribe(
+          () => {
+            this.helper.showSnackBar('Ideal State updated!');
+          },
+          (error) => this.helper.showError(error),
+          () => (this.isLoading = false)
+        );
+      }
     }
 
     this.change.emit(newNode);

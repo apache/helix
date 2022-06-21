@@ -79,7 +79,7 @@ export class Resource {
     for (const partitionName in externalView.mapFields) {
       const partition = new Partition(partitionName);
 
-      // in FULL_ATUO mode, externalView is more important
+      // in FULL_AUTO mode, externalView is more important
       // if preferences list exists, fetch instances from it, else whatever
       if (
         this.rebalanceMode != 'FULL_AUTO' &&

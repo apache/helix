@@ -115,8 +115,8 @@ export class NodeViewerComponent implements OnInit {
     if (value && value !== null) {
       parsedValue = JSON.parse(value);
     } else {
-      // default empty JSON string value
-      parsedValue = JSON.parse('');
+      // default empty value
+      parsedValue = {};
     }
 
     this.obj = parsedValue;

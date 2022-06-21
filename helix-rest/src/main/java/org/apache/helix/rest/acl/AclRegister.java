@@ -1,4 +1,4 @@
-package org.apache.helix.rest.common;
+package org.apache.helix.rest.acl;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,9 +19,10 @@ package org.apache.helix.rest.common;
  * under the License.
  */
 
-public enum ContextPropertyKeys {
-  SERVER_CONTEXT,
-  METADATA,
-  ALL_NAMESPACES,
-  ACL_REGISTER,
+import javax.servlet.http.HttpServletRequest;
+
+
+public interface AclRegister {
+  // Create an ACL entry based on the request
+  void createACL(HttpServletRequest request);
 }

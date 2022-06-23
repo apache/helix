@@ -48,7 +48,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "3554kb"
+                  "maximumWarning": "4824kb"
                 }
               ],
               "optimization": true,
@@ -108,12 +108,7 @@
             "styles": ["client/styles.scss", "client/theme.scss"],
             "assets": [
               "client/assets",
-              "client/favicon.ico",
-              {
-                "glob": "worker-html.js",
-                "input": "node_modules/ace-builds/src-min/",
-                "output": "/"
-              }
+              "client/favicon.ico"
             ]
           }
         },

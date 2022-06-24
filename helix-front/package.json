@@ -81,7 +81,7 @@
     "rxjs-compat": "^6.0.0-rc.0",
     "sass": "^1.51.0",
     "timsort": "^0.3.0",
-    "tslib": "^2.0.0",
+    "tslib": "^2.4.0",
     "uuid": "^7.0.3",
     "vis-data": "^6.5.1",
     "vis-network": "7.10.2",

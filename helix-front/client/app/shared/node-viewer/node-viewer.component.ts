@@ -374,10 +374,30 @@ export class NodeViewerComponent implements OnInit {
 
     const path = this?.route?.snapshot?.data?.path;
     if (path && path === 'idealState') {
+      console.log('newNode from node-viewer', newNode);
+      const idealState: { [key: string]: any } = {
+        id: this.resourceName,
+      };
+
+      if (Array.isArray(newNode?.simpleFields) && newNode.simpleFields.length > 0) {
+        idealState.simpleFields = {}
+        newNode.simpleFields.forEach(field => {
+          idealState.simpleFields[field.name] = field.value
+        })
+      }
+
+      if (Array.isArray(newNode.listFields) && newNode.listFields.length > 0) {
+        idealState.listFields = newNode.listFields
+      }
+
+      if (Array.isArray(newNode.mapFields) && newNode.mapFields.length > 0) {
+        idealState.mapFields = newNode.mapFields
+      }
+
       const observer = this.resourceService.setIdealState(
         this.clusterName,
         this.resourceName,
-        newNode
+        idealState
       );
 
       if (observer) {

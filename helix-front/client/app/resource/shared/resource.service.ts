@@ -114,7 +114,7 @@ export class ResourceService extends HelixService {
   public setIdealState(
     clusterName: string,
     resourceName: string,
-    idealState: Node
+    idealState: any
   ) {
     return this.post(
       `/clusters/${clusterName}/resources/${resourceName}/idealState?command=update`,

@@ -374,31 +374,29 @@ export class NodeViewerComponent implements OnInit {
 
     const path = this?.route?.snapshot?.data?.path;
     if (path && path === 'idealState') {
-
       type IdealState = {
         id: string;
-        simpleFields?: {[key: string]: any};
-        listFields?: any;
-        mapFields?: any;
-      }
+        simpleFields?: { [key: string]: any };
+        listFields?: { [key: string]: any };
+        mapFields?: { [key: string]: any };
+      };
+
       const idealState: IdealState = {
         id: this.resourceName,
       };
 
-      if (Array.isArray(newNode?.simpleFields) && newNode.simpleFields.length > 0) {
-        idealState.simpleFields = {}
-        newNode.simpleFields.forEach(field => {
-          idealState.simpleFields[field.name] = field.value
-        })
+      // format the payload the way that helix-rest expects
+      // before: { simpleFields: [{ name: 'NUM_PARTITIONS', value: 2 }] };
+      // after:  { simpleFields: { NUM_PARTITIONS: 2 } };
+      function appendIdealStateProperty(property: keyof Node) {
+        if (Array.isArray(newNode[property]) && newNode[property].length > 0) {
+          idealState[property] = {} as any;
+          (newNode[property] as any[]).forEach((field) => {
+            idealState[property][field.name] = field.value;
+          });
+        }
       }
-
-      if (Array.isArray(newNode.listFields) && newNode.listFields.length > 0) {
-        idealState.listFields = newNode.listFields
-      }
-
-      if (Array.isArray(newNode.mapFields) && newNode.mapFields.length > 0) {
-        idealState.mapFields = newNode.mapFields
-      }
+      Object.keys(newNode).forEach((key) => appendIdealStateProperty(key as keyof Node));
 
       const observer = this.resourceService.setIdealState(
         this.clusterName,

@@ -25,6 +25,13 @@ import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
 import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';
 
+export type IdealState = {
+  id: string;
+  simpleFields?: { [key: string]: any };
+  listFields?: { [key: string]: any };
+  mapFields?: { [key: string]: any };
+};
+
 config.set(
   'basePath',
   'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/'
@@ -374,13 +381,6 @@ export class NodeViewerComponent implements OnInit {
 
     const path = this?.route?.snapshot?.data?.path;
     if (path && path === 'idealState') {
-      type IdealState = {
-        id: string;
-        simpleFields?: { [key: string]: any };
-        listFields?: { [key: string]: any };
-        mapFields?: { [key: string]: any };
-      };
-
       const idealState: IdealState = {
         id: this.resourceName,
       };

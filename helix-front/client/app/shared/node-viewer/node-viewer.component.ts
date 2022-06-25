@@ -374,8 +374,14 @@ export class NodeViewerComponent implements OnInit {
 
     const path = this?.route?.snapshot?.data?.path;
     if (path && path === 'idealState') {
-      console.log('newNode from node-viewer', newNode);
-      const idealState: { [key: string]: any } = {
+
+      type IdealState = {
+        id: string;
+        simpleFields?: {[key: string]: any};
+        listFields?: any;
+        mapFields?: any;
+      }
+      const idealState: IdealState = {
         id: this.resourceName,
       };
 

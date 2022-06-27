@@ -34,9 +34,15 @@
   </mat-button-toggle-group>
   <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
     <ngx-json-viewer *ngSwitchCase="'tree'" [json]="obj"></ngx-json-viewer>
-    <ace-editor *ngSwitchCase="'json'" [(text)]="objString" mode="json" theme="chrome"
-      [options]="{useWorker: false}" style="min-height:300px;"
-      #editor>
+    <ace-editor
+      *ngSwitchCase="'json'"
+      [(text)]="objString"
+      mode="json"
+      theme="chrome"
+      [options]="{ useWorker: false }"
+      style="min-height: 300px"
+      #editor
+    >
     </ace-editor>
     <section *ngSwitchCase="'table'">
       <!-- TODO vxu: use mat-simple-table when it's available -->

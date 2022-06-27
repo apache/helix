@@ -106,10 +106,7 @@
               "node_modules/ace-builds/src-min/mode-json.js"
             ],
             "styles": ["client/styles.scss", "client/theme.scss"],
-            "assets": [
-              "client/assets",
-              "client/favicon.ico"
-            ]
+            "assets": ["client/assets", "client/favicon.ico"]
           }
         },
         "lint": {

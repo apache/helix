@@ -396,12 +396,14 @@ export class NodeViewerComponent implements OnInit {
           });
         }
       }
-      Object.keys(newNode).forEach((key) => appendIdealStateProperty(key as keyof Node));
+      Object.keys(newNode).forEach((key) =>
+        appendIdealStateProperty(key as keyof Node)
+      );
 
       const observer = this.resourceService.setIdealState(
         this.clusterName,
         this.resourceName,
-        idealState,
+        idealState
       );
 
       if (observer) {
@@ -411,7 +413,7 @@ export class NodeViewerComponent implements OnInit {
             this.helper.showSnackBar('Ideal State updated!');
           },
           (error) => {
-            this.helper.showError(error)
+            this.helper.showError(error);
             this.isLoading = false;
           },
           () => (this.isLoading = false)

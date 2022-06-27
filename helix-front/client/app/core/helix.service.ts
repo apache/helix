@@ -30,8 +30,11 @@ export class HelixService {
   }
 
   protected post(path: string, data: string): Observable<any> {
+    const url = `${Settings.helixAPI}${this.getHelixKey()}${path}`;
+    console.log('url from helix.server post', url);
+    console.log('data from helix.service post', data);
     return this.http
-      .post(`${Settings.helixAPI}${this.getHelixKey()}${path}`, data, {
+      .post(url, data, {
         headers: this.getHeaders(),
       })
       .pipe(catchError(this.errorHandler));

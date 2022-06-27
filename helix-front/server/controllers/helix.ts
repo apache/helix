@@ -51,6 +51,8 @@ export class HelixCtrl {
         },
       };
       request[method](options, (error, response, body) => {
+        console.log('body from inner request function in server/controllers/helix.ts')
+        console.log(JSON.stringify(body, null, 2))
         if (error) {
           res.status(500).send(error);
         } else {

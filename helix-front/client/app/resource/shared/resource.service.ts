@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 
 import * as _ from 'lodash';
 
-import { IdealState} from '../../shared/node-viewer/node-viewer.component';
+import { IdealState } from '../../shared/node-viewer/node-viewer.component';
 import { HelixService } from '../../core/helix.service';
 import { Resource } from './resource.model';
 
@@ -115,7 +115,7 @@ export class ResourceService extends HelixService {
     resourceName: string,
     idealState: IdealState
   ) {
-    const payload = JSON.stringify(idealState)
+    const payload = idealState;
     console.log('payload from setIdealState');
     console.log(JSON.stringify(idealState));
     return this.post(
@@ -124,4 +124,3 @@ export class ResourceService extends HelixService {
     );
   }
 }
-

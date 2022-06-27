@@ -29,7 +29,7 @@ export class HelixService {
       .pipe(catchError(this.errorHandler));
   }
 
-  protected post(path: string, data: string): Observable<any> {
+  protected post(path: string, data: any): Observable<any> {
     const url = `${Settings.helixAPI}${this.getHelixKey()}${path}`;
     console.log('url from helix.server post', url);
     console.log('data from helix.service post', data);

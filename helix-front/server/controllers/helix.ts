@@ -43,6 +43,7 @@ export class HelixCtrl {
       const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');
       console.log('realUrl', realUrl);
       console.log('request body', JSON.stringify(req.body, null, 2))
+      console.log('req from server/controllers/helix', JSON.stringify(req, null, 2))
       const options = {
         url: realUrl,
         json: req.body,

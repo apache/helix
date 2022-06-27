@@ -401,7 +401,7 @@ export class NodeViewerComponent implements OnInit {
       const observer = this.resourceService.setIdealState(
         this.clusterName,
         this.resourceName,
-        newNode,
+        idealState,
       );
 
       if (observer) {

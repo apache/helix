@@ -115,12 +115,9 @@ export class ResourceService extends HelixService {
     resourceName: string,
     idealState: IdealState
   ) {
-    const payload = idealState;
-    console.log('payload from setIdealState');
-    console.log(JSON.stringify(idealState));
     return this.post(
       `/clusters/${clusterName}/resources/${resourceName}/idealState?command=update`,
-      payload
+      idealState
     );
   }
 }

@@ -410,7 +410,10 @@ export class NodeViewerComponent implements OnInit {
           () => {
             this.helper.showSnackBar('Ideal State updated!');
           },
-          (error) => this.helper.showError(error),
+          (error) => {
+            this.helper.showError(error)
+            this.isLoading = false;
+          },
           () => (this.isLoading = false)
         );
       }

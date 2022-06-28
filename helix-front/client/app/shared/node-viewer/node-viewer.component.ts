@@ -25,6 +25,13 @@ import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
 import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';
 
+export type IdealState = {
+  id: string;
+  simpleFields?: { [key: string]: any };
+  listFields?: { [key: string]: any };
+  mapFields?: { [key: string]: any };
+};
+
 config.set(
   'basePath',
   'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/'
@@ -374,10 +381,29 @@ export class NodeViewerComponent implements OnInit {
 
     const path = this?.route?.snapshot?.data?.path;
     if (path && path === 'idealState') {
+      const idealState: IdealState = {
+        id: this.resourceName,
+      };
+
+      // format the payload the way that helix-rest expects
+      // before: { simpleFields: [{ name: 'NUM_PARTITIONS', value: 2 }] };
+      // after:  { simpleFields: { NUM_PARTITIONS: 2 } };
+      function appendIdealStateProperty(property: keyof Node) {
+        if (Array.isArray(newNode[property]) && newNode[property].length > 0) {
+          idealState[property] = {} as any;
+          (newNode[property] as any[]).forEach((field) => {
+            idealState[property][field.name] = field.value;
+          });
+        }
+      }
+      Object.keys(newNode).forEach((key) =>
+        appendIdealStateProperty(key as keyof Node)
+      );
+
       const observer = this.resourceService.setIdealState(
         this.clusterName,
         this.resourceName,
-        newNode
+        idealState
       );
 
       if (observer) {
@@ -386,7 +412,10 @@ export class NodeViewerComponent implements OnInit {
           () => {
             this.helper.showSnackBar('Ideal State updated!');
           },
-          (error) => this.helper.showError(error),
+          (error) => {
+            this.helper.showError(error);
+            this.isLoading = false;
+          },
           () => (this.isLoading = false)
         );
       }

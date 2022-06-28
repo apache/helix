@@ -34,7 +34,7 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     FormsModule,
     NgxDatatableModule,
     NgxJsonViewerModule,
-    AceEditorModule
+    AceEditorModule,
   ],
   declarations: [
     InputDialogComponent,

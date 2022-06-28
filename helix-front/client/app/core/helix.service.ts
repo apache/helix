@@ -29,7 +29,7 @@ export class HelixService {
       .pipe(catchError(this.errorHandler));
   }
 
-  protected post(path: string, data: string): Observable<any> {
+  protected post(path: string, data: any): Observable<any> {
     return this.http
       .post(`${Settings.helixAPI}${this.getHelixKey()}${path}`, data, {
         headers: this.getHeaders(),

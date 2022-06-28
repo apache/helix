@@ -51,6 +51,8 @@ export class HelixCtrl {
       request[method](options, (error, response, body) => {
         if (error) {
           res.status(500).send(error);
+        } else if (body?.error) {
+          res.status(500).send(body?.error);
         } else {
           res.status(response.statusCode).send(body);
         }

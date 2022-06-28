@@ -3,10 +3,9 @@ import { Injectable } from '@angular/core';
 
 import * as _ from 'lodash';
 
+import { IdealState } from '../../shared/node-viewer/node-viewer.component';
 import { HelixService } from '../../core/helix.service';
 import { Resource } from './resource.model';
-import { Cluster } from '../../cluster/shared/cluster.model';
-import { Node } from '../../shared/models/node.model';
 
 @Injectable()
 export class ResourceService extends HelixService {
@@ -114,12 +113,11 @@ export class ResourceService extends HelixService {
   public setIdealState(
     clusterName: string,
     resourceName: string,
-    idealState: Node
+    idealState: IdealState
   ) {
     return this.post(
       `/clusters/${clusterName}/resources/${resourceName}/idealState?command=update`,
-      JSON.stringify(idealState)
+      idealState
     );
   }
 }
-

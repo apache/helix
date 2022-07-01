@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
@@ -34,6 +35,7 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModelParser;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.view.mock.MockViewClusterSpectator;
 import org.apache.helix.view.statemodel.DistViewAggregatorStateModel;
 import org.testng.Assert;
@@ -52,9 +54,11 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
   private static final StateModelParser stateModelParser = new StateModelParser();
   private final Set<String> _allResources = new HashSet<>();
 
-  private int _viewClusterRefreshPeriodSec = 5;
+  private int _viewClusterRefreshPeriodSec = 8;
   private HelixAdmin _helixAdmin;
   private MockViewClusterSpectator _monitor;
+  private ClusterEventVerifier _clusterEventVerifier;
+
   // TODO: add test coverage on multiple statemodel instances for different view clusters
   private DistViewAggregatorStateModel _viewAggregatorStateModel;
 
@@ -82,6 +86,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
 
     // Set up view cluster monitor
     _monitor = new MockViewClusterSpectator(viewClusterName, ZK_ADDR);
+    _clusterEventVerifier = new ClusterEventVerifier(_monitor);
 
     _viewAggregatorStateModel = new DistViewAggregatorStateModel(ZK_ADDR);
     triggerViewAggregatorStateTransition("OFFLINE", "STANDBY");
@@ -120,11 +125,13 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
 
     // Start view aggregator
     triggerViewAggregatorStateTransition("STANDBY", "LEADER");
-
+    _clusterEventVerifier
+        .setExternalViewChanges(0)
+        .setInstanceConfigChanges(1)
+        .setLiveInstancesChanges(1);
     // Wait for refresh and verify
-    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyInstanceConfigChange();
-    verifyLiveInstanceChange();
+    Assert.assertTrue(_clusterEventVerifier.verify((_viewClusterRefreshPeriodSec + 2) * 1000),
+        _clusterEventVerifier.generateMessage());
     Set<String> allParticipantNames = new HashSet<>();
     for (MockParticipantManager participant : _allParticipants) {
       allParticipantNames.add(participant.getInstanceName());
@@ -141,9 +148,13 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     createResources();
     rebalanceResources();
 
+    _clusterEventVerifier
+        .setExternalViewChanges(1)
+        .setInstanceConfigChanges(0)
+        .setLiveInstancesChanges(0);
     // Wait for refresh and verify
-    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyExternalViewChange();
+    Assert.assertTrue(_clusterEventVerifier.verify((_viewClusterRefreshPeriodSec + 2) * 1000),
+        _clusterEventVerifier.generateMessage());
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
         _allResources);
@@ -154,23 +165,31 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     _gSetupTool.dropResourceFromCluster(_allSourceClusters.get(0), resourceNameList.get(0));
     rebalanceResources();
 
+    _clusterEventVerifier
+        .setExternalViewChanges(1)
+        .setInstanceConfigChanges(0)
+        .setLiveInstancesChanges(0);
     // Wait for refresh and verify
-    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyExternalViewChange();
+    Assert.assertTrue(_clusterEventVerifier.verify((_viewClusterRefreshPeriodSec + 2) * 1000),
+        _clusterEventVerifier.generateMessage());
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)), _allResources);
     _monitor.reset();
 
     // Modify view cluster config
-    _viewClusterRefreshPeriodSec = 3;
+    _viewClusterRefreshPeriodSec = 5;
     List<PropertyType> newProperties =
         new ArrayList<>(ViewClusterSourceConfig.getValidPropertyTypes());
     newProperties.remove(PropertyType.LIVEINSTANCES);
     resetViewClusterConfig(_viewClusterRefreshPeriodSec, newProperties);
 
+    _clusterEventVerifier
+        .setExternalViewChanges(0)
+        .setInstanceConfigChanges(0)
+        .setLiveInstancesChanges(3);
     // Wait for refresh and verify
-    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyLiveInstanceChange();
+    Assert.assertTrue(_clusterEventVerifier.verify((_viewClusterRefreshPeriodSec + 2) * 1000),
+        _clusterEventVerifier.generateMessage());
     Assert.assertEquals(_monitor.getPropertyNamesFromViewCluster(PropertyType.LIVEINSTANCES).size(), 0);
     _monitor.reset();
 
@@ -198,11 +217,13 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     triggerViewAggregatorStateTransition("OFFLINE", "STANDBY");
     triggerViewAggregatorStateTransition("STANDBY", "LEADER");
 
+    _clusterEventVerifier
+        .setExternalViewChanges(3)
+        .setInstanceConfigChanges(3)
+        .setLiveInstancesChanges(1);
     // Wait for refresh and verify
-    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
-    verifyExternalViewChange();
-    verifyInstanceConfigChange();
-    verifyLiveInstanceChange();
+    Assert.assertTrue(_clusterEventVerifier.verify((_viewClusterRefreshPeriodSec + 2) * 1000),
+        _clusterEventVerifier.generateMessage());
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
         _allResources);
@@ -227,23 +248,73 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     _configAccessor.setClusterConfig(viewClusterName, viewClusterConfig);
   }
 
-  private void verifyExternalViewChange() {
-    Assert.assertTrue(_monitor.getExternalViewChangeCount() > 0);
-  }
+  static class ClusterEventVerifier implements HelixClusterVerifier {
+    private static final int POLLING_PERIOD = 100;
+    private static final int DEFAULT_TIMEOUT = 5000;
+    private final MockViewClusterSpectator _monitor;
+    private int _externalViewChanges;
+    private int _instanceConfigChanges;
+    private int _liveInstancesChanges;
 
-  private void verifyInstanceConfigChange() {
-    Assert.assertTrue(_monitor.getInstanceConfigChangeCount() > 0);
-  }
+    ClusterEventVerifier(MockViewClusterSpectator monitor) {
+      _monitor = monitor;
+    }
 
-  private void verifyLiveInstanceChange() {
-    Assert.assertTrue(_monitor.getLiveInstanceChangeCount() > 0);
+    private boolean verifyState() {
+      boolean externalViewChangeMatch = _monitor.getExternalViewChangeCount() == _externalViewChanges;
+      boolean instanceConfigChangeMatch = _monitor.getInstanceConfigChangeCount() == _instanceConfigChanges;
+      boolean liveInstancesChangeMatch = _monitor.getLiveInstanceChangeCount() == _liveInstancesChanges;
+      return externalViewChangeMatch && instanceConfigChangeMatch && liveInstancesChangeMatch;
+    }
+
+    ClusterEventVerifier setExternalViewChanges(int externalViewChanges) {
+      _externalViewChanges = externalViewChanges;
+      return this;
+    }
+
+    ClusterEventVerifier setInstanceConfigChanges(int instanceConfigChanges) {
+      _instanceConfigChanges = instanceConfigChanges;
+      return this;
+    }
+
+    ClusterEventVerifier setLiveInstancesChanges(int liveInstancesChanges) {
+      _liveInstancesChanges = liveInstancesChanges;
+      return this;
+    }
+
+    String generateMessage() {
+      return String.format("Expect externalViewChanges: %d, instanceConfigChanges: %d, liveInstancesChanges: %d.\n"
+              + "Received externalViewChanges: %d, instanceConfigChanges: %d, liveInstancesChanges: %d.",
+          _externalViewChanges, _instanceConfigChanges, _liveInstancesChanges,
+          _monitor.getExternalViewChangeCount(), _monitor.getInstanceConfigChangeCount(), _monitor.getLiveInstanceChangeCount());
+    }
+
+    @Override
+    public boolean verify(long timeout) {
+      try {
+        long start = System.currentTimeMillis();
+        boolean success;
+        do {
+          success = verifyState();
+          if (success) {
+            return true;
+          }
+          TimeUnit.MILLISECONDS.sleep(POLLING_PERIOD);
+        } while ((System.currentTimeMillis() - start) <= timeout);
+      } catch (Exception ignored) { }
+      return false;
+    }
+
+    @Override
+    public boolean verify() {
+      return verify(DEFAULT_TIMEOUT);
+    }
   }
 
   /**
    * Create same sets of resources for each cluster
    */
   private void createResources() {
-    System.out.println("Creating resources ...");
     for (String sourceClusterName : _allSourceClusters) {
       for (int i = 0; i < numResourcePerSourceCluster; i++) {
         String resourceName = resourceNamePrefix + i;
@@ -258,7 +329,6 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
    * Rebalance all resources on each cluster
    */
   private void rebalanceResources() {
-    System.out.println("Rebalancing resources ...");
     for (String sourceClusterName : _allSourceClusters) {
       for (String resourceName : _allResources) {
         // We always rebalance all resources, even if it would be deleted during test

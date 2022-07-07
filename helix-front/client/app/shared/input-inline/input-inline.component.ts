@@ -1,34 +1,45 @@
-import { Component, OnInit, Input, Output, ViewChild, ElementRef, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  Output,
+  ViewChild,
+  ElementRef,
+  EventEmitter,
+} from '@angular/core';
 import { ControlValueAccessor } from '@angular/forms';
 
 @Component({
   selector: 'hi-input-inline',
   templateUrl: './input-inline.component.html',
-  styleUrls: ['./input-inline.component.scss']
+  styleUrls: ['./input-inline.component.scss'],
 })
 export class InputInlineComponent implements ControlValueAccessor, OnInit {
-
-  @ViewChild('inputControl') inputControl: ElementRef;
+  @ViewChild('inputControl', { static: true }) inputControl: ElementRef;
 
   @Output('update') change: EventEmitter<string> = new EventEmitter<string>();
 
-  @Input() label: string = '';
-  @Input() min: number = -9999;
-  @Input() max: number = 99999999;
-  @Input() minlength: number = 0;
-  @Input() maxlength: number = 2555;
-  @Input() type: string = 'text';
-  @Input() required: boolean = false;
-  @Input() focus: Function = _ => { };
-  @Input() blur: Function = _ => { };
+  @Input() label = '';
+  @Input() min = -9999;
+  @Input() max = 99999999;
+  @Input() minlength = 0;
+  @Input() maxlength = 2555;
+  @Input() type = 'text';
+  @Input() required = false;
   @Input() pattern: string = null;
-  @Input() errorLabel: string = 'Invalid input value';
-  @Input() editLabel: string = 'Click to edit';
-  @Input() disabled: boolean = false;
+  @Input() errorLabel = 'Invalid input value';
+  @Input() editLabel = 'Click to edit';
+  @Input() disabled = false;
 
-  editing: boolean = false;
+  editing = false;
 
-  private _value: string = '';
+  private _value = '';
+
+  private lastValue = '';
+
+  // Required forControlValueAccessor interface
+  public onChange: any = Function.prototype;
+  public onTouched: any = Function.prototype;
   @Input()
   get value(): any {
     return this._value;
@@ -39,22 +50,21 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
       this.onChange(v);
     }
   }
-
-  private lastValue: string = '';
-
-  // Required forControlValueAccessor interface
-  public onChange: any = Function.prototype;
-  public onTouched: any = Function.prototype;
-  public registerOnChange(fn: (_: any) => {}): void { this.onChange = fn; }
-  public registerOnTouched(fn: () => {}): void { this.onTouched = fn; };
+  @Input() focus: Function = (_) => {};
+  @Input() blur: Function = (_) => {};
+  public registerOnChange(fn: (_: any) => {}): void {
+    this.onChange = fn;
+  }
+  public registerOnTouched(fn: () => {}): void {
+    this.onTouched = fn;
+  }
   writeValue(value: any) {
     this._value = value;
   }
 
-  constructor() { }
+  constructor() {}
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   hasError() {
     const exp = new RegExp(this.pattern);
@@ -77,8 +87,8 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
 
     this.lastValue = value;
     this.editing = true;
-    setTimeout(_ => {
-      this.inputControl.nativeElement.focus();
+    setTimeout((_) => {
+      this.inputControl?.nativeElement.focus();
     });
   }
 
@@ -96,5 +106,4 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
     this._value = this.lastValue;
     this.editing = false;
   }
-
 }

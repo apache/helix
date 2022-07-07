@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { TestingModule } from '../../../testing/testing.module';
@@ -8,20 +8,15 @@ describe('ClusterListComponent', () => {
   let component: ClusterListComponent;
   let fixture: ComponentFixture<ClusterListComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      declarations: [
-        ClusterListComponent
-      ],
+      imports: [TestingModule],
+      declarations: [ClusterListComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

@@ -8,11 +8,14 @@ describe('WorkflowService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestingModule],
-      providers: [WorkflowService]
+      providers: [WorkflowService],
     });
   });
 
-  it('should be created', inject([WorkflowService], (service: WorkflowService) => {
-    expect(service).toBeTruthy();
-  }));
+  it('should be created', inject(
+    [WorkflowService],
+    (service: WorkflowService) => {
+      expect(service).toBeTruthy();
+    }
+  ));
 });

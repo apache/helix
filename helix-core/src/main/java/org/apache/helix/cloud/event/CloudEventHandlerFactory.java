@@ -19,27 +19,39 @@ package org.apache.helix.cloud.event;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.helix.util.HelixUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 /**
- * This class is the factory for singleton class {@link CloudEventHandler}
+ * This class is the factory for singleton class {@link AbstractEventHandler}
  */
 public class CloudEventHandlerFactory {
-  private static CloudEventHandler INSTANCE = null;
+  private static final Logger LOG = LoggerFactory.getLogger(CloudEventHandlerFactory.class);
+  private static Map<String, AbstractEventHandler> INSTANCE_MAP = new HashMap();
 
   private CloudEventHandlerFactory() {
   }
 
   /**
-   * Get a CloudEventHandler instance
+   * Get an instance of AbstractEventHandler implementation.
    * @return
    */
-  public static CloudEventHandler getInstance() {
-    if (INSTANCE == null) {
-      synchronized (CloudEventHandlerFactory.class) {
-        if (INSTANCE == null) {
-          INSTANCE = new CloudEventHandler();
-        }
+  public static AbstractEventHandler getInstance(String eventHandlerClassName)
+      throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    synchronized (CloudEventHandlerFactory.class) {
+      AbstractEventHandler instance = INSTANCE_MAP.get(eventHandlerClassName);
+      if (instance == null) {
+        LOG.info("Initiating an object of {}", eventHandlerClassName);
+        instance = (AbstractEventHandler) (HelixUtil
+            .loadClass(AbstractEventHandler.class, eventHandlerClassName)).newInstance();
+        INSTANCE_MAP.put(eventHandlerClassName, instance);
       }
+      return instance;
     }
-    return INSTANCE;
   }
 }

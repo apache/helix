@@ -3,9 +3,9 @@ import { Request, Response, Router } from 'express';
 import * as request from 'request';
 
 import { HELIX_ENDPOINTS } from '../config';
+import { HelixUserRequest } from './d';
 
 export class HelixCtrl {
-
   static readonly ROUTE_PREFIX = '/api/helix';
 
   constructor(router: Router) {
@@ -13,7 +13,7 @@ export class HelixCtrl {
     router.route('/helix/*').all(this.proxy);
   }
 
-  protected proxy(req: Request, res: Response) {
+  protected proxy(req: HelixUserRequest, res: Response) {
     const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
     const helixKey = url.split('/')[1];
 
@@ -32,7 +32,7 @@ export class HelixCtrl {
 
     let apiPrefix = null;
     if (HELIX_ENDPOINTS[group]) {
-      HELIX_ENDPOINTS[group].forEach(section => {
+      HELIX_ENDPOINTS[group].forEach((section) => {
         if (section[name]) {
           apiPrefix = section[name];
         }
@@ -40,17 +40,19 @@ export class HelixCtrl {
     }
 
     if (apiPrefix) {
-      const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
+      const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');
       const options = {
         url: realUrl,
         json: req.body,
         headers: {
-          'Helix-User': user
-        }
+          'Helix-User': user,
+        },
       };
       request[method](options, (error, response, body) => {
         if (error) {
           res.status(500).send(error);
+        } else if (body?.error) {
+          res.status(500).send(body?.error);
         } else {
           res.status(response.statusCode).send(body);
         }
@@ -61,6 +63,11 @@ export class HelixCtrl {
   }
 
   protected list(req: Request, res: Response) {
-    res.json(HELIX_ENDPOINTS);
+    try {
+      res.json(HELIX_ENDPOINTS);
+    } catch (err) {
+      console.log('error from helix/list/');
+      console.log(err);
+    }
   }
 }

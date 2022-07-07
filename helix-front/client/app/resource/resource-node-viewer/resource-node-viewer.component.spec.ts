@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { TestingModule } from '../../../testing/testing.module';
@@ -9,17 +9,16 @@ describe('ResourceNodeViewerComponent', () => {
   let component: ResourceNodeViewerComponent;
   let fixture: ComponentFixture<ResourceNodeViewerComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule ],
-      declarations: [ ResourceNodeViewerComponent ],
-      providers: [ ResourceService ],
+      imports: [TestingModule],
+      declarations: [ResourceNodeViewerComponent],
+      providers: [ResourceService],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

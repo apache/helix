@@ -1,7 +1,8 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { Observable } from 'rxjs/Observable';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { of, Observable } from 'rxjs';
+
+import {} from '@angular/core';
 
 import { TestingModule } from '../../../testing/testing.module';
 import { JobDetailComponent } from './job-detail.component';
@@ -11,24 +12,23 @@ describe('JobDetailComponent', () => {
   let component: JobDetailComponent;
   let fixture: ComponentFixture<JobDetailComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule ],
+      imports: [TestingModule],
       providers: [
         {
           provide: JobService,
           useValue: {
-            get: job => Observable.of()
-          }
-        }
+            get: (job) => of(),
+          },
+        },
       ],
-      declarations: [ JobDetailComponent ],
+      declarations: [JobDetailComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

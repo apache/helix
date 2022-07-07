@@ -11,7 +11,11 @@ export class Partition {
   replicas: IReplica[];
 
   get isReady() {
-    return !_.some(this.replicas, replica => !replica.externalView || replica.externalView != replica.idealState);
+    return !_.some(
+      this.replicas,
+      (replica) =>
+        !replica.externalView || replica.externalView != replica.idealState
+    );
   }
 
   constructor(name: string) {
@@ -21,7 +25,6 @@ export class Partition {
 }
 
 export class Resource {
-
   readonly name: string;
 
   // TODO vxu: convert it to an enum in future if necessary
@@ -39,6 +42,8 @@ export class Resource {
   readonly idealState: any;
   readonly externalView: any;
 
+  readonly partitions: Partition[];
+
   get enabled(): boolean {
     // there are two cases meaning enabled both:
     //   HELIX_ENABLED: true or no such item in idealState
@@ -46,12 +51,16 @@ export class Resource {
   }
 
   get online(): boolean {
-     return !_.isEmpty(this.externalView);
+    return !_.isEmpty(this.externalView);
   }
 
-  readonly partitions: Partition[];
-
-  constructor(cluster: string, name: string, config: any, idealState: any, externalView: any) {
+  constructor(
+    cluster: string,
+    name: string,
+    config: any,
+    idealState: any,
+    externalView: any
+  ) {
     this.cluster = cluster;
     this.name = name;
 
@@ -67,33 +76,63 @@ export class Resource {
 
     // fetch partition names from externalView.mapFields is (relatively) more stable
     this.partitions = [];
-    for (let partitionName in externalView.mapFields) {
-      let partition = new Partition(partitionName);
+    for (const partitionName in externalView.mapFields) {
+      const partition = new Partition(partitionName);
 
-      // in FULL_ATUO mode, externalView is more important
+      // in FULL_AUTO mode, externalView is more important
       // if preferences list exists, fetch instances from it, else whatever
-      if (this.rebalanceMode != 'FULL_AUTO' && idealState.listFields[partitionName]) {
-        for (let replicaName of idealState.listFields[partitionName]) {
+      if (
+        this.rebalanceMode != 'FULL_AUTO' &&
+        idealState.listFields[partitionName]
+      ) {
+        for (const replicaName of idealState.listFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
-            externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
-            idealState: _.get(idealState, ['mapFields', partitionName, replicaName])
+            externalView: _.get(externalView, [
+              'mapFields',
+              partitionName,
+              replicaName,
+            ]),
+            idealState: _.get(idealState, [
+              'mapFields',
+              partitionName,
+              replicaName,
+            ]),
           });
         }
-      } else if (this.rebalanceMode != 'FULL_AUTO' && idealState.mapFields[partitionName]) {
-        for (let replicaName in idealState.mapFields[partitionName]) {
+      } else if (
+        this.rebalanceMode != 'FULL_AUTO' &&
+        idealState.mapFields[partitionName]
+      ) {
+        for (const replicaName in idealState.mapFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
-            externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
-            idealState: _.get(idealState, ['mapFields', partitionName, replicaName])
+            externalView: _.get(externalView, [
+              'mapFields',
+              partitionName,
+              replicaName,
+            ]),
+            idealState: _.get(idealState, [
+              'mapFields',
+              partitionName,
+              replicaName,
+            ]),
           });
         }
       } else {
-        for (let replicaName in externalView.mapFields[partitionName]) {
+        for (const replicaName in externalView.mapFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
-            externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
-            idealState: _.get(idealState, ['mapFields', partitionName, replicaName])
+            externalView: _.get(externalView, [
+              'mapFields',
+              partitionName,
+              replicaName,
+            ]),
+            idealState: _.get(idealState, [
+              'mapFields',
+              partitionName,
+              replicaName,
+            ]),
           });
         }
       }

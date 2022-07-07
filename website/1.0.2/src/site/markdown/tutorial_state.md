@@ -51,11 +51,11 @@ In addition to the state machine configuration, one can specify the constraints 
 
 For example, one can say:
 
-* MASTER:1
-<br/>Maximum number of replicas in MASTER state at any time is 1
+* LEADER:1
+<br/>Maximum number of replicas in LEADER state at any time is 1
 
-* OFFLINE-SLAVE:5
-<br/>Maximum number of OFFLINE-SLAVE transitions that can happen concurrently in the system is 5 in this example.
+* OFFLINE-STANDBY:5
+<br/>Maximum number of OFFLINE-STANDBY transitions that can happen concurrently in the system is 5 in this example.
 
 #### Dynamic State Constraints
 
@@ -66,7 +66,7 @@ We also support two dynamic upper bounds for the number of replicas in each stat
 
 #### State Priority
 
-Helix uses a greedy approach to satisfy the state constraints. For example, if the state machine configuration says it needs 1 MASTER and 2 SLAVES, but only 1 node is active, Helix must promote it to MASTER. This behavior is achieved by providing the state priority list as \[MASTER, SLAVE\].
+Helix uses a greedy approach to satisfy the state constraints. For example, if the state machine configuration says it needs 1 LEADER and 2 STANDBYS, but only 1 node is active, Helix must promote it to LEADER. This behavior is achieved by providing the state priority list as \[LEADER, STANDBY\].
 
 #### State Transition Priority
 
@@ -89,34 +89,34 @@ The ERROR state is used whenever the participant serving a partition encountered
 
 ### Annotated Example
 
-Below is a complete definition of a Master-Slave state model. Notice the fields marked REQUIRED; these are essential for any state model definition.
+Below is a complete definition of a Leader-Standby state model. Notice the fields marked REQUIRED; these are essential for any state model definition.
 
 ```
-StateModelDefinition stateModel = new StateModelDefinition.Builder("MasterSlave")
+StateModelDefinition stateModel = new StateModelDefinition.Builder("LeaderStandby")
   // OFFLINE is the state that the system starts in (initial state is REQUIRED)
   .initialState("OFFLINE")
 
   // Lowest number here indicates highest priority, no value indicates lowest priority
-  .addState("MASTER", 1)
-  .addState("SLAVE", 2)
+  .addState("LEADER", 1)
+  .addState("STANDBY", 2)
   .addState("OFFLINE")
 
   // Note the special inclusion of the DROPPED state (REQUIRED)
   .addState(HelixDefinedState.DROPPED.toString())
 
-  // No more than one master allowed
-  .upperBound("MASTER", 1)
+  // No more than one leader allowed
+  .upperBound("LEADER", 1)
 
   // R indicates an upper bound of number of replicas for each partition
-  .dynamicUpperBound("SLAVE", "R")
+  .dynamicUpperBound("STANDBY", "R")
 
   // Add some high-priority transitions
-  .addTransition("SLAVE", "MASTER", 1)
-  .addTransition("OFFLINE", "SLAVE", 2)
+  .addTransition("STANDBY", "LEADER", 1)
+  .addTransition("OFFLINE", "STANDBY", 2)
 
   // Using the same priority value indicates that these transitions can fire in any order
-  .addTransition("MASTER", "SLAVE", 3)
-  .addTransition("SLAVE", "OFFLINE", 3)
+  .addTransition("LEADER", "STANDBY", 3)
+  .addTransition("STANDBY", "OFFLINE", 3)
 
   // Not specifying a value defaults to lowest priority
   // Notice the inclusion of the OFFLINE to DROPPED transition

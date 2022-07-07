@@ -1,11 +1,11 @@
 // Import theming functions
-@import '~@angular/material/theming';
+@use '@angular/material' as mat;
 // Import custom theme
 @import 'client/theme.scss';
 
 hi-history-list {
   .current {
-    color: mat-color($hi-primary);
+    color: mat.get-color-from-palette($hi-primary);
   }
 
   .mat-icon {

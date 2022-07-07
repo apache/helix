@@ -134,6 +134,12 @@ public class ZkConnection implements IZkConnection {
   }
 
   @Override
+  public String create(String path, byte[] data, List<ACL> acl, CreateMode mode, long ttl)
+      throws KeeperException, InterruptedException {
+    return _zk.create(path, data, acl, mode, null, ttl);
+  }
+
+  @Override
   public void delete(String path) throws InterruptedException, KeeperException {
     _zk.delete(path, -1);
   }

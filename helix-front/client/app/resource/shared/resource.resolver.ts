@@ -6,7 +6,6 @@ import { Resource } from './resource.model';
 
 @Injectable()
 export class ResourceResolver implements Resolve<Resource> {
-
   constructor(private service: ResourceService) {}
 
   resolve(route: ActivatedRouteSnapshot) {

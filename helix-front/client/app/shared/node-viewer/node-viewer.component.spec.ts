@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { TestingModule } from '../../../testing/testing.module';
 
@@ -8,18 +8,15 @@ describe('NodeViewerComponent', () => {
   let component: NodeViewerComponent;
   let fixture: ComponentFixture<NodeViewerComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      declarations: [ NodeViewerComponent ],
+      imports: [TestingModule],
+      declarations: [NodeViewerComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -30,5 +27,9 @@ describe('NodeViewerComponent', () => {
 
   it('should be created', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should render the locked button', () => {
+    expect(component).toContain('Locked');
   });
 });

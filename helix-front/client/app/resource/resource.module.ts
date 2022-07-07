@@ -19,19 +19,16 @@ import { ResourceNodeViewerComponent } from './resource-node-viewer/resource-nod
     CommonModule,
     NgxDatatableModule,
     NgxJsonViewerModule,
-    SharedModule
+    SharedModule,
   ],
-  providers: [
-    ResourceService,
-    ResourceResolver
-  ],
+  providers: [ResourceService, ResourceResolver],
   declarations: [
     ResourceListComponent,
     ResourceDetailComponent,
     ResourceDetailForInstanceComponent,
     PartitionListComponent,
     PartitionDetailComponent,
-    ResourceNodeViewerComponent
-  ]
+    ResourceNodeViewerComponent,
+  ],
 })
-export class ResourceModule { }
+export class ResourceModule {}

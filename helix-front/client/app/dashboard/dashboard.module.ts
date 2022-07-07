@@ -8,14 +8,7 @@ import { SharedModule } from '../shared/shared.module';
 import { DashboardComponent } from './dashboard.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    SharedModule,
-    VisModule,
-    NgxChartsModule
-  ],
-  declarations: [
-    DashboardComponent
-  ]
+  imports: [CommonModule, SharedModule, VisModule, NgxChartsModule],
+  declarations: [DashboardComponent],
 })
-export class DashboardModule { }
+export class DashboardModule {}

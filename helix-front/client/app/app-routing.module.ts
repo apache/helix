@@ -21,12 +21,12 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 const HELIX_ROUTES: Routes = [
   {
     path: '',
-    component: HelixListComponent
+    component: HelixListComponent,
   },
   {
     path: 'embed',
     redirectTo: '/?embed=true',
-    pathMatch: 'full'
+    pathMatch: 'full',
   },
   {
     path: ':helix',
@@ -39,29 +39,29 @@ const HELIX_ROUTES: Routes = [
           {
             path: '',
             redirectTo: 'resources',
-            pathMatch: 'full'
+            pathMatch: 'full',
           },
           {
             path: 'configs',
-            component: ConfigDetailComponent
+            component: ConfigDetailComponent,
           },
           {
             path: 'instances',
-            component: InstanceListComponent
+            component: InstanceListComponent,
           },
           {
             path: 'resources',
-            component: ResourceListComponent
+            component: ResourceListComponent,
           },
           {
             path: 'workflows',
-            component: WorkflowListComponent
+            component: WorkflowListComponent,
           },
           {
             path: 'dashboard',
-            component: DashboardComponent
-          }
-        ]
+            component: DashboardComponent,
+          },
+        ],
       },
       {
         path: ':cluster_name/controller',
@@ -70,13 +70,13 @@ const HELIX_ROUTES: Routes = [
           {
             path: '',
             redirectTo: 'history',
-            pathMatch: 'full'
+            pathMatch: 'full',
           },
           {
             path: 'history',
-            component: HistoryListComponent
-          }
-        ]
+            component: HistoryListComponent,
+          },
+        ],
       },
       {
         path: ':cluster_name/resources/:resource_name',
@@ -85,35 +85,35 @@ const HELIX_ROUTES: Routes = [
           {
             path: '',
             redirectTo: 'partitions',
-            pathMatch: 'full'
+            pathMatch: 'full',
           },
           {
             path: 'partitions',
-            component: PartitionListComponent
+            component: PartitionListComponent,
           },
           {
             path: 'externalView',
             component: ResourceNodeViewerComponent,
             data: {
-              path: 'externalView'
-            }
+              path: 'externalView',
+            },
           },
           {
             path: 'idealState',
             component: ResourceNodeViewerComponent,
             data: {
-              path: 'idealState'
-            }
+              path: 'idealState',
+            },
           },
           {
             path: 'configs',
-            component: ConfigDetailComponent
-          }
-        ]
+            component: ConfigDetailComponent,
+          },
+        ],
       },
       {
         path: ':cluster_name/workflows/:workflow_name',
-        component: WorkflowDetailComponent
+        component: WorkflowDetailComponent,
       },
       {
         path: ':cluster_name/instances/:instance_name',
@@ -122,27 +122,28 @@ const HELIX_ROUTES: Routes = [
           {
             path: '',
             redirectTo: 'resources',
-            pathMatch: 'full'
+            pathMatch: 'full',
           },
           {
             path: 'resources',
             component: ResourceListComponent,
             data: {
-              forInstance: true
-            }
+              forInstance: true,
+            },
           },
           {
             path: 'configs',
-            component: ConfigDetailComponent
+            component: ConfigDetailComponent,
           },
           {
             path: 'history',
-            component: HistoryListComponent
-          }
-        ]
-      }
-    ]
-  }
+            component: HistoryListComponent,
+          },
+        ],
+      },
+    ],
+  },
 ];
 
-export const AppRoutingModule: ModuleWithProviders = RouterModule.forRoot(HELIX_ROUTES);
+export const AppRoutingModule: ModuleWithProviders<RouterModule> =
+  RouterModule.forRoot(HELIX_ROUTES, { relativeLinkResolution: 'legacy' });

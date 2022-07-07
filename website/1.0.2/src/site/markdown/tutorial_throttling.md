@@ -32,7 +32,7 @@ Since all state changes in the system are triggered through transitions, Helix c
 Helix allows applications to set a threshold on transitions. The threshold can be set at multiple scopes:
 
 * MessageType e.g STATE_TRANSITION
-* TransitionType e.g SLAVE-MASTER
+* TransitionType e.g STANDBY-LEADER
 * Resource e.g database
 * Node i.e per-node maximum transitions in parallel
 

@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DisabledLabelComponent } from './disabled-label.component';
 
@@ -6,11 +6,10 @@ describe('DisabledLabelComponent', () => {
   let component: DisabledLabelComponent;
   let fixture: ComponentFixture<DisabledLabelComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DisabledLabelComponent ]
-    })
-    .compileComponents();
+      declarations: [DisabledLabelComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

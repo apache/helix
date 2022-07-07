@@ -139,10 +139,10 @@ public class DelayedRebalanceUtil {
     // check the time instance got disabled.
     if (!InstanceValidationUtil.isInstanceEnabled(instanceConfig, clusterConfig)) {
       long disabledTime = instanceConfig.getInstanceEnabledTime();
-      Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
-      if (disabledInstances.containsKey(instance)) {
+      String batchedDisabledTime = clusterConfig.getInstanceHelixDisabledTimeStamp(instance);
+      if (batchedDisabledTime != null && !batchedDisabledTime.isEmpty()) {
         // Update batch disable time
-        long batchDisableTime = Long.parseLong(clusterConfig.getInstanceHelixDisabledTimeStamp(instance));
+        long batchDisableTime = Long.parseLong(batchedDisabledTime);
         if (disabledTime == -1 || disabledTime > batchDisableTime) {
           disabledTime = batchDisableTime;
         }

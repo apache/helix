@@ -325,13 +325,13 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                 .getResourceName() + "." + partition.getPartitionName() + " from " + currentState
                 + " to " + nextState + ", isRelay: " + pendingMessage.isRelayMessage());
       } else if (currentState.equalsIgnoreCase(pendingState)) {
-        LogUtil.logInfo(logger, _eventId,
+        LogUtil.logDebug(logger, _eventId,
             "Message hasn't been removed for " + instanceName + " to transit " + resource
                 .getResourceName() + "." + partition.getPartitionName() + " to " + pendingState
                 + ", desiredState: " + desiredState + ", isRelay: " + pendingMessage
                 .isRelayMessage());
       } else {
-        LogUtil.logInfo(logger, _eventId,
+        LogUtil.logDebug(logger, _eventId,
             "IdealState changed before state transition completes for " + resource.getResourceName()
                 + "." + partition.getPartitionName() + " on " + instanceName + ", pendingState: "
                 + pendingState + ", currentState: " + currentState + ", nextState: " + nextState

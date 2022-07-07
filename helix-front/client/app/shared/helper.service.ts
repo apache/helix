@@ -1,23 +1,20 @@
 import { Injectable } from '@angular/core';
-import { MatDialog, MatSnackBar } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';
 import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.component';
 
 @Injectable()
 export class HelperService {
-
-  constructor(
-    protected snackBar: MatSnackBar,
-    protected dialog: MatDialog
-  ) { }
+  constructor(protected snackBar: MatSnackBar, protected dialog: MatDialog) {}
 
   showError(message: string) {
     this.dialog.open(AlertDialogComponent, {
       data: {
         title: 'Error',
-        message: message
-      }
+        message,
+      },
     });
   }
 
@@ -32,8 +29,8 @@ export class HelperService {
       .open(ConfirmDialogComponent, {
         data: {
           title: 'Confirmation',
-          message: message
-        }
+          message,
+        },
       })
       .afterClosed()
       .toPromise();

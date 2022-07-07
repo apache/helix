@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { TestingModule } from '../../../testing/testing.module';
@@ -9,19 +9,16 @@ describe('WorkflowDetailComponent', () => {
   let component: WorkflowDetailComponent;
   let fixture: ComponentFixture<WorkflowDetailComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      providers: [ WorkflowService ],
-      declarations: [ WorkflowDetailComponent ],
+      imports: [TestingModule],
+      providers: [WorkflowService],
+      declarations: [WorkflowDetailComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

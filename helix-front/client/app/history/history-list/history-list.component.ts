@@ -13,55 +13,48 @@ import { History } from '../shared/history.model';
   styleUrls: ['./history-list.component.scss'],
   providers: [HistoryService],
   // FIXME: have to turn off shadow dom or .current-controller won't work
-  encapsulation: ViewEncapsulation.None
+  encapsulation: ViewEncapsulation.None,
 })
 export class HistoryListComponent implements OnInit {
-
   rows: History[];
   rowHeight = Settings.tableRowHeight;
   headerHeight = Settings.tableHeaderHeight;
   isController: boolean;
   isLoading = true;
-  sorts = [
-    { prop: 'date', dir: 'desc'}
-  ];
+  sorts = [{ prop: 'date', dir: 'desc' }];
 
   // to let ngx-datatable helper funcs have 'this' context
   bindFunc = _.bind;
 
-  constructor(
-    private route: ActivatedRoute,
-    private service: HistoryService
-  ) { }
+  constructor(private route: ActivatedRoute, private service: HistoryService) {}
 
   ngOnInit() {
     if (this.route.parent) {
-      let clusterName = this.route.parent.snapshot.params['cluster_name'];
-      let instanceName = this.route.parent.snapshot.params['instance_name'];
-      let observable = instanceName
+      const clusterName = this.route.parent.snapshot.params['cluster_name'];
+      const instanceName = this.route.parent.snapshot.params['instance_name'];
+      const observable = instanceName
         ? this.service.getInstanceHistory(clusterName, instanceName)
         : this.service.getControllerHistory(clusterName);
 
       this.isController = !instanceName;
 
       observable.subscribe(
-        histories => this.rows = histories,
-        error => {},
-        () => this.isLoading = false
+        (histories) => (this.rows = histories),
+        (error) => {},
+        () => (this.isLoading = false)
       );
     }
   }
 
   getControllerCellClass({ value }): any {
     return {
-      'current': value == this.rows[this.rows.length - 1].controller
+      current: value == this.rows[this.rows.length - 1].controller,
     };
   }
 
   getSessionCellClass({ value }): any {
     return {
-      'current': value == this.rows[this.rows.length - 1].session
+      current: value == this.rows[this.rows.length - 1].session,
     };
   }
-
 }

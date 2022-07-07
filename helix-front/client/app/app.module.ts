@@ -1,10 +1,10 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpModule } from '@angular/http';
+import { HttpClientModule } from '@angular/common/http';
 
-import { Angulartics2Module, Angulartics2Piwik } from 'angulartics2';
-
+// import { Angulartics2Module } from 'angulartics2';
+// import { Angulartics2Piwik } from 'angulartics2/piwik';
 import { AppRoutingModule } from './app-routing.module';
 import { CoreModule } from './core/core.module';
 import { SharedModule } from './shared/shared.module';
@@ -20,15 +20,13 @@ import { ChooserModule } from './chooser/chooser.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
 @NgModule({
-  declarations: [
-    AppComponent
-  ],
+  declarations: [AppComponent],
   imports: [
     BrowserModule,
     FormsModule,
-    HttpModule,
+    HttpClientModule,
     AppRoutingModule,
-    Angulartics2Module.forRoot([ Angulartics2Piwik ]),
+    // Angulartics2Module.forRoot(),
     CoreModule,
     SharedModule,
     ClusterModule,
@@ -39,9 +37,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
     HistoryModule,
     WorkflowModule,
     ChooserModule,
-    DashboardModule
+    DashboardModule,
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,5 +1,6 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { VisModule } from 'ngx-vis';
 
@@ -10,13 +11,12 @@ describe('DashboardComponent', () => {
   let component: DashboardComponent;
   let fixture: ComponentFixture<DashboardComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ TestingModule, VisModule ],
-      schemas: [ NO_ERRORS_SCHEMA ],
-      declarations: [ DashboardComponent ]
-    })
-    .compileComponents();
+      imports: [TestingModule, VisModule, HttpClientTestingModule],
+      schemas: [NO_ERRORS_SCHEMA],
+      declarations: [DashboardComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

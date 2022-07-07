@@ -6,12 +6,16 @@ import { FormsModule } from '@angular/forms';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
+import { AceEditorModule } from 'ng2-ace-editor';
 
 import { MaterialModule } from './material.module';
 import { HelperService } from './helper.service';
 import { InputDialogComponent } from './dialog/input-dialog/input-dialog.component';
 import { DetailHeaderComponent } from './detail-header/detail-header.component';
-import { KeyValuePairDirective, KeyValuePairsComponent } from './key-value-pairs/key-value-pairs.component';
+import {
+  KeyValuePairDirective,
+  KeyValuePairsComponent,
+} from './key-value-pairs/key-value-pairs.component';
 import { JsonViewerComponent } from './json-viewer/json-viewer.component';
 import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';
 import { StateLabelComponent } from './state-label/state-label.component';
@@ -29,7 +33,8 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     FlexLayoutModule,
     FormsModule,
     NgxDatatableModule,
-    NgxJsonViewerModule
+    NgxJsonViewerModule,
+    AceEditorModule,
   ],
   declarations: [
     InputDialogComponent,
@@ -43,12 +48,7 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     InputInlineComponent,
     DataTableComponent,
     ConfirmDialogComponent,
-    DisabledLabelComponent
-  ],
-  entryComponents: [
-    InputDialogComponent,
-    AlertDialogComponent,
-    ConfirmDialogComponent
+    DisabledLabelComponent,
   ],
   exports: [
     RouterModule,
@@ -62,10 +62,8 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     JsonViewerComponent,
     StateLabelComponent,
     NodeViewerComponent,
-    DisabledLabelComponent
+    DisabledLabelComponent,
   ],
-  providers: [
-    HelperService
-  ]
+  providers: [HelperService],
 })
-export class SharedModule { }
+export class SharedModule {}

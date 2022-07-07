@@ -1,4 +1,11 @@
-import { Component, OnInit, Input, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  ElementRef,
+  AfterViewInit,
+  ViewChild,
+} from '@angular/core';
 
 import * as shape from 'd3-shape';
 import * as _ from 'lodash';
@@ -8,24 +15,23 @@ import { Workflow, Job } from '../shared/workflow.model';
 @Component({
   selector: 'hi-workflow-dag',
   templateUrl: './workflow-dag.component.html',
-  styleUrls: ['./workflow-dag.component.scss']
+  styleUrls: ['./workflow-dag.component.scss'],
 })
 export class WorkflowDagComponent implements OnInit, AfterViewInit {
-
   @Input()
   workflow: Workflow;
   curve: any = shape.curveLinear;
   view = [800, 600];
   data = {
     nodes: [],
-    links: []
+    links: [],
   };
   jobNameToId = {};
 
-  @ViewChild('graph')
+  @ViewChild('graph', { static: true })
   graph;
 
-  constructor(protected el:ElementRef) { }
+  constructor(protected el: ElementRef) {}
 
   ngOnInit() {
     this.loadJobs();
@@ -45,17 +51,17 @@ export class WorkflowDagComponent implements OnInit, AfterViewInit {
         id: newId,
         label: job.name,
         description: job.rawName,
-        state: job.state
+        state: job.state,
       });
       this.jobNameToId[job.name] = newId;
     });
 
     // process edges/links
     _.forEach(this.workflow.jobs, (job: Job) => {
-      _.forEach(job.parents, parentName => {
+      _.forEach(job.parents, (parentName) => {
         this.data.links.push({
           source: this.jobNameToId[parentName],
-          target: this.jobNameToId[job.name]
+          target: this.jobNameToId[job.name],
         });
       });
     });

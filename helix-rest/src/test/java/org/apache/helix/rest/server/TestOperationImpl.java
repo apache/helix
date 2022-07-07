@@ -49,8 +49,7 @@ public class TestOperationImpl implements OperationInterface {
 
   @Override
   public MaintenanceManagementInstanceInfo operationCheckForFreeSingleInstance(String instanceName, Map<String, String> operationConfig, RestSnapShot sn) {
-    return new MaintenanceManagementInstanceInfo(
-        MaintenanceManagementInstanceInfo.OperationalStatus.SUCCESS);
+    return null;
   }
 
   @Override

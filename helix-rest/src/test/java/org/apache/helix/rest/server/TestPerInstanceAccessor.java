@@ -193,6 +193,24 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailure")
+  public void testTakeInstanceOperationCheckFailureCommonInput() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
+        + "\"operation_config\": { \"OperationConfigSharedInput\" :"
+        + " {\"instance0\": true, \"instance2\": true, "
+        + "\"instance3\": true, \"instance4\": true, \"instance5\": true, "
+        + " \"value\" : \"i001\", \"list_value\" : [\"list1\"]}}} ";
+    Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
+        .format(STOPPABLE_CLUSTER, "instance0")
+        .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
+    String takeInstanceResult = response.readEntity(String.class);
+
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
+    Assert.assertFalse((boolean)actualMap.get("successful"));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailureCommonInput")
   public void testTakeInstanceOperationCheckFailureNonBlocking() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
@@ -385,6 +403,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(),
         "");
 
+    // We should see no instance disable related field in to clusterConfig
+    ClusterConfig cls = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    Assert.assertFalse(cls.getRecord().getMapFields()
+        .containsKey(ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name()));
+
     // disable instance with no reason input
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=disable")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
@@ -396,6 +419,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     Assert.assertTrue(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
+
+    // Disable instance should see no field write to clusterConfig
+    cls = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    Assert.assertFalse(cls.getRecord().getMapFields()
+        .containsKey(ClusterConfig.ClusterConfigProperty.DISABLED_INSTANCES.name()));
 
     // AddTags
     List<String> tagList = ImmutableList.of("tag3", "tag1", "tag2");

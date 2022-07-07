@@ -3,17 +3,16 @@ import { Component, Input } from '@angular/core';
 @Component({
   selector: 'hi-detail-header',
   templateUrl: './detail-header.component.html',
-  styleUrls: ['./detail-header.component.scss']
+  styleUrls: ['./detail-header.component.scss'],
 })
 export class DetailHeaderComponent {
-
   @Input() cluster;
   @Input() resource;
   @Input() instance;
   @Input() controller;
   @Input() workflow;
 
-  constructor() { }
+  constructor() {}
 
   isSecondary() {
     return this.controller || this.instance || this.resource || this.workflow;
@@ -34,5 +33,4 @@ export class DetailHeaderComponent {
     }
     return 'cluster';
   }
-
 }

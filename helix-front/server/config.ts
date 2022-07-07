@@ -1,7 +1,9 @@
 export const HELIX_ENDPOINTS = {
-  helix: [{
-    default: 'http://localhost:8100/admin/v2'
-  }]
+  helix: [
+    {
+      default: 'http://localhost:8100/admin/v2',
+    },
+  ],
 };
 
 export const SESSION_STORE = undefined;
@@ -11,12 +13,12 @@ export const SSL = {
   keyfile: '',
   certfile: '',
   passfile: '',
-  cafiles: []
+  cafiles: [],
 };
 
 export const LDAP = {
   uri: 'ldap://example.com',
   base: 'DC=example,DC=com',
   principalSuffix: '@example.com',
-  adminGroup: 'admin'
+  adminGroup: 'admin',
 };

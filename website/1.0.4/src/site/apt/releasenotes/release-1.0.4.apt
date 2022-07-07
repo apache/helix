@@ -1,0 +1,87 @@
+ -----
+ Release Notes for Apache Helix 1.0.4
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 1.0.4
+
+  The Apache Helix team would like to announce the release of Apache Helix 1.0.4.
+
+  This is the tweenty fifth release under the Apache umbrella, and the tweenty first as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+
+  In this release, Helix provides several performance improvements for rebalance pipeline:
+
+[]
+
+* Key Note for Helix Release
+
+** View Aggregator Support
+
+  The new feature support cross clusters' view aggregation into view cluster to avoid users establish multiple connections to different clusters.
+
+[]
+
+* Detailed Changes
+
+** Bug Fixes
+
+    * Fixed size history for Scheduled Workflow tasks (#2036)
+
+    * fix bug where generateJobList would iterate until the parallelism is reached #2065
+
+    * Fixed website deployment and bump up corresponding dependencies
+
+    * Do not proceed with cluster creation if addCluster() fails. (#2068) 
+
+** Improvements
+
+    * Issue #1970: allow clients to prevent HelixProperty from cloning the ZNRecord #2072
+
+    * Fix issue #2117: improve efficiency of ClusterStatusMonitor and PerInstanceResourceMonitor, plus misc code cleanup (#2118)
+
+    * support common input for operational input on Maintenance Management API #2055
+
+    * MaintenanceManagementService improvement - Allow implementation of OperationInterface to return null #2035
+
+    * Allow using passed in connection config when reading cloud config (#2099)
+
+    * Replace non-inclusive terms in tutorial.md (#2039)
+
+    * [issue-1728] upgrade guava due to cve (#2042)
+
+    * upgrade jackson to 2.12.6.1 due to cve (#2043)
+
+    * [issue-1727] upgrade to commons-io 2.11.0 due to cve (#2040)
+
+    * upgrade snakeyaml to v1.30 due to cve (#2041)
+
+    * move to Apache Analytics(Matomo) 
+
+    * Bump up helix front from 5 to 13 for angular JS.
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

@@ -31,7 +31,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -83,37 +82,6 @@ public class InstanceValidationUtil {
 
   }
 
-  public static String getInstanceHelixDisabledType(HelixDataAccessor dataAccessor,
-      String instanceName) {
-    PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
-    ClusterConfig clusterConfig = dataAccessor.getProperty(propertyKeyBuilder.clusterConfig());
-    if (clusterConfig == null) {
-      throw new HelixException("ClusterConfig is NULL");
-    }
-
-    String instanceDisabledTypeBatchedMode =
-        clusterConfig.getPlainInstanceHelixDisabledType(instanceName);
-    if (instanceDisabledTypeBatchedMode != null) {
-      return InstanceConstants.InstanceDisabledType.valueOf(instanceDisabledTypeBatchedMode)
-          .toString();
-    }
-    // TODO deprecate reading instance level config once migrated the enable status to cluster config only
-    InstanceConfig instanceConfig =
-        dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instanceName));
-    if (instanceConfig == null) {
-      throw new HelixException("InstanceConfig is NULL");
-    }
-
-    if (isInstanceEnabled(instanceConfig, clusterConfig)) {
-      return InstanceConstants.INSTANCE_NOT_DISABLED;
-    }
-    // It is possible that an instance is set disabled in cluster config but not in instance config.
-    // This instance is considered disabled. We should return a default disabled type.
-    return instanceConfig.getInstanceEnabled()
-        ? InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString()
-        : instanceConfig.getInstanceDisabledType();
-  }
-
   /**
    * Check if the instance is enabled by configuration
    * @param instanceConfig
@@ -125,7 +93,9 @@ public class InstanceValidationUtil {
       throw new HelixException("InstanceConfig is NULL");
     }
     boolean enabledInInstanceConfig = instanceConfig.getInstanceEnabled();
-    if (clusterConfig == null) {
+    // TODO: batch enable/disable in cluster config is breaking backward compatibility with older library
+    // re-enable once batch enable/disable is ready
+    if (true || clusterConfig == null) {
       return enabledInInstanceConfig;
     }
     boolean enabledInClusterConfig =

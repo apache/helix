@@ -1,5 +1,5 @@
 import { TestBed, inject } from '@angular/core/testing';
-import { HttpModule } from '@angular/http';
+import { HttpClientModule } from '@angular/common/http';
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { HistoryService } from './history.service';
@@ -7,8 +7,8 @@ import { HistoryService } from './history.service';
 describe('HistoryService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpModule, RouterTestingModule],
-      providers: [HistoryService]
+      imports: [HttpClientModule, RouterTestingModule],
+      providers: [HistoryService],
     });
   });
 

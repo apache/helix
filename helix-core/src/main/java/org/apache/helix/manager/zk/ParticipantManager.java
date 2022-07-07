@@ -351,7 +351,7 @@ public class ParticipantManager {
 
     ParticipantHistory history = getHistory();
     history.reportOnline(_sessionId, _manager.getVersion());
-    persistHistory(history);
+    persistHistory(history, false);
   }
 
   /**
@@ -494,15 +494,16 @@ public class ParticipantManager {
   private ParticipantHistory getHistory() {
     PropertyKey propertyKey = _keyBuilder.participantHistory(_instanceName);
     ParticipantHistory history = _dataAccessor.getProperty(propertyKey);
-    if (history == null) {
-      history = new ParticipantHistory(_instanceName);
-    }
-    return history;
+    return history == null ? new ParticipantHistory(_instanceName) : history;
   }
 
-  private void persistHistory(ParticipantHistory history) {
+  private void persistHistory(ParticipantHistory history, boolean skipOnEmptyPath) {
     PropertyKey propertyKey = _keyBuilder.participantHistory(_instanceName);
-    if (!_dataAccessor.setProperty(propertyKey, history)) {
+    boolean result = skipOnEmptyPath
+        ? _dataAccessor.updateProperty(
+            propertyKey, currentData -> (currentData == null) ? null : history.getRecord(), history)
+        : _dataAccessor.setProperty(propertyKey, history);
+    if (!result) {
       LOG.error("Failed to persist participant history to zk!");
     }
   }
@@ -514,7 +515,7 @@ public class ParticipantManager {
     try {
       ParticipantHistory history = getHistory();
       history.reportOffline();
-      persistHistory(history);
+      persistHistory(history, true);
     } catch (Exception e) {
       LOG.error("Failed to report participant offline.", e);
     }

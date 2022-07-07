@@ -26,18 +26,21 @@
 !.vscode/extensions.json
 
 # misc
+/.angular/cache
 /.sass-cache
 /connect.lock
 /coverage
 /libpeerconnection.log
+package-lock.json
 npm-debug.log
+yarn-error.log
 testem.log
 /typings
 /node
 
-# e2e
-/e2e/*.js
-/e2e/*.map
+# tests
+/cypress/*.js
+/cypress/*.map
 
 # System Files
 .DS_Store

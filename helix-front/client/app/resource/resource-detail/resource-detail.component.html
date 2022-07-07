@@ -20,30 +20,62 @@
 <section>
   <mat-toolbar class="mat-elevation-z1">
     <mat-toolbar-row>
-      <hi-detail-header [cluster]="clusterName" [resource]="resourceName"></hi-detail-header>
-      <hi-disabled-label *ngIf="!isLoading && !resource.online" text="OFFLINE"></hi-disabled-label>
-      <hi-disabled-label *ngIf="!isLoading && !resource.enabled" text="DISABLED"></hi-disabled-label>
+      <hi-detail-header
+        [cluster]="clusterName"
+        [resource]="resourceName"
+      ></hi-detail-header>
+      <hi-disabled-label
+        *ngIf="!isLoading && !resource.online"
+        text="OFFLINE"
+      ></hi-disabled-label>
+      <hi-disabled-label
+        *ngIf="!isLoading && !resource.enabled"
+        text="DISABLED"
+      ></hi-disabled-label>
     </mat-toolbar-row>
     <mat-toolbar-row class="information">
       <a mat-mini-fab routerLink="../"><mat-icon>arrow_back</mat-icon></a>
       <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>
       <hi-key-value-pairs *ngIf="!isLoading" [obj]="resource">
-        <hi-key-value-pair name="Ideal State Mode" prop="idealStateMode"></hi-key-value-pair>
-        <hi-key-value-pair name="Rebalance Mode" prop="rebalanceMode"></hi-key-value-pair>
-        <hi-key-value-pair name="State Model" prop="stateModel"></hi-key-value-pair>
-        <hi-key-value-pair name="Ideal Partitions" prop="partitionCount"></hi-key-value-pair>
-        <hi-key-value-pair name="Replication Factor" prop="replicaCount"></hi-key-value-pair>
+        <hi-key-value-pair
+          name="Ideal State Mode"
+          prop="idealStateMode"
+        ></hi-key-value-pair>
+        <hi-key-value-pair
+          name="Rebalance Mode"
+          prop="rebalanceMode"
+        ></hi-key-value-pair>
+        <hi-key-value-pair
+          name="State Model"
+          prop="stateModel"
+        ></hi-key-value-pair>
+        <hi-key-value-pair
+          name="Ideal Partitions"
+          prop="partitionCount"
+        ></hi-key-value-pair>
+        <hi-key-value-pair
+          name="Replication Factor"
+          prop="replicaCount"
+        ></hi-key-value-pair>
       </hi-key-value-pairs>
       <span fxFlex="1 1 auto"></span>
       <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">
         <mat-icon>menu</mat-icon>
       </button>
       <mat-menu #menu="matMenu">
-        <button mat-menu-item *ngIf="resource && resource.enabled" (click)="disableResource()">
+        <button
+          mat-menu-item
+          *ngIf="resource && resource.enabled"
+          (click)="disableResource()"
+        >
           <mat-icon>not_interested</mat-icon>
           <span>Disable this Resource</span>
         </button>
-        <button mat-menu-item *ngIf="resource && !resource.enabled" (click)="enableResource()">
+        <button
+          mat-menu-item
+          *ngIf="resource && !resource.enabled"
+          (click)="enableResource()"
+        >
           <mat-icon>play_circle_outline</mat-icon>
           <span>Enable this Resource</span>
         </button>
@@ -55,11 +87,14 @@
     </mat-toolbar-row>
   </mat-toolbar>
   <nav mat-tab-nav-bar>
-    <a mat-tab-link
+    <a
+      mat-tab-link
       *ngFor="let tabLink of tabLinks"
       [routerLink]="tabLink.link"
-      routerLinkActive #rla="routerLinkActive"
-      [active]="rla.isActive">
+      routerLinkActive
+      #rla="routerLinkActive"
+      [active]="rla.isActive"
+    >
       {{ tabLink.label }}
     </a>
   </nav>

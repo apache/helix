@@ -282,7 +282,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     // read cloud config from ZK and set cloudConfig in HelixManagerProperty
     _helixManagerProperty = helixManagerProperty;
     _helixManagerProperty.getHelixCloudProperty().populateFieldsWithCloudConfig(
-        HelixPropertyFactory.getCloudConfig(_zkAddress, _clusterName));
+        HelixPropertyFactory.getCloudConfig(_zkAddress, _clusterName,
+            helixManagerProperty.getZkConnectionConfig()));
 
     /**
      * use system property if available
@@ -832,7 +833,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
         _cloudEventListener =
             new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
-        CloudEventHandlerFactory.getInstance().registerCloudEventListener(_cloudEventListener);
+        CloudEventHandlerFactory.getInstance(
+            _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+            .registerCloudEventListener(_cloudEventListener);
+        LOG.info("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
       }
     }
   }
@@ -881,7 +885,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _helixPropertyStore = null;
 
       if (_cloudEventListener != null) {
-        CloudEventHandlerFactory.getInstance().unregisterCloudEventListener(_cloudEventListener);
+        try {
+          CloudEventHandlerFactory.getInstance(
+              _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+              .unregisterCloudEventListener(_cloudEventListener);
+        } catch (Exception e) {
+          LOG.error("Failed to unregister cloudEventListener.", e);
+        }
         _cloudEventListener = null;
       }
 

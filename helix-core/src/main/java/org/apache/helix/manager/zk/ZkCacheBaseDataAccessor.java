@@ -38,6 +38,7 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -225,6 +226,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   @Override
   public boolean create(String path, T data, int options) {
+    return create(path, data, options, ZkClient.TTL_NOT_SET);
+  }
+
+  @Override
+  public boolean create(String path, T data, int options, long ttl) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
@@ -233,7 +239,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       try {
         cache.lockWrite();
         ZkBaseDataAccessor<T>.AccessResult result =
-            _baseAccessor.doCreate(serverPath, data, options);
+            _baseAccessor.doCreate(serverPath, data, options, ttl);
         boolean success = (result._retCode == RetCode.OK);
 
         updateCache(cache, result._pathCreated, success, serverPath, data, ZNode.ZERO_STAT);
@@ -245,7 +251,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
 
     // no cache
-    return _baseAccessor.create(serverPath, data, options);
+    return _baseAccessor.create(serverPath, data, options, ttl);
   }
 
   @Override
@@ -426,6 +432,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   @Override
   public boolean[] createChildren(List<String> paths, List<T> records, int options) {
+    return createChildren(paths, records, options, ZkClient.TTL_NOT_SET);
+  }
+
+  @Override
+  public boolean[] createChildren(List<String> paths, List<T> records, int options, long ttl) {
     final int size = paths.size();
     List<String> serverPaths = prependChroot(paths);
 
@@ -438,7 +449,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         List<List<String>> pathsCreatedList =
             new ArrayList<List<String>>(Collections.<List<String>>nCopies(size, null));
         ZkAsyncCallbacks.CreateCallbackHandler[] createCbList =
-            _baseAccessor.create(serverPaths, records, needCreate, pathsCreatedList, options);
+            _baseAccessor.create(serverPaths, records, needCreate, pathsCreatedList, options, ttl);
 
         boolean[] success = new boolean[size];
         for (int i = 0; i < size; i++) {
@@ -456,7 +467,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
 
     // no cache
-    return _baseAccessor.createChildren(serverPaths, records, options);
+    return _baseAccessor.createChildren(serverPaths, records, options, ttl);
   }
 
   @Override

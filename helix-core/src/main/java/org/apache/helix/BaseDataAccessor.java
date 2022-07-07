@@ -44,6 +44,18 @@ public interface BaseDataAccessor<T> {
   boolean create(String path, T record, int options);
 
   /**
+   * This will always attempt to create the znode, if it exists it will return false. Will
+   * create parents if they do not exist. For performance reasons, it may try to create
+   * child first and only if it fails it will try to create parents
+   * @param path path to the ZNode to create
+   * @param record the data to write to the ZNode
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
+   * @param ttl TTL of the node in milliseconds, if options supports it
+   * @return true if creation succeeded, false otherwise (e.g. if the ZNode exists)
+   */
+  boolean create(String path, T record, int options, long ttl);
+
+  /**
    * This will always attempt to set the data on existing node. If the ZNode does not
    * exist it will create it and all its parents ZNodes if necessary
    * @param path path to the ZNode to set
@@ -94,6 +106,17 @@ public interface BaseDataAccessor<T> {
    * @return For each child: true if creation succeeded, false otherwise (e.g. if the child exists)
    */
   boolean[] createChildren(List<String> paths, List<T> records, int options);
+
+  /**
+   * Use it when creating children under a parent node. This will use async api for better
+   * performance. If the child already exists it will return false.
+   * @param paths the paths to the children ZNodes
+   * @param records List of data to write to each of the path
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
+   * @param ttl TTL of the node in milliseconds, if options supports it
+   * @return For each child: true if creation succeeded, false otherwise (e.g. if the child exists)
+   */
+  boolean[] createChildren(List<String> paths, List<T> records, int options, long ttl);
 
   /**
    * can set multiple children under a parent node. This will use async api for better

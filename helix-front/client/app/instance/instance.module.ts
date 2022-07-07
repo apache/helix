@@ -9,17 +9,8 @@ import { InstanceListComponent } from './instance-list/instance-list.component';
 import { InstanceDetailComponent } from './instance-detail/instance-detail.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    NgxDatatableModule,
-    SharedModule
-  ],
-  declarations: [
-    InstanceListComponent,
-    InstanceDetailComponent
-  ],
-  providers: [
-    InstanceService
-  ]
+  imports: [CommonModule, NgxDatatableModule, SharedModule],
+  declarations: [InstanceListComponent, InstanceDetailComponent],
+  providers: [InstanceService],
 })
-export class InstanceModule { }
+export class InstanceModule {}

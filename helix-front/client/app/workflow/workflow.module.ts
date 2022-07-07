@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
-import { NgxGraphModule } from 'ngx-dag';
+import { NgxGraphModule } from '@swimlane/ngx-graph';
 
 import { WorkflowListComponent } from './workflow-list/workflow-list.component';
 import { WorkflowService } from './shared/workflow.service';
@@ -20,18 +20,15 @@ import { JobDetailComponent } from './job-detail/job-detail.component';
     SharedModule,
     NgxDatatableModule,
     NgxChartsModule,
-    NgxGraphModule
+    NgxGraphModule,
   ],
-  providers: [
-    WorkflowService,
-    JobService
-  ],
+  providers: [WorkflowService, JobService],
   declarations: [
     WorkflowListComponent,
     WorkflowDetailComponent,
     WorkflowDagComponent,
     JobListComponent,
-    JobDetailComponent
-  ]
+    JobDetailComponent,
+  ],
 })
-export class WorkflowModule { }
+export class WorkflowModule {}

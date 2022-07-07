@@ -26,27 +26,45 @@
     [rowHeight]="rowHeight"
     columnMode="force"
     [rows]="rows"
-    [sorts]="sorts">
-    <ngx-datatable-column name="Date (GMT)" prop="date" [width]="240" [canAutoResize]="false"></ngx-datatable-column>
-    <ngx-datatable-column name="Epoch Time" prop="time" [width]="200" [canAutoResize]="false">
+    [sorts]="sorts"
+  >
+    <ngx-datatable-column
+      name="Date (GMT)"
+      prop="date"
+      [width]="240"
+      [canAutoResize]="false"
+    ></ngx-datatable-column>
+    <ngx-datatable-column
+      name="Epoch Time"
+      prop="time"
+      [width]="200"
+      [canAutoResize]="false"
+    >
       <ng-template let-value="value" ngx-datatable-cell-template>
         <span matTooltip="Local time: {{ value | date: 'medium' }}">
           {{ value }}
         </span>
-        <button mat-icon-button
+        <button
+          mat-icon-button
           matTooltip="Copy to clipboard"
-          ngxClipboard [cbContent]="value">
+          ngxClipboard
+          [cbContent]="value"
+        >
           <mat-icon>content_copy</mat-icon>
         </button>
       </ng-template>
     </ngx-datatable-column>
-    <ngx-datatable-column name="Controller"
+    <ngx-datatable-column
+      name="Controller"
       *ngIf="isController"
-      [cellClass]="bindFunc(getControllerCellClass, this)">
+      [cellClass]="bindFunc(getControllerCellClass, this)"
+    >
     </ngx-datatable-column>
-    <ngx-datatable-column name="Session"
+    <ngx-datatable-column
+      name="Session"
       *ngIf="!isController"
-      [cellClass]="bindFunc(getSessionCellClass, this)">
+      [cellClass]="bindFunc(getSessionCellClass, this)"
+    >
     </ngx-datatable-column>
   </ngx-datatable>
 </section>

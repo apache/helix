@@ -1,37 +1,31 @@
+import { catchError } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
-import { Headers, Http, Response } from '@angular/http';
+import { HttpHeaders, HttpClient, HttpResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 
 import { Settings } from './settings';
 
 @Injectable()
 export class UserService {
+  constructor(protected router: Router, private http: HttpClient) {}
 
-  constructor(
-    protected router: Router,
-    private http: Http
-  ) { }
-
-  public getCurrentUser(): Observable<string> {
+  public getCurrentUser(): Observable<unknown> {
     return this.http
-      .get(`${ Settings.userAPI }/current`, { headers: this.getHeaders() })
-      .map(response => response.json())
-      .catch(_ => _);
+      .get(`${Settings.userAPI}/current`, { headers: this.getHeaders() })
+      .pipe(catchError((_) => _));
   }
 
-  public login(username: string, password: string): Observable<boolean> {
-    return this.http
-      .post(
-        `${ Settings.userAPI }/login`,
-        { username: username, password: password },
-        { headers: this.getHeaders() }
-      )
-      .map(response => response.json());
+  public login(username: string, password: string): Observable<object> {
+    return this.http.post(
+      `${Settings.userAPI}/login`,
+      { username, password },
+      { headers: this.getHeaders() }
+    );
   }
 
   protected getHeaders() {
-    let headers = new Headers();
+    const headers = new HttpHeaders();
     headers.append('Accept', 'application/json');
     headers.append('Content-Type', 'application/json');
     return headers;

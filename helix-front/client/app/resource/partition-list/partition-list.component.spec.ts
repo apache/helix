@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { TestingModule } from '../../../testing/testing.module';
@@ -9,21 +9,16 @@ describe('PartitionListComponent', () => {
   let component: PartitionListComponent;
   let fixture: ComponentFixture<PartitionListComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        TestingModule
-      ],
-      providers: [
-        ResourceService
-      ],
-      declarations: [ PartitionListComponent ],
+      imports: [TestingModule],
+      providers: [ResourceService],
+      declarations: [PartitionListComponent],
       schemas: [
         /* avoid importing modules */
-        NO_ERRORS_SCHEMA
-      ]
-    })
-    .compileComponents();
+        NO_ERRORS_SCHEMA,
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

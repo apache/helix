@@ -18,8 +18,12 @@
   -->
 
 <section>
-  <mat-form-field *ngIf="editing" class="full-width {{ hasError() ? 'error' : ''}}">
-    <input matInput
+  <mat-form-field
+    *ngIf="editing"
+    class="full-width {{ hasError() ? 'error' : '' }}"
+  >
+    <input
+      matInput
       #inputControl
       [min]="min"
       [max]="max"
@@ -33,17 +37,19 @@
       [name]="value"
       [(ngModel)]="value"
       [type]="type"
-      [placeholder]="label" />
+      [placeholder]="label"
+    />
     <mat-hint *ngIf="hasError()" align="start">{{ errorLabel }}</mat-hint>
     <mat-hint align="end">press ESC to cancel</mat-hint>
   </mat-form-field>
   <section *ngIf="!editing">
     <div
-      class="inline-edit {{hasError() ? 'error': ''}}"
+      class="inline-edit {{ hasError() ? 'error' : '' }}"
       [matTooltip]="editLabel"
       (click)="edit(value)"
       (focus)="edit(value)"
-      tabindex="0">
+      tabindex="0"
+    >
       <span *ngIf="value.length">{{ value }}</span>
       <span *ngIf="!value.length" class="empty-value">( Empty )</span>
     </div>

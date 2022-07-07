@@ -303,20 +303,6 @@ public interface HelixAdmin {
   void enableInstance(String clusterName, List<String> instances, boolean enabled);
 
   /**
-   * Batch enable/disable instances in a cluster
-   * By default, all the instances are enabled
-   * @param clusterName
-   * @param instances
-   * @param enabled
-   * @param disabledType disabledType for disable operation. It is ignored when enabled is true.
-   *                     Existing disabledType will be over write if instance is in disabled state.
-   * @param reason human readable string explaining disabled reason. Ignored when enabled is true.
-   *               Existing disabled reason will be over write if instance is in disabled state.
-   */
-  void enableInstance(String clusterName, List<String> instances, boolean enabled,
-      InstanceConstants.InstanceDisabledType disabledType, String reason);
-
-  /**
    * Disable or enable a resource
    * @param clusterName
    * @param resourceName

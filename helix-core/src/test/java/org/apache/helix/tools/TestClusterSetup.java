@@ -26,6 +26,7 @@ import java.util.List;
 
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
@@ -53,6 +54,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestClusterSetup extends ZkUnitTestBase {
   protected static final String CLUSTER_NAME = "TestClusterSetup";
@@ -517,6 +522,28 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertEquals(listUrlFromZk.get(0), "TestURL");
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessorName");
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
+  }
+
+  @Test(dependsOnMethods = "testAddClusterWithInvalidCloudConfig",
+      expectedExceptions = HelixException.class)
+  public void testAddClusterWithFailure() throws Exception {
+    HelixAdmin admin = mock(HelixAdmin.class);
+    when(admin.addCluster(anyString(), anyBoolean())).thenReturn(Boolean.FALSE);
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    CloudConfig.Builder cloudConfigInitBuilder = new CloudConfig.Builder();
+    cloudConfigInitBuilder.setCloudEnabled(true);
+    List<String> sourceList = new ArrayList<String>();
+    sourceList.add("TestURL");
+    cloudConfigInitBuilder.setCloudInfoSources(sourceList);
+    cloudConfigInitBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
+
+    CloudConfig cloudConfigInit = cloudConfigInitBuilder.build();
+
+    // Since setCloudInfoProcessorName is missing, this add cluster call will throw an exception
+    _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
   }
 
   @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")

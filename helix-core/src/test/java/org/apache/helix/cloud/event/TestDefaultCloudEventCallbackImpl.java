@@ -30,8 +30,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
-  private final DefaultCloudEventCallbackImpl _impl =
-      DefaultCloudEventCallbackImpl.class.newInstance();
+  private final DefaultCloudEventCallbackImpl _impl = new DefaultCloudEventCallbackImpl();
   private MockParticipantManager _instanceManager;
   private HelixAdmin _admin;
 
@@ -62,16 +61,16 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
     _impl.disableInstance(_instanceManager, null);
     Assert.assertFalse(InstanceValidationUtil
         .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
-    Assert.assertEquals(InstanceValidationUtil
-            .getInstanceHelixDisabledType(_manager.getHelixDataAccessor(),
-                _instanceManager.getInstanceName()),
+    Assert.assertEquals(_manager.getConfigAccessor()
+            .getInstanceConfig(CLUSTER_NAME, _instanceManager.getInstanceName())
+            .getInstanceDisabledType(),
         InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
 
     _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), false,
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
   }
 
-  @Test(dependsOnMethods = "testDisableInstance")
+  @Test (dependsOnMethods = "testDisableInstance")
   public void testEnableInstance() {
     Assert.assertFalse(InstanceValidationUtil
         .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
@@ -93,21 +92,19 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
   public void testEnterMaintenanceMode() {
     Assert.assertFalse(_admin.isInMaintenanceMode(CLUSTER_NAME));
     _impl.enterMaintenanceMode(_instanceManager, null);
+    _impl.disableInstance(_instanceManager, null);
     Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
   }
 
-  @Test(dependsOnMethods = "testEnterMaintenanceMode")
+  @Test (dependsOnMethods = "testEnterMaintenanceMode")
   public void testExitMaintenanceMode() {
     Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
     // Should not exit maintenance mode if there is remaining live instance that is disabled due to cloud event
-    _admin.enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false,
-        InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
     _impl.exitMaintenanceMode(_instanceManager, null);
     Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
 
     // Should exit maintenance mode if there is no remaining live instance that is disabled due to cloud event
-    _admin.enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false,
-        InstanceConstants.InstanceDisabledType.USER_OPERATION, null);
+    _impl.enableInstance(_instanceManager, null);
     _impl.exitMaintenanceMode(_instanceManager, null);
     Assert.assertFalse(_admin.isInMaintenanceMode(CLUSTER_NAME));
   }

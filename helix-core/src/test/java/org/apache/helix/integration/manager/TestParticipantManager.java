@@ -37,14 +37,16 @@ import javax.management.ObjectName;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
@@ -101,8 +103,13 @@ public class TestParticipantManager extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     String instanceName = "localhost_12918";
-    HelixManager participant =
-        new ZKHelixManager(_clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
+    int resetTimeout = 300;
+    HelixManagerProperty helixManagerProperty = new HelixManagerProperty.Builder()
+        .setMsgHandlerResetTimeout(resetTimeout)
+        .build();
+    HelixManager participant = HelixManagerFactory.getZKHelixManager(
+        _clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR, null, helixManagerProperty);
+    Assert.assertEquals(((DefaultMessagingService) participant.getMessagingService()).getMsgResetTimeout(), resetTimeout);
     participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
         new MockMSModelFactory());
     participant.connect();

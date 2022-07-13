@@ -265,7 +265,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _version = _properties.getVersion();
 
     _keyBuilder = new Builder(clusterName);
-    _messagingService = new DefaultMessagingService(this);
+    _messagingService = new DefaultMessagingService(this, helixManagerProperty.getMsgHandlerResetTimeout());
     try {
       _callbackMonitors = new HashMap<>();
       for (ChangeType changeType : ChangeType.values()) {

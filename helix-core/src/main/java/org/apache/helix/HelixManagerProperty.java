@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.util.Properties;
 
+import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ public class HelixManagerProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixManagerProperty.class.getName());
   private String _version;
   private long _healthReportLatency;
+  private int _msgHandlerResetTimeout = TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS;
   private HelixCloudProperty _helixCloudProperty;
   private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
   private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
@@ -54,12 +56,13 @@ public class HelixManagerProperty {
         helixManagerProperties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
   }
 
-  private HelixManagerProperty(String version, long healthReportLatency,
+  private HelixManagerProperty(String version, long healthReportLatency, int msgHandlerResetTimeout,
       HelixCloudProperty helixCloudProperty,
       RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
     _version = version;
     _healthReportLatency = healthReportLatency;
+    _msgHandlerResetTimeout = msgHandlerResetTimeout;
     _helixCloudProperty = helixCloudProperty;
     _zkConnectionConfig = zkConnectionConfig;
     _zkClientConfig = zkClientConfig;
@@ -80,6 +83,10 @@ public class HelixManagerProperty {
     return _healthReportLatency;
   }
 
+  public int getMsgHandlerResetTimeout() {
+    return _msgHandlerResetTimeout;
+  }
+
   public RealmAwareZkClient.RealmAwareZkConnectionConfig getZkConnectionConfig() {
     return _zkConnectionConfig;
   }
@@ -94,12 +101,13 @@ public class HelixManagerProperty {
     private HelixCloudProperty _helixCloudProperty;
     private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
     private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
+    private int _msgHandlerResetTimeout;
 
     public Builder() {
     }
 
     public HelixManagerProperty build() {
-      return new HelixManagerProperty(_version, _healthReportLatency, _helixCloudProperty,
+      return new HelixManagerProperty(_version, _healthReportLatency, _msgHandlerResetTimeout, _helixCloudProperty,
           _zkConnectionConfig, _zkClientConfig);
     }
 
@@ -127,6 +135,11 @@ public class HelixManagerProperty {
     public Builder setRealmAwareZkClientConfig(
         RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
       _zkClientConfig = zkClientConfig;
+      return this;
+    }
+
+    public Builder setMsgHandlerResetTimeout(int msgHandlerResetTimeout) {
+      _msgHandlerResetTimeout = msgHandlerResetTimeout;
       return this;
     }
   }

@@ -144,8 +144,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private static final int SESSION_SYNC_INTERVAL = 2000; // 2 seconds
   private static final String SESSION_SYNC = "SESSION-SYNC";
 
-  private static final int DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS = 200; // 200 ms
-
   /**
    * Map of MsgType->MsgHandlerFactoryRegistryItem
    */

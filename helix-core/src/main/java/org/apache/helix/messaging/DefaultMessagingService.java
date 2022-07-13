@@ -38,6 +38,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -49,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DefaultMessagingService implements ClusterMessagingService {
+  private final int _resetTimeoutMs;
   private final HelixManager _manager;
   private final CriteriaEvaluator _evaluator;
   private final HelixTaskExecutor _taskExecutor;
@@ -60,6 +62,10 @@ public class DefaultMessagingService implements ClusterMessagingService {
       new ConcurrentHashMap<>();
 
   public DefaultMessagingService(HelixManager manager) {
+    this(manager, TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS);
+  }
+
+  public DefaultMessagingService(HelixManager manager, int resetTimeoutMs) {
     _manager = manager;
     _evaluator = new CriteriaEvaluator();
 
@@ -72,8 +78,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
         new ParticipantStatusMonitor(isParticipant, manager.getInstanceName()),
         new MessageQueueMonitor(manager.getClusterName(), manager.getInstanceName()));
     _asyncCallbackService = new AsyncCallbackService();
-    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.name(),
-        _asyncCallbackService);
+    _taskExecutor.registerMessageHandlerFactory(_asyncCallbackService, TaskExecutor.DEFAULT_PARALLEL_TASKS, resetTimeoutMs);
+    _resetTimeoutMs = resetTimeoutMs;
   }
 
   @Override
@@ -362,5 +368,9 @@ public class DefaultMessagingService implements ClusterMessagingService {
   public int sendAndWait(Criteria recipientCriteria, Message message, AsyncCallback asyncCallback,
       int timeOut) {
     return sendAndWait(recipientCriteria, message, asyncCallback, timeOut, 0);
+  }
+
+  public int getMsgResetTimeout() {
+    return _resetTimeoutMs;
   }
 }

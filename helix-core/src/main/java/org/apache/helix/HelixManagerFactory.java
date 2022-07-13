@@ -62,6 +62,22 @@ public final class HelixManagerFactory {
   }
 
   /**
+   * Construct a zk-based cluster manager that enforces all types (PARTICIPANT, CONTROLLER, and
+   * SPECTATOR) to have a name
+   * @param clusterName
+   * @param instanceName
+   * @param type
+   * @param zkAddr
+   * @param stateListener
+   * @param helixManagerProperty
+   * @return a HelixManager backed by Zookeeper
+   */
+  public static HelixManager getZKHelixManager(String clusterName, String instanceName,
+      InstanceType type, String zkAddr, HelixManagerStateListener stateListener, HelixManagerProperty helixManagerProperty) {
+    return new ZKHelixManager(clusterName, instanceName, type, zkAddr, stateListener, helixManagerProperty);
+  }
+
+  /**
    * Construct a ZkHelixManager using the HelixManagerProperty instance given.
    * HelixManagerProperty given must contain a valid ZkConnectionConfig.
    * @param clusterName

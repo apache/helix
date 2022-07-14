@@ -426,6 +426,18 @@ public class TestMultiZkConectionConfig {
     } catch (HelixException e) {
       // Expected
     }
+    try {
+      // zkAddr and zkConnectionConfig cannot coexist
+      HelixManagerProperty property = new HelixManagerProperty.Builder()
+          .setZkAddr("test-zk")
+          .setRealmAWareZkConnectionConfig(validZkConnectionConfig)
+          .build();
+      HelixManager invalidManager = HelixManagerFactory
+          .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null, property);
+      Assert.fail("Should see a IllegalArgumentException here because zkAddr and zkConnectionConfig cannot coexist");
+    } catch (IllegalArgumentException e) {
+      // Expected
+    }
 
     // Connect as a participant
     HelixManager managerParticipant = HelixManagerFactory

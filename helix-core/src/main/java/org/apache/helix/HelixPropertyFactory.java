@@ -65,9 +65,15 @@ public final class HelixPropertyFactory {
           HELIX_PARTICIPANT_PROPERTY_FILE);
       throw new IllegalArgumentException(errMsg, e);
     }
-    LOG.info("HelixPropertyFactory successfully loaded helix participant properties: {}",
-        properties);
-    return new HelixManagerProperty(properties, cloudConfig);
+    LOG.info("HelixPropertyFactory successfully loaded helix participant properties: {}", properties);
+    return new HelixManagerProperty.Builder()
+        .setVersion(properties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION))
+        .setHelixCloudProperty(new HelixCloudProperty(cloudConfig))
+        .setHealthReportLatency(
+            Long.parseLong(
+                properties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY)))
+        .setZkAddr(zkAddress)
+        .build();
   }
 
   /**

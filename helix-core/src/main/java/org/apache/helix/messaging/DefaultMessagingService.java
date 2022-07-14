@@ -19,6 +19,7 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,7 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DefaultMessagingService implements ClusterMessagingService {
-  private final int _resetTimeoutMs;
+  private final int _taskResetTimeoutMs;
   private final HelixManager _manager;
   private final CriteriaEvaluator _evaluator;
   private final HelixTaskExecutor _taskExecutor;
@@ -65,7 +66,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
     this(manager, TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS);
   }
 
-  public DefaultMessagingService(HelixManager manager, int resetTimeoutMs) {
+  public DefaultMessagingService(HelixManager manager, int taskResetTimeoutMs) {
     _manager = manager;
     _evaluator = new CriteriaEvaluator();
 
@@ -78,8 +79,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
         new ParticipantStatusMonitor(isParticipant, manager.getInstanceName()),
         new MessageQueueMonitor(manager.getClusterName(), manager.getInstanceName()));
     _asyncCallbackService = new AsyncCallbackService();
-    _taskExecutor.registerMessageHandlerFactory(_asyncCallbackService, TaskExecutor.DEFAULT_PARALLEL_TASKS, resetTimeoutMs);
-    _resetTimeoutMs = resetTimeoutMs;
+    _taskExecutor.registerMessageHandlerFactory(_asyncCallbackService, TaskExecutor.DEFAULT_PARALLEL_TASKS, taskResetTimeoutMs);
+    _taskResetTimeoutMs = taskResetTimeoutMs;
   }
 
   @Override
@@ -370,7 +371,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
     return sendAndWait(recipientCriteria, message, asyncCallback, timeOut, 0);
   }
 
-  public int getMsgResetTimeout() {
-    return _resetTimeoutMs;
+  @VisibleForTesting
+  public int getTaskResetTimeout() {
+    return _taskResetTimeoutMs;
   }
 }

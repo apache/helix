@@ -106,10 +106,11 @@ public class TestParticipantManager extends ZkTestBase {
     int resetTimeout = 300;
     HelixManagerProperty helixManagerProperty = new HelixManagerProperty.Builder()
         .setMsgHandlerResetTimeout(resetTimeout)
+        .setZkAddr(ZK_ADDR)
         .build();
     HelixManager participant = HelixManagerFactory.getZKHelixManager(
-        _clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR, null, helixManagerProperty);
-    Assert.assertEquals(((DefaultMessagingService) participant.getMessagingService()).getMsgResetTimeout(), resetTimeout);
+        _clusterName, instanceName, InstanceType.PARTICIPANT, null, helixManagerProperty);
+    Assert.assertEquals(((DefaultMessagingService) participant.getMessagingService()).getTaskResetTimeout(), resetTimeout);
     participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
         new MockMSModelFactory());
     participant.connect();

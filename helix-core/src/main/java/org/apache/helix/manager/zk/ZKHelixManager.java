@@ -31,9 +31,11 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nullable;
 import javax.management.JMException;
 
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -233,12 +235,25 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         HelixPropertyFactory.getInstance().getHelixManagerProperty(zkAddress, clusterName));
   }
 
+  /**
+   * The base constructor for {@link ZKHelixManager}.
+   * Only one of zkAddress or {@link HelixManagerProperty#_zkConnectionConfig} shall be provided, not both.
+   * {@link HelixManagerProperty#_zkAddr} takes higher precedence over zkAddress param, the latter is used if the first
+   * one is null.
+   * Users should use {@link org.apache.helix.HelixManagerFactory} to instantiate instead of using this constructor.
+   * @param clusterName
+   * @param instanceName
+   * @param instanceType
+   * @param zkAddress
+   * @param stateListener
+   * @param helixManagerProperty #_zkConnectionConfig cannot be set if non-null zkAddress is passed in
+   */
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
-      String zkAddress, HelixManagerStateListener stateListener,
+      @Nullable String zkAddress, HelixManagerStateListener stateListener,
       HelixManagerProperty helixManagerProperty) {
     validateZkConnectionSettings(zkAddress, helixManagerProperty);
 
-    _zkAddress = zkAddress;
+    _zkAddress = StringUtils.isEmpty(helixManagerProperty.getZkAddr()) ? zkAddress : helixManagerProperty.getZkAddr();
     _clusterName = clusterName;
     _instanceType = instanceType;
     LOG.info("Create a zk-based cluster manager. ZK connection: " + getZkConnectionInfo()

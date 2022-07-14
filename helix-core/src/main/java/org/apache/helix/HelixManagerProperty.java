@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -33,12 +34,14 @@ import org.slf4j.LoggerFactory;
  */
 public class HelixManagerProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixManagerProperty.class.getName());
-  private String _version;
-  private long _healthReportLatency;
-  private int _msgHandlerResetTimeout = TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS;
+  private final String _version;
+  private final long _healthReportLatency;
+  private final int _msgHandlerResetTimeout;
   private HelixCloudProperty _helixCloudProperty;
-  private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
-  private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
+  // if _zkAddr is set, _zkConnectionConfig cannot be set
+  private final String _zkAddr;
+  private final RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
+  private final RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
 
   /**
    * ** Deprecated - HelixManagerProperty should be a general property/config object used for
@@ -50,18 +53,27 @@ public class HelixManagerProperty {
    */
   @Deprecated
   public HelixManagerProperty(Properties helixManagerProperties, CloudConfig cloudConfig) {
-    _helixCloudProperty = new HelixCloudProperty(cloudConfig);
-    _version = helixManagerProperties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION);
-    _healthReportLatency = Long.parseLong(
-        helixManagerProperties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
+    this(helixManagerProperties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION),
+        Long.parseLong(
+            helixManagerProperties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY)),
+        null, TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS, new HelixCloudProperty(cloudConfig),
+        null, null);
   }
 
-  private HelixManagerProperty(String version, long healthReportLatency, int msgHandlerResetTimeout,
+  private HelixManagerProperty(String version, long healthReportLatency, String zkAddr, int msgHandlerResetTimeout,
       HelixCloudProperty helixCloudProperty,
       RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
+    if (StringUtils.isNotEmpty(zkAddr)) {
+      if (zkConnectionConfig != null) {
+        throw new IllegalArgumentException("Cannot have both zkAddress and ZkConnectionConfig set!");
+      }
+    } else if (zkConnectionConfig == null) {
+      LOG.warn("Neither of zkAddr and zkConnectionConfig is specified.");
+    }
     _version = version;
     _healthReportLatency = healthReportLatency;
+    _zkAddr = zkAddr;
     _msgHandlerResetTimeout = msgHandlerResetTimeout;
     _helixCloudProperty = helixCloudProperty;
     _zkConnectionConfig = zkConnectionConfig;
@@ -73,6 +85,10 @@ public class HelixManagerProperty {
       _helixCloudProperty = new HelixCloudProperty(new CloudConfig());
     }
     return _helixCloudProperty;
+  }
+
+  public String getZkAddr() {
+    return _zkAddr;
   }
 
   public String getVersion() {
@@ -97,22 +113,28 @@ public class HelixManagerProperty {
 
   public static class Builder {
     private String _version;
+    private String _zkAddr;
     private long _healthReportLatency;
     private HelixCloudProperty _helixCloudProperty;
     private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
     private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
-    private int _msgHandlerResetTimeout;
+    private int _msgHandlerResetTimeout = TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS;
 
     public Builder() {
     }
 
     public HelixManagerProperty build() {
-      return new HelixManagerProperty(_version, _healthReportLatency, _msgHandlerResetTimeout, _helixCloudProperty,
-          _zkConnectionConfig, _zkClientConfig);
+      return new HelixManagerProperty(_version, _healthReportLatency, _zkAddr, _msgHandlerResetTimeout,
+          _helixCloudProperty, _zkConnectionConfig, _zkClientConfig);
     }
 
     public Builder setVersion(String version) {
       _version = version;
+      return this;
+    }
+
+    public Builder setZkAddr(String zkAddr) {
+      _zkAddr = zkAddr;
       return this;
     }
 

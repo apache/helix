@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 public interface TaskExecutor {
   int DEFAULT_PARALLEL_TASKS = 40;
+  int DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS = 200;
 
   /**
    * Register MultiType message handler factory that the executor can handle.

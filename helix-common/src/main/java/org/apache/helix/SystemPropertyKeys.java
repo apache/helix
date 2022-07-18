@@ -34,6 +34,9 @@ public class SystemPropertyKeys {
   // Task Driver
   public static final String TASK_CONFIG_LIMITATION = "helixTask.configsLimitation";
 
+  // Task executor threadpool reset timeout in ms
+  public static final String TASK_THREADPOOL_RESET_TIMEOUT = "helixTask.threadpool.reset.timeout";
+
   // ZKHelixManager
   public static final String CLUSTER_MANAGER_VERSION = "cluster-manager-version.properties";
 

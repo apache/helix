@@ -41,13 +41,13 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.serializer.ByteArraySerializer;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordJacksonSerializer;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.slf4j.Logger;
@@ -133,20 +133,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       zkClient = DedicatedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     }
-    zkClient.setZkSerializer(new ZkSerializer() {
-      @Override
-      public byte[] serialize(Object data) throws ZkMarshallingError {
-        if (data instanceof byte[]) {
-          return (byte[]) data;
-        }
-        throw new HelixException("ZkBucketDataAccesor only supports a byte array as an argument!");
-      }
-
-      @Override
-      public Object deserialize(byte[] data) throws ZkMarshallingError {
-        return data;
-      }
-    });
+    zkClient.setZkSerializer(new ByteArraySerializer());
     return zkClient;
   }
 
@@ -270,7 +257,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   @Override
   public void disconnect() {
-    _zkBaseDataAccessor.close();
     if (!_usesExternalZkClient && _zkClient != null && !_zkClient.isClosed()) {
       _zkClient.close();
     }
@@ -360,6 +346,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   @Override
   public void finalize() {
+    _zkBaseDataAccessor.close();
     close();
   }
 

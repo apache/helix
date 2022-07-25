@@ -44,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class ZkHelixClusterVerifier
-    implements IZkChildListener, IZkDataListener, HelixClusterVerifier {
+    implements IZkChildListener, IZkDataListener, HelixClusterVerifier, AutoCloseable {
   private static Logger LOG = LoggerFactory.getLogger(ZkHelixClusterVerifier.class);
   protected static int DEFAULT_TIMEOUT = 300 * 1000;
   protected static int DEFAULT_PERIOD = 500;
@@ -229,6 +229,7 @@ public abstract class ZkHelixClusterVerifier
     return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
   }
 
+  @Override
   public void close() {
     if (_zkClient != null && !_usesExternalZkClient) {
       _zkClient.close();

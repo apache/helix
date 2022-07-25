@@ -34,6 +34,7 @@ import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
@@ -91,6 +92,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
     _dataProvider = new ResourceControllerDataProvider();
+    // _zkClient should be closed with BestPossibleExternalViewVerifier
   }
 
   /**
@@ -105,7 +107,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances) {
-    this(zkClient, clusterName, resources, errStates, expectLiveInstances, 0);
+    this(zkClient, clusterName, errStates, resources, expectLiveInstances, 0, true);
   }
 
   @Deprecated
@@ -114,11 +116,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       Set<String> expectLiveInstances, int waitTillVerify) {
     // usesExternalZkClient = true because ZkClient is given by the caller
     // at close(), we will not close this ZkClient because it might be being used elsewhere
-    super(zkClient, clusterName, true, waitTillVerify);
-    _errStates = errStates;
-    _resources = resources;
-    _expectLiveInstances = expectLiveInstances;
-    _dataProvider = new ResourceControllerDataProvider();
+    this(zkClient, clusterName, errStates, resources, expectLiveInstances, waitTillVerify, true);
   }
 
   private BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
@@ -144,7 +142,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     private Set<String> _resources;
     private Set<String> _expectLiveInstances;
     private RealmAwareZkClient _zkClient;
-    private boolean _usesExternalZkClient = false; // false by default
 
     public Builder(String clusterName) {
       _clusterName = clusterName;
@@ -155,11 +152,12 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         throw new IllegalArgumentException("Cluster name is missing!");
       }
 
+      // _usesExternalZkClient == true
       if (_zkClient != null) {
-        return new BestPossibleExternalViewVerifier(_zkClient, _clusterName, _resources, _errStates,
-            _expectLiveInstances, _waitPeriodTillVerify);
+        return new BestPossibleExternalViewVerifier(_zkClient, _clusterName, _errStates, _resources,
+            _expectLiveInstances, _waitPeriodTillVerify, true);
       }
-
+      // _usesExternalZkClient == false
       if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
         // For backward-compatibility
         return new BestPossibleExternalViewVerifier(_zkAddress, _clusterName, _resources,
@@ -170,7 +168,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       return new BestPossibleExternalViewVerifier(
           createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
               _realmAwareZkClientConfig, _zkAddress), _clusterName, _errStates, _resources,
-          _expectLiveInstances, _waitPeriodTillVerify, _usesExternalZkClient);
+          _expectLiveInstances, _waitPeriodTillVerify, false);
     }
 
     public String getClusterName() {
@@ -210,7 +208,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
     public Builder setZkClient(RealmAwareZkClient zkClient) {
       _zkClient = zkClient;
-      _usesExternalZkClient = true; // Set the flag since external ZkClient is used
       return this;
     }
   }
@@ -435,18 +432,15 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
     RebalanceUtil.runStage(event, new CurrentStateComputationStage());
     // Note the readOnlyWagedRebalancer is just for one time usage
-    DryrunWagedRebalancer dryrunWagedRebalancer =
-        new DryrunWagedRebalancer(_zkClient.getServers(), cache.getClusterName(),
-            cache.getClusterConfig().getGlobalRebalancePreference());
-    event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), dryrunWagedRebalancer);
-    try {
+
+    try (ZkBucketDataAccessor zkBucketDataAccessor = new ZkBucketDataAccessor(_zkClient);
+        DryrunWagedRebalancer dryrunWagedRebalancer = new DryrunWagedRebalancer(zkBucketDataAccessor,
+            cache.getClusterName(), cache.getClusterConfig().getGlobalRebalancePreference())) {
+      event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), dryrunWagedRebalancer);
       RebalanceUtil.runStage(event, new BestPossibleStateCalcStage());
-    } finally {
-      dryrunWagedRebalancer.close();
     }
 
-    BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
-    return output;
+    return event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
   }
 
   @Override
@@ -456,15 +450,17 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
        + (_resources != null ? Arrays.toString(_resources.toArray()) : "") + "])";
   }
 
+  // TODO: to clean up, finalize is deprecated in Java 9
   @Override
   public void finalize() {
+    super.finalize();
     close();
   }
 
-  private class DryrunWagedRebalancer extends org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer {
-    public DryrunWagedRebalancer(String metadataStoreAddress, String clusterName,
+  private static class DryrunWagedRebalancer extends ReadOnlyWagedRebalancer implements AutoCloseable {
+    public DryrunWagedRebalancer(ZkBucketDataAccessor zkBucketDataAccessor, String clusterName,
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-      super(new ZkBucketDataAccessor(metadataStoreAddress), clusterName, preferences);
+      super(zkBucketDataAccessor, clusterName, preferences);
     }
 
     @Override
@@ -474,6 +470,11 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         RebalanceAlgorithm algorithm) throws HelixRebalanceException {
       return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
           resourceMap.keySet());
+    }
+
+    @Override
+    public void close() {
+      super.close();
     }
   }
 }

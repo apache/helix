@@ -41,6 +41,7 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordJacksonSerializer;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -75,10 +76,11 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   private final int _bucketSize;
   private final long _versionTTLms;
-  private ZkSerializer _zkSerializer;
-  private RealmAwareZkClient _zkClient;
-  private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
-  private Map<String, ScheduledFuture> _gcTaskFutureMap = new HashMap<>();
+  private final ZkSerializer _zkSerializer;
+  private final RealmAwareZkClient _zkClient;
+  private final ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
+  private final Map<String, ScheduledFuture> _gcTaskFutureMap = new HashMap<>();
+  private boolean _usesExternalZkClient = false;
 
   /**
    * Constructor that allows a custom bucket size.
@@ -87,25 +89,21 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param versionTTLms in ms
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTLms) {
-    _zkClient = createRealmAwareZkClient(zkAddr);
-    _zkClient.setZkSerializer(new ZkSerializer() {
-      @Override
-      public byte[] serialize(Object data) throws ZkMarshallingError {
-        if (data instanceof byte[]) {
-          return (byte[]) data;
-        }
-        throw new HelixException("ZkBucketDataAccesor only supports a byte array as an argument!");
-      }
+    this(createRealmAwareZkClient(zkAddr), bucketSize, versionTTLms, false);
+  }
 
-      @Override
-      public Object deserialize(byte[] data) throws ZkMarshallingError {
-        return data;
-      }
-    });
+  public ZkBucketDataAccessor(RealmAwareZkClient zkClient) {
+    this(zkClient, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL, true);
+  }
+
+  private ZkBucketDataAccessor(RealmAwareZkClient zkClient, int bucketSize, long versionTTLms,
+      boolean usesExternalZkClient) {
+    _zkClient = zkClient;
     _zkBaseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
     _zkSerializer = new ZNRecordJacksonSerializer();
     _bucketSize = bucketSize;
     _versionTTLms = versionTTLms;
+    _usesExternalZkClient = usesExternalZkClient;
   }
 
   /**
@@ -135,6 +133,20 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       zkClient = DedicatedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     }
+    zkClient.setZkSerializer(new ZkSerializer() {
+      @Override
+      public byte[] serialize(Object data) throws ZkMarshallingError {
+        if (data instanceof byte[]) {
+          return (byte[]) data;
+        }
+        throw new HelixException("ZkBucketDataAccesor only supports a byte array as an argument!");
+      }
+
+      @Override
+      public Object deserialize(byte[] data) throws ZkMarshallingError {
+        return data;
+      }
+    });
     return zkClient;
   }
 
@@ -258,7 +270,8 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   @Override
   public void disconnect() {
-    if (!_zkClient.isClosed()) {
+    _zkBaseDataAccessor.close();
+    if (!_usesExternalZkClient && _zkClient != null && !_zkClient.isClosed()) {
       _zkClient.close();
     }
   }
@@ -347,7 +360,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   @Override
   public void finalize() {
-    _zkBaseDataAccessor.close();
     close();
   }
 

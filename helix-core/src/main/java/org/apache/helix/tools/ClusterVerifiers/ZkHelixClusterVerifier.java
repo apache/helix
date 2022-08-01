@@ -229,6 +229,10 @@ public abstract class ZkHelixClusterVerifier
     return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
   }
 
+  /**
+   * Implement close() for {@link AutoCloseable} and {@link HelixClusterVerifier}.
+   * Non-external resources should be closed in this method to prevent resource leak.
+   */
   @Override
   public void close() {
     if (_zkClient != null && !_usesExternalZkClient) {

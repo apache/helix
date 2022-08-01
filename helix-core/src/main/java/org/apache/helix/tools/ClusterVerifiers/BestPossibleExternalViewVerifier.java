@@ -453,8 +453,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   // TODO: to clean up, finalize is deprecated in Java 9
   @Override
   public void finalize() {
-    super.finalize();
     close();
+    super.finalize();
   }
 
   private static class DryrunWagedRebalancer extends ReadOnlyWagedRebalancer implements AutoCloseable {
@@ -470,11 +470,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         RebalanceAlgorithm algorithm) throws HelixRebalanceException {
       return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
           resourceMap.keySet());
-    }
-
-    @Override
-    public void close() {
-      super.close();
     }
   }
 }

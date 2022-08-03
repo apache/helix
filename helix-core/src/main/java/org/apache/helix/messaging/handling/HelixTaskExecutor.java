@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -694,16 +695,19 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           LOG.info("Reset executor for msgType: " + msgType + ", pool: " + pool);
           shutdownAndAwaitTermination(pool, item);
         }
-
-        if (item.factory() != null) {
-          try {
-            item.factory().reset();
-          } catch (Exception ex) {
-            LOG.error("Failed to reset the factory {} of message type {}.", item.factory().toString(),
-                msgType, ex);
-          }
-        }
       }
+      _hdlrFtyRegistry.values()
+          .parallelStream()
+          .map(MsgHandlerFactoryRegistryItem::factory)
+          .distinct()
+          .filter(Objects::nonNull)
+          .forEach(factory -> {
+            try {
+              factory.reset();
+            } catch (Exception ex) {
+              LOG.error("Failed to reset the factory {}.", factory.toString(), ex);
+            }
+          });
     }
     // threads pool specific to STATE_TRANSITION.Key specific pool are not shut down.
     // this is a potential area to improve. https://github.com/apache/helix/issues/1245
@@ -712,8 +716,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // Log all tasks that fail to terminate
     for (String taskId : _taskMap.keySet()) {
       MessageTaskInfo info = _taskMap.get(taskId);
-      sb.append(
-          "Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
+      sb.append("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
     }
 
     LOG.info(sb.toString());
@@ -827,7 +830,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // and terminate all the thread pools
     // TODO: see if we should have a separate notification call for resetting
     if (changeContext.getType() == Type.FINALIZE) {
-      reset();
+      if (_isShuttingDown) {
+        LOG.info("Helix task executor is shutting down, skip reset() in FINALIZE");
+      } else {
+        reset();
+      }
       return;
     }
 

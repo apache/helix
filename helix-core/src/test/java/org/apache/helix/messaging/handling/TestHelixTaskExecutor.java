@@ -132,6 +132,21 @@ public class TestHelixTaskExecutor {
     }
   }
 
+  private class TestMessageHandlerFactory3 extends TestMessageHandlerFactory {
+    private boolean _resetDone = false;
+
+    @Override
+    public List<String> getMessageTypes() {
+      return ImmutableList.of("msgType1", "msgType2", "msgType3");
+    }
+
+    @Override
+    public void reset() {
+      Assert.assertFalse(_resetDone, "reset() should only be triggered once in TestMessageHandlerFactory3");
+      _resetDone = true;
+    }
+  }
+
   class CancellableHandlerFactory implements MultiTypeMessageHandlerFactory {
 
     int _handlersCreated = 0;
@@ -796,6 +811,20 @@ public class TestHelixTaskExecutor {
     Assert.assertTrue(factory._completedMsgIds.contains(msg2.getMsgId()));
 
     System.out.println("END TestCMTaskExecutor.testHandlerResetTimeout()");
+  }
+
+  @Test
+  public void testMsgHandlerRegistryAndShutdown() {
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
+    TestMessageHandlerFactory3 factoryMulti = new TestMessageHandlerFactory3();
+    executor.registerMessageHandlerFactory(factory, HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, 200);
+    executor.registerMessageHandlerFactory(factoryMulti, HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, 200);
+    Assert.assertEquals(executor._hdlrFtyRegistry.size(), 4);
+    // Ensure TestMessageHandlerFactory3 instance is reset and reset exactly once
+    executor.shutdown();
+    Assert.assertTrue(factoryMulti._resetDone, "TestMessageHandlerFactory3 should be reset");
   }
 
   @Test()

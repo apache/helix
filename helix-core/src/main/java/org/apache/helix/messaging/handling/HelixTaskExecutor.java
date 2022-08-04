@@ -137,6 +137,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private final ParticipantStatusMonitor _monitor;
   public static final String MAX_THREADS = "maxThreads";
 
+  private volatile boolean _isResetComplete = false;
   private MessageQueueMonitor _messageQueueMonitor;
   private GenericHelixController _controller;
   private Long _lastSessionSyncTime;
@@ -238,6 +239,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
 
     _isShuttingDown = false;
+    _isResetComplete = false;
 
     MsgHandlerFactoryRegistryItem newItem = new MsgHandlerFactoryRegistryItem(factory, threadpoolSize, resetTimeoutMs);
     MsgHandlerFactoryRegistryItem prevItem = _hdlrFtyRegistry.putIfAbsent(type, newItem);
@@ -678,7 +680,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
-  void reset() {
+  synchronized void reset() {
+    if (_isResetComplete) {
+      LOG.info("HelixTaskExecutor.reset() has completed, no need to reset again");
+      return;
+    }
     LOG.info("Reset HelixTaskExecutor");
 
     if (_messageQueueMonitor != null) {
@@ -727,6 +733,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _knownMessageIds.clear();
 
     _lastSessionSyncTime = null;
+    _isResetComplete = true;
   }
 
   void init() {
@@ -737,6 +744,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
 
     _isShuttingDown = false;
+    _isResetComplete = false;
 
     // Re-init all existing factories
     for (final String msgType : _hdlrFtyRegistry.keySet()) {

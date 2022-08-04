@@ -2,7 +2,7 @@
   "compileOnSave": false,
   "exclude": ["**/*.cy.ts", "**/*.spec.ts"],
   "compilerOptions": {
-    "importHelpers": true,
+    "importHelpers": false,
     "outDir": "./dist/out-tsc",
     "baseUrl": "client",
     "sourceMap": true,

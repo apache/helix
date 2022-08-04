@@ -2,7 +2,7 @@
   "include": ["**/*.cy.ts"],
   "compileOnSave": false,
   "compilerOptions": {
-    "importHelpers": true,
+    "importHelpers": false,
     "sourceMap": false,
     "declaration": false,
     "moduleResolution": "node",

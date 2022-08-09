@@ -252,6 +252,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     if (_baselineCalculateExecutor != null) {
       _baselineCalculateExecutor.shutdownNow();
     }
+    if (_bestPossibleCalculateExecutor != null) {
+      _bestPossibleCalculateExecutor.shutdownNow();
+    }
     if (_assignmentMetadataStore != null) {
       _assignmentMetadataStore.close();
     }
@@ -618,12 +621,18 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     // otherwise, start partial rebalance and return the current best possible.
     if (clusterModel == null) {
       // Perform partial rebalance for a new best possible assignment
-      partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
+      if (_asyncPartialRebalanceResult == null || _asyncPartialRebalanceResult.isDone()) {
+        partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
+      }
       return currentBestPossibleAssignment;
     }
 
-    _asyncPartialRebalanceResult.cancel(true);
-    partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
+    if (_asyncPartialRebalanceResult != null && !_asyncPartialRebalanceResult.isDone()) {
+      boolean cancelResult = _asyncPartialRebalanceResult.cancel(true);
+      LOG.debug(
+          "Illegal placements exist and attempting to cancel existing partial rebalance thread: {}",
+          cancelResult);
+    }
 
     Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterModel, algorithm);
     if (_assignmentMetadataStore != null) {
@@ -638,6 +647,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     } else {
       LOG.debug("Assignment Metadata Store is null. Skip persisting the best possible assignment.");
     }
+
+    partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
 
     LOG.info("Finish emergency rebalance");
     return newAssignment;

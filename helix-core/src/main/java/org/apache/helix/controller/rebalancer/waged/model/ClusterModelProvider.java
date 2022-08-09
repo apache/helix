@@ -422,9 +422,8 @@ public class ClusterModelProvider {
         Set<String> currentAllocations =
             currentPartitionStateMap.getOrDefault(partitionName, Collections.emptyMap())
                 .getOrDefault(replicaState, Collections.emptySet());
-        List<String> currentAllocationsList = new ArrayList<>(currentAllocations);
         if (!currentAllocations.isEmpty()) {
-          currentAllocations.remove(currentAllocationsList.get(0));
+          currentAllocations.iterator().remove();
         } else {
           toBeAssignedReplicas.add(replica);
         }

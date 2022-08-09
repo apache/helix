@@ -51,7 +51,15 @@ public class ClusterModelProvider {
     PARTIAL,
     // Set the rebalance scope to cover all replicas that need relocation based on the cluster
     // changes.
-    GLOBAL_BASELINE
+    GLOBAL_BASELINE,
+    EMERGENCY
+  }
+
+  public static ClusterModel generateClusterModelForEmergencyRebalance(
+      ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
+      Set<String> activeInstances, Map<String, ResourceAssignment> bestPossibleAssignment) {
+    return generateClusterModel(dataProvider, resourceMap, activeInstances, Collections.emptyMap(),
+        null, bestPossibleAssignment, RebalanceScopeType.EMERGENCY);
   }
 
   /**
@@ -165,6 +173,13 @@ public class ClusterModelProvider {
             findToBeAssignedReplicasByComparingWithIdealAssignment(replicaMap, activeInstances,
                 idealAssignment, currentAssignment, allocatedReplicas);
         break;
+      case EMERGENCY:
+        toBeAssignedReplicas = findToBeAssignedReplicasIllegalPlacements(replicaMap, activeInstances,
+            currentAssignment, allocatedReplicas);
+        if (toBeAssignedReplicas.isEmpty()) {
+          // Immediately return if there's nothing to assign. TODO: make this flow better
+          return null;
+        }
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);
     }
@@ -388,6 +403,34 @@ public class ClusterModelProvider {
         }
       }
     }
+    return toBeAssignedReplicas;
+  }
+
+  private static Set<AssignableReplica> findToBeAssignedReplicasIllegalPlacements(
+      Map<String, Set<AssignableReplica>> replicaMap, Set<String> activeInstances,
+      Map<String, ResourceAssignment> currentAssignment,
+      Map<String, Set<AssignableReplica>> allocatedReplicas) {
+    // For any replica tht does not exist in currentAssignment (new resources) or does not exist in
+    // active instances (down instances), return them.
+    Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+    for (String resourceName : replicaMap.keySet()) {
+      Map<String, Map<String, Set<String>>> currentPartitionStateMap =
+          getValidStateInstanceMap(currentAssignment.get(resourceName), activeInstances);
+      for (AssignableReplica replica : replicaMap.get(resourceName)) {
+        String partitionName = replica.getPartitionName();
+        String replicaState = replica.getReplicaState();
+        Set<String> currentAllocations =
+            currentPartitionStateMap.getOrDefault(partitionName, Collections.emptyMap())
+                .getOrDefault(replicaState, Collections.emptySet());
+        List<String> currentAllocationsList = new ArrayList<>(currentAllocations);
+        if (!currentAllocations.isEmpty()) {
+          currentAllocations.remove(currentAllocationsList.get(0));
+        } else {
+          toBeAssignedReplicas.add(replica);
+        }
+      }
+    }
+
     return toBeAssignedReplicas;
   }
 

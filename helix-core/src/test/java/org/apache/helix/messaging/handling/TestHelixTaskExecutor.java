@@ -816,11 +816,20 @@ public class TestHelixTaskExecutor {
   @Test
   public void testMsgHandlerRegistryAndShutdown() {
     HelixTaskExecutor executor = new HelixTaskExecutor();
-
+    HelixManager manager = new MockClusterManager();
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     TestMessageHandlerFactory3 factoryMulti = new TestMessageHandlerFactory3();
     executor.registerMessageHandlerFactory(factory, HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, 200);
     executor.registerMessageHandlerFactory(factoryMulti, HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, 200);
+
+    final Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
+    msg.setTgtSessionId("*");
+    msg.setTgtName("Localhost_1123");
+    msg.setSrcName("127.101.1.23_2234");
+
+    NotificationContext changeContext = new NotificationContext(manager);
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+    executor.onMessage("some", Collections.singletonList(msg), changeContext);
     Assert.assertEquals(executor._hdlrFtyRegistry.size(), 4);
     // Ensure TestMessageHandlerFactory3 instance is reset and reset exactly once
     executor.shutdown();

@@ -81,7 +81,7 @@
   >
     <mat-button-toggle-group
       #group="matButtonToggleGroup"
-      [value]="workflow.isJobQueue ? 'list' : 'graph'"
+      [value]="'list'"
     >
       <mat-button-toggle *ngIf="!workflow.isJobQueue" value="graph">
         Graph View

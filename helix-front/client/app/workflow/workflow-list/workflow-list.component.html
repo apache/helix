@@ -23,6 +23,77 @@
     <section *ngIf="!isLoading && workflows.length == 0" class="empty">
       There's no workflow here.
     </section>
+    <section>
+      <ngx-datatable
+        #workflowsTable
+        class="material"
+        [headerHeight]="headerHeight"
+        [rowHeight]="rowHeight"
+        columnMode="force"
+        [footerHeight]="rowHeight"
+        [rows]="workflows"
+        [sorts]="sorts"
+        [limit]="20"
+        selectionType="single"
+        (select)="onSelect($event)"
+      >
+        <ngx-datatable-column
+          [width]="50"
+          [resizeable]="false"
+          [sortable]="false"
+          [draggable]="false"
+          [canAutoResize]="false"
+        >
+          <ng-template>
+            <a
+              *ngFor="let name of workflows"
+              mat-list-item
+              [routerLink]="[name]"
+            >
+              <div mat-line>{{ name }}</div>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+        <ngx-datatable-row-detail rowHeight="auto">
+          <ng-template let-row="row" ngx-datatable-row-detail-template>
+            <hi-partition-detail
+              [clusterName]="resource.cluster"
+              [partition]="row"
+            ></hi-partition-detail>
+          </ng-template>
+        </ngx-datatable-row-detail>
+        <ngx-datatable-footer>
+          <ng-template
+            ngx-datatable-footer-template
+            let-rowCount="rowCount"
+            let-pageSize="pageSize"
+            let-curPage="curPage"
+          >
+            <section
+              class="footer"
+              fxLayout="row"
+              fxLayoutAlign="space-between center"
+            >
+              <section>{{ rowCount }} total</section>
+              <section>
+                <datatable-pager
+                  [pagerLeftArrowIcon]="'datatable-icon-left'"
+                  [pagerRightArrowIcon]="'datatable-icon-right'"
+                  [pagerPreviousIcon]="'datatable-icon-prev'"
+                  [pagerNextIcon]="'datatable-icon-skip'"
+                  [page]="curPage"
+                  [size]="pageSize"
+                  [count]="rowCount"
+                  [hidden]="!(rowCount / pageSize > 1)"
+                  (change)="partitionsTable.onFooterPage($event)"
+                >
+                </datatable-pager>
+              </section>
+            </section>
+          </ng-template>
+        </ngx-datatable-footer>
+      </ngx-datatable>
+    </section>
     <mat-nav-list>
       <a *ngFor="let name of workflows" mat-list-item [routerLink]="[name]">
         <div mat-line>{{ name }}</div>

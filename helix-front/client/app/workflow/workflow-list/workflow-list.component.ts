@@ -1,7 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
+import { Settings } from '../../core/settings';
 import { WorkflowService } from '../shared/workflow.service';
+
+type WorkflowRow = {
+  name: string;
+};
 
 @Component({
   selector: 'hi-workflow-list',
@@ -9,9 +14,18 @@ import { WorkflowService } from '../shared/workflow.service';
   styleUrls: ['./workflow-list.component.scss'],
 })
 export class WorkflowListComponent implements OnInit {
+  @ViewChild('workflowsTable', { static: true })
+  table: any;
+
   isLoading = true;
   clusterName: string;
   workflows: string[];
+  workflowRows: WorkflowRow[];
+
+  headerHeight = Settings.tableHeaderHeight;
+  rowHeight = Settings.tableRowHeight;
+
+  sorts = [{ prop: 'name', dir: 'asc' }];
 
   constructor(
     private router: Router,
@@ -23,9 +37,20 @@ export class WorkflowListComponent implements OnInit {
     if (this.route.parent) {
       this.isLoading = true;
       this.clusterName = this.route.parent.snapshot.params['name'];
+      console.log(
+        'this.route.parent from workflow-detail.component',
+        this.route.parent
+      );
 
       this.service.getAll(this.clusterName).subscribe(
-        (workflows) => (this.workflows = workflows),
+        (workflows) => {
+          console.log('workflows from workflow-detail.component', workflows);
+          this.workflows = workflows;
+          this.workflowRows = workflows.map((workflowName) => ({
+            name: workflowName
+          }));
+          return workflows;
+        },
         (error) => {
           // since rest API simply throws 404 instead of empty config when config is not initialized yet
           // frontend has to treat 404 as normal result
@@ -37,5 +62,11 @@ export class WorkflowListComponent implements OnInit {
         () => (this.isLoading = false)
       );
     }
+  }
+
+  onSelect({ selected }) {
+    const row = selected[0];
+
+    this.table.rowDetail.toggleExpandRow(row);
   }
 }

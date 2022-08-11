@@ -180,6 +180,7 @@ public class ClusterModelProvider {
           // Immediately return if there's nothing to assign. TODO: make this flow better
           return null;
         }
+        break;
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);
     }
@@ -423,7 +424,7 @@ public class ClusterModelProvider {
             currentPartitionStateMap.getOrDefault(partitionName, Collections.emptyMap())
                 .getOrDefault(replicaState, Collections.emptySet());
         if (!currentAllocations.isEmpty()) {
-          currentAllocations.iterator().remove();
+          currentAllocations.remove(currentAllocations.iterator().next());
         } else {
           toBeAssignedReplicas.add(replica);
         }

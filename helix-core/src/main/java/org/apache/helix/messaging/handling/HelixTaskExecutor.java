@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -136,6 +137,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private final ParticipantStatusMonitor _monitor;
   public static final String MAX_THREADS = "maxThreads";
 
+  // true if all partition state are "clean" as same after reset()
+  private volatile boolean _isCleanState = true;
   private MessageQueueMonitor _messageQueueMonitor;
   private GenericHelixController _controller;
   private Long _lastSessionSyncTime;
@@ -677,13 +680,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
-  void reset() {
-    LOG.info("Reset HelixTaskExecutor");
-
-    if (_messageQueueMonitor != null) {
-      _messageQueueMonitor.reset();
-    }
-
+  /**
+   * Shutdown the registered thread pool executors. This method will be no-op if called repeatedly.
+   */
+  private void shutdownExecutors() {
     synchronized (_hdlrFtyRegistry) {
       for (String msgType : _hdlrFtyRegistry.keySet()) {
         // don't un-register factories, just shutdown all executors
@@ -694,16 +694,36 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           LOG.info("Reset executor for msgType: " + msgType + ", pool: " + pool);
           shutdownAndAwaitTermination(pool, item);
         }
-
-        if (item.factory() != null) {
-          try {
-            item.factory().reset();
-          } catch (Exception ex) {
-            LOG.error("Failed to reset the factory {} of message type {}.", item.factory().toString(),
-                msgType, ex);
-          }
-        }
       }
+    }
+  }
+
+  synchronized void reset() {
+    if (_isCleanState) {
+      LOG.info("HelixTaskExecutor is in clean state, no need to reset again");
+      return;
+    }
+    LOG.info("Reset HelixTaskExecutor");
+
+    if (_messageQueueMonitor != null) {
+      _messageQueueMonitor.reset();
+    }
+
+    shutdownExecutors();
+
+    synchronized (_hdlrFtyRegistry) {
+      _hdlrFtyRegistry.values()
+          .stream()
+          .map(MsgHandlerFactoryRegistryItem::factory)
+          .distinct()
+          .filter(Objects::nonNull)
+          .forEach(factory -> {
+            try {
+              factory.reset();
+            } catch (Exception ex) {
+              LOG.error("Failed to reset the factory {}.", factory.toString(), ex);
+            }
+          });
     }
     // threads pool specific to STATE_TRANSITION.Key specific pool are not shut down.
     // this is a potential area to improve. https://github.com/apache/helix/issues/1245
@@ -712,8 +732,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // Log all tasks that fail to terminate
     for (String taskId : _taskMap.keySet()) {
       MessageTaskInfo info = _taskMap.get(taskId);
-      sb.append(
-          "Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
+      sb.append("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
     }
 
     LOG.info(sb.toString());
@@ -724,6 +743,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _knownMessageIds.clear();
 
     _lastSessionSyncTime = null;
+    _isCleanState = true;
   }
 
   void init() {
@@ -744,7 +764,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         _monitor.createExecutorMonitor(type, newPool);
         return newPool;
       });
-      LOG.info("Setup the thread pool for type: %s, isShutdown: %s", msgType, pool.isShutdown());
+      LOG.info("Setup the thread pool for type: {}, isShutdown: {}", msgType, pool.isShutdown());
     }
   }
 
@@ -835,6 +855,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       init();
       // continue to process messages
     }
+    _isCleanState = false;
 
     // if prefetch is disabled in MessageListenerCallback, we need to read all new messages from zk.
     if (messages == null || messages.isEmpty()) {
@@ -1442,7 +1463,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       nopMsg.setTgtName(instanceName);
       accessor
           .setProperty(accessor.keyBuilder().message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
-      LOG.info("Send NO_OP message to {}}, msgId: {}.", nopMsg.getTgtName(), nopMsg.getId());
+      LOG.info("Send NO_OP message to {}, msgId: {}.", nopMsg.getTgtName(), nopMsg.getId());
     } catch (Exception e) {
       LOG.error("Failed to send NO_OP message to {}.", instanceName, e);
     }
@@ -1454,6 +1475,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _isShuttingDown = true;
     _timer.cancel();
 
+    shutdownExecutors();
     reset();
     _monitor.shutDown();
     LOG.info("Shutdown HelixTaskExecutor finished");

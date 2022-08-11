@@ -164,6 +164,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   }
 
   private void loopStateModelFactories(Consumer<StateModel> consumer) {
+    // TODO: evaluate impact and consider parallelization
     for (Map<String, StateModelFactory<? extends StateModel>> ftyMap : _stateModelFactoryMap
         .values()) {
       for (StateModelFactory<? extends StateModel> stateModelFactory : ftyMap.values()) {

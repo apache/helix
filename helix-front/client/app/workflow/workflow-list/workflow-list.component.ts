@@ -66,7 +66,6 @@ export class WorkflowListComponent implements OnInit {
 
   onSelect({ selected }) {
     const row = selected[0];
-
-    this.table.rowDetail.toggleExpandRow(row);
+    console.log('selected row', row)
   }
 }

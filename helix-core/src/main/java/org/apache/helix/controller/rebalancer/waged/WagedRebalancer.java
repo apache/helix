@@ -115,6 +115,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private final BaselineDivergenceGauge _baselineDivergenceGauge;
 
   private boolean _asyncGlobalRebalanceEnabled;
+  private boolean _asyncPartialRebalanceEnabled;
   private Future<Boolean> _asyncPartialRebalanceResult;
 
   // Note, the rebalance algorithm field is mutable so it should not be directly referred except for
@@ -151,7 +152,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         // cluster has converged.
         helixManager == null ? new WagedRebalancerMetricCollector()
             : new WagedRebalancerMetricCollector(helixManager.getClusterName()),
-        ClusterConfig.DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED);
+        ClusterConfig.DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED,
+        true);
     _preference = ImmutableMap.copyOf(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
   }
 
@@ -168,12 +170,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         // If metricCollector is not provided, instantiate a version that does not register metrics
         // in order to allow rebalancer to proceed
         metricCollectorOptional.orElse(new WagedRebalancerMetricCollector()),
-        false);
+        false, false);
   }
 
   private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator, HelixManager manager,
-      MetricCollector metricCollector, boolean isAsyncGlobalRebalanceEnabled) {
+      MetricCollector metricCollector, boolean isAsyncGlobalRebalanceEnabled,
+      boolean isAsyncPartialRebalanceEnabled) {
     if (assignmentMetadataStore == null) {
       LOG.warn("Assignment Metadata Store is not configured properly."
           + " The rebalancer will not access the assignment store during the rebalance.");
@@ -220,6 +223,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     _baselineCalculateExecutor = Executors.newSingleThreadExecutor();
     _bestPossibleCalculateExecutor = Executors.newSingleThreadExecutor();
     _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
+    _asyncPartialRebalanceEnabled = isAsyncPartialRebalanceEnabled;
   }
 
   // Update the global rebalance mode to be asynchronous or synchronous
@@ -547,6 +551,17 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       }
       return true;
     });
+    if (!_asyncPartialRebalanceEnabled) {
+      try {
+        if (!_asyncPartialRebalanceResult.get()) {
+          throw new HelixRebalanceException("Failed to calculate for the new best possible.",
+              HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+        }
+      } catch (InterruptedException | ExecutionException e) {
+        throw new HelixRebalanceException("Failed to execute new best possible calculation.",
+            HelixRebalanceException.Type.FAILED_TO_CALCULATE, e);
+      }
+    }
   }
 
   /**
@@ -623,6 +638,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       // Perform partial rebalance for a new best possible assignment
       if (_asyncPartialRebalanceResult == null || _asyncPartialRebalanceResult.isDone()) {
         partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
+        if (!_asyncPartialRebalanceEnabled) {
+          return getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
+              resourceMap.keySet());
+        }
       }
       return currentBestPossibleAssignment;
     }
@@ -647,10 +666,14 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     } else {
       LOG.debug("Assignment Metadata Store is null. Skip persisting the best possible assignment.");
     }
+    LOG.info("Finish emergency rebalance");
 
     partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
+    if (!_asyncPartialRebalanceEnabled) {
+      return getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
+          resourceMap.keySet());
+    }
 
-    LOG.info("Finish emergency rebalance");
     return newAssignment;
   }
 

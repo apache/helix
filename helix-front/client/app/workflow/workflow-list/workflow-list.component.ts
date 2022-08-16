@@ -46,10 +46,16 @@ export class WorkflowListComponent implements OnInit {
         (workflows) => {
           console.log('workflows from workflow-detail.component', workflows);
           this.workflows = workflows;
-          this.workflowRows = workflows.map((workflowName) => ({
-            name: workflowName
-          }));
-          return workflows;
+          this.workflowRows = workflows.map((workflowName) => {
+            const parts = workflowName.split('-');
+            const timeParts = parts.length > 3 ? parts[3].split('_') : [];
+            const timestamp =
+              timeParts.length > 1 ? new Date(Number(timeParts[1])) : '';
+            return {
+              name: workflowName,
+              timestamp,
+            };
+          });
         },
         (error) => {
           // since rest API simply throws 404 instead of empty config when config is not initialized yet
@@ -66,6 +72,6 @@ export class WorkflowListComponent implements OnInit {
 
   onSelect({ selected }) {
     const row = selected[0];
-    console.log('selected row', row)
+    console.log('selected row', row);
   }
 }

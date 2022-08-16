@@ -37,23 +37,13 @@ export class WorkflowListComponent implements OnInit {
     if (this.route.parent) {
       this.isLoading = true;
       this.clusterName = this.route.parent.snapshot.params['name'];
-      console.log(
-        'this.route.parent from workflow-detail.component',
-        this.route.parent
-      );
 
       this.service.getAll(this.clusterName).subscribe(
         (workflows) => {
-          console.log('workflows from workflow-detail.component', workflows);
           this.workflows = workflows;
           this.workflowRows = workflows.map((workflowName) => {
-            const parts = workflowName.split('-');
-            const timeParts = parts.length > 3 ? parts[3].split('_') : [];
-            const timestamp =
-              timeParts.length > 1 ? new Date(Number(timeParts[1])) : '';
             return {
               name: workflowName,
-              timestamp,
             };
           });
         },
@@ -70,8 +60,10 @@ export class WorkflowListComponent implements OnInit {
     }
   }
 
-  onSelect({ selected }) {
-    const row = selected[0];
-    console.log('selected row', row);
+  // Disable table row selection using the
+  // selectCheck option of the
+  // <ngx-datatable></ngx-datatable> element
+  checkSelectable(_event) {
+    return false;
   }
 }

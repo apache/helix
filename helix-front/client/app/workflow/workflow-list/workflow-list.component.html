@@ -34,13 +34,11 @@
         [rows]="workflowRows"
         [sorts]="sorts"
         [limit]="20"
-        selectionType="single"
-        (select)="onSelect($event)"
+        [selectCheck]="checkSelectable"
       >
         <ngx-datatable-column
           name="Workflow ID"
           prop="name"
-          [width]="200"
           [resizeable]="true"
           [sortable]="true"
           [draggable]="false"
@@ -50,19 +48,6 @@
             <a routerLink="{{row.name}}">{{row.name}}</a>
           </ng-template>
         </ngx-datatable-column>
-        <ngx-datatable-column
-        name="Timestamp"
-        prop="timestamp"
-        [width]="80"
-        [resizeable]="true"
-        [sortable]="true"
-        [draggable]="false"
-        [canAutoResize]="true"
-      >
-        <ng-template let-row="row" ngx-datatable-cell-template>
-          <div>{{row.timestamp}}</div>
-        </ng-template>
-      </ngx-datatable-column>
         <ngx-datatable-row-detail rowHeight="auto">
           <ng-template let-row="row" ngx-datatable-row-detail-template>
           </ng-template>

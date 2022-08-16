@@ -19,7 +19,6 @@ export class WorkflowListComponent implements OnInit {
 
   isLoading = true;
   clusterName: string;
-  workflows: string[];
   workflowRows: WorkflowRow[];
 
   headerHeight = Settings.tableHeaderHeight;
@@ -30,7 +29,7 @@ export class WorkflowListComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private service: WorkflowService
+    private workflowService: WorkflowService
   ) {}
 
   ngOnInit() {
@@ -38,9 +37,8 @@ export class WorkflowListComponent implements OnInit {
       this.isLoading = true;
       this.clusterName = this.route.parent.snapshot.params['name'];
 
-      this.service.getAll(this.clusterName).subscribe(
+      this.workflowService.getAll(this.clusterName).subscribe(
         (workflows) => {
-          this.workflows = workflows;
           this.workflowRows = workflows.map((workflowName) => {
             return {
               name: workflowName,

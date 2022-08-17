@@ -24,4 +24,7 @@
       <package name="org.apache.helix.rest.*"/>
     </packages>
   </test>
+  <listeners>
+    <listener class-name="org.apache.helix.common.AnnotationTransformer"/>
+  </listeners>
 </suite>

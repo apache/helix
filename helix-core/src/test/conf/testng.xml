@@ -18,10 +18,13 @@
   ~ under the License.
   -->
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="Suite" time-out="900000">
+<suite name="Suite" parallel="false" time-out="900000">
   <test name="Test" preserve-order="true">
     <packages>
-        <package name="org.apache.helix.*"/>
+      <package name="org.apache.helix.*"/>
     </packages>
   </test>
+  <listeners>
+    <listener class-name="org.apache.helix.common.AnnotationTransformer"/>
+  </listeners>
 </suite>

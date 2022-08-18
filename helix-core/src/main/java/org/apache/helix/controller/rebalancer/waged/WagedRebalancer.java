@@ -231,6 +231,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
   }
 
+  // Update the partial rebalance mode to be asynchronous or synchronous
+  public void setPartialRebalanceAsyncMode(boolean isAsyncPartialRebalanceEnabled) {
+    _asyncPartialRebalanceEnabled = isAsyncPartialRebalanceEnabled;
+  }
+
   // Update the rebalancer preference if the new options are different from the current preference.
   public synchronized void updateRebalancePreference(
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> newPreference) {

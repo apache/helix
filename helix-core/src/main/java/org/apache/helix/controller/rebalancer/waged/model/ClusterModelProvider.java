@@ -424,7 +424,9 @@ public class ClusterModelProvider {
             currentPartitionStateMap.getOrDefault(partitionName, Collections.emptyMap())
                 .getOrDefault(replicaState, Collections.emptySet());
         if (!currentAllocations.isEmpty()) {
-          currentAllocations.remove(currentAllocations.iterator().next());
+          String allocatedInstance = currentAllocations.iterator().next();
+          allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
+          currentAllocations.remove(allocatedInstance);
         } else {
           toBeAssignedReplicas.add(replica);
         }

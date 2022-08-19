@@ -411,24 +411,26 @@ public class ClusterModelProvider {
       Map<String, Set<AssignableReplica>> replicaMap, Set<String> activeInstances,
       Map<String, ResourceAssignment> currentAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
-    // For any replica tht does not exist in currentAssignment (new resources) or does not exist in
-    // active instances (down instances), return them.
+    // For any replica that are assigned to non-active instances (down instances), add them.
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
     for (String resourceName : replicaMap.keySet()) {
-      Map<String, Map<String, Set<String>>> currentPartitionStateMap =
-          getValidStateInstanceMap(currentAssignment.get(resourceName), activeInstances);
+      Map<String, Map<String, Set<String>>> stateInstanceMap = getStateInstanceMap(currentAssignment.get(resourceName));
+
       for (AssignableReplica replica : replicaMap.get(resourceName)) {
         String partitionName = replica.getPartitionName();
         String replicaState = replica.getReplicaState();
         Set<String> currentAllocations =
-            currentPartitionStateMap.getOrDefault(partitionName, Collections.emptyMap())
+            stateInstanceMap.getOrDefault(partitionName, Collections.emptyMap())
                 .getOrDefault(replicaState, Collections.emptySet());
         if (!currentAllocations.isEmpty()) {
           String allocatedInstance = currentAllocations.iterator().next();
-          allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
+          if (activeInstances.contains(allocatedInstance)) {
+            allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
+          }
+          else {
+            toBeAssignedReplicas.add(replica);
+          }
           currentAllocations.remove(allocatedInstance);
-        } else {
-          toBeAssignedReplicas.add(replica);
         }
       }
     }

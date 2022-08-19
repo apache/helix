@@ -537,19 +537,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     Map<String, ResourceAssignment> currentBestPossibleAssignment =
         getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
             resourceMap.keySet());
-    ClusterModel clusterModel;
-    try {
-      clusterModel = ClusterModelProvider
-          .generateClusterModelForPartialRebalance(clusterData, resourceMap, activeNodes,
-              currentBaseline, currentBestPossibleAssignment);
-    } catch (Exception ex) {
-      throw new HelixRebalanceException("Failed to generate cluster model for partial rebalance.",
-          HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
-    }
 
     _asyncPartialRebalanceResult = _bestPossibleCalculateExecutor.submit(() -> {
       try {
-        calculateAndUpdateBestPossible(clusterData, clusterModel, algorithm, currentBaseline);
+        calculateAndUpdateBestPossible(clusterData, resourceMap, activeNodes, algorithm,
+            currentBaseline, currentBestPossibleAssignment);
       } catch (HelixRebalanceException e) {
         LOG.error("Failed to calculate best possible assignment!", e);
         return false;
@@ -577,12 +569,24 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
    * @throws HelixRebalanceException
    */
   private void calculateAndUpdateBestPossible(ResourceControllerDataProvider clusterData,
-      ClusterModel clusterModel, RebalanceAlgorithm algorithm,
-      Map<String, ResourceAssignment> currentBaseline)
+      Map<String, Resource> resourceMap,
+      Set<String> activeNodes, RebalanceAlgorithm algorithm,
+      Map<String, ResourceAssignment> currentBaseline,
+      Map<String, ResourceAssignment> currentBestPossibleAssignment)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new best possible assignment.");
     _partialRebalanceCounter.increment(1L);
     _partialRebalanceLatency.startMeasuringLatency();
+
+    ClusterModel clusterModel;
+    try {
+      clusterModel = ClusterModelProvider
+          .generateClusterModelForPartialRebalance(clusterData, resourceMap, activeNodes,
+              currentBaseline, currentBestPossibleAssignment);
+    } catch (Exception ex) {
+      throw new HelixRebalanceException("Failed to generate cluster model for partial rebalance.",
+          HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
+    }
 
     Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterModel, algorithm);
     // Asynchronously report baseline divergence metric before persisting to metadata store,

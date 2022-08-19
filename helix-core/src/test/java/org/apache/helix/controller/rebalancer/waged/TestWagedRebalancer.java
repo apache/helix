@@ -375,7 +375,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS);
       Assert.assertEquals(ex.getMessage(),
-          "Failed to generate cluster model for partial rebalance. Failure Type: INVALID_CLUSTER_STATUS");
+          "Failed to generate cluster model for emergency rebalance. Failure Type: INVALID_CLUSTER_STATUS");
     }
 
     // The rebalance will be done with empty mapping result since there is no previously calculated
@@ -439,7 +439,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-      Assert.assertEquals(ex.getMessage(), "Algorithm fails. Failure Type: FAILED_TO_CALCULATE");
+      Assert.assertEquals(ex.getMessage(), "Failed to calculate for the new best possible. Failure Type: FAILED_TO_CALCULATE");
     }
     // But if call with the public method computeNewIdealStates(), the rebalance will return with
     // the previous rebalance result.

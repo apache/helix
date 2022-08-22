@@ -32,9 +32,9 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
-import org.apache.helix.common.caches.BasicClusterDataCache;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.view.dataprovider.SourceClusterDataProvider;
+import org.apache.helix.view.dataprovider.ViewClusterDataCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +47,13 @@ public class ViewClusterRefresher {
   private static final Logger logger = LoggerFactory.getLogger(ViewClusterRefresher.class);
   private final String _viewClusterName;
   private final HelixDataAccessor _viewClusterDataAccessor;
-  private final BasicClusterDataCache _viewClusterDataCache;
+  private final ViewClusterDataCache _viewClusterDataCache;
   private Set<SourceClusterDataProvider> _dataProviderView;
 
   public ViewClusterRefresher(String viewClusterName, HelixDataAccessor viewClusterDataAccessor) {
     _viewClusterName = viewClusterName;
     _viewClusterDataAccessor = viewClusterDataAccessor;
-    _viewClusterDataCache = new BasicClusterDataCache(viewClusterName);
+    _viewClusterDataCache = new ViewClusterDataCache(viewClusterName);
   }
 
   private static class ClusterPropertyDiff {

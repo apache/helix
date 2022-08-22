@@ -20,7 +20,6 @@ package org.apache.helix.common.caches;
  */
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -216,23 +215,6 @@ public class BasicClusterDataCache implements ControlContextProvider {
     for(HelixConstants.ChangeType type : HelixConstants.ChangeType.values()) {
       _propertyDataChangedMap.put(type, Boolean.TRUE);
     }
-  }
-
-  /**
-   * Update cache and return true if any local data is changed compared to before refresh.
-   * @param dataAccessor the data accessor used to fetch data.
-   * @return true if there is a change to local cache.
-   */
-  public boolean updateCache(HelixDataAccessor dataAccessor) {
-    Map<String, LiveInstance> liveInstance = new HashMap<>(getLiveInstances());
-    Map<String, ExternalView> externalView = new HashMap<>(getExternalViews());
-    Map<String, InstanceConfig> instanceConfig = new HashMap<>(getInstanceConfigMap());
-    requireFullRefresh();
-    refresh(dataAccessor);
-
-    return !(liveInstance.equals(getLiveInstances())
-        && externalView.equals(getExternalViews())
-        && instanceConfig.equals(getInstanceConfigMap()));
   }
 
   /**

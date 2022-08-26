@@ -255,8 +255,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Map<String, ResourceAssignment> testResourceAssignmentMap = new HashMap<>();
     ZNRecord mappingNode = new ZNRecord(_resourceNames.get(0));
     HashMap<String, String> mapping = new HashMap<>();
-    mapping.put(_partitionNames.get(0), "MASTER");
-    mappingNode.setMapField(_testInstanceId, mapping);
+    mapping.put(_testInstanceId, "MASTER");
+    mappingNode.setMapField(_partitionNames.get(0), mapping);
     testResourceAssignmentMap.put(_resourceNames.get(0), new ResourceAssignment(mappingNode));
 
     _metadataStore.reset();
@@ -373,9 +373,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
           clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
-      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS);
+      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(),
-          "Failed to generate cluster model for emergency rebalance. Failure Type: INVALID_CLUSTER_STATUS");
+          "Failed to calculate for the new best possible. Failure Type: FAILED_TO_CALCULATE");
     }
 
     // The rebalance will be done with empty mapping result since there is no previously calculated

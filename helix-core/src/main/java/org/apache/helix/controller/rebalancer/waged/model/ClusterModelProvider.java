@@ -176,10 +176,6 @@ public class ClusterModelProvider {
       case EMERGENCY:
         toBeAssignedReplicas = findToBeAssignedReplicasIllegalPlacements(replicaMap, activeInstances,
             currentAssignment, allocatedReplicas);
-        if (toBeAssignedReplicas.isEmpty()) {
-          // Immediately return if there's nothing to assign. TODO: make this flow better
-          return null;
-        }
         break;
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);

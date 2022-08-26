@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -631,19 +632,23 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     Map<String, ResourceAssignment> currentBestPossibleAssignment =
         getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
             resourceMap.keySet());
-    ClusterModel clusterModel;
-    try {
-      clusterModel = ClusterModelProvider
-          .generateClusterModelForEmergencyRebalance(clusterData, resourceMap, activeNodes,
-              currentBestPossibleAssignment);
-    } catch (Exception ex) {
-      throw new HelixRebalanceException("Failed to generate cluster model for emergency rebalance.",
-          HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
-    }
 
-    // Only calculate if there are illegal placements, meaning the cluster model is non null;
-    // otherwise, start partial rebalance and return the current best possible.
-    if (clusterModel == null) {
+    AtomicBoolean allNodesActive = new AtomicBoolean(true);
+    currentBestPossibleAssignment.values().parallelStream().forEach((resourceAssignment -> {
+      resourceAssignment.getMappedPartitions().parallelStream().forEach(partition -> {
+        for (String instance : resourceAssignment.getReplicaMap(partition).keySet()) {
+          if (!activeNodes.contains(instance)) {
+            allNodesActive.set(false);
+            break;
+          }
+        }
+      });
+    }));
+
+
+    // Only calculate if there are illegal placements, otherwise, start partial rebalance and
+    // return the current best possible.
+    if (allNodesActive.get()) {
       // Perform partial rebalance for a new best possible assignment
       if (_asyncPartialRebalanceResult == null || _asyncPartialRebalanceResult.isDone()) {
         partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
@@ -653,6 +658,16 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         }
       }
       return currentBestPossibleAssignment;
+    }
+
+    ClusterModel clusterModel;
+    try {
+      clusterModel = ClusterModelProvider
+          .generateClusterModelForEmergencyRebalance(clusterData, resourceMap, activeNodes,
+              currentBestPossibleAssignment);
+    } catch (Exception ex) {
+      throw new HelixRebalanceException("Failed to generate cluster model for emergency rebalance.",
+          HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
     }
 
     if (_asyncPartialRebalanceResult != null && !_asyncPartialRebalanceResult.isDone()) {

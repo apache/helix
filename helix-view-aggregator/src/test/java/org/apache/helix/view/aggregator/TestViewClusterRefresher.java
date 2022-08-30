@@ -103,6 +103,7 @@ public class TestViewClusterRefresher extends ZkTestBase {
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.INSTANCES));
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.EXTERNALVIEW));
     viewClusterDataAccessor.resetCounters();
+    refresher.refreshViewClusterDataCache();
 
     // Refresh again without change
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.LIVEINSTANCES));
@@ -147,6 +148,7 @@ public class TestViewClusterRefresher extends ZkTestBase {
         new ArrayList<>(sampleProvider.getLiveInstances().values());
     liveInstances.add(new LiveInstance("newLiveInstance"));
     sampleProvider.setLiveInstances(liveInstances);
+    refresher.refreshViewClusterDataCache();
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.LIVEINSTANCES));
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.INSTANCES));
     Assert.assertEquals(viewClusterDataAccessor.getSetCount(), 1);
@@ -219,6 +221,7 @@ public class TestViewClusterRefresher extends ZkTestBase {
     // remove InstanceConfig and ExternalView requirement from sample provider
     sampleProvider.getConfig()
         .setProperties(Collections.singletonList(PropertyType.LIVEINSTANCES));
+    refresher.refreshViewClusterDataCache();
 
     // Refresh again
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.LIVEINSTANCES));

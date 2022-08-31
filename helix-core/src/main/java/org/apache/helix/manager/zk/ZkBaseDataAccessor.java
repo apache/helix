@@ -726,7 +726,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       // case, we try to delete recursively
       _zkClient.delete(path);
     } catch (ZkException e) {
-      LOG.debug("Failed to delete {} with opts {}, err: {}. Try recursive delete", path, options,
+      LOG.info("Failed to delete {} with opts {}, err: {}. Try recursive delete", path, options,
           e.getMessage());
       try {
         _zkClient.deleteRecursively(path);

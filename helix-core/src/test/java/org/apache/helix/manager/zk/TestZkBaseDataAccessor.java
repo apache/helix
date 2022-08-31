@@ -434,6 +434,29 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
+  public void testDeleteLogging() {
+    String root = _rootPath;
+    _gZkClient.deleteRecursively("/" + root);
+
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
+
+    // CreateChildren
+    List<ZNRecord> records = new ArrayList<>();
+    List<String> paths = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      paths.add(PropertyPathBuilder.instanceMessage(root, "host_1", msgId));
+      records.add(new ZNRecord(msgId));
+    }
+    boolean[] success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
+
+    // Attempt to remove parent. Shouldn't throw an error or warning log.
+    // Should return True if recursive deletion succeeds.
+    Assert.assertTrue(accessor.remove(PropertyPathBuilder.instanceMessage(root, "host_1"), 0),
+            "Should return True despite log errors.");
+  }
+
+  @Test
   public void testSyncGet() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

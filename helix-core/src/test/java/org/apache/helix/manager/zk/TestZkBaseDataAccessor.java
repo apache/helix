@@ -454,6 +454,14 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     // Should return True if recursive deletion succeeds.
     Assert.assertTrue(accessor.remove(PropertyPathBuilder.instanceMessage(root, "host_1"), 0),
             "Should return True despite log errors.");
+
+    // Assert child message nodes were removed when calling remove on parent
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      String path = PropertyPathBuilder.instanceMessage(root, "host_1", msgId);
+      boolean pathExists = _gZkClient.exists(path);
+      Assert.assertFalse(pathExists, "Message znode should have been removed by accessor msgId=" + msgId);
+    }
   }
 
   @Test

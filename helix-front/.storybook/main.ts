@@ -1,4 +1,4 @@
-// .storybook/main.js
+// .storybook/main.ts
 
 module.exports = {
   addons: ['@storybook/addon-essentials'],

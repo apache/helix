@@ -14,6 +14,10 @@ const config: any = {
   },
   framework: '@storybook/angular',
   stories: ['../src/**/*.stories.@(ts|mdx)'],
+  typescript: {
+    check: false,
+    checkOptions: {},
+  },
   webpackFinal: async (config, { _configType }) => {
     // Make whatever fine-grained changes you need
     // Return the altered config

@@ -14910,6 +14910,16 @@
                 "defaultValue": "Template.bind({})"
             },
             {
+                "name": "config",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": ".storybook/main.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "any",
+                "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  babel: async (options) => ({\n    // Update your babel configuration here\n    ...options,\n  }),\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  webpackFinal: async (config, { _configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
+            },
+            {
                 "name": "Default",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
@@ -15162,6 +15172,18 @@
                     "defaultValue": "RouterModule.forRoot(HELIX_ROUTES, { relativeLinkResolution: 'legacy' })"
                 }
             ],
+            ".storybook/main.ts": [
+                {
+                    "name": "config",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": ".storybook/main.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "any",
+                    "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  babel: async (options) => ({\n    // Update your babel configuration here\n    ...options,\n  }),\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  webpackFinal: async (config, { _configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
+                }
+            ],
             "src/environments/environment.prod.ts": [
                 {
                     "name": "environment",
@@ -15308,6 +15330,16 @@
         "count": 0,
         "status": "low",
         "files": [
+            {
+                "filePath": ".storybook/main.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "config",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
             {
                 "filePath": "server/app.ts",
                 "type": "variable",

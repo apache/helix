@@ -1,51 +1,84 @@
-import { Meta, Story } from '@storybook/angular';
-
-// Cannot find module '@storybook/addon-actions' or its corresponding type declarations.ts(2307)
-// @ts-expect-error
-import { action } from '@storybook/addon-actions';
+import { APP_BASE_HREF } from '@angular/common';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import {
+  moduleMetadata,
+  Meta,
+  Story,
+  componentWrapperDecorator,
+} from '@storybook/angular';
 
 import { WorkflowListComponent } from './workflow-list.component';
+import { WorkflowModule } from '../workflow.module';
+import { MaterialModule } from 'app/shared/material.module';
+import { SharedModule } from 'app/shared/shared.module';
+
+const routes: Routes = [
+  { path: 'workflows', component: WorkflowListComponent },
+];
 
 export default {
   component: WorkflowListComponent,
-  title: 'Task',
+  title: 'Workflow List',
   excludeStories: /.*Data$/,
+  decorators: [
+    moduleMetadata({
+      imports: [
+        WorkflowModule,
+        SharedModule,
+        MaterialModule,
+        RouterModule.forRoot(routes, { useHash: true }),
+      ],
+      providers: [
+        {
+          provide: APP_BASE_HREF,
+          useValue: '/',
+        },
+      ],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    }),
+    //👇 Wraps our stories with a decorator
+    componentWrapperDecorator(
+      (story) => `<div style="margin: 3em">${story}</div>`
+    ),
+  ],
 } as Meta;
 
-export const actionsData = {
-  onPinTask: action('onPinTask'),
-  onArchiveTask: action('onArchiveTask'),
-};
-
-const Template: Story = (args) => ({
+const Template: Story = (args: any) => ({
   props: {
     ...args,
-    onPinTask: actionsData.onPinTask,
-    onArchiveTask: actionsData.onArchiveTask,
   },
+  template: `
+  <div>Workflow List</div>
+  <span>There's no workflow here.</span>
+  <hi-workflow-list [workflowRows]="workflowRows" [clusterName]="clusterName" [isLoading]="isLoading"></hi-workflow-list>
+   <router-outlet></router-outlet>
+`,
 });
 
-export const Default = Template.bind({});
+const Default = Template.bind({});
+
+const workflowRows = [{ name: 'workflow1' }];
+const clusterName = 'cluster1';
+
 Default.args = {
-  task: {
-    id: '1',
-    title: 'Test Task',
-    state: 'TASK_INBOX',
-  },
+  workflowRows,
+  clusterName,
+  headerHeight: 40,
+  rowHeight: 40,
+  isLoading: false,
 };
 
-export const Pinned = Template.bind({});
-Pinned.args = {
-  task: {
-    ...Default.args['task'],
-    state: 'TASK_PINNED',
-  },
+const Loading = Template.bind({});
+Loading.args = {
+  workflowRows: [],
+  isLoading: true,
 };
 
-export const Archived = Template.bind({});
-Archived.args = {
-  task: {
-    ...Default.args['task'],
-    state: 'TASK_ARCHIVED',
-  },
+const Empty = Template.bind({});
+Empty.args = {
+  // Shaping the stories through args composition.
+  // Inherited data coming from the Loading story.
+  ...Loading.args,
+  isLoading: false,
 };

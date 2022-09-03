@@ -2,6 +2,7 @@
   "compileOnSave": false,
   "exclude": ["**/*.cy.ts", "**/*.spec.ts"],
   "compilerOptions": {
+    "types": [],
     "importHelpers": false,
     "outDir": "./dist/out-tsc",
     "baseUrl": "src",

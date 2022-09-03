@@ -14870,16 +14870,6 @@
     "miscellaneous": {
         "variables": [
             {
-                "name": "actionsData",
-                "ctype": "miscellaneous",
-                "subtype": "variable",
-                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
-                "deprecated": false,
-                "deprecationMessage": "",
-                "type": "object",
-                "defaultValue": "{\n  onPinTask: action('onPinTask'),\n  onArchiveTask: action('onArchiveTask'),\n}"
-            },
-            {
                 "name": "app",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
@@ -14900,7 +14890,17 @@
                 "defaultValue": "RouterModule.forRoot(HELIX_ROUTES, { relativeLinkResolution: 'legacy' })"
             },
             {
-                "name": "Archived",
+                "name": "clusterName",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "string",
+                "defaultValue": "'cluster1'"
+            },
+            {
+                "name": "Default",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
                 "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
@@ -14910,17 +14910,7 @@
                 "defaultValue": "Template.bind({})"
             },
             {
-                "name": "config",
-                "ctype": "miscellaneous",
-                "subtype": "variable",
-                "file": ".storybook/main.ts",
-                "deprecated": false,
-                "deprecationMessage": "",
-                "type": "StorybookConfig",
-                "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  typescript: {\n    check: false,\n    checkOptions: {},\n  },\n  webpackFinal: async (config, { configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
-            },
-            {
-                "name": "Default",
+                "name": "Empty",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
                 "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
@@ -14980,7 +14970,7 @@
                 "defaultValue": "{\n  uri: 'ldap://example.com',\n  base: 'DC=example,DC=com',\n  principalSuffix: '@example.com',\n  adminGroup: 'admin',\n}"
             },
             {
-                "name": "Pinned",
+                "name": "Loading",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
                 "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
@@ -15027,7 +15017,17 @@
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "Story",
-                "defaultValue": "(args) => ({\n  props: {\n    ...args,\n    onPinTask: actionsData.onPinTask,\n    onArchiveTask: actionsData.onArchiveTask,\n  },\n})"
+                "defaultValue": "(args: any) => ({\n  props: {\n    ...args,\n  },\n})"
+            },
+            {
+                "name": "workflowRows",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "[]",
+                "defaultValue": "[{ name: 'workflow1' }]"
             }
         ],
         "functions": [
@@ -15086,58 +15086,6 @@
         ],
         "enumerations": [],
         "groupedVariables": {
-            "src/app/workflow/workflow-list/workflow-list.stories.ts": [
-                {
-                    "name": "actionsData",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "object",
-                    "defaultValue": "{\n  onPinTask: action('onPinTask'),\n  onArchiveTask: action('onArchiveTask'),\n}"
-                },
-                {
-                    "name": "Archived",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "",
-                    "defaultValue": "Template.bind({})"
-                },
-                {
-                    "name": "Default",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "",
-                    "defaultValue": "Template.bind({})"
-                },
-                {
-                    "name": "Pinned",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "",
-                    "defaultValue": "Template.bind({})"
-                },
-                {
-                    "name": "Template",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "Story",
-                    "defaultValue": "(args) => ({\n  props: {\n    ...args,\n    onPinTask: actionsData.onPinTask,\n    onArchiveTask: actionsData.onArchiveTask,\n  },\n})"
-                }
-            ],
             "server/app.ts": [
                 {
                     "name": "app",
@@ -15172,16 +15120,66 @@
                     "defaultValue": "RouterModule.forRoot(HELIX_ROUTES, { relativeLinkResolution: 'legacy' })"
                 }
             ],
-            ".storybook/main.ts": [
+            "src/app/workflow/workflow-list/workflow-list.stories.ts": [
                 {
-                    "name": "config",
+                    "name": "clusterName",
                     "ctype": "miscellaneous",
                     "subtype": "variable",
-                    "file": ".storybook/main.ts",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
                     "deprecated": false,
                     "deprecationMessage": "",
-                    "type": "StorybookConfig",
-                    "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  typescript: {\n    check: false,\n    checkOptions: {},\n  },\n  webpackFinal: async (config, { configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
+                    "type": "string",
+                    "defaultValue": "'cluster1'"
+                },
+                {
+                    "name": "Default",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "defaultValue": "Template.bind({})"
+                },
+                {
+                    "name": "Empty",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "defaultValue": "Template.bind({})"
+                },
+                {
+                    "name": "Loading",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "defaultValue": "Template.bind({})"
+                },
+                {
+                    "name": "Template",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "Story",
+                    "defaultValue": "(args: any) => ({\n  props: {\n    ...args,\n  },\n})"
+                },
+                {
+                    "name": "workflowRows",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "[]",
+                    "defaultValue": "[{ name: 'workflow1' }]"
                 }
             ],
             "src/environments/environment.prod.ts": [
@@ -15330,16 +15328,6 @@
         "count": 0,
         "status": "low",
         "files": [
-            {
-                "filePath": ".storybook/main.ts",
-                "type": "variable",
-                "linktype": "miscellaneous",
-                "linksubtype": "variable",
-                "name": "config",
-                "coveragePercent": 0,
-                "coverageCount": "0/1",
-                "status": "low"
-            },
             {
                 "filePath": "server/app.ts",
                 "type": "variable",
@@ -16028,17 +16016,7 @@
                 "type": "variable",
                 "linktype": "miscellaneous",
                 "linksubtype": "variable",
-                "name": "actionsData",
-                "coveragePercent": 0,
-                "coverageCount": "0/1",
-                "status": "low"
-            },
-            {
-                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
-                "type": "variable",
-                "linktype": "miscellaneous",
-                "linksubtype": "variable",
-                "name": "Archived",
+                "name": "clusterName",
                 "coveragePercent": 0,
                 "coverageCount": "0/1",
                 "status": "low"
@@ -16058,7 +16036,17 @@
                 "type": "variable",
                 "linktype": "miscellaneous",
                 "linksubtype": "variable",
-                "name": "Pinned",
+                "name": "Empty",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "Loading",
                 "coveragePercent": 0,
                 "coverageCount": "0/1",
                 "status": "low"
@@ -16069,6 +16057,16 @@
                 "linktype": "miscellaneous",
                 "linksubtype": "variable",
                 "name": "Template",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "workflowRows",
                 "coveragePercent": 0,
                 "coverageCount": "0/1",
                 "status": "low"

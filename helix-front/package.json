@@ -50,6 +50,12 @@
     "last 2 Safari versions",
     "Chrome > 60"
   ],
+  "resolutions": {
+    "webpack": "^5"
+  },
+  "peerDependencies": {
+    "webpack": "*"
+  },
   "dependencies": {
     "@angular/animations": "13.3.9",
     "@angular/cdk": "13.3.9",
@@ -112,6 +118,7 @@
     "@babel/preset-typescript": "^7.18.6",
     "@compodoc/compodoc": "^1.1.19",
     "@cypress/schematic": "2.0.0",
+    "@storybook/addon-actions": "^6.5.10",
     "@storybook/angular": "^6.5.10",
     "@storybook/builder-webpack5": "^6.5.0-rc.1",
     "@storybook/core-common": "^6.5.10",
@@ -139,6 +146,8 @@
     "nodemon": "^2.0.16",
     "prettier": "2.7.0",
     "ts-node": "~2.0.0",
-    "typescript": "4.6.4"
+    "typescript": "4.6.4",
+    "util": "^0.12.4",
+    "webpack": "5"
   }
 }

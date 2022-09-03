@@ -9,6 +9,9 @@ module.exports = {
   core: {
     builder: 'webpack5',
   },
+  features: {
+    storyStoreV7: true,
+  },
   framework: '@storybook/angular',
   stories: ['../src/**/*.stories.@(js|mdx)'],
   webpackFinal: async (config, { _configType }) => {

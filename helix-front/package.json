@@ -114,6 +114,7 @@
     "@cypress/schematic": "2.0.0",
     "@storybook/angular": "^6.5.10",
     "@storybook/builder-webpack5": "^6.5.0-rc.1",
+    "@storybook/core-common": "^6.5.10",
     "@storybook/manager-webpack5": "^6.5.0-rc.1",
     "@types/hammerjs": "^2.0.34",
     "@types/jest": "^28.1.1",

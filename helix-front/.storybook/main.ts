@@ -1,11 +1,10 @@
 // .storybook/main.ts
 
-const config: any = {
+// Imports the Storybook's configuration API
+import type { StorybookConfig } from '@storybook/core-common';
+
+const config: StorybookConfig = {
   addons: ['@storybook/addon-essentials'],
-  babel: async (options) => ({
-    // Update your babel configuration here
-    ...options,
-  }),
   core: {
     builder: 'webpack5',
   },
@@ -18,7 +17,7 @@ const config: any = {
     check: false,
     checkOptions: {},
   },
-  webpackFinal: async (config, { _configType }) => {
+  webpackFinal: async (config, { configType }) => {
     // Make whatever fine-grained changes you need
     // Return the altered config
     return config;

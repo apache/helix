@@ -14916,8 +14916,8 @@
                 "file": ".storybook/main.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
-                "type": "any",
-                "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  babel: async (options) => ({\n    // Update your babel configuration here\n    ...options,\n  }),\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  webpackFinal: async (config, { _configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
+                "type": "StorybookConfig",
+                "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  typescript: {\n    check: false,\n    checkOptions: {},\n  },\n  webpackFinal: async (config, { configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
             },
             {
                 "name": "Default",
@@ -15180,8 +15180,8 @@
                     "file": ".storybook/main.ts",
                     "deprecated": false,
                     "deprecationMessage": "",
-                    "type": "any",
-                    "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  babel: async (options) => ({\n    // Update your babel configuration here\n    ...options,\n  }),\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  webpackFinal: async (config, { _configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
+                    "type": "StorybookConfig",
+                    "defaultValue": "{\n  addons: ['@storybook/addon-essentials'],\n  core: {\n    builder: 'webpack5',\n  },\n  features: {\n    storyStoreV7: true,\n  },\n  framework: '@storybook/angular',\n  stories: ['../src/**/*.stories.@(ts|mdx)'],\n  typescript: {\n    check: false,\n    checkOptions: {},\n  },\n  webpackFinal: async (config, { configType }) => {\n    // Make whatever fine-grained changes you need\n    // Return the altered config\n    return config;\n  },\n}"
                 }
             ],
             "src/environments/environment.prod.ts": [

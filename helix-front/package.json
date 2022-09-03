@@ -20,7 +20,7 @@
     "test": "ng test",
     "cypress:open": "cypress open --e2e --browser chrome",
     "cypress:run": "cypress run --e2e --browser chrome",
-    "docs:json": "@compodoc/compodoc -p ./tsconfig.doc.json -d . --disableRoutesGraph",
+    "docs:json": "compodoc -p ./tsconfig.doc.json -d docs --disableRoutesGraph",
     "storybook": "npm run docs:json && storybook -p 9009",
     "storybook:build": "npm run docs:json && build-storybook -c .storybook -o dist/storybook",
     "e2e": "ng e2e",

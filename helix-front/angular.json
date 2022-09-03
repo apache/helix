@@ -5,7 +5,7 @@
   "projects": {
     "helix-front": {
       "root": "",
-      "sourceRoot": "client",
+      "sourceRoot": "src",
       "projectType": "application",
       "architect": {
         "build": {
@@ -13,20 +13,20 @@
           "options": {
             "aot": true,
             "outputPath": "dist/public",
-            "index": "client/index.html",
-            "main": "client/main.ts",
-            "tsConfig": "client/tsconfig.app.json",
-            "polyfills": "client/polyfills.ts",
+            "index": "src/index.html",
+            "main": "src/main.ts",
+            "tsConfig": "src/tsconfig.app.json",
+            "polyfills": "src/polyfills.ts",
             "assets": [
-              "client/assets",
-              "client/favicon.ico",
+              "src/assets",
+              "src/favicon.ico",
               {
                 "glob": "**/*",
                 "input": "node_modules/ace-builds/src-min/",
                 "output": "/"
               }
             ],
-            "styles": ["client/styles.scss", "client/theme.scss"],
+            "styles": ["src/styles.scss", "src/theme.scss"],
             "scripts": [
               "node_modules/ace-builds/src-min/ace.js",
               "node_modules/ace-builds/src-min/theme-eclipse.js",
@@ -60,8 +60,8 @@
               "buildOptimizer": true,
               "fileReplacements": [
                 {
-                  "replace": "client/environments/environment.ts",
-                  "with": "client/environments/environment.prod.ts"
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
                 }
               ]
             },
@@ -94,8 +94,8 @@
           "builder": "@angular-builders/jest:run",
           "options": {
             "main": ["setupJest.ts"],
-            "tsConfig": "client/tsconfig.spec.json",
-            "polyfills": ["client/polyfills.ts"],
+            "tsConfig": "src/tsconfig.spec.json",
+            "polyfills": ["src/polyfills.ts"],
             "no-cache": true,
             "scripts": [
               "node_modules/ace-builds/src-min/ace.js",
@@ -105,16 +105,16 @@
               "node_modules/ace-builds/src-min/mode-css.js",
               "node_modules/ace-builds/src-min/mode-json.js"
             ],
-            "styles": ["client/styles.scss", "client/theme.scss"],
-            "assets": ["client/assets", "client/favicon.ico"]
+            "styles": ["src/styles.scss", "src/theme.scss"],
+            "assets": ["src/assets", "src/favicon.ico"]
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
             "tsConfig": [
-              "client/tsconfig.app.json",
-              "client/tsconfig.spec.json",
+              "src/tsconfig.app.json",
+              "src/tsconfig.spec.json",
               "cypress/tsconfig.json"
             ],
             "exclude": [],

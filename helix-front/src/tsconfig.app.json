@@ -1,6 +1,6 @@
 {
   "extends": "../tsconfig.json",
-  "include": ["client/**/*.d.ts"],
+  "include": ["src/**/*.d.ts"],
   "compilerOptions": {
     "outDir": "../out-tsc/app",
     "baseUrl": "",

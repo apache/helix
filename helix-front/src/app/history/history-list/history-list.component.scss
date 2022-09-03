@@ -1,7 +1,7 @@
 // Import theming functions
 @use '@angular/material' as mat;
 // Import custom theme
-@import 'client/theme.scss';
+@import 'src/theme.scss';
 
 hi-history-list {
   .current {

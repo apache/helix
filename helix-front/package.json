@@ -99,6 +99,7 @@
     "@angular/cli": "13.3.6",
     "@angular/compiler-cli": "13.3.9",
     "@cypress/schematic": "2.0.0",
+    "@storybook/angular": "^6.5.10",
     "@types/hammerjs": "^2.0.34",
     "@types/jest": "^28.1.1",
     "@types/lodash": "4.14.120",

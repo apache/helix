@@ -29,7 +29,7 @@ describe('NodeViewerComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render the locked button', () => {
-    expect(component).toContain('Locked');
+  it('should not be unlockable', () => {
+    expect(component).toHaveProperty('unlockable', false);
   });
 });

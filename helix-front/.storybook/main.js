@@ -6,6 +6,9 @@ module.exports = {
     // Update your babel configuration here
     ...options,
   }),
+  core: {
+    builder: 'webpack5',
+  },
   framework: '@storybook/angular',
   stories: ['../src/**/*.stories.@(js|mdx)'],
   webpackFinal: async (config, { _configType }) => {

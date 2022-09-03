@@ -3,7 +3,11 @@
   "version": "1.2.1",
   "author": "Vivo Xu <xuxu@xuxu.name>",
   "contributors": [
-    {"name": "@micahstubbs", "email": "git@micah.fyi", "url": "https://micah.fyi"}
+    {
+      "name": "@micahstubbs",
+      "email": "git@micah.fyi",
+      "url": "https://micah.fyi"
+    }
   ],
   "license": "Apache-2.0",
   "repository": {
@@ -24,8 +28,8 @@
     "cypress:open": "cypress open --e2e --browser chrome",
     "cypress:run": "cypress run --e2e --browser chrome",
     "docs:json": "compodoc -p ./tsconfig.json -d docs --disableRoutesGraph",
-    "storybook": "yarn run docs:json && storybook -p 9009",
-    "storybook:build": "yarn run docs:json && build-storybook -c .storybook -o dist/storybook",
+    "storybook": "ng run helix-front:storybook",
+    "storybook:build": "ng run helix-front:build-storybook",
     "e2e": "ng e2e",
     "smoke": "ng lint && ng test --sr && yarn run build",
     "lint": "eslint --ext .ts,.html .",
@@ -107,6 +111,8 @@
     "@compodoc/compodoc": "^1.1.19",
     "@cypress/schematic": "2.0.0",
     "@storybook/angular": "^6.5.10",
+    "@storybook/builder-webpack5": "^6.5.0-rc.1",
+    "@storybook/manager-webpack5": "^6.5.0-rc.1",
     "@types/hammerjs": "^2.0.34",
     "@types/jest": "^28.1.1",
     "@types/lodash": "4.14.120",

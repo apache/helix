@@ -14870,6 +14870,16 @@
     "miscellaneous": {
         "variables": [
             {
+                "name": "actionsData",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "object",
+                "defaultValue": "{\n  onPinTask: action('onPinTask'),\n  onArchiveTask: action('onArchiveTask'),\n}"
+            },
+            {
                 "name": "app",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
@@ -14888,6 +14898,26 @@
                 "deprecationMessage": "",
                 "type": "ModuleWithProviders<RouterModule>",
                 "defaultValue": "RouterModule.forRoot(HELIX_ROUTES, { relativeLinkResolution: 'legacy' })"
+            },
+            {
+                "name": "Archived",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "",
+                "defaultValue": "Template.bind({})"
+            },
+            {
+                "name": "Default",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "",
+                "defaultValue": "Template.bind({})"
             },
             {
                 "name": "environment",
@@ -14940,6 +14970,16 @@
                 "defaultValue": "{\n  uri: 'ldap://example.com',\n  base: 'DC=example,DC=com',\n  principalSuffix: '@example.com',\n  adminGroup: 'admin',\n}"
             },
             {
+                "name": "Pinned",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "",
+                "defaultValue": "Template.bind({})"
+            },
+            {
                 "name": "server",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
@@ -14968,6 +15008,16 @@
                 "deprecationMessage": "",
                 "type": "object",
                 "defaultValue": "{\n  port: 0,\n  keyfile: '',\n  certfile: '',\n  passfile: '',\n  cafiles: [],\n}"
+            },
+            {
+                "name": "Template",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "Story",
+                "defaultValue": "(args) => ({\n  props: {\n    ...args,\n    onPinTask: actionsData.onPinTask,\n    onArchiveTask: actionsData.onArchiveTask,\n  },\n})"
             }
         ],
         "functions": [
@@ -15026,6 +15076,58 @@
         ],
         "enumerations": [],
         "groupedVariables": {
+            "src/app/workflow/workflow-list/workflow-list.stories.ts": [
+                {
+                    "name": "actionsData",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "object",
+                    "defaultValue": "{\n  onPinTask: action('onPinTask'),\n  onArchiveTask: action('onArchiveTask'),\n}"
+                },
+                {
+                    "name": "Archived",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "defaultValue": "Template.bind({})"
+                },
+                {
+                    "name": "Default",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "defaultValue": "Template.bind({})"
+                },
+                {
+                    "name": "Pinned",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "defaultValue": "Template.bind({})"
+                },
+                {
+                    "name": "Template",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "Story",
+                    "defaultValue": "(args) => ({\n  props: {\n    ...args,\n    onPinTask: actionsData.onPinTask,\n    onArchiveTask: actionsData.onArchiveTask,\n  },\n})"
+                }
+            ],
             "server/app.ts": [
                 {
                     "name": "app",
@@ -15887,6 +15989,56 @@
                 "name": "WorkflowListComponent",
                 "coveragePercent": 0,
                 "coverageCount": "0/11",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "actionsData",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "Archived",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "Default",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "Pinned",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/workflow/workflow-list/workflow-list.stories.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "Template",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
                 "status": "low"
             },
             {

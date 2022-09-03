@@ -1,6 +1,6 @@
 // .storybook/main.ts
 
-module.exports = {
+const config: any = {
   addons: ['@storybook/addon-essentials'],
   babel: async (options) => ({
     // Update your babel configuration here
@@ -13,7 +13,7 @@ module.exports = {
     storyStoreV7: true,
   },
   framework: '@storybook/angular',
-  stories: ['../src/**/*.stories.@(js|mdx)'],
+  stories: ['../src/**/*.stories.@(ts|mdx)'],
   webpackFinal: async (config, { _configType }) => {
     // Make whatever fine-grained changes you need
     // Return the altered config

@@ -1,7 +1,10 @@
 {
   "name": "helix-front",
   "version": "1.2.1",
-  "author": "Vivo Xu <vxu@linkedin.com>",
+  "author": "Vivo Xu <xuxu@xuxu.name>",
+  "contributors": [
+    {"name": "@micahstubbs", "email": "git@micah.fyi", "url": "https://micah.fyi"}
+  ],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

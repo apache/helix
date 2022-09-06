@@ -1,0 +1,14 @@
+@use '@angular/material' as mat;
+@import 'src/theme.scss';
+
+.offline {
+  font-size: 14px;
+  padding-left: 24px;
+  color: mat.get-color-from-palette($hi-warn);
+}
+
+.information {
+  .mat-spinner {
+    margin: 0 20px;
+  }
+}

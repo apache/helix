@@ -2073,7 +2073,7 @@ public class ZkClient implements Watcher {
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.WRITE);
-      LOG.info("zkclient {}, Failed to delete path {}! ", _uid, path, e);
+      LOG.debug("zkclient {}, Failed to delete path {}! ", _uid, path, e);
       throw e;
     } finally {
       long endT = System.currentTimeMillis();

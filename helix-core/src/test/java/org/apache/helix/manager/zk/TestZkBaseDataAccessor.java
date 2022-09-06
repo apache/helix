@@ -434,7 +434,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
-  public void testDeleteLogging() {
+  public void testDeleteNodeWithChildren() {
     String root = _rootPath;
 
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);

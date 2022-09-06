@@ -436,7 +436,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   @Test
   public void testDeleteLogging() {
     String root = _rootPath;
-    _gZkClient.deleteRecursively("/" + root);
 
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
 

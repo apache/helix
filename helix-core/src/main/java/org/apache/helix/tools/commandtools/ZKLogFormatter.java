@@ -44,6 +44,7 @@ import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataNode;
 import org.apache.zookeeper.server.DataTree;
+import org.apache.zookeeper.server.TxnLogEntry;
 import org.apache.zookeeper.server.persistence.FileHeader;
 import org.apache.zookeeper.server.persistence.FileSnap;
 import org.apache.zookeeper.server.persistence.FileTxnLog;
@@ -248,13 +249,12 @@ public class ZKLogFormatter {
       if (crcValue != crc.getValue()) {
         throw new IOException("CRC doesn't match " + crcValue + " vs " + crc.getValue());
       }
-      TxnHeader hdr = new TxnHeader();
-      Record txn = SerializeUtils.deserializeTxn(bytes, hdr);
+      TxnLogEntry txnLogEntry =  SerializeUtils.deserializeTxn(bytes);
       if (bw != null) {
-        bw.write(formatTransaction(hdr, txn));
+        bw.write(formatTransaction(txnLogEntry.getHeader(), txnLogEntry.getTxn()));
         bw.newLine();
       } else {
-        System.out.println(formatTransaction(hdr, txn));
+        System.out.println(formatTransaction(txnLogEntry.getHeader(), txnLogEntry.getTxn()));
       }
 
       if (logStream.readByte("EOR") != 'B') {

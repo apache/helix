@@ -1,6 +1,7 @@
 {
   "name": "helix-front",
   "version": "1.2.1",
+  "main": "/dist/server/app.js",
   "author": "Vivo Xu <xuxu@xuxu.name>",
   "contributors": [
     {
@@ -38,7 +39,8 @@
     "type:check:stats": "yarn type:check -- --diagnostics true",
     "type:check:watch": "yarn type:check -- --watch",
     "format:check": "npx prettier --check .",
-    "format": "yarn prettier --write ."
+    "format": "yarn prettier --write .",
+    "prepack": "yarn build"
   },
   "engines": {
     "node": "~14.17.5",
@@ -50,8 +52,12 @@
     "last 2 Safari versions",
     "Chrome > 60"
   ],
+  "files": [
+    "/dist"
+  ],
   "resolutions": {
-    "webpack": "^5"
+    "webpack": "^5",
+    "vis-data": "^7"
   },
   "peerDependencies": {
     "webpack": "*"
@@ -99,7 +105,7 @@
     "timsort": "^0.3.0",
     "tslib": "^2.4.0",
     "uuid": "^7.0.3",
-    "vis-data": "^6.5.1",
+    "vis-data": "^7.0.0",
     "vis-network": "7.10.2",
     "vis-util": "^4.0.0",
     "xss": "^1.0.11",

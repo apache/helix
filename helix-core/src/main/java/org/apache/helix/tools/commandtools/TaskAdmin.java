@@ -124,7 +124,6 @@ public class TaskAdmin {
         throw new IllegalArgumentException("Unknown command " + args[0]);
       }
     } catch (IllegalArgumentException e) {
-      LOG.error("Unknown driver command " + args[0]);
       throw e;
     }
 

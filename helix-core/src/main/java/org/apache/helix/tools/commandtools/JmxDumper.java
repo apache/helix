@@ -211,7 +211,6 @@ public class JmxDumper implements NotificationListener {
       System.out.println(_outputFileName);
       _outputFile = new PrintWriter(fos);
     } catch (Exception e) {
-      _logger.error("fail to get all existing mbeans in " + _domain, e);
       throw e;
     }
   }

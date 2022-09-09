@@ -394,7 +394,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           return result;
         }
       } catch (ZkBadVersionException e) {
-        LOG.debug("Exception while setting path: " + path, e);
         throw e;
       } catch (Exception e) {
         LOG.error("Exception while setting path: " + path, e);

@@ -366,7 +366,6 @@ public class ClusterSetup {
         _logger.warn("Instance {} does not exist, continue to swap instance for cluster {}",
             oldInstanceName, clusterName);
       } else {
-        _logger.warn("Failed to drop instance {} from cluster {}", oldInstanceName, clusterName, e);
         throw e;
       }
     }

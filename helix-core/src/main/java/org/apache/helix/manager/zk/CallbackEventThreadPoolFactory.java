@@ -83,8 +83,6 @@ public class CallbackEventThreadPoolFactory {
         _managerToCallBackThreadPoolMap.put(hash, result);
         _callBackEventProcessorCountPerThreadPool.put(hash, new AtomicInteger(1));
       } catch (Exception e) {
-        logger.error(String
-            .format("Error when creating new ThreadPoolExecutor for %s.", hash), e);
         throw e;
       } finally {
         _lock.writeLock().unlock();

@@ -57,8 +57,6 @@ public class DistViewAggregatorStateModel extends AbstractHelixLeaderStandbyStat
       _aggregator = new HelixViewAggregator(viewClusterName, _zkAddr);
       _aggregator.start();
     } catch (Exception e) {
-      logger.error("Aggregator failed to become leader from stand by for view cluster {}",
-          viewClusterName, e);
       reset();
       throw e;
     }

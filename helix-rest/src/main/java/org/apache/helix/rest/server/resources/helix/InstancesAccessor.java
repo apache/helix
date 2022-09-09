@@ -277,9 +277,6 @@ public class InstancesAccessor extends AbstractHelixResource {
           .error(String.format("Current cluster %s has issue with health checks!", clusterId), e);
       throw new HelixHealthException(e);
     } catch (Exception e) {
-      _logger.error(String.format(
-              "Failed to get parallel stoppable instances for cluster %s with a HelixException!",
-              clusterId), e);
       throw e;
     }
   }

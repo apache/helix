@@ -150,7 +150,6 @@ public class HelixRestServer {
         }
       }
     } catch (Exception e) {
-      LOG.error("Failed to initialize helix rest server. Tearing down.");
       cleanupResourceConfigs();
       throw e;
     }

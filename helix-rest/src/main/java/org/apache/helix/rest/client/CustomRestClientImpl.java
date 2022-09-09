@@ -143,8 +143,6 @@ class CustomRestClientImpl implements CustomRestClient {
 
       return response;
     } catch (IOException e) {
-      LOG.error("Failed to perform customized health check. Is participant endpoint {} available?",
-          url, e);
       // Release connection to be reused and avoid connection leakage.
       postRequest.releaseConnection();
       throw e;

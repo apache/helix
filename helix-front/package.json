@@ -42,10 +42,6 @@
     "format": "yarn prettier --write .",
     "prepack": "yarn build"
   },
-  "engines": {
-    "node": "~14.17.5",
-    "yarn": "^1.22.18"
-  },
   "browserslist": [
     "last 2 Edge versions",
     "last 2 Firefox versions",

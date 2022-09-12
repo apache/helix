@@ -48,7 +48,7 @@ public class CallbackEventExecutor {
   private ThreadPoolExecutor _threadPoolExecutor;
   private boolean _isShutdown = false;
 
-  public CallbackEventExecutor(HelixManager manager) {
+  public CallbackEventExecutor(HelixManager manager) throws Exception {
     _callBackEventQueue = new DedupEventBlockingQueue<>();
     _manager = manager;
     _threadPoolExecutor = CallbackEventThreadPoolFactory.getOrCreateThreadPool(manager.hashCode());

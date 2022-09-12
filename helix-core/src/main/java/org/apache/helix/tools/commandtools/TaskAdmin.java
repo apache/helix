@@ -124,7 +124,7 @@ public class TaskAdmin {
         throw new IllegalArgumentException("Unknown command " + args[0]);
       }
     } catch (IllegalArgumentException e) {
-      throw e;
+      throw new Exception("Unknown driver command " + args[0], e);
     }
 
     helixMgr.disconnect();

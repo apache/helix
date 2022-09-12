@@ -46,7 +46,7 @@ public class CallbackEventThreadPoolFactory {
   static private Map<Integer, AtomicInteger> _callBackEventProcessorCountPerThreadPool =
       new HashMap();
 
-  public static ThreadPoolExecutor getOrCreateThreadPool(int hash) {
+  public static ThreadPoolExecutor getOrCreateThreadPool(int hash) throws Exception {
     // should not use general lock for read
     _lock.readLock().lock();
     ThreadPoolExecutor result = null;
@@ -61,7 +61,7 @@ public class CallbackEventThreadPoolFactory {
     return result;
   }
 
-  private static ThreadPoolExecutor getOrCreateThreadPoolHelper(int hash) {
+  private static ThreadPoolExecutor getOrCreateThreadPoolHelper(int hash) throws Exception {
     ThreadPoolExecutor result = null;
     _lock.writeLock().lock();
     // first check if the key is already in the map
@@ -83,7 +83,7 @@ public class CallbackEventThreadPoolFactory {
         _managerToCallBackThreadPoolMap.put(hash, result);
         _callBackEventProcessorCountPerThreadPool.put(hash, new AtomicInteger(1));
       } catch (Exception e) {
-        throw e;
+        throw new Exception("Error when creating new ThreadPoolExecutor for " + hash, e);
       } finally {
         _lock.writeLock().unlock();
       }

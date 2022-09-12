@@ -199,7 +199,7 @@ public class InstancesAccessor extends AbstractHelixResource {
   }
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
-      boolean continueOnFailures) throws IOException {
+      boolean continueOnFailures) throws Exception {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -277,7 +277,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           .error(String.format("Current cluster %s has issue with health checks!", clusterId), e);
       throw new HelixHealthException(e);
     } catch (Exception e) {
-      throw e;
+      throw new Exception("Failed to get parallel stoppable instances for cluster " + clusterId + " with a HelixException!", e);
     }
   }
 

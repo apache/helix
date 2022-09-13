@@ -5,6 +5,7 @@ import { Settings } from '../../core/settings';
 import { Partition, IReplica, Resource } from '../shared/resource.model';
 import { HelperService } from '../../shared/helper.service';
 import { ResourceService } from '../shared/resource.service';
+import { DatatableComponent } from '@swimlane/ngx-datatable';
 
 @Component({
   selector: 'hi-partition-list',
@@ -13,7 +14,7 @@ import { ResourceService } from '../shared/resource.service';
 })
 export class PartitionListComponent implements OnInit {
   @ViewChild('partitionsTable', { static: true })
-  table: any;
+  table: DatatableComponent;
 
   isLoading = true;
   clusterName: string;
@@ -60,7 +61,9 @@ export class PartitionListComponent implements OnInit {
 
   onSelect({ selected }) {
     const row = selected[0];
-
+    console.log('selected from partition-list onSelect', selected);
+    console.log('this.table partition-list onSelect', this.table);
+    console.log('this from partition-list onSelect', this);
     this.table.rowDetail.toggleExpandRow(row);
   }
 

@@ -434,6 +434,36 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
+  public void testDeleteNodeWithChildren() {
+    String root = _rootPath;
+
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
+
+    // CreateChildren
+    List<ZNRecord> records = new ArrayList<>();
+    List<String> paths = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      paths.add(PropertyPathBuilder.instanceMessage(root, "host_1", msgId));
+      records.add(new ZNRecord(msgId));
+    }
+    boolean[] success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
+
+    // Attempt to remove parent. Shouldn't throw an error or warning log.
+    // Should return True if recursive deletion succeeds.
+    Assert.assertTrue(accessor.remove(PropertyPathBuilder.instanceMessage(root, "host_1"), 0),
+            "Should return True despite log errors.");
+
+    // Assert child message nodes were removed when calling remove on parent
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      String path = PropertyPathBuilder.instanceMessage(root, "host_1", msgId);
+      boolean pathExists = _gZkClient.exists(path);
+      Assert.assertFalse(pathExists, "Message znode should have been removed by accessor msgId=" + msgId);
+    }
+  }
+
+  @Test
   public void testSyncGet() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

@@ -2066,14 +2066,11 @@ public class ZkClient implements Watcher {
         success = true;
       } catch (ZkNoNodeException e) {
         success = false;
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("zkclient {}, Failed to delete path {}, znode does not exist!", _uid, path);
-        }
+        LOG.debug("zkclient {}, Failed to delete path {}, znode does not exist!", _uid, path);
       }
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.WRITE);
-      LOG.warn("zkclient {}, Failed to delete path {}! ", _uid, path, e);
       throw e;
     } finally {
       long endT = System.currentTimeMillis();

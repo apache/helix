@@ -61,9 +61,7 @@ export class PartitionListComponent implements OnInit {
 
   onSelect({ selected }) {
     const row = selected[0];
-    console.log('selected from partition-list onSelect', selected);
-    console.log('this.table partition-list onSelect', this.table);
-    console.log('this from partition-list onSelect', this);
+
     this.table.rowDetail.toggleExpandRow(row);
   }
 

@@ -13,7 +13,7 @@ import { DatatableComponent } from '@swimlane/ngx-datatable';
   styleUrls: ['./partition-list.component.scss'],
 })
 export class PartitionListComponent implements OnInit {
-  @ViewChild('partitionsTable', { static: true })
+  @ViewChild('partitionsTable', { static: false })
   table: DatatableComponent;
 
   isLoading = true;

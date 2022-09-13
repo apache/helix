@@ -49,3 +49,14 @@ Helix is a generic cluster management framework used for automatic management of
 4. Dynamic addition of nodes to the cluster
 5. Pluggable distributed state machine to manage the state of a resource via state transitions
 6. Automatic load balancing and throttling of transitions 
+
+## Dependencies
+
+Helix UI has been tested to run well on these versions of node and yarn: 
+
+```json
+  "engines": {
+    "node": "~14.17.5",
+    "yarn": "^1.22.18"
+  },
+```

@@ -4,6 +4,7 @@ import moment from 'moment';
 
 import { Settings } from '../../core/settings';
 import { Job } from '../shared/workflow.model';
+import { DatatableComponent } from '@swimlane/ngx-datatable';
 
 @Component({
   selector: 'hi-job-list',
@@ -14,8 +15,8 @@ export class JobListComponent implements OnInit {
   @Input()
   jobs: Job[];
 
-  @ViewChild('jobsTable', { static: true })
-  table: any;
+  @ViewChild('jobsTable', { static: false })
+  table: DatatableComponent;
 
   rowHeight = Settings.tableRowHeight;
   headerHeight = Settings.tableHeaderHeight;

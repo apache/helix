@@ -3,6 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 
 import { Settings } from '../../core/settings';
 import { WorkflowService } from '../shared/workflow.service';
+import { DatatableComponent } from '@swimlane/ngx-datatable';
 
 type WorkflowRow = {
   name: string;
@@ -14,8 +15,8 @@ type WorkflowRow = {
   styleUrls: ['./workflow-list.component.scss'],
 })
 export class WorkflowListComponent implements OnInit {
-  @ViewChild('workflowsTable', { static: true })
-  table: any;
+  @ViewChild('workflowsTable', { static: false })
+  table: DatatableComponent;
 
   isLoading = true;
   clusterName: string;

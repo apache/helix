@@ -10,6 +10,7 @@ import { Resource } from '../shared/resource.model';
 import { ResourceService } from '../shared/resource.service';
 import { WorkflowService } from '../../workflow/shared/workflow.service';
 import { HelperService } from '../../shared/helper.service';
+import { DatatableComponent } from '@swimlane/ngx-datatable';
 
 @Component({
   selector: 'hi-resource-list',
@@ -18,8 +19,8 @@ import { HelperService } from '../../shared/helper.service';
   providers: [WorkflowService],
 })
 export class ResourceListComponent implements OnInit {
-  @ViewChild('resourcesTable', { static: true })
-  table: any;
+  @ViewChild('resourcesTable', { static: false })
+  table: DatatableComponent;
 
   isForInstance = false;
   headerHeight = Settings.tableHeaderHeight;

@@ -5,6 +5,7 @@ import { Settings } from '../../core/settings';
 import { Partition, IReplica, Resource } from '../shared/resource.model';
 import { HelperService } from '../../shared/helper.service';
 import { ResourceService } from '../shared/resource.service';
+import { DatatableComponent } from '@swimlane/ngx-datatable';
 
 @Component({
   selector: 'hi-partition-list',
@@ -12,8 +13,8 @@ import { ResourceService } from '../shared/resource.service';
   styleUrls: ['./partition-list.component.scss'],
 })
 export class PartitionListComponent implements OnInit {
-  @ViewChild('partitionsTable', { static: true })
-  table: any;
+  @ViewChild('partitionsTable', { static: false })
+  table: DatatableComponent;
 
   isLoading = true;
   clusterName: string;

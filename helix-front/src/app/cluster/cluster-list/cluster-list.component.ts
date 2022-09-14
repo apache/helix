@@ -17,6 +17,8 @@ export class ClusterListComponent implements OnInit {
   clusters: Cluster[] = [];
   errorMessage = '';
   isLoading = true;
+  // is the currrent user logged in? If true, then yes.
+  can = false;
   service = '';
 
   constructor(
@@ -28,6 +30,8 @@ export class ClusterListComponent implements OnInit {
 
   ngOnInit() {
     this.loadClusters();
+    // check if the current user is logged in
+    this.clusterService.can().subscribe((data) => (this.can = data));
     this.service = this.router.url.split('/')[1];
   }
 
@@ -37,6 +41,8 @@ export class ClusterListComponent implements OnInit {
       /* error path */ (error) => this.showErrorMessage(error),
       /* onComplete */ () => (this.isLoading = false)
     );
+    // check if the current user is logged in again
+    this.clusterService.can().subscribe((data) => (this.can = data));
   }
 
   showErrorMessage(error: any) {

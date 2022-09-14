@@ -26,7 +26,7 @@
       <button class="back-to-index-button" mat-button routerLink="/">
         <mat-icon>arrow_back</mat-icon> Back to Index
       </button>
-      <button mat-mini-fab (click)="createCluster()">
+      <button mat-mini-fab *ngIf="can" (click)="createCluster()">
         <mat-icon>add</mat-icon>
       </button>
     </div>
@@ -42,7 +42,7 @@
     </a>
     <div *ngIf="clusters.length == 0" class="empty">
       There's no cluster here.
-      <a mat-button (click)="createCluster()">Create one?</a>
+      <a mat-button *ngIf="can" (click)="createCluster()">Create one?</a>
     </div>
   </mat-nav-list>
   <section class="error-message" *ngIf="errorMessage">

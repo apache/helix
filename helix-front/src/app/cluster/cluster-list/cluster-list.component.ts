@@ -17,7 +17,6 @@ export class ClusterListComponent implements OnInit {
   clusters: Cluster[] = [];
   errorMessage = '';
   isLoading = true;
-  can = false;
   service = '';
 
   constructor(
@@ -29,7 +28,6 @@ export class ClusterListComponent implements OnInit {
 
   ngOnInit() {
     this.loadClusters();
-    this.clusterService.can().subscribe((data) => (this.can = data));
     this.service = this.router.url.split('/')[1];
   }
 

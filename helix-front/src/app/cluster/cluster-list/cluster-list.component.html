@@ -22,12 +22,14 @@
     <mat-spinner> Loading all clusters ... </mat-spinner>
   </section>
   <mat-nav-list *ngIf="!isLoading && !errorMessage">
-    <button mat-button routerLink="/">
-      <mat-icon>arrow_back</mat-icon> Back to Index
-    </button>
-    <button mat-mini-fab *ngIf="can" (click)="createCluster()">
-      <mat-icon>add</mat-icon>
-    </button>
+    <div class="cluster-list-button-group">
+      <button class="back-to-index-button" mat-button routerLink="/">
+        <mat-icon>arrow_back</mat-icon> Back to Index
+      </button>
+      <button mat-mini-fab (click)="createCluster()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
     <h3 mat-subheader>Clusters in {{ service }} ({{ clusters.length }})</h3>
     <a
       *ngFor="let cluster of clusters"
@@ -40,7 +42,7 @@
     </a>
     <div *ngIf="clusters.length == 0" class="empty">
       There's no cluster here.
-      <a mat-button *ngIf="can" (click)="createCluster()">Create one?</a>
+      <a mat-button (click)="createCluster()">Create one?</a>
     </div>
   </mat-nav-list>
   <section class="error-message" *ngIf="errorMessage">

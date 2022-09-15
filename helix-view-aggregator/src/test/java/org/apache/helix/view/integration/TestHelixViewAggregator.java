@@ -26,12 +26,14 @@ import java.util.List;
 import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModelParser;
@@ -210,6 +212,25 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
         allParticipantNames);
     Assert.assertEquals(_monitor.getPropertyNamesFromViewCluster(PropertyType.INSTANCES).size(), 0);
 
+    // Stop view aggregator
+    triggerViewAggregatorStateTransition("LEADER", "STANDBY");
+  }
+
+  @Test(dependsOnMethods = "testHelixViewAggregator")
+  public void testRemoteDataRemovalAndRefresh() throws Exception {
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(viewClusterName, _baseAccessor);
+    // Start view aggregator
+    triggerViewAggregatorStateTransition("STANDBY", "LEADER");
+    // Wait for refresh and verify
+    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
+    // remove live instances from view cluster zk data, wait for next refresh trigger
+    Assert.assertTrue(accessor.removeProperty(accessor.keyBuilder().liveInstances()));
+    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
+    Assert.assertTrue(accessor.getChildNames(accessor.keyBuilder().liveInstances()).size() > 0);
+
+    Assert.assertTrue(accessor.removeProperty(accessor.keyBuilder().externalViews()));
+    Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
+    Assert.assertTrue(accessor.getChildNames(accessor.keyBuilder().externalViews()).size() > 0);
     // Stop view aggregator
     triggerViewAggregatorStateTransition("LEADER", "STANDBY");
   }

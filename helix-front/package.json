@@ -1,7 +1,15 @@
 {
   "name": "helix-front",
-  "version": "1.2.1",
-  "author": "Vivo Xu <vxu@linkedin.com>",
+  "version": "1.3.1",
+  "main": "/dist/server/app.js",
+  "author": "Vivo Xu <xuxu@xuxu.name>",
+  "contributors": [
+    {
+      "name": "@micahstubbs",
+      "email": "git@micah.fyi",
+      "url": "https://micah.fyi"
+    }
+  ],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -16,23 +24,23 @@
     "build": "rm -rf dist && mkdir dist && ng build --aot --configuration production && tsc -p server",
     "build:dev": "rm -rf dist && mkdir dist && ng build --aot --configuration development && tsc -p server",
     "start": "concurrently -r \"ng serve\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
-    "prod": "npm run build && node dist/server/app.js",
+    "prod": "yarn run build && node dist/server/app.js",
     "test": "ng test",
     "cypress:open": "cypress open --e2e --browser chrome",
     "cypress:run": "cypress run --e2e --browser chrome",
+    "docs:json": "compodoc -p ./tsconfig.json -d docs --disableRoutesGraph",
+    "storybook": "ng run helix-front:storybook",
+    "storybook:build": "ng run helix-front:build-storybook",
     "e2e": "ng e2e",
-    "smoke": "ng lint && ng test --sr && npm run build",
+    "smoke": "ng lint && ng test --sr && yarn run build",
     "lint": "eslint --ext .ts,.html .",
     "lint:fix": "eslint --fix --ext .ts,.html .",
     "type:check": "tsc --project tsconfig.json --noEmit",
     "type:check:stats": "yarn type:check -- --diagnostics true",
     "type:check:watch": "yarn type:check -- --watch",
     "format:check": "npx prettier --check .",
-    "format": "yarn prettier --write ."
-  },
-  "engines": {
-    "node": "~14.17.5",
-    "yarn": "^1.22.18"
+    "format": "yarn prettier --write .",
+    "prepack": "yarn build"
   },
   "browserslist": [
     "last 2 Edge versions",
@@ -40,6 +48,16 @@
     "last 2 Safari versions",
     "Chrome > 60"
   ],
+  "files": [
+    "/dist"
+  ],
+  "resolutions": {
+    "webpack": "^5",
+    "vis-data": "^7"
+  },
+  "peerDependencies": {
+    "webpack": "*"
+  },
   "dependencies": {
     "@angular/animations": "13.3.9",
     "@angular/cdk": "13.3.9",
@@ -83,7 +101,7 @@
     "timsort": "^0.3.0",
     "tslib": "^2.4.0",
     "uuid": "^7.0.3",
-    "vis-data": "^6.5.1",
+    "vis-data": "^7.0.0",
     "vis-network": "7.10.2",
     "vis-util": "^4.0.0",
     "xss": "^1.0.11",
@@ -98,7 +116,15 @@
     "@angular-eslint/template-parser": "13.5.0",
     "@angular/cli": "13.3.6",
     "@angular/compiler-cli": "13.3.9",
+    "@babel/preset-env": "^7.18.10",
+    "@babel/preset-typescript": "^7.18.6",
+    "@compodoc/compodoc": "^1.1.19",
     "@cypress/schematic": "2.0.0",
+    "@storybook/addon-actions": "^6.5.10",
+    "@storybook/angular": "^6.5.10",
+    "@storybook/builder-webpack5": "^6.5.0-rc.1",
+    "@storybook/core-common": "^6.5.10",
+    "@storybook/manager-webpack5": "^6.5.0-rc.1",
     "@types/hammerjs": "^2.0.34",
     "@types/jest": "^28.1.1",
     "@types/lodash": "4.14.120",
@@ -122,6 +148,8 @@
     "nodemon": "^2.0.16",
     "prettier": "2.7.0",
     "ts-node": "~2.0.0",
-    "typescript": "4.6.4"
+    "typescript": "4.6.4",
+    "util": "^0.12.4",
+    "webpack": "5"
   }
 }

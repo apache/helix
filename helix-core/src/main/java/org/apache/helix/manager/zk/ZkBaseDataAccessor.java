@@ -348,7 +348,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   /**
    * sync set
    */
-  public AccessResult doSet(String path, T record, int expectVersion, int options) throws Exception {
+  public AccessResult doSet(String path, T record, int expectVersion, int options) {
     AccessResult result = new AccessResult();
 
     CreateMode mode = AccessOption.getMode(options);
@@ -393,8 +393,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           result._retCode = RetCode.ERROR;
           return result;
         }
-      } catch (ZkBadVersionException e) {
-        throw new Exception("Exception while setting path " + path, e);
       } catch (Exception e) {
         LOG.error("Exception while setting path: " + path, e);
         result._retCode = RetCode.ERROR;

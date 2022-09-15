@@ -2050,7 +2050,7 @@ public class ZkClient implements Watcher {
    * @param path
    * @return true if path is successfully deleted, false if path does not exist
    */
-  public boolean delete(final String path) throws Exception {
+  public boolean delete(final String path) {
     long startT = System.currentTimeMillis();
     boolean success;
     try {
@@ -2071,7 +2071,8 @@ public class ZkClient implements Watcher {
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.WRITE);
-      throw new Exception("ZkClient " + _uid + ", Failed to delete path " + path + "!", e);
+      LOG.warn("zkclient {}, Failed to delete path {}! ", _uid, path, e);
+      throw e;
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {

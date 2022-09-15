@@ -334,7 +334,7 @@ public class ClusterSetup {
    * @param oldInstanceName old instance to swap out
    * @param newInstanceName new instance to add to
    */
-  public void swapInstance(String clusterName, final String oldInstanceName, final String newInstanceName) throws Exception {
+  public void swapInstance(String clusterName, final String oldInstanceName, final String newInstanceName) {
     if (oldInstanceName.equals(newInstanceName)) {
       _logger.info("Old instance has same name as new instance, no need to swap");
       return;
@@ -366,7 +366,8 @@ public class ClusterSetup {
         _logger.warn("Instance {} does not exist, continue to swap instance for cluster {}",
             oldInstanceName, clusterName);
       } else {
-        throw new Exception("Failed to drop instance " + oldInstanceName + " from cluster " + clusterName, e);
+        _logger.warn("Failed to drop instance {} from cluster {}", oldInstanceName, clusterName, e);
+        throw e;
       }
     }
 

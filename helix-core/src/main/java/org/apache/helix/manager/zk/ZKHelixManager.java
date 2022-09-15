@@ -781,8 +781,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
          */
         handleNewSession(ZKUtil.toHexSessionId(sessionId));
         break;
-      } catch (HelixException e) {
-        throw new Exception("Failed to createClient", e);
       } catch (Exception e) {
         retryCount++;
         LOG.error("fail to createClient. retry " + retryCount, e);

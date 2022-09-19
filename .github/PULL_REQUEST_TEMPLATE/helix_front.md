@@ -1,27 +1,24 @@
-### Issues
+### Description
 
-- [ ] This PR fixes this Helix issue & includes the Helix issue in the PR description:
+<!-- Write a concise description: "what?, why?, how?" and then add some details about this PR, including screenshots of any UI changes -->
+
+This PR
+
+<!-- ### Issue -->
+
+<!-- This PR fixes this Helix issue & includes the Helix issue in the PR description. Link your issue number here: You can write `Fix #123`.  See https://docs.github.com/en/github/managing-your-work-on-github/linking-a-pull-request-to-an-issue -->
 
 Fix #
 
-<!-- Link your issue number here: You can write `Fix #123`.  See https://docs.github.com/en/github/managing-your-work-on-github/linking-a-pull-request-to-an-issue
- -->
-
-### Description
-
-- [ ] Here are some details about this PR, including screenshots of any UI changes:
-
-<!-- Write a concise description: what, why, how? -->
-
 ### Tests
-
-- [ ] These tests are written for this issue:
 
 <!-- List the names of new unit or integration tests -->
 
 ### Code Style
 
-- [ ] My diff has been formatted using [Prettier](https://prettier.io)
+<!-- Ensure the PR diff has been formatted using [Prettier](https://prettier.io) -->
+
+Formatted using [Prettier](https://prettier.io)
 
 <!-- ### Changes that Break Backward Compatibility (Optional)
 

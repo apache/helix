@@ -28,7 +28,7 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkChildEventListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
@@ -79,7 +79,7 @@ public interface RealmAwareZkClient {
    * under the path. The list can be empty if there is no children.
    */
   @Deprecated
-  List<String> subscribeChildChanges(String path, IZkChildListener listener);
+  List<String> subscribeChildChanges(String path, IZkChildEventListener listener);
 
   /**
    * Subscribe the path and the listener will handle child events of the path
@@ -90,10 +90,10 @@ public interface RealmAwareZkClient {
    * @return ChildrentSubsribeResult. If the path does not exists, the isInstalled field
    * is false. Otherwise, it is true and list of children are returned.
    */
-  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener,
+  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildEventListener listener,
       boolean skipWatchingNonExistNode);
 
-  void unsubscribeChildChanges(String path, IZkChildListener listener);
+  void unsubscribeChildChanges(String path, IZkChildEventListener listener);
 
   /**
    * Subscribe the path and the listener will handle data events of the path
@@ -667,7 +667,7 @@ public interface RealmAwareZkClient {
    * @param childListener
    * @param dataListener
    */
-  default void subscribeRoutingDataChanges(IZkChildListener childListener,
+  default void subscribeRoutingDataChanges(IZkChildEventListener childListener,
       IZkDataListener dataListener) {
     subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, childListener);
     for (String child : getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {

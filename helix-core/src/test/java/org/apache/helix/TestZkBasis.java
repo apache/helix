@@ -30,8 +30,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkChildEventListener;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.zookeeper.WatchedEvent;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -39,7 +41,7 @@ import org.testng.annotations.Test;
  * test zookeeper basis
  */
 public class TestZkBasis extends ZkUnitTestBase {
-  class ZkListener implements IZkDataListener, IZkChildListener {
+  class ZkListener implements IZkDataListener, IZkChildEventListener {
     String _parentPath = null;
     String _dataDeletePath = null;
     List<String> _currentChilds = Collections.emptyList(); // make sure it's set to null in
@@ -49,7 +51,7 @@ public class TestZkBasis extends ZkUnitTestBase {
     CountDownLatch _dataDeleteCountDown = new CountDownLatch(1);
 
     @Override
-    public void handleChildChange(String parentPath, List<String> currentChilds) {
+    public void handleChildChange(String parentPath, List<String> currentChilds, WatchedEvent event) {
       _parentPath = parentPath;
       _currentChilds = currentChilds;
       _childChangeCountDown.countDown();

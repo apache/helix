@@ -36,7 +36,7 @@ import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkChildEventListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
@@ -108,18 +108,18 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+  public List<String> subscribeChildChanges(String path, IZkChildEventListener listener) {
     return getZkClient(path).subscribeChildChanges(path, listener);
   }
 
   @Override
-  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener,
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildEventListener listener,
       boolean skipWatchingNodeNotExist) {
     return getZkClient(path).subscribeChildChanges(path, listener, skipWatchingNodeNotExist);
   }
 
   @Override
-  public void unsubscribeChildChanges(String path, IZkChildListener listener) {
+  public void unsubscribeChildChanges(String path, IZkChildEventListener listener) {
     getZkClient(path).unsubscribeChildChanges(path, listener);
   }
 

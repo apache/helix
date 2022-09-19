@@ -28,7 +28,7 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkChildEventListener;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
@@ -105,19 +105,19 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+  public List<String> subscribeChildChanges(String path, IZkChildEventListener listener) {
     checkIfPathContainsShardingKey(path);
     return _rawZkClient.subscribeChildChanges(path, listener);
   }
 
   @Override
-  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener,
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildEventListener listener,
       boolean skipWatchingNodeNotExist) {
     return _rawZkClient.subscribeChildChanges(path, listener, skipWatchingNodeNotExist);
   }
 
   @Override
-  public void unsubscribeChildChanges(String path, IZkChildListener listener) {
+  public void unsubscribeChildChanges(String path, IZkChildEventListener listener) {
     checkIfPathContainsShardingKey(path);
     _rawZkClient.unsubscribeChildChanges(path, listener);
   }

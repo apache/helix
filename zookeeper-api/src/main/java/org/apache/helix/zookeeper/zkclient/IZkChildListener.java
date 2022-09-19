@@ -20,6 +20,8 @@ package org.apache.helix.zookeeper.zkclient;
  */
 
 import java.util.List;
+import org.apache.zookeeper.WatchedEvent;
+
 
 /**
  * An {@link IZkChildListener} can be registered at a {@link ZkClient} for listening on zk child changes for a given
@@ -29,17 +31,31 @@ import java.util.List;
  * guaranteed that events on the path are missing (see http://zookeeper.wiki.sourceforge.net/ZooKeeperWatches). An
  * implementation of this class should take that into account.
  *
+ * Deprecated: This interface is kept to maintain backward compatibility, please use {@link IZkChildEventListener}.
  */
-public interface IZkChildListener {
+@Deprecated
+public interface IZkChildListener extends IZkChildEventListener {
 
     /**
      * Called when the children of the given path changed.
      *
      * @param parentPath
      *            The parent path
-     * @param currentChilds
+     * @param currentChildren
      *            The children or null if the root node (parent path) was deleted.
      * @throws Exception
      */
-    public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception;
+    void handleChildChange(String parentPath, List<String> currentChildren) throws Exception;
+
+    /**
+     * Called when the children of the given path changed.
+     *
+     * @param parentPath The parent path
+     * @param currentChildren The children or null if the root node (parent path) was deleted.
+     * @param event The watched event
+     */
+    default void handleChildChange(String parentPath, List<String> currentChildren, WatchedEvent event)
+        throws Exception {
+        handleChildChange(parentPath, currentChildren);
+    }
 }

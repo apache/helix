@@ -108,7 +108,7 @@ public class ZkClient implements Watcher {
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
-  private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
+  private final Map<String, Set<IZkChildEventListener>> _childListener = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
       new ConcurrentHashMap<>();
   private final Set<IZkStateListener> _stateListener = new CopyOnWriteArraySet<>();
@@ -251,14 +251,14 @@ public class ZkClient implements Watcher {
     }
   }
 
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+  public List<String> subscribeChildChanges(String path, IZkChildEventListener listener) {
     ChildrenSubscribeResult result = subscribeChildChanges(path, listener, false);
     return result.getChildren();
   }
 
-  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode) {
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildEventListener listener, boolean skipWatchingNonExistNode) {
     synchronized (_childListener) {
-      Set<IZkChildListener> listeners = _childListener.get(path);
+      Set<IZkChildEventListener> listeners = _childListener.get(path);
       if (listeners == null) {
         listeners = new CopyOnWriteArraySet<>();
         _childListener.put(path, listeners);
@@ -276,9 +276,9 @@ public class ZkClient implements Watcher {
     return new ChildrenSubscribeResult(children, true);
   }
 
-  public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
+  public void unsubscribeChildChanges(String path, IZkChildEventListener childListener) {
     synchronized (_childListener) {
-      final Set<IZkChildListener> listeners = _childListener.get(path);
+      final Set<IZkChildEventListener> listeners = _childListener.get(path);
       if (listeners != null) {
         listeners.remove(childListener);
       }
@@ -1312,10 +1312,10 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireAllEvents() {
+  private void fireAllEvents(WatchedEvent event) {
     //TODO: During handling new session, if the path is deleted, watcher leakage could still happen
-    for (Entry<String, Set<IZkChildListener>> entry : _childListener.entrySet()) {
-      fireChildChangedEvents(entry.getKey(), entry.getValue(), true);
+    for (Entry<String, Set<IZkChildEventListener>> entry : _childListener.entrySet()) {
+      fireChildChangedEvents(event, entry.getKey(), entry.getValue(), true);
     }
     for (Entry<String, Set<IZkDataListenerEntry>> entry : _dataListener.entrySet()) {
       fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty(), true);
@@ -1518,7 +1518,7 @@ public class ZkClient implements Watcher {
          * reconnecting when the session expired. Because previous session expired, we also have to
          * notify all listeners that something might have changed.
          */
-        fireAllEvents();
+        fireAllEvents(event);
       }
     } else if (event.getState() == KeeperState.Expired) {
       _isNewSessionEventFired = false;
@@ -1690,7 +1690,7 @@ public class ZkClient implements Watcher {
     if (dataListeners != null && dataListeners.size() > 0) {
       return true;
     }
-    Set<IZkChildListener> childListeners = _childListener.get(path);
+    Set<IZkChildEventListener> childListeners = _childListener.get(path);
     if (childListeners != null && childListeners.size() > 0) {
       return true;
     }
@@ -1753,11 +1753,11 @@ public class ZkClient implements Watcher {
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated
         || event.getType() == EventType.NodeDeleted) {
-      Set<IZkChildListener> childListeners = _childListener.get(path);
+      Set<IZkChildEventListener> childListeners = _childListener.get(path);
       if (childListeners != null && !childListeners.isEmpty()) {
         // TODO recording child changed event propagation latency as well. Note this change will
         // introduce additional ZK access.
-        fireChildChangedEvents(path, childListeners, pathExists);
+        fireChildChangedEvents(event, path, childListeners, pathExists);
       }
     }
 
@@ -1825,10 +1825,11 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners, boolean pathExists) {
+  private void fireChildChangedEvents(WatchedEvent event, final String path, Set<IZkChildEventListener> childListeners,
+      boolean pathExists) {
     try {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
-      for (final IZkChildListener listener : childListeners) {
+      for (final IZkChildEventListener listener : childListeners) {
         _eventThread.send(new ZkEventThread.ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
@@ -1852,7 +1853,7 @@ public class ZkClient implements Watcher {
                 // Continue trigger the change handler
               }
             }
-            listener.handleChildChange(path, children);
+            listener.handleChildChange(path, children, event);
           }
         });
       }
@@ -2661,7 +2662,7 @@ public class ZkClient implements Watcher {
 
   public int numberOfListeners() {
     int listeners = 0;
-    for (Set<IZkChildListener> childListeners : _childListener.values()) {
+    for (Set<IZkChildEventListener> childListeners : _childListener.values()) {
       listeners += childListeners.size();
     }
     for (Set<IZkDataListenerEntry> dataListeners : _dataListener.values()) {

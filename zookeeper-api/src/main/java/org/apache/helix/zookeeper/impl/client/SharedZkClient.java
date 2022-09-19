@@ -30,7 +30,7 @@ import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkChildEventListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener;
@@ -110,19 +110,19 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+  public List<String> subscribeChildChanges(String path, IZkChildEventListener listener) {
     checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.subscribeChildChanges(path, listener);
   }
 
   @Override
-  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener,
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildEventListener listener,
       boolean skipWatchingNodeNotExist) {
     return _innerSharedZkClient.subscribeChildChanges(path, listener, skipWatchingNodeNotExist);
   }
 
   @Override
-  public void unsubscribeChildChanges(String path, IZkChildListener listener) {
+  public void unsubscribeChildChanges(String path, IZkChildEventListener listener) {
     checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.unsubscribeChildChanges(path, listener);
   }

@@ -40,16 +40,17 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkChildEventListener;
+import org.apache.zookeeper.WatchedEvent;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestBatchMessage extends ZkTestBase {
-  class TestZkChildListener implements IZkChildListener {
+  static class TestZkChildListener implements IZkChildEventListener {
     int _maxNumberOfChildren = 0;
 
     @Override
-    public void handleChildChange(String parentPath, List<String> currentChildren) {
+    public void handleChildChange(String parentPath, List<String> currentChildren, WatchedEvent event) {
       if (currentChildren == null) {
         return;
       }

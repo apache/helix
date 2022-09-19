@@ -2,6 +2,10 @@ name: Helix PR CI
 on:
   pull_request:
     branches: [ master ]
+    paths-ignore:
+      - '.github/**'
+      - 'helix-front/**'
+      - '**/*.md'
 
 jobs:
   PR_CI:

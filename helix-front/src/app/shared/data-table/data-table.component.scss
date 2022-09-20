@@ -1,0 +1,21 @@
+@use '@angular/material' as mat;
+@import 'src/theme.scss';
+
+.mat-icon {
+  @include md-icon-size(20px);
+
+  &:hover {
+    color: mat.get-color-from-palette($hi-warn);
+  }
+}
+
+.mat-icon-button {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+}
+
+.footer {
+  width: 100%;
+  padding: 0 20px;
+}

@@ -1,0 +1,811 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>helix-front documentation</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	   <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/dark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+            <a href="../" class="navbar-brand">helix-front documentation</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content component">
+                   <div class="content-data">
+
+
+
+
+<ol class="breadcrumb">
+  <li>Components</li>
+  <li
+  >
+  InstanceListComponent</li>
+</ol>
+
+<ul class="nav nav-tabs" role="tablist">
+        <li class="active">
+            <a href="#info" role="tab" id="info-tab" data-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li >
+            <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
+        </li>
+        <li >
+            <a href="#templateData" role="tab" id="templateData-tab" data-toggle="tab" data-link="template">Template</a>
+        </li>
+        <li >
+            <a href="#styleData" role="tab" id="styleData-tab" data-toggle="tab" data-link="style">Styles</a>
+        </li>
+        <li >
+            <a href="#tree" role="tab" id="tree-tab" data-toggle="tab" data-link="dom-tree">DOM Tree</a>
+        </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade active in" id="c-info"><p class="comment">
+    <h3>File</h3>
+</p>
+<p class="comment">
+    <code>src/app/instance/instance-list/instance-list.component.ts</code>
+</p>
+
+
+
+
+    <p class="comment">
+        <h3>Implements</h3>
+    </p>
+    <p class="comment">
+                    <code><a href="https://angular.io/api/core/OnInit" target="_blank" >OnInit</a></code>
+    </p>
+
+
+<section>
+    <h3>Metadata</h3>
+    <table class="table table-sm table-hover metadata">
+        <tbody>
+
+
+
+
+
+
+
+
+
+
+
+            <tr>
+                <td class="col-md-3">selector</td>
+                <td class="col-md-9"><code>hi-instance-list</code></td>
+            </tr>
+
+            <tr>
+                <td class="col-md-3">styleUrls</td>
+                <td class="col-md-9"><code>./instance-list.component.scss</code></td>
+            </tr>
+
+
+
+            <tr>
+                <td class="col-md-3">templateUrl</td>
+                <td class="col-md-9"><code>./instance-list.component.html</code></td>
+            </tr>
+
+
+
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section>
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Properties</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#clusterName" >clusterName</a>
+                            </li>
+                            <li>
+                                <a href="#headerHeight" >headerHeight</a>
+                            </li>
+                            <li>
+                                <a href="#instances" >instances</a>
+                            </li>
+                            <li>
+                                <a href="#isLoading" >isLoading</a>
+                            </li>
+                            <li>
+                                <a href="#rowHeight" >rowHeight</a>
+                            </li>
+                            <li>
+                                <a href="#sorts" >sorts</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Methods</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#ngOnInit" >ngOnInit</a>
+                            </li>
+                            <li>
+                                <a href="#onSelect" >onSelect</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section>
+    <h3 id="constructor">Constructor</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+<code>constructor(route: <a href="https://angular.io/api/router/ActivatedRoute" target="_blank">ActivatedRoute</a>, router: <a href="https://angular.io/api/router/Router" target="_blank">Router</a>, service: <a href="../injectables/InstanceService.html" target="_self">InstanceService</a>, helper: <a href="../injectables/HelperService.html" target="_self">HelperService</a>)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:22</a></div>
+                            </td>
+                        </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                            <div>
+                                    <b>Parameters :</b>
+                                    <table class="params">
+                                        <thead>
+                                            <tr>
+                                                <td>Name</td>
+                                                    <td>Type</td>
+                                                <td>Optional</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                                <tr>
+                                                        <td>route</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="https://angular.io/api/router/ActivatedRoute" target="_blank" >ActivatedRoute</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>router</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="https://angular.io/api/router/Router" target="_blank" >Router</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>service</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/InstanceService.html" target="_self" >InstanceService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>helper</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/HelperService.html" target="_self" >HelperService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
+
+
+
+
+
+    <section>
+    
+    <h3 id="methods">
+        Methods
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngOnInit"></a>
+                    <span class="name">
+                        <span ><b>ngOnInit</b></span>
+                        <a href="#ngOnInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>ngOnInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="31"
+                            class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:31</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onSelect"></a>
+                    <span class="name">
+                        <span ><b>onSelect</b></span>
+                        <a href="#onSelect"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>onSelect(undefined)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="42"
+                            class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:42</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+    <section>
+    
+    <h3 id="inputs">
+        Properties
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="clusterName"></a>
+                    <span class="name">
+                        <span ><b>clusterName</b></span>
+                        <a href="#clusterName"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="15" class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:15</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="headerHeight"></a>
+                    <span class="name">
+                        <span ><b>headerHeight</b></span>
+                        <a href="#headerHeight"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>Settings.tableHeaderHeight</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="18" class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:18</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="instances"></a>
+                    <span class="name">
+                        <span ><b>instances</b></span>
+                        <a href="#instances"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>any[]</code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="16" class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:16</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isLoading"></a>
+                    <span class="name">
+                        <span ><b>isLoading</b></span>
+                        <a href="#isLoading"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>true</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="14" class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:14</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="rowHeight"></a>
+                    <span class="name">
+                        <span ><b>rowHeight</b></span>
+                        <a href="#rowHeight"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>Settings.tableRowHeight</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="17" class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:17</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="sorts"></a>
+                    <span class="name">
+                        <span ><b>sorts</b></span>
+                        <a href="#sorts"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>[]</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[
+    { prop: &#x27;liveInstance&#x27;, dir: &#x27;asc&#x27; },
+    { prop: &#x27;name&#x27;, dir: &#x27;asc&#x27; },
+  ]</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="19" class="link-to-prism">src/app/instance/instance-list/instance-list.component.ts:19</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+</section>
+
+</div>
+
+
+    <div class="tab-pane fade  tab-source-code" id="c-source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, OnInit } from &#x27;@angular/core&#x27;;
+import { Router, ActivatedRoute } from &#x27;@angular/router&#x27;;
+
+import { Settings } from &#x27;../../core/settings&#x27;;
+import { InstanceService } from &#x27;../shared/instance.service&#x27;;
+import { HelperService } from &#x27;../../shared/helper.service&#x27;;
+
+@Component({
+  selector: &#x27;hi-instance-list&#x27;,
+  templateUrl: &#x27;./instance-list.component.html&#x27;,
+  styleUrls: [&#x27;./instance-list.component.scss&#x27;],
+})
+export class InstanceListComponent implements OnInit {
+  isLoading &#x3D; true;
+  clusterName: string;
+  instances: any[];
+  rowHeight &#x3D; Settings.tableRowHeight;
+  headerHeight &#x3D; Settings.tableHeaderHeight;
+  sorts &#x3D; [
+    { prop: &#x27;liveInstance&#x27;, dir: &#x27;asc&#x27; },
+    { prop: &#x27;name&#x27;, dir: &#x27;asc&#x27; },
+  ];
+
+  constructor(
+    protected route: ActivatedRoute,
+    protected router: Router,
+    protected service: InstanceService,
+    protected helper: HelperService
+  ) {}
+
+  ngOnInit() {
+    if (this.route.parent) {
+      this.clusterName &#x3D; this.route.parent.snapshot.params[&#x27;name&#x27;];
+      this.service.getAll(this.clusterName).subscribe(
+        (data) &#x3D;&gt; (this.instances &#x3D; data),
+        (error) &#x3D;&gt; this.helper.showError(error),
+        () &#x3D;&gt; (this.isLoading &#x3D; false)
+      );
+    }
+  }
+
+  onSelect({ selected }) {
+    const row &#x3D; selected[0];
+    this.router.navigate([row.name], { relativeTo: this.route });
+  }
+}
+</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="c-templateData">
+        <pre class="line-numbers"><code class="language-html">&lt;!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ &quot;License&quot;); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  --&gt;
+
+&lt;section&gt;
+  &lt;ngx-datatable
+    #instancesTable
+    class&#x3D;&quot;material&quot;
+    [headerHeight]&#x3D;&quot;headerHeight&quot;
+    [rowHeight]&#x3D;&quot;rowHeight&quot;
+    columnMode&#x3D;&quot;force&quot;
+    [footerHeight]&#x3D;&quot;rowHeight&quot;
+    [rows]&#x3D;&quot;instances&quot;
+    [loadingIndicator]&#x3D;&quot;isLoading&quot;
+    selectionType&#x3D;&quot;single&quot;
+    [sorts]&#x3D;&quot;sorts&quot;
+    (select)&#x3D;&quot;onSelect($event)&quot;
+  &gt;
+    &lt;ngx-datatable-column
+      name&#x3D;&quot;Status&quot;
+      prop&#x3D;&quot;healthy&quot;
+      [width]&#x3D;&quot;85&quot;
+      [resizeable]&#x3D;&quot;false&quot;
+      [draggable]&#x3D;&quot;false&quot;
+      [canAutoResize]&#x3D;&quot;false&quot;
+    &gt;
+      &lt;ng-template let-row&#x3D;&quot;row&quot; ngx-datatable-cell-template&gt;
+        &lt;mat-icon *ngIf&#x3D;&quot;row.healthy&quot; class&#x3D;&quot;status-healthy&quot;
+          &gt;check_circle&lt;/mat-icon
+        &gt;
+        &lt;mat-icon
+          *ngIf&#x3D;&quot;!row.healthy &amp;&amp; row.enabled&quot;
+          class&#x3D;&quot;status-not-healthy&quot;
+          matTooltip&#x3D;&quot;The instance is offline.&quot;
+          &gt;cancel&lt;/mat-icon
+        &gt;
+        &lt;mat-icon
+          *ngIf&#x3D;&quot;!row.healthy &amp;&amp; row.liveInstance&quot;
+          class&#x3D;&quot;status-not-healthy&quot;
+          matTooltip&#x3D;&quot;The instance is disabled.&quot;
+          &gt;cancel&lt;/mat-icon
+        &gt;
+        &lt;mat-icon
+          *ngIf&#x3D;&quot;!row.healthy &amp;&amp; !row.enabled &amp;&amp; !row.liveInstance&quot;
+          class&#x3D;&quot;status-not-healthy&quot;
+          matTooltip&#x3D;&quot;The instance is offline and disabled.&quot;
+          &gt;cancel&lt;/mat-icon
+        &gt;
+      &lt;/ng-template&gt;
+    &lt;/ngx-datatable-column&gt;
+    &lt;ngx-datatable-column name&#x3D;&quot;Name&quot;&gt;
+      &lt;ng-template let-row&#x3D;&quot;row&quot; ngx-datatable-cell-template&gt;
+        &lt;section fxLayout&#x3D;&quot;row&quot; fxLayoutAlign&#x3D;&quot;start center&quot;&gt;
+          {{ row.name }}
+          &lt;hi-disabled-label
+            *ngIf&#x3D;&quot;!row.enabled&quot;
+            text&#x3D;&quot;DISABLED&quot;
+          &gt;&lt;/hi-disabled-label&gt;
+        &lt;/section&gt;
+      &lt;/ng-template&gt;
+    &lt;/ngx-datatable-column&gt;
+  &lt;/ngx-datatable&gt;
+&lt;/section&gt;
+</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="c-styleData">
+                <p class="comment">
+                    <code>./instance-list.component.scss</code>
+                </p>
+                <pre class="line-numbers"><code class="language-scss">@use &#x27;@angular/material&#x27; as mat;
+
+.info {
+  padding: 24px;
+}
+
+.status-healthy {
+  color: mat.get-color-from-palette(mat.define-palette(mat.$blue-palette));
+}
+
+.status-not-healthy {
+  color: mat.get-color-from-palette(
+    mat.define-palette(mat.$grey-palette, 900, 900, 900)
+  );
+}
+</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="c-tree">
+        <div id="tree-container"></div>
+        <div class="tree-legend">
+            <div class="title">
+                <b>Legend</b>
+            </div>
+            <div>
+                <div class="color htmlelement"></div><span>Html element</span>
+            </div>
+            <div>
+                <div class="color component"></div><span>Component</span>
+            </div>
+            <div>
+                <div class="color directive"></div><span>Html element with directive</span>
+            </div>
+        </div>
+    </div>
+
+    
+</div>
+
+<script src="../js/libs/vis.min.js"></script>
+<script src="../js/libs/htmlparser.js"></script>
+<script src="../js/libs/deep-iterator.js"></script>
+<script>
+        var COMPONENT_TEMPLATE = '<div><!--  ~ Licensed to the Apache Software Foundation (ASF) under one  ~ or more contributor license agreements.  See the NOTICE file  ~ distributed with this work for additional information  ~ regarding copyright ownership.  The ASF licenses this file  ~ to you under the Apache License, Version 2.0 (the  ~ "License"); you may not use this file except in compliance  ~ with the License.  You may obtain a copy of the License at  ~  ~     http://www.apache.org/licenses/LICENSE-2.0  ~  ~ Unless required by applicable law or agreed to in writing,  ~ software distributed under the License is distributed on an  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY  ~ KIND, either express or implied.  See the License for the  ~ specific language governing permissions and limitations  ~ under the License.  --><section>  <ngx-datatable    #instancesTable    class="material"    [headerHeight]="headerHeight"    [rowHeight]="rowHeight"    columnMode="force"    [footerHeight]="rowHeight"    [rows]="instances"    [loadingIndicator]="isLoading"    selectionType="single"    [sorts]="sorts"    (select)="onSelect($event)"  >    <ngx-datatable-column      name="Status"      prop="healthy"      [width]="85"      [resizeable]="false"      [draggable]="false"      [canAutoResize]="false"    >      <ng-template let-row="row" ngx-datatable-cell-template>        <mat-icon *ngIf="row.healthy" class="status-healthy"          >check_circle</mat-icon        >        <mat-icon          *ngIf="!row.healthy && row.enabled"          class="status-not-healthy"          matTooltip="The instance is offline."          >cancel</mat-icon        >        <mat-icon          *ngIf="!row.healthy && row.liveInstance"          class="status-not-healthy"          matTooltip="The instance is disabled."          >cancel</mat-icon        >        <mat-icon          *ngIf="!row.healthy && !row.enabled && !row.liveInstance"          class="status-not-healthy"          matTooltip="The instance is offline and disabled."          >cancel</mat-icon        >      </ng-template>    </ngx-datatable-column>    <ngx-datatable-column name="Name">      <ng-template let-row="row" ngx-datatable-cell-template>        <section fxLayout="row" fxLayoutAlign="start center">          {{ row.name }}          <hi-disabled-label            *ngIf="!row.enabled"            text="DISABLED"          ></hi-disabled-label>        </section>      </ng-template>    </ngx-datatable-column>  </ngx-datatable></section></div>'
+    var COMPONENTS = [{'name': 'AlertDialogComponent', 'selector': 'hi-alert-dialog'},{'name': 'AppComponent', 'selector': 'hi-root'},{'name': 'ClusterComponent', 'selector': 'hi-cluster'},{'name': 'ClusterDetailComponent', 'selector': 'hi-cluster-detail'},{'name': 'ClusterListComponent', 'selector': 'hi-cluster-list'},{'name': 'ConfigDetailComponent', 'selector': 'hi-config-detail'},{'name': 'ConfirmDialogComponent', 'selector': 'hi-confirm-dialog'},{'name': 'ControllerDetailComponent', 'selector': 'hi-controller-detail'},{'name': 'DashboardComponent', 'selector': 'hi-dashboard'},{'name': 'DataTableComponent', 'selector': 'hi-data-table'},{'name': 'DetailHeaderComponent', 'selector': 'hi-detail-header'},{'name': 'DisabledLabelComponent', 'selector': 'hi-disabled-label'},{'name': 'HelixListComponent', 'selector': 'hi-helix-list'},{'name': 'HistoryListComponent', 'selector': 'hi-history-list'},{'name': 'InputDialogComponent', 'selector': 'hi-input-dialog'},{'name': 'InputInlineComponent', 'selector': 'hi-input-inline'},{'name': 'InstanceDetailComponent', 'selector': 'hi-instance-detail'},{'name': 'InstanceListComponent', 'selector': 'hi-instance-list'},{'name': 'JobDetailComponent', 'selector': 'hi-job-detail'},{'name': 'JobListComponent', 'selector': 'hi-job-list'},{'name': 'JsonViewerComponent', 'selector': 'hi-json-viewer'},{'name': 'KeyValuePairsComponent', 'selector': 'hi-key-value-pairs'},{'name': 'NodeViewerComponent', 'selector': 'hi-node-viewer'},{'name': 'PartitionDetailComponent', 'selector': 'hi-partition-detail'},{'name': 'PartitionListComponent', 'selector': 'hi-partition-list'},{'name': 'ResourceDetailComponent', 'selector': 'hi-resource-detail'},{'name': 'ResourceDetailForInstanceComponent', 'selector': 'hi-resource-detail-for-instance'},{'name': 'ResourceListComponent', 'selector': 'hi-resource-list'},{'name': 'ResourceNodeViewerComponent', 'selector': 'hi-resource-node-viewer'},{'name': 'StateLabelComponent', 'selector': 'hi-state-label'},{'name': 'WorkflowDagComponent', 'selector': 'hi-workflow-dag'},{'name': 'WorkflowDetailComponent', 'selector': 'hi-workflow-detail'},{'name': 'WorkflowListComponent', 'selector': 'hi-workflow-list'}];
+    var DIRECTIVES = [{'name': 'KeyValuePairDirective', 'selector': 'hi-key-value-pair'}];
+    var ACTUAL_COMPONENT = {'name': 'InstanceListComponent'};
+</script>
+<script src="../js/tree.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+          <label class="dark-mode-switch">
+               <input type="checkbox">
+               <span class="slider">
+                    <svg class="slider-icon" viewBox="0 0 24 24" fill="none" height="20" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                    </svg>
+               </span>
+          </label>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
+            var COMPODOC_CURRENT_PAGE_URL = 'InstanceListComponent.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+
+       <script src="../js/menu-wc.js" defer></script>
+       <script nomodule src="../js/menu-wc_es5.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

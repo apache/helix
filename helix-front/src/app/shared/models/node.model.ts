@@ -15,6 +15,13 @@ interface MapFieldObject {
   value: SimpleFieldObject[];
 }
 
+interface Payload {
+  id: string;
+  simpleFields?: any;
+  listFields?: any;
+  mapFields?: any;
+}
+
 // This is a typical Helix Node definition
 export class Node {
   id: string;
@@ -77,30 +84,36 @@ export class Node {
   }
 
   public json(id: string): string {
-    const obj = {
+    const obj: Payload = {
       id,
-      simpleFields: {},
-      listFields: {},
-      mapFields: {},
     };
 
-    _.forEach(this.simpleFields, (item: SimpleFieldObject) => {
-      obj.simpleFields[item.name] = item.value;
-    });
-
-    _.forEach(this.listFields, (item: ListFieldObject) => {
-      obj.listFields[item.name] = [];
-      _.forEach(item.value, (subItem: SimpleFieldObject) => {
-        obj.listFields[item.name].push(subItem.value);
+    if (this?.simpleFields.length > 0) {
+      obj.simpleFields = {};
+      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {
+        obj.simpleFields[item.name] = item.value;
       });
-    });
+    }
 
-    _.forEach(this.mapFields, (item: MapFieldObject) => {
-      obj.mapFields[item.name] = item.value ? {} : null;
-      _.forEach(item.value, (subItem: SimpleFieldObject) => {
-        obj.mapFields[item.name][subItem.name] = subItem.value;
+    if (this?.listFields.length > 0) {
+      obj.listFields = {};
+      _.forEach(this.listFields, (item: ListFieldObject) => {
+        obj.listFields[item.name] = [];
+        _.forEach(item.value, (subItem: SimpleFieldObject) => {
+          obj.listFields[item.name].push(subItem.value);
+        });
       });
-    });
+    }
+
+    if (this?.mapFields.length > 0) {
+      obj.mapFields = {};
+      _.forEach(this.mapFields, (item: MapFieldObject) => {
+        obj.mapFields[item.name] = item.value ? {} : null;
+        _.forEach(item.value, (subItem: SimpleFieldObject) => {
+          obj.mapFields[item.name][subItem.name] = subItem.value;
+        });
+      });
+    }
 
     return JSON.stringify(obj);
   }

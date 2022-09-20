@@ -3,7 +3,6 @@ import { ActivatedRoute } from '@angular/router';
 
 import { ConfigurationService } from '../shared/configuration.service';
 import { HelperService } from '../../shared/helper.service';
-
 @Component({
   selector: 'hi-config-detail',
   templateUrl: './config-detail.component.html',
@@ -88,6 +87,7 @@ export class ConfigDetailComponent implements OnInit {
         value
       );
     } else {
+      console.log('value from updateConfig', value);
       observer = this.service.setClusterConfig(this.clusterName, value);
     }
 

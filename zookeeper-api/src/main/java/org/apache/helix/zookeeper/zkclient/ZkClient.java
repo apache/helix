@@ -2066,7 +2066,7 @@ public class ZkClient implements Watcher {
         success = true;
       } catch (ZkNoNodeException e) {
         success = false;
-        LOG.debug("zkclient {}, Failed to delete path {}, znode does not exist!", _uid, path);
+        LOG.debug("zkclient {}, Failed to delete path {}, znode does not exist!", _uid, path, e);
       }
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {

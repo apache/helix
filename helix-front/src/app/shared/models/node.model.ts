@@ -110,7 +110,19 @@ export class Node {
       _.forEach(this.mapFields, (item: MapFieldObject) => {
         obj.mapFields[item.name] = item.value ? {} : null;
         _.forEach(item.value, (subItem: SimpleFieldObject) => {
-          obj.mapFields[item.name][subItem.name] = subItem.value;
+          console.log('subItem from node model json method', subItem);
+
+          // if the value is a string that contains all digits, parse it to a number
+          let parsedValue: string | number = subItem.value;
+          if (
+            typeof subItem.value === 'string' &&
+            /^\d+$/.test(subItem.value)
+          ) {
+            parsedValue = Number(subItem.value);
+          }
+
+          console.log('parsedValue from node model json method', parsedValue);
+          obj.mapFields[item.name][subItem.name] = parsedValue;
         });
       });
     }

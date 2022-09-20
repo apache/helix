@@ -10,6 +10,7 @@ export class ConfigurationService extends HelixService {
   }
 
   public setClusterConfig(name: string, config: Node) {
+    console.log('payload from setClusterConfig', config.json(name));
     return this.post(
       `/clusters/${name}/configs?command=update`,
       JSON.parse(config.json(name))

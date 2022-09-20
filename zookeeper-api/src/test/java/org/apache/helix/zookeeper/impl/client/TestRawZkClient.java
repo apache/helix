@@ -1067,19 +1067,23 @@ public class TestRawZkClient extends ZkTestBase {
   public void testGetChildrenOnLargeNumChildren() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
     System.out.println("Start test: " + methodName);
-    String[] nodePaths = new String[110001];
     // Create 110K children to make packet length of children exceed 4 MB
     // and cause connection loss for getChildren() operation
     String path = "/" + methodName;
-    nodePaths[110000] = path;
+    int numOps = 110;
+    int numOpInOps = 1000;
+    // All the paths that are going to be created as children nodes, plus one parent node
+    // Record paths so can be deleted at the end of the test
+    String[] nodePaths = new String[numOps * numOpInOps + 1];
+    nodePaths[numOps * numOpInOps] = path;
 
     _zkClient.createPersistent(path);
 
-    for (int i = 0; i < 110; i++) {
-      List<Op> ops = new ArrayList<>(1000);
-      for (int j = 0; j < 1000; j++) {
+    for (int i = 0; i < numOps; i++) {
+      List<Op> ops = new ArrayList<>(numOpInOps);
+      for (int j = 0; j < numOpInOps; j++) {
         String childPath = path + "/" + UUID.randomUUID().toString();
-        nodePaths[1000 * i + j] = childPath;
+        nodePaths[numOpInOps * i + j] = childPath;
         ops.add(
             Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
       }

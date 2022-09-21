@@ -15,7 +15,6 @@ export class HelixCtrl {
 
   protected proxy(req: HelixUserRequest, res: Response) {
     const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
-
     const helixKey = url.split('/')[1];
 
     const segments = helixKey.split('.');

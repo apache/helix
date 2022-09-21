@@ -41,11 +41,7 @@ export class HelixCtrl {
 
     if (apiPrefix) {
       const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');
-      console.log('realUrl from helix api proxy');
-      console.log(realUrl);
-      console.log('');
-      console.log('request body');
-      console.log(req.body);
+      console.log(`helix-rest request url ${realUrl}`);
 
       const options = {
         url: realUrl,

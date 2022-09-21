@@ -13,14 +13,14 @@ export class ConfigurationService extends HelixService {
     console.log('payload from setClusterConfig', config.json(name));
     return this.post(
       `/clusters/${name}/configs?command=update`,
-      config.json(name)
+      JSON.parse(config.json(name))
     );
   }
 
   public deleteClusterConfig(name: string, config: Node) {
     return this.post(
       `/clusters/${name}/configs?command=delete`,
-      config.json(name)
+      JSON.parse(config.json(name))
     );
   }
 
@@ -37,7 +37,7 @@ export class ConfigurationService extends HelixService {
   ) {
     return this.post(
       `/clusters/${clusterName}/instances/${instanceName}/configs?command=update`,
-      config.json(instanceName)
+      JSON.parse(config.json(instanceName))
     );
   }
 
@@ -48,7 +48,7 @@ export class ConfigurationService extends HelixService {
   ) {
     return this.post(
       `/clusters/${clusterName}/instances/${instanceName}/configs?command=delete`,
-      config.json(instanceName)
+      JSON.parse(config.json(instanceName))
     );
   }
 
@@ -65,7 +65,7 @@ export class ConfigurationService extends HelixService {
   ) {
     return this.post(
       `/clusters/${clusterName}/resources/${resourceName}/configs?command=update`,
-      config.json(resourceName)
+      JSON.parse(config.json(resourceName))
     );
   }
 
@@ -76,7 +76,7 @@ export class ConfigurationService extends HelixService {
   ) {
     return this.post(
       `/clusters/${clusterName}/resources/${resourceName}/configs?command=delete`,
-      config.json(resourceName)
+      JSON.parse(config.json(resourceName))
     );
   }
 }

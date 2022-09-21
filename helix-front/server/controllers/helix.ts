@@ -47,10 +47,7 @@ export class HelixCtrl {
       console.log('');
       console.log('request body');
       console.log(req.body);
-      console.log('');
-      console.log('req');
-      console.log(req);
-      console.log(JSON.stringify(req, null, 2));
+
       const options = {
         url: realUrl,
         json: req.body,

@@ -1,0 +1,16 @@
+name: helix-front
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'helix-front/**'
+
+jobs:
+  build:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: bahmutov/npm-install@v1
+
+      - run: npm run format:check

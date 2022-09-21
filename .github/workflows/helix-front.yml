@@ -6,11 +6,15 @@ on:
       - 'helix-front/**'
 
 jobs:
-  build:
-    name: Prettier
+  test:
+    name: Test helix-front
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - uses: bahmutov/npm-install@v1
+        with:
+          working-directory: helix-front
 
-      - run: npm run format:check
+      - name: helix-front format:check
+        run: cd helix-front && npm run format:check
+        working-directory: helix-front

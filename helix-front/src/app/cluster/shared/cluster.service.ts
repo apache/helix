@@ -42,12 +42,9 @@ export class ClusterService extends HelixService {
   }
 
   public enableMaintenanceMode(name: string, reason: string) {
-    return this.post(
-      `/clusters/${name}?command=enableMaintenanceMode`,
-      JSON.stringify({
-        reason,
-      })
-    );
+    return this.post(`/clusters/${name}?command=enableMaintenanceMode`, {
+      reason,
+    });
   }
 
   public disableMaintenanceMode(name: string) {

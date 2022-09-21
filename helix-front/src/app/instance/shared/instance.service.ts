@@ -71,7 +71,7 @@ export class InstanceService extends HelixService {
 
     return this.put(
       `/clusters/${clusterName}/instances/${name}`,
-      node.json(name)
+      JSON.parse(node.json(name))
     );
   }
 

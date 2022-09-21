@@ -168,7 +168,7 @@ public class ZkServer {
             _nioFactory = null;
         }
         if (_zk != null) {
-            _zk.shutdown();
+            _zk.shutdown(true);
             _zk = null;
         }
         LOG.info("Shutting down ZkServer...done");

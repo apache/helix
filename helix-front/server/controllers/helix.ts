@@ -15,6 +15,7 @@ export class HelixCtrl {
 
   protected proxy(req: HelixUserRequest, res: Response) {
     const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
+
     const helixKey = url.split('/')[1];
 
     const segments = helixKey.split('.');
@@ -41,6 +42,11 @@ export class HelixCtrl {
 
     if (apiPrefix) {
       const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');
+      console.log('realUrl from helix api proxy');
+      console.log(realUrl);
+      console.log('');
+      console.log('request body');
+      console.log(req.body);
       const options = {
         url: realUrl,
         json: req.body,

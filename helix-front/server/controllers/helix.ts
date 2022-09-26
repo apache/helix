@@ -41,6 +41,8 @@ export class HelixCtrl {
 
     if (apiPrefix) {
       const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');
+      console.log(`helix-rest request url ${realUrl}`);
+
       const options = {
         url: realUrl,
         json: req.body,
@@ -50,11 +52,11 @@ export class HelixCtrl {
       };
       request[method](options, (error, response, body) => {
         if (error) {
-          res.status(500).send(error);
+          res.status(response?.statusCode || 500).send(error);
         } else if (body?.error) {
-          res.status(500).send(body?.error);
+          res.status(response?.statusCode || 500).send(body?.error);
         } else {
-          res.status(response.statusCode).send(body);
+          res.status(response?.statusCode).send(body);
         }
       });
     } else {

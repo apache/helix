@@ -53,7 +53,9 @@ public interface BaseDataAccessor<T> {
    * @param ttl TTL of the node in milliseconds, if options supports it
    * @return true if creation succeeded, false otherwise (e.g. if the ZNode exists)
    */
-  boolean create(String path, T record, int options, long ttl);
+  default boolean create(String path, T record, int options, long ttl) {
+    throw new UnsupportedOperationException("create with TTL support is not implemented.");
+  }
 
   /**
    * This will always attempt to set the data on existing node. If the ZNode does not
@@ -116,7 +118,9 @@ public interface BaseDataAccessor<T> {
    * @param ttl TTL of the node in milliseconds, if options supports it
    * @return For each child: true if creation succeeded, false otherwise (e.g. if the child exists)
    */
-  boolean[] createChildren(List<String> paths, List<T> records, int options, long ttl);
+  default boolean[] createChildren(List<String> paths, List<T> records, int options, long ttl) {
+    throw new UnsupportedOperationException("createChildren with TTL support is not implemented.");
+  }
 
   /**
    * can set multiple children under a parent node. This will use async api for better

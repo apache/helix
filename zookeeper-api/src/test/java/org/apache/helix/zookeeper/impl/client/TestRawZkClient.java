@@ -1063,23 +1063,29 @@ public class TestRawZkClient extends ZkTestBase {
    * Tests getChildren() when there are an excessive number of children and connection loss happens,
    * the operation should terminate and exit retry loop.
    */
-  @Test(timeOut = 30 * 1000L)
+  @Test
   public void testGetChildrenOnLargeNumChildren() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
     System.out.println("Start test: " + methodName);
     // Create 110K children to make packet length of children exceed 4 MB
     // and cause connection loss for getChildren() operation
     String path = "/" + methodName;
+    int numOps = 110;
+    int numOpInOps = 1000;
+    // All the paths that are going to be created as children nodes, plus one parent node
+    // Record paths so can be deleted at the end of the test
+    String[] nodePaths = new String[numOps * numOpInOps + 1];
+    nodePaths[numOps * numOpInOps] = path;
 
     _zkClient.createPersistent(path);
 
-    for (int i = 0; i < 110; i++) {
-      List<Op> ops = new ArrayList<>(1000);
-      for (int j = 0; j < 1000; j++) {
+    for (int i = 0; i < numOps; i++) {
+      List<Op> ops = new ArrayList<>(numOpInOps);
+      for (int j = 0; j < numOpInOps; j++) {
         String childPath = path + "/" + UUID.randomUUID().toString();
-        // Create ephemeral nodes so closing zkClient deletes them for cleanup
+        nodePaths[numOpInOps * i + j] = childPath;
         ops.add(
-            Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
+            Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
       }
       // Reduce total creation time by batch creating znodes
       _zkClient.multi(ops);
@@ -1098,11 +1104,14 @@ public class TestRawZkClient extends ZkTestBase {
       _zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
 
       Assert.assertTrue(TestHelper.verify(() -> {
-        try {
-          return _zkClient.delete(path);
-        } catch (ZkException e) {
-          return false;
+        for (String toDelete: nodePaths) {
+          try {
+            _zkClient.delete(toDelete);
+          } catch (ZkException e) {
+            return false;
+          }
         }
+        return true;
       }, TestHelper.WAIT_DURATION));
     }
     System.out.println("End test: " + methodName);

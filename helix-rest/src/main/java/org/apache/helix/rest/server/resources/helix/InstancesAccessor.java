@@ -274,7 +274,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       return JSONRepresentation(result);
     } catch (HelixException e) {
       _logger
-          .error(String.format("Current cluster %s has issue with health checks!", clusterId), e);
+              .error(String.format("Current cluster %s has issue with health checks!", clusterId), e);
       throw new HelixHealthException(e);
     } catch (Exception e) {
       _logger.error(String.format(

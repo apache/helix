@@ -92,9 +92,8 @@ public class TaskAdmin {
             zkAddr);
     helixMgr.connect();
     TaskDriver driver = new TaskDriver(helixMgr);
-    try {
-      TaskDriver.DriverCommand cmd = TaskDriver.DriverCommand.valueOf(args[0]);
-      switch (cmd) {
+    TaskDriver.DriverCommand cmd = TaskDriver.DriverCommand.valueOf(args[0]);
+    switch (cmd) {
       case start:
         if (cl.hasOption(WORKFLOW_FILE_OPTION)) {
           driver.start(Workflow.parse(new File(cl.getOptionValue(WORKFLOW_FILE_OPTION))));
@@ -123,11 +122,6 @@ public class TaskAdmin {
       default:
         throw new IllegalArgumentException("Unknown command " + args[0]);
       }
-    } catch (IllegalArgumentException e) {
-      LOG.error("Unknown driver command " + args[0]);
-      throw e;
-    }
-
     helixMgr.disconnect();
   }
 

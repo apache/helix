@@ -197,7 +197,6 @@ public class JmxDumper implements NotificationListener {
   }
 
   void init() throws Exception {
-    try {
       Set<ObjectInstance> existingInstances =
           _mbeanServer.queryMBeans(new ObjectName(_namePattern), null);
       _logger.info("Total " + existingInstances.size() + " mbeans matched " + _namePattern);
@@ -210,10 +209,6 @@ public class JmxDumper implements NotificationListener {
       FileWriter fos = new FileWriter(_outputFileName);
       System.out.println(_outputFileName);
       _outputFile = new PrintWriter(fos);
-    } catch (Exception e) {
-      _logger.error("fail to get all existing mbeans in " + _domain, e);
-      throw e;
-    }
   }
 
   @Override

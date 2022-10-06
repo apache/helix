@@ -265,6 +265,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>nealsun</id>
+      <name>Neal Sun</name>
+      <email>nealsun@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>

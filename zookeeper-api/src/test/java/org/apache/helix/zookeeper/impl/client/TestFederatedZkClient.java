@@ -41,10 +41,8 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.Op;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.zookeeper.*;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -58,6 +56,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   private static final String TEST_INVALID_PATH = TEST_SHARDING_KEY_PREFIX + "invalid/a/b/c";
   private static final String UNSUPPORTED_OPERATION_MESSAGE =
       "Session-aware operation is not supported by FederatedZkClient.";
+  private static final String PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/TestDedicatedZkClient";
 
   private RealmAwareZkClient _realmAwareZkClient;
 
@@ -661,5 +660,124 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     } catch (IllegalStateException ex) {
       Assert.assertEquals(ex.getMessage(), "FederatedZkClient is closed!");
     }
+  }
+
+  /**
+   * Test that zk multi works for op.create.
+   */
+  @Test
+  public void testMultiCreate() {
+    String test_name = "/test_multi_create";
+
+    //Create Nodes
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+
+    //Execute transactional support on operations and verify they were run
+    try {
+      List<OpResult> opResults = _realmAwareZkClient.multi(ops);
+      Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
+      Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
+      cleanup();
+    } catch (UnsupportedOperationException e) {
+      Assert.fail("Zk Multi Not Supported!");
+    }
+  }
+
+  /**
+   * Multi should be an all or nothing transaction. Creating correct
+   * paths and a singular bad one should all fail.
+   */
+  @Test
+  public void testMultiFail() {
+    String test_name = "/test_multi_fail";
+    //Create Nodes
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(TEST_INVALID_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+    try {
+      try {
+        _realmAwareZkClient.multi(ops);
+        Assert.fail("Should have thrown an exception. Cannot run multi on incorrect path.");
+      } catch (ZkNoNodeException e) {
+        boolean pathExists = _realmAwareZkClient.exists(PARENT_PATH);
+        Assert.assertFalse(pathExists, "Path should not have been created.");
+
+        cleanup();
+      }
+    } catch (UnsupportedOperationException e) {
+      Assert.fail("Zk Multi Not Supported!");
+    }
+  }
+
+  /**
+   * Test that zk multi works for delete.
+   */
+  @Test
+  public void testMultiDelete() {
+    String test_name = "/test_multi_delete";
+    //Create Nodes
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.delete(PARENT_PATH + test_name, -1));
+
+    try {
+      List<OpResult> opResults = _realmAwareZkClient.multi(ops);
+      Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
+      Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
+      Assert.assertTrue(opResults.get(2) instanceof OpResult.DeleteResult);
+
+      cleanup();
+    } catch (UnsupportedOperationException e) {
+      Assert.fail("Zk Multi Not Supported!");
+    }
+  }
+
+  /**
+   * Test that zk multi works for set.
+   */
+  @Test
+  public void testMultiSet() {
+    String test_name = "/test_multi_set";
+
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.setData(PARENT_PATH + test_name, new byte[0],
+                    -1));
+
+    try {
+      List<OpResult> opResults = _realmAwareZkClient.multi(ops);
+      Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
+      Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
+      Assert.assertTrue(opResults.get(2) instanceof OpResult.SetDataResult);
+
+      cleanup();
+    } catch (UnsupportedOperationException e) {
+      Assert.fail("Zk Multi Not Supported!");
+    }
+  }
+
+  /**
+   * Delete created paths to clean up zk for next test case.
+   */
+  public void cleanup() {
+    //Delete Parent path and its children
+    _realmAwareZkClient.deleteRecursively(PARENT_PATH);
+    //Verify path has been deleted
+    boolean pathExists = _realmAwareZkClient.exists(PARENT_PATH);
+    Assert.assertFalse(pathExists, "Parent Path should have been removed.");
   }
 }

@@ -252,7 +252,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
   }
 
   /**
-   * Initialize requirements for multi support.
+   * Initialize requirement for multi support.
    */
   @Test(dependsOnMethods = "testDelete")
   public void testMulti() {

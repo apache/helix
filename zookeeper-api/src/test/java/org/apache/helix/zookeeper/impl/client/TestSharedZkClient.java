@@ -36,6 +36,7 @@ public class TestSharedZkClient extends RealmAwareZkClientFactoryTestBase {
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
     super.beforeClass();
+    PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/TestSharedZkClient";
     // Set the factory to SharedZkClientFactory
     _realmAwareZkClientFactory = SharedZkClientFactory.getInstance();
   }
@@ -57,7 +58,7 @@ public class TestSharedZkClient extends RealmAwareZkClientFactoryTestBase {
       // this is expected
     }
 
-    // test creating Ephemeral via creat would also fail
+    // test creating Ephemeral via create would also fail
     try {
       _realmAwareZkClient.create(TEST_VALID_PATH, znRecord, CreateMode.EPHEMERAL);
       Assert.fail(

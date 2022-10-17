@@ -20,6 +20,8 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
@@ -27,6 +29,11 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.api.factory.RealmAwareZkClientFactory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
+import org.apache.zookeeper.ZooDefs;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -44,6 +51,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
   protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
   protected RealmAwareZkClient _realmAwareZkClient;
   private static final ZNRecord DUMMY_RECORD = new ZNRecord("DummyRecord");
+  protected String PARENT_PATH;
 
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
@@ -241,5 +249,128 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
 
     Assert.assertTrue(_realmAwareZkClient.delete(TEST_VALID_PATH));
     Assert.assertFalse(_realmAwareZkClient.exists(TEST_VALID_PATH));
+  }
+
+  /**
+   * Initialize requirements for multi support.
+   */
+  @Test(dependsOnMethods = "testDelete")
+  public void testMulti() {
+    // Create a connection config with a valid sharding key
+    RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder builder =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+    RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+            builder.setZkRealmShardingKey(ZK_SHARDING_KEY_PREFIX).build();
+    try {
+      _realmAwareZkClient = _realmAwareZkClientFactory.buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig());
+    } catch (IllegalArgumentException e) {
+      Assert.fail("Invalid Sharding Key.");
+    } catch (Exception e) {
+      Assert.fail("Should not see any other types of Exceptions: " + e);
+    }
+  }
+
+  /**
+   * Test that zk multi works for op.create.
+   */
+  @Test(dependsOnMethods = "testMulti")
+  public void testMultiCreate() {
+    String test_name = "/test_multi_create";
+
+    //Create Nodes
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+
+    //Execute transactional support on operations and verify they were run
+    List<OpResult> opResults = _realmAwareZkClient.multi(ops);
+    Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
+    Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
+
+    cleanup();
+  }
+
+  /**
+   * Multi should be an all or nothing transaction. Creating correct
+   * paths and a singular bad one should all fail.
+   */
+  @Test(dependsOnMethods = "testMultiCreate")
+  public void testMultiFail() {
+    String test_name = "/test_multi_fail";
+    //Create Nodes
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(TEST_INVALID_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+    try {
+      _realmAwareZkClient.multi(ops);
+      Assert.fail("Should have thrown an exception. Cannot run multi on incorrect path.");
+    } catch (ZkNoNodeException e) {
+      boolean pathExists = _realmAwareZkClient.exists(PARENT_PATH);
+      Assert.assertFalse(pathExists, "Path should not have been created.");
+
+      cleanup();
+    }
+  }
+
+  /**
+   * Test that zk multi works for delete.
+   */
+  @Test(dependsOnMethods = "testMultiFail")
+  public void testMultiDelete() {
+    String test_name = "/test_multi_delete";
+    //Create Nodes
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.delete(PARENT_PATH + test_name, -1));
+
+    List<OpResult> opResults = _realmAwareZkClient.multi(ops);
+    Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
+    Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
+    Assert.assertTrue(opResults.get(2) instanceof OpResult.DeleteResult);
+
+    cleanup();
+  }
+
+  /**
+   * Test that zk multi works for set.
+   */
+  @Test(dependsOnMethods = "testMultiDelete")
+  public void testMultiSet() {
+    String test_name = "/test_multi_set";
+
+    List<Op> ops = Arrays.asList(
+            Op.create(PARENT_PATH, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(PARENT_PATH + test_name, new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.setData(PARENT_PATH + test_name, new byte[0],
+                    -1));
+
+    List<OpResult> opResults = _realmAwareZkClient.multi(ops);
+    Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
+    Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
+    Assert.assertTrue(opResults.get(2) instanceof OpResult.SetDataResult);
+
+    cleanup();
+  }
+
+  /**
+   * Delete created paths to clean up zk for next test case.
+   */
+  public void cleanup() {
+    //Delete Parent path and its children
+    _realmAwareZkClient.deleteRecursively(PARENT_PATH);
+    //Verify path has been deleted
+    boolean pathExists = _realmAwareZkClient.exists(PARENT_PATH);
+    Assert.assertFalse(pathExists, "Parent Path should have been removed.");
   }
 }

@@ -1,7 +1,12 @@
-import { Request, Response, Router } from 'express';
+import { Response, Router } from 'express';
 import * as LdapClient from 'ldapjs';
+import * as req from 'req';
 
-import { LDAP } from '../config';
+import {
+  LDAP,
+  IDENTITY_TOKEN_SOURCE,
+  CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,
+} from '../config';
 import { HelixUserRequest } from './d';
 
 export class UserCtrl {
@@ -35,10 +40,10 @@ export class UserCtrl {
     }
   }
 
-  protected login(request: HelixUserRequest, response: Response) {
-    const credential = request.body;
+  protected login(req: HelixUserRequest, res: Response) {
+    const credential = req.body;
     if (!credential.username || !credential.password) {
-      response.status(401).json(false);
+      res.status(401).json(false);
       return;
     }
 
@@ -49,7 +54,7 @@ export class UserCtrl {
       credential.password,
       (err) => {
         if (err) {
-          response.status(401).json(false);
+          res.status(401).json(false);
         } else {
           // login success
           const opts = {
@@ -74,9 +79,9 @@ export class UserCtrl {
                 }
               }
 
-              request.session.username = credential.username;
-              request.session.isAdmin = isInAdminGroup;
-              response.json(isInAdminGroup);
+              req.session.username = credential.username;
+              req.session.isAdmin = isInAdminGroup;
+              res.json(isInAdminGroup);
             });
           });
         }

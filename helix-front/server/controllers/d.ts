@@ -5,6 +5,7 @@ export interface HelixUserRequest extends Request {
 }
 
 interface HelixSession {
+  identityToken: any;
   username: string;
   isAdmin: boolean;
 }

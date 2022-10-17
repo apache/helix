@@ -1,6 +1,6 @@
 import { Response, Router } from 'express';
 import * as LdapClient from 'ldapjs';
-import * as req from 'req';
+import * as request from 'request';
 
 import {
   LDAP,
@@ -56,7 +56,7 @@ export class UserCtrl {
         if (err) {
           res.status(401).json(false);
         } else {
-          // login success
+          // LDAP login success
           const opts = {
             filter:
               '(&(sAMAccountName=' +
@@ -64,6 +64,9 @@ export class UserCtrl {
               ')(objectcategory=person))',
             scope: 'sub',
           };
+
+          req.session.username = credential.username;
+          res.set('Username', credential.username);
 
           ldap.search(LDAP.base, opts, function (err, result) {
             let isInAdminGroup = false;
@@ -74,14 +77,75 @@ export class UserCtrl {
                   const groupName = group.split(',', 1)[0].split('=')[1];
                   if (groupName == LDAP.adminGroup) {
                     isInAdminGroup = true;
-                    break;
+
+                    //
+                    // Get an Identity-Token
+                    // if an IDENTITY_TOKEN_SOURCE
+                    // is specified in the config
+                    //
+                    if (IDENTITY_TOKEN_SOURCE) {
+                      const body = JSON.stringify({
+                        username: credential.username,
+                        password: credential.password,
+                        ...CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,
+                      });
+
+                      const options = {
+                        url: IDENTITY_TOKEN_SOURCE,
+                        json: '',
+                        body,
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        agentOptions: {
+                          rejectUnauthorized: false,
+                        },
+                      };
+
+                      function callback(error, _res, body) {
+                        if (error) {
+                          throw new Error(
+                            `Failed to get ${IDENTITY_TOKEN_SOURCE} Token: ${error}`
+                          );
+                        } else if (body?.error) {
+                          throw new Error(body?.error);
+                        } else {
+                          const parsedBody = JSON.parse(body);
+                          console.log(
+                            'parsedBody from identity token source call',
+                            parsedBody
+                          );
+
+                          console.log('3rd outer-most else');
+                          req.session.isAdmin = isInAdminGroup;
+                          //
+                          // TODO possibly also send identity token
+                          // TODO parsedBody to the client as a cookie
+                          // TODO Github issue #2236
+                          //
+                          req.session.identityToken = parsedBody;
+                          res.set('Identity-Token-Payload', body);
+                          res.json(isInAdminGroup);
+
+                          return parsedBody;
+                        }
+                      }
+                      request.post(options, callback);
+                    } else {
+                      console.log('2nd outer-most else');
+                      req.session.isAdmin = isInAdminGroup;
+                      res.json(isInAdminGroup);
+                    }
+                    //
+                    // END Get and Identity-Token
+                    //
                   }
                 }
+              } else {
+                console.log('outer-most else');
+                req.session.isAdmin = isInAdminGroup;
+                res.json(isInAdminGroup);
               }
-
-              req.session.username = credential.username;
-              req.session.isAdmin = isInAdminGroup;
-              res.json(isInAdminGroup);
             });
           });
         }

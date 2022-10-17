@@ -18,8 +18,11 @@ export class UserCtrl {
   }
 
   protected authorize(req: HelixUserRequest, res: Response) {
-    // you can rewrite this function to support your own authorization logic
-    // by default, doing nothing but redirection
+    //
+    // you can rewrite this function
+    // to support your own authorization logic
+    // by default, do nothing but redirect
+    //
     if (req.query.url) {
       res.redirect(req.query.url as string);
     } else {
@@ -31,11 +34,18 @@ export class UserCtrl {
     res.json(req.session.username || 'Sign In');
   }
 
+  //
+  // Check the server-side session store,
+  // see if this helix-front ExpressJS server
+  // already knows that the current user is an admin.
+  //
   protected can(req: HelixUserRequest, res: Response) {
     try {
       return res.json(req.session.isAdmin ? true : false);
     } catch (err) {
-      // console.log('error from can', err)
+      throw new Error(
+        `Error from /can logged in admin user session status endpoint: ${err}`
+      );
       return false;
     }
   }
@@ -111,19 +121,13 @@ export class UserCtrl {
                           throw new Error(body?.error);
                         } else {
                           const parsedBody = JSON.parse(body);
-                          console.log(
-                            'parsedBody from identity token source call',
-                            parsedBody
-                          );
-
-                          console.log('3rd outer-most else');
                           req.session.isAdmin = isInAdminGroup;
+                          req.session.identityToken = parsedBody;
                           //
                           // TODO possibly also send identity token
                           // TODO parsedBody to the client as a cookie
                           // TODO Github issue #2236
                           //
-                          req.session.identityToken = parsedBody;
                           res.set('Identity-Token-Payload', body);
                           res.json(isInAdminGroup);
 
@@ -132,17 +136,15 @@ export class UserCtrl {
                       }
                       request.post(options, callback);
                     } else {
-                      console.log('2nd outer-most else');
                       req.session.isAdmin = isInAdminGroup;
                       res.json(isInAdminGroup);
                     }
                     //
-                    // END Get and Identity-Token
+                    // END Get an Identity-Token
                     //
                   }
                 }
               } else {
-                console.log('outer-most else');
                 req.session.isAdmin = isInAdminGroup;
                 res.json(isInAdminGroup);
               }

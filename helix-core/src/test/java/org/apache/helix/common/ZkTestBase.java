@@ -44,7 +44,6 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -733,17 +732,6 @@ public class ZkTestBase {
       clientMap.clear();
     }
     _liveInstanceOwners.clear();
-
-    boolean status = false;
-    try {
-      status = ThreadLeakageChecker.afterClassCheck(testClassName);
-    } catch (Exception e) {
-      LOG.error("ThreadLeakageChecker exception:", e);
-    }
-    // todo: We should fail test here once we achieved 0 leakage and remove the following System print
-    if (!status) {
-      System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
-    }
   }
 
   protected List<LiveInstance> setupLiveInstances(String clusterName, int[] liveInstances) {

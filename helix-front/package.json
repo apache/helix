@@ -22,7 +22,7 @@
   "scripts": {
     "ng": "ng",
     "build": "rm -rf dist && mkdir dist && ng build --aot --configuration production && tsc -p server",
-    "build:dev": "rm -rf dist && mkdir dist && ng build --aot --configuration development && tsc -p server",
+    "build:dev": "rm -rf dist && mkdir dist && yarn check:config && ng build --aot --configuration development && tsc -p server",
     "start": "concurrently -r \"ng serve\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
     "prod": "yarn run build && node dist/server/app.js",
     "test": "ng test",
@@ -40,7 +40,9 @@
     "type:check:watch": "yarn type:check -- --watch",
     "format:check": "npx prettier --check .",
     "format": "yarn prettier --write .",
-    "prepack": "yarn build"
+    "prepack": "yarn build",
+    "copy:config": "cp server/config.example.ts server/config.ts",
+    "check:config": "test -f server/config.ts || yarn copy:config"
   },
   "browserslist": [
     "last 2 Edge versions",

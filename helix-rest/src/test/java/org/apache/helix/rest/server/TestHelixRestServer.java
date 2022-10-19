@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
@@ -69,19 +70,20 @@ public class TestHelixRestServer extends AbstractTestClass {
     } catch (IllegalArgumentException e) {
       // OK
     }
+  }
 
+  @Test(dependsOnMethods = "testInvalidHelixRestServerInitialization",
+      expectedExceptions = {IllegalStateException.class, HelixException.class},
+      expectedExceptionsMessageRegExp = ".*Multiple servlets map to path.*")
+  public void testDefaultNamespaceFail() throws InterruptedException {
     // More than 1 default namespace shall cause failure
-    try {
-      List<HelixRestNamespace> invalidManifest4 = new ArrayList<>();
-      invalidManifest4.add(
-          new HelixRestNamespace("test4-1", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, true));
-      invalidManifest4.add(
-          new HelixRestNamespace("test4-2", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, true));
-      HelixRestServer svr = new HelixRestServer(invalidManifest4, 10250, "/", Collections.<AuditLogger>emptyList());
-      Assert.assertFalse(true, "InvalidManifest4 test failed");
-    } catch (IllegalStateException e) {
-      // OK
-    }
+    List<HelixRestNamespace> invalidManifest4 = new ArrayList<>();
+    invalidManifest4.add(
+        new HelixRestNamespace("test4-1", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, true));
+    invalidManifest4.add(
+        new HelixRestNamespace("test4-2", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, true));
+    HelixRestServer svr = new HelixRestServer(invalidManifest4, 10250, "/", Collections.<AuditLogger>emptyList());
+    svr.start();
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

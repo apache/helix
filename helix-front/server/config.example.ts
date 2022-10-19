@@ -20,6 +20,25 @@ export const LDAP = {
   adminGroup: 'admin',
 };
 
-export const IDENTITY_TOKEN_SOURCE = undefined; // 'www.example.com';
-export const CUSTOM_IDENTITY_TOKEN_REQUEST_BODY = {};
-export const TOKEN_RESPONSE_KEY = 'token';
+/**
+ * The url of your Identity Token API.
+ * This an API that should expect LDAP credentials
+ * and if the LDAP credentials are valid
+ * respond with a unique token of some kind.
+ */
+export const IDENTITY_TOKEN_SOURCE: string | undefined = undefined; // 'www.example.com';
+
+/**
+ * Any custom object that you would like
+ * to include in the body of the request
+ * to your custom identity source.
+ */
+export const CUSTOM_IDENTITY_TOKEN_REQUEST_BODY: any = {};
+
+/**
+ * This is the key that helix-front uses
+ * to access the token itself
+ * from the custom identity token response
+ * sent by your Identity Token API.
+ */
+export const TOKEN_RESPONSE_KEY: string = 'token';

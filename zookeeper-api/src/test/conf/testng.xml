@@ -19,7 +19,7 @@
   -->
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 <suite name="Suite" parallel="false" thread-count = "1" preserve-order="true">
-  <test name="Test" >
+  <test name="Test" parallel="false">
     <packages>
       <package name="org.apache.helix.zookeeper.*"/>
     </packages>

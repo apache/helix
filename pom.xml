@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ Licensed to the Apache Software Foundation (ASF) under one
   ~ or more contributor license agreements.  See the NOTICE file
@@ -41,11 +41,20 @@
   <url>http://helix.apache.org</url>
   <developers>
     <developer>
+      <id>jxue</id>
+      <name>Junkai Xue</name>
+      <email>jxue@apache.org</email>
+      <roles>
+        <role>PMC Chair</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
       <id>kishoreg</id>
       <name>Kishore Gopalakrishna</name>
       <email>kishoreg@apache.org</email>
       <roles>
-        <role>PMC Chair</role>
+        <role>PMC Member</role>
       </roles>
       <timezone>-8</timezone>
     </developer>
@@ -206,15 +215,6 @@
       <id>lxia</id>
       <name>Lei Xia</name>
       <email>lxia@apache.org</email>
-      <roles>
-        <role>Committer / PMC Member</role>
-      </roles>
-      <timezone>-8</timezone>
-    </developer>
-    <developer>
-      <id>jxue</id>
-      <name>Junkai Xue</name>
-      <email>jxue@apache.org</email>
       <roles>
         <role>Committer / PMC Member</role>
       </roles>

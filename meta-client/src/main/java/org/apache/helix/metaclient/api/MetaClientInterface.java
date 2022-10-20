@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.api;
  */
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 public interface MetaClientInterface<T> {
@@ -27,9 +28,12 @@ public interface MetaClientInterface<T> {
   enum EntryMode {
     //The node will be removed automatically when the session associated with the creation
     // of the node expires.
-    EPHEMERAL,
-    //The node will not be automatically deleted upon client's disconnect.
+    EPHEMERAL, //The node will not be automatically deleted upon client's disconnect.
     PERSISTENT
+  }
+
+  enum ConnectState {
+    CONNECTED, AUTH_FAILURE, EXPIRED, CLOSED
   }
 
   /**
@@ -39,8 +43,13 @@ public interface MetaClientInterface<T> {
     private int _version;
     private EntryMode _entryMode;
 
-    public EntryMode getEntryType() {return _entryMode;}
-    public int getVersion() {return  _version;}
+    public EntryMode getEntryType() {
+      return _entryMode;
+    }
+
+    public int getVersion() {
+      return _version;
+    }
   }
 
   //synced CRUD API
@@ -155,4 +164,55 @@ public interface MetaClientInterface<T> {
 
   boolean[] delete(List<String> keys);
 
+
+  /**
+   * Maintains a connection with underlying metadata service based on config params. Connection
+   * created by this method will be used to perform CRUD operations on metadata service.
+   */
+  ConnectState connect();
+
+  void disconnect();
+
+  // Event notification API, user can register multiple listeners on the same path/connection state.
+
+  /**
+   * Subscribe change of a particular key.
+   */
+  boolean subscribeDataChange(String key, DataChangeListener listener,
+      DataChangeListener.ChangeType eventType, boolean skipWatchingNonExistNode,
+      boolean persistListener);
+
+  /**
+   * Subscribe change for direct sub entries.
+   * Caller can specify the listener to be a persist listener or a one time triggered listener.
+   */
+  DirectEntrySubscribeResult subscribeDirectEntryChange(String key,
+      DirectChildrenChangeListener listener, boolean skipWatchingNonExistNode,
+      boolean persistListener);
+
+  /**
+   *  Subscribe change for connection state change. The listener is a persist listener.
+   */
+  boolean subscribeStateChanges(ConnectStateChangeListener listener);
+
+  /**
+   * Subscribe change for all sub entries.
+   * It would watch the whole tree structure for hierarchical key space metadata store,
+   * watch for keys with certain prefix for flat key space metadata store.
+   * The listener is a persist listener.
+   */
+  boolean subscribeEntryChanges(String key, PersistSubEntryChangeListener listener);
+
+  void unsubscribeDataChange(String key, DataChangeListener listener,
+      DataChangeListener.ChangeType eventType);
+
+  void unsubscribeDirectEntryChange(String key, DirectChildrenChangeListener listener);
+
+  void unsubscribeEntryChanges(String key, PersistSubEntryChangeListener listener);
+
+  void unsubscribeConnectStateChanges(ConnectStateChangeListener listener);
+
+  boolean waitUntilExists(String path, TimeUnit timeUnit, long time);
+
+  // TODO: Secure CRUD APIs
 }

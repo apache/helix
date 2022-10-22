@@ -94,7 +94,7 @@ export class AppComponent implements OnInit {
                 (loginResponse) => {
                   if (!loginResponse) {
                     this.helper.showError(
-                      "You're not part of helix-admin group or password incorrect"
+                      `${loginResponse.status}: Either You are not part of helix-admin LDAP group or your password is incorrect.`
                     );
                   }
 

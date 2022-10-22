@@ -13,7 +13,10 @@ export class HelperService {
     this.dialog.open(AlertDialogComponent, {
       data: {
         title: 'Error',
-        message,
+        message:
+          typeof message === 'string'
+            ? message
+            : JSON.stringify(message, null, 2),
       },
     });
   }
@@ -29,7 +32,10 @@ export class HelperService {
       .open(ConfirmDialogComponent, {
         data: {
           title: 'Confirmation',
-          message,
+          message:
+            typeof message === 'string'
+              ? message
+              : JSON.stringify(message, null, 2),
         },
       })
       .afterClosed()

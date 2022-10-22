@@ -97,10 +97,6 @@ export class AppComponent implements OnInit {
                       "You're not part of helix-admin group or password incorrect"
                     );
                   }
-                  console.log(
-                    'loginResponse from app.component login subscription',
-                    loginResponse
-                  );
 
                   //
                   // set cookie with Identity Token
@@ -110,16 +106,9 @@ export class AppComponent implements OnInit {
                     const identityTokenPayload = loginResponse.headers.get(
                       'Identity-Token-Payload'
                     );
-                    console.log(
-                      `Identity-Token-Payload from app.component ${identityTokenPayload}`
-                    );
 
                     const parsedIdentityTokenPayload =
                       JSON.parse(identityTokenPayload);
-                    console.log(
-                      'parsedIdentityTokenPayload',
-                      parsedIdentityTokenPayload
-                    );
 
                     const cookie = {
                       name: 'helixui_identity.token',
@@ -133,7 +122,6 @@ export class AppComponent implements OnInit {
                     const cookieString = `${cookie.name}=${
                       cookie.value || ''
                     }; expires=${cookie.expirationDate}; path=/; domain=`;
-                    console.log('cookieString', cookieString);
                     document.cookie = cookieString;
                   }
 

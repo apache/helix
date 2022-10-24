@@ -325,9 +325,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           "Skip rebalancing using the WAGED rebalancer since it is not configured in the rebalance pipeline.");
     }
 
-    Iterator<Resource> itr = wagedRebalancedResourceMap.values().iterator();
-    while (itr.hasNext()) {
-      Resource resource = itr.next();
+    for (Resource resource : wagedRebalancedResourceMap.values()) {
       IdealState is = newIdealStates.get(resource.getResourceName());
       // Check if the WAGED rebalancer has calculated the result for this resource or not.
       if (is != null && checkBestPossibleStateCalculation(is)) {
@@ -335,8 +333,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         updateBestPossibleStateOutput(output, resource, is);
       } else {
         failureResources.add(resource.getResourceName());
-        LogUtil.logWarn(logger, _eventId, String
-            .format("The calculated best possible states for %s is empty or invalid.",
+        LogUtil.logWarn(logger, _eventId,
+            String.format("The calculated best possible states for %s is empty or invalid.",
                 resource.getResourceName()));
       }
     }
@@ -387,7 +385,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     MappingCalculator<ResourceControllerDataProvider> mappingCalculator =
         getMappingCalculator(rebalancer, resourceName);
 
-    if (rebalancer == null || mappingCalculator == null) {
+    if (rebalancer == null) {
       LogUtil.logError(logger, _eventId, "Error computing assignment for resource " + resourceName
           + ". no rebalancer found. rebalancer: " + rebalancer + " mappingCalculator: "
           + mappingCalculator);

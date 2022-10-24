@@ -39,7 +39,6 @@ import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -80,7 +79,7 @@ import org.testng.annotations.Test;
  * in system property
  */
 public class TestMultiZkConectionConfig {
-  private static Logger LOG = LoggerFactory.getLogger(TestMultiZkHelixJavaApis.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestMultiZkConectionConfig.class);
   private static final int NUM_ZK = 3;
   private static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
   private static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();
@@ -88,10 +87,6 @@ public class TestMultiZkConectionConfig {
   private static final Set<MockParticipantManager> MOCK_PARTICIPANTS = new HashSet<>();
   private static final List<String> CLUSTER_LIST =
       ImmutableList.of("CLUSTER_1", "CLUSTER_2", "CLUSTER_3");
-
-  // For testing different MSDS endpoint configs.
-  private static final String CLUSTER_ONE = CLUSTER_LIST.get(0);
-  private static final String CLUSTER_FOUR = "CLUSTER_4";
 
   private MockMetadataStoreDirectoryServer _msds;
   private static final Map<String, Collection<String>> _rawRoutingData = new HashMap<>();
@@ -102,7 +97,7 @@ public class TestMultiZkConectionConfig {
   private final Map<String, String> _configStore = new HashMap<>();
 
   private static final String ZK_PREFIX = "localhost:";
-  private static final int ZK_START_PORT = 8777;
+  private static final int ZK_START_PORT = 8977;
   private String _msdsEndpoint;
 
   @BeforeClass
@@ -224,18 +219,6 @@ public class TestMultiZkConectionConfig {
       } else {
         System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
       }
-    }
-
-    boolean status = false;
-    try {
-      status = ThreadLeakageChecker.afterClassCheck(testClassName);
-    } catch (Exception e) {
-      LOG.error("ThreadLeakageChecker exception:", e);
-    }
-    // todo: We should fail test here once we achieved 0 leakage and remove the following System print
-    if (!status) {
-      System.out.println(
-          "---------- Test Class " + testClassName + " thread leakage detected! ---------------");
     }
   }
 

@@ -64,7 +64,6 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   @BeforeClass
   public void beforeClass() {
     // Initialize ZK accessors for testing
-    _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR, 50 * 1024, VERSION_TTL_MS);
     HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
     zkClient.setZkSerializer(new ZkSerializer() {
@@ -82,6 +81,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
       }
     });
     _zkBaseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
+    _bucketDataAccessor = new ZkBucketDataAccessor(zkClient, 50 * 1024, VERSION_TTL_MS);
 
     // Fill in some data for the record
     record.setSimpleField(NAME_KEY, NAME_KEY);

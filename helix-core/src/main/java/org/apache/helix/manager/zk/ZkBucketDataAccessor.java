@@ -96,6 +96,10 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     this(zkClient, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL, true);
   }
 
+  public ZkBucketDataAccessor(RealmAwareZkClient zkClient, int bucketSize, long versionTTLms) {
+    this(zkClient, bucketSize, versionTTLms, true);
+  }
+
   private ZkBucketDataAccessor(RealmAwareZkClient zkClient, int bucketSize, long versionTTLms,
       boolean usesExternalZkClient) {
     _zkClient = zkClient;

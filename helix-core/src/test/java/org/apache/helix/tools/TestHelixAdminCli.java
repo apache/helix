@@ -62,7 +62,6 @@ public class TestHelixAdminCli extends ZkTestBase {
     } catch (Exception ignored) {
       // OK
     }
-    super.endTest(testMethod, testContext);
   }
 
   @Test

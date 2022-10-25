@@ -56,10 +56,10 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
   private static final Map<String, String> MAP_FIELD = ImmutableMap.of("1", "2");
 
+  private final ZNRecord record = new ZNRecord(NAME_KEY);
+
   private BucketDataAccessor _bucketDataAccessor;
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
-
-  private ZNRecord record = new ZNRecord(NAME_KEY);
 
   @BeforeClass
   public void beforeClass() {

@@ -12,9 +12,9 @@ export class HelixService {
   constructor(protected router: Router, private http: HttpClient) {}
 
   public can(): Observable<any> {
-    return this.http
-      .get(`${Settings.userAPI}/can`, { headers: this.getHeaders() })
-      .pipe(catchError(this.errorHandler));
+    const url = `${Settings.userAPI}/can`;
+    const options = { headers: this.getHeaders() };
+    return this.http.get(url, options).pipe(catchError(this.errorHandler));
   }
 
   protected request(path: string, helix?: string): Observable<any> {

@@ -21,18 +21,14 @@ package org.apache.helix.metaclient.factories;
 
 class MetaClientConfig {
 
-  public enum RetryProtocol {
-    NO_RETRY, EXP_BACK_OFF, CONST_RETRY_INTERVAL
-  }
-
   public enum StoreType {
     ZOOKEEPER, ETCD
   }
 
-  private String _connectionAddress;
-  private long _connectionTimeout;
-  private boolean _enableAuth;
-  private StoreType _storeType;
+  private final String _connectionAddress;
+  private final long _connectionTimeout;
+  private final boolean _enableAuth;
+  private final StoreType _storeType;
 
   public String getConnectionAddress() {
     return _connectionAddress;
@@ -45,6 +41,7 @@ class MetaClientConfig {
   public boolean isAuthEnabled() {
     return _enableAuth;
   }
+
   public StoreType getStoreType() {
     return _storeType;
   }
@@ -52,14 +49,19 @@ class MetaClientConfig {
   // TODO: More options to add later
   // private boolean _autoReRegistWatcher;  // re-register one time watcher when set to true
   // private boolean _resetWatchWhenReConnect; // re-register previous existing watcher when reconnect
-  // private RetryProtocol _retryProtocol;
+  //
+  //  public enum RetryProtocol {
+  //    NO_RETRY, EXP_BACK_OFF, CONST_RETRY_INTERVAL
+  //  }
+  //  private RetryProtocol _retryProtocol;
 
-  private MetaClientConfig(Builder builder) {
-    _connectionAddress = builder._connectionAddress;
-    _connectionTimeout = builder._connectionTimeout;
-    _enableAuth = builder._enableAuth;
-    _storeType = builder._storeType;
 
+  private MetaClientConfig(String connectionAddress, long connectionTimeout, boolean enableAuth,
+      StoreType storeType) {
+    _connectionAddress = connectionAddress;
+    _connectionTimeout = connectionTimeout;
+    _enableAuth = enableAuth;
+    _storeType = storeType;
   }
 
   public static class Builder {
@@ -74,10 +76,13 @@ class MetaClientConfig {
 
     public MetaClientConfig build() {
       validate();
-      return new MetaClientConfig(this);
+      return new MetaClientConfig(_connectionAddress, _connectionTimeout, _enableAuth, _storeType);
     }
 
     public Builder() {
+      // set default values
+      setAuthEnabled(false);
+      setConnectionTimeout(-1);
     }
 
     public Builder setConnectionAddress(String connectionAddress) {

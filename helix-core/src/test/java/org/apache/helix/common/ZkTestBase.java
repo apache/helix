@@ -118,6 +118,19 @@ public class ZkTestBase {
   protected static final Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
   protected static final Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
 
+  static public void reportPhysicalMemory() {
+    com.sun.management.OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean)
+        java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+    long physicalMemorySize = os.getTotalPhysicalMemorySize();
+    System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
+
+    long MB = 1024 * 1024;
+    Runtime runtime = Runtime.getRuntime();
+    long free = runtime.freeMemory()/MB;
+    long total = runtime.totalMemory()/MB;
+    System.out.println("************ total memory:" + total + " free memory:" + free);
+  }
+
   @BeforeSuite
   public void beforeSuite() throws Exception {
     // TODO: use logging.properties file to config java.util.logging.Logger levels

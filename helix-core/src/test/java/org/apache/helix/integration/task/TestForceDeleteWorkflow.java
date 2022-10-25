@@ -58,7 +58,6 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   private static final String LONG_EXECUTION_TIME = "100000";
   // Long delay to simulate the tasks that are stuck in Task.cancel().
   private static final String STOP_DELAY = "1000000";
-  private HelixAdmin _admin;
 
   // These AtomicIntegers are used to verify that the tasks are indeed stuck in Task.cancel().
   // CANCEL shows that the task cancellation process has been started. (Incremented at the beginning
@@ -96,8 +95,6 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
           new TaskStateModelFactory(_participants[i], taskFactoryReg));
       _participants[i].syncStart();
     }
-
-    _admin = _gSetupTool.getClusterManagementTool();
   }
 
   @Test
@@ -316,9 +313,9 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   /**
    * A mock task that extents MockTask class and delays cancellation of the tasks.
    */
-  private class DelayedStopTask extends MockTask {
+  private static class DelayedStopTask extends MockTask {
     private static final String JOB_DELAY_CANCEL = "DelayCancel";
-    private long _delayCancel;
+    private final long _delayCancel;
 
     DelayedStopTask(TaskCallbackContext context) {
       super(context);

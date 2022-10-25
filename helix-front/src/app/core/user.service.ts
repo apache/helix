@@ -16,12 +16,14 @@ export class UserService {
       .pipe(catchError((_) => _));
   }
 
-  public login(username: string, password: string): Observable<object> {
-    return this.http.post(
-      `${Settings.userAPI}/login`,
-      { username, password },
-      { headers: this.getHeaders() }
-    );
+  public login(username: string, password: string): Observable<any> {
+    const url = `${Settings.userAPI}/login`;
+    const body = { username, password };
+    const options = {
+      headers: this.getHeaders(),
+      observe: 'response' as 'body',
+    };
+    return this.http.post<any>(url, body, options);
   }
 
   protected getHeaders() {

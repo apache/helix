@@ -9,27 +9,33 @@ import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.c
 export class HelperService {
   constructor(protected snackBar: MatSnackBar, protected dialog: MatDialog) {}
 
-  showError(message: string) {
+  private parseMessage(message: string | object) {
+    return typeof message === 'string'
+      ? message
+      : JSON.stringify(message, null, 2);
+  }
+
+  showError(message: string | object) {
     this.dialog.open(AlertDialogComponent, {
       data: {
         title: 'Error',
-        message,
+        message: this.parseMessage(message),
       },
     });
   }
 
-  showSnackBar(message: string) {
-    this.snackBar.open(message, 'OK', {
+  showSnackBar(message: string | object) {
+    this.snackBar.open(this.parseMessage(message), 'OK', {
       duration: 2000,
     });
   }
 
-  showConfirmation(message: string) {
+  showConfirmation(message: string | object) {
     return this.dialog
       .open(ConfirmDialogComponent, {
         data: {
           title: 'Confirmation',
-          message,
+          message: this.parseMessage(message),
         },
       })
       .afterClosed()

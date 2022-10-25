@@ -80,7 +80,6 @@ import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.testng.AssertJUnit;
 import org.testng.ITestContext;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterSuite;
@@ -119,22 +118,8 @@ public class ZkTestBase {
   protected static final Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
   protected static final Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
 
-  static public void reportPhysicalMemory() {
-    com.sun.management.OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean)
-        java.lang.management.ManagementFactory.getOperatingSystemMXBean();
-    long physicalMemorySize = os.getTotalPhysicalMemorySize();
-    System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
-
-    long MB = 1024 * 1024;
-    Runtime runtime = Runtime.getRuntime();
-    long free = runtime.freeMemory()/MB;
-    long total = runtime.totalMemory()/MB;
-    System.out.println("************ total memory:" + total + " free memory:" + free);
-  }
-
   @BeforeSuite
   public void beforeSuite() throws Exception {
-    reportPhysicalMemory();
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
@@ -505,14 +490,14 @@ public class ZkTestBase {
     String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     String instanceConfigPath = instanceConfigsPath + "/" + instance;
     String instancePath = PropertyPathBuilder.instance(clusterName, instance);
-    AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
-    AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
+    Assert.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
+    Assert.assertEquals(wantExists, zkClient.exists(instancePath));
   }
 
   public void verifyResource(HelixZkClient zkClient, String clusterName, String resource,
       boolean wantExists) {
     String resourcePath = PropertyPathBuilder.idealState(clusterName, resource);
-    AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
+    Assert.assertEquals(wantExists, zkClient.exists(resourcePath));
   }
 
   public void verifyEnabled(HelixZkClient zkClient, String clusterName, String instance,
@@ -522,7 +507,7 @@ public class ZkTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
-    AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
+    Assert.assertEquals(wantEnabled, config.getInstanceEnabled());
   }
 
   public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource,
@@ -534,9 +519,9 @@ public class ZkTestBase {
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
     for (String partitionName : idealState.getPartitionSet()) {
       if (idealState.getRebalanceMode() == IdealState.RebalanceMode.SEMI_AUTO) {
-        AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
+        Assert.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
       } else if (idealState.getRebalanceMode() == IdealState.RebalanceMode.CUSTOMIZED) {
-        AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
+        Assert.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
       }
     }
   }

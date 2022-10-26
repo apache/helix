@@ -364,7 +364,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
   }
 
   /**
-   * Delete created paths to clean up zk for next test case.
+   * Delete created paths to clean up zk for next multi test case.
    */
   public void cleanup() {
     //Delete Parent path and its children

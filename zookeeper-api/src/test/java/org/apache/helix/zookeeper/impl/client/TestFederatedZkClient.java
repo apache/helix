@@ -41,7 +41,6 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
@@ -60,7 +59,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   private static final String TEST_INVALID_PATH = TEST_SHARDING_KEY_PREFIX + "invalid/a/b/c";
   private static final String UNSUPPORTED_OPERATION_MESSAGE =
       "Session-aware operation is not supported by FederatedZkClient.";
-  private static final String PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/TestDedicatedZkClient";
+  private static final String PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/TestFederatedZkClient";
 
   private RealmAwareZkClient _realmAwareZkClient;
 
@@ -102,16 +101,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       _realmAwareZkClient
           .create(TEST_REALM_ONE_VALID_PATH, "Hello", CreateMode.EPHEMERAL_SEQUENTIAL);
       Assert.fail("Ephemeral node should not be created.");
-    } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
-    }
-
-    List<Op> ops = Arrays.asList(
-        Op.create(TEST_REALM_ONE_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-            CreateMode.PERSISTENT), Op.delete(TEST_REALM_ONE_VALID_PATH, -1));
-    try {
-      _realmAwareZkClient.multi(ops);
-      Assert.fail("multi() should not be supported.");
     } catch (UnsupportedOperationException ex) {
       Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
@@ -672,6 +661,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   @Test
   public void testMultiCreate() {
     String test_name = "/test_multi_create";
+    _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
 
     //Create Nodes
     List<Op> ops = Arrays.asList(
@@ -695,7 +685,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
    * Multi should be an all or nothing transaction. Creating correct
    * paths and a singular bad one should all fail.
    */
-  @Test
+  @Test(dependsOnMethods = "testMultiCreate")
   public void testMultiFail() {
     String test_name = "/test_multi_fail";
     //Create Nodes
@@ -710,7 +700,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       try {
         _realmAwareZkClient.multi(ops);
         Assert.fail("Should have thrown an exception. Cannot run multi on incorrect path.");
-      } catch (ZkNoNodeException e) {
+      } catch (Exception e) {
         boolean pathExists = _realmAwareZkClient.exists(PARENT_PATH);
         Assert.assertFalse(pathExists, "Path should not have been created.");
 
@@ -724,9 +714,10 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   /**
    * Test that zk multi works for delete.
    */
-  @Test
+  @Test(dependsOnMethods = "testMultiCreate")
   public void testMultiDelete() {
     String test_name = "/test_multi_delete";
+    _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
     //Create Nodes
     List<Op> ops = Arrays.asList(
             Op.create(PARENT_PATH, new byte[0],
@@ -750,9 +741,10 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   /**
    * Test that zk multi works for set.
    */
-  @Test
+  @Test(dependsOnMethods = "testMultiCreate")
   public void testMultiSet() {
     String test_name = "/test_multi_set";
+    _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
 
     List<Op> ops = Arrays.asList(
             Op.create(PARENT_PATH, new byte[0],
@@ -775,11 +767,12 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   }
 
   /**
-   * Delete created paths to clean up zk for next test case.
+   * Delete created paths to clean up zk for next multi test case.
    */
   public void cleanup() {
     //Delete Parent path and its children
     _realmAwareZkClient.deleteRecursively(PARENT_PATH);
+    _realmAwareZkClient.delete(ZK_SHARDING_KEY_PREFIX);
     //Verify path has been deleted
     boolean pathExists = _realmAwareZkClient.exists(PARENT_PATH);
     Assert.assertFalse(pathExists, "Parent Path should have been removed.");

@@ -165,7 +165,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     _monitor.reset();
 
     // Modify view cluster config
-    _viewClusterRefreshPeriodSec = 3;
+    _viewClusterRefreshPeriodSec = 8;
     List<PropertyType> newProperties =
         new ArrayList<>(ViewClusterSourceConfig.getValidPropertyTypes());
     newProperties.remove(PropertyType.LIVEINSTANCES);

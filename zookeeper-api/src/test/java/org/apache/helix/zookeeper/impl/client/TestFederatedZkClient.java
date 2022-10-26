@@ -717,7 +717,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   @Test(dependsOnMethods = "testMultiCreate")
   public void testMultiDelete() {
     String test_name = "/test_multi_delete";
-    _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
     //Create Nodes
     List<Op> ops = Arrays.asList(
             Op.create(PARENT_PATH, new byte[0],
@@ -744,7 +743,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   @Test(dependsOnMethods = "testMultiCreate")
   public void testMultiSet() {
     String test_name = "/test_multi_set";
-    _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
 
     List<Op> ops = Arrays.asList(
             Op.create(PARENT_PATH, new byte[0],
@@ -772,7 +770,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   public void cleanup() {
     //Delete Parent path and its children
     _realmAwareZkClient.deleteRecursively(PARENT_PATH);
-    _realmAwareZkClient.delete(ZK_SHARDING_KEY_PREFIX);
     //Verify path has been deleted
     boolean pathExists = _realmAwareZkClient.exists(PARENT_PATH);
     Assert.assertFalse(pathExists, "Parent Path should have been removed.");

@@ -336,7 +336,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         && numReplicas + numExtraReplicas - currentInstances.size() > 0) {
       int subListSize = numReplicas + numExtraReplicas - currentInstances.size();
       combinedPreferenceList.addAll(instanceToAdd
-          .subList(0, subListSize <= instanceToAdd.size() ? subListSize : instanceToAdd.size()));
+          .subList(0, Math.min(subListSize, instanceToAdd.size())));
     }
 
     // Make all initial state instance not in preference list to be dropped.
@@ -344,8 +344,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     currentMapWithPreferenceList.keySet().retainAll(preferenceList);
 
     combinedPreferenceList.addAll(currentInstances);
-    Collections.sort(combinedPreferenceList,
-        new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
+    combinedPreferenceList.sort(new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
 
     // Assign states to instances with the combined preference list.
     Map<String, String> bestPossibleStateMap =

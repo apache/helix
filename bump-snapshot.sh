@@ -21,7 +21,10 @@
 
 
 echo There are $# arguments to $0: $*
-if [ "$#" -eq 2 ]; then
+version=`grep "<revision>" pom.xml | awk 'BEGIN {FS="[<,>]"};{print $3}'`
+if [ "$#" -eq 1 ]; then
+  new_version=$1
+elif [ "$#" -eq 2 ]; then
   version=$1
   new_version=$2
 else
@@ -44,7 +47,7 @@ mv helix-view-aggregator/helix-view-aggregator-$version-SNAPSHOT.ivy helix-view-
 
 
 find . -type f -name '*.ivy' -exec sed -i "s/$version/$new_version/g" {} \;
-find . -type f -name 'pom.xml' -exec sed -i "s/$version/$new_version/g" {} \;
+sed -i'' -e "s/<revision>$version/<revision>$new_version/g" pom.xml;
 
 
 

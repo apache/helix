@@ -22,7 +22,7 @@
 update_pom_version() {
   pom=$1
   echo "bump up $pom"
-  version=`grep "<revision>" $pom | awk 'BEGIN {FS="[<,>]"};{print $3}'`
+  version=`get_version_from_pom $pom`
   sed -i'' -e "s/<revision>$version/<revision>$new_version/g" $pom
   if ! grep -C 1 "$new_version" $pom; then
     echo "Failed to update new version $new_version in $pom"
@@ -32,14 +32,14 @@ update_pom_version() {
 
 update_ivy() {
   module=$1
-  ivy_file="$module-$current_version.ivy"
-  new_ivy_file="$module-$new_version.ivy"
-  if [ -f $module/$ivy_file ]; then
-    echo "bump up $module/$ivy_file"
-    git mv "$module/$ivy_file" "$module/$new_ivy_file"
-    sed -i'' -e "s/${current_version}/${new_version}/g" "$module/$new_ivy_file"
-    if ! grep -C 1 "$new_version" "$module/$new_ivy_file"; then
-      echo "Failed to update new version $new_version in $module/$new_ivy_file"
+  ivy_file=`find $module -type f -name '*.ivy'`
+  new_ivy_file="$module/$module-$new_version.ivy"
+  if [ -f $ivy_file ]; then
+    echo "bump up $ivy_file"
+    git mv "$ivy_file" "$new_ivy_file"
+    sed -i'' -e "s/${current_version}/${new_version}/g" "$new_ivy_file"
+    if ! grep -C 1 "$new_version" "$new_ivy_file"; then
+      echo "Failed to update new version $new_version in $new_ivy_file"
       exit 1
     fi
   else
@@ -47,7 +47,11 @@ update_ivy() {
   fi
 }
 
-current_version=`grep "<revision>" pom.xml | awk 'BEGIN {FS="[<,>]"};{print $3}'`
+get_version_from_pom() {
+  grep "<revision>" $1 | awk 'BEGIN {FS="[<,>]"};{print $3}'
+}
+
+current_version=`get_version_from_pom pom.xml`
 echo There are $# arguments to $0: $*
 if [ "$#" -eq 1 ]; then
   new_version=$1
@@ -65,7 +69,7 @@ echo "bump up: $current_version -> $new_version"
 update_pom_version "pom.xml"
 
 for module in "metrics-common" "metadata-store-directory-common" "zookeeper-api" "helix-common" "helix-core" \
-              "helix-admin-webapp" "helix-front" "helix-rest" "helix-lock" "helix-view-aggregator" "helix-agent"; do
+              "helix-admin-webapp" "helix-rest" "helix-lock" "helix-view-aggregator" "helix-agent"; do
   update_ivy $module
 done
 

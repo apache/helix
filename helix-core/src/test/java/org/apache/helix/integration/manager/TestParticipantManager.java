@@ -81,7 +81,6 @@ public class TestParticipantManager extends ZkTestBase {
   @AfterMethod
   public void afterMethod(Method testMethod, ITestContext testContext) {
     deleteCluster(_clusterName);
-    super.endTest(testMethod, testContext);
   }
 
   @AfterClass

@@ -22,9 +22,9 @@ package org.apache.helix.zookeeper.impl;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.util.HashMap;
 import java.util.Map;
 
+import java.util.concurrent.ConcurrentHashMap;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
@@ -59,7 +59,7 @@ public class ZkTestBase {
    * Multiple ZK references
    */
   // The following maps hold ZK connect string as keys
-  protected static final Map<String, ZkServer> _zkServerMap = new HashMap<>();
+  protected static final Map<String, ZkServer> _zkServerMap = new ConcurrentHashMap<>();
   protected static int _numZk = 1; // Initial value
 
   @BeforeSuite
@@ -114,8 +114,7 @@ public class ZkTestBase {
     // Start "numZkFromConfigInt" ZooKeepers
     for (int i = 0; i < _numZk; i++) {
       String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
-      ZkServer zkServer = startZkServer(zkAddress);
-      _zkServerMap.put(zkAddress, zkServer);
+      _zkServerMap.computeIfAbsent(zkAddress, ZkTestBase::startZkServer);
     }
   }
 
@@ -124,7 +123,7 @@ public class ZkTestBase {
    * @param zkAddress
    * @return
    */
-  protected ZkServer startZkServer(final String zkAddress) {
+  protected synchronized static ZkServer startZkServer(final String zkAddress) {
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
     final String dataDir = "/tmp/" + zkDir + "/dataDir";

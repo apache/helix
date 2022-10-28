@@ -57,8 +57,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     Thread.sleep(500);
     // Assert.assertFalse(result._thread.isAlive());
-    Assert.assertTrue(null == manager.getHelixDataAccessor()
-        .getProperty(accessor.keyBuilder().liveInstance(instance2)));
+    Assert.assertNull(manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)));
 
     ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
 
@@ -76,8 +75,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
       } else
         break;
     }
-    Assert.assertTrue(null != manager.getHelixDataAccessor()
-        .getProperty(accessor.keyBuilder().liveInstance(instance2)));
+    Assert.assertNotNull(manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)));
 
     newParticipant.syncStop();
   }
@@ -122,8 +120,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
         return true;
       }, 2000));
     } catch (HelixException e) {
-      Assert.assertTrue(null == manager.getHelixDataAccessor()
-          .getProperty(accessor.keyBuilder().liveInstance(instance3)));
+      Assert.assertNull(manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance3)));
     }
 
     autoParticipant.syncStop();

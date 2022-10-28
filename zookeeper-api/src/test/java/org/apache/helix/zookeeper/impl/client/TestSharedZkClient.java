@@ -40,7 +40,7 @@ public class TestSharedZkClient extends RealmAwareZkClientFactoryTestBase {
     _realmAwareZkClientFactory = SharedZkClientFactory.getInstance();
   }
 
-  @Test
+  @Test(dependsOnMethods = "testRealmAwareZkClientCreation")
   public void testCreateEphemeralFailure() {
     _realmAwareZkClient.setZkSerializer(new ZNRecordSerializer());
 

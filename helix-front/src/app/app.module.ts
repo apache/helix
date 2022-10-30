@@ -18,8 +18,6 @@ import { AppComponent } from './app.component';
 import { WorkflowModule } from './workflow/workflow.module';
 import { ChooserModule } from './chooser/chooser.module';
 import { DashboardModule } from './dashboard/dashboard.module';
-import { HTTP_INTERCEPTORS } from '@angular/common/http';
-import { AddHeaderInterceptor } from './shared/add-header-interceptor.module';
 
 @NgModule({
   declarations: [AppComponent],
@@ -41,13 +39,7 @@ import { AddHeaderInterceptor } from './shared/add-header-interceptor.module';
     ChooserModule,
     DashboardModule,
   ],
-  providers: [
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: AddHeaderInterceptor,
-      multi: true,
-    },
-  ],
+  providers: [],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

@@ -482,15 +482,20 @@ public class FederatedZkClient implements RealmAwareZkClient {
     if (ops == null) {
       throw new NullPointerException("ops must not be null.");
     }
-    String op_path = ops.iterator().next().getPath();
+    String opPath = null;
+    String opPathRealm = null;
     // Check whether all ops are connected to the same ZK server. If any differ, multi can't be run.
     for (Op op : ops) {
-      if (!getZkRealm(op_path).equals(getZkRealm(op.getPath()))){
-        throwUnsupportedOperationException();
-        return null;
+      if (opPath == null) {
+        opPath = op.getPath();
+        opPathRealm = getZkRealm(op.getPath());
+      } else {
+        if (!opPathRealm.equals(getZkRealm(op.getPath()))){
+          throw new IllegalArgumentException();
+        }
       }
     }
-    return getZkClient(op_path).multi(ops);
+    return getZkClient(opPath).multi(ops);
   }
 
   @Override

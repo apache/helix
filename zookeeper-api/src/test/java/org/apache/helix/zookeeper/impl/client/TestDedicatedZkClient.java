@@ -31,7 +31,6 @@ public class TestDedicatedZkClient extends RealmAwareZkClientFactoryTestBase {
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
     super.beforeClass();
-    PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/TestDedicatedZkClient";
     // Set the factory to DedicatedZkClientFactory
     _realmAwareZkClientFactory = DedicatedZkClientFactory.getInstance();
   }

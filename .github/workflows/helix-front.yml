@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - uses: actions/setup-node@v3
+      - uses: bahmutov/npm-install@v1
         with:
-          cache: 'npm'
-          cache-dependency-path: helix-front/package.json
+          working-directory: helix-front
+
       - name: helix-front format:check
         run: cd helix-front && npm run format:check
         working-directory: helix-front

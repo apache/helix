@@ -77,7 +77,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
     }
   }
   /**
-   * Initialize requirement for multi support.
+   * Initialize requirement for testing multi support.
    */
   @Test
   public void testMulti() {
@@ -97,7 +97,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   }
 
   /**
-   * Test that zk multi works for op.create.
+   * Test that zk multi works for create.
    */
   @Test(dependsOnMethods = "testMulti")
   public void testMultiCreate() {

@@ -477,6 +477,13 @@ public class FederatedZkClient implements RealmAwareZkClient {
     return getZkClient(path).getCreationTime(path);
   }
 
+  /**
+   * Executes ZkMulti on operations that are connected to the same Zk server.
+   * Will throw exception if any operation's server connection is different.
+   * @param ops
+   * @return
+   * @throws IllegalArgumentException
+   */
   @Override
   public List<OpResult> multi(Iterable<Op> ops) {
     if (ops == null) {
@@ -484,7 +491,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
     }
     String opPath = null;
     String opPathRealm = null;
-    // Check whether all ops are connected to the same ZK server. If any differ, multi can't be run.
     for (Op op : ops) {
       if (opPath == null) {
         opPath = op.getPath();

@@ -2,7 +2,7 @@ import { Request, Response, Router } from 'express';
 
 import * as request from 'request';
 
-import { HELIX_ENDPOINTS } from '../config';
+import { HELIX_ENDPOINTS, IDENTITY_TOKEN_SOURCE } from '../config';
 import { HelixUserRequest } from './d';
 
 export class HelixCtrl {
@@ -50,6 +50,12 @@ export class HelixCtrl {
           'Helix-User': user,
         },
       };
+
+      if (IDENTITY_TOKEN_SOURCE) {
+        options.headers['Identity-Token'] =
+          res.locals.cookie['helixui_identity.token'];
+      }
+
       request[method](options, (error, response, body) => {
         if (error) {
           res.status(response?.statusCode || 500).send(error);

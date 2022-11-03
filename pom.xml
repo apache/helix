@@ -29,7 +29,7 @@
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>1.0.5-SNAPSHOT</version>
+  <version>${revision}</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -397,7 +397,7 @@
   </ciManagement>
 
   <properties>
-
+    <revision>1.0.5-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.build.outputTimestamp>1654806798</project.build.outputTimestamp>
 

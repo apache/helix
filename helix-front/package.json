@@ -1,6 +1,6 @@
 {
   "name": "helix-front",
-  "version": "1.3.1",
+  "version": "1.4.1",
   "main": "/dist/server/app.js",
   "author": "Vivo Xu <xuxu@xuxu.name>",
   "contributors": [
@@ -40,7 +40,7 @@
     "type:check:watch": "yarn type:check -- --watch",
     "format:check": "npx prettier --check .",
     "format": "yarn prettier --write .",
-    "prepack": "yarn build",
+    "prepack": "yarn copy:config && yarn build",
     "copy:config": "cp server/config.example.ts server/config.ts",
     "check:config": "test -f server/config.ts || yarn copy:config"
   },

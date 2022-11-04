@@ -47,7 +47,7 @@ mv helix-view-aggregator/helix-view-aggregator-$version-SNAPSHOT.ivy helix-view-
 
 
 find . -type f -name '*.ivy' -exec sed -i "s/$version/$new_version/g" {} \;
-sed -i "s/<revision>$version/<revision>$new_version/g" pom.xml;
+find . -type f -name 'pom.xml' -exec sed -i "s/<revision>$version/<revision>$new_version/g" pom.xml;
 
 
 

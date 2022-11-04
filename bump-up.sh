@@ -71,6 +71,13 @@ update_pom_version "pom.xml"
 for module in "metrics-common" "metadata-store-directory-common" "zookeeper-api" "helix-common" "helix-core" \
               "helix-admin-webapp" "helix-rest" "helix-lock" "helix-view-aggregator" "helix-agent"; do
   update_ivy $module
+  update_pom_version $module/pom.xml
+done
+
+for module in recipes/task-execution recipes \
+           recipes/distributed-lock-manager recipes/rsync-replicated-file-system \
+           recipes/rabbitmq-consumer-group recipes/service-discovery; do
+  update_pom_version $module/pom.xml
 done
 
 #END

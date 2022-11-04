@@ -31,6 +31,7 @@
   <name>Apache Helix :: Recipes :: distributed lock manager</name>
 
   <properties>
+    <revision>1.0.5-SNAPSHOT</revision>
     <osgi.import>
       org.apache.helix*,
       org.slf4j*;version="[1.7,2)",

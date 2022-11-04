@@ -30,7 +30,7 @@
   <name>Apache Helix :: Front End</name>
 
   <properties>
-
+    <revision>1.0.5-SNAPSHOT</revision>
   </properties>
 
   <dependencies>

@@ -30,6 +30,7 @@
   <name>Apache Helix :: ZooKeeper API</name>
 
   <properties>
+    <revision>1.0.5-SNAPSHOT</revision>
     <osgi.import>
       org.slf4j*;version="[1.7,2)",
       org.apache.zookeeper*;version="[3.6,3.7)",

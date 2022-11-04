@@ -29,6 +29,9 @@
   <packaging>pom</packaging>
   <name>Apache Helix :: Recipes</name>
 
+  <properties>
+    <revision>1.0.5-SNAPSHOT</revision>
+  </properties>
   <modules>
     <module>rabbitmq-consumer-group</module>
     <module>rsync-replicated-file-system</module>

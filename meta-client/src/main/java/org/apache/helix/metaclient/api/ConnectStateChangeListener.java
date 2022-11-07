@@ -20,10 +20,29 @@ package org.apache.helix.metaclient.api;
  */
 
 public interface ConnectStateChangeListener {
+
+  enum ConnectState {
+    // Client is connected to server
+    CONNECTED,
+
+    // Authentication failed.
+    AUTH_FAILED,
+
+    // Server has expired this connection.
+    EXPIRED,
+
+    // When client failed to connect server.
+    INIT_FAILED,
+
+    // When client explicitly call disconnect
+    CLOSED_BY_CLIENT
+  }
+
+
   /**
    * Called when the connection state has changed.
    */
-  void handleConnectStateChanged(MetaClientInterface.ConnectState currentState) throws Exception;
+  void handleConnectStateChanged(ConnectState currentState) throws Exception;
   /**
    * Called when new connection is established
    */

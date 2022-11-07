@@ -27,11 +27,11 @@ import org.apache.helix.metaclient.api.AsyncCallback;
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.DataUpdater;
-import org.apache.helix.metaclient.api.DirectChildrenChangeListener;
-import org.apache.helix.metaclient.api.DirectEntrySubscribeResult;
+import org.apache.helix.metaclient.api.DirectSubEntryChangeListener;
+import org.apache.helix.metaclient.api.DirectSubEntrySubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.metaclient.api.PersistSubEntryChangeListener;
+import org.apache.helix.metaclient.api.SubEntryChangeListener;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 
 
@@ -44,12 +44,12 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public void create(String key, Object data, EntryMode mode) {
+  public void create(String key, Object data) {
 
   }
 
   @Override
-  public void create(String key, Object data, EntryMode mode, long ttl) {
+  public void create(String key, Object data, EntryMode mode) {
 
   }
 
@@ -74,28 +74,27 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public List<String> getSubEntryKeys(String path) {
+  public List<String> getSubEntryKeys(String key) {
     return null;
   }
 
   @Override
-  public int countSubEntries(String path) {
+  public int countSubEntries(String key) {
     return 0;
   }
 
   @Override
-  public boolean delete(String path) {
+  public boolean delete(String key) {
     return false;
   }
 
   @Override
-  public boolean recursiveDelete(String path) {
+  public boolean recursiveDelete(String key) {
     return false;
   }
 
   @Override
-  public void asyncCreate(String key, Object data, int version, long ttl,
-      AsyncCallback.VoidCallback cb) {
+  public void asyncCreate(String key, Object data, EntryMode mode, AsyncCallback.VoidCallback cb) {
 
   }
 
@@ -105,7 +104,7 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public void asyncUpdate(String key, DataUpdater updater, AsyncCallback.VoidCallback cb) {
+  public void asyncUpdate(String key, DataUpdater updater, AsyncCallback.DataCallback cb) {
 
   }
 
@@ -115,7 +114,7 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public void asyncCountSubEntries(String path, AsyncCallback.DataCallback cb) {
+  public void asyncCountSubEntries(String key, AsyncCallback.DataCallback cb) {
 
   }
 
@@ -130,13 +129,24 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public void asyncTransaction(String keys, AsyncCallback.TransactionCallback cb) {
-
+  public boolean[] create(List key, List data, List mode) {
+    return new boolean[0];
   }
 
   @Override
-  public ConnectState connect() {
-    return null;
+  public boolean[] create(List key, List data) {
+    return new boolean[0];
+  }
+
+  @Override
+  public void asyncTransaction(Iterable iterable, AsyncCallback.TransactionCallback cb) {
+
+  }
+
+
+  @Override
+  public boolean connect() {
+    return false;
   }
 
   @Override
@@ -146,41 +156,41 @@ public class ZkMetaClient implements MetaClientInterface {
 
   @Override
   public boolean subscribeDataChange(String key, DataChangeListener listener,
-      DataChangeListener.ChangeType eventType, boolean skipWatchingNonExistNode,
-      boolean persistListener) {
+      boolean skipWatchingNonExistNode, boolean persistListener) {
     return false;
   }
 
   @Override
-  public DirectEntrySubscribeResult subscribeDirectEntryChange(String key,
-      DirectChildrenChangeListener listener, boolean skipWatchingNonExistNode,
+  public DirectSubEntrySubscribeResult subscribeDirectSubEntryChange(String key,
+      DirectSubEntryChangeListener listener, boolean skipWatchingNonExistNode,
       boolean persistListener) {
     return null;
   }
 
   @Override
-  public boolean subscribeStateChanges(ConnectStateChangeListener listener) {
+  public boolean subscribeStateChanges(ConnectStateChangeListener listener,
+      boolean persistListener) {
     return false;
   }
 
   @Override
-  public boolean subscribeEntryChanges(String key, PersistSubEntryChangeListener listener) {
+  public boolean subscribeSubEntryChanges(String key, SubEntryChangeListener listener,
+      boolean skipWatchingNonExistNode, boolean persistListener) {
     return false;
   }
 
   @Override
-  public void unsubscribeDataChange(String key, DataChangeListener listener,
-      DataChangeListener.ChangeType eventType) {
+  public void unsubscribeDataChange(String key, DataChangeListener listener) {
 
   }
 
   @Override
-  public void unsubscribeDirectEntryChange(String key, DirectChildrenChangeListener listener) {
+  public void unsubscribeDirectEntryChange(String key, DirectSubEntryChangeListener listener) {
 
   }
 
   @Override
-  public void unsubscribeEntryChanges(String key, PersistSubEntryChangeListener listener) {
+  public void unsubscribeEntryChanges(String key, SubEntryChangeListener listener) {
 
   }
 
@@ -190,7 +200,7 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public boolean waitUntilExists(String path, TimeUnit timeUnit, long time) {
+  public boolean waitUntilExists(String key, TimeUnit timeUnit, long time) {
     return false;
   }
 
@@ -216,11 +226,6 @@ public class ZkMetaClient implements MetaClientInterface {
 
   @Override
   public boolean[] set(List keys, List values, List version) {
-    return new boolean[0];
-  }
-
-  @Override
-  public boolean[] create(List key, List data, List mode, List ttl) {
     return new boolean[0];
   }
 

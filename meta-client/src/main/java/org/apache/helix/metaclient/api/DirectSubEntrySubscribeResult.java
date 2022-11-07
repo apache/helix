@@ -19,22 +19,15 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
-/*
- * Listener interface for children change events on a particular key. It includes new subentry
- * creation, subentry deletion, subentry data change and when the listener is removed.
- * This listener type can only be registered as a persist listener.
- * For hierarchy key spaces like zookeeper, it refers to an entry's entire subtree.
- * For flat key spaces, it refers to keys that matches `prefix*`.
- */
-public interface PersistSubEntryChangeListener {
-  enum ChangeType {
-    ENTRY_CREATED,     // Any subentry created
-    ENTRY_DELETED,     // Any subentry deleted
-    ENTRY_DATA_CHANGE,  // Any subentry has value change
-    PERSIST_LISTENER_REMOVED
+import java.util.List;
+
+
+public class DirectSubEntrySubscribeResult {
+  private final List<String> _subEntries;
+  private final boolean _isInstalled;
+
+  public DirectSubEntrySubscribeResult(List<String> subEntries, boolean isInstalled) {
+    _subEntries = subEntries;
+    _isInstalled = isInstalled;
   }
-  /**
-   * Called when any subentry of the current key has changed.
-   */
-  void handleEntryChange(String changedPath, ChangeType changeType) throws Exception;
 }

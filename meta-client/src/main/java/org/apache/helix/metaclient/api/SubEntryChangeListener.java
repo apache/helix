@@ -20,10 +20,21 @@ package org.apache.helix.metaclient.api;
  */
 
 /*
- * Listener interface for direct children change event on a particular key. It includes new subentry creation or subentry deletion. The callback won't differentiate these types.
- * For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
- * For flat key spaces, it refers to keys that matches `prefix*separator`.
+ * Listener interface for children change events on a particular key. It includes new subentry
+ * creation, subentry deletion, subentry data change and when the listener is removed.
+ * This listener type can only be registered as a persist listener.
+ * For hierarchy key spaces like zookeeper, it refers to an entry's entire subtree.
+ * For flat key spaces, it refers to keys that matches `prefix*`.
  */
-public interface DirectChildrenChangeListener {
-   void handleEntryChange(String rootPath) throws Exception;
+public interface SubEntryChangeListener {
+  enum ChangeType {
+    ENTRY_CREATED,     // Any subentry created
+    ENTRY_DELETED,     // Any subentry deleted
+    ENTRY_DATA_CHANGE,  // Any subentry has value change
+    PERSIST_LISTENER_REMOVED
+  }
+  /**
+   * Called when any subentry of the current key has changed.
+   */
+  void handleEntryChange(String changedPath, ChangeType changeType) throws Exception;
 }

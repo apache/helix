@@ -24,9 +24,9 @@ package org.apache.helix.metaclient.api;
  */
 public interface DataChangeListener {
   enum ChangeType {
-    NODE_CREATED,     // Node created of the specific path that the listener register to
-    NODE_DELETED,     // Node deleted of the specific path that the listener register to
-    VALUE_UPDATE      // Node value updated
+    ENTRY_CREATED,     // Node created of the specific path that the listener register to
+    ENTRY_DELETED,     // Node deleted of the specific path that the listener register to
+    ENTRY_UPDATE      // Node value updated
   }
 
   void handleDataChange(String dataPath, Object data, ChangeType changeType) throws Exception;

@@ -19,15 +19,11 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
-import java.util.List;
-
-
-public class DirectEntrySubscribeResult {
-  private final List<String> _children;
-  private final boolean _isInstalled;
-
-  public DirectEntrySubscribeResult(List<String> children, boolean isInstalled) {
-    _children = children;
-    _isInstalled = isInstalled;
-  }
+/*
+ * Listener interface for direct children change event on a particular key. It includes new subentry creation or subentry deletion. The callback won't differentiate these types.
+ * For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
+ * For flat key spaces, it refers to keys that matches `prefix*separator`.
+ */
+public interface DirectSubEntryChangeListener {
+   void handleEntryChange(String rootPath) throws Exception;
 }

@@ -19,12 +19,9 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -68,58 +65,53 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
     // TODO (harry): move this to separate stage for resource controller only
     if (dataProvider instanceof ResourceControllerDataProvider) {
-      asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
-        @Override public Object call() {
-          // Update the cluster status gauges
-          if (clusterStatusMonitor != null) {
-            LogUtil.logDebug(logger, _eventId, "Update cluster status monitors");
+      asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
+        // Update the cluster status gauges
+        if (clusterStatusMonitor != null) {
+          LogUtil.logDebug(logger, _eventId, "Update cluster status monitors");
 
-            Set<String> instanceSet = Sets.newHashSet();
-            Set<String> liveInstanceSet = Sets.newHashSet();
-            Set<String> disabledInstanceSet = Sets.newHashSet();
-            Map<String, Map<String, List<String>>> disabledPartitions = Maps.newHashMap();
-            Map<String, List<String>> oldDisabledPartitions = Maps.newHashMap();
-            Map<String, Set<String>> tags = Maps.newHashMap();
-            Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
-            Map<String, Set<Message>> instanceMessageMap = Maps.newHashMap();
-            for (Map.Entry<String, InstanceConfig> e : dataProvider.getInstanceConfigMap()
-                .entrySet()) {
-              String instanceName = e.getKey();
-              InstanceConfig config = e.getValue();
-              instanceSet.add(instanceName);
-              if (liveInstanceMap.containsKey(instanceName)) {
-                liveInstanceSet.add(instanceName);
-                instanceMessageMap.put(instanceName,
-                    Sets.newHashSet(dataProvider.getMessages(instanceName).values()));
-              }
-              if (!InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
-                disabledInstanceSet.add(instanceName);
-              }
-
-              // TODO : Get rid of this data structure once the API is removed.
-              oldDisabledPartitions.put(instanceName, config.getDisabledPartitions());
-              disabledPartitions.put(instanceName, config.getDisabledPartitionsMap());
-
-              Set<String> instanceTags = Sets.newHashSet(config.getTags());
-              tags.put(instanceName, instanceTags);
+          Set<String> instanceSet = Sets.newHashSet();
+          Set<String> liveInstanceSet = Sets.newHashSet();
+          Set<String> disabledInstanceSet = Sets.newHashSet();
+          Map<String, Map<String, List<String>>> disabledPartitions = Maps.newHashMap();
+          Map<String, List<String>> oldDisabledPartitions = Maps.newHashMap();
+          Map<String, Set<String>> tags = Maps.newHashMap();
+          Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
+          Map<String, Set<Message>> instanceMessageMap = Maps.newHashMap();
+          for (Map.Entry<String, InstanceConfig> e : dataProvider.getInstanceConfigMap()
+              .entrySet()) {
+            String instanceName = e.getKey();
+            InstanceConfig config = e.getValue();
+            instanceSet.add(instanceName);
+            if (liveInstanceMap.containsKey(instanceName)) {
+              liveInstanceSet.add(instanceName);
+              instanceMessageMap.put(instanceName,
+                  Sets.newHashSet(dataProvider.getMessages(instanceName).values()));
             }
-            clusterStatusMonitor
-                .setClusterInstanceStatus(liveInstanceSet, instanceSet, disabledInstanceSet,
-                    disabledPartitions, oldDisabledPartitions, tags, instanceMessageMap);
-            LogUtil.logDebug(logger, _eventId, "Complete cluster status monitors update.");
+            if (!InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
+              disabledInstanceSet.add(instanceName);
+            }
+
+            // TODO : Get rid of this data structure once the API is removed.
+            oldDisabledPartitions.put(instanceName, config.getDisabledPartitions());
+            disabledPartitions.put(instanceName, config.getDisabledPartitionsMap());
+
+            Set<String> instanceTags = Sets.newHashSet(config.getTags());
+            tags.put(instanceName, instanceTags);
           }
-          return null;
+          clusterStatusMonitor
+              .setClusterInstanceStatus(liveInstanceSet, instanceSet, disabledInstanceSet,
+                  disabledPartitions, oldDisabledPartitions, tags, instanceMessageMap);
+          LogUtil.logDebug(logger, _eventId, "Complete cluster status monitors update.");
         }
+        return null;
       });
     } else {
-      asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
-        @Override
-        public Object call() {
-          clusterStatusMonitor.refreshWorkflowsStatus((WorkflowControllerDataProvider) dataProvider);
-          clusterStatusMonitor.refreshJobsStatus((WorkflowControllerDataProvider) dataProvider);
-          LogUtil.logDebug(logger, _eventId, "Workflow/Job gauge status successfully refreshed");
-          return null;
-        }
+      asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
+        clusterStatusMonitor.refreshWorkflowsStatus((WorkflowControllerDataProvider) dataProvider);
+        clusterStatusMonitor.refreshJobsStatus((WorkflowControllerDataProvider) dataProvider);
+        LogUtil.logDebug(logger, _eventId, "Workflow/Job gauge status successfully refreshed");
+        return null;
       });
     }
   }

@@ -267,17 +267,14 @@ public final class HelixUtil {
     HelixDataAccessor helixDataAccessor =
         new ZKHelixDataAccessor(globalSyncClusterConfig.getClusterName(), baseDataAccessor);
 
-    // Create an instance of read-only WAGED rebalancer
-    ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
-        new ReadOnlyWagedRebalancer(zkBucketDataAccessor, globalSyncClusterConfig.getClusterName(),
-            globalSyncClusterConfig.getGlobalRebalancePreference());
-
     // Use a dummy event to run the required stages for BestPossibleState calculation
     // Attributes RESOURCES and RESOURCES_TO_REBALANCE are populated in ResourceComputationStage
     ClusterEvent event =
         new ClusterEvent(globalSyncClusterConfig.getClusterName(), ClusterEventType.Unknown);
-
-    try {
+    // Create an instance of read-only WAGED rebalancer
+    try (ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
+        new ReadOnlyWagedRebalancer(zkBucketDataAccessor, globalSyncClusterConfig.getClusterName(),
+            globalSyncClusterConfig.getGlobalRebalancePreference())) {
       // First, prepare waged rebalancer with a snapshot, so that it can react on the difference
       // between the current snapshot and the provided parameters which act as the new snapshot
       ResourceControllerDataProvider dataProvider =
@@ -326,9 +323,6 @@ public final class HelixUtil {
       RebalanceUtil.runStage(event, new BestPossibleStateCalcStage());
     } catch (Exception e) {
       LOG.error("getIdealAssignmentForWagedFullAuto(): Failed to compute ResourceAssignments!", e);
-    } finally {
-      // Close all ZK connections
-      readOnlyWagedRebalancer.close();
     }
 
     // Convert the resulting BestPossibleStateOutput to Map<String, ResourceAssignment>
@@ -433,7 +427,7 @@ public final class HelixUtil {
   public static Map<String, String> computeIdealMapping(List<String> preferenceList,
       StateModelDefinition stateModelDef, Set<String> liveInstanceSet,
       Set<String> disabledInstancesForPartition) {
-    Map<String, String> idealStateMap = new HashMap<String, String>();
+    Map<String, String> idealStateMap = new HashMap<>();
 
     if (preferenceList == null) {
       return idealStateMap;
@@ -449,7 +443,7 @@ public final class HelixUtil {
     liveAndEnabledInstances.removeAll(disabledInstancesForPartition);
 
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    Set<String> assigned = new HashSet<String>();
+    Set<String> assigned = new HashSet<>();
 
     for (String state : statesPriorityList) {
       int stateCount = AbstractRebalancer

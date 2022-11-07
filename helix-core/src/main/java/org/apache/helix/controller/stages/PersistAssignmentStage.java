@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
@@ -76,8 +77,12 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
 
     for (String resourceId : bestPossibleAssignment.resourceSet()) {
       try {
-        persistAssignment(resourceMap.get(resourceId), cache, event, bestPossibleAssignment,
-            clusterConfig, accessor, keyBuilder);
+        if (resourceMap.containsKey(resourceId)) {
+          persistAssignment(resourceMap.get(resourceId), cache, event, bestPossibleAssignment,
+              clusterConfig, accessor, keyBuilder);
+        } else {
+          LogUtil.logWarn(LOG, _eventId, "Skip persisting resource because it's not found: " + resourceId);
+        }
       } catch (HelixException ex) {
         LogUtil
             .logError(LOG, _eventId, "Failed to persist assignment for resource " + resourceId, ex);
@@ -90,121 +95,99 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
       final ClusterConfig clusterConfig, final HelixDataAccessor accessor,
       final PropertyKey.Builder keyBuilder) {
     String resourceId = resource.getResourceName();
-    if (resource != null) {
-      final IdealState idealState = cache.getIdealState(resourceId);
-      if (idealState == null) {
-        LogUtil.logWarn(LOG, event.getEventId(), "IdealState not found for resource " + resourceId);
-        return;
-      }
-      IdealState.RebalanceMode mode = idealState.getRebalanceMode();
-      if (!mode.equals(IdealState.RebalanceMode.SEMI_AUTO) && !mode
-          .equals(IdealState.RebalanceMode.FULL_AUTO)) {
-        // do not persist assignment for resource in neither semi or full auto.
-        return;
-      }
+    final IdealState idealState = cache.getIdealState(resourceId);
+    if (idealState == null) {
+      LogUtil.logWarn(LOG, event.getEventId(), "IdealState not found for resource " + resourceId);
+      return;
+    }
+    IdealState.RebalanceMode mode = idealState.getRebalanceMode();
+    if (!mode.equals(IdealState.RebalanceMode.SEMI_AUTO) && !mode
+        .equals(IdealState.RebalanceMode.FULL_AUTO)) {
+      // do not persist assignment for resource in neither semi or full auto.
+      return;
+    }
 
-      // Record IdealState delta in a different object. Avoid modifying the cached IdealState object
-      // which is supposed to be read only.
-      IdealState delta = new IdealState(resourceId);
-      boolean needPersist = false;
-      if (mode.equals(IdealState.RebalanceMode.FULL_AUTO)) {
-        // persist preference list in ful-auto mode.
-        Map<String, List<String>> newLists = bestPossibleAssignment.getPreferenceLists(resourceId);
-        if (newLists != null && hasPreferenceListChanged(newLists, idealState)) {
-          delta.setPreferenceLists(newLists);
-          needPersist = true;
-        }
-      }
-
-      PartitionStateMap partitionStateMap = bestPossibleAssignment.getPartitionStateMap(resourceId);
-      if (clusterConfig.isPersistIntermediateAssignment()) {
-        IntermediateStateOutput intermediateAssignment =
-            event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
-        partitionStateMap = intermediateAssignment.getPartitionStateMap(resourceId);
-      }
-
-      //TODO: temporary solution for Espresso/Dbus backcompatible, should remove this.
-      Map<Partition, Map<String, String>> assignmentToPersist =
-          convertAssignmentPersisted(resource, idealState, partitionStateMap.getStateMap());
-
-      if (assignmentToPersist != null && hasInstanceMapChanged(assignmentToPersist, idealState)) {
-        for (Partition partition : assignmentToPersist.keySet()) {
-          Map<String, String> instanceMap = assignmentToPersist.get(partition);
-          delta.setInstanceStateMap(partition.getPartitionName(), instanceMap);
-        }
+    // Record IdealState delta in a different object. Avoid modifying the cached IdealState object
+    // which is supposed to be read only.
+    IdealState delta = new IdealState(resourceId);
+    boolean needPersist = false;
+    if (mode.equals(IdealState.RebalanceMode.FULL_AUTO)) {
+      // persist preference list in ful-auto mode.
+      Map<String, List<String>> newLists = bestPossibleAssignment.getPreferenceLists(resourceId);
+      if (newLists != null && hasPreferenceListChanged(newLists, idealState)) {
+        delta.setPreferenceLists(newLists);
         needPersist = true;
       }
+    }
 
-      if (needPersist) {
-        // Update instead of set to ensure any intermediate changes that the controller does not update are kept.
-        accessor.updateProperty(keyBuilder.idealStates(resourceId), current -> {
-          if (current != null) {
-            ZNRecord deltaRecord = delta.getRecord();
-            // Overwrite MapFields and ListFields items with the same key.
-            if (!deltaRecord.getMapFields().isEmpty()) {
-              // Note that default merge will keep old values in the maps unchanged, which is not desired.
-              current.getMapFields().clear();
-              current.getMapFields().putAll(deltaRecord.getMapFields());
-            }
-            if (!deltaRecord.getListFields().isEmpty()) {
-              // Don't clear the list fields since the key might be user's input. And even the
-              // corresponding list is empty, we shall not remove it. Otherwise, it may cause
-              // rebalance failure.
-              current.getListFields().putAll(deltaRecord.getListFields());
-            }
-          }
-          return current;
-        }, idealState);
+    PartitionStateMap partitionStateMap = bestPossibleAssignment.getPartitionStateMap(resourceId);
+    if (clusterConfig.isPersistIntermediateAssignment()) {
+      IntermediateStateOutput intermediateAssignment =
+          event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+      partitionStateMap = intermediateAssignment.getPartitionStateMap(resourceId);
+    }
+
+    //TODO: temporary solution for Espresso/Dbus backcompatible, should remove this.
+    Map<Partition, Map<String, String>> assignmentToPersist =
+        convertAssignmentPersisted(resource, idealState, partitionStateMap.getStateMap());
+
+    if (assignmentToPersist != null && hasInstanceMapChanged(assignmentToPersist, idealState)) {
+      for (Partition partition : assignmentToPersist.keySet()) {
+        Map<String, String> instanceMap = assignmentToPersist.get(partition);
+        delta.setInstanceStateMap(partition.getPartitionName(), instanceMap);
       }
+      needPersist = true;
+    }
+
+    if (needPersist) {
+      // Update instead of set to ensure any intermediate changes that the controller does not update are kept.
+      accessor.updateProperty(keyBuilder.idealStates(resourceId), current -> {
+        if (current != null) {
+          ZNRecord deltaRecord = delta.getRecord();
+          // Overwrite MapFields and ListFields items with the same key.
+          if (!deltaRecord.getMapFields().isEmpty()) {
+            // Note that default merge will keep old values in the maps unchanged, which is not desired.
+            current.getMapFields().clear();
+            current.getMapFields().putAll(deltaRecord.getMapFields());
+          }
+          if (!deltaRecord.getListFields().isEmpty()) {
+            // Don't clear the list fields since the key might be user's input. And even the
+            // corresponding list is empty, we shall not remove it. Otherwise, it may cause
+            // rebalance failure.
+            current.getListFields().putAll(deltaRecord.getListFields());
+          }
+        }
+        return current;
+      }, idealState);
     }
   }
 
   /**
    * has the preference list changed from the one persisted in current IdealState
    */
-  private boolean hasPreferenceListChanged(Map<String, List<String>> newLists,
+  private static boolean hasPreferenceListChanged(Map<String, List<String>> newLists,
       IdealState idealState) {
     Map<String, List<String>> existLists = idealState.getPreferenceLists();
 
-    Set<String> partitions = new HashSet<String>(newLists.keySet());
+    Set<String> partitions = new HashSet<>(newLists.keySet());
     partitions.addAll(existLists.keySet());
 
-    for (String partition : partitions) {
-      List<String> assignedInstances = newLists.get(partition);
-      List<String> existingInstances = existLists.get(partition);
-      if (assignedInstances == null && existingInstances == null) {
-        continue;
-      }
-      if (assignedInstances == null || existingInstances == null || !assignedInstances
-          .equals(existingInstances)) {
-        return true;
-      }
-    }
-
-    return false;
+    return partitions
+        .stream()
+        .anyMatch(partition -> !Objects.equals(newLists.get(partition), existLists.get(partition)));
   }
 
-  private boolean hasInstanceMapChanged(Map<Partition, Map<String, String>> newAssiments,
+  private static boolean hasInstanceMapChanged(Map<Partition, Map<String, String>> newAssignments,
       IdealState idealState) {
-    Set<Partition> partitions = new HashSet<Partition>(newAssiments.keySet());
+    Set<Partition> partitions = new HashSet<>(newAssignments.keySet());
     for (String p : idealState.getPartitionSet()) {
       partitions.add(new Partition(p));
     }
-
-    for (Partition partition : partitions) {
-      Map<String, String> instanceMap = newAssiments.get(partition);
-      Map<String, String> existInstanceMap =
-          idealState.getInstanceStateMap(partition.getPartitionName());
-      if (instanceMap == null && existInstanceMap == null) {
-        continue;
-      }
-      if (instanceMap == null || existInstanceMap == null || !instanceMap
-          .equals(existInstanceMap)) {
-        return true;
-      }
-    }
-
-    return false;
+    return partitions
+        .stream()
+        .anyMatch(partition ->
+            !Objects.equals(newAssignments.get(partition), idealState.getInstanceStateMap(partition.getPartitionName()))
+        );
   }
 
   /**
@@ -214,17 +197,16 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
   private Map<Partition, Map<String, String>> convertAssignmentPersisted(Resource resource,
       IdealState idealState, Map<Partition, Map<String, String>> assignments) {
     String stateModelDef = idealState.getStateModelDefRef();
-    /** Only convert for MasterSlave resources */
+    // Only convert for MasterSlave resources
     if (!stateModelDef.equals(BuiltInStateModelDefinitions.MasterSlave.name()) || idealState
         .getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)) {
       return assignments;
     }
 
-    Map<Partition, Map<String, String>> assignmentToPersist =
-        new HashMap<Partition, Map<String, String>>();
+    Map<Partition, Map<String, String>> assignmentToPersist = new HashMap<>();
 
     for (Partition partition : resource.getPartitions()) {
-      Map<String, String> instanceMap = new HashMap<String, String>();
+      Map<String, String> instanceMap = new HashMap<>();
       Map<String, String> assignment = assignments.get(partition);
       if (assignment != null) {
         instanceMap.putAll(assignment);
@@ -234,7 +216,7 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
       if (preferenceList == null) {
         preferenceList = Collections.emptyList();
       }
-      Set<String> nodeList = new HashSet<String>(preferenceList);
+      Set<String> nodeList = new HashSet<>(preferenceList);
       nodeList.addAll(assignment.keySet());
       boolean hasMaster = false;
       for (String ins : nodeList) {

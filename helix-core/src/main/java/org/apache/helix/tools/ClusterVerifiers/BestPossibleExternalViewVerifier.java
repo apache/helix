@@ -301,11 +301,11 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
             String instanceName = partErrStates.get(partitionName);
 
             if (!bestPossStateMap.containsKey(resourceName)) {
-              bestPossStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
+              bestPossStateMap.put(resourceName, new HashMap<>());
             }
             Partition partition = new Partition(partitionName);
             if (!bestPossStateMap.get(resourceName).containsKey(partition)) {
-              bestPossStateMap.get(resourceName).put(partition, new HashMap<String, String>());
+              bestPossStateMap.get(resourceName).put(partition, new HashMap<>());
             }
             bestPossStateMap.get(resourceName).get(partition)
                 .put(instanceName, HelixDefinedState.ERROR.toString());
@@ -395,7 +395,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
   private Map<String, Map<String, String>> convertBestPossibleState(
       PartitionStateMap bestPossibleState) {
-    Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
+    Map<String, Map<String, String>> result = new HashMap<>();
     for (Partition partition : bestPossibleState.getStateMap().keySet()) {
       result.put(partition.getPartitionName(), bestPossibleState.getPartitionMap(partition));
     }

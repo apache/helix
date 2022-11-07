@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * and needs to be dropped
  */
 public class ResourceComputationStage extends AbstractBaseStage {
-  private static Logger LOG = LoggerFactory.getLogger(ResourceComputationStage.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ResourceComputationStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {

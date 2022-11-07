@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,7 +74,7 @@ import org.slf4j.LoggerFactory;
  *      Design Document
  *      </a>
  */
-public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDataProvider> {
+public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDataProvider>, Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(WagedRebalancer.class);
 
   // When any of the following change happens, the rebalancer needs to do a global rebalance which
@@ -259,7 +260,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   public Map<String, IdealState> computeNewIdealStates(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
-    LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
+    LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet());
     validateInput(clusterData, resourceMap);
 
     Map<String, IdealState> newIdealStates;
@@ -311,8 +312,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
             newStateMap == null ? Collections.emptyMap() : newStateMap);
       }
     });
-    LOG.info("Finish computing new ideal states for resources: {}",
-        resourceMap.keySet().toString());
+    LOG.info("Finish computing new ideal states for resources: {}", resourceMap.keySet());
     return newIdealStates;
   }
 
@@ -358,9 +358,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     // Perform global rebalance for a new baseline assignment
     globalRebalance(clusterData, resourceMap, currentStateOutput, algorithm);
     // Perform partial rebalance for a new best possible assignment
-    Map<String, ResourceAssignment> newAssignment =
-        partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
-    return newAssignment;
+    return partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
   }
 
   /**
@@ -614,7 +612,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     if (!nonCompatibleResources.isEmpty()) {
       throw new HelixRebalanceException(String.format(
           "Input contains invalid resource(s) that cannot be rebalanced by the WAGED rebalancer. %s",
-          nonCompatibleResources.toString()), HelixRebalanceException.Type.INVALID_INPUT);
+          nonCompatibleResources), HelixRebalanceException.Type.INVALID_INPUT);
     }
   }
 

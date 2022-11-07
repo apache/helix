@@ -34,7 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -169,7 +168,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   // Controller will switch to run management mode pipeline when set to true.
   private boolean _inManagementMode;
   private final ClusterEventBlockingQueue _managementModeEventQueue;
-  private final ClusterEventProcessor _managementModeEventThread;
 
   private final Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> _asyncFIFOWorkerPool;
 
@@ -207,7 +205,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   private long _lastPipelineEndTimestamp;
 
   private final String _clusterName;
-  private final Set<Pipeline.Type> _enabledPipelineTypes;
 
   private HelixManager _helixManager;
 
@@ -228,7 +225,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    *  2) then ClusterDataCache.refresh triggers rebalance pipeline.
    */
   /* Map of cluster->Set of GenericHelixController*/
-  private static Map<String, ImmutableSet<GenericHelixController>> _helixControllerFactory =
+  private static final Map<String, ImmutableSet<GenericHelixController>> _helixControllerFactory =
       new ConcurrentHashMap<>();
 
   public static GenericHelixController getLeaderController(String clusterName) {
@@ -308,7 +305,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     final HelixManager _manager;
     final ClusterEventType _clusterEventType;
     private final Optional<Boolean> _shouldRefreshCacheOption;
-    private long _nextRebalanceTime;
+    private final long _nextRebalanceTime;
 
     public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType) {
       this(manager, clusterEventType, -1);
@@ -683,7 +680,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   private GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry,
       PipelineRegistry managementModeRegistry, final String clusterName,
       Set<Pipeline.Type> enabledPipelineTypes) {
-    _enabledPipelineTypes = enabledPipelineTypes;
     _registry = registry;
     _taskRegistry = taskRegistry;
     _managementModeRegistry = managementModeRegistry;
@@ -695,11 +691,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
 
     _asyncTasksThreadPool =
-        Executors.newScheduledThreadPool(ASYNC_TASKS_THREADPOOL_SIZE, new ThreadFactory() {
-          @Override public Thread newThread(Runnable r) {
-            return new Thread(r, "HelixController-async_tasks-" + _clusterName);
-          }
-        });
+        Executors.newScheduledThreadPool(ASYNC_TASKS_THREADPOOL_SIZE,
+            runnable -> new Thread(runnable, "HelixController-async_tasks-" + _clusterName));
     _asyncFIFOWorkerPool = new HashMap<>();
     initializeAsyncFIFOWorkers();
 
@@ -708,7 +701,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
     // TODO: refactor to simplify below similar code of the 3 pipelines
     // initialize pipelines at the end so we have everything else prepared
-    if (_enabledPipelineTypes.contains(Pipeline.Type.DEFAULT)) {
+    if (enabledPipelineTypes.contains(Pipeline.Type.DEFAULT)) {
       logger.info("Initializing {} pipeline", Pipeline.Type.DEFAULT.name());
       _resourceControlDataProvider = new ResourceControllerDataProvider(clusterName);
       _eventQueue = new ClusterEventBlockingQueue();
@@ -722,7 +715,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _eventThread = null;
     }
 
-    if (_enabledPipelineTypes.contains(Pipeline.Type.TASK)) {
+    if (enabledPipelineTypes.contains(Pipeline.Type.TASK)) {
       logger.info("Initializing {} pipeline", Pipeline.Type.TASK.name());
       _workflowControlDataProvider = new WorkflowControllerDataProvider(clusterName);
       _taskEventQueue = new ClusterEventBlockingQueue();
@@ -740,10 +733,10 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     _managementControllerDataProvider =
         new ManagementControllerDataProvider(clusterName, Pipeline.Type.MANAGEMENT_MODE.name());
     _managementModeEventQueue = new ClusterEventBlockingQueue();
-    _managementModeEventThread =
+    ClusterEventProcessor managementModeEventThread =
         new ClusterEventProcessor(_managementControllerDataProvider, _managementModeEventQueue,
             Pipeline.Type.MANAGEMENT_MODE.name() + "-" + clusterName);
-    initPipeline(_managementModeEventThread, _managementControllerDataProvider);
+    initPipeline(managementModeEventThread, _managementControllerDataProvider);
     logger.info("Initialized {} pipeline", Pipeline.Type.MANAGEMENT_MODE.name());
 
     addController(this);
@@ -876,7 +869,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       } else {
         // TODO: should be in the initialization of controller.
         if (_resourceControlDataProvider != null) {
-          checkRebalancingTimer(manager, Collections.<IdealState>emptyList(), dataProvider.getClusterConfig());
+          checkRebalancingTimer(manager, Collections.emptyList(), dataProvider.getClusterConfig());
         }
         if (_isMonitoring) {
           _clusterStatusMonitor.setEnabled(!_inManagementMode);
@@ -1017,8 +1010,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onStateChange()");
     notifyCaches(changeContext, ChangeType.CURRENT_STATE);
-    pushToEventQueues(ClusterEventType.CurrentStateChange, changeContext, Collections
-        .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
+    pushToEventQueues(ClusterEventType.CurrentStateChange, changeContext,
+        Collections.singletonMap(AttributeName.instanceName.name(), instanceName));
     logger.info("END: GenericClusterController.onStateChange()");
   }
 
@@ -1028,8 +1021,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onTaskCurrentStateChange()");
     notifyCaches(changeContext, ChangeType.TASK_CURRENT_STATE);
-    pushToEventQueues(ClusterEventType.TaskCurrentStateChange, changeContext, Collections
-        .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
+    pushToEventQueues(ClusterEventType.TaskCurrentStateChange, changeContext,
+        Collections.singletonMap(AttributeName.instanceName.name(), instanceName));
     logger.info("END: GenericClusterController.onTaskCurrentStateChange()");
   }
 
@@ -1047,17 +1040,14 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
     // TODO: remove the synchronization here once we move this update into dataCache.
     synchronized (_lastSeenCustomizedStateTypesMapRef) {
-      Map<String, Set<String>> lastSeenCustomizedStateTypesMap =
-          _lastSeenCustomizedStateTypesMapRef.get();
+      Map<String, Set<String>> lastSeenCustomizedStateTypesMap = _lastSeenCustomizedStateTypesMapRef.get();
       if (null == lastSeenCustomizedStateTypesMap) {
-        lastSeenCustomizedStateTypesMap = new HashMap();
+        lastSeenCustomizedStateTypesMap = new HashMap<>();
         // lazy init the AtomicReference
         _lastSeenCustomizedStateTypesMapRef.set(lastSeenCustomizedStateTypesMap);
       }
 
-      if (!lastSeenCustomizedStateTypesMap.containsKey(instanceName)) {
-        lastSeenCustomizedStateTypesMap.put(instanceName, new HashSet<>());
-      }
+      lastSeenCustomizedStateTypesMap.putIfAbsent(instanceName, new HashSet<>());
 
       Set<String> lastSeenCustomizedStateTypes = lastSeenCustomizedStateTypesMap.get(instanceName);
 
@@ -1092,8 +1082,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onCustomizedStateChange()");
     notifyCaches(changeContext, ChangeType.CUSTOMIZED_STATE);
-    pushToEventQueues(ClusterEventType.CustomizedStateChange, changeContext, Collections
-        .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
+    pushToEventQueues(ClusterEventType.CustomizedStateChange, changeContext,
+        Collections.singletonMap(AttributeName.instanceName.name(), instanceName));
     logger.info("END: GenericClusterController.onCustomizedStateChange()");
   }
 
@@ -1104,7 +1094,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     logger.info("START: GenericClusterController.onMessage() for cluster " + _clusterName);
     notifyCaches(changeContext, ChangeType.MESSAGE);
     pushToEventQueues(ClusterEventType.MessageChange, changeContext,
-        Collections.<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
+        Collections.singletonMap(AttributeName.instanceName.name(), instanceName));
 
     logger.info("END: GenericClusterController.onMessage() for cluster " + _clusterName);
   }
@@ -1133,14 +1123,13 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
 
     pushToEventQueues(ClusterEventType.LiveInstanceChange, changeContext,
-        Collections.<String, Object>singletonMap(AttributeName.eventData.name(), liveInstances));
+        Collections.singletonMap(AttributeName.eventData.name(), liveInstances));
 
     logger.info(
         "END: Generic GenericClusterController.onLiveInstanceChange() for cluster " + _clusterName);
   }
 
-  private void checkRebalancingTimer(HelixManager manager, List<IdealState> idealStates,
-      ClusterConfig clusterConfig) {
+  private void checkRebalancingTimer(HelixManager manager, List<IdealState> idealStates, ClusterConfig clusterConfig) {
     if (manager.getConfigAccessor() == null) {
       logger.warn(manager.getInstanceName()
           + " config accessor doesn't exist. should be in file-based mode.");
@@ -1176,8 +1165,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     logger.info(
         "START: Generic GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
     notifyCaches(changeContext, ChangeType.IDEAL_STATE);
-    pushToEventQueues(ClusterEventType.IdealStateChange, changeContext,
-        Collections.<String, Object>emptyMap());
+    pushToEventQueues(ClusterEventType.IdealStateChange, changeContext, Collections.emptyMap());
 
     if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
       HelixManager manager = changeContext.getManager();
@@ -1198,10 +1186,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     logger.info(
         "START: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
     notifyCaches(changeContext, ChangeType.INSTANCE_CONFIG);
-    pushToEventQueues(ClusterEventType.InstanceConfigChange, changeContext,
-        Collections.<String, Object>emptyMap());
-    logger.info(
-        "END: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
+    pushToEventQueues(ClusterEventType.InstanceConfigChange, changeContext, Collections.emptyMap());
+    logger.info("END: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
   }
 
   @Override
@@ -1211,10 +1197,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     logger.info(
         "START: GenericClusterController.onResourceConfigChange() for cluster " + _clusterName);
     notifyCaches(context, ChangeType.RESOURCE_CONFIG);
-    pushToEventQueues(ClusterEventType.ResourceConfigChange, context,
-        Collections.<String, Object>emptyMap());
-    logger
-        .info("END: GenericClusterController.onResourceConfigChange() for cluster " + _clusterName);
+    pushToEventQueues(ClusterEventType.ResourceConfigChange, context, Collections.emptyMap());
+    logger.info("END: GenericClusterController.onResourceConfigChange() for cluster " + _clusterName);
   }
 
   @Override
@@ -1226,8 +1210,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         "START: GenericClusterController.onCustomizedStateConfigChange() for cluster "
             + _clusterName);
     notifyCaches(context, ChangeType.CUSTOMIZED_STATE_CONFIG);
-    pushToEventQueues(ClusterEventType.CustomizeStateConfigChange, context,
-        Collections.<String, Object> emptyMap());
+    pushToEventQueues(ClusterEventType.CustomizeStateConfigChange, context, Collections.emptyMap());
     logger.info(
         "END: GenericClusterController.onCustomizedStateConfigChange() for cluster "
             + _clusterName);
@@ -1240,8 +1223,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     logger.info(
         "START: GenericClusterController.onClusterConfigChange() for cluster " + _clusterName);
     notifyCaches(context, ChangeType.CLUSTER_CONFIG);
-    pushToEventQueues(ClusterEventType.ClusterConfigChange, context,
-        Collections.<String, Object>emptyMap());
+    pushToEventQueues(ClusterEventType.ClusterConfigChange, context, Collections.emptyMap());
     logger
         .info("END: GenericClusterController.onClusterConfigChange() for cluster " + _clusterName);
   }
@@ -1586,7 +1568,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    * A wrapper class for the stateful rebalancer instance that will be tracked in the
    * GenericHelixController.
    */
-  private abstract class StatefulRebalancerRef<T extends StatefulRebalancer> {
+  private abstract static class StatefulRebalancerRef<T extends StatefulRebalancer> {
     private T _rebalancer = null;
     private boolean _isRebalancerValid = true;
 

@@ -60,7 +60,7 @@ public interface MetaClientInterface<T> {
 
   /**
    * Create an persistent entry with given key and data. The entry will not be created if there is
-   * existing entry with the same key.
+   * an existing entry with the same key.
    * @param key key to identify the entry
    * @param data value of the entry
    */
@@ -68,7 +68,7 @@ public interface MetaClientInterface<T> {
 
   /**
    * Create an entry of given EntryMode with given key and data. The entry will not be created if
-   * there is existing entry with ethe same key.
+   * there is an existing entry with ethe same key.
    * @param key key to identify the entry
    * @param data value of the entry
    * @param mode EntryMode identifying if the entry will be deleted upon client disconnect
@@ -97,7 +97,7 @@ public interface MetaClientInterface<T> {
 
   /**
    * Check if there is an entry for the given key.
-   * @param key
+   * @param key key to identify the entry
    * @return return a Stat object if the entry exists. Return null otherwise.
    */
   Stat exists(final String key);
@@ -105,32 +105,35 @@ public interface MetaClientInterface<T> {
   /**
    * Fetch the data for a given key.
    * TODO: define exception type when key does not exist
-   * @param key
+   * @param key key to identify the entry
+   * @return Return data of the entry
    */
   T get(final String key);
 
   /**
    * API for transaction. The list of operation will be executed as an atomic operation.
    * @param ops a list of operations. These operations will all be executed or non of them.
-   * @return
+   * @return Return a list of OpResult.
    */
   List<OpResult> transactionOP(final Iterable<Op> ops);
 
   /**
-   * Return a list of sub entries for the given keys
-   * @param key For metadata storage that has hierarchical key space (e.g. ZK), the path would be
-   *            a parent path,
-   *            For metadata storage that has non-hierarchical key space (e.g. etcd), the path would
-   *            be a prefix path.
+   * Return a list of sub entries for the given keys.
+   * @param key For metadata storage that has hierarchical key space (e.g. ZK), the key would be
+   *            a parent key,
+   *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
+   *            be a prefix key.
+   * @eturn Return a list of sub entry keys. Return direct child name only for hierarchical key
+   *        space, return the whole sub key for non-hierarchical key space.
    */
   List<String> getSubEntryKeys(final String key);
 
   /**
-   * Return the number of sub entries for the given keys
-   * @param key For metadata storage that has hierarchical key space (e.g. ZK), the path would be
-   *            a parent path,
-   *            For metadata storage that has non-hierarchical key space (e.g. etcd), the path would
-   *            be a prefix path.
+   * Return the number of sub entries for the given keys.
+   * @param key For metadata storage that has hierarchical key space (e.g. ZK), the key would be
+   *            a parent key,
+   *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
+   *            be a prefix key.
    */
   int countSubEntries(final String key);
 
@@ -139,8 +142,8 @@ public interface MetaClientInterface<T> {
    * For metadata storage that has hierarchical key space, the entry can only be deleted if the key
    * has no child entry.
    * TODO: define exception to throw
-   * @param key path to delete
-   * @return if the deletion is completed
+   * @param key  key to identify the entry to delete
+   * @return Return true if the deletion is completed
    */
   boolean delete(final String key);
 
@@ -148,8 +151,8 @@ public interface MetaClientInterface<T> {
    * Remove the entry associated with the given key.
    * For metadata storage that has hierarchical key space, remove all its child entries as well
    * For metadata storage that has non-hierarchical key space, this API is the same as delete()
-   * @param key
-   * @return
+   * @param key key to identify the entry to delete
+   * @return Return true if the deletion is completed
    */
   boolean recursiveDelete(final String key);
 
@@ -303,13 +306,13 @@ public interface MetaClientInterface<T> {
    */
   void disconnect();
 
-  // Event notification APIs, user can register multiple listeners on the same path/connection state.
+  // Event notification APIs, user can register multiple listeners on the same key/connection state.
 
   /**
-   * Subscribe change of a particular entry. Including entry data change, entry deletion and entry creation
-   * of the given path.
-   * @param key Key to identify the entry.
-   * @param listener An implementation of DataChangeListener.
+   * Subscribe change of a particular entry. Including entry data change, entry deletion and creation
+   * of the given key.
+   * @param key Key to identify the entry
+   * @param listener An implementation of DataChangeListener
    * @param skipWatchingNonExistNode Will not register lister to an non-exist key if set to true.
    *                                 Please set to false if you are expecting ENTRY_CREATED type.
    * @param persistListener The listener will persist when set to true. Otherwise it will be a one
@@ -321,9 +324,9 @@ public interface MetaClientInterface<T> {
 
   /**
    * Subscribe for direct children change event on a particular key. It includes new sub entry
-   *  creation or deletion. It does not include existing sub entry data change.
-   *  For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
-   *  For flat key spaces, it refers to keys that matches `prefix*separator`.
+   * creation or deletion. It does not include existing sub entry data change.
+   * For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
+   * For flat key spaces, it refers to keys that matches `prefix*separator`.
    * @param key key to identify the entry.
    * @param listener An implementation of DirectSubEntryChangeListener.
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.

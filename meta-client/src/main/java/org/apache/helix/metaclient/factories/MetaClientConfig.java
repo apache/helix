@@ -22,7 +22,7 @@ package org.apache.helix.metaclient.factories;
 class MetaClientConfig {
 
   public enum StoreType {
-    ZOOKEEPER, ETCD
+    ZOOKEEPER, ETCD, CUSTOMIZED
   }
 
   private final String _connectionAddress;

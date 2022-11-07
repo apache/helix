@@ -321,8 +321,7 @@ public interface MetaClientInterface<T> {
 
   /**
    * Subscribe for direct children change event on a particular key. It includes new sub entry
-   *  creation or deletion. The callback won't differentiate these types. It does not include sub
-   *  entry data change.
+   *  creation or deletion. It does not include existing sub entry data change.
    *  For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
    *  For flat key spaces, it refers to keys that matches `prefix*separator`.
    * @param key key to identify the entry.
@@ -350,7 +349,6 @@ public interface MetaClientInterface<T> {
    * Subscribe change for all sub entries, including entry change and data change.
    * For hierarchy key spaces like zookeeper, it would watch the whole tree structure.
    * For flat key spaces, it would watch for keys with certain prefix.
-   * The listener is a persist listener.
    * @param key key to identify the entry.
    * @param listener An implementation of SubEntryChangeListener.
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.

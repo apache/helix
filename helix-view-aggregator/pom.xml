@@ -30,6 +30,7 @@ under the License.
   <name>Apache Helix :: View Aggregator</name>
 
   <properties>
+    <revision>1.0.5-SNAPSHOT</revision>
     <osgi.import>
       org.apache.helix*,
       org.apache.commons.cli*,

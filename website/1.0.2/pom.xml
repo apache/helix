@@ -34,6 +34,19 @@
     <revision>1.0.5-SNAPSHOT</revision>
   </properties>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <organization>
+    <name>Apache Software Foundation</name>
+    <url>http://www.apache.org</url>
+  </organization>
+
   <dependencies>
     <dependency>
       <groupId>org.testng</groupId>

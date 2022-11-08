@@ -38,6 +38,19 @@
     distributed resources hosted on a cluster of nodes.
   </description>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <organization>
+    <name>Apache Software Foundation</name>
+    <url>http://www.apache.org</url>
+  </organization>
+
   <url>http://helix.apache.org</url>
   <developers>
     <developer>

@@ -340,7 +340,7 @@ public interface MetaClientInterface<T> {
       boolean persistListener);
 
   /**
-   *  Subscribe for connection state change.
+   * Subscribe for connection state change.
    * @param listener An implementation of ConnectStateChangeListener.
    * @param persistListener The listener will persist when set to true. Otherwise it will be a one
    *                        time triggered listener.

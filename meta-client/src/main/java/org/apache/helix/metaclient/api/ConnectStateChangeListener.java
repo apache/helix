@@ -34,7 +34,7 @@ public interface ConnectStateChangeListener {
     // When client failed to connect server.
     INIT_FAILED,
 
-    // When client explicitly call disconnect
+    // When client explicitly call disconnect.
     CLOSED_BY_CLIENT
   }
 

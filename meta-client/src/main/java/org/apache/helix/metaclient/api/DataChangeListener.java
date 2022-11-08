@@ -19,15 +19,15 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
-/*
+/**
  * Listener interface for events on a particular key, including entry creating, deleting and value change.
  */
 public interface DataChangeListener {
   enum ChangeType {
-    ENTRY_CREATED,     // Node created of the specific path that the listener register to
-    ENTRY_DELETED,     // Node deleted of the specific path that the listener register to
-    ENTRY_UPDATE      // Node value updated
+    ENTRY_CREATED,     // Entry created of the specific path that the listener register to
+    ENTRY_DELETED,     // Entry deleted of the specific path that the listener register to
+    ENTRY_UPDATE      // Entry value updated
   }
 
-  void handleDataChange(String dataPath, Object data, ChangeType changeType) throws Exception;
+  void handleDataChange(String key, Object data, ChangeType changeType) throws Exception;
 }

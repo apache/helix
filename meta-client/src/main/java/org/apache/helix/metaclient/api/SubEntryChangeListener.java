@@ -19,7 +19,7 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
-/*
+/**
  * Listener interface for children change events on a particular key. It includes new subentry
  * creation, subentry deletion, subentry data change and when the listener is removed.
  * This listener type can only be registered as a persist listener.

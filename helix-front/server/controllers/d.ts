@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import request from 'request';
 
 export interface HelixUserRequest extends Request {
   session?: HelixSession;

@@ -42,3 +42,9 @@ export const CUSTOM_IDENTITY_TOKEN_REQUEST_BODY: any = {};
  * sent by your Identity Token API.
  */
 export const TOKEN_RESPONSE_KEY: string = 'token';
+
+/**
+ * This is the key that helix-front uses
+ * to access the token expiration datetime
+ */
+export const TOKEN_EXPIRATION_KEY: string = 'expires';

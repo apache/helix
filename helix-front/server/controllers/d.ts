@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import request from 'request';
 
-export interface HelixUserRequest extends Request {
+export interface HelixRequest extends Request {
   session?: HelixSession;
 }
 
@@ -19,10 +19,10 @@ type AgentOptions = {
   ca?: string;
 };
 
-export type IdentityTokenPostOptions = {
+export type HelixRequestOptions = {
   url: string;
   json: string;
-  body: string;
   headers: request.Headers;
   agentOptions: AgentOptions;
+  body?: string;
 };

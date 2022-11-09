@@ -9,7 +9,7 @@ import {
   CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,
   SSL,
 } from '../config';
-import { HelixUserRequest, IdentityTokenPostOptions } from './d';
+import { HelixRequest, HelixRequestOptions } from './d';
 
 export class UserCtrl {
   constructor(router: Router) {
@@ -19,7 +19,7 @@ export class UserCtrl {
     router.route('/user/can').get(this.can);
   }
 
-  protected authorize(req: HelixUserRequest, res: Response) {
+  protected authorize(req: HelixRequest, res: Response) {
     //
     // you can rewrite this function
     // to support your own authorization logic
@@ -32,7 +32,7 @@ export class UserCtrl {
     }
   }
 
-  protected current(req: HelixUserRequest, res: Response) {
+  protected current(req: HelixRequest, res: Response) {
     res.json(req.session.username || 'Sign In');
   }
 
@@ -41,7 +41,7 @@ export class UserCtrl {
   // see if this helix-front ExpressJS server
   // already knows that the current user is an admin.
   //
-  protected can(req: HelixUserRequest, res: Response) {
+  protected can(req: HelixRequest, res: Response) {
     try {
       return res.json(req.session.isAdmin ? true : false);
     } catch (err) {
@@ -52,7 +52,7 @@ export class UserCtrl {
     }
   }
 
-  protected login(req: HelixUserRequest, res: Response) {
+  protected login(req: HelixRequest, res: Response) {
     const credential = req.body;
     if (!credential.username || !credential.password) {
       res.status(401).json(false);
@@ -102,7 +102,7 @@ export class UserCtrl {
                         ...CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,
                       });
 
-                      const options: IdentityTokenPostOptions = {
+                      const options: HelixRequestOptions = {
                         url: IDENTITY_TOKEN_SOURCE,
                         json: '',
                         body,
@@ -118,10 +118,6 @@ export class UserCtrl {
                         options.agentOptions.ca = readFileSync(SSL.cafiles[0], {
                           encoding: 'utf-8',
                         });
-
-                        console.log(
-                          `ca file from server/controllers/user: ${options.agentOptions.ca}`
-                        );
                       }
 
                       function callback(error, _res, body) {

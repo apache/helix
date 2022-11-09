@@ -19,6 +19,7 @@ package org.apache.helix.integration.multizk;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,6 +64,10 @@ import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
+import org.apache.zookeeper.ZooDefs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -512,5 +517,31 @@ public class TestMultiZkConectionConfig {
     // Clean up
     managerParticipant.disconnect();
     _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
+  }
+
+  /**
+   * Testing specific federatedZkClient functionalities. Calling multi on op of different realms/servers.
+   * Should fail.
+   */
+  @Test
+  public void testMultiDiffRealm() {
+    List<Op> ops = Arrays.asList(
+            Op.create(CLUSTER_LIST.get(0), new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(CLUSTER_LIST.get(1), new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(CLUSTER_LIST.get(2), new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+            Op.create(CLUSTER_LIST.get(0) + "/test", new byte[0],
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+
+    try {
+      //Execute transactional support on operations and verify they were run
+      ZK_CLIENT_MAP.get(ZK_PREFIX + ZK_START_PORT).multi(ops);
+      Assert.fail("Should have thrown an exception. Cannot run multi on ops of different servers.");
+    } catch (IllegalArgumentException e) {
+      boolean pathExists = _zkClient.exists("/" + CLUSTER_LIST.get(0) + "/test");
+      Assert.assertFalse(pathExists, "Path should not have been created.");
+    }
   }
 }

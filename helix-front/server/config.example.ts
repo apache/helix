@@ -42,3 +42,9 @@ export const CUSTOM_IDENTITY_TOKEN_REQUEST_BODY: any = {};
  * sent by your Identity Token API.
  */
 export const TOKEN_RESPONSE_KEY: string = 'token';
+
+/**
+ * custom CA File
+ * https://en.wikipedia.org/wiki/Certificate_authority
+ */
+export const CUSTOM_CA_FILE = '/path/to/your/ca/file';

@@ -1,13 +1,15 @@
 import { Response, Router } from 'express';
 import * as LdapClient from 'ldapjs';
 import * as request from 'request';
+import { readFileSync } from 'fs';
 
 import {
   LDAP,
   IDENTITY_TOKEN_SOURCE,
   CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,
+  SSL,
 } from '../config';
-import { HelixUserRequest } from './d';
+import { HelixUserRequest, IdentityTokenPostOptions } from './d';
 
 export class UserCtrl {
   constructor(router: Router) {
@@ -100,7 +102,7 @@ export class UserCtrl {
                         ...CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,
                       });
 
-                      const options = {
+                      const options: IdentityTokenPostOptions = {
                         url: IDENTITY_TOKEN_SOURCE,
                         json: '',
                         body,
@@ -111,6 +113,16 @@ export class UserCtrl {
                           rejectUnauthorized: false,
                         },
                       };
+
+                      if (SSL.cafiles.length > 0) {
+                        options.agentOptions.ca = readFileSync(SSL.cafiles[0], {
+                          encoding: 'utf-8',
+                        });
+
+                        console.log(
+                          `ca file from server/controllers/user: ${options.agentOptions.ca}`
+                        );
+                      }
 
                       function callback(error, _res, body) {
                         if (error) {

@@ -12,3 +12,16 @@ interface HelixSession {
   username: string;
   isAdmin: boolean;
 }
+
+type AgentOptions = {
+  rejectUnauthorized: boolean;
+  ca?: string;
+};
+
+export type IdentityTokenPostOptions = {
+  url: string;
+  json: string;
+  body: string;
+  headers: request.Headers;
+  agentOptions: AgentOptions;
+};

@@ -41,6 +41,8 @@ export const Delete = Template.bind({});
 Delete.args = {
   data: {
     title: 'Confirm Delete',
-    message: 'Are you sure you want to delete this cluster?',
+    message:
+      'Are you sure you want to delete this cluster? This cannot be undone.',
+    confirmButtonText: "Yes, I'm sure",
   },
 };

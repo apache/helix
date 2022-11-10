@@ -1,6 +1,7 @@
 import { Request } from 'express';
+import request from 'request';
 
-export interface HelixUserRequest extends Request {
+export interface HelixRequest extends Request {
   session?: HelixSession;
 }
 
@@ -12,3 +13,16 @@ interface HelixSession {
   username: string;
   isAdmin: boolean;
 }
+
+type AgentOptions = {
+  rejectUnauthorized: boolean;
+  ca?: string;
+};
+
+export type HelixRequestOptions = {
+  url: string;
+  json: string;
+  headers: request.Headers;
+  agentOptions: AgentOptions;
+  body?: string;
+};

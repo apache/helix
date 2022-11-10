@@ -48,7 +48,7 @@ app.use((req, res, next) => {
 
 setRoutes(app);
 
-app.get('/*', function (req, res) {
+app.get('/*', function (_req, res) {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 

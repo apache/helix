@@ -49,7 +49,7 @@ export class Node {
 
       _.forOwn(obj['mapFields'], (v, k) => {
         this.mapFields.push(<MapFieldObject>{
-          name: k,
+          name: k.trim(),
           value: this.keyValueToArray(v),
         });
       });
@@ -67,7 +67,7 @@ export class Node {
     const index = _.findIndex(this.mapFields, { name: key });
     if (index >= 0) {
       this.mapFields[index].value.push(<SimpleFieldObject>{
-        name,
+        name: name.trim(),
         value,
       });
     } else {
@@ -75,7 +75,7 @@ export class Node {
         name: key,
         value: [
           <SimpleFieldObject>{
-            name,
+            name: name.trim(),
             value,
           },
         ],
@@ -108,7 +108,7 @@ export class Node {
     if (this?.mapFields.length > 0) {
       obj.mapFields = {};
       _.forEach(this.mapFields, (item: MapFieldObject) => {
-        obj.mapFields[item.name] = item.value ? {} : null;
+        obj.mapFields[item.name.trim()] = item.value ? {} : null;
         _.forEach(item.value, (subItem: SimpleFieldObject) => {
           // if the value is a string that contains all digits, parse it to a number
           let parsedValue: string | number = subItem.value;
@@ -119,7 +119,7 @@ export class Node {
             parsedValue = Number(subItem.value);
           }
 
-          obj.mapFields[item.name][subItem.name] = parsedValue;
+          obj.mapFields[item.name.trim()][subItem.name] = parsedValue;
         });
       });
     }

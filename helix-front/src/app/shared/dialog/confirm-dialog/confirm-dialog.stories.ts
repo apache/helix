@@ -44,28 +44,3 @@ Delete.args = {
     message: 'Are you sure you want to delete this cluster?',
   },
 };
-
-// const FormControlTemplate: Story = (args: any) => {
-//   const formGroup = new FormGroup({
-//     ngForm: new FormControl(undefined),
-//   });
-
-//   return {
-//     component: ConfirmDialogComponent,
-//     //   template: `
-//     // <hi-confirm-dialog [title]="data.title" [message]="data.message"></hi-confirm-dialog>
-//     // `,
-//     props: {
-//       ...args,
-//       form: formGroup,
-//     },
-//   };
-// };
-
-// export const Delete = FormControlTemplate.bind({});
-// Delete.args = {
-//   data: {
-//     title: 'Confirm Delete',
-//     message: 'Are you sure you want to delete this cluster?',
-//   },
-// };

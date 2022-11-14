@@ -444,7 +444,7 @@ public class TestMultiZkConectionConfig {
   /**
    * Test creation of HelixManager and makes sure it connects correctly.
    */
-  @Test(dependsOnMethods = "testZKHelixManager")
+  @Test(dependsOnMethods = "testMultiDiffRealm()")
   public void testZKHelixManagerCloudConfig() throws Exception {
     String clusterName = "CLUSTER_1";
     String participantName = "HelixManager";
@@ -523,7 +523,7 @@ public class TestMultiZkConectionConfig {
    * Testing specific federatedZkClient functionalities. Calling multi on op of different realms/servers.
    * Should fail.
    */
-  @Test
+  @Test(dependsOnMethods = "testZKHelixManager")
   public void testMultiDiffRealm() {
     List<Op> ops = Arrays.asList(
             Op.create(CLUSTER_LIST.get(0), new byte[0],
@@ -537,7 +537,7 @@ public class TestMultiZkConectionConfig {
 
     try {
       //Execute transactional support on operations and verify they were run
-      ZK_CLIENT_MAP.get(ZK_PREFIX + ZK_START_PORT).multi(ops);
+      _zkClient.multi(ops);
       Assert.fail("Should have thrown an exception. Cannot run multi on ops of different servers.");
     } catch (IllegalArgumentException e) {
       boolean pathExists = _zkClient.exists("/" + CLUSTER_LIST.get(0) + "/test");

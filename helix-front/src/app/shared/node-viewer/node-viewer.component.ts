@@ -166,12 +166,12 @@ export class NodeViewerComponent implements OnInit {
       ? _.filter(
           this.node.mapFields,
           (config) =>
-            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||
+            config.name.toLowerCase().trim().indexOf(this.keyword) >= 0 ||
             _.some(
               config.value as any[],
               (subconfig) =>
-                subconfig.name.toLowerCase().indexOf(this.keyword) >= 0 ||
-                subconfig.value.toLowerCase().indexOf(this.keyword) >= 0
+                subconfig.name.toLowerCase().trim().indexOf(this.keyword) >=
+                  0 || subconfig.value.toLowerCase().indexOf(this.keyword) >= 0
             )
         )
       : [];
@@ -288,9 +288,9 @@ export class NodeViewerComponent implements OnInit {
     if (type === 'simple') {
       newNode.appendSimpleField(row.name, '');
     } else if (type === 'list') {
-      newNode.listFields = [{ name: row.name, value: [] }];
+      newNode.listFields = [{ name: row.name.trim(), value: [] }];
     } else if (type === 'map') {
-      newNode.mapFields = [{ name: row.name, value: null }];
+      newNode.mapFields = [{ name: row.name.trim(), value: null }];
     }
 
     this.delete.emit(newNode);
@@ -319,7 +319,7 @@ export class NodeViewerComponent implements OnInit {
 
       case 'map':
         if (key) {
-          const entry = _.find(this.node.mapFields, { name: key });
+          const entry = _.find(this.node.mapFields, { name: key.trim() });
 
           _.forEach(entry.value, (item: any) => {
             newNode.appendMapField(key, item.name, item.value);
@@ -363,16 +363,16 @@ export class NodeViewerComponent implements OnInit {
       case 'map':
         if (key) {
           // have to fetch all other configs under this key
-          const entry = _.find(this.node.mapFields, { name: key });
-          newNode.mapFields = [{ name: key, value: [] }];
+          const entry = _.find(this.node.mapFields, { name: key.trim() });
+          newNode.mapFields = [{ name: key.trim(), value: [] }];
 
           _.forEach(entry.value, (item: any) => {
             if (item.name === row.name) {
               if (!isDeleting) {
-                newNode.appendMapField(key, item.name, value);
+                newNode.appendMapField(key.trim(), item.name.trim(), value);
               }
             } else {
-              newNode.appendMapField(key, item.name, item.value);
+              newNode.appendMapField(key.trim(), item.name.trim(), item.value);
             }
           });
         }

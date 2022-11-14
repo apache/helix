@@ -81,9 +81,9 @@ export class ResourceService extends HelixService {
           const par = data.mapFields[partition];
 
           ret.partitions.push({
-            name: partition,
-            currentState: par.CURRENT_STATE,
-            info: par.INFO,
+            name: partition.trim(),
+            currentState: par.CURRENT_STATE.trim(),
+            info: par.INFO.trim(),
           });
         }
 

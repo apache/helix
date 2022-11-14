@@ -196,11 +196,17 @@ export class ClusterDetailComponent implements OnInit {
 
   deleteCluster() {
     this.helperService
-      .showConfirmation('Are you sure you want to delete this cluster?')
+      .showConfirmation(
+        'Are you sure you want to delete this cluster? This cannot be undone.',
+        'Confirm Cluster Deletion',
+        `Delete Cluster ${this.clusterName}`
+      )
       .then((result) => {
         if (result) {
           this.clusterService.remove(this.cluster.name).subscribe((data) => {
-            this.helperService.showSnackBar('Cluster deleted!');
+            this.helperService.showSnackBar(
+              `Cluster ${this.clusterName} deleted`
+            );
             // FIXME: should reload cluster list as well
             this.router.navigate(['..'], { relativeTo: this.route });
           });

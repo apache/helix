@@ -10,6 +10,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 export class ConfirmDialogComponent implements OnInit {
   title: string;
   message: string;
+  confirmButtonText: string;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) protected data: any,
@@ -20,6 +21,8 @@ export class ConfirmDialogComponent implements OnInit {
     this.title = (this.data && this.data.title) || 'Confirmation';
     this.message =
       (this.data && this.data.message) || 'Are you sure about this?';
+    this.confirmButtonText =
+      (this.data && this.data.confirmButtonText) || 'Continue';
   }
 
   onConfirm() {

@@ -48,9 +48,9 @@ Offline.args = {
 
 export const Standby = Template.bind({});
 Standby.args = {
-  state: "STANDBY",
+  state: 'STANDBY',
   isReady: true,
-}
+};
 
 export const Leader = Template.bind({});
 Leader.args = {

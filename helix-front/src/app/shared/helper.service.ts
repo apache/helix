@@ -30,12 +30,17 @@ export class HelperService {
     });
   }
 
-  showConfirmation(message: string | object) {
+  showConfirmation(
+    message: string | object,
+    title?: string,
+    confirmButtonText?: string
+  ) {
     return this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: 'Confirmation',
           message: this.parseMessage(message),
+          title,
+          confirmButtonText,
         },
       })
       .afterClosed()

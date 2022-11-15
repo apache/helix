@@ -19,10 +19,7 @@ package org.apache.helix.integration.multizk;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +27,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixException;
@@ -38,7 +34,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
-import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -49,27 +44,15 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
-import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
-import org.apache.helix.zookeeper.zkclient.ZkServer;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.Op;
-import org.apache.zookeeper.OpResult;
-import org.apache.zookeeper.ZooDefs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -83,80 +66,21 @@ import org.testng.annotations.Test;
  * Tests were similar to TestMultiZkHelixJavaApis but without "MSDS_SERVER_ENDPOINT_KEY"
  * in system property
  */
-public class TestMultiZkConnectionConfig {
-  private static Logger LOG = LoggerFactory.getLogger(TestMultiZkConnectionConfig.class);
-  private static final int NUM_ZK = 3;
-  private static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
-  private static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();
-  private static final Map<String, ClusterControllerManager> MOCK_CONTROLLERS = new HashMap<>();
-  private static final Set<MockParticipantManager> MOCK_PARTICIPANTS = new HashSet<>();
-  private static final List<String> CLUSTER_LIST =
-      ImmutableList.of("CLUSTER_1", "CLUSTER_2", "CLUSTER_3");
-
-  private MockMetadataStoreDirectoryServer _msds;
-  private static final Map<String, Collection<String>> _rawRoutingData = new HashMap<>();
-  private RealmAwareZkClient _zkClient;
-  private HelixAdmin _zkHelixAdmin;
-
-  // Save System property configs from before this test and pass onto after the test
-  private final Map<String, String> _configStore = new HashMap<>();
-
-  private static final String ZK_PREFIX = "localhost:";
-  private static final int ZK_START_PORT = 8977;
-  private String _msdsEndpoint;
+public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    // Create 3 in-memory zookeepers and routing mapping
-    for (int i = 0; i < NUM_ZK; i++) {
-      String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
-      ZK_SERVER_MAP.put(zkAddress, TestHelper.startZkServer(zkAddress));
-      ZK_CLIENT_MAP.put(zkAddress, DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-              new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer())));
-
-      // One cluster per ZkServer created
-      _rawRoutingData.put(zkAddress, Collections.singletonList("/" + CLUSTER_LIST.get(i)));
-    }
-
-    // Create a Mock MSDS
-    final String msdsHostName = "localhost";
-    final int msdsPort = 11117;
-    final String msdsNamespace = "multiZkTest";
-    _msdsEndpoint =
-        "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace;
-    _msds = new MockMetadataStoreDirectoryServer(msdsHostName, msdsPort, msdsNamespace,
-        _rawRoutingData);
-    _msds.startServer();
-
-    // Save previously-set system configs
-    String prevMultiZkEnabled = System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
-    String prevMsdsServerEndpoint =
-        System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
-    if (prevMultiZkEnabled != null) {
-      _configStore.put(SystemPropertyKeys.MULTI_ZK_ENABLED, prevMultiZkEnabled);
-    }
-    if (prevMsdsServerEndpoint != null) {
-      _configStore
-          .put(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, prevMsdsServerEndpoint);
-    }
-
-    // Turn on multiZk mode in System config
-    System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "true");
-    // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/multiZkTest
-    // We are not setting routing ZK in system property.
-    //System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, _msdsEndpoint);
-
+    super.beforeClass();
     // Routing data may be set by other tests using the same endpoint; reset() for good measure
     RoutingDataManager.getInstance().reset();
     // Create a FederatedZkClient for admin work
 
     try {
       _zkClient =
-          new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-              .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
-              .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name()).build(),
-              new RealmAwareZkClient.RealmAwareZkClientConfig());
+              new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+                      .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
+                      .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name()).build(),
+                      new RealmAwareZkClient.RealmAwareZkClientConfig());
       _zkClient.setZkSerializer(new ZNRecordSerializer());
     } catch (Exception ex) {
       for (StackTraceElement elm : ex.getStackTrace()) {
@@ -168,63 +92,7 @@ public class TestMultiZkConnectionConfig {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = getClass().getSimpleName();
-
-    try {
-      // Kill all mock controllers and participants
-      MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);
-      MOCK_PARTICIPANTS.forEach(mockParticipantManager -> {
-        mockParticipantManager.syncStop();
-        StateMachineEngine stateMachine = mockParticipantManager.getStateMachineEngine();
-        if (stateMachine != null) {
-          StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
-          if (stateModelFactory != null && stateModelFactory instanceof TaskStateModelFactory) {
-            ((TaskStateModelFactory) stateModelFactory).shutdown();
-          }
-        }
-      });
-
-      // Tear down all clusters
-      CLUSTER_LIST.forEach(cluster -> TestHelper.dropCluster(cluster, _zkClient));
-
-      // Verify that all clusters are gone in each zookeeper
-      Assert.assertTrue(TestHelper.verify(() -> {
-        for (Map.Entry<String, HelixZkClient> zkClientEntry : ZK_CLIENT_MAP.entrySet()) {
-          List<String> children = zkClientEntry.getValue().getChildren("/");
-          if (children.stream().anyMatch(CLUSTER_LIST::contains)) {
-            return false;
-          }
-        }
-        return true;
-      }, TestHelper.WAIT_DURATION));
-
-      // Tear down zookeepers
-      ZK_CLIENT_MAP.forEach((zkAddress, zkClient) -> zkClient.close());
-      ZK_SERVER_MAP.forEach((zkAddress, zkServer) -> zkServer.shutdown());
-
-      // Stop MockMSDS
-      _msds.stopServer();
-
-      // Close ZK client connections
-      _zkHelixAdmin.close();
-      if (_zkClient != null && !_zkClient.isClosed()) {
-        _zkClient.close();
-      }
-    } finally {
-      // Restore System property configs
-      if (_configStore.containsKey(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
-        System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED,
-            _configStore.get(SystemPropertyKeys.MULTI_ZK_ENABLED));
-      } else {
-        System.clearProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
-      }
-      if (_configStore.containsKey(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY)) {
-        System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
-            _configStore.get(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY));
-      } else {
-        System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
-      }
-    }
+    super.afterClass();
   }
 
   /**
@@ -444,7 +312,7 @@ public class TestMultiZkConnectionConfig {
   /**
    * Test creation of HelixManager and makes sure it connects correctly.
    */
-  @Test(dependsOnMethods = "testMultiDiffRealm()")
+  @Test(dependsOnMethods = "testZKHelixManager")
   public void testZKHelixManagerCloudConfig() throws Exception {
     String clusterName = "CLUSTER_1";
     String participantName = "HelixManager";
@@ -517,31 +385,5 @@ public class TestMultiZkConnectionConfig {
     // Clean up
     managerParticipant.disconnect();
     _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
-  }
-
-  /**
-   * Testing specific federatedZkClient functionalities. Calling multi on op of different realms/servers.
-   * Should fail.
-   */
-  @Test(dependsOnMethods = "testZKHelixManager")
-  public void testMultiDiffRealm() {
-    List<Op> ops = Arrays.asList(
-            Op.create(CLUSTER_LIST.get(0), new byte[0],
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
-            Op.create(CLUSTER_LIST.get(1), new byte[0],
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
-            Op.create(CLUSTER_LIST.get(2), new byte[0],
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
-            Op.create(CLUSTER_LIST.get(0) + "/test", new byte[0],
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
-
-    try {
-      //Execute transactional support on operations and verify they were run
-      _zkClient.multi(ops);
-      Assert.fail("Should have thrown an exception. Cannot run multi on ops of different servers.");
-    } catch (IllegalArgumentException e) {
-      boolean pathExists = _zkClient.exists("/" + CLUSTER_LIST.get(0) + "/test");
-      Assert.assertFalse(pathExists, "Path should not have been created.");
-    }
   }
 }

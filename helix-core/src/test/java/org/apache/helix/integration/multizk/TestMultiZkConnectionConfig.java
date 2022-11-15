@@ -83,8 +83,8 @@ import org.testng.annotations.Test;
  * Tests were similar to TestMultiZkHelixJavaApis but without "MSDS_SERVER_ENDPOINT_KEY"
  * in system property
  */
-public class TestMultiZkConectionConfig {
-  private static Logger LOG = LoggerFactory.getLogger(TestMultiZkConectionConfig.class);
+public class TestMultiZkConnectionConfig {
+  private static Logger LOG = LoggerFactory.getLogger(TestMultiZkConnectionConfig.class);
   private static final int NUM_ZK = 3;
   private static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
   private static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();

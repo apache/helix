@@ -43,13 +43,12 @@ public interface ConnectStateChangeListener {
    * Called when the connection state has changed.
    */
   void handleConnectStateChanged(ConnectState currentState) throws Exception;
-  /**
-   * Called when new connection is established
-   */
-  void handleNewConnection(final String sessionId) throws Exception;
+
   /**
    * Called when new connection failed to established
    */
   void handleConnectionEstablishmentError(final Throwable error) throws Exception;
+
+  // TODO: Consider add a callback for new connection when we add support for session ID.
 
 }

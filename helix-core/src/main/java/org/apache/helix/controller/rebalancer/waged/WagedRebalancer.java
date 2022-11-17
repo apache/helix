@@ -523,6 +523,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       Set<String> activeNodes, final CurrentStateOutput currentStateOutput,
       RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
+    // If partial rebalance is async and the previous result is not completed yet,
+    // do not start another partial rebalance.
+    if (_asyncPartialRebalanceEnabled && _asyncPartialRebalanceResult != null
+        && !_asyncPartialRebalanceResult.isDone()) {
+      return;
+    }
+
     _asyncPartialRebalanceResult = _bestPossibleCalculateExecutor.submit(() -> {
       try {
         doPartialRebalance(clusterData, resourceMap, activeNodes, algorithm,

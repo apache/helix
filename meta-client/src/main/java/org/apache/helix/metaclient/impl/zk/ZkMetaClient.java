@@ -19,19 +19,18 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.metaclient.api.AsyncCallback;
+import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.DataUpdater;
-import org.apache.helix.metaclient.api.DirectSubEntryChangeListener;
-import org.apache.helix.metaclient.api.DirectSubEntrySubscribeResult;
+import org.apache.helix.metaclient.api.DirectChildChangeListener;
+import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.metaclient.api.SubEntryChangeListener;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 
 
@@ -74,12 +73,12 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public List<String> getSubEntryKeys(String key) {
+  public List<String> getDirestChildrenKeys(String key) {
     return null;
   }
 
   @Override
-  public int countSubEntries(String key) {
+  public int countDirestChildren(String key) {
     return 0;
   }
 
@@ -91,6 +90,11 @@ public class ZkMetaClient implements MetaClientInterface {
   @Override
   public boolean recursiveDelete(String key) {
     return false;
+  }
+
+  @Override
+  public void setAsyncExecPoolSize(int poolSize) {
+
   }
 
   @Override
@@ -114,7 +118,7 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public void asyncCountSubEntries(String key, AsyncCallback.DataCallback cb) {
+  public void asyncCountChildren(String key, AsyncCallback.DataCallback cb) {
 
   }
 
@@ -166,8 +170,8 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public DirectSubEntrySubscribeResult subscribeDirectSubEntryChange(String key,
-      DirectSubEntryChangeListener listener, boolean skipWatchingNonExistNode,
+  public DirectChildSubscribeResult subscribeDirectChildChange(String key,
+      DirectChildChangeListener listener, boolean skipWatchingNonExistNode,
       boolean persistListener) {
     return null;
   }
@@ -179,7 +183,7 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public boolean subscribeSubEntryChanges(String key, SubEntryChangeListener listener,
+  public boolean subscribeChildChanges(String key, ChildChangeListener listener,
       boolean skipWatchingNonExistNode, boolean persistListener) {
     return false;
   }
@@ -190,12 +194,12 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public void unsubscribeDirectEntryChange(String key, DirectSubEntryChangeListener listener) {
+  public void unsubscribeDirectChildChange(String key, DirectChildChangeListener listener) {
 
   }
 
   @Override
-  public void unsubscribeEntryChanges(String key, SubEntryChangeListener listener) {
+  public void unsubscribeChildChanges(String key, ChildChangeListener listener) {
 
   }
 

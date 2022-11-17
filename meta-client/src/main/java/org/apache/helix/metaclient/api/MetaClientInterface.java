@@ -135,24 +135,24 @@ public interface MetaClientInterface<T> {
   List<OpResult> transactionOP(final Iterable<Op> ops);
 
   /**
-   * Return a list of sub entries for the given keys.
+   * Return a list of children for the given keys.
    * @param key For metadata storage that has hierarchical key space (e.g. ZK), the key would be
    *            a parent key,
    *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
    *            be a prefix key.
-   * @eturn Return a list of sub entry keys. Return direct child name only for hierarchical key
+   * @eturn Return a list of children keys. Return direct child name only for hierarchical key
    *        space, return the whole sub key for non-hierarchical key space.
    */
-  List<String> getSubEntryKeys(final String key);
+  List<String> getDirestChildrenKeys(final String key);
 
   /**
-   * Return the number of sub entries for the given keys.
+   * Return the number of children for the given keys.
    * @param key For metadata storage that has hierarchical key space (e.g. ZK), the key would be
    *            a parent key,
    *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
    *            be a prefix key.
    */
-  int countSubEntries(final String key);
+  int countDirestChildren(final String key);
 
   /**
    * Remove the entry associated with the given key.
@@ -177,6 +177,14 @@ public interface MetaClientInterface<T> {
    * They take a callback object that will be executed either on successful execution of the request
    * or on error with an appropriate return code indicating the error.
    */
+
+  /**
+   * User may register callbacks for async CRUD calls. These callbacks will be executed in a async
+   * thread pool. User could define the thread pool size. Default value is 10.
+   * TODO: add const default value in a separate file
+   * @param poolSize pool size for executing user resisted async callbacks
+   */
+  void setAsyncExecPoolSize(int poolSize);
 
   /**
    * The asynchronous version of create.
@@ -209,7 +217,7 @@ public interface MetaClientInterface<T> {
   /**
    * The asynchronous version of get.
    * @param key key to identify the entry
-   * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
+   * @param cb An user defined VoidCallback implementation that will be invoked when async get return.
    *           It will contain the entry data if get succeeded.
    */
   void asyncGet(final String key, AsyncCallback.DataCallback cb);
@@ -217,15 +225,15 @@ public interface MetaClientInterface<T> {
   /**
    * The asynchronous version of get sub entries.
    * @param key key to identify the entry
-   * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
+   * @param cb An user defined VoidCallback implementation that will be invoked when async count child return.
    *           It will contain the list of sub entry keys if succeeded.
    */
-  void asyncCountSubEntries(final String key, AsyncCallback.DataCallback cb);
+  void asyncCountChildren(final String key, AsyncCallback.DataCallback cb);
 
   /**
    * The asynchronous version of get sub entries.
    * @param key key to identify the entry
-   * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
+   * @param cb An user defined VoidCallback implementation that will be invoked when async exist return.
    *           It will contain the stats of the entry if succeeded.
    */
   void asyncExist(final String key, AsyncCallback.StatCallback cb);
@@ -329,6 +337,8 @@ public interface MetaClientInterface<T> {
   ConnectState getClientConnectionState();
 
   // Event notification APIs, user can register multiple listeners on the same key/connection state.
+  // All listeners will be automatically removed when client is disconnected.
+  // TODO: add auto re-register listener option
 
   /**
    * Subscribe change of a particular entry. Including entry data change, entry deletion and creation
@@ -345,8 +355,8 @@ public interface MetaClientInterface<T> {
        boolean skipWatchingNonExistNode, boolean persistListener);
 
   /**
-   * Subscribe for direct children change event on a particular key. It includes new sub entry
-   * creation or deletion. It does not include existing sub entry data change.
+   * Subscribe for direct child change event on a particular key. It includes new child
+   * creation or deletion. It does not include existing child data change.
    * For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
    * For flat key spaces, it refers to keys that matches `prefix*separator`.
    * @param key key to identify the entry.
@@ -357,8 +367,8 @@ public interface MetaClientInterface<T> {
    * @return Return an DirectSubEntrySubscribeResult. It will contain a list of direct sub entry if
    *         subscribe succeeded.
    */
-  DirectSubEntrySubscribeResult subscribeDirectSubEntryChange(String key,
-      DirectSubEntryChangeListener listener, boolean skipWatchingNonExistNode,
+  DirectChildSubscribeResult subscribeDirectChildChange(String key,
+      DirectChildChangeListener listener, boolean skipWatchingNonExistNode,
       boolean persistListener);
 
   /**
@@ -371,16 +381,16 @@ public interface MetaClientInterface<T> {
   boolean subscribeStateChanges(ConnectStateChangeListener listener, boolean persistListener);
 
   /**
-   * Subscribe change for all sub entries, including entry change and data change.
+   * Subscribe change for all children including entry change and data change.
    * For hierarchy key spaces like zookeeper, it would watch the whole tree structure.
    * For flat key spaces, it would watch for keys with certain prefix.
    * @param key key to identify the entry.
-   * @param listener An implementation of SubEntryChangeListener.
+   * @param listener An implementation of ChildChangeListener.
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
    * @param persistListener The listener will persist when set to true. Otherwise it will be a one
    *                        time triggered listener.
    */
-  boolean subscribeSubEntryChanges(String key, SubEntryChangeListener listener,
+  boolean subscribeChildChanges(String key, ChildChangeListener listener,
       boolean skipWatchingNonExistNode, boolean persistListener);
 
   /**
@@ -395,14 +405,14 @@ public interface MetaClientInterface<T> {
    * @param key Key to identify the entry.
    * @param listener The listener to unsubscribe
    */
-  void unsubscribeDirectEntryChange(String key, DirectSubEntryChangeListener listener);
+  void unsubscribeDirectChildChange(String key, DirectChildChangeListener listener);
 
   /**
    * Unsubscribe the listener to further changes. No-op if the listener is not subscribed to the key.
    * @param key Key to identify the entry.
    * @param listener The listener to unsubscribe
    */
-  void unsubscribeEntryChanges(String key, SubEntryChangeListener listener);
+  void unsubscribeChildChanges(String key, ChildChangeListener listener);
 
   /**
    * Unsubscribe the listener to further changes. No-op if the listener is not subscribed to the key.

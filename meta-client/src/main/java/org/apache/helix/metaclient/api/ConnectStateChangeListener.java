@@ -20,12 +20,8 @@ package org.apache.helix.metaclient.api;
  */
 
 public interface ConnectStateChangeListener {
-
-
-
-
   /**
-   * Called when the connection state has changed. Implementation could hook
+   * Called when the connection state has changed. I
    * @param prevState previous state before state change event.
    * @param currentState client state after state change event. If it is a one time listsner, it is
    *                     possible that the metaclient state changes again

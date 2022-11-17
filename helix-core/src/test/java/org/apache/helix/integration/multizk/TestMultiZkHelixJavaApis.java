@@ -112,15 +112,6 @@ public class TestMultiZkHelixJavaApis extends MultiZkTestBase {
             new RealmAwareZkClient.RealmAwareZkClientConfig());
   }
 
-  @AfterClass
-  public void afterClass() throws Exception {
-    try {
-      super.afterClass();
-    } catch (IllegalStateException e) {
-      // Zk Client is already closed. Do nothing.
-    }
-  }
-
   /**
    * Test cluster creation according to the pre-set routing mapping.
    * Helix Java API tested is ClusterSetup in this method.

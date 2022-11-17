@@ -111,6 +111,10 @@ public class AssignmentMetadataStore {
     }
   }
 
+  /**
+   * Persist a new baseline assignment to metadata store first, then to memory
+   * @param globalBaseline
+   */
   public synchronized void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // write to metadata store
     persistAssignmentToMetadataStore(globalBaseline, _baselinePath, BASELINE_KEY);
@@ -119,8 +123,12 @@ public class AssignmentMetadataStore {
     getBaseline().putAll(globalBaseline);
   }
 
-  public synchronized void persistBestPossibleAssignment(
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
+  /**
+   * Persist a new best possible assignment to metadata store first, then to memory.
+   * Increment best possible version by 1 - this is a high priority in-memory write.
+   * @param bestPossibleAssignment
+   */
+  public synchronized void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
     // write to metadata store
     persistAssignmentToMetadataStore(bestPossibleAssignment, _bestPossiblePath, BEST_POSSIBLE_KEY);
     // write to memory
@@ -131,6 +139,7 @@ public class AssignmentMetadataStore {
 
   /**
    * Attempts to persist Best Possible Assignment in memory from an asynchronous thread.
+   * Persist only happens when the provided version is not stale - this is a low priority in-memory write.
    * @param bestPossibleAssignment - new assignment to be persisted
    * @param newVersion - attempted new version to write. This version is obtained earlier from getBestPossibleVersion()
    * @return true if the attempt succeeded, false otherwise.

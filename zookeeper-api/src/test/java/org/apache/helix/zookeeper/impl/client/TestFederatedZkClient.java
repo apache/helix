@@ -648,12 +648,4 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       Assert.assertEquals(ex.getMessage(), "FederatedZkClient is closed!");
     }
   }
-
-  @Override
-  public void testMulti() {
-    super.testMulti();
-    if (!_realmAwareZkClient.exists(ZK_SHARDING_KEY_PREFIX)) {
-      _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
-    }
-  }
 }

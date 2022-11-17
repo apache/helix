@@ -477,31 +477,10 @@ public class FederatedZkClient implements RealmAwareZkClient {
     return getZkClient(path).getCreationTime(path);
   }
 
-  /**
-   * Executes ZkMulti on operations that are connected to the same Zk server.
-   * Will throw exception if any operation's server connection is different.
-   * @param ops
-   * @return
-   * @throws IllegalArgumentException
-   */
   @Override
   public List<OpResult> multi(Iterable<Op> ops) {
-    if (ops == null) {
-      throw new NullPointerException("ops must not be null.");
-    }
-    String opPath = null;
-    String opPathRealm = null;
-    for (Op op : ops) {
-      if (opPath == null) {
-        opPath = op.getPath();
-        opPathRealm = getZkRealm(op.getPath());
-      } else {
-        if (!opPathRealm.equals(getZkRealm(op.getPath()))){
-          throw new IllegalArgumentException("Cannot execute multi on ops of different realms!");
-        }
-      }
-    }
-    return getZkClient(opPath).multi(ops);
+    throwUnsupportedOperationException();
+    return null;
   }
 
   @Override
@@ -515,7 +494,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
     throwUnsupportedOperationException();
     return null;
   }
-
   @Override
   public long getSessionId() {
     // Session-aware is unsupported.

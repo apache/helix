@@ -114,7 +114,11 @@ public class TestMultiZkHelixJavaApis extends MultiZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    super.afterClass();
+    try {
+      super.afterClass();
+    } catch (IllegalStateException e) {
+      // Zk Client is already closed. Do nothing.
+    }
   }
 
   /**
@@ -208,7 +212,7 @@ public class TestMultiZkHelixJavaApis extends MultiZkTestBase {
             .registerStateModelFactory("Task", new TaskStateModelFactory(mockNode, taskFactoryReg));
 
         mockNode.syncStart();
-        MOCK_PARTICIPANTS.add(mockNode);
+        MOCK_PARTICIPANTS_JAVA_API.add(mockNode);
       }
       // Check that mockNodes are up
       Assert.assertTrue(TestHelper
@@ -806,7 +810,7 @@ public class TestMultiZkHelixJavaApis extends MultiZkTestBase {
     // Mock participants are already created and started in the previous test.
     // The mock participant only connects to MSDS configured in system property,
     // but not the other.
-    final MockParticipantManager manager = MOCK_PARTICIPANTS.iterator().next();
+    final MockParticipantManager manager = MOCK_PARTICIPANTS_JAVA_API.iterator().next();
     verifyMsdsZkRealm(CLUSTER_ONE, true,
         () -> manager.getZkClient().exists(formPath(manager.getClusterName())));
     verifyMsdsZkRealm(CLUSTER_FOUR, false,

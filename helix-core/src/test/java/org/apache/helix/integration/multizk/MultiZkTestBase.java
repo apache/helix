@@ -1,5 +1,24 @@
 package org.apache.helix.integration.multizk;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.SystemPropertyKeys;
@@ -13,11 +32,8 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -31,6 +47,7 @@ public class MultiZkTestBase {
     protected static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();
     protected static final Map<String, ClusterControllerManager> MOCK_CONTROLLERS = new HashMap<>();
     protected static final Set<MockParticipantManager> MOCK_PARTICIPANTS = new HashSet<>();
+    protected static final Set<MockParticipantManager> MOCK_PARTICIPANTS_JAVA_API = new HashSet<>();
     protected static final List<String> CLUSTER_LIST =
             ImmutableList.of("CLUSTER_1", "CLUSTER_2", "CLUSTER_3");
 
@@ -89,21 +106,36 @@ public class MultiZkTestBase {
 
     @AfterClass
     public void afterClass() throws Exception {
-        String testClassName = getClass().getSimpleName();
 
         try {
             // Kill all mock controllers and participants
             MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);
-            MOCK_PARTICIPANTS.forEach(mockParticipantManager -> {
-                mockParticipantManager.syncStop();
-                StateMachineEngine stateMachine = mockParticipantManager.getStateMachineEngine();
-                if (stateMachine != null) {
-                    StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
-                    if (stateModelFactory instanceof TaskStateModelFactory) {
-                        ((TaskStateModelFactory) stateModelFactory).shutdown();
+            if (!MOCK_PARTICIPANTS.isEmpty()){
+                MOCK_PARTICIPANTS.forEach(mockParticipantManager -> {
+                    mockParticipantManager.syncStop();
+                    StateMachineEngine stateMachine = mockParticipantManager.getStateMachineEngine();
+                    if (stateMachine != null) {
+                        StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
+                        if (stateModelFactory instanceof TaskStateModelFactory) {
+                            ((TaskStateModelFactory) stateModelFactory).shutdown();
+                        }
                     }
-                }
-            });
+                });
+            }
+
+            if (!MOCK_PARTICIPANTS_JAVA_API.isEmpty()) {
+                MOCK_PARTICIPANTS_JAVA_API.forEach(mockParticipantManager -> {
+                    mockParticipantManager.syncStop();
+                    StateMachineEngine stateMachine = mockParticipantManager.getStateMachineEngine();
+                    if (stateMachine != null) {
+                        StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
+                        if (stateModelFactory instanceof TaskStateModelFactory) {
+                            ((TaskStateModelFactory) stateModelFactory).shutdown();
+                        }
+                    }
+                });
+            }
+
 
             // Tear down all clusters
             CLUSTER_LIST.forEach(cluster -> TestHelper.dropCluster(cluster, _zkClient));
@@ -127,7 +159,9 @@ public class MultiZkTestBase {
             _msds.stopServer();
 
             // Close ZK client connections
-            _zkHelixAdmin.close();
+            if (_zkHelixAdmin != null) {
+                _zkHelixAdmin.close();
+            }
             if (_zkClient != null && !_zkClient.isClosed()) {
                 _zkClient.close();
             }

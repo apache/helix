@@ -50,12 +50,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
-import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
@@ -89,11 +84,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     }
     System.out.println("end start");
   }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-  }
+  
 
   /**
    * Test cluster creation according to the pre-set routing mapping.

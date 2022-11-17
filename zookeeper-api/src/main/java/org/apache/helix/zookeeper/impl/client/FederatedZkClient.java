@@ -497,7 +497,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
         opPathRealm = getZkRealm(op.getPath());
       } else {
         if (!opPathRealm.equals(getZkRealm(op.getPath()))){
-          throw new IllegalArgumentException();
+          throw new IllegalArgumentException("Cannot execute multi on ops of different realms!");
         }
       }
     }

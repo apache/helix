@@ -50,6 +50,19 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
   public void persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     _bestPossibleAssignment = bestPossibleAssignment;
+    _bestPossibleVersion++;
+  }
+
+  public synchronized boolean asyncPersistBestPossibleAssignmentInMemory(
+      Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
+    // Check if the version is stale by this point
+    if (newVersion > _bestPossibleVersion) {
+      _bestPossibleAssignment = bestPossibleAssignment;
+      _bestPossibleVersion = newVersion;
+      return true;
+    }
+
+    return false;
   }
 
   public void close() {

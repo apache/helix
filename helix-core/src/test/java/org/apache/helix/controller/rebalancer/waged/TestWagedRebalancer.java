@@ -389,7 +389,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   public void testInvalidRebalancerStatus() throws IOException {
     // Mock a metadata store that will fail on all the calls.
     AssignmentMetadataStore metadataStore = Mockito.mock(AssignmentMetadataStore.class);
-    when(metadataStore.getBaseline())
+    when(metadataStore.getBestPossibleAssignment())
         .thenThrow(new RuntimeException("Mock Error. Metadata store fails."));
     WagedRebalancer rebalancer = new WagedRebalancer(metadataStore, _algorithm, Optional.empty());
 
@@ -404,7 +404,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Assert.assertEquals(ex.getFailureType(),
           HelixRebalanceException.Type.INVALID_REBALANCER_STATUS);
       Assert.assertEquals(ex.getMessage(),
-          "Failed to get the current baseline assignment because of unexpected error. Failure Type: INVALID_REBALANCER_STATUS");
+          "Failed to get the current best possible assignment because of unexpected error. Failure Type: INVALID_REBALANCER_STATUS");
     }
   }
 

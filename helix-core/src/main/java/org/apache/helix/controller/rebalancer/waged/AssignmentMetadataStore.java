@@ -50,7 +50,7 @@ public class AssignmentMetadataStore {
   private String _bestPossiblePath;
   protected Map<String, ResourceAssignment> _globalBaseline;
   protected Map<String, ResourceAssignment> _bestPossibleAssignment;
-  private int _bestPossibleVersion = 0;
+  protected int _bestPossibleVersion = 0;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
@@ -98,8 +98,8 @@ public class AssignmentMetadataStore {
    * @param key  the key of the assignment in the record
    * @throws HelixException if the method failed to persist the baseline.
    */
-  private void persistAssignmentToMetadataStore(Map<String, ResourceAssignment> newAssignment, String path,
-      String key) {
+  private void persistAssignmentToMetadataStore(Map<String, ResourceAssignment> newAssignment, String path, String key)
+      throws HelixException {
     // TODO: Make the write async?
     // Persist to ZK
     HelixProperty combinedAssignments = combineAssignments(key, newAssignment);
@@ -107,8 +107,7 @@ public class AssignmentMetadataStore {
       _dataAccessor.compressedBucketWrite(path, combinedAssignments);
     } catch (IOException e) {
       // TODO: Improve failure handling
-      throw new HelixException(
-          String.format("Failed to persist %s assignment to path %s", key, path), e);
+      throw new HelixException(String.format("Failed to persist %s assignment to path %s", key, path), e);
     }
   }
 

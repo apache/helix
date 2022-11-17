@@ -77,6 +77,19 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
         Map<String, ResourceAssignment> bestPossibleAssignment) {
       // Update the in-memory reference only
       _bestPossibleAssignment = bestPossibleAssignment;
+      _bestPossibleVersion++;
+    }
+    @Override
+    public synchronized boolean asyncPersistBestPossibleAssignmentInMemory(
+        Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
+      // Check if the version is stale by this point
+      if (newVersion > _bestPossibleVersion) {
+        _bestPossibleAssignment = bestPossibleAssignment;
+        _bestPossibleVersion = newVersion;
+        return true;
+      }
+
+      return false;
     }
   }
 }

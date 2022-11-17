@@ -571,7 +571,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     Map<String, ResourceAssignment> currentBestPossibleAssignment =
         getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
             resourceMap.keySet());
-
     ClusterModel clusterModel;
     try {
       clusterModel = ClusterModelProvider
@@ -581,8 +580,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       throw new HelixRebalanceException("Failed to generate cluster model for partial rebalance.",
           HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
     }
-
     Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterModel, algorithm);
+
     // Asynchronously report baseline divergence metric before persisting to metadata store,
     // just in case if persisting fails, we still have the metric.
     // To avoid changes of the new assignment and make it safe when being used to measure baseline

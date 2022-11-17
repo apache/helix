@@ -155,6 +155,11 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
+  public ConnectState getClientConnectionState() {
+    return null;
+  }
+
+  @Override
   public boolean subscribeDataChange(String key, DataChangeListener listener,
       boolean skipWatchingNonExistNode, boolean persistListener) {
     return false;

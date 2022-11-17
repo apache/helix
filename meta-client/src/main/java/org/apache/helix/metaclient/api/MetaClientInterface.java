@@ -39,6 +39,23 @@ public interface MetaClientInterface<T> {
     CONTAINER
   }
 
+  enum ConnectState {
+    // Client is connected to server
+    CONNECTED,
+
+    // Authentication failed.
+    AUTH_FAILED,
+
+    // Server has expired this connection.
+    EXPIRED,
+
+    // When client failed to connect server.
+    INIT_FAILED,
+
+    // When client explicitly call disconnect.
+    CLOSED_BY_CLIENT
+  }
+
   /**
    * Interface representing the metadata of an entry. It contains entry type and version number.
    * TODO: we will add session ID to entry stats in the future
@@ -305,6 +322,11 @@ public interface MetaClientInterface<T> {
    * Disconnect from server explicitly.
    */
   void disconnect();
+
+  /**
+   * @return client current connection state with metadata service.
+   */
+  ConnectState getClientConnectionState();
 
   // Event notification APIs, user can register multiple listeners on the same key/connection state.
 

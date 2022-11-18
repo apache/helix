@@ -19,30 +19,16 @@ package org.apache.helix.integration.multizk;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixCloudProperty;
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixManagerProperty;
-import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
-import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.TaskFactory;
@@ -65,7 +51,7 @@ import org.testng.annotations.Test;
  * Tests were similar to TestMultiZkHelixJavaApis but without "MSDS_SERVER_ENDPOINT_KEY"
  * in system property
  */
-public class TestMultiZkConnectionConfig extends MultiZkTestBase {
+public class TestMultiZkConnectionConfig extends TestMultiZkHelixJavaApis {
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -88,59 +74,19 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     }
     System.out.println("end start");
   }
-  
 
-  /**
-   * Test cluster creation according to the pre-set routing mapping.
-   * Helix Java API tested is ClusterSetup in this method.
-   */
-  @Test
-  public void testCreateClusters() {
+  @Override
+  public void setupCluster() {
     // Create two ClusterSetups using two different constructors
     // Note: ZK Address here could be anything because multiZk mode is on (it will be ignored)
-    ClusterSetup clusterSetupZkAddr = new ClusterSetup(_zkClient);
-    ClusterSetup clusterSetupBuilder = new ClusterSetup.Builder().setRealmAwareZkConnectionConfig(
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-            .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
-            .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name()).build())
-        .build();
-
-    createClusters(clusterSetupZkAddr);
-    verifyClusterCreation(clusterSetupZkAddr);
-
-    createClusters(clusterSetupBuilder);
-    verifyClusterCreation(clusterSetupBuilder);
-
-    // Create clusters again to continue with testing
-    createClusters(clusterSetupBuilder);
-
-    clusterSetupZkAddr.close();
-    clusterSetupBuilder.close();
+    _clusterSetupZkAddr = new ClusterSetup(_zkClient);
+    _clusterSetupBuilder = new ClusterSetup.Builder().setRealmAwareZkConnectionConfig(
+                    new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+                            .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
+                            .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name()).build())
+            .build();
   }
 
-  private void createClusters(ClusterSetup clusterSetup) {
-    // Create clusters
-    for (String clusterName : CLUSTER_LIST) {
-      clusterSetup.addCluster(clusterName, false);
-    }
-  }
-
-  private void verifyClusterCreation(ClusterSetup clusterSetup) {
-    // Verify that clusters have been created correctly according to routing mapping
-    _rawRoutingData.forEach((zkAddress, cluster) -> {
-      // Note: clusterNamePath already contains "/"
-      String clusterNamePath = cluster.iterator().next();
-
-      // Check with single-realm ZkClients
-      Assert.assertTrue(ZK_CLIENT_MAP.get(zkAddress).exists(clusterNamePath));
-      // Check with realm-aware ZkClient (federated)
-      Assert.assertTrue(_zkClient.exists(clusterNamePath));
-
-      // Remove clusters
-      clusterSetup
-          .deleteCluster(clusterNamePath.substring(1)); // Need to remove "/" at the beginning
-    });
-  }
 
   /**
    * Test Helix Participant creation and addition.
@@ -153,13 +99,13 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     // Note: ZK Address here could be anything because multiZk mode is on (it will be ignored)
     //HelixAdmin helixAdminZkAddr = new ZKHelixAdmin(ZK_SERVER_MAP.keySet().iterator().next());
     RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig =
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-            .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
-            .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name()).build();
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+                    .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
+                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name()).build();
     HelixAdmin helixAdminBuilder =
-        new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(zkConnectionConfig).build();
+            new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(zkConnectionConfig).build();
     _zkHelixAdmin =
-        new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(zkConnectionConfig).build();
+            new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(zkConnectionConfig).build();
 
     String participantNamePrefix = "Node_";
     int numParticipants = 5;
@@ -171,15 +117,15 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
       // Start a controller
       // Note: in multiZK mode, ZK Addr is ignored
       RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfigCls =
-          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-              .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
-              .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
-              .setZkRealmShardingKey("/" + cluster).build();
+              new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+                      .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
+                      .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
+                      .setZkRealmShardingKey("/" + cluster).build();
       HelixManagerProperty.Builder propertyBuilder = new HelixManagerProperty.Builder();
       HelixManagerProperty helixManagerProperty =
-          propertyBuilder.setRealmAWareZkConnectionConfig(zkConnectionConfigCls).build();
+              propertyBuilder.setRealmAWareZkConnectionConfig(zkConnectionConfigCls).build();
       ClusterControllerManager mockController =
-          new ClusterControllerManager(cluster, helixManagerProperty);
+              new ClusterControllerManager(cluster, helixManagerProperty);
       mockController.syncStart();
       MOCK_CONTROLLERS.put(cluster, mockController);
 
@@ -188,8 +134,8 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
         InstanceConfig instanceConfig = new InstanceConfig(participantNamePrefix + i);
         helixAdminBuilder.addInstance(cluster, instanceConfig);
         MockParticipantManager mockNode =
-            new MockParticipantManager(cluster, participantNamePrefix + i, helixManagerProperty, 10,
-                null);
+                new MockParticipantManager(cluster, participantNamePrefix + i, helixManagerProperty, 10,
+                        null);
 
         // Register task state model for task framework testing in later methods
         Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
@@ -197,54 +143,19 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
         // Register a Task state model factory.
         StateMachineEngine stateMachine = mockNode.getStateMachineEngine();
         stateMachine
-            .registerStateModelFactory("Task", new TaskStateModelFactory(mockNode, taskFactoryReg));
+                .registerStateModelFactory("Task", new TaskStateModelFactory(mockNode, taskFactoryReg));
 
         mockNode.syncStart();
         MOCK_PARTICIPANTS.add(mockNode);
       }
       // Check that mockNodes are up
       Assert.assertTrue(TestHelper
-          .verify(() -> helixAdminBuilder.getInstancesInCluster(cluster).size() == numParticipants,
-              TestHelper.WAIT_DURATION));
+              .verify(() -> helixAdminBuilder.getInstancesInCluster(cluster).size() == numParticipants,
+                      TestHelper.WAIT_DURATION));
     }
 
     //helixAdminZkAddr.close();
     helixAdminBuilder.close();
-  }
-
-  private void createParticipantsAndVerify(HelixAdmin admin, int numParticipants,
-      String participantNamePrefix) {
-    // Create participants in clusters
-    Set<String> participantNames = new HashSet<>();
-    CLUSTER_LIST.forEach(cluster -> {
-      for (int i = 0; i < numParticipants; i++) {
-        String participantName = participantNamePrefix + i;
-        participantNames.add(participantName);
-        InstanceConfig instanceConfig = new InstanceConfig(participantNamePrefix + i);
-        admin.addInstance(cluster, instanceConfig);
-      }
-    });
-
-    // Verify participants have been created properly
-    _rawRoutingData.forEach((zkAddress, cluster) -> {
-      // Note: clusterNamePath already contains "/"
-      String clusterNamePath = cluster.iterator().next();
-
-      // Check with single-realm ZkClients
-      List<String> instances =
-          ZK_CLIENT_MAP.get(zkAddress).getChildren(clusterNamePath + "/INSTANCES");
-      Assert.assertEquals(new HashSet<>(instances), participantNames);
-
-      // Check with realm-aware ZkClient (federated)
-      instances = _zkClient.getChildren(clusterNamePath + "/INSTANCES");
-      Assert.assertEquals(new HashSet<>(instances), participantNames);
-
-      // Remove Participants
-      participantNames.forEach(participant -> {
-        InstanceConfig instanceConfig = new InstanceConfig(participant);
-        admin.dropInstance(clusterNamePath.substring(1), instanceConfig);
-      });
-    });
   }
 
   /**
@@ -252,56 +163,21 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
    */
   @Test(dependsOnMethods = "testCreateParticipants")
   public void testZKHelixManager() throws Exception {
-    String clusterName = "CLUSTER_1";
-    String participantName = "HelixManager";
-    InstanceConfig instanceConfig = new InstanceConfig(participantName);
-    _zkHelixAdmin.addInstance(clusterName, instanceConfig);
+    super.testZKHelixManager();
+  }
 
+  @Override
+  protected void createZkConnectionConfigs(String clusterName) {
     RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
     // Try with a connection config without ZK realm sharding key set (should fail)
-    RealmAwareZkClient.RealmAwareZkConnectionConfig invalidZkConnectionConfig =
-        connectionConfigBuilder.build();
-    RealmAwareZkClient.RealmAwareZkConnectionConfig validZkConnectionConfig =
-        connectionConfigBuilder
-            .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
-            .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
-            .setZkRealmShardingKey("/" + clusterName).build();
-    HelixManagerProperty.Builder propertyBuilder = new HelixManagerProperty.Builder();
-    try {
-      HelixManager invalidManager = HelixManagerFactory
-          .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null,
-              propertyBuilder.setRealmAWareZkConnectionConfig(invalidZkConnectionConfig).build());
-      Assert.fail("Should see a HelixException here because the connection config doesn't have the "
-          + "sharding key set!");
-    } catch (HelixException e) {
-      // Expected
-    }
-
-    // Connect as a participant
-    HelixManager managerParticipant = HelixManagerFactory
-        .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null,
-            propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
-    managerParticipant.connect();
-
-    // Connect as an administrator
-    HelixManager managerAdministrator = HelixManagerFactory
-        .getZKHelixManager(clusterName, participantName, InstanceType.ADMINISTRATOR, null,
-            propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
-    managerAdministrator.connect();
-
-    // Perform assert checks to make sure the manager can read and register itself as a participant
-    InstanceConfig instanceConfigRead = managerAdministrator.getClusterManagmentTool()
-        .getInstanceConfig(clusterName, participantName);
-    Assert.assertNotNull(instanceConfigRead);
-    Assert.assertEquals(instanceConfig.getInstanceName(), participantName);
-    Assert.assertNotNull(managerAdministrator.getHelixDataAccessor().getProperty(
-        managerAdministrator.getHelixDataAccessor().keyBuilder().liveInstance(participantName)));
-
-    // Clean up
-    managerParticipant.disconnect();
-    managerAdministrator.disconnect();
-    _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
+    _invalidZkConnectionConfig =
+            connectionConfigBuilder.build();
+    _validZkConnectionConfig =
+            connectionConfigBuilder
+                    .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
+                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
+                    .setZkRealmShardingKey("/" + clusterName).build();
   }
 
   /**
@@ -309,76 +185,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
    */
   @Test(dependsOnMethods = "testZKHelixManager")
   public void testZKHelixManagerCloudConfig() throws Exception {
-    String clusterName = "CLUSTER_1";
-    String participantName = "HelixManager";
-    InstanceConfig instanceConfig = new InstanceConfig(participantName);
-    _zkHelixAdmin.addInstance(clusterName, instanceConfig);
-
-    RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
-    RealmAwareZkClient.RealmAwareZkConnectionConfig validZkConnectionConfig =
-        connectionConfigBuilder
-            .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT)
-            .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
-            .setZkRealmShardingKey("/" + clusterName).build();
-    HelixManagerProperty.Builder propertyBuilder = new HelixManagerProperty.Builder();
-
-    // create a dummy cloud config and pass to ManagerFactory. It should be overwrite by
-    // a default config because there is no CloudConfig ZNode in ZK.
-    CloudConfig.Builder cloudConfigBuilder = new CloudConfig.Builder();
-    cloudConfigBuilder.setCloudEnabled(true);
-    // Set to Customized so CloudInfoSources and CloudInfoProcessorName will be read from cloud config
-    // instead of properties
-    cloudConfigBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
-    cloudConfigBuilder.setCloudID("TestID");
-    List<String> infoURL = new ArrayList<String>();
-    infoURL.add("TestURL");
-    cloudConfigBuilder.setCloudInfoSources(infoURL);
-    cloudConfigBuilder.setCloudInfoProcessorName("TestProcessor");
-
-    CloudConfig cloudConfig = cloudConfigBuilder.build();
-    HelixCloudProperty oldCloudProperty = new HelixCloudProperty(cloudConfig);
-    HelixManagerProperty helixManagerProperty =
-        propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig)
-            .setHelixCloudProperty(oldCloudProperty).build();
-    // Cloud property populated with fields defined in cloud config
-    oldCloudProperty.populateFieldsWithCloudConfig(cloudConfig);
-    // Add some property fields to cloud property that are not in cloud config
-    Properties properties = new Properties();
-    oldCloudProperty.setCustomizedCloudProperties(properties);
-
-    class TestZKHelixManager extends ZKHelixManager {
-      public TestZKHelixManager(String clusterName, String participantName,
-          InstanceType instanceType, String zkAddress, HelixManagerStateListener stateListener,
-          HelixManagerProperty helixManagerProperty) {
-        super(clusterName, participantName, instanceType, zkAddress, stateListener,
-            helixManagerProperty);
-      }
-
-      public HelixManagerProperty getHelixManagerProperty() {
-        return _helixManagerProperty;
-      }
-    }
-    // Connect as a participant
-    TestZKHelixManager managerParticipant =
-        new TestZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null, null,
-            helixManagerProperty);
-    managerParticipant.connect();
-    HelixCloudProperty newCloudProperty =
-        managerParticipant.getHelixManagerProperty().getHelixCloudProperty();
-
-    // Test reading from zk cloud config overwrite property fields included in cloud config
-    Assert.assertFalse(newCloudProperty.getCloudEnabled());
-    Assert.assertNull(newCloudProperty.getCloudId());
-    Assert.assertNull(newCloudProperty.getCloudProvider());
-
-    // Test non-cloud config fields are not overwritten after reading cloud config from zk
-    Assert.assertEquals(newCloudProperty.getCustomizedCloudProperties(), properties);
-    Assert.assertEquals(newCloudProperty.getCloudInfoSources(), infoURL);
-    Assert.assertEquals(newCloudProperty.getCloudInfoProcessorName(), "TestProcessor");
-
-    // Clean up
-    managerParticipant.disconnect();
-    _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
+    super.testZKHelixManagerCloudConfig();
   }
 }

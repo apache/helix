@@ -92,7 +92,7 @@ import org.testng.annotations.Test;
  * cluster-Zk realm routing information.
  * This test verifies that all Helix Java APIs work as expected.
  */
-public abstract class TestMultiZkHelixJavaApis extends MultiZkTestBase {
+public class TestMultiZkHelixJavaApis extends MultiZkTestBase {
   // For testing different MSDS endpoint configs.
   private static final String CLUSTER_ONE = CLUSTER_LIST.get(0);
   private static final String CLUSTER_FOUR = "CLUSTER_4";

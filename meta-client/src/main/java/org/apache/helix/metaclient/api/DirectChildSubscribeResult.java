@@ -23,12 +23,16 @@ import java.util.List;
 
 
 public class DirectChildSubscribeResult {
+  // A list of direct children names at the time when change is subscribed.
+  // It includes only one level child name, does not include further sub children names.
   private final List<String> _children;
-  private final boolean _isInstalled;
 
-  public DirectChildSubscribeResult(List<String> children, boolean isInstalled) {
+  // true means the listener is registered successfully.
+  private final boolean _isRegistered;
+
+  public DirectChildSubscribeResult(List<String> children, boolean isRegistered) {
     _children = children;
-    _isInstalled = isInstalled;
+    _isRegistered = isRegistered;
   }
 
   public List<String> getDirectChildren() {
@@ -36,6 +40,6 @@ public class DirectChildSubscribeResult {
   }
 
   public boolean isInstalled() {
-    return _isInstalled;
+    return _isRegistered;
   }
 }

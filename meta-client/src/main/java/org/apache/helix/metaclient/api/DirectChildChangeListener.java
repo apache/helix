@@ -28,7 +28,8 @@ package org.apache.helix.metaclient.api;
 public interface DirectChildChangeListener {
    /**
     * Called when there is a direct child entry creation or deleted.
-    * @param key The parent key where child change listener is subscribed.
+    * @param key The parent key where child change listener is subscribed. It would be the key
+    *            passed to subscribeDirectChildChange.
     * @throws Exception
     */
    void handleDirectChildChange(String key) throws Exception;

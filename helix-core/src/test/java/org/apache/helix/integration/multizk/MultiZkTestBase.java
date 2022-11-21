@@ -46,8 +46,7 @@ public class MultiZkTestBase {
     protected static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
     protected static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();
     protected static final Map<String, ClusterControllerManager> MOCK_CONTROLLERS = new HashMap<>();
-    protected static final Set<MockParticipantManager> MOCK_PARTICIPANTS = new HashSet<>();
-    protected static final Set<MockParticipantManager> MOCK_PARTICIPANTS_JAVA_API = new HashSet<>();
+    protected final Set<MockParticipantManager> MOCK_PARTICIPANTS = new HashSet<>();
     protected static final List<String> CLUSTER_LIST =
             ImmutableList.of("CLUSTER_1", "CLUSTER_2", "CLUSTER_3");
 
@@ -123,8 +122,8 @@ public class MultiZkTestBase {
                 });
             }
 
-            if (!MOCK_PARTICIPANTS_JAVA_API.isEmpty()) {
-                MOCK_PARTICIPANTS_JAVA_API.forEach(mockParticipantManager -> {
+            if (!MOCK_PARTICIPANTS.isEmpty()) {
+                MOCK_PARTICIPANTS.forEach(mockParticipantManager -> {
                     mockParticipantManager.syncStop();
                     StateMachineEngine stateMachine = mockParticipantManager.getStateMachineEngine();
                     if (stateMachine != null) {

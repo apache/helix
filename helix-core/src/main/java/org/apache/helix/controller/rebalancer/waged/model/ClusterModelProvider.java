@@ -52,6 +52,7 @@ public class ClusterModelProvider {
     // Set the rebalance scope to cover all replicas that need relocation based on the cluster
     // changes.
     GLOBAL_BASELINE,
+    // Set the rebalance scope to cover only replicas that are assigned to downed instances.
     EMERGENCY
   }
 

@@ -233,11 +233,11 @@ public class AssignmentMetadataStore {
     return oldAssignment != null && oldAssignment.equals(newAssignment);
   }
 
-  protected boolean compareBaseline(Map<String, ResourceAssignment> newBaseline) {
+  protected boolean isBaselineChanged(Map<String, ResourceAssignment> newBaseline) {
     return compareAssignments(getBaseline(), newBaseline);
   }
 
-  protected boolean compareBestPossibleAssignment(Map<String, ResourceAssignment> newBaseline) {
+  protected boolean isBestPossibleChanged(Map<String, ResourceAssignment> newBaseline) {
     return compareAssignments(getBestPossibleAssignment(), newBaseline);
   }
 }

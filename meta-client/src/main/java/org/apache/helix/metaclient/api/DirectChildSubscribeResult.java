@@ -39,7 +39,7 @@ public class DirectChildSubscribeResult {
     return _children;
   }
 
-  public boolean isInstalled() {
+  public boolean isRegistered() {
     return _isRegistered;
   }
 }

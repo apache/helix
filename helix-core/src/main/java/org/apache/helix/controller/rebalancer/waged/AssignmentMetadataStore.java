@@ -45,11 +45,12 @@ public class AssignmentMetadataStore {
   private static final String BEST_POSSIBLE_KEY = "BEST_POSSIBLE";
   private static final ZkSerializer SERIALIZER = new ZNRecordJacksonSerializer();
 
-  private BucketDataAccessor _dataAccessor;
-  private String _baselinePath;
-  private String _bestPossiblePath;
-  protected Map<String, ResourceAssignment> _globalBaseline;
-  protected Map<String, ResourceAssignment> _bestPossibleAssignment;
+  private final BucketDataAccessor _dataAccessor;
+  private final String _baselinePath;
+  private final String _bestPossiblePath;
+  // volatile for double-checked locking
+  protected volatile Map<String, ResourceAssignment> _globalBaseline;
+  protected volatile Map<String, ResourceAssignment> _bestPossibleAssignment;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
@@ -61,34 +62,40 @@ public class AssignmentMetadataStore {
     _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
   }
 
-  public synchronized Map<String, ResourceAssignment> getBaseline() {
+  public Map<String, ResourceAssignment> getBaseline() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_globalBaseline == null) {
-      try {
-        HelixProperty baseline =
-            _dataAccessor.compressedBucketRead(_baselinePath, HelixProperty.class);
-        _globalBaseline = splitAssignments(baseline);
-      } catch (ZkNoNodeException ex) {
-        // Metadata does not exist, so return an empty map
-        _globalBaseline = new HashMap<>();
+      // double-checked locking
+      synchronized (this) {
+        if (_globalBaseline == null) {
+          _globalBaseline = fetchAssignmentOrDefault(_baselinePath);
+        }
       }
     }
     return _globalBaseline;
   }
 
-  public synchronized Map<String, ResourceAssignment> getBestPossibleAssignment() {
+  public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_bestPossibleAssignment == null) {
-      try {
-        HelixProperty baseline =
-            _dataAccessor.compressedBucketRead(_bestPossiblePath, HelixProperty.class);
-        _bestPossibleAssignment = splitAssignments(baseline);
-      } catch (ZkNoNodeException ex) {
-        // Metadata does not exist, so return an empty map
-        _bestPossibleAssignment = new HashMap<>();
+      // double-checked locking
+      synchronized (this) {
+        if (_bestPossibleAssignment == null) {
+          _bestPossibleAssignment = fetchAssignmentOrDefault(_bestPossiblePath);
+        }
       }
     }
     return _bestPossibleAssignment;
+  }
+
+  private Map<String, ResourceAssignment> fetchAssignmentOrDefault(String path) {
+    try {
+      HelixProperty assignment = _dataAccessor.compressedBucketRead(path, HelixProperty.class);
+      return splitAssignments(assignment);
+    } catch (ZkNoNodeException ex) {
+      // Metadata does not exist, so return an empty map
+      return new HashMap<>();
+    }
   }
 
   /**

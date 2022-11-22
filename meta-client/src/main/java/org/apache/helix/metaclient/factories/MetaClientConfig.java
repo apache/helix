@@ -19,6 +19,8 @@ package org.apache.helix.metaclient.factories;
  * under the License.
  */
 
+import org.apache.helix.metaclient.constants.MetaClientConstants;
+
 class MetaClientConfig {
 
   public enum StoreType {
@@ -26,16 +28,28 @@ class MetaClientConfig {
   }
 
   private final String _connectionAddress;
-  private final long _connectionTimeout;
+  // Wait for init timeout time until connection is initiated
+  private final long _connectionInitTimeout;
+
+  // When a client becomes partitioned from the metadata service for more than session timeout,
+  // new session will be established.
+  private final long _sessionTimeout;
+
   private final boolean _enableAuth;
   private final StoreType _storeType;
+
+  // Monitoring
+  protected String _monitorType;
+  protected String _monitorKey;
+  protected String _monitorInstanceName = null;
+  protected boolean _monitorRootPathOnly = true;
 
   public String getConnectionAddress() {
     return _connectionAddress;
   }
 
-  public long getConnectionTimeout() {
-    return _connectionTimeout;
+  public long getConnectionInitTimeout() {
+    return _connectionInitTimeout;
   }
 
   public boolean isAuthEnabled() {
@@ -45,6 +59,27 @@ class MetaClientConfig {
   public StoreType getStoreType() {
     return _storeType;
   }
+
+  public long getSessionTimeout() {
+    return _sessionTimeout;
+  }
+
+  public String getMonitorType() {
+    return _monitorType;
+  }
+
+  public String getMonitorKey() {
+    return _monitorKey;
+  }
+
+  public String getMonitorInstanceName() {
+    return _monitorInstanceName;
+  }
+
+  public boolean getMonitorRootPathOnly() {
+    return _monitorRootPathOnly;
+  }
+
 
   // TODO: More options to add later
   // private boolean _autoReRegistWatcher;  // re-register one time watcher when set to true
@@ -56,56 +91,130 @@ class MetaClientConfig {
   //  private RetryProtocol _retryProtocol;
 
 
-  private MetaClientConfig(String connectionAddress, long connectionTimeout, boolean enableAuth,
-      StoreType storeType) {
+  protected MetaClientConfig(String connectionAddress, long connectionInitTimeout,
+      long sessionTimeout, boolean enableAuth, StoreType storeType, String monitorType,
+      String monitorKey, String monitorInstanceName, boolean monitorRootPathOnly) {
     _connectionAddress = connectionAddress;
-    _connectionTimeout = connectionTimeout;
+    _connectionInitTimeout = connectionInitTimeout;
+    _sessionTimeout = sessionTimeout;
     _enableAuth = enableAuth;
     _storeType = storeType;
+    _monitorType = monitorType;
+    _monitorKey = monitorKey;
+    _monitorInstanceName = monitorInstanceName;
+    _monitorRootPathOnly = monitorRootPathOnly;
   }
 
-  public static class Builder {
-    private String _connectionAddress;
+  public static class MetaClientConfigBuilder<B extends MetaClientConfigBuilder<B>> {
+    protected String _connectionAddress;
 
-    private long _connectionTimeout;
-    private boolean _enableAuth;
-    //private RetryProtocol _retryProtocol;
-    private StoreType _storeType;
+    protected long _connectionInitTimeout;
+    protected long _sessionTimeout;
+    // protected long _operationRetryTimeout;
+    // protected RetryProtocol _retryProtocol;
+    protected boolean _enableAuth;
+    protected StoreType _storeType;
 
-
+    // Monitoring
+    protected String _monitorType;
+    protected String _monitorKey;
+    protected String _monitorInstanceName = null;
+    protected boolean _monitorRootPathOnly = true;
 
     public MetaClientConfig build() {
       validate();
-      return new MetaClientConfig(_connectionAddress, _connectionTimeout, _enableAuth, _storeType);
+      return new MetaClientConfig(_connectionAddress, _connectionInitTimeout, _sessionTimeout,
+          _enableAuth, _storeType, _monitorType, _monitorKey, _monitorInstanceName,
+          _monitorRootPathOnly);
     }
 
-    public Builder() {
+    public MetaClientConfigBuilder() {
       // set default values
       setAuthEnabled(false);
-      setConnectionTimeout(-1);
+      setConnectionInitTimeout(MetaClientConstants.DEFAULT_CONNECTION_INIT_TIMEOUT);
     }
 
-    public Builder setConnectionAddress(String connectionAddress) {
+    /**
+     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
+     *
+     * @param monitorType
+     */
+    public B setMonitorType(String monitorType) {
+      this._monitorType = monitorType;
+      return self();
+    }
+
+    /**
+     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
+     *
+     * @param monitorKey
+     */
+    public B setMonitorKey(String monitorKey) {
+      this._monitorKey = monitorKey;
+      return self();
+    }
+
+    /**
+     * Used as part of the MBean ObjectName. This item is optional.
+     *
+     * @param instanceName
+     */
+    public B setMonitorInstanceName(String instanceName) {
+      this._monitorInstanceName = instanceName;
+      return self();
+    }
+
+    public B setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
+      this._monitorRootPathOnly = monitorRootPathOnly;
+      return self();
+    }
+
+    public B setConnectionAddress(String connectionAddress) {
       _connectionAddress = connectionAddress;
-      return this;
+      return self();
     }
 
-    public Builder setAuthEnabled(Boolean enableAuth) {
+    public B setAuthEnabled(Boolean enableAuth) {
       _enableAuth = enableAuth;
-      return this;
+      return self();
     }
 
-    public Builder setConnectionTimeout(long timeout) {
-      _connectionTimeout = timeout;
-      return this;
+    /**
+     *
+     * @param timeout
+     * @return
+     */
+    public B setConnectionInitTimeout(long timeout) {
+      _connectionInitTimeout = timeout;
+      return self();
     }
 
-    public Builder setStoreType(StoreType storeType) {
+    /**
+     *
+     * @param timeout
+     * @return
+     */
+    public B setSessionTimeout(long timeout) {
+      _sessionTimeout = timeout;
+      return self();
+    }
+
+    public B setStoreType(StoreType storeType) {
       _storeType = storeType;
-      return this;
+      return self();
     }
 
-    private void validate() {
+    // public B setOperationRetryTimeout(long timeout) {
+    //   _operationRetryTimeout = timeout;
+    //   return self();
+    // }
+
+    @SuppressWarnings("unchecked")
+    final B self() {
+      return (B) this;
+    }
+
+    protected void validate() {
       if (_storeType == null || _connectionAddress == null) {
         throw new IllegalArgumentException(
             "MetaClientConfig.Builder: store type or connection string is null");

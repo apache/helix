@@ -21,7 +21,7 @@ package org.apache.helix.metaclient.factories;
 
 import org.apache.helix.metaclient.constants.MetaClientConstants;
 
-class MetaClientConfig {
+public class MetaClientConfig {
 
   public enum StoreType {
     ZOOKEEPER, ETCD, CUSTOMIZED
@@ -32,7 +32,7 @@ class MetaClientConfig {
   private final long _connectionInitTimeout;
 
   // When a client becomes partitioned from the metadata service for more than session timeout,
-  // new session will be established.
+  // new session will be established when reconnect.
   private final long _sessionTimeout;
 
   private final boolean _enableAuth;
@@ -203,11 +203,6 @@ class MetaClientConfig {
       _storeType = storeType;
       return self();
     }
-
-    // public B setOperationRetryTimeout(long timeout) {
-    //   _operationRetryTimeout = timeout;
-    //   return self();
-    // }
 
     @SuppressWarnings("unchecked")
     final B self() {

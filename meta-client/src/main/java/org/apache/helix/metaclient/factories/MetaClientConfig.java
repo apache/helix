@@ -28,6 +28,7 @@ public class MetaClientConfig {
   }
 
   private final String _connectionAddress;
+
   // Wait for init timeout time until connection is initiated
   private final long _connectionInitTimeout;
 
@@ -37,12 +38,6 @@ public class MetaClientConfig {
 
   private final boolean _enableAuth;
   private final StoreType _storeType;
-
-  // Monitoring
-  protected String _monitorType;
-  protected String _monitorKey;
-  protected String _monitorInstanceName = null;
-  protected boolean _monitorRootPathOnly = true;
 
   public String getConnectionAddress() {
     return _connectionAddress;
@@ -64,23 +59,6 @@ public class MetaClientConfig {
     return _sessionTimeout;
   }
 
-  public String getMonitorType() {
-    return _monitorType;
-  }
-
-  public String getMonitorKey() {
-    return _monitorKey;
-  }
-
-  public String getMonitorInstanceName() {
-    return _monitorInstanceName;
-  }
-
-  public boolean getMonitorRootPathOnly() {
-    return _monitorRootPathOnly;
-  }
-
-
   // TODO: More options to add later
   // private boolean _autoReRegistWatcher;  // re-register one time watcher when set to true
   // private boolean _resetWatchWhenReConnect; // re-register previous existing watcher when reconnect
@@ -92,17 +70,12 @@ public class MetaClientConfig {
 
 
   protected MetaClientConfig(String connectionAddress, long connectionInitTimeout,
-      long sessionTimeout, boolean enableAuth, StoreType storeType, String monitorType,
-      String monitorKey, String monitorInstanceName, boolean monitorRootPathOnly) {
+      long sessionTimeout, boolean enableAuth, StoreType storeType) {
     _connectionAddress = connectionAddress;
     _connectionInitTimeout = connectionInitTimeout;
     _sessionTimeout = sessionTimeout;
     _enableAuth = enableAuth;
     _storeType = storeType;
-    _monitorType = monitorType;
-    _monitorKey = monitorKey;
-    _monitorInstanceName = monitorInstanceName;
-    _monitorRootPathOnly = monitorRootPathOnly;
   }
 
   public static class MetaClientConfigBuilder<B extends MetaClientConfigBuilder<B>> {
@@ -115,58 +88,18 @@ public class MetaClientConfig {
     protected boolean _enableAuth;
     protected StoreType _storeType;
 
-    // Monitoring
-    protected String _monitorType;
-    protected String _monitorKey;
-    protected String _monitorInstanceName = null;
-    protected boolean _monitorRootPathOnly = true;
 
     public MetaClientConfig build() {
       validate();
       return new MetaClientConfig(_connectionAddress, _connectionInitTimeout, _sessionTimeout,
-          _enableAuth, _storeType, _monitorType, _monitorKey, _monitorInstanceName,
-          _monitorRootPathOnly);
+          _enableAuth, _storeType);
     }
 
     public MetaClientConfigBuilder() {
       // set default values
       setAuthEnabled(false);
       setConnectionInitTimeout(MetaClientConstants.DEFAULT_CONNECTION_INIT_TIMEOUT);
-    }
-
-    /**
-     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
-     *
-     * @param monitorType
-     */
-    public B setMonitorType(String monitorType) {
-      this._monitorType = monitorType;
-      return self();
-    }
-
-    /**
-     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
-     *
-     * @param monitorKey
-     */
-    public B setMonitorKey(String monitorKey) {
-      this._monitorKey = monitorKey;
-      return self();
-    }
-
-    /**
-     * Used as part of the MBean ObjectName. This item is optional.
-     *
-     * @param instanceName
-     */
-    public B setMonitorInstanceName(String instanceName) {
-      this._monitorInstanceName = instanceName;
-      return self();
-    }
-
-    public B setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
-      this._monitorRootPathOnly = monitorRootPathOnly;
-      return self();
+      setSessionTimeout(MetaClientConstants.DEFAULT_SESSION_TIMEOUT);
     }
 
     public B setConnectionAddress(String connectionAddress) {
@@ -180,7 +113,7 @@ public class MetaClientConfig {
     }
 
     /**
-     *
+     * Set timeout in mm for connection initialization timeout
      * @param timeout
      * @return
      */
@@ -190,7 +123,8 @@ public class MetaClientConfig {
     }
 
     /**
-     *
+     * Set timeout in mm for session timeout. When a client becomes partitioned from the metadata
+     * service for more than session timeout, new session will be established.
      * @param timeout
      * @return
      */

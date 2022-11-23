@@ -38,12 +38,12 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 
 public class ZkMetaClient implements MetaClientInterface {
 
-  private ZkClient _zkClient;
+  private final ZkClient _zkClient;
 
   public ZkMetaClient(ZkMetaClientConfig config) {
     _zkClient =  new ZkClient(new ZkConnection(config.getConnectionAddress(),
-        (int) config.getSessionTimeout()),
-        (int) config.getConnectionInitTimeout(), -1 /*operationRetryTimeout*/,
+        (int) config.getSessionTimeoutInMillis()),
+        (int) config.getConnectionInitTimeoutInMillis(), -1 /*operationRetryTimeout*/,
         config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
         config.getMonitorInstanceName(), config.getMonitorRootPathOnly());
   }

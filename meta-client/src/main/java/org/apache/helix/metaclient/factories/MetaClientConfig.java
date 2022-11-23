@@ -30,11 +30,11 @@ public class MetaClientConfig {
   private final String _connectionAddress;
 
   // Wait for init timeout time until connection is initiated
-  private final long _connectionInitTimeout;
+  private final long _connectionInitTimeoutInMillis;
 
   // When a client becomes partitioned from the metadata service for more than session timeout,
   // new session will be established when reconnect.
-  private final long _sessionTimeout;
+  private final long _sessionTimeoutInMillis;
 
   private final boolean _enableAuth;
   private final StoreType _storeType;
@@ -43,8 +43,8 @@ public class MetaClientConfig {
     return _connectionAddress;
   }
 
-  public long getConnectionInitTimeout() {
-    return _connectionInitTimeout;
+  public long getConnectionInitTimeoutInMillis() {
+    return _connectionInitTimeoutInMillis;
   }
 
   public boolean isAuthEnabled() {
@@ -55,8 +55,8 @@ public class MetaClientConfig {
     return _storeType;
   }
 
-  public long getSessionTimeout() {
-    return _sessionTimeout;
+  public long getSessionTimeoutInMillis() {
+    return _sessionTimeoutInMillis;
   }
 
   // TODO: More options to add later
@@ -69,11 +69,11 @@ public class MetaClientConfig {
   //  private RetryProtocol _retryProtocol;
 
 
-  protected MetaClientConfig(String connectionAddress, long connectionInitTimeout,
-      long sessionTimeout, boolean enableAuth, StoreType storeType) {
+  protected MetaClientConfig(String connectionAddress, long connectionInitTimeoutInMillis,
+      long sessionTimeoutInMillis, boolean enableAuth, StoreType storeType) {
     _connectionAddress = connectionAddress;
-    _connectionInitTimeout = connectionInitTimeout;
-    _sessionTimeout = sessionTimeout;
+    _connectionInitTimeoutInMillis = connectionInitTimeoutInMillis;
+    _sessionTimeoutInMillis = sessionTimeoutInMillis;
     _enableAuth = enableAuth;
     _storeType = storeType;
   }
@@ -81,8 +81,8 @@ public class MetaClientConfig {
   public static class MetaClientConfigBuilder<B extends MetaClientConfigBuilder<B>> {
     protected String _connectionAddress;
 
-    protected long _connectionInitTimeout;
-    protected long _sessionTimeout;
+    protected long _connectionInitTimeoutInMillis;
+    protected long _sessionTimeoutInMillis;
     // protected long _operationRetryTimeout;
     // protected RetryProtocol _retryProtocol;
     protected boolean _enableAuth;
@@ -91,15 +91,16 @@ public class MetaClientConfig {
 
     public MetaClientConfig build() {
       validate();
-      return new MetaClientConfig(_connectionAddress, _connectionInitTimeout, _sessionTimeout,
+      return new MetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
+          _sessionTimeoutInMillis,
           _enableAuth, _storeType);
     }
 
     public MetaClientConfigBuilder() {
       // set default values
       setAuthEnabled(false);
-      setConnectionInitTimeout(MetaClientConstants.DEFAULT_CONNECTION_INIT_TIMEOUT);
-      setSessionTimeout(MetaClientConstants.DEFAULT_SESSION_TIMEOUT);
+      setConnectionInitTimeoutInMillis(MetaClientConstants.DEFAULT_CONNECTION_INIT_TIMEOUT_MS);
+      setSessionTimeoutInMillis(MetaClientConstants.DEFAULT_SESSION_TIMEOUT_MS);
     }
 
     public B setConnectionAddress(String connectionAddress) {
@@ -117,8 +118,8 @@ public class MetaClientConfig {
      * @param timeout
      * @return
      */
-    public B setConnectionInitTimeout(long timeout) {
-      _connectionInitTimeout = timeout;
+    public B setConnectionInitTimeoutInMillis(long timeout) {
+      _connectionInitTimeoutInMillis = timeout;
       return self();
     }
 
@@ -128,8 +129,8 @@ public class MetaClientConfig {
      * @param timeout
      * @return
      */
-    public B setSessionTimeout(long timeout) {
-      _sessionTimeout = timeout;
+    public B setSessionTimeoutInMillis(long timeout) {
+      _sessionTimeoutInMillis = timeout;
       return self();
     }
 

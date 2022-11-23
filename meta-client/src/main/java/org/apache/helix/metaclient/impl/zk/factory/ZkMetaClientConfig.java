@@ -1,5 +1,24 @@
 package org.apache.helix.metaclient.impl.zk.factory;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
@@ -9,21 +28,18 @@ import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 public class ZkMetaClientConfig extends MetaClientConfig {
 
-  protected PathBasedZkSerializer _zkSerializer;
+  protected final PathBasedZkSerializer _zkSerializer;
 
   // Monitoring related fields. MBean names are crated using following variables in format of
   // MonitorPrefix_monitorType_monitorKey_monitorInstanceName, where _monitorInstanceName is optional
   // TODO: right now all zkClient mBean object has prefix `HelixZkClient` had coded. We should change
   // it to a configurable name.
-  protected String _monitorType;
-  protected String _monitorKey;
-  protected String _monitorInstanceName = null;
-  protected boolean _monitorRootPathOnly = true;
+  protected final String _monitorType;
+  protected final String _monitorKey;
+  protected final String _monitorInstanceName;
+  protected final boolean _monitorRootPathOnly;
 
   public PathBasedZkSerializer getZkSerializer() {
-    if (_zkSerializer == null) {
-      _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
-    }
     return _zkSerializer;
   }
 
@@ -43,13 +59,13 @@ public class ZkMetaClientConfig extends MetaClientConfig {
     return _monitorRootPathOnly;
   }
 
-  protected ZkMetaClientConfig(String connectionAddress, long connectionInitTimeout,
-      long sessionTimeout, boolean enableAuth, StoreType storeType, String monitorType,
-      String monitorKey, String monitorInstanceName, boolean monitorRootPathOnly,PathBasedZkSerializer zkSerializer
-      ) {
-    super(connectionAddress, connectionInitTimeout, sessionTimeout, enableAuth,
+  protected ZkMetaClientConfig(String connectionAddress, long connectionInitTimeoutInMillis,
+      long sessionTimeoutInMillis, boolean enableAuth, StoreType storeType, String monitorType,
+      String monitorKey, String monitorInstanceName, boolean monitorRootPathOnly,
+      PathBasedZkSerializer zkSerializer) {
+    super(connectionAddress, connectionInitTimeoutInMillis, sessionTimeoutInMillis, enableAuth,
         storeType);
-   _zkSerializer = zkSerializer;
+    _zkSerializer = zkSerializer;
     _monitorType = monitorType;
     _monitorKey = monitorKey;
     _monitorInstanceName = monitorInstanceName;
@@ -113,8 +129,11 @@ public class ZkMetaClientConfig extends MetaClientConfig {
 
     @Override
     public MetaClientConfig build() {
-      return new ZkMetaClientConfig(_connectionAddress, _connectionInitTimeout, _sessionTimeout,
-           _enableAuth, MetaClientConfig.StoreType.ZOOKEEPER, _monitorType,
+      if (_zkSerializer == null) {
+        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
+      }
+      return new ZkMetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
+          _sessionTimeoutInMillis, _enableAuth, MetaClientConfig.StoreType.ZOOKEEPER, _monitorType,
           _monitorKey, _monitorInstanceName, _monitorRootPathOnly, _zkSerializer);
     }
 

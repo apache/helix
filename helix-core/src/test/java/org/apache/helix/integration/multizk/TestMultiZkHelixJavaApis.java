@@ -92,8 +92,8 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     RoutingDataManager.getInstance().reset();
     // Create a FederatedZkClient for admin work
     _zkClient =
-            new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
-                    new RealmAwareZkClient.RealmAwareZkClientConfig());
+        new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+            new RealmAwareZkClient.RealmAwareZkClientConfig());
   }
 
   @Override
@@ -107,7 +107,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
   @Override
   protected void createZkConnectionConfigs(String clusterName) {
     RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
     // Try with a connection config without ZK realm sharding key set (should fail)
     _invalidZkConnectionConfig = connectionConfigBuilder.build();
     _validZkConnectionConfig = connectionConfigBuilder.setZkRealmShardingKey("/" + clusterName).build();
@@ -118,7 +118,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
   public void testZkUtil() {
     CLUSTER_LIST.forEach(cluster -> {
       _zkHelixAdmin.getInstancesInCluster(cluster).forEach(instance -> ZKUtil
-              .isInstanceSetup("DummyZk", cluster, instance, InstanceType.PARTICIPANT));
+          .isInstanceSetup("DummyZk", cluster, instance, InstanceType.PARTICIPANT));
     });
   }
 
@@ -132,7 +132,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
   public void testCreateAndRebalanceResources() {
     BaseDataAccessor<ZNRecord> dataAccessorZkAddr = new ZkBaseDataAccessor<>("DummyZk");
     BaseDataAccessor<ZNRecord> dataAccessorBuilder =
-            new ZkBaseDataAccessor.Builder<ZNRecord>().build();
+        new ZkBaseDataAccessor.Builder<ZNRecord>().build();
 
     String resourceNamePrefix = "DB_";
     int numResources = 5;
@@ -142,12 +142,12 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     for (String cluster : CLUSTER_LIST) {
       Set<String> resourceNames = new HashSet<>();
       Set<String> liveInstancesNames = new HashSet<>(dataAccessorZkAddr
-              .getChildNames("/" + cluster + "/LIVEINSTANCES", AccessOption.PERSISTENT));
+          .getChildNames("/" + cluster + "/LIVEINSTANCES", AccessOption.PERSISTENT));
 
       for (int i = 0; i < numResources; i++) {
         String resource = cluster + "_" + resourceNamePrefix + i;
         _zkHelixAdmin.addResource(cluster, resource, numPartitions, "MasterSlave",
-                IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
+            IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
         _zkHelixAdmin.rebalance(cluster, resource, 3);
         resourceNames.add(resource);
 
@@ -155,19 +155,19 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
         String resourcePath = "/" + cluster + "/IDEALSTATES/" + resource;
         ZNRecord is = dataAccessorZkAddr.get(resourcePath, null, AccessOption.PERSISTENT);
         is.setSimpleField(RebalanceConfig.RebalanceConfigProperty.REBALANCER_CLASS_NAME.name(),
-                DelayedAutoRebalancer.class.getName());
+            DelayedAutoRebalancer.class.getName());
         is.setSimpleField(RebalanceConfig.RebalanceConfigProperty.REBALANCE_STRATEGY.name(),
-                CrushEdRebalanceStrategy.class.getName());
+            CrushEdRebalanceStrategy.class.getName());
         dataAccessorZkAddr.set(resourcePath, is, AccessOption.PERSISTENT);
         idealStateMap.computeIfAbsent(cluster, recordList -> new HashMap<>())
-                .putIfAbsent(is.getId(), is); // Save ZNRecord for comparison later
+            .putIfAbsent(is.getId(), is); // Save ZNRecord for comparison later
       }
 
       // Create a verifier to make sure all resources have been rebalanced
       ZkHelixClusterVerifier verifier =
-              new BestPossibleExternalViewVerifier.Builder(cluster).setResources(resourceNames)
-                      .setExpectLiveInstances(liveInstancesNames)
-                      .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
+          new BestPossibleExternalViewVerifier.Builder(cluster).setResources(resourceNames)
+              .setExpectLiveInstances(liveInstancesNames)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
       try {
         Assert.assertTrue(verifier.verifyByPolling());
       } finally {
@@ -179,12 +179,12 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     for (String cluster : CLUSTER_LIST) {
       Map<String, ZNRecord> savedIdealStates = idealStateMap.get(cluster);
       List<String> resources = dataAccessorBuilder
-              .getChildNames("/" + cluster + "/IDEALSTATES", AccessOption.PERSISTENT);
+          .getChildNames("/" + cluster + "/IDEALSTATES", AccessOption.PERSISTENT);
       resources.forEach(resource -> {
         ZNRecord is = dataAccessorBuilder
-                .get("/" + cluster + "/IDEALSTATES/" + resource, null, AccessOption.PERSISTENT);
+            .get("/" + cluster + "/IDEALSTATES/" + resource, null, AccessOption.PERSISTENT);
         Assert
-                .assertEquals(is.getSimpleFields(), savedIdealStates.get(is.getId()).getSimpleFields());
+            .assertEquals(is.getSimpleFields(), savedIdealStates.get(is.getId()).getSimpleFields());
       });
     }
 
@@ -220,13 +220,13 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
       // Now check with a single-realm ConfigAccessor
       ConfigAccessor configAccessorSingleZk =
-              new ConfigAccessor.Builder().setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-                      .setZkAddress(zkAddr).build();
+          new ConfigAccessor.Builder().setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+              .setZkAddress(zkAddr).build();
       Assert.assertEquals(configAccessorSingleZk.getClusterConfig(cluster), clusterConfig);
 
       // Also check with a single-realm dedicated ZkClient
       ZNRecord clusterConfigRecord =
-              ZK_CLIENT_MAP.get(zkAddr).readData("/" + cluster + "/CONFIGS/CLUSTER/" + cluster);
+          ZK_CLIENT_MAP.get(zkAddr).readData("/" + cluster + "/CONFIGS/CLUSTER/" + cluster);
       Assert.assertEquals(clusterConfigRecord, clusterConfig.getRecord());
 
       // Clean up
@@ -246,7 +246,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     // Create TaskDrivers for all clusters
     Map<String, TaskDriver> taskDriverMap = new HashMap<>();
     MOCK_CONTROLLERS
-            .forEach((cluster, controller) -> taskDriverMap.put(cluster, new TaskDriver(controller)));
+        .forEach((cluster, controller) -> taskDriverMap.put(cluster, new TaskDriver(controller)));
 
     // Create a Task Framework workload and start
     Workflow workflow = WorkflowGenerator.generateNonTargetedSingleWorkflowBuilder("job").build();
@@ -256,17 +256,17 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     // Use multi-ZK ZkHelixPropertyStore/ZkCacheBaseDataAccessor to query for workflow/job states
     HelixPropertyStore<ZNRecord> propertyStore =
-            new ZkHelixPropertyStore.Builder<ZNRecord>().build();
+        new ZkHelixPropertyStore.Builder<ZNRecord>().build();
     for (Map.Entry<String, TaskDriver> entry : taskDriverMap.entrySet()) {
       String cluster = entry.getKey();
       TaskDriver driver = entry.getValue();
       // Wait until workflow has completed
       TaskState wfStateFromTaskDriver =
-              driver.pollForWorkflowState(workflow.getName(), TaskState.COMPLETED);
+          driver.pollForWorkflowState(workflow.getName(), TaskState.COMPLETED);
       String workflowContextPath =
-              "/" + cluster + "/PROPERTYSTORE/TaskRebalancer/" + workflow.getName() + "/Context";
+          "/" + cluster + "/PROPERTYSTORE/TaskRebalancer/" + workflow.getName() + "/Context";
       ZNRecord workflowContextRecord =
-              propertyStore.get(workflowContextPath, null, AccessOption.PERSISTENT);
+          propertyStore.get(workflowContextPath, null, AccessOption.PERSISTENT);
       WorkflowContext context = new WorkflowContext(workflowContextRecord);
 
       // Compare the workflow state read from PropertyStore and TaskDriver
@@ -309,96 +309,96 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     String firstClusterPath = "/CLUSTER_1";
     String secondClusterPath = "/CLUSTER_2";
     ZkBaseDataAccessor.Builder<ZNRecord> zkBaseDataAccessorBuilder =
-            new ZkBaseDataAccessor.Builder<>();
+        new ZkBaseDataAccessor.Builder<>();
     RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
     connectionConfigBuilder.setSessionTimeout(customSessionTimeout);
     BaseDataAccessor<ZNRecord> accessor;
 
     // Create ZkBaseDataAccessor, single-realm, dedicated ZkClient, ZK address set
     int currentSharedZkClientActiveConnectionCount =
-            SharedZkClientFactory.getInstance().getActiveConnectionCount();
+        SharedZkClientFactory.getInstance().getActiveConnectionCount();
     accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkClientType(ZkClientType.DEDICATED).setZkAddress(firstZkAddress)
-            .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+        .setZkClientType(ZkClientType.DEDICATED).setZkAddress(firstZkAddress)
+        .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertFalse(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     // Check that no extra connection has been created
     Assert.assertEquals(SharedZkClientFactory.getInstance().getActiveConnectionCount(),
-            currentSharedZkClientActiveConnectionCount);
+        currentSharedZkClientActiveConnectionCount);
     accessor.close();
 
     // Create ZkBaseDataAccessor, single-realm, dedicated ZkClient, ZK address not set, ZK sharding key set
     connectionConfigBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkRealmShardingKey(firstClusterPath);
+        .setZkRealmShardingKey(firstClusterPath);
     accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkClientType(ZkClientType.DEDICATED).setZkAddress(null)
-            .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+        .setZkClientType(ZkClientType.DEDICATED).setZkAddress(null)
+        .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertFalse(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     Assert.assertEquals(SharedZkClientFactory.getInstance().getActiveConnectionCount(),
-            currentSharedZkClientActiveConnectionCount);
+        currentSharedZkClientActiveConnectionCount);
     accessor.close();
 
     // Create ZkBaseDataAccessor, single-realm, dedicated ZkClient, ZK address set, ZK sharding key set (ZK addr should override)
     connectionConfigBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkRealmShardingKey(secondClusterPath);
+        .setZkRealmShardingKey(secondClusterPath);
     accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkClientType(ZkClientType.DEDICATED).setZkAddress(firstZkAddress)
-            .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+        .setZkClientType(ZkClientType.DEDICATED).setZkAddress(firstZkAddress)
+        .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertFalse(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     Assert.assertEquals(SharedZkClientFactory.getInstance().getActiveConnectionCount(),
-            currentSharedZkClientActiveConnectionCount);
+        currentSharedZkClientActiveConnectionCount);
     accessor.close();
 
     // Create ZkBaseDataAccessor, single-realm, sharedZkClient, ZK address set
     currentSharedZkClientActiveConnectionCount =
-            SharedZkClientFactory.getInstance().getActiveConnectionCount();
+        SharedZkClientFactory.getInstance().getActiveConnectionCount();
     connectionConfigBuilder.setZkRealmShardingKey(null).setRealmMode(null);
     accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkClientType(ZkClientType.SHARED).setZkAddress(firstZkAddress)
-            .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+        .setZkClientType(ZkClientType.SHARED).setZkAddress(firstZkAddress)
+        .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertFalse(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     // Add one to active connection count since this is a shared ZkClientType
     Assert.assertEquals(SharedZkClientFactory.getInstance().getActiveConnectionCount(),
-            currentSharedZkClientActiveConnectionCount + 1);
+        currentSharedZkClientActiveConnectionCount + 1);
     accessor.close();
 
     // Create ZkBaseDataAccessor, single-realm, sharedZkClient, ZK address not set, ZK sharding key set
     connectionConfigBuilder.setZkRealmShardingKey(firstClusterPath)
-            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
+        .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
     accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkClientType(ZkClientType.SHARED).setZkAddress(null)
-            .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+        .setZkClientType(ZkClientType.SHARED).setZkAddress(null)
+        .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertFalse(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     // Add one to active connection count since this is a shared ZkClientType
     Assert.assertEquals(SharedZkClientFactory.getInstance().getActiveConnectionCount(),
-            currentSharedZkClientActiveConnectionCount + 1);
+        currentSharedZkClientActiveConnectionCount + 1);
     accessor.close();
 
     // Create ZkBaseDataAccessor, single-realm, sharedZkClient, ZK address set, ZK sharding key set
     // (ZK address should override the sharding key setting)
     connectionConfigBuilder.setZkRealmShardingKey(secondClusterPath)
-            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
+        .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
     accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkClientType(ZkClientType.SHARED).setZkAddress(firstZkAddress)
-            .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+        .setZkClientType(ZkClientType.SHARED).setZkAddress(firstZkAddress)
+        .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertFalse(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     // Add one to active connection count since this is a shared ZkClientType
     Assert.assertEquals(SharedZkClientFactory.getInstance().getActiveConnectionCount(),
-            currentSharedZkClientActiveConnectionCount + 1);
+        currentSharedZkClientActiveConnectionCount + 1);
     accessor.close();
 
     // Create ZkBaseDataAccessor, single-realm, federated ZkClient (should fail)
     connectionConfigBuilder.setZkRealmShardingKey(null).setRealmMode(null);
     try {
       accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-              .setZkClientType(ZkClientType.FEDERATED).setZkAddress(firstZkAddress)
-              .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+          .setZkClientType(ZkClientType.FEDERATED).setZkAddress(firstZkAddress)
+          .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
       Assert.fail("SINGLE_REALM and FEDERATED ZkClientType are an invalid combination!");
     } catch (HelixException e) {
       // Expected
@@ -407,8 +407,8 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     // Create ZkBaseDataAccessor, multi-realm, dedicated ZkClient (should fail)
     try {
       accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.MULTI_REALM)
-              .setZkClientType(ZkClientType.DEDICATED).setZkAddress(firstZkAddress)
-              .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+          .setZkClientType(ZkClientType.DEDICATED).setZkAddress(firstZkAddress)
+          .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
       Assert.fail("MULTI_REALM and DEDICATED ZkClientType are an invalid combination!");
     } catch (HelixException e) {
       // Expected
@@ -417,8 +417,8 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     // Create ZkBaseDataAccessor, multi-realm, shared ZkClient (should fail)
     try {
       accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.MULTI_REALM)
-              .setZkClientType(ZkClientType.SHARED).setZkAddress(firstZkAddress)
-              .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+          .setZkClientType(ZkClientType.SHARED).setZkAddress(firstZkAddress)
+          .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
       Assert.fail("MULTI_REALM and SHARED ZkClientType are an invalid combination!");
     } catch (HelixException e) {
       // Expected
@@ -427,8 +427,8 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     // Create ZkBaseDataAccessor, multi-realm, federated ZkClient, ZkAddress set (should fail)
     try {
       accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.MULTI_REALM)
-              .setZkClientType(ZkClientType.FEDERATED).setZkAddress(firstZkAddress)
-              .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+          .setZkClientType(ZkClientType.FEDERATED).setZkAddress(firstZkAddress)
+          .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
       Assert.fail("MULTI_REALM and FEDERATED ZkClientType do not connect to one ZK!");
     } catch (HelixException e) {
       // Expected
@@ -438,10 +438,10 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     // because by definition, multi-realm can access multiple sharding keys)
     try {
       connectionConfigBuilder.setZkRealmShardingKey(firstClusterPath)
-              .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
+          .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
       accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.MULTI_REALM)
-              .setZkClientType(ZkClientType.FEDERATED).setZkAddress(null)
-              .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+          .setZkClientType(ZkClientType.FEDERATED).setZkAddress(null)
+          .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
       Assert.fail("MULTI_REALM and FEDERATED ZkClientType do not connect to one ZK!");
     } catch (HelixException e) {
       // Expected
@@ -450,8 +450,8 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     // Create ZkBaseDataAccessor, multi-realm, federated ZkClient
     connectionConfigBuilder.setZkRealmShardingKey(null).setRealmMode(null);
     accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.MULTI_REALM)
-            .setZkClientType(ZkClientType.FEDERATED).setZkAddress(null)
-            .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+        .setZkClientType(ZkClientType.FEDERATED).setZkAddress(null)
+        .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertTrue(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     accessor.close();
@@ -462,8 +462,8 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     connectionConfigBuilder.setZkRealmShardingKey("/NonexistentShardingKey");
     try {
       accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-              .setZkClientType(ZkClientType.DEDICATED).setZkAddress(null)
-              .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+          .setZkClientType(ZkClientType.DEDICATED).setZkAddress(null)
+          .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
       Assert.fail("Should fail because it cannot find a valid ZK to connect to!");
     } catch (NoSuchElementException e) {
       // Expected because the sharding key wouldn't be found
@@ -486,13 +486,13 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     System.out.println("Start " + methodName);
     final String zkAddress = ZK_SERVER_MAP.keySet().iterator().next();
     final Map<String, Collection<String>> secondRoutingData =
-            ImmutableMap.of(zkAddress, Collections.singletonList(formPath(CLUSTER_FOUR)));
+        ImmutableMap.of(zkAddress, Collections.singletonList(formPath(CLUSTER_FOUR)));
     MockMetadataStoreDirectoryServer secondMsds =
-            new MockMetadataStoreDirectoryServer("localhost", 11118, "multiZkTest", secondRoutingData);
+        new MockMetadataStoreDirectoryServer("localhost", 11118, "multiZkTest", secondRoutingData);
     final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name())
-                    .setRoutingDataSourceEndpoint(secondMsds.getEndpoint()).build();
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name())
+            .setRoutingDataSourceEndpoint(secondMsds.getEndpoint()).build();
     secondMsds.startServer();
 
     try {
@@ -515,7 +515,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
       verifyConfigAccessorMsdsEndpoint(connectionConfig);
     } finally {
       RealmAwareZkClient zkClient = new FederatedZkClient(connectionConfig,
-              new RealmAwareZkClient.RealmAwareZkClientConfig());
+           new RealmAwareZkClient.RealmAwareZkClientConfig());
       TestHelper.dropCluster(CLUSTER_FOUR, zkClient);
       zkClient.close();
       secondMsds.stopServer();
@@ -531,22 +531,22 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     // but not the other.
     final MockParticipantManager manager = MOCK_PARTICIPANTS.iterator().next();
     verifyMsdsZkRealm(CLUSTER_ONE, true,
-            () -> manager.getZkClient().exists(formPath(manager.getClusterName())));
+        () -> manager.getZkClient().exists(formPath(manager.getClusterName())));
     verifyMsdsZkRealm(CLUSTER_FOUR, false,
-            () -> manager.getZkClient().exists(formPath(CLUSTER_FOUR)));
+        () -> manager.getZkClient().exists(formPath(CLUSTER_FOUR)));
   }
 
   private void verifyBaseDataAccessorMsdsEndpoint(
-          RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
     System.out.println("Start " + TestHelper.getTestMethodName());
     // MSDS endpoint is not configured in builder, so config in system property is used.
     BaseDataAccessor<ZNRecord> firstDataAccessor =
-            new ZkBaseDataAccessor.Builder<ZNRecord>().build();
+        new ZkBaseDataAccessor.Builder<ZNRecord>().build();
 
     // Create base data accessor with MSDS endpoint configured in builder.
     BaseDataAccessor<ZNRecord> secondDataAccessor =
-            new ZkBaseDataAccessor.Builder<ZNRecord>().setRealmAwareZkConnectionConfig(connectionConfig)
-                    .build();
+        new ZkBaseDataAccessor.Builder<ZNRecord>().setRealmAwareZkConnectionConfig(connectionConfig)
+            .build();
 
     String methodName = TestHelper.getTestMethodName();
     String clusterOnePath = formPath(CLUSTER_ONE, methodName);
@@ -561,11 +561,11 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
       // either being set in builder or system property.
       Assert.assertTrue(firstDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
       verifyMsdsZkRealm(CLUSTER_FOUR, false,
-              () -> firstDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+          () -> firstDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
 
       Assert.assertTrue(secondDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
       verifyMsdsZkRealm(CLUSTER_ONE, false,
-              () -> secondDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
+          () -> secondDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
 
       firstDataAccessor.remove(clusterOnePath, AccessOption.PERSISTENT);
       secondDataAccessor.remove(clusterFourPath, AccessOption.PERSISTENT);
@@ -579,22 +579,22 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
   }
 
   private void verifyClusterSetupMsdsEndpoint(
-          RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
     System.out.println("Start " + TestHelper.getTestMethodName());
 
     ClusterSetup firstClusterSetup = new ClusterSetup.Builder().build();
     ClusterSetup secondClusterSetup =
-            new ClusterSetup.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
+        new ClusterSetup.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
 
     try {
       verifyMsdsZkRealm(CLUSTER_ONE, true, () -> firstClusterSetup.addCluster(CLUSTER_ONE, false));
       verifyMsdsZkRealm(CLUSTER_FOUR, false,
-              () -> firstClusterSetup.addCluster(CLUSTER_FOUR, false));
+          () -> firstClusterSetup.addCluster(CLUSTER_FOUR, false));
 
       verifyMsdsZkRealm(CLUSTER_FOUR, true,
-              () -> secondClusterSetup.addCluster(CLUSTER_FOUR, false));
+          () -> secondClusterSetup.addCluster(CLUSTER_FOUR, false));
       verifyMsdsZkRealm(CLUSTER_ONE, false,
-              () -> secondClusterSetup.addCluster(CLUSTER_ONE, false));
+          () -> secondClusterSetup.addCluster(CLUSTER_ONE, false));
     } finally {
       firstClusterSetup.close();
       secondClusterSetup.close();
@@ -607,29 +607,29 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     // MSDS endpoint 1
     verifyMsdsZkRealm(CLUSTER_ONE, true,
-            () -> ZKUtil.getChildren(dummyZkAddress, formPath(CLUSTER_ONE)));
+        () -> ZKUtil.getChildren(dummyZkAddress, formPath(CLUSTER_ONE)));
     // Verify MSDS endpoint 2 is not used by this ZKUtil.
     verifyMsdsZkRealm(CLUSTER_FOUR, false,
-            () -> ZKUtil.getChildren(dummyZkAddress, formPath(CLUSTER_FOUR)));
+        () -> ZKUtil.getChildren(dummyZkAddress, formPath(CLUSTER_FOUR)));
   }
 
   private void verifyHelixAdminMsdsEndpoint(
-          RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
     System.out.println("Start " + TestHelper.getTestMethodName());
 
     HelixAdmin firstHelixAdmin = new ZKHelixAdmin.Builder().build();
     HelixAdmin secondHelixAdmin =
-            new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
+        new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
 
     try {
       verifyMsdsZkRealm(CLUSTER_ONE, true, () -> firstHelixAdmin.enableCluster(CLUSTER_ONE, true));
       verifyMsdsZkRealm(CLUSTER_FOUR, false,
-              () -> firstHelixAdmin.enableCluster(CLUSTER_FOUR, true));
+          () -> firstHelixAdmin.enableCluster(CLUSTER_FOUR, true));
 
       verifyMsdsZkRealm(CLUSTER_FOUR, true,
-              () -> secondHelixAdmin.enableCluster(CLUSTER_FOUR, true));
+          () -> secondHelixAdmin.enableCluster(CLUSTER_FOUR, true));
       verifyMsdsZkRealm(CLUSTER_ONE, false,
-              () -> secondHelixAdmin.enableCluster(CLUSTER_ONE, true));
+          () -> secondHelixAdmin.enableCluster(CLUSTER_ONE, true));
     } finally {
       firstHelixAdmin.close();
       secondHelixAdmin.close();
@@ -637,7 +637,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
   }
 
   private void verifyConfigAccessorMsdsEndpoint(
-          RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
     System.out.println("Start " + TestHelper.getTestMethodName());
 
     ConfigAccessor firstConfigAccessor = new ConfigAccessor.Builder().build();
@@ -647,12 +647,12 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     try {
       verifyMsdsZkRealm(CLUSTER_ONE, true, () -> firstConfigAccessor.getClusterConfig(CLUSTER_ONE));
       verifyMsdsZkRealm(CLUSTER_FOUR, false,
-              () -> firstConfigAccessor.getClusterConfig(CLUSTER_FOUR));
+          () -> firstConfigAccessor.getClusterConfig(CLUSTER_FOUR));
 
       verifyMsdsZkRealm(CLUSTER_FOUR, true,
-              () -> secondConfigAccessor.getClusterConfig(CLUSTER_FOUR));
+          () -> secondConfigAccessor.getClusterConfig(CLUSTER_FOUR));
       verifyMsdsZkRealm(CLUSTER_ONE, false,
-              () -> secondConfigAccessor.getClusterConfig(CLUSTER_ONE));
+          () -> secondConfigAccessor.getClusterConfig(CLUSTER_ONE));
     } finally {
       firstConfigAccessor.close();
       secondConfigAccessor.close();
@@ -674,18 +674,18 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
         Assert.fail("ZK Realm should be found for /" + cluster);
       } else {
         Assert.assertTrue(e.getMessage()
-                .startsWith("No sharding key found within the provided path. Path: /" + cluster));
+            .startsWith("No sharding key found within the provided path. Path: /" + cluster));
       }
     } catch (IllegalArgumentException e) {
       if (shouldSucceed) {
         Assert.fail(formPath(cluster) + " should be a valid sharding key.");
       } else {
         String messageOne = "Given path: /" + cluster + " does not have a "
-                + "valid sharding key or its ZK sharding key is not found in the cached routing data";
+            + "valid sharding key or its ZK sharding key is not found in the cached routing data";
         String messageTwo = "Given path: /" + cluster + "'s ZK sharding key: /" + cluster
-                + " does not match the ZK sharding key";
+            + " does not match the ZK sharding key";
         Assert.assertTrue(
-                e.getMessage().startsWith(messageOne) || e.getMessage().startsWith(messageTwo));
+            e.getMessage().startsWith(messageOne) || e.getMessage().startsWith(messageTwo));
       }
     } catch (HelixException e) {
       // NoSuchElementException: "ZK Realm not found!" is swallowed in ZKUtil.isClusterSetup()
@@ -694,7 +694,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
         Assert.fail("Cluster: " + cluster + " should have been setup.");
       } else {
         Assert.assertEquals("fail to get config. cluster: " + cluster + " is NOT setup.",
-                e.getMessage());
+            e.getMessage());
       }
     }
   }
@@ -716,30 +716,30 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
   public void testZkRoutingDataSourceConfigs() {
     // Set up routing data in ZK by connecting directly to ZK
     BaseDataAccessor<ZNRecord> accessor =
-            new ZkBaseDataAccessor.Builder<ZNRecord>().setZkAddress(ZK_PREFIX + ZK_START_PORT).build();
+        new ZkBaseDataAccessor.Builder<ZNRecord>().setZkAddress(ZK_PREFIX + ZK_START_PORT).build();
 
     // Create ZK realm routing data ZNRecord
     _rawRoutingData.forEach((realm, keys) -> {
       ZNRecord znRecord = new ZNRecord(realm);
       znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
-              new ArrayList<>(keys));
+          new ArrayList<>(keys));
       accessor.set(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord,
-              AccessOption.PERSISTENT);
+          AccessOption.PERSISTENT);
     });
 
     // Create connection configs with the source type set to each type
     final RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
     final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfigZk =
-            connectionConfigBuilder.setRoutingDataSourceType(RoutingDataReaderType.ZK.name())
-                    .setRoutingDataSourceEndpoint(ZK_PREFIX + ZK_START_PORT).build();
+        connectionConfigBuilder.setRoutingDataSourceType(RoutingDataReaderType.ZK.name())
+            .setRoutingDataSourceEndpoint(ZK_PREFIX + ZK_START_PORT).build();
     final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfigHttpZkFallback =
-            connectionConfigBuilder
-                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
-                    .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT).build();
+        connectionConfigBuilder
+            .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
+            .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT).build();
     final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfigHttp =
-            connectionConfigBuilder.setRoutingDataSourceType(RoutingDataReaderType.HTTP.name())
-                    .setRoutingDataSourceEndpoint(_msdsEndpoint).build();
+        connectionConfigBuilder.setRoutingDataSourceType(RoutingDataReaderType.HTTP.name())
+            .setRoutingDataSourceEndpoint(_msdsEndpoint).build();
 
     // Reset cached routing data
     RoutingDataManager.getInstance().reset();
@@ -748,10 +748,10 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     // Create a BaseDataAccessor instance with the connection config
     BaseDataAccessor<ZNRecord> zkBasedAccessor = new ZkBaseDataAccessor.Builder<ZNRecord>()
-            .setRealmAwareZkConnectionConfig(connectionConfigZk).build();
+        .setRealmAwareZkConnectionConfig(connectionConfigZk).build();
     BaseDataAccessor<ZNRecord> httpZkFallbackBasedAccessor =
-            new ZkBaseDataAccessor.Builder<ZNRecord>()
-                    .setRealmAwareZkConnectionConfig(connectionConfigHttpZkFallback).build();
+        new ZkBaseDataAccessor.Builder<ZNRecord>()
+            .setRealmAwareZkConnectionConfig(connectionConfigHttpZkFallback).build();
     try {
       BaseDataAccessor<ZNRecord> httpBasedAccessor = new ZkBaseDataAccessor.Builder<ZNRecord>()
               .setRealmAwareZkConnectionConfig(connectionConfigHttp).build();

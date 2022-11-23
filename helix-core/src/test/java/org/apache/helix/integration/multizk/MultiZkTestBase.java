@@ -41,6 +41,9 @@ import org.testng.annotations.BeforeClass;
 
 import java.util.*;
 
+/**
+ * This class sets up the clusters and zk servers for multiple zk server testing.
+ */
 public class MultiZkTestBase {
     protected static final int NUM_ZK = 3;
     protected static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
@@ -100,7 +103,6 @@ public class MultiZkTestBase {
 
         // Turn on multiZk mode in System config
         System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "true");
-        // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/multiZkTest
     }
 
     @AfterClass
@@ -121,20 +123,6 @@ public class MultiZkTestBase {
                     }
                 });
             }
-
-            if (!MOCK_PARTICIPANTS.isEmpty()) {
-                MOCK_PARTICIPANTS.forEach(mockParticipantManager -> {
-                    mockParticipantManager.syncStop();
-                    StateMachineEngine stateMachine = mockParticipantManager.getStateMachineEngine();
-                    if (stateMachine != null) {
-                        StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
-                        if (stateModelFactory instanceof TaskStateModelFactory) {
-                            ((TaskStateModelFactory) stateModelFactory).shutdown();
-                        }
-                    }
-                });
-            }
-
 
             // Tear down all clusters
             CLUSTER_LIST.forEach(cluster -> TestHelper.dropCluster(cluster, _zkClient));

@@ -96,9 +96,8 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
-    List<Op> ops = Arrays.asList(
-            Op.create(TEST_REALM_ONE_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT), Op.delete(TEST_REALM_ONE_VALID_PATH, -1));
+    List<Op> ops = Arrays.asList(Op.create(TEST_REALM_ONE_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+            CreateMode.PERSISTENT), Op.delete(TEST_REALM_ONE_VALID_PATH, -1));
     try {
       _realmAwareZkClient.multi(ops);
       Assert.fail("multi() should not be supported.");

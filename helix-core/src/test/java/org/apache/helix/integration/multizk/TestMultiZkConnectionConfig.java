@@ -279,7 +279,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     Assert.assertNotNull(instanceConfigRead);
     Assert.assertEquals(instanceConfig.getInstanceName(), participantName);
     Assert.assertNotNull(managerAdministrator.getHelixDataAccessor().getProperty(
-            managerAdministrator.getHelixDataAccessor().keyBuilder().liveInstance(participantName)));
+        managerAdministrator.getHelixDataAccessor().keyBuilder().liveInstance(participantName)));
 
     // Clean up
     managerParticipant.disconnect();

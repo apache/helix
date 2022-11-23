@@ -515,7 +515,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
       verifyConfigAccessorMsdsEndpoint(connectionConfig);
     } finally {
       RealmAwareZkClient zkClient = new FederatedZkClient(connectionConfig,
-           new RealmAwareZkClient.RealmAwareZkClientConfig());
+          new RealmAwareZkClient.RealmAwareZkClientConfig());
       TestHelper.dropCluster(CLUSTER_FOUR, zkClient);
       zkClient.close();
       secondMsds.stopServer();
@@ -642,7 +642,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     ConfigAccessor firstConfigAccessor = new ConfigAccessor.Builder().build();
     ConfigAccessor secondConfigAccessor =
-            new ConfigAccessor.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
+        new ConfigAccessor.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
 
     try {
       verifyMsdsZkRealm(CLUSTER_ONE, true, () -> firstConfigAccessor.getClusterConfig(CLUSTER_ONE));
@@ -754,7 +754,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
             .setRealmAwareZkConnectionConfig(connectionConfigHttpZkFallback).build();
     try {
       BaseDataAccessor<ZNRecord> httpBasedAccessor = new ZkBaseDataAccessor.Builder<ZNRecord>()
-              .setRealmAwareZkConnectionConfig(connectionConfigHttp).build();
+          .setRealmAwareZkConnectionConfig(connectionConfigHttp).build();
       Assert.fail("Must fail with a MultiZkException because HTTP connection will be refused.");
     } catch (MultiZkException e) {
       // Okay

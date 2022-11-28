@@ -79,7 +79,7 @@ Apache Helix has a new release:
 
 * [1.0.4](./1.0.4-docs/index.html) - A release containing major feature of cross zookeeper view aggregation support
 
-    [\[Quick Start\]](./1.0.3-docs/Quickstart.html) [\[Release Notes\]](./1.0.4-docs/releasenotes/release-1.0.4.html)
+    [\[Quick Start\]](./1.0.4-docs/Quickstart.html) [\[Release Notes\]](./1.0.4-docs/releasenotes/release-1.0.4.html)
 
 * [0.9.9](./0.9.9-docs/index.html) - A release with several critical bug fixing for 0.9 series release
 

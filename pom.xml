@@ -99,15 +99,6 @@
       <timezone>-8</timezone>
     </developer>
     <developer>
-      <id>omalley</id>
-      <name>Owen O'Malley</name>
-      <email>omalley@apache.org</email>
-      <roles>
-        <role>Mentor / PMC Member</role>
-      </roles>
-      <timezone>-8</timezone>
-    </developer>
-    <developer>
       <id>zzhang</id>
       <name>Zhen Zhang</name>
       <email>zzhang@apache.org</email>

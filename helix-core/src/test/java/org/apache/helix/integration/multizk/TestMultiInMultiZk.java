@@ -30,7 +30,8 @@ import org.apache.zookeeper.ZooDefs;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import java.util.*;
+import java.util.List;
+import java.util.Arrays;
 
 /**
  * This class test multi implementation in FederatedZkClient. Extends MultiZkTestBase as the test require a multi zk

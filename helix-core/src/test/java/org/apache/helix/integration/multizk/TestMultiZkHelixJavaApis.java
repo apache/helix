@@ -106,7 +106,6 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     _invalidZkConnectionConfig = connectionConfigBuilder.build();
     _validZkConnectionConfig = connectionConfigBuilder.setZkRealmShardingKey("/" + clusterName).build();
   }
-
   @Override
   @Test
   public void testCreateClusters() {
@@ -125,14 +124,22 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     _clusterSetupBuilder.close();
   }
 
+  @Override
   @Test(dependsOnMethods = "testCreateClusters")
   public void testCreateParticipants() throws Exception {
     super.testCreateParticipants();
   }
 
+  @Override
   @Test(dependsOnMethods = "testCreateParticipants")
   public void testZKHelixManager() throws Exception {
     super.testZKHelixManager();
+  }
+
+  @Override
+  @Test(dependsOnMethods = "testZKHelixManager")
+  public void testZKHelixManagerCloudConfig() throws Exception {
+    super.testZKHelixManagerCloudConfig();
   }
 
   @Test(dependsOnMethods = "testZKHelixManager")

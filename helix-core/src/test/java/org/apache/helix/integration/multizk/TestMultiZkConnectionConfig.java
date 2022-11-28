@@ -111,14 +111,14 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
             .build();
   }
 
-  private void createClusters(ClusterSetup clusterSetup) {
+  public void createClusters(ClusterSetup clusterSetup) {
     // Create clusters
     for (String clusterName : CLUSTER_LIST) {
       clusterSetup.addCluster(clusterName, false);
     }
   }
 
-  private void verifyClusterCreation(ClusterSetup clusterSetup) {
+  public void verifyClusterCreation(ClusterSetup clusterSetup) {
     // Verify that clusters have been created correctly according to routing mapping
     _rawRoutingData.forEach((zkAddress, cluster) -> {
       // Note: clusterNamePath already contains "/"

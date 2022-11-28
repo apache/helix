@@ -31,13 +31,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.AccessOption;
-import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixException;
-import org.apache.helix.InstanceType;
-import org.apache.helix.TestHelper;
+import org.apache.helix.*;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -113,8 +107,35 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     _validZkConnectionConfig = connectionConfigBuilder.setZkRealmShardingKey("/" + clusterName).build();
   }
 
-
+  @Override
   @Test
+  public void testCreateClusters() {
+    setupCluster();
+
+    createClusters(_clusterSetupZkAddr);
+    verifyClusterCreation(_clusterSetupZkAddr);
+
+    createClusters(_clusterSetupBuilder);
+    verifyClusterCreation(_clusterSetupBuilder);
+
+    // Create clusters again to continue with testing
+    createClusters(_clusterSetupBuilder);
+
+    _clusterSetupZkAddr.close();
+    _clusterSetupBuilder.close();
+  }
+
+  @Test(dependsOnMethods = "testCreateClusters")
+  public void testCreateParticipants() throws Exception {
+    super.testCreateParticipants();
+  }
+
+  @Test(dependsOnMethods = "testCreateParticipants")
+  public void testZKHelixManager() throws Exception {
+    super.testZKHelixManager();
+  }
+
+  @Test(dependsOnMethods = "testZKHelixManager")
   public void testZkUtil() {
     CLUSTER_LIST.forEach(cluster -> {
       _zkHelixAdmin.getInstancesInCluster(cluster).forEach(instance -> ZKUtil

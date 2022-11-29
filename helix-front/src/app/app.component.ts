@@ -14,11 +14,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { UserService } from './core/user.service';
 import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';
 import { HelperService } from './shared/helper.service';
-import {
-  TOKEN_RESPONSE_KEY,
-  TOKEN_EXPIRATION_KEY,
-  IDENTITY_TOKEN_SOURCE,
-} from '../../server/config';
 
 @Component({
   selector: 'hi-root',
@@ -96,33 +91,6 @@ export class AppComponent implements OnInit {
                     this.helper.showError(
                       `${loginResponse.status}: Either You are not part of helix-admin LDAP group or your password is incorrect.`
                     );
-                  }
-
-                  //
-                  // set cookie with Identity Token
-                  // if an Identity Token Source is configured
-                  //
-                  if (IDENTITY_TOKEN_SOURCE && TOKEN_RESPONSE_KEY) {
-                    const identityTokenPayload = loginResponse.headers.get(
-                      'Identity-Token-Payload'
-                    );
-
-                    const parsedIdentityTokenPayload =
-                      JSON.parse(identityTokenPayload);
-
-                    const cookie = {
-                      name: 'helixui_identity.token',
-                      value:
-                        parsedIdentityTokenPayload.value[TOKEN_RESPONSE_KEY],
-                      expirationDate: new Date(
-                        parsedIdentityTokenPayload.value[TOKEN_EXPIRATION_KEY]
-                      ).toUTCString(),
-                    };
-
-                    const cookieString = `${cookie.name}=${
-                      cookie.value || ''
-                    }; expires=${cookie.expirationDate}; path=/; domain=`;
-                    document.cookie = cookieString;
                   }
 
                   this.currentUser = this.service.getCurrentUser();

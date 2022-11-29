@@ -40,6 +40,6 @@ public class TestClusterInfo {
     String result = mapper.writeValueAsString(clusterInfo);
 
     Assert.assertEquals(mapper.readTree(result),
-    mapper.readTree("{\"id\":\"cluster0\",\"controller\":\"controller\",\"paused\":true,\"maintenance\":true,\"resources\":[\"idealState0\"],\"instances\":[\"instance0\"],\"liveInstances\":[\"instance0\"]}"));
+                        mapper.readTree("{\"id\":\"cluster0\",\"controller\":\"controller\",\"paused\":true,\"maintenance\":true,\"resources\":[\"idealState0\"],\"instances\":[\"instance0\"],\"liveInstances\":[\"instance0\"]}"));
   }
 }

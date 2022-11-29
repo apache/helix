@@ -10,6 +10,7 @@ import {
   SSL,
 } from '../config';
 import { HelixRequest, HelixRequestOptions } from './d';
+import { TOKEN_EXPIRATION_KEY, TOKEN_RESPONSE_KEY } from '../config';
 
 export class UserCtrl {
   constructor(router: Router) {
@@ -131,12 +132,17 @@ export class UserCtrl {
                           const parsedBody = JSON.parse(body);
                           req.session.isAdmin = isInAdminGroup;
                           req.session.identityToken = parsedBody;
-                          //
-                          // TODO possibly also send identity token
-                          // TODO parsedBody to the client as a cookie
-                          // TODO Github issue #2236
-                          //
-                          res.set('Identity-Token-Payload', body);
+
+                          const cookieName = 'helixui_identity.token';
+                          const cookieValue =
+                            parsedBody.value[TOKEN_RESPONSE_KEY];
+                          const cookieExpiresDate = new Date(
+                            parsedBody.value[TOKEN_EXPIRATION_KEY]
+                          );
+                          const cookieOptions = {
+                            expires: cookieExpiresDate,
+                          };
+                          res.cookie(cookieName, cookieValue, cookieOptions);
                           res.json(isInAdminGroup);
 
                           return parsedBody;

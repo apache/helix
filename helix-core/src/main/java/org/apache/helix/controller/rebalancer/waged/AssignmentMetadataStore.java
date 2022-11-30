@@ -106,7 +106,6 @@ public class AssignmentMetadataStore {
     try {
       _dataAccessor.compressedBucketWrite(path, combinedAssignments);
     } catch (IOException e) {
-      // TODO: Improve failure handling
       throw new HelixException(String.format("Failed to persist %s assignment to path %s", key, path), e);
     }
   }
@@ -144,7 +143,7 @@ public class AssignmentMetadataStore {
    * @param newVersion - attempted new version to write. This version is obtained earlier from getBestPossibleVersion()
    * @return true if the attempt succeeded, false otherwise.
    */
-  public synchronized boolean asyncPersistBestPossibleAssignmentInMemory(
+  public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
       Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
     // Check if the version is stale by this point
     if (newVersion > _bestPossibleVersion) {
@@ -220,24 +219,11 @@ public class AssignmentMetadataStore {
     return assignmentMap;
   }
 
-  /**
-   * Returns whether two assignments are same.
-   * @param oldAssignment
-   * @param newAssignment
-   * @return true if they are the same. False otherwise or oldAssignment is null
-   */
-  private boolean compareAssignments(Map<String, ResourceAssignment> oldAssignment,
-      Map<String, ResourceAssignment> newAssignment) {
-    // If oldAssignment is null, that means that we haven't read from/written to
-    // the metadata store yet. In that case, we return false so that we write to metadata store.
-    return oldAssignment != null && oldAssignment.equals(newAssignment);
-  }
-
   protected boolean isBaselineChanged(Map<String, ResourceAssignment> newBaseline) {
-    return compareAssignments(getBaseline(), newBaseline);
+    return !getBaseline().equals(newBaseline);
   }
 
-  protected boolean isBestPossibleChanged(Map<String, ResourceAssignment> newBaseline) {
-    return compareAssignments(getBestPossibleAssignment(), newBaseline);
+  protected boolean isBestPossibleChanged(Map<String, ResourceAssignment> newBestPossible) {
+    return !getBestPossibleAssignment().equals(newBestPossible);
   }
 }

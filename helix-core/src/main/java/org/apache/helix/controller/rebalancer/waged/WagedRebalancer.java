@@ -495,7 +495,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
     Map<String, ResourceAssignment> newBaseline = calculateAssignment(clusterModel, algorithm);
     boolean isBaselineChanged =
-        _assignmentMetadataStore != null && !_assignmentMetadataStore.isBaselineChanged(newBaseline);
+        _assignmentMetadataStore != null && _assignmentMetadataStore.isBaselineChanged(newBaseline);
     // Write the new baseline to metadata store
     if (isBaselineChanged) {
       try {
@@ -602,8 +602,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         currentBaseline, newAssignmentCopy);
 
     boolean bestPossibleUpdateSuccessful = false;
-    if (_assignmentMetadataStore != null && !_assignmentMetadataStore.isBestPossibleChanged(newAssignment)) {
-      bestPossibleUpdateSuccessful = _assignmentMetadataStore.asyncPersistBestPossibleAssignmentInMemory(newAssignment,
+    if (_assignmentMetadataStore != null && _assignmentMetadataStore.isBestPossibleChanged(newAssignment)) {
+      bestPossibleUpdateSuccessful = _assignmentMetadataStore.asyncUpdateBestPossibleAssignmentCache(newAssignment,
           newBestPossibleAssignmentVersion);
     } else {
       LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
@@ -793,7 +793,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
   private void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment)
       throws HelixRebalanceException {
-    if (_assignmentMetadataStore != null && !_assignmentMetadataStore.isBestPossibleChanged(bestPossibleAssignment)) {
+    if (_assignmentMetadataStore != null && _assignmentMetadataStore.isBestPossibleChanged(bestPossibleAssignment)) {
       try {
         _writeLatency.startMeasuringLatency();
         _assignmentMetadataStore.persistBestPossibleAssignment(bestPossibleAssignment);

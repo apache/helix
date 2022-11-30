@@ -53,7 +53,7 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
     _bestPossibleVersion++;
   }
 
-  public synchronized boolean asyncPersistBestPossibleAssignmentInMemory(
+  public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
       Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
     // Check if the version is stale by this point
     if (newVersion > _bestPossibleVersion) {

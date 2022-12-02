@@ -20,9 +20,12 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.io.IOException;
+import java.sql.Array;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -32,8 +35,10 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.constraints.MockRebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AbstractTestClusterModel;
+import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -50,6 +55,7 @@ import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -573,6 +579,141 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // The BestPossible assignment should have been updated since computeNewIdealStates() should have been called.
     bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
     Assert.assertEquals(bestPossibleAssignment, newAlgorithmResult);
+  }
+
+  @Test(dependsOnMethods = "testRebalance")
+  public void testEmergencyRebalance() throws IOException, HelixRebalanceException {
+    _metadataStore.reset();
+    ResourceControllerDataProvider clusterData = setupClusterDataCache();
+    MockRebalanceAlgorithm spyAlgorithm = Mockito.spy(new MockRebalanceAlgorithm());
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, spyAlgorithm, Optional.empty());
+
+    // Cluster config change will trigger baseline to be recalculated.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    Map<String, Resource> resourceMap =
+        clusterData.getIdealStates().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> {
+          Resource resource = new Resource(entry.getKey());
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
+          return resource;
+        }));
+    // Populate best possible assignment
+    rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+    // Global Rebalance once, Partial Rebalance once
+    verify(spyAlgorithm, times(2)).calculate(any());
+
+    // Artificially insert an offline node in the best possible assignment
+    Map<String, ResourceAssignment> bestPossibleAssignment =
+        _metadataStore.getBestPossibleAssignment();
+    String offlineResource = _resourceNames.get(0);
+    String offlinePartition = _partitionNames.get(0);
+    String offlineState = "MASTER";
+    String offlineInstance = "offlineInstance";
+    for (Partition partition : bestPossibleAssignment.get(offlineResource).getMappedPartitions()) {
+      if (partition.getPartitionName().equals(offlinePartition)) {
+        bestPossibleAssignment.get(offlineResource)
+            .addReplicaMap(partition, Collections.singletonMap(offlineInstance, offlineState));
+      }
+    }
+    _metadataStore.persistBestPossibleAssignment(bestPossibleAssignment);
+
+    // This should trigger both emergency rebalance and partial rebalance
+    rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+    ArgumentCaptor<ClusterModel> capturedClusterModel = ArgumentCaptor.forClass(ClusterModel.class);
+    // 2 from previous case, Emergency + Partial from this case, 4 in total
+    verify(spyAlgorithm, times(4)).calculate(capturedClusterModel.capture());
+    // In the cluster model for Emergency rebalance, the assignableReplica is the offline one
+    ClusterModel clusterModelForEmergencyRebalance = capturedClusterModel.getAllValues().get(2);
+    Assert.assertEquals(clusterModelForEmergencyRebalance.getAssignableReplicaMap().size(), 1);
+    Assert.assertEquals(clusterModelForEmergencyRebalance.getAssignableReplicaMap().get(offlineResource).size(), 1);
+    AssignableReplica assignableReplica =
+        clusterModelForEmergencyRebalance.getAssignableReplicaMap().get(offlineResource).iterator().next();
+    Assert.assertEquals(assignableReplica.getPartitionName(), offlinePartition);
+    Assert.assertEquals(assignableReplica.getReplicaState(), offlineState);
+
+    bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
+    for (Map.Entry<String, ResourceAssignment> entry : bestPossibleAssignment.entrySet()) {
+      ResourceAssignment resourceAssignment = entry.getValue();
+      for (Partition partition : resourceAssignment.getMappedPartitions()) {
+        for (String instance: resourceAssignment.getReplicaMap(partition).keySet()) {
+          Assert.assertNotSame(instance, offlineInstance);
+        }
+      }
+    }
+  }
+
+  @Test(dependsOnMethods = "testRebalance")
+  public void testRebalanceOverwriteTrigger() throws IOException, HelixRebalanceException {
+    _metadataStore.reset();
+
+    ResourceControllerDataProvider clusterData = setupClusterDataCache();
+    // Enable delay rebalance
+    ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    clusterConfig.setDelayRebalaceEnabled(true);
+    clusterConfig.setRebalanceDelayTime(1);
+    clusterData.setClusterConfig(clusterConfig);
+
+    // force create a fake offlineInstance that's in delay window
+    Set<String> instances = new HashSet<>(_instances);
+    String offlineInstance = "offlineInstance";
+    instances.add(offlineInstance);
+    when(clusterData.getAllInstances()).thenReturn(instances);
+    Map<String, Long> instanceOfflineTimeMap = new HashMap<>();
+    instanceOfflineTimeMap.put(offlineInstance, System.currentTimeMillis() + Integer.MAX_VALUE);
+    when(clusterData.getInstanceOfflineTimeMap()).thenReturn(instanceOfflineTimeMap);
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
+    instanceConfigMap.put(offlineInstance, createMockInstanceConfig(offlineInstance));
+    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+
+    // Set minActiveReplica to 0 so that requireRebalanceOverwrite returns false
+    Map<String, IdealState> isMap = new HashMap<>();
+    for (String resource : _resourceNames) {
+      IdealState idealState = clusterData.getIdealState(resource);
+      idealState.setMinActiveReplicas(0);
+      isMap.put(resource, idealState);
+    }
+    when(clusterData.getIdealState(anyString())).thenAnswer(
+        (Answer<IdealState>) invocationOnMock -> isMap.get(invocationOnMock.getArguments()[0]));
+    when(clusterData.getIdealStates()).thenReturn(isMap);
+
+    MockRebalanceAlgorithm spyAlgorithm = Mockito.spy(new MockRebalanceAlgorithm());
+    WagedRebalancer rebalancer = Mockito.spy(new WagedRebalancer(_metadataStore, spyAlgorithm, Optional.empty()));
+
+    // Cluster config change will trigger baseline to be recalculated.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    Map<String, Resource> resourceMap =
+        clusterData.getIdealStates().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> {
+          Resource resource = new Resource(entry.getKey());
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
+          return resource;
+        }));
+    // Populate best possible assignment
+    rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+    verify(rebalancer, times(1)).requireRebalanceOverwrite(any(), any());
+    verify(rebalancer, times(0)).applyRebalanceOverwrite(any(), any(), any(), any(), any());
+
+    // Set minActiveReplica to 1 so that requireRebalanceOverwrite returns true
+    for (String resource : _resourceNames) {
+      IdealState idealState = clusterData.getIdealState(resource);
+      idealState.setMinActiveReplicas(3);
+      isMap.put(resource, idealState);
+    }
+    when(clusterData.getIdealState(anyString())).thenAnswer(
+        (Answer<IdealState>) invocationOnMock -> isMap.get(invocationOnMock.getArguments()[0]));
+    when(clusterData.getIdealStates()).thenReturn(isMap);
+
+    _metadataStore.reset();
+    // Update the config so the cluster config will be marked as changed.
+    clusterConfig = clusterData.getClusterConfig();
+    Map<String, Integer> defaultCapacityMap =
+        new HashMap<>(clusterConfig.getDefaultInstanceCapacityMap());
+    defaultCapacityMap.put("foobar", 0);
+    clusterConfig.setDefaultInstanceCapacityMap(defaultCapacityMap);
+    clusterData.setClusterConfig(clusterConfig);
+    rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+    verify(rebalancer, times(2)).requireRebalanceOverwrite(any(), any());
+    verify(rebalancer, times(1)).applyRebalanceOverwrite(any(), any(), any(), any(), any());
   }
 
   @Test(dependsOnMethods = "testRebalance")

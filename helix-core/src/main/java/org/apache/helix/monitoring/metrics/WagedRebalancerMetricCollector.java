@@ -43,6 +43,8 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
     // Per-stage latency metrics
     GlobalBaselineCalcLatencyGauge,
     PartialRebalanceLatencyGauge,
+    EmergencyRebalanceLatencyGauge,
+    RebalanceOverwriteLatencyGauge,
 
     // The following latency metrics are related to AssignmentMetadataStore
     StateReadLatencyGauge,
@@ -61,7 +63,9 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
 
     // Waged rebalance counters.
     GlobalBaselineCalcCounter,
-    PartialRebalanceCounter
+    PartialRebalanceCounter,
+    EmergencyRebalanceCounter,
+    RebalanceOverwriteCounter
   }
 
   public WagedRebalancerMetricCollector(String clusterName) {
@@ -97,6 +101,12 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
     LatencyMetric partialRebalanceLatencyGauge =
         new RebalanceLatencyGauge(WagedRebalancerMetricNames.PartialRebalanceLatencyGauge.name(),
             getResetIntervalInMs());
+    LatencyMetric emergencyRebalanceLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.EmergencyRebalanceLatencyGauge.name(),
+            getResetIntervalInMs());
+    LatencyMetric rebalanceOverwriteLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.RebalanceOverwriteLatencyGauge.name(),
+            getResetIntervalInMs());
     LatencyMetric stateReadLatencyGauge =
         new RebalanceLatencyGauge(WagedRebalancerMetricNames.StateReadLatencyGauge.name(),
             getResetIntervalInMs());
@@ -111,15 +121,23 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
         new RebalanceCounter(WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name());
     CountMetric partialRebalanceCounter =
         new RebalanceCounter(WagedRebalancerMetricNames.PartialRebalanceCounter.name());
+    CountMetric emergencyRebalanceCounter =
+        new RebalanceCounter(WagedRebalancerMetricNames.EmergencyRebalanceCounter.name());
+    CountMetric rebalanceOverwriteCounter =
+        new RebalanceCounter(WagedRebalancerMetricNames.RebalanceOverwriteCounter.name());
 
     // Add metrics to WagedRebalancerMetricCollector
     addMetric(globalBaselineCalcLatencyGauge);
     addMetric(partialRebalanceLatencyGauge);
+    addMetric(emergencyRebalanceLatencyGauge);
+    addMetric(rebalanceOverwriteLatencyGauge);
     addMetric(stateReadLatencyGauge);
     addMetric(stateWriteLatencyGauge);
     addMetric(baselineDivergenceGauge);
     addMetric(calcFailureCount);
     addMetric(globalBaselineCalcCounter);
     addMetric(partialRebalanceCounter);
+    addMetric(emergencyRebalanceCounter);
+    addMetric(rebalanceOverwriteCounter);
   }
 }

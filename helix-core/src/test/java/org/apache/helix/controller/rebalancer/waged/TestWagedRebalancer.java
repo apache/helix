@@ -255,8 +255,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Map<String, ResourceAssignment> testResourceAssignmentMap = new HashMap<>();
     ZNRecord mappingNode = new ZNRecord(_resourceNames.get(0));
     HashMap<String, String> mapping = new HashMap<>();
-    mapping.put(_partitionNames.get(0), "MASTER");
-    mappingNode.setMapField(_testInstanceId, mapping);
+    mapping.put(_testInstanceId, "MASTER");
+    mappingNode.setMapField(_partitionNames.get(0), mapping);
     testResourceAssignmentMap.put(_resourceNames.get(0), new ResourceAssignment(mappingNode));
 
     _metadataStore.reset();
@@ -373,9 +373,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
           clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
-      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS);
+      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(),
-          "Failed to generate cluster model for partial rebalance. Failure Type: INVALID_CLUSTER_STATUS");
+          "Failed to calculate for the new best possible. Failure Type: FAILED_TO_CALCULATE");
     }
 
     // The rebalance will be done with empty mapping result since there is no previously calculated
@@ -389,7 +389,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   public void testInvalidRebalancerStatus() throws IOException {
     // Mock a metadata store that will fail on all the calls.
     AssignmentMetadataStore metadataStore = Mockito.mock(AssignmentMetadataStore.class);
-    when(metadataStore.getBaseline())
+    when(metadataStore.getBestPossibleAssignment())
         .thenThrow(new RuntimeException("Mock Error. Metadata store fails."));
     WagedRebalancer rebalancer = new WagedRebalancer(metadataStore, _algorithm, Optional.empty());
 
@@ -404,7 +404,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Assert.assertEquals(ex.getFailureType(),
           HelixRebalanceException.Type.INVALID_REBALANCER_STATUS);
       Assert.assertEquals(ex.getMessage(),
-          "Failed to get the current baseline assignment because of unexpected error. Failure Type: INVALID_REBALANCER_STATUS");
+          "Failed to get the current best possible assignment because of unexpected error. Failure Type: INVALID_REBALANCER_STATUS");
     }
   }
 
@@ -439,7 +439,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-      Assert.assertEquals(ex.getMessage(), "Algorithm fails. Failure Type: FAILED_TO_CALCULATE");
+      Assert.assertEquals(ex.getMessage(), "Failed to calculate for the new best possible. Failure Type: FAILED_TO_CALCULATE");
     }
     // But if call with the public method computeNewIdealStates(), the rebalance will return with
     // the previous rebalance result.

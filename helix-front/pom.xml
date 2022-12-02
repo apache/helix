@@ -112,7 +112,7 @@
               <goal>yarn</goal>
             </goals>
             <configuration>
-              <arguments>run build</arguments>
+              <arguments>run build:mvn</arguments>
             </configuration>
           </execution>
         </executions>

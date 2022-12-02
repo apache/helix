@@ -112,6 +112,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private final LatencyMetric _writeLatency;
   private final CountMetric _partialRebalanceCounter;
   private final LatencyMetric _partialRebalanceLatency;
+  private final CountMetric _emergencyRebalanceCounter;
+  private final LatencyMetric _emergencyRebalanceLatency;
+  private final CountMetric _rebalanceOverwriteCounter;
+  private final LatencyMetric _rebalanceOverwriteLatency;
   private final LatencyMetric _stateReadLatency;
   private final BaselineDivergenceGauge _baselineDivergenceGauge;
 
@@ -208,6 +212,16 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     _partialRebalanceLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge
             .name(),
+        LatencyMetric.class);
+    _emergencyRebalanceCounter = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.EmergencyRebalanceCounter.name(), CountMetric.class);
+    _emergencyRebalanceLatency = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.EmergencyRebalanceLatencyGauge.name(),
+        LatencyMetric.class);
+    _rebalanceOverwriteCounter = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceOverwriteCounter.name(), CountMetric.class);
+    _rebalanceOverwriteLatency = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceOverwriteLatencyGauge.name(),
         LatencyMetric.class);
     _writeLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateWriteLatencyGauge.name(),
@@ -617,11 +631,15 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     }
   }
 
-  private Map<String, ResourceAssignment> emergencyRebalance(
+  protected Map<String, ResourceAssignment> emergencyRebalance(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       Set<String> activeNodes, final CurrentStateOutput currentStateOutput,
       RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
+    LOG.info("Start emergency rebalance.");
+    _emergencyRebalanceCounter.increment(1L);
+    _emergencyRebalanceLatency.startMeasuringLatency();
+
     Map<String, ResourceAssignment> currentBestPossibleAssignment =
         getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
             resourceMap.keySet());
@@ -643,6 +661,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     // Step 2: if there are permanent node downs, calculate for a new one best possible
     Map<String, ResourceAssignment> newAssignment;
     if (!allNodesActive.get()) {
+      LOG.info("Emergency rebalance responding to permanent node down.");
       ClusterModel clusterModel;
       try {
         clusterModel =
@@ -659,6 +678,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
     // Step 3: persist result to metadata store
     persistBestPossibleAssignment(newAssignment);
+    _emergencyRebalanceLatency.endMeasuringLatency();
     LOG.info("Finish emergency rebalance");
 
     partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
@@ -833,7 +853,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     }
   }
 
-  private boolean requireRebalanceOverwrite(ResourceControllerDataProvider clusterData,
+  protected boolean requireRebalanceOverwrite(ResourceControllerDataProvider clusterData,
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     AtomicBoolean allMinActiveReplicaMet = new AtomicBoolean(true);
     bestPossibleAssignment.values().parallelStream().forEach((resourceAssignment -> {
@@ -872,10 +892,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
    * @param baseline the baseline assignment.
    * @param algorithm the rebalance algorithm.
    */
-  private void applyRebalanceOverwrite(Map<String, IdealState> idealStateMap,
+  protected void applyRebalanceOverwrite(Map<String, IdealState> idealStateMap,
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       Map<String, ResourceAssignment> baseline, RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
+    _rebalanceOverwriteCounter.increment(1L);
+    _rebalanceOverwriteLatency.startMeasuringLatency();
+
     ClusterModel clusterModel;
     try {
       // Note this calculation uses the baseline as the best possible assignment input here.
@@ -912,6 +935,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
               Math.min(minActiveReplica, numReplica));
 
       newIdealState.setPreferenceLists(finalPreferenceLists);
+
+      _rebalanceOverwriteLatency.endMeasuringLatency();
     }
   }
 

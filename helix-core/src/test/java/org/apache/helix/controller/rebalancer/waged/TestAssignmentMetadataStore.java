@@ -96,31 +96,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     Assert.assertTrue(_store.getBestPossibleAssignment().isEmpty());
   }
 
-  /**
-   * Test that if the old assignment and new assignment are the same,
-   */
   @Test(dependsOnMethods = "testReadEmptyBaseline")
-  public void testAvoidingRedundantWrite() {
-    Map<String, ResourceAssignment> dummyAssignment = getDummyAssignment();
-
-    // Call persist functions
-    _store.persistBaseline(dummyAssignment);
-    _store.persistBestPossibleAssignment(dummyAssignment);
-
-    // Check that only one version exists
-    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 1);
-    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 1);
-
-    // Call persist functions again
-    _store.persistBaseline(dummyAssignment);
-    _store.persistBestPossibleAssignment(dummyAssignment);
-
-    // Check that only one version exists still
-    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 1);
-    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 1);
-  }
-
-  @Test(dependsOnMethods = "testAvoidingRedundantWrite")
   public void testAssignmentCache() {
     Map<String, ResourceAssignment> dummyAssignment = getDummyAssignment();
     // Call persist functions

@@ -39,19 +39,30 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
     return _globalBaseline == null ? Collections.emptyMap() : _globalBaseline;
   }
 
-  public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+  public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     _globalBaseline = globalBaseline;
-    return true;
   }
 
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     return _bestPossibleAssignment == null ? Collections.emptyMap() : _bestPossibleAssignment;
   }
 
-  public boolean persistBestPossibleAssignment(
+  public void persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     _bestPossibleAssignment = bestPossibleAssignment;
-    return true;
+    _bestPossibleVersion++;
+  }
+
+  public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
+      Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
+    // Check if the version is stale by this point
+    if (newVersion > _bestPossibleVersion) {
+      _bestPossibleAssignment = bestPossibleAssignment;
+      _bestPossibleVersion = newVersion;
+      return true;
+    }
+
+    return false;
   }
 
   public void close() {

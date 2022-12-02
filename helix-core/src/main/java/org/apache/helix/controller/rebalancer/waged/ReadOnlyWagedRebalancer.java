@@ -67,26 +67,29 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
     }
 
     @Override
-    public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
-      // If baseline hasn't changed, skip updating the metadata store
-      if (compareAssignments(_globalBaseline, globalBaseline)) {
-        return false;
-      }
+    public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
       // Update the in-memory reference only
       _globalBaseline = globalBaseline;
-      return true;
     }
 
     @Override
-    public boolean persistBestPossibleAssignment(
+    public void persistBestPossibleAssignment(
         Map<String, ResourceAssignment> bestPossibleAssignment) {
-      // If bestPossibleAssignment hasn't changed, skip updating the metadata store
-      if (compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
-        return false;
-      }
       // Update the in-memory reference only
       _bestPossibleAssignment = bestPossibleAssignment;
-      return true;
+      _bestPossibleVersion++;
+    }
+    @Override
+    public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
+        Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
+      // Check if the version is stale by this point
+      if (newVersion > _bestPossibleVersion) {
+        _bestPossibleAssignment = bestPossibleAssignment;
+        _bestPossibleVersion = newVersion;
+        return true;
+      }
+
+      return false;
     }
   }
 }

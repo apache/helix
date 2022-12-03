@@ -90,7 +90,7 @@
             </goals>
             <configuration>
               <nodeVersion>v14.17.6</nodeVersion>
-              <npmVersion>v6.14.17</npmVersion>
+              <npmVersion>6.14.17</npmVersion>
             </configuration>
           </execution>
 

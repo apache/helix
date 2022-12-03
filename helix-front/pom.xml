@@ -83,22 +83,22 @@
 
         <executions>
           <execution>
-            <id>install node and yarn</id>
+            <id>install node and npm</id>
             <phase>process-resources</phase>
             <goals>
-              <goal>install-node-and-yarn</goal>
+              <goal>install-node-and-npm</goal>
             </goals>
             <configuration>
               <nodeVersion>v14.17.6</nodeVersion>
-              <yarnVersion>v1.22.18</yarnVersion>
+              <npmVersion>v6.14.15</npmVersion>
             </configuration>
           </execution>
 
           <execution>
-            <id>yarn install</id>
+            <id>npm install</id>
             <phase>compile</phase>
             <goals>
-              <goal>yarn</goal>
+              <goal>npm</goal>
             </goals>
             <configuration>
               <arguments>install</arguments>
@@ -109,10 +109,10 @@
             <id>build</id>
             <phase>process-test-resources</phase>
             <goals>
-              <goal>yarn</goal>
+              <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>run build:mvn</arguments>
+              <arguments>run-script build:mvn</arguments>
             </configuration>
           </execution>
         </executions>

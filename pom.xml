@@ -934,6 +934,6 @@
         <SKIP_INTEGRATION_TESTS>false</SKIP_INTEGRATION_TESTS>
       </properties>
     </profile>
-    <!-- Configuration for unit and integration tests section 3 of 3 (profiles) ENDS HERE.-->
+    <!-- Configuration for unit and integration tests. Section 3 of 3 (profiles) ENDS HERE.-->
   </profiles>
 </project>

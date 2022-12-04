@@ -31,6 +31,6 @@ public class ZkMetaClientFactory extends MetaClientFactory {
         && config instanceof ZkMetaClientConfig) {
       return new ZkMetaClient((ZkMetaClientConfig) config);
     }
-    return null;
+    throw new IllegalArgumentException("Invalid MetaClientConfig type.");
   }
 }

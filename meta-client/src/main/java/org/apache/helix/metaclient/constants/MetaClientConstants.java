@@ -26,6 +26,7 @@ public final class MetaClientConstants {
   }
 
   // Stop retrying when we reach timeout
+  //TODO The value should be the same as Helix default ZK retry time. Modify when change #2293 merged
   public static final int DEFAULT_OPERATION_RETRY_TIMEOUT_MS = Integer.MAX_VALUE;
 
   // maxMsToWaitUntilConnected

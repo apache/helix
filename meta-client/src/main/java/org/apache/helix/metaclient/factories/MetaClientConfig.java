@@ -19,14 +19,23 @@ package org.apache.helix.metaclient.factories;
  * under the License.
  */
 
-class MetaClientConfig {
+import org.apache.helix.metaclient.constants.MetaClientConstants;
+
+public class MetaClientConfig {
 
   public enum StoreType {
     ZOOKEEPER, ETCD, CUSTOMIZED
   }
 
   private final String _connectionAddress;
-  private final long _connectionTimeout;
+
+  // Wait for init timeout time until connection is initiated
+  private final long _connectionInitTimeoutInMillis;
+
+  // When a client becomes partitioned from the metadata service for more than session timeout,
+  // new session will be established when reconnect.
+  private final long _sessionTimeoutInMillis;
+
   private final boolean _enableAuth;
   private final StoreType _storeType;
 
@@ -34,8 +43,8 @@ class MetaClientConfig {
     return _connectionAddress;
   }
 
-  public long getConnectionTimeout() {
-    return _connectionTimeout;
+  public long getConnectionInitTimeoutInMillis() {
+    return _connectionInitTimeoutInMillis;
   }
 
   public boolean isAuthEnabled() {
@@ -44,6 +53,10 @@ class MetaClientConfig {
 
   public StoreType getStoreType() {
     return _storeType;
+  }
+
+  public long getSessionTimeoutInMillis() {
+    return _sessionTimeoutInMillis;
   }
 
   // TODO: More options to add later
@@ -56,56 +69,82 @@ class MetaClientConfig {
   //  private RetryProtocol _retryProtocol;
 
 
-  private MetaClientConfig(String connectionAddress, long connectionTimeout, boolean enableAuth,
-      StoreType storeType) {
+  protected MetaClientConfig(String connectionAddress, long connectionInitTimeoutInMillis,
+      long sessionTimeoutInMillis, boolean enableAuth, StoreType storeType) {
     _connectionAddress = connectionAddress;
-    _connectionTimeout = connectionTimeout;
+    _connectionInitTimeoutInMillis = connectionInitTimeoutInMillis;
+    _sessionTimeoutInMillis = sessionTimeoutInMillis;
     _enableAuth = enableAuth;
     _storeType = storeType;
   }
 
-  public static class Builder {
-    private String _connectionAddress;
+  public static class MetaClientConfigBuilder<B extends MetaClientConfigBuilder<B>> {
+    protected String _connectionAddress;
 
-    private long _connectionTimeout;
-    private boolean _enableAuth;
-    //private RetryProtocol _retryProtocol;
-    private StoreType _storeType;
-
+    protected long _connectionInitTimeoutInMillis;
+    protected long _sessionTimeoutInMillis;
+    // protected long _operationRetryTimeout;
+    // protected RetryProtocol _retryProtocol;
+    protected boolean _enableAuth;
+    protected StoreType _storeType;
 
 
     public MetaClientConfig build() {
       validate();
-      return new MetaClientConfig(_connectionAddress, _connectionTimeout, _enableAuth, _storeType);
+      return new MetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
+          _sessionTimeoutInMillis,
+          _enableAuth, _storeType);
     }
 
-    public Builder() {
+    public MetaClientConfigBuilder() {
       // set default values
       setAuthEnabled(false);
-      setConnectionTimeout(-1);
+      setConnectionInitTimeoutInMillis(MetaClientConstants.DEFAULT_CONNECTION_INIT_TIMEOUT_MS);
+      setSessionTimeoutInMillis(MetaClientConstants.DEFAULT_SESSION_TIMEOUT_MS);
     }
 
-    public Builder setConnectionAddress(String connectionAddress) {
+    public B setConnectionAddress(String connectionAddress) {
       _connectionAddress = connectionAddress;
-      return this;
+      return self();
     }
 
-    public Builder setAuthEnabled(Boolean enableAuth) {
+    public B setAuthEnabled(Boolean enableAuth) {
       _enableAuth = enableAuth;
-      return this;
+      return self();
     }
 
-    public Builder setConnectionTimeout(long timeout) {
-      _connectionTimeout = timeout;
-      return this;
+    /**
+     * Set timeout in mm for connection initialization timeout
+     * @param timeout
+     * @return
+     */
+    public B setConnectionInitTimeoutInMillis(long timeout) {
+      _connectionInitTimeoutInMillis = timeout;
+      return self();
     }
 
-    public Builder setStoreType(StoreType storeType) {
+    /**
+     * Set timeout in mm for session timeout. When a client becomes partitioned from the metadata
+     * service for more than session timeout, new session will be established.
+     * @param timeout
+     * @return
+     */
+    public B setSessionTimeoutInMillis(long timeout) {
+      _sessionTimeoutInMillis = timeout;
+      return self();
+    }
+
+    public B setStoreType(StoreType storeType) {
       _storeType = storeType;
-      return this;
+      return self();
     }
 
-    private void validate() {
+    @SuppressWarnings("unchecked")
+    final B self() {
+      return (B) this;
+    }
+
+    protected void validate() {
       if (_storeType == null || _connectionAddress == null) {
         throw new IllegalArgumentException(
             "MetaClientConfig.Builder: store type or connection string is null");

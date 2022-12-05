@@ -154,6 +154,22 @@
         </executions>
       </plugin>
 
+      <plugin>
+	      <groupId>org.apache.maven.plugins</groupId>
+	      <artifactId>maven-surefire-plugin</artifactId>
+	      <executions>
+		      <execution>
+            <id>execution-name</id>
+            <configuration combine.self="override">
+              <suiteXmlFiles>
+                <suiteXmlFile>helix-common/src/test/conf/testng.xml</suiteXmlFile>
+              </suiteXmlFiles>
+            </configuration>
+		      </execution>
+	      </executions>
+	      <version>3.0.0-M5</version>
+      </plugin>
+
     </plugins>
   </build>
 </project>

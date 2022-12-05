@@ -31,15 +31,21 @@ import org.apache.helix.metaclient.api.DirectChildChangeListener;
 import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
 
 
 public class ZkMetaClient implements MetaClientInterface {
 
-  private RealmAwareZkClient _zkClient;
+  private final ZkClient _zkClient;
 
-  public ZkMetaClient() {
-
+  public ZkMetaClient(ZkMetaClientConfig config) {
+    _zkClient =  new ZkClient(new ZkConnection(config.getConnectionAddress(),
+        (int) config.getSessionTimeoutInMillis()),
+        (int) config.getConnectionInitTimeoutInMillis(), -1 /*operationRetryTimeout*/,
+        config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
+        config.getMonitorInstanceName(), config.getMonitorRootPathOnly());
   }
 
   @Override
@@ -146,7 +152,6 @@ public class ZkMetaClient implements MetaClientInterface {
   public void asyncTransaction(Iterable iterable, AsyncCallback.TransactionCallback cb) {
 
   }
-
 
   @Override
   public boolean connect() {

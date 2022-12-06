@@ -42,8 +42,6 @@ import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.zkclient.ZkEventThread;
 import org.apache.helix.zookeeper.zkclient.ZkLock;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
@@ -54,8 +52,6 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.zookeeper.impl.client.ZkClient.*;
-
 
 public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(ZkMetaClient.class);
@@ -63,6 +59,7 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
   private final long _uid;
   private final ConcurrentHashMap<String, Set<DataChangeListener>> _dataChangeListener = new ConcurrentHashMap<>();
   private final ZkClient _zkClient;
+  private final ZkMetaClientConfig _config;
 
   private ZkEventThread _eventThread;
 
@@ -70,6 +67,8 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
 
   public ZkMetaClient(ZkMetaClientConfig config) {
     _uid = UID.getAndIncrement();
+    _config = config;
+    _eventThread = new ZkEventThread(config.getConnectionAddress());
     _zkClient = new ZkClient.Builder()
         .setConnection(new ZkConnection(config.getConnectionAddress(),
             (int) config.getSessionTimeoutInMillis()))
@@ -80,16 +79,15 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
         .setMonitorKey(config.getMonitorKey())
         .setMonitorInstanceName(config.getMonitorInstanceName())
         .setMonitorRootPathOnly(config.getMonitorRootPathOnly())
-        .setWatcher(this)
+        .setWatcher(this) // this ZkMetaClient will be used as the only Watcher impl
         .setConnectOnInit(false)
         .build();
-    _eventThread = new ZkEventThread(_zkClient.getConnection().getServers());
-    // create _zkClient and set this class as watcher
   }
 
   @Override
   public void create(String key, Object data) {
-    _zkClient.create(key, data, CreateMode.PERSISTENT);
+    // TODO: impl
+    _zkClient.createPersistent(key, true);
   }
 
   @Override
@@ -199,8 +197,9 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
 
   @Override
   public boolean connect() {
-    _zkClient.connect(DEFAULT_CONNECTION_TIMEOUT, this);
+    _zkClient.connect(_config.getConnectionInitTimeoutInMillis(), this);
     _eventThread = new ZkEventThread(_zkClient.getConnection().getServers());
+    _eventThread.start();
     return true;
   }
 
@@ -211,7 +210,15 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
 
   @Override
   public void close() {
+    setShutdownTrigger(true);
     _zkClient.close();
+    try {
+      _eventThread.interrupt();
+      _eventThread.join(2000);
+    } catch (InterruptedException e) {
+      //TODO: to remove
+      System.out.println("Caught exception in close(), " + e);
+    }
   }
 
   @Override
@@ -226,6 +233,7 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
     entryListeners.add(listener);
     _dataChangeListener.put(key, entryListeners);
     // prefetch?
+    // TODO: revisit non-persistent listener and persistent watcher removal
     boolean watchInstalled = _zkClient.watchForData(key, skipWatchingNonExistNode, persistListener);
     if (!watchInstalled) {
       unsubscribeDataChange(key, listener);
@@ -366,6 +374,7 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
     if (event.getType() == Event.EventType.NodeDataChanged
         || event.getType() == Event.EventType.NodeDeleted
         || event.getType() == Event.EventType.NodeCreated) {
+      // TODO: to remove
       System.out.println("handleDataChanged triggered by " + event);
       Set<DataChangeListener> listeners = _dataChangeListener.getOrDefault(event.getPath(), Collections.emptySet());
       if (listeners.isEmpty()) {
@@ -379,8 +388,7 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
         LOG.error("ZkMetaClient {} failed to process event {}.", _uid, event, e);
       }
     }
-
-    // TODO: impl handle data changed event
+    // TODO: remove one-time listener
   }
 
   private void handleStateChanged(WatchedEvent event) {
@@ -388,6 +396,7 @@ public class ZkMetaClient implements MetaClientInterface, Watcher, Closeable {
       // not state change
       return;
     }
+    // TODO: to remove
     System.out.println("handleStateChanged triggered by " + event);
     _zkClient.setCurrentState(event.getState());
     if (_zkClient.getMonitor() != null) {

@@ -23,6 +23,7 @@
     "ng": "ng",
     "build": "rm -rf dist && mkdir dist && ng build --aot --configuration production && tsc -p server",
     "build:dev": "rm -rf dist && mkdir dist && yarn check:config && ng build --aot --configuration development && tsc -p server",
+    "build:mvn": "npm run copy:config && npm run build",
     "start": "concurrently -r \"ng serve\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
     "prod": "yarn run build && node dist/server/app.js",
     "test": "ng test",

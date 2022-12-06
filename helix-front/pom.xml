@@ -42,10 +42,6 @@
     <url>http://www.apache.org</url>
   </organization>
 
-  <properties>
-    <revision>1.0.5-SNAPSHOT</revision>
-  </properties>
-
   <dependencies>
 
   </dependencies>

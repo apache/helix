@@ -21,9 +21,9 @@
 
 update_pom_version() {
   pom=$1
+  version=$2
   echo "bump up $pom"
-  version=`get_version_from_pom $pom`
-  sed -i'' -e "s/<revision>$version/<revision>$new_version/g" $pom
+  sed -i'' -e "s/<version>$version/<version>$new_version/g" $pom
   if ! grep -C 1 "$new_version" $pom; then
     echo "Failed to update new version $new_version in $pom"
     exit 1
@@ -48,7 +48,7 @@ update_ivy() {
 }
 
 get_version_from_pom() {
-  grep "<revision>" $1 | awk 'BEGIN {FS="[<,>]"};{print $3}'
+  grep -A 1 "<artifactId>helix</artifactId>" $1 |tail -1 | awk 'BEGIN {FS="[<,>]"};{print $3}'
 }
 
 current_version=`get_version_from_pom pom.xml`
@@ -66,18 +66,18 @@ else
   new_version="$major_version.$submajor_version.$new_minor_version"
 fi
 echo "bump up: $current_version -> $new_version"
-update_pom_version "pom.xml"
+update_pom_version "pom.xml" $current_version
 
 for module in "metrics-common" "metadata-store-directory-common" "zookeeper-api" "helix-common" "helix-core" \
               "helix-admin-webapp" "helix-rest" "helix-lock" "helix-view-aggregator" "helix-agent"; do
   update_ivy $module
-  update_pom_version $module/pom.xml
+  update_pom_version $module/pom.xml $current_version
 done
 
 for module in recipes/task-execution recipes \
            recipes/distributed-lock-manager recipes/rsync-replicated-file-system \
            recipes/rabbitmq-consumer-group recipes/service-discovery; do
-  update_pom_version $module/pom.xml
+  update_pom_version $module/pom.xml $current_version
 done
 
 #END

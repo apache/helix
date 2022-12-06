@@ -60,11 +60,11 @@ public class ZkMetaClientConfig extends MetaClientConfig {
   }
 
   protected ZkMetaClientConfig(String connectionAddress, long connectionInitTimeoutInMillis,
-      long sessionTimeoutInMillis, boolean enableAuth, StoreType storeType, String monitorType,
+      long sessionTimeoutInMillis, boolean enableAuth, String monitorType,
       String monitorKey, String monitorInstanceName, boolean monitorRootPathOnly,
       PathBasedZkSerializer zkSerializer) {
     super(connectionAddress, connectionInitTimeoutInMillis, sessionTimeoutInMillis, enableAuth,
-        storeType);
+        StoreType.ZOOKEEPER);
     _zkSerializer = zkSerializer;
     _monitorType = monitorType;
     _monitorKey = monitorKey;
@@ -128,12 +128,12 @@ public class ZkMetaClientConfig extends MetaClientConfig {
     }
 
     @Override
-    public MetaClientConfig build() {
+    public ZkMetaClientConfig build() {
       if (_zkSerializer == null) {
         _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
       }
       return new ZkMetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
-          _sessionTimeoutInMillis, _enableAuth, MetaClientConfig.StoreType.ZOOKEEPER, _monitorType,
+          _sessionTimeoutInMillis, _enableAuth, _monitorType,
           _monitorKey, _monitorInstanceName, _monitorRootPathOnly, _zkSerializer);
     }
 

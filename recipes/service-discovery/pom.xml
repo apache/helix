@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.helix.recipes</groupId>
     <artifactId>recipes</artifactId>
-    <version>${revision}</version>
+    <version>1.1.0</version>
   </parent>
 
   <artifactId>service-discovery</artifactId>

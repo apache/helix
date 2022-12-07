@@ -23,7 +23,7 @@ update_pom_version() {
   pom=$1
   version=$2
   echo "bump up $pom"
-  sed -i'' -e "s/<version>$version/<version>$new_version/g" $pom
+  sed -i'' -e "s/${version}/${new_version}/g" "$pom"
   if ! grep -C 1 "$new_version" $pom; then
     echo "Failed to update new version $new_version in $pom"
     exit 1
@@ -37,7 +37,8 @@ update_ivy() {
   if [ -f $ivy_file ]; then
     echo "bump up $ivy_file"
     git mv "$ivy_file" "$new_ivy_file"
-    sed -i'' -e "s/${current_version}/${new_version}/g" "$new_ivy_file"
+    current_ivy_version=`get_version_from_ivy $new_ivy_file`
+    sed -i'' -e "s/${current_ivy_version}/${new_version}/g" "$new_ivy_file"
     if ! grep -C 1 "$new_version" "$new_ivy_file"; then
       echo "Failed to update new version $new_version in $new_ivy_file"
       exit 1
@@ -49,6 +50,10 @@ update_ivy() {
 
 get_version_from_pom() {
   grep -A 1 "<artifactId>helix</artifactId>" $1 |tail -1 | awk 'BEGIN {FS="[<,>]"};{print $3}'
+}
+
+get_version_from_ivy() {
+  grep revision "$1" | awk 'BEGIN {FS="[=,\"]"};{print $3}'
 }
 
 current_version=`get_version_from_pom pom.xml`
@@ -74,7 +79,7 @@ for module in "metrics-common" "metadata-store-directory-common" "zookeeper-api"
   update_pom_version $module/pom.xml $current_version
 done
 
-for module in recipes/task-execution recipes \
+for module in recipes/task-execution recipes helix-front \
            recipes/distributed-lock-manager recipes/rsync-replicated-file-system \
            recipes/rabbitmq-consumer-group recipes/service-discovery; do
   update_pom_version $module/pom.xml $current_version

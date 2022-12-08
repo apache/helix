@@ -23,7 +23,7 @@
 ~~ under the License.
 
 ~~ NOTE: For help with the syntax of this file, see:
-~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+~~ https://maven.apache.org/guides/mini/guide-apt-format.html
 
 Helix Release Process
 
@@ -137,7 +137,7 @@ This is to call for a vote on releasing the following candidate as Apache Helix 
 Apache Helix is a generic cluster management framework that makes it easy to build partitioned and replicated, fault-tolerant and scalable distributed systems.
 
 Release notes:
-http://helix.apache.org/releasenotes/release-[VERSION].html
+https://helix.apache.org/[VERSION]-docs/releasenotes/release-[VERSION].html
 
 Release artifacts:
 https://repository.apache.org/content/repositories/orgapachehelix-[NNNN]
@@ -234,8 +234,8 @@ http://helix.apache.org/[VERSION]-docs/download.cgi
 
 Additional info
 
-Website: http://helix.apache.org/
-Helix mailing lists: http://helix.apache.org/mail-lists.html
+Website: https://helix.apache.org/
+Helix mailing lists: https://helix.apache.org/mail-lists.html
 
 We hope you will enjoy using the latest release of Apache Helix!
 

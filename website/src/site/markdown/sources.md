@@ -25,7 +25,7 @@ under the License.
 
 ### Overview
 
-This project uses [Git](http://git-scm.com/) to manage its source code. Instructions on Git can be found at [http://git-scm.com/documentation](http://git-scm.com/documentation).
+This project uses [Git](https://git-scm.com/) to manage its source code. Instructions on Git can be found at [https://git-scm.com/documentation](https://git-scm.com/documentation).
 
 ### Web Access
 
@@ -35,7 +35,7 @@ The following is a link to the online source repository.
 
 ### Anonymous Access
 
-The source can be checked out anonymously from Git with this command (See [http://git-scm.com/docs/git-clone](http://git-scm.com/docs/git-clone)):
+The source can be checked out anonymously from Git with this command (See [https://git-scm.com/docs/git-clone](https://git-scm.com/docs/git-clone)):
 
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
@@ -43,7 +43,7 @@ git clone https://git-wip-us.apache.org/repos/asf/helix.git
 
 ### Developer Access
 
-Only project developers can access the Git tree via this method (See [http://git-scm.com/docs/git-clone](http://git-scm.com/docs/git-clone)).
+Only project developers can access the Git tree via this method (See [https://git-scm.com/docs/git-clone](https://git-scm.com/docs/git-clone)).
 
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git

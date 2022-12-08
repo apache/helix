@@ -27,11 +27,11 @@ Publications
 
 * Untangling cluster management using Helix at [SOCC Oct 2012](http://www.socc2012.org/home/program)
     - [paper](https://915bbc94-a-62cb3a1a-s-sites.googlegroups.com/site/acm2012socc/helix_onecol.pdf)
-    - [presentation](http://www.slideshare.net/KishoreGopalakrishna/helix-socc-v10final)
+    - [presentation](https://www.slideshare.net/KishoreGopalakrishna/helix-socc-v10final)
 * Building distributed systems using Helix
-    - [presentation at RelateIQ](http://www.slideshare.net/KishoreGopalakrishna/helix-talk)
-    - [presentation at ApacheCon](http://www.slideshare.net/KishoreGopalakrishna/apache-con-buildingddsusinghelix)
-    - [presentation at VMWare](http://www.slideshare.net/KishoreGopalakrishna/apache-helix-presentation-at-vmware)
+    - [presentation at RelateIQ](https://www.slideshare.net/KishoreGopalakrishna/helix-talk)
+    - [presentation at ApacheCon](https://www.slideshare.net/KishoreGopalakrishna/apache-con-buildingddsusinghelix)
+    - [presentation at VMWare](https://www.slideshare.net/KishoreGopalakrishna/apache-helix-presentation-at-vmware)
 * Data driven testing:
-    - [short talk at LSPE meetup](http://www.slideshare.net/KishoreGopalakrishna/data-driven-testing)
-    - [paper DBTest 2013 acm SIGMOD:will be published on Jun 24, 2013](http://dbtest2013.soe.ucsc.edu/Program.htm)
+    - [short talk at LSPE meetup](https://www.slideshare.net/KishoreGopalakrishna/data-driven-testing)
+    - [paper DBTest 2013 acm SIGMOD:will be published on Jun 24, 2013](https://dbtest2013.soe.ucsc.edu/Program.htm)

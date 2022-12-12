@@ -1,5 +1,6 @@
 import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { beforeEach, describe, expect, xit } from '@jest/globals';
 
 import { TestingModule } from '../../../testing/testing.module';
 import { ClusterDetailComponent } from './cluster-detail.component';

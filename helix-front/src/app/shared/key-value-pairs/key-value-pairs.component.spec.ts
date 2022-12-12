@@ -1,4 +1,5 @@
 import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 
 import { KeyValuePairsComponent } from './key-value-pairs.component';
 

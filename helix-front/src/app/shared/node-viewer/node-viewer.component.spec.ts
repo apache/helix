@@ -1,6 +1,7 @@
 import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { TestingModule } from '../../../testing/testing.module';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 
 import { NodeViewerComponent } from './node-viewer.component';
 

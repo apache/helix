@@ -1,5 +1,6 @@
 import { TestBed, waitForAsync } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { beforeEach, describe, expect, it, xit } from '@jest/globals';
 
 // import { Angulartics2 } from 'angulartics2';
 // import { Angulartics2Piwik } from 'angulartics2/piwik';

@@ -129,7 +129,7 @@
     "@storybook/core-common": "^6.5.13",
     "@storybook/manager-webpack5": "^6.5.13",
     "@types/hammerjs": "^2.0.34",
-    "@types/jest": "^28.1.1",
+    "@types/jest": "^29.2.4",
     "@types/lodash": "4.14.120",
     "@types/node": "14.17.6",
     "@types/request": "^2.0.0",

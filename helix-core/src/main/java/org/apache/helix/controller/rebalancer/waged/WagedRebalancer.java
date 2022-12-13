@@ -460,7 +460,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
           doGlobalRebalance(clusterData, resourceMap, algorithm, currentStateOutput, !waitForGlobalRebalance,
               clusterChanges);
         } catch (HelixRebalanceException e) {
-          _rebalanceFailureCount.increment(1L);
+          if (_asyncGlobalRebalanceEnabled) {
+            _rebalanceFailureCount.increment(1L);
+          }
           LOG.error("Failed to calculate baseline assignment!", e);
           return false;
         }
@@ -550,7 +552,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         doPartialRebalance(clusterData, resourceMap, activeNodes, algorithm,
             currentStateOutput);
       } catch (HelixRebalanceException e) {
-        _rebalanceFailureCount.increment(1L);
+        if (_asyncPartialRebalanceEnabled) {
+          _rebalanceFailureCount.increment(1L);
+        }
         LOG.error("Failed to calculate best possible assignment!", e);
         return false;
       }

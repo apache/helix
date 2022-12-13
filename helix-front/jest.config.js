@@ -13,6 +13,6 @@ module.exports = {
     'vis-timeline':
       '<rootDir>/node_modules/vis-timeline/dist/vis-timeline-graph2d.min.js',
   },
-  setupFilesAfterEnv: ['<rootDir/setupJest.ts>'],
+  setupFilesAfterEnv: ['<rootDir>/setupJest.ts'],
   globalSetup: 'jest-preset-angular/global-setup',
 };

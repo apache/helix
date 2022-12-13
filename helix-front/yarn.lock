@@ -1180,7 +1180,7 @@
     "@babel/helper-module-transforms" "^7.19.6"
     "@babel/helper-plugin-utils" "^7.19.0"
 
-"@babel/plugin-transform-modules-commonjs@^7.16.8", "@babel/plugin-transform-modules-commonjs@^7.18.6":
+"@babel/plugin-transform-modules-commonjs@^7.16.8", "@babel/plugin-transform-modules-commonjs@^7.18.6", "@babel/plugin-transform-modules-commonjs@^7.19.6":
   version "7.19.6"
   resolved "https://registry.yarnpkg.com/@babel/plugin-transform-modules-commonjs/-/plugin-transform-modules-commonjs-7.19.6.tgz#25b32feef24df8038fc1ec56038917eacb0b730c"
   integrity sha512-8PIa1ym4XRTKuSsOUXqDG0YaOlEuTVvHMe5JCfgBMOtHvJKw/4NGovEGN33viISshG/rZNVrACiBmPQLvWN8xQ==
@@ -9989,10 +9989,10 @@ jest-preset-angular@11.1.2:
   optionalDependencies:
     esbuild "0.14.11"
 
-jest-preset-angular@^12.1.0:
-  version "12.2.2"
-  resolved "https://registry.yarnpkg.com/jest-preset-angular/-/jest-preset-angular-12.2.2.tgz#f7414e15e165e34efdc4fd8404a19e8e4856441e"
-  integrity sha512-aj5ZwVW6cGGzZKUn6e/jDwFgQh6FHy1zCCXWOeqFCuM3WODrbdUJ93zKrex18e9K1+PvOcP0e20yKbj3gwhfFg==
+jest-preset-angular@^12.2.3:
+  version "12.2.3"
+  resolved "https://registry.yarnpkg.com/jest-preset-angular/-/jest-preset-angular-12.2.3.tgz#2a0db250f6e1c83b451a21f5ca4136925f17d5b1"
+  integrity sha512-9vgawXuki/lg4IRPtl5k83krWLKADTal7BBm06xNAWOK09AbHK1foXqZdVOMObsWbaMDeQ1cjba60vS/aEVY4Q==
   dependencies:
     bs-logger "^0.2.6"
     esbuild-wasm ">=0.13.8"

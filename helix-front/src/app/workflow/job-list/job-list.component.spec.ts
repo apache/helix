@@ -1,4 +1,12 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import 'zone.js';
+import 'zone.js/dist/zone-testing';
+
+import { ComponentFixture, TestBed, getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
@@ -9,7 +17,9 @@ describe('JobListComponent', () => {
   let component: JobListComponent;
   let fixture: ComponentFixture<JobListComponent>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
+
+
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [JobListComponent],
@@ -18,7 +28,7 @@ describe('JobListComponent', () => {
         NO_ERRORS_SCHEMA,
       ],
     }).compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(JobListComponent);

@@ -1,5 +1,13 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import 'zone.js';
+import 'zone.js/dist/zone-testing';
+
+import { ComponentFixture, TestBed, getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { beforeEach, describe, expect, xit } from '@jest/globals';
 
 import { TestingModule } from '../../../testing/testing.module';
 import { ClusterListComponent } from './cluster-list.component';
@@ -8,7 +16,10 @@ describe('ClusterListComponent', () => {
   let component: ClusterListComponent;
   let fixture: ComponentFixture<ClusterListComponent>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
+
+
+
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [ClusterListComponent],
@@ -17,7 +28,7 @@ describe('ClusterListComponent', () => {
         NO_ERRORS_SCHEMA,
       ],
     }).compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(ClusterListComponent);

@@ -43,38 +43,42 @@ export class InstanceDetailComponent implements OnInit {
       .showConfirmation('Are you sure you want to remove this Instance?')
       .then((result) => {
         if (result) {
-          this.service
-            .remove(this.clusterName, this.instance.name)
-            .subscribe((data) => {
+          this.service.remove(this.clusterName, this.instance.name).subscribe(
+            /* happy path */ () => {
               this.helperService.showSnackBar(
                 `Instance: ${this.instance.name} removed!`
               );
               this.router.navigate(['..'], { relativeTo: this.route });
-            });
+            },
+            /* error path */ (error) => this.helperService.showError(error),
+            /* onComplete */ () => (this.isLoading = false)
+          );
         }
       });
   }
 
   enableInstance() {
     this.service.enable(this.clusterName, this.instance.name).subscribe(
-      () => this.loadInstance(),
-      (error) => this.helperService.showError(error)
+      /* happy path */ () => this.loadInstance(),
+      /* error path */ (error) => this.helperService.showError(error),
+      /* onComplete */ () => (this.isLoading = false)
     );
   }
 
   disableInstance() {
     this.service.disable(this.clusterName, this.instance.name).subscribe(
-      () => this.loadInstance(),
-      (error) => this.helperService.showError(error)
+      /* happy path */ () => this.loadInstance(),
+      /* error path */ (error) => this.helperService.showError(error),
+      /* onComplete */ () => (this.isLoading = false)
     );
   }
 
   protected loadInstance() {
     this.isLoading = true;
     this.service.get(this.clusterName, this.instanceName).subscribe(
-      (instance) => (this.instance = instance),
-      (error) => this.helperService.showError(error),
-      () => (this.isLoading = false)
+      /* happy path */ (instance) => (this.instance = instance),
+      /* error path */ (error) => this.helperService.showError(error),
+      /* onComplete */ () => (this.isLoading = false)
     );
   }
 }

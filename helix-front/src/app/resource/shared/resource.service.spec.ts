@@ -1,6 +1,7 @@
 import { TestBed, inject } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 
 import { ResourceService } from './resource.service';
 

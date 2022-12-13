@@ -1,4 +1,11 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import 'zone.js';
+import 'zone.js/dist/zone-testing';
+
+import { ComponentFixture, TestBed, getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
 import { beforeEach, describe, expect, it } from '@jest/globals';
@@ -11,7 +18,10 @@ describe('WorkflowListComponent', () => {
   let component: WorkflowListComponent;
   let fixture: ComponentFixture<WorkflowListComponent>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
+
+
+
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
       declarations: [WorkflowListComponent],
@@ -21,7 +31,7 @@ describe('WorkflowListComponent', () => {
         NO_ERRORS_SCHEMA,
       ],
     }).compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(WorkflowListComponent);

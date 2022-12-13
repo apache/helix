@@ -1,4 +1,10 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import 'zone.js';
+import 'zone.js/dist/zone-testing';
+import { ComponentFixture, TestBed, getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 
@@ -10,7 +16,9 @@ describe('PartitionListComponent', () => {
   let component: PartitionListComponent;
   let fixture: ComponentFixture<PartitionListComponent>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
+
+
     TestBed.configureTestingModule({
       imports: [TestingModule],
       providers: [ResourceService],
@@ -20,7 +28,7 @@ describe('PartitionListComponent', () => {
         NO_ERRORS_SCHEMA,
       ],
     }).compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(PartitionListComponent);

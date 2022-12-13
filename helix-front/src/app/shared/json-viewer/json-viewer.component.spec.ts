@@ -1,4 +1,10 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import 'zone.js';
+import 'zone.js/dist/zone-testing';
+import { ComponentFixture, TestBed, getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 
@@ -8,12 +14,14 @@ describe('JsonViewerComponent', () => {
   let component: JsonViewerComponent;
   let fixture: ComponentFixture<JsonViewerComponent>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
+
+
     TestBed.configureTestingModule({
       imports: [RouterTestingModule],
       declarations: [JsonViewerComponent],
     }).compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(JsonViewerComponent);

@@ -1,7 +1,13 @@
-import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import 'zone.js';
+import 'zone.js/dist/zone-testing';
+import { ComponentFixture, TestBed, getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { TestingModule } from '../../../testing/testing.module';
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { NodeViewerComponent } from './node-viewer.component';
 
@@ -9,7 +15,7 @@ describe('NodeViewerComponent', () => {
   let component: NodeViewerComponent;
   let fixture: ComponentFixture<NodeViewerComponent>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [NodeViewerComponent],
@@ -18,9 +24,7 @@ describe('NodeViewerComponent', () => {
         NO_ERRORS_SCHEMA,
       ],
     }).compileComponents();
-  }));
 
-  beforeEach(() => {
     fixture = TestBed.createComponent(NodeViewerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

@@ -21,7 +21,7 @@ under the License.
 Building Apache Helix
 --------------
 
-First you need to install [Apache Maven](http://maven.apache.org) 2.0.8+.
+First you need to install [Apache Maven](https://maven.apache.org) 2.0.8+.
 
 To install JARs locally:
 

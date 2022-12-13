@@ -67,7 +67,7 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 ### Join the Conversation
 
-[Bay Area Meetup Group](http://www.meetup.com/Building-distributed-systems-using-Apache-Helix-Meetup-group/)
+[Bay Area Meetup Group](https://www.meetup.com/Building-distributed-systems-using-Apache-Helix-Meetup-group/)
 
 [`#apachehelix`](./IRC.html)
 

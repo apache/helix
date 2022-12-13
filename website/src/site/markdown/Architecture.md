@@ -69,7 +69,7 @@ Both have pros and cons, which will be discussed later and one can chose the mod
 
 ## Cluster State Metadata Store
 
-We need a distributed store to maintain the state of the cluster and a notification system to notify if there is any change in the cluster state. Helix uses [Apache ZooKeeper](http://zookeeper.apache.org) to achieve this functionality.
+We need a distributed store to maintain the state of the cluster and a notification system to notify if there is any change in the cluster state. Helix uses [Apache ZooKeeper](https://zookeeper.apache.org) to achieve this functionality.
 
 Zookeeper provides:
 
@@ -79,7 +79,7 @@ Zookeeper provides:
 
 The namespace provided by ZooKeeper is much like that of a standard file system. A name is a sequence of path elements separated by a slash (/). Every node (ZNode) in ZooKeeper\'s namespace is identified by a path.
 
-More info on Zookeeper can be found at [http://zookeeper.apache.org](http://zookeeper.apache.org)
+More info on Zookeeper can be found at [https://zookeeper.apache.org](https://zookeeper.apache.org)
 
 ## State Machine and Constraints
 

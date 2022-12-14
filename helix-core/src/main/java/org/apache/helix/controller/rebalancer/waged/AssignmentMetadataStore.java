@@ -51,7 +51,7 @@ public class AssignmentMetadataStore {
   // volatile for double-checked locking
   protected volatile Map<String, ResourceAssignment> _globalBaseline;
   protected volatile Map<String, ResourceAssignment> _bestPossibleAssignment;
-  protected int _bestPossibleVersion = 0;
+  protected volatile int _bestPossibleVersion = 0;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);

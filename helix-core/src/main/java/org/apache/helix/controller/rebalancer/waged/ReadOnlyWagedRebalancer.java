@@ -79,6 +79,7 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
       _bestPossibleAssignment = bestPossibleAssignment;
       _bestPossibleVersion++;
     }
+
     @Override
     public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
         Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {

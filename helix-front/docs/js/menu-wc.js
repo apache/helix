@@ -421,6 +421,19 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                 </ul>
                 </li>
                     <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse" ${ isNormalMode ? 'data-target="#components-links"' :
+                            'data-target="#xs-components-links"' }>
+                            <span class="icon ion-md-cog"></span>
+                            <span>Components</span>
+                            <span class="icon ion-ios-arrow-down"></span>
+                        </div>
+                        <ul class="links collapse " ${ isNormalMode ? 'id="components-links"' : 'id="xs-components-links"' }>
+                            <li class="link">
+                                <a href="components/ConfirmDialogTestComponent.html" data-type="entity-link" >ConfirmDialogTestComponent</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="chapter">
                         <div class="simple menu-toggler" data-toggle="collapse" ${ isNormalMode ? 'data-target="#classes-links"' :
                             'data-target="#xs-classes-links"' }>
                             <span class="icon ion-ios-paper"></span>
@@ -519,10 +532,10 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                         </div>
                         <ul class="links collapse " ${ isNormalMode ? ' id="interfaces-links"' : 'id="xs-interfaces-links"' }>
                             <li class="link">
-                                <a href="interfaces/HelixSession.html" data-type="entity-link" >HelixSession</a>
+                                <a href="interfaces/HelixRequest.html" data-type="entity-link" >HelixRequest</a>
                             </li>
                             <li class="link">
-                                <a href="interfaces/HelixUserRequest.html" data-type="entity-link" >HelixUserRequest</a>
+                                <a href="interfaces/HelixSession.html" data-type="entity-link" >HelixSession</a>
                             </li>
                             <li class="link">
                                 <a href="interfaces/IReplica.html" data-type="entity-link" >IReplica</a>
@@ -532,6 +545,9 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                             </li>
                             <li class="link">
                                 <a href="interfaces/MapFieldObject.html" data-type="entity-link" >MapFieldObject</a>
+                            </li>
+                            <li class="link">
+                                <a href="interfaces/Payload.html" data-type="entity-link" >Payload</a>
                             </li>
                             <li class="link">
                                 <a href="interfaces/SimpleFieldObject.html" data-type="entity-link" >SimpleFieldObject</a>

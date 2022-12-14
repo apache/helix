@@ -79,6 +79,10 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#parseMessage" >parseMessage</a>
+                            </li>
+                            <li>
                                 <a href="#showConfirmation" >showConfirmation</a>
                             </li>
                             <li>
@@ -169,24 +173,26 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="showConfirmation"></a>
+                    <a name="parseMessage"></a>
                     <span class="name">
-                        <span ><b>showConfirmation</b></span>
-                        <a href="#showConfirmation"><span class="icon ion-ios-link"></span></a>
+                        <span class="modifier">Private</span>
+                        <span ><b>parseMessage</b></span>
+                        <a href="#parseMessage"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>showConfirmation(message: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>parseMessage(message: string | object)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="27"
-                            class="link-to-prism">src/app/shared/helper.service.ts:27</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="12"
+                            class="link-to-prism">src/app/shared/helper.service.ts:12</a></div>
                 </td>
             </tr>
 
@@ -209,11 +215,104 @@
                                 <tr>
                                     <td>message</td>
                                     <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            <code>string | object</code>
                                     </td>
 
                                     <td>
                                         No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="showConfirmation"></a>
+                    <span class="name">
+                        <span ><b>showConfirmation</b></span>
+                        <a href="#showConfirmation"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>showConfirmation(message: string | object, title?: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, confirmButtonText?: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="33"
+                            class="link-to-prism">src/app/shared/helper.service.ts:33</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>message</td>
+                                    <td>
+                                            <code>string | object</code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>title</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        Yes
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>confirmButtonText</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        Yes
                                     </td>
 
 
@@ -247,15 +346,15 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>showError(message: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+<code>showError(message: string | object)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="12"
-                            class="link-to-prism">src/app/shared/helper.service.ts:12</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="18"
+                            class="link-to-prism">src/app/shared/helper.service.ts:18</a></div>
                 </td>
             </tr>
 
@@ -278,7 +377,7 @@
                                 <tr>
                                     <td>message</td>
                                     <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            <code>string | object</code>
                                     </td>
 
                                     <td>
@@ -316,15 +415,15 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>showSnackBar(message: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+<code>showSnackBar(message: string | object)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="21"
-                            class="link-to-prism">src/app/shared/helper.service.ts:21</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="27"
+                            class="link-to-prism">src/app/shared/helper.service.ts:27</a></div>
                 </td>
             </tr>
 
@@ -347,7 +446,7 @@
                                 <tr>
                                     <td>message</td>
                                     <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            <code>string | object</code>
                                     </td>
 
                                     <td>
@@ -389,27 +488,38 @@ import { ConfirmDialogComponent } from &#x27;./dialog/confirm-dialog/confirm-dia
 export class HelperService {
   constructor(protected snackBar: MatSnackBar, protected dialog: MatDialog) {}
 
-  showError(message: string) {
+  private parseMessage(message: string | object) {
+    return typeof message &#x3D;&#x3D;&#x3D; &#x27;string&#x27;
+      ? message
+      : JSON.stringify(message, null, 2);
+  }
+
+  showError(message: string | object) {
     this.dialog.open(AlertDialogComponent, {
       data: {
         title: &#x27;Error&#x27;,
-        message,
+        message: this.parseMessage(message),
       },
     });
   }
 
-  showSnackBar(message: string) {
-    this.snackBar.open(message, &#x27;OK&#x27;, {
+  showSnackBar(message: string | object) {
+    this.snackBar.open(this.parseMessage(message), &#x27;OK&#x27;, {
       duration: 2000,
     });
   }
 
-  showConfirmation(message: string) {
+  showConfirmation(
+    message: string | object,
+    title?: string,
+    confirmButtonText?: string
+  ) {
     return this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: &#x27;Confirmation&#x27;,
-          message,
+          message: this.parseMessage(message),
+          title,
+          confirmButtonText,
         },
       })
       .afterClosed()

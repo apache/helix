@@ -195,7 +195,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:21</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:22</a></div>
                             </td>
                         </tr>
 
@@ -298,8 +298,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="55"
-                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:55</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="59"
+                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:59</a></div>
                 </td>
             </tr>
 
@@ -335,8 +335,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="36"
-                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:36</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="38"
+                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:38</a></div>
                 </td>
             </tr>
 
@@ -372,8 +372,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="30"
-                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:30</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="31"
+                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:31</a></div>
                 </td>
             </tr>
 
@@ -409,8 +409,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="44"
-                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:44</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="48"
+                            class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:48</a></div>
                 </td>
             </tr>
 
@@ -482,7 +482,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="20" class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:20</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:21</a></div>
                         </td>
                     </tr>
 
@@ -600,7 +600,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:21</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">src/app/cluster/cluster-list/cluster-list.component.ts:22</a></div>
                         </td>
                     </tr>
 
@@ -632,6 +632,7 @@ export class ClusterListComponent implements OnInit {
   clusters: Cluster[] &#x3D; [];
   errorMessage &#x3D; &#x27;&#x27;;
   isLoading &#x3D; true;
+  // is the currrent user logged in? If true, then yes.
   can &#x3D; false;
   service &#x3D; &#x27;&#x27;;
 
@@ -644,6 +645,7 @@ export class ClusterListComponent implements OnInit {
 
   ngOnInit() {
     this.loadClusters();
+    // check if the current user is logged in
     this.clusterService.can().subscribe((data) &#x3D;&gt; (this.can &#x3D; data));
     this.service &#x3D; this.router.url.split(&#x27;/&#x27;)[1];
   }
@@ -654,6 +656,8 @@ export class ClusterListComponent implements OnInit {
       /* error path */ (error) &#x3D;&gt; this.showErrorMessage(error),
       /* onComplete */ () &#x3D;&gt; (this.isLoading &#x3D; false)
     );
+    // check if the current user is logged in again
+    this.clusterService.can().subscribe((data) &#x3D;&gt; (this.can &#x3D; data));
   }
 
   showErrorMessage(error: any) {
@@ -730,12 +734,14 @@ export class ClusterListComponent implements OnInit {
     &lt;mat-spinner&gt; Loading all clusters ... &lt;/mat-spinner&gt;
   &lt;/section&gt;
   &lt;mat-nav-list *ngIf&#x3D;&quot;!isLoading &amp;&amp; !errorMessage&quot;&gt;
-    &lt;button mat-button routerLink&#x3D;&quot;/&quot;&gt;
-      &lt;mat-icon&gt;arrow_back&lt;/mat-icon&gt; Back to Index
-    &lt;/button&gt;
-    &lt;button mat-mini-fab *ngIf&#x3D;&quot;can&quot; (click)&#x3D;&quot;createCluster()&quot;&gt;
-      &lt;mat-icon&gt;add&lt;/mat-icon&gt;
-    &lt;/button&gt;
+    &lt;div class&#x3D;&quot;cluster-list-button-group&quot;&gt;
+      &lt;button class&#x3D;&quot;back-to-index-button&quot; mat-button routerLink&#x3D;&quot;/&quot;&gt;
+        &lt;mat-icon&gt;arrow_back&lt;/mat-icon&gt; Back to Index
+      &lt;/button&gt;
+      &lt;button mat-mini-fab *ngIf&#x3D;&quot;can&quot; (click)&#x3D;&quot;createCluster()&quot;&gt;
+        &lt;mat-icon&gt;add&lt;/mat-icon&gt;
+      &lt;/button&gt;
+    &lt;/div&gt;
     &lt;h3 mat-subheader&gt;Clusters in {{ service }} ({{ clusters.length }})&lt;/h3&gt;
     &lt;a
       *ngFor&#x3D;&quot;let cluster of clusters&quot;
@@ -765,6 +771,25 @@ export class ClusterListComponent implements OnInit {
                 <pre class="line-numbers"><code class="language-scss">@use &#x27;@angular/material&#x27; as mat;
 @import &#x27;src/theme.scss&#x27;;
 
+.mat-nav-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cluster-list-button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-right: 1rem;
+}
+
+.back-to-index-button {
+  align-self: flex-start;
+}
+
+.add-cluster-button {
+  align-self: flex-end;
+}
+
 .mat-spinner {
   margin: 20px;
 }
@@ -776,12 +801,6 @@ export class ClusterListComponent implements OnInit {
 
 .error-message {
   padding: 10px;
-}
-
-.mat-mini-fab {
-  position: fixed;
-  right: 16px;
-  top: 16px;
 }
 
 .empty {
@@ -817,8 +836,8 @@ export class ClusterListComponent implements OnInit {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><!--  ~ Licensed to the Apache Software Foundation (ASF) under one  ~ or more contributor license agreements.  See the NOTICE file  ~ distributed with this work for additional information  ~ regarding copyright ownership.  The ASF licenses this file  ~ to you under the Apache License, Version 2.0 (the  ~ "License"); you may not use this file except in compliance  ~ with the License.  You may obtain a copy of the License at  ~  ~     http://www.apache.org/licenses/LICENSE-2.0  ~  ~ Unless required by applicable law or agreed to in writing,  ~ software distributed under the License is distributed on an  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY  ~ KIND, either express or implied.  See the License for the  ~ specific language governing permissions and limitations  ~ under the License.  --><section class="cluster-list">  <section *ngIf="isLoading" fxLayout="row" fxLayoutAlign="center center">    <mat-spinner> Loading all clusters ... </mat-spinner>  </section>  <mat-nav-list *ngIf="!isLoading && !errorMessage">    <button mat-button routerLink="/">      <mat-icon>arrow_back</mat-icon> Back to Index    </button>    <button mat-mini-fab *ngIf="can" (click)="createCluster()">      <mat-icon>add</mat-icon>    </button>    <h3 mat-subheader>Clusters in {{ service }} ({{ clusters.length }})</h3>    <a      *ngFor="let cluster of clusters"      mat-list-item      [routerLink]="[cluster.name]"      routerLinkActive="cluster-list-item-selected"    >      <mat-icon mat-list-icon>blur_circular</mat-icon>      <h4 mat-line>{{ cluster.name }}</h4>    </a>    <div *ngIf="clusters.length == 0" class="empty">      There\'s no cluster here.      <a mat-button *ngIf="can" (click)="createCluster()">Create one?</a>    </div>  </mat-nav-list>  <section class="error-message" *ngIf="errorMessage">    {{ errorMessage }}  </section></section></div>'
-    var COMPONENTS = [{'name': 'AlertDialogComponent', 'selector': 'hi-alert-dialog'},{'name': 'AppComponent', 'selector': 'hi-root'},{'name': 'ClusterComponent', 'selector': 'hi-cluster'},{'name': 'ClusterDetailComponent', 'selector': 'hi-cluster-detail'},{'name': 'ClusterListComponent', 'selector': 'hi-cluster-list'},{'name': 'ConfigDetailComponent', 'selector': 'hi-config-detail'},{'name': 'ConfirmDialogComponent', 'selector': 'hi-confirm-dialog'},{'name': 'ControllerDetailComponent', 'selector': 'hi-controller-detail'},{'name': 'DashboardComponent', 'selector': 'hi-dashboard'},{'name': 'DataTableComponent', 'selector': 'hi-data-table'},{'name': 'DetailHeaderComponent', 'selector': 'hi-detail-header'},{'name': 'DisabledLabelComponent', 'selector': 'hi-disabled-label'},{'name': 'HelixListComponent', 'selector': 'hi-helix-list'},{'name': 'HistoryListComponent', 'selector': 'hi-history-list'},{'name': 'InputDialogComponent', 'selector': 'hi-input-dialog'},{'name': 'InputInlineComponent', 'selector': 'hi-input-inline'},{'name': 'InstanceDetailComponent', 'selector': 'hi-instance-detail'},{'name': 'InstanceListComponent', 'selector': 'hi-instance-list'},{'name': 'JobDetailComponent', 'selector': 'hi-job-detail'},{'name': 'JobListComponent', 'selector': 'hi-job-list'},{'name': 'JsonViewerComponent', 'selector': 'hi-json-viewer'},{'name': 'KeyValuePairsComponent', 'selector': 'hi-key-value-pairs'},{'name': 'NodeViewerComponent', 'selector': 'hi-node-viewer'},{'name': 'PartitionDetailComponent', 'selector': 'hi-partition-detail'},{'name': 'PartitionListComponent', 'selector': 'hi-partition-list'},{'name': 'ResourceDetailComponent', 'selector': 'hi-resource-detail'},{'name': 'ResourceDetailForInstanceComponent', 'selector': 'hi-resource-detail-for-instance'},{'name': 'ResourceListComponent', 'selector': 'hi-resource-list'},{'name': 'ResourceNodeViewerComponent', 'selector': 'hi-resource-node-viewer'},{'name': 'StateLabelComponent', 'selector': 'hi-state-label'},{'name': 'WorkflowDagComponent', 'selector': 'hi-workflow-dag'},{'name': 'WorkflowDetailComponent', 'selector': 'hi-workflow-detail'},{'name': 'WorkflowListComponent', 'selector': 'hi-workflow-list'}];
+        var COMPONENT_TEMPLATE = '<div><!--  ~ Licensed to the Apache Software Foundation (ASF) under one  ~ or more contributor license agreements.  See the NOTICE file  ~ distributed with this work for additional information  ~ regarding copyright ownership.  The ASF licenses this file  ~ to you under the Apache License, Version 2.0 (the  ~ "License"); you may not use this file except in compliance  ~ with the License.  You may obtain a copy of the License at  ~  ~     http://www.apache.org/licenses/LICENSE-2.0  ~  ~ Unless required by applicable law or agreed to in writing,  ~ software distributed under the License is distributed on an  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY  ~ KIND, either express or implied.  See the License for the  ~ specific language governing permissions and limitations  ~ under the License.  --><section class="cluster-list">  <section *ngIf="isLoading" fxLayout="row" fxLayoutAlign="center center">    <mat-spinner> Loading all clusters ... </mat-spinner>  </section>  <mat-nav-list *ngIf="!isLoading && !errorMessage">    <div class="cluster-list-button-group">      <button class="back-to-index-button" mat-button routerLink="/">        <mat-icon>arrow_back</mat-icon> Back to Index      </button>      <button mat-mini-fab *ngIf="can" (click)="createCluster()">        <mat-icon>add</mat-icon>      </button>    </div>    <h3 mat-subheader>Clusters in {{ service }} ({{ clusters.length }})</h3>    <a      *ngFor="let cluster of clusters"      mat-list-item      [routerLink]="[cluster.name]"      routerLinkActive="cluster-list-item-selected"    >      <mat-icon mat-list-icon>blur_circular</mat-icon>      <h4 mat-line>{{ cluster.name }}</h4>    </a>    <div *ngIf="clusters.length == 0" class="empty">      There\'s no cluster here.      <a mat-button *ngIf="can" (click)="createCluster()">Create one?</a>    </div>  </mat-nav-list>  <section class="error-message" *ngIf="errorMessage">    {{ errorMessage }}  </section></section></div>'
+    var COMPONENTS = [{'name': 'AlertDialogComponent', 'selector': 'hi-alert-dialog'},{'name': 'AppComponent', 'selector': 'hi-root'},{'name': 'ClusterComponent', 'selector': 'hi-cluster'},{'name': 'ClusterDetailComponent', 'selector': 'hi-cluster-detail'},{'name': 'ClusterListComponent', 'selector': 'hi-cluster-list'},{'name': 'ConfigDetailComponent', 'selector': 'hi-config-detail'},{'name': 'ConfirmDialogComponent', 'selector': 'hi-confirm-dialog'},{'name': 'ConfirmDialogTestComponent', 'selector': 'hi-confirm-dialog-test'},{'name': 'ControllerDetailComponent', 'selector': 'hi-controller-detail'},{'name': 'DashboardComponent', 'selector': 'hi-dashboard'},{'name': 'DataTableComponent', 'selector': 'hi-data-table'},{'name': 'DetailHeaderComponent', 'selector': 'hi-detail-header'},{'name': 'DisabledLabelComponent', 'selector': 'hi-disabled-label'},{'name': 'HelixListComponent', 'selector': 'hi-helix-list'},{'name': 'HistoryListComponent', 'selector': 'hi-history-list'},{'name': 'InputDialogComponent', 'selector': 'hi-input-dialog'},{'name': 'InputInlineComponent', 'selector': 'hi-input-inline'},{'name': 'InstanceDetailComponent', 'selector': 'hi-instance-detail'},{'name': 'InstanceListComponent', 'selector': 'hi-instance-list'},{'name': 'JobDetailComponent', 'selector': 'hi-job-detail'},{'name': 'JobListComponent', 'selector': 'hi-job-list'},{'name': 'JsonViewerComponent', 'selector': 'hi-json-viewer'},{'name': 'KeyValuePairsComponent', 'selector': 'hi-key-value-pairs'},{'name': 'NodeViewerComponent', 'selector': 'hi-node-viewer'},{'name': 'PartitionDetailComponent', 'selector': 'hi-partition-detail'},{'name': 'PartitionListComponent', 'selector': 'hi-partition-list'},{'name': 'ResourceDetailComponent', 'selector': 'hi-resource-detail'},{'name': 'ResourceDetailForInstanceComponent', 'selector': 'hi-resource-detail-for-instance'},{'name': 'ResourceListComponent', 'selector': 'hi-resource-list'},{'name': 'ResourceNodeViewerComponent', 'selector': 'hi-resource-node-viewer'},{'name': 'StateLabelComponent', 'selector': 'hi-state-label'},{'name': 'WorkflowDagComponent', 'selector': 'hi-workflow-dag'},{'name': 'WorkflowDetailComponent', 'selector': 'hi-workflow-detail'},{'name': 'WorkflowListComponent', 'selector': 'hi-workflow-list'}];
     var DIRECTIVES = [{'name': 'KeyValuePairDirective', 'selector': 'hi-key-value-pair'}];
     var ACTUAL_COMPONENT = {'name': 'ClusterListComponent'};
 </script>

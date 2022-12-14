@@ -145,7 +145,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="23" class="link-to-prism">src/app/shared/models/node.model.ts:23</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="30" class="link-to-prism">src/app/shared/models/node.model.ts:30</a></div>
                             </td>
                         </tr>
 
@@ -207,7 +207,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="20" class="link-to-prism">src/app/shared/models/node.model.ts:20</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="27" class="link-to-prism">src/app/shared/models/node.model.ts:27</a></div>
                         </td>
                     </tr>
 
@@ -238,7 +238,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">src/app/shared/models/node.model.ts:22</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="29" class="link-to-prism">src/app/shared/models/node.model.ts:29</a></div>
                         </td>
                     </tr>
 
@@ -269,7 +269,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="23" class="link-to-prism">src/app/shared/models/node.model.ts:23</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="30" class="link-to-prism">src/app/shared/models/node.model.ts:30</a></div>
                         </td>
                     </tr>
 
@@ -300,7 +300,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">src/app/shared/models/node.model.ts:21</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="28" class="link-to-prism">src/app/shared/models/node.model.ts:28</a></div>
                         </td>
                     </tr>
 
@@ -336,8 +336,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="59"
-                            class="link-to-prism">src/app/shared/models/node.model.ts:59</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="66"
+                            class="link-to-prism">src/app/shared/models/node.model.ts:66</a></div>
                 </td>
             </tr>
 
@@ -431,8 +431,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="52"
-                            class="link-to-prism">src/app/shared/models/node.model.ts:52</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="59"
+                            class="link-to-prism">src/app/shared/models/node.model.ts:59</a></div>
                 </td>
             </tr>
 
@@ -514,8 +514,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="79"
-                            class="link-to-prism">src/app/shared/models/node.model.ts:79</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="86"
+                            class="link-to-prism">src/app/shared/models/node.model.ts:86</a></div>
                 </td>
             </tr>
 
@@ -585,8 +585,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="109"
-                            class="link-to-prism">src/app/shared/models/node.model.ts:109</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="131"
+                            class="link-to-prism">src/app/shared/models/node.model.ts:131</a></div>
                 </td>
             </tr>
 
@@ -661,6 +661,13 @@ interface MapFieldObject {
   value: SimpleFieldObject[];
 }
 
+interface Payload {
+  id: string;
+  simpleFields?: any;
+  listFields?: any;
+  mapFields?: any;
+}
+
 // This is a typical Helix Node definition
 export class Node {
   id: string;
@@ -688,7 +695,7 @@ export class Node {
 
       _.forOwn(obj[&#x27;mapFields&#x27;], (v, k) &#x3D;&gt; {
         this.mapFields.push(&lt;MapFieldObject&gt;{
-          name: k,
+          name: k.trim(),
           value: this.keyValueToArray(v),
         });
       });
@@ -706,7 +713,7 @@ export class Node {
     const index &#x3D; _.findIndex(this.mapFields, { name: key });
     if (index &gt;&#x3D; 0) {
       this.mapFields[index].value.push(&lt;SimpleFieldObject&gt;{
-        name,
+        name: name.trim(),
         value,
       });
     } else {
@@ -714,7 +721,7 @@ export class Node {
         name: key,
         value: [
           &lt;SimpleFieldObject&gt;{
-            name,
+            name: name.trim(),
             value,
           },
         ],
@@ -723,30 +730,45 @@ export class Node {
   }
 
   public json(id: string): string {
-    const obj &#x3D; {
+    const obj: Payload &#x3D; {
       id,
-      simpleFields: {},
-      listFields: {},
-      mapFields: {},
     };
 
-    _.forEach(this.simpleFields, (item: SimpleFieldObject) &#x3D;&gt; {
-      obj.simpleFields[item.name] &#x3D; item.value;
-    });
-
-    _.forEach(this.listFields, (item: ListFieldObject) &#x3D;&gt; {
-      obj.listFields[item.name] &#x3D; [];
-      _.forEach(item.value, (subItem: SimpleFieldObject) &#x3D;&gt; {
-        obj.listFields[item.name].push(subItem.value);
+    if (this?.simpleFields.length &gt; 0) {
+      obj.simpleFields &#x3D; {};
+      _.forEach(this.simpleFields, (item: SimpleFieldObject) &#x3D;&gt; {
+        obj.simpleFields[item.name] &#x3D; item.value;
       });
-    });
+    }
 
-    _.forEach(this.mapFields, (item: MapFieldObject) &#x3D;&gt; {
-      obj.mapFields[item.name] &#x3D; item.value ? {} : null;
-      _.forEach(item.value, (subItem: SimpleFieldObject) &#x3D;&gt; {
-        obj.mapFields[item.name][subItem.name] &#x3D; subItem.value;
+    if (this?.listFields.length &gt; 0) {
+      obj.listFields &#x3D; {};
+      _.forEach(this.listFields, (item: ListFieldObject) &#x3D;&gt; {
+        obj.listFields[item.name] &#x3D; [];
+        _.forEach(item.value, (subItem: SimpleFieldObject) &#x3D;&gt; {
+          obj.listFields[item.name].push(subItem.value);
+        });
       });
-    });
+    }
+
+    if (this?.mapFields.length &gt; 0) {
+      obj.mapFields &#x3D; {};
+      _.forEach(this.mapFields, (item: MapFieldObject) &#x3D;&gt; {
+        obj.mapFields[item.name.trim()] &#x3D; item.value ? {} : null;
+        _.forEach(item.value, (subItem: SimpleFieldObject) &#x3D;&gt; {
+          // if the value is a string that contains all digits, parse it to a number
+          let parsedValue: string | number &#x3D; subItem.value;
+          if (
+            typeof subItem.value &#x3D;&#x3D;&#x3D; &#x27;string&#x27; &amp;&amp;
+            /^\d+$/.test(subItem.value)
+          ) {
+            parsedValue &#x3D; Number(subItem.value);
+          }
+
+          obj.mapFields[item.name.trim()][subItem.name] &#x3D; parsedValue;
+        });
+      });
+    }
 
     return JSON.stringify(obj);
   }

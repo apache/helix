@@ -14,24 +14,27 @@ import { TOKEN_EXPIRATION_KEY, TOKEN_RESPONSE_KEY } from '../config';
 
 export class UserCtrl {
   constructor(router: Router) {
-    router.route('/user/authorize').get(this.authorize);
+    // uncomment the following line to use customized login
+    // router.route('/user/authorize').get(this.authorize);
     router.route('/user/login').post(this.login.bind(this));
     router.route('/user/current').get(this.current);
     router.route('/user/can').get(this.can);
   }
 
+  //
+  // You may rewrite this function to support your own authorization logic.
+  // Usually it would be helpful to integrate with 3rd party login.
+  // For example:
+  //
+  /*
   protected authorize(req: HelixRequest, res: Response) {
-    //
-    // you can rewrite this function
-    // to support your own authorization logic
-    // by default, do nothing but redirect
-    //
-    if (req.query.url) {
-      res.redirect(req.query.url as string);
-    } else {
-      res.redirect('/');
-    }
+    const { isAdmin, username, token } = get_auth_state();
+    req.session.isAdmin = isAdmin;
+    req.session.username = username;
+    req.session.identityToken = token;
+    res.redirect('/');
   }
+  */
 
   protected current(req: HelixRequest, res: Response) {
     res.json(req.session.username || 'Sign In');

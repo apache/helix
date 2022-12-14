@@ -229,8 +229,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="27"
-                            class="link-to-prism">src/app/core/user.service.ts:27</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="29"
+                            class="link-to-prism">src/app/core/user.service.ts:29</a></div>
                 </td>
             </tr>
 
@@ -319,7 +319,7 @@
                     <div>
                     </div>
                     <div class="io-description">
-                        <b>Returns : </b>    <code>Observable&lt;object&gt;</code>
+                        <b>Returns : </b>    <code>Observable&lt;any&gt;</code>
 
                     </div>
                     <div class="io-description">
@@ -353,12 +353,14 @@ export class UserService {
       .pipe(catchError((_) &#x3D;&gt; _));
   }
 
-  public login(username: string, password: string): Observable&lt;object&gt; {
-    return this.http.post(
-      &#x60;${Settings.userAPI}/login&#x60;,
-      { username, password },
-      { headers: this.getHeaders() }
-    );
+  public login(username: string, password: string): Observable&lt;any&gt; {
+    const url &#x3D; &#x60;${Settings.userAPI}/login&#x60;;
+    const body &#x3D; { username, password };
+    const options &#x3D; {
+      headers: this.getHeaders(),
+      observe: &#x27;response&#x27; as &#x27;body&#x27;,
+    };
+    return this.http.post&lt;any&gt;(url, body, options);
   }
 
   protected getHeaders() {

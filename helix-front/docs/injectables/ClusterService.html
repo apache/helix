@@ -417,8 +417,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="53"
-                            class="link-to-prism">src/app/cluster/shared/cluster.service.ts:53</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="50"
+                            class="link-to-prism">src/app/cluster/shared/cluster.service.ts:50</a></div>
                 </td>
             </tr>
 
@@ -1407,12 +1407,9 @@ export class ClusterService extends HelixService {
   }
 
   public enableMaintenanceMode(name: string, reason: string) {
-    return this.post(
-      &#x60;/clusters/${name}?command&#x3D;enableMaintenanceMode&#x60;,
-      JSON.stringify({
-        reason,
-      })
-    );
+    return this.post(&#x60;/clusters/${name}?command&#x3D;enableMaintenanceMode&#x60;, {
+      reason,
+    });
   }
 
   public disableMaintenanceMode(name: string) {

@@ -2,54 +2,13 @@
     "pipes": [],
     "interfaces": [
         {
-            "name": "HelixSession",
-            "id": "interface-HelixSession-1d5c4ab566de85237551f45f493e21719366587b74c3cbe29150e24a8b98c8d99fcfbc92dc9e5660b74dbd8c2e762d623e02620e1ce4d21c1e253f925a5e8d3a",
+            "name": "HelixRequest",
+            "id": "interface-HelixRequest-75cdd56f58bc639681072e593c0effa7c1ccba2af537b2a4b93746aa3f1d35e729428000225a04219b1b7ac5ba4629dc5d80383e2b93e47950307e8bff7fffa8",
             "file": "server/controllers/d.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "interface",
-            "sourceCode": "import { Request } from 'express';\n\nexport interface HelixUserRequest extends Request {\n  session?: HelixSession;\n}\n\ninterface HelixSession {\n  // since this token is from a configurable\n  // identity source, the format really is\n  // `any` from helix-front's point of view.\n  identityToken: any;\n  username: string;\n  isAdmin: boolean;\n}\n",
-            "properties": [
-                {
-                    "name": "identityToken",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "any",
-                    "optional": false,
-                    "description": "",
-                    "line": 11
-                },
-                {
-                    "name": "isAdmin",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "boolean",
-                    "optional": false,
-                    "description": "",
-                    "line": 13
-                },
-                {
-                    "name": "username",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "string",
-                    "optional": false,
-                    "description": "",
-                    "line": 12
-                }
-            ],
-            "indexSignatures": [],
-            "kind": 165,
-            "methods": []
-        },
-        {
-            "name": "HelixUserRequest",
-            "id": "interface-HelixUserRequest-1d5c4ab566de85237551f45f493e21719366587b74c3cbe29150e24a8b98c8d99fcfbc92dc9e5660b74dbd8c2e762d623e02620e1ce4d21c1e253f925a5e8d3a",
-            "file": "server/controllers/d.ts",
-            "deprecated": false,
-            "deprecationMessage": "",
-            "type": "interface",
-            "sourceCode": "import { Request } from 'express';\n\nexport interface HelixUserRequest extends Request {\n  session?: HelixSession;\n}\n\ninterface HelixSession {\n  // since this token is from a configurable\n  // identity source, the format really is\n  // `any` from helix-front's point of view.\n  identityToken: any;\n  username: string;\n  isAdmin: boolean;\n}\n",
+            "sourceCode": "import { Request } from 'express';\nimport request from 'request';\n\nexport interface HelixRequest extends Request {\n  session?: HelixSession;\n}\n\ninterface HelixSession {\n  // since this token is from a configurable\n  // identity source, the format really is\n  // `any` from helix-front's point of view.\n  identityToken: any;\n  username: string;\n  isAdmin: boolean;\n}\n\ntype AgentOptions = {\n  rejectUnauthorized: boolean;\n  ca?: string;\n};\n\nexport type HelixRequestOptions = {\n  url: string;\n  json: string;\n  headers: request.Headers;\n  agentOptions: AgentOptions;\n  body?: string;\n};\n",
             "properties": [
                 {
                     "name": "session",
@@ -58,13 +17,54 @@
                     "type": "HelixSession",
                     "optional": true,
                     "description": "",
-                    "line": 4
+                    "line": 5
                 }
             ],
             "indexSignatures": [],
             "kind": 165,
             "methods": [],
             "extends": "Request"
+        },
+        {
+            "name": "HelixSession",
+            "id": "interface-HelixSession-75cdd56f58bc639681072e593c0effa7c1ccba2af537b2a4b93746aa3f1d35e729428000225a04219b1b7ac5ba4629dc5d80383e2b93e47950307e8bff7fffa8",
+            "file": "server/controllers/d.ts",
+            "deprecated": false,
+            "deprecationMessage": "",
+            "type": "interface",
+            "sourceCode": "import { Request } from 'express';\nimport request from 'request';\n\nexport interface HelixRequest extends Request {\n  session?: HelixSession;\n}\n\ninterface HelixSession {\n  // since this token is from a configurable\n  // identity source, the format really is\n  // `any` from helix-front's point of view.\n  identityToken: any;\n  username: string;\n  isAdmin: boolean;\n}\n\ntype AgentOptions = {\n  rejectUnauthorized: boolean;\n  ca?: string;\n};\n\nexport type HelixRequestOptions = {\n  url: string;\n  json: string;\n  headers: request.Headers;\n  agentOptions: AgentOptions;\n  body?: string;\n};\n",
+            "properties": [
+                {
+                    "name": "identityToken",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "any",
+                    "optional": false,
+                    "description": "",
+                    "line": 12
+                },
+                {
+                    "name": "isAdmin",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "boolean",
+                    "optional": false,
+                    "description": "",
+                    "line": 14
+                },
+                {
+                    "name": "username",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string",
+                    "optional": false,
+                    "description": "",
+                    "line": 13
+                }
+            ],
+            "indexSignatures": [],
+            "kind": 165,
+            "methods": []
         },
         {
             "name": "IReplica",
@@ -109,12 +109,12 @@
         },
         {
             "name": "ListFieldObject",
-            "id": "interface-ListFieldObject-4b8fff68ba7ccb7a14a733c002190a7e5c760999f3a699168565ddeecf085df759c8918b7b69b728e480ecdbd894c972284cbe97c29ad2413b6f9ffed799247d",
+            "id": "interface-ListFieldObject-9a579c751dc9ff03063f99c75efe170bbfd4d7dd827c0bcb47ce7e303f211f158d9908ef90c5b54f79dfd5d45ff2c7f95357eccbc3453011fcd26d9e597b9a2c",
             "file": "src/app/shared/models/node.model.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "interface",
-            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k,\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name,\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name,\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
+            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k.trim(),\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name: name.trim(),\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name: name.trim(),\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name.trim()] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name.trim()][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
             "properties": [
                 {
                     "name": "name",
@@ -141,12 +141,12 @@
         },
         {
             "name": "MapFieldObject",
-            "id": "interface-MapFieldObject-4b8fff68ba7ccb7a14a733c002190a7e5c760999f3a699168565ddeecf085df759c8918b7b69b728e480ecdbd894c972284cbe97c29ad2413b6f9ffed799247d",
+            "id": "interface-MapFieldObject-9a579c751dc9ff03063f99c75efe170bbfd4d7dd827c0bcb47ce7e303f211f158d9908ef90c5b54f79dfd5d45ff2c7f95357eccbc3453011fcd26d9e597b9a2c",
             "file": "src/app/shared/models/node.model.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "interface",
-            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k,\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name,\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name,\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
+            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k.trim(),\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name: name.trim(),\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name: name.trim(),\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name.trim()] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name.trim()][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
             "properties": [
                 {
                     "name": "name",
@@ -173,12 +173,12 @@
         },
         {
             "name": "Payload",
-            "id": "interface-Payload-4b8fff68ba7ccb7a14a733c002190a7e5c760999f3a699168565ddeecf085df759c8918b7b69b728e480ecdbd894c972284cbe97c29ad2413b6f9ffed799247d",
+            "id": "interface-Payload-9a579c751dc9ff03063f99c75efe170bbfd4d7dd827c0bcb47ce7e303f211f158d9908ef90c5b54f79dfd5d45ff2c7f95357eccbc3453011fcd26d9e597b9a2c",
             "file": "src/app/shared/models/node.model.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "interface",
-            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k,\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name,\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name,\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
+            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k.trim(),\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name: name.trim(),\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name: name.trim(),\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name.trim()] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name.trim()][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
             "properties": [
                 {
                     "name": "id",
@@ -223,12 +223,12 @@
         },
         {
             "name": "SimpleFieldObject",
-            "id": "interface-SimpleFieldObject-4b8fff68ba7ccb7a14a733c002190a7e5c760999f3a699168565ddeecf085df759c8918b7b69b728e480ecdbd894c972284cbe97c29ad2413b6f9ffed799247d",
+            "id": "interface-SimpleFieldObject-9a579c751dc9ff03063f99c75efe170bbfd4d7dd827c0bcb47ce7e303f211f158d9908ef90c5b54f79dfd5d45ff2c7f95357eccbc3453011fcd26d9e597b9a2c",
             "file": "src/app/shared/models/node.model.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "interface",
-            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k,\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name,\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name,\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
+            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k.trim(),\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name: name.trim(),\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name: name.trim(),\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name.trim()] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name.trim()][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
             "properties": [
                 {
                     "name": "name",
@@ -2467,7 +2467,7 @@
         },
         {
             "name": "HelperService",
-            "id": "injectable-HelperService-260f75c0868c1437c527847fe3fb6e12cb0b8074436cea09c1529bcee3274b19a7dfeb2f893bccf5ca56f862aa02892c24b387af93bb9f414971ce8d44beb90a",
+            "id": "injectable-HelperService-78f7b16aa1126cfdcb732f98106aeca50cabf9c533da6d678fa074bd5eb9416856852ea358598d7cee135fb02a055d94872ed1648c8b65111b8a67ce96ec9a42",
             "file": "src/app/shared/helper.service.ts",
             "properties": [],
             "methods": [
@@ -2510,6 +2510,20 @@
                             "type": "string | object",
                             "deprecated": false,
                             "deprecationMessage": ""
+                        },
+                        {
+                            "name": "title",
+                            "type": "string",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "optional": true
+                        },
+                        {
+                            "name": "confirmButtonText",
+                            "type": "string",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "optional": true
                         }
                     ],
                     "optional": false,
@@ -2524,6 +2538,26 @@
                             "type": "string | object",
                             "deprecated": false,
                             "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        },
+                        {
+                            "name": "title",
+                            "type": "string",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "optional": true,
+                            "tagName": {
+                                "text": "param"
+                            }
+                        },
+                        {
+                            "name": "confirmButtonText",
+                            "type": "string",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "optional": true,
                             "tagName": {
                                 "text": "param"
                             }
@@ -2591,7 +2625,7 @@
             "deprecationMessage": "",
             "description": "",
             "rawdescription": "\n",
-            "sourceCode": "import { Injectable } from '@angular/core';\nimport { MatDialog } from '@angular/material/dialog';\nimport { MatSnackBar } from '@angular/material/snack-bar';\n\nimport { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';\nimport { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.component';\n\n@Injectable()\nexport class HelperService {\n  constructor(protected snackBar: MatSnackBar, protected dialog: MatDialog) {}\n\n  private parseMessage(message: string | object) {\n    return typeof message === 'string'\n      ? message\n      : JSON.stringify(message, null, 2);\n  }\n\n  showError(message: string | object) {\n    this.dialog.open(AlertDialogComponent, {\n      data: {\n        title: 'Error',\n        message: this.parseMessage(message),\n      },\n    });\n  }\n\n  showSnackBar(message: string | object) {\n    this.snackBar.open(this.parseMessage(message), 'OK', {\n      duration: 2000,\n    });\n  }\n\n  showConfirmation(message: string | object) {\n    return this.dialog\n      .open(ConfirmDialogComponent, {\n        data: {\n          title: 'Confirmation',\n          message: this.parseMessage(message),\n        },\n      })\n      .afterClosed()\n      .toPromise();\n  }\n}\n",
+            "sourceCode": "import { Injectable } from '@angular/core';\nimport { MatDialog } from '@angular/material/dialog';\nimport { MatSnackBar } from '@angular/material/snack-bar';\n\nimport { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';\nimport { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.component';\n\n@Injectable()\nexport class HelperService {\n  constructor(protected snackBar: MatSnackBar, protected dialog: MatDialog) {}\n\n  private parseMessage(message: string | object) {\n    return typeof message === 'string'\n      ? message\n      : JSON.stringify(message, null, 2);\n  }\n\n  showError(message: string | object) {\n    this.dialog.open(AlertDialogComponent, {\n      data: {\n        title: 'Error',\n        message: this.parseMessage(message),\n      },\n    });\n  }\n\n  showSnackBar(message: string | object) {\n    this.snackBar.open(this.parseMessage(message), 'OK', {\n      duration: 2000,\n    });\n  }\n\n  showConfirmation(\n    message: string | object,\n    title?: string,\n    confirmButtonText?: string\n  ) {\n    return this.dialog\n      .open(ConfirmDialogComponent, {\n        data: {\n          message: this.parseMessage(message),\n          title,\n          confirmButtonText,\n        },\n      })\n      .afterClosed()\n      .toPromise();\n  }\n}\n",
             "constructorObj": {
                 "name": "constructor",
                 "description": "",
@@ -3901,7 +3935,7 @@
         },
         {
             "name": "ResourceService",
-            "id": "injectable-ResourceService-965385bc6c6b989b9dc6bced9fbc30c88fb1fed7ba53ba829bc79608c8178e26b3fd13644d210fb99addc130325bcaa10b36f007f0604294525801d98b0d3869",
+            "id": "injectable-ResourceService-d7fa0780b63fe6ffeb56522e7f59c8396d8b73e5d908c3224cdf4c382d0c68d3cf619098234bf3acc62847eeff9e4c1b55e941ebc17512fb7fd744381d335918",
             "file": "src/app/resource/shared/resource.service.ts",
             "properties": [],
             "methods": [
@@ -4558,7 +4592,7 @@
             "deprecationMessage": "",
             "description": "",
             "rawdescription": "\n",
-            "sourceCode": "import { map } from 'rxjs/operators';\nimport { Injectable } from '@angular/core';\n\nimport * as _ from 'lodash';\n\nimport { IdealState } from '../../shared/node-viewer/node-viewer.component';\nimport { HelixService } from '../../core/helix.service';\nimport { Resource } from './resource.model';\n\n@Injectable()\nexport class ResourceService extends HelixService {\n  public getAll(clusterName: string) {\n    return this.request(`/clusters/${clusterName}/resources`).pipe(\n      map((data) => {\n        const res: Resource[] = [];\n        for (const name of data.idealStates) {\n          res.push(<Resource>{\n            cluster: clusterName,\n            name,\n            alive: data.externalViews.indexOf(name) >= 0,\n          });\n        }\n        return _.sortBy(res, 'name');\n      })\n    );\n  }\n\n  public getAllOnInstance(clusterName: string, instanceName: string) {\n    return this.request(\n      `/clusters/${clusterName}/instances/${instanceName}/resources`\n    ).pipe(\n      map((data) => {\n        const res: any[] = [];\n        if (data) {\n          for (const resource of data.resources) {\n            res.push({\n              name: resource,\n            });\n          }\n        }\n        return res;\n      })\n    );\n  }\n\n  public get(clusterName: string, resourceName: string) {\n    return this.request(\n      `/clusters/${clusterName}/resources/${resourceName}`\n    ).pipe(\n      map(\n        (data) =>\n          new Resource(\n            clusterName,\n            resourceName,\n            data.resourceConfig,\n            data.idealState,\n            data.externalView\n          )\n      )\n    );\n  }\n\n  public getOnInstance(\n    clusterName: string,\n    instanceName: string,\n    resourceName: string\n  ) {\n    return this.request(\n      `/clusters/${clusterName}/instances/${instanceName}/resources/${resourceName}`\n    ).pipe(\n      map((data) => {\n        const ret = {\n          bucketSize: data.simpleFields.BUCKET_SIZE,\n          sessionId: data.simpleFields.SESSION_ID,\n          stateModelDef: data.simpleFields.STATE_MODEL_DEF,\n          stateModelFactoryName: data.simpleFields.STATE_MODEL_FACTORY_NAME,\n          partitions: [],\n        };\n\n        for (const partition in data.mapFields) {\n          const par = data.mapFields[partition];\n\n          ret.partitions.push({\n            name: partition,\n            currentState: par.CURRENT_STATE,\n            info: par.INFO,\n          });\n        }\n\n        return ret;\n      })\n    );\n  }\n\n  public enable(clusterName: string, resourceName: string) {\n    return this.post(\n      `/clusters/${clusterName}/resources/${resourceName}?command=enable`,\n      null\n    );\n  }\n\n  public disable(clusterName: string, resourceName: string) {\n    return this.post(\n      `/clusters/${clusterName}/resources/${resourceName}?command=disable`,\n      null\n    );\n  }\n\n  public remove(clusterName: string, resourceName: string) {\n    return this.delete(`/clusters/${clusterName}/resources/${resourceName}`);\n  }\n\n  public setIdealState(\n    clusterName: string,\n    resourceName: string,\n    idealState: IdealState\n  ) {\n    return this.post(\n      `/clusters/${clusterName}/resources/${resourceName}/idealState?command=update`,\n      idealState\n    );\n  }\n}\n",
+            "sourceCode": "import { map } from 'rxjs/operators';\nimport { Injectable } from '@angular/core';\n\nimport * as _ from 'lodash';\n\nimport { IdealState } from '../../shared/node-viewer/node-viewer.component';\nimport { HelixService } from '../../core/helix.service';\nimport { Resource } from './resource.model';\n\n@Injectable()\nexport class ResourceService extends HelixService {\n  public getAll(clusterName: string) {\n    return this.request(`/clusters/${clusterName}/resources`).pipe(\n      map((data) => {\n        const res: Resource[] = [];\n        for (const name of data.idealStates) {\n          res.push(<Resource>{\n            cluster: clusterName,\n            name,\n            alive: data.externalViews.indexOf(name) >= 0,\n          });\n        }\n        return _.sortBy(res, 'name');\n      })\n    );\n  }\n\n  public getAllOnInstance(clusterName: string, instanceName: string) {\n    return this.request(\n      `/clusters/${clusterName}/instances/${instanceName}/resources`\n    ).pipe(\n      map((data) => {\n        const res: any[] = [];\n        if (data) {\n          for (const resource of data.resources) {\n            res.push({\n              name: resource,\n            });\n          }\n        }\n        return res;\n      })\n    );\n  }\n\n  public get(clusterName: string, resourceName: string) {\n    return this.request(\n      `/clusters/${clusterName}/resources/${resourceName}`\n    ).pipe(\n      map(\n        (data) =>\n          new Resource(\n            clusterName,\n            resourceName,\n            data.resourceConfig,\n            data.idealState,\n            data.externalView\n          )\n      )\n    );\n  }\n\n  public getOnInstance(\n    clusterName: string,\n    instanceName: string,\n    resourceName: string\n  ) {\n    return this.request(\n      `/clusters/${clusterName}/instances/${instanceName}/resources/${resourceName}`\n    ).pipe(\n      map((data) => {\n        const ret = {\n          bucketSize: data.simpleFields.BUCKET_SIZE,\n          sessionId: data.simpleFields.SESSION_ID,\n          stateModelDef: data.simpleFields.STATE_MODEL_DEF,\n          stateModelFactoryName: data.simpleFields.STATE_MODEL_FACTORY_NAME,\n          partitions: [],\n        };\n\n        for (const partition in data.mapFields) {\n          const par = data.mapFields[partition];\n\n          ret.partitions.push({\n            name: partition.trim(),\n            currentState: par.CURRENT_STATE.trim(),\n            info: par.INFO.trim(),\n          });\n        }\n\n        return ret;\n      })\n    );\n  }\n\n  public enable(clusterName: string, resourceName: string) {\n    return this.post(\n      `/clusters/${clusterName}/resources/${resourceName}?command=enable`,\n      null\n    );\n  }\n\n  public disable(clusterName: string, resourceName: string) {\n    return this.post(\n      `/clusters/${clusterName}/resources/${resourceName}?command=disable`,\n      null\n    );\n  }\n\n  public remove(clusterName: string, resourceName: string) {\n    return this.delete(`/clusters/${clusterName}/resources/${resourceName}`);\n  }\n\n  public setIdealState(\n    clusterName: string,\n    resourceName: string,\n    idealState: IdealState\n  ) {\n    return this.post(\n      `/clusters/${clusterName}/resources/${resourceName}/idealState?command=update`,\n      idealState\n    );\n  }\n}\n",
             "extends": "HelixService",
             "type": "injectable"
         },
@@ -5580,12 +5614,12 @@
         },
         {
             "name": "HelixCtrl",
-            "id": "class-HelixCtrl-b66c5fede44bb07c635bc61e76737e06e83c42991391cea8209cab75928ce9f08d9d4243df1c9c31ae601f24c1f0c0dd850d87175204f95382e95611f51bc9e8",
+            "id": "class-HelixCtrl-5ea8b5cb0aae1dbdc946600b8fbf894ff871be85d84f8a486813da2ddc8aa838fbcce31f41a64d71a36c7f7cd7c34e37452a65b83ab2a88beb930712e9f26d41",
             "file": "server/controllers/helix.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "class",
-            "sourceCode": "import { Request, Response, Router } from 'express';\n\nimport * as request from 'request';\n\nimport { HELIX_ENDPOINTS, IDENTITY_TOKEN_SOURCE } from '../config';\nimport { HelixUserRequest } from './d';\n\nexport class HelixCtrl {\n  static readonly ROUTE_PREFIX = '/api/helix';\n\n  constructor(router: Router) {\n    router.route('/helix/list').get(this.list);\n    router.route('/helix/*').all(this.proxy);\n  }\n\n  protected proxy(req: HelixUserRequest, res: Response) {\n    const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');\n    const helixKey = url.split('/')[1];\n\n    const segments = helixKey.split('.');\n    const group = segments[0];\n\n    segments.shift();\n    const name = segments.join('.');\n\n    const user = req.session.username;\n    const method = req.method.toLowerCase();\n    if (method != 'get' && !req.session.isAdmin) {\n      res.status(403).send('Forbidden');\n      return;\n    }\n\n    let apiPrefix = null;\n    if (HELIX_ENDPOINTS[group]) {\n      HELIX_ENDPOINTS[group].forEach((section) => {\n        if (section[name]) {\n          apiPrefix = section[name];\n        }\n      });\n    }\n\n    if (apiPrefix) {\n      const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');\n      console.log(`helix-rest request url ${realUrl}`);\n\n      const options = {\n        url: realUrl,\n        json: req.body,\n        headers: {\n          'Helix-User': user,\n        },\n      };\n\n      if (IDENTITY_TOKEN_SOURCE) {\n        options.headers['Identity-Token'] =\n          res.locals.cookie['helixui_identity.token'];\n      }\n\n      request[method](options, (error, response, body) => {\n        if (error) {\n          res.status(response?.statusCode || 500).send(error);\n        } else if (body?.error) {\n          res.status(response?.statusCode || 500).send(body?.error);\n        } else {\n          res.status(response?.statusCode).send(body);\n        }\n      });\n    } else {\n      res.status(404).send('Not found');\n    }\n  }\n\n  protected list(req: Request, res: Response) {\n    try {\n      res.json(HELIX_ENDPOINTS);\n    } catch (err) {\n      console.log('error from helix/list/');\n      console.log(err);\n    }\n  }\n}\n",
+            "sourceCode": "import { Request, Response, Router } from 'express';\nimport * as request from 'request';\nimport { readFileSync } from 'fs';\n\nimport { HELIX_ENDPOINTS, IDENTITY_TOKEN_SOURCE, SSL } from '../config';\nimport { HelixRequest, HelixRequestOptions } from './d';\n\nexport class HelixCtrl {\n  static readonly ROUTE_PREFIX = '/api/helix';\n\n  constructor(router: Router) {\n    router.route('/helix/list').get(this.list);\n    router.route('/helix/*').all(this.proxy);\n  }\n\n  protected proxy(req: HelixRequest, res: Response) {\n    const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');\n    const helixKey = url.split('/')[1];\n\n    const segments = helixKey.split('.');\n    const group = segments[0];\n\n    segments.shift();\n    const name = segments.join('.');\n\n    const user = req.session.username;\n    const method = req.method.toLowerCase();\n    if (method != 'get' && !req.session.isAdmin) {\n      res.status(403).send('Forbidden');\n      return;\n    }\n\n    let apiPrefix = null;\n    if (HELIX_ENDPOINTS[group]) {\n      HELIX_ENDPOINTS[group].forEach((section) => {\n        if (section[name]) {\n          apiPrefix = section[name];\n        }\n      });\n    }\n\n    if (apiPrefix) {\n      const realUrl = apiPrefix + url.replace(`/${helixKey}`, '');\n      console.log(`helix-rest request url ${realUrl}`);\n\n      const options: HelixRequestOptions = {\n        url: realUrl,\n        json: req.body,\n        headers: {\n          'Helix-User': user,\n        },\n        agentOptions: {\n          rejectUnauthorized: false,\n        },\n      };\n\n      if (SSL.cafiles.length > 0) {\n        options.agentOptions.ca = readFileSync(SSL.cafiles[0], {\n          encoding: 'utf-8',\n        });\n      }\n\n      if (IDENTITY_TOKEN_SOURCE) {\n        options.headers['Identity-Token'] =\n          res.locals.cookie['helixui_identity.token'];\n      }\n\n      request[method](options, (error, response, body) => {\n        if (error) {\n          res.status(response?.statusCode || 500).send(error);\n        } else if (body?.error) {\n          res.status(response?.statusCode || 500).send(body?.error);\n        } else {\n          res.status(response?.statusCode).send(body);\n        }\n      });\n    } else {\n      res.status(404).send('Not found');\n    }\n  }\n\n  protected list(req: Request, res: Response) {\n    try {\n      res.json(HELIX_ENDPOINTS);\n    } catch (err) {\n      console.log('error from helix/list/');\n      console.log(err);\n    }\n  }\n}\n",
             "constructorObj": {
                 "name": "constructor",
                 "description": "",
@@ -5648,7 +5682,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 73,
+                    "line": 82,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "modifierKind": [
@@ -5680,7 +5714,7 @@
                     "args": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": ""
                         },
@@ -5703,7 +5737,7 @@
                     "jsdoctags": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -6208,12 +6242,12 @@
         },
         {
             "name": "Node",
-            "id": "class-Node-4b8fff68ba7ccb7a14a733c002190a7e5c760999f3a699168565ddeecf085df759c8918b7b69b728e480ecdbd894c972284cbe97c29ad2413b6f9ffed799247d",
+            "id": "class-Node-9a579c751dc9ff03063f99c75efe170bbfd4d7dd827c0bcb47ce7e303f211f158d9908ef90c5b54f79dfd5d45ff2c7f95357eccbc3453011fcd26d9e597b9a2c",
             "file": "src/app/shared/models/node.model.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "class",
-            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k,\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name,\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name,\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
+            "sourceCode": "import * as _ from 'lodash';\n\ninterface SimpleFieldObject {\n  name: string;\n  value: string;\n}\n\ninterface ListFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface MapFieldObject {\n  name: string;\n  value: SimpleFieldObject[];\n}\n\ninterface Payload {\n  id: string;\n  simpleFields?: any;\n  listFields?: any;\n  mapFields?: any;\n}\n\n// This is a typical Helix Node definition\nexport class Node {\n  id: string;\n  simpleFields: SimpleFieldObject[] = [];\n  listFields: ListFieldObject[] = [];\n  mapFields: MapFieldObject[] = [];\n\n  constructor(obj: any) {\n    if (obj != null) {\n      this.id = obj.id;\n      this.simpleFields = this.keyValueToArray(obj.simpleFields);\n\n      _.forOwn(obj['listFields'], (v, k) => {\n        this.listFields.push(<ListFieldObject>{\n          name: k,\n          value: _.map(\n            v,\n            (item) =>\n              <SimpleFieldObject>{\n                value: item,\n              }\n          ),\n        });\n      });\n\n      _.forOwn(obj['mapFields'], (v, k) => {\n        this.mapFields.push(<MapFieldObject>{\n          name: k.trim(),\n          value: this.keyValueToArray(v),\n        });\n      });\n    }\n  }\n\n  public appendSimpleField(name: string, value: string) {\n    this.simpleFields.push(<SimpleFieldObject>{\n      name,\n      value,\n    });\n  }\n\n  public appendMapField(key: string, name: string, value: string) {\n    const index = _.findIndex(this.mapFields, { name: key });\n    if (index >= 0) {\n      this.mapFields[index].value.push(<SimpleFieldObject>{\n        name: name.trim(),\n        value,\n      });\n    } else {\n      this.mapFields.push(<MapFieldObject>{\n        name: key,\n        value: [\n          <SimpleFieldObject>{\n            name: name.trim(),\n            value,\n          },\n        ],\n      });\n    }\n  }\n\n  public json(id: string): string {\n    const obj: Payload = {\n      id,\n    };\n\n    if (this?.simpleFields.length > 0) {\n      obj.simpleFields = {};\n      _.forEach(this.simpleFields, (item: SimpleFieldObject) => {\n        obj.simpleFields[item.name] = item.value;\n      });\n    }\n\n    if (this?.listFields.length > 0) {\n      obj.listFields = {};\n      _.forEach(this.listFields, (item: ListFieldObject) => {\n        obj.listFields[item.name] = [];\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          obj.listFields[item.name].push(subItem.value);\n        });\n      });\n    }\n\n    if (this?.mapFields.length > 0) {\n      obj.mapFields = {};\n      _.forEach(this.mapFields, (item: MapFieldObject) => {\n        obj.mapFields[item.name.trim()] = item.value ? {} : null;\n        _.forEach(item.value, (subItem: SimpleFieldObject) => {\n          // if the value is a string that contains all digits, parse it to a number\n          let parsedValue: string | number = subItem.value;\n          if (\n            typeof subItem.value === 'string' &&\n            /^\\d+$/.test(subItem.value)\n          ) {\n            parsedValue = Number(subItem.value);\n          }\n\n          obj.mapFields[item.name.trim()][subItem.name] = parsedValue;\n        });\n      });\n    }\n\n    return JSON.stringify(obj);\n  }\n\n  // Converting raw simpleFields to SimpleFieldObject[]\n  private keyValueToArray(obj: Object): SimpleFieldObject[] {\n    const result: SimpleFieldObject[] = [];\n    for (const k in obj) {\n      if (obj.hasOwnProperty(k)) {\n        result.push(<SimpleFieldObject>{\n          name: k,\n          value: obj[k],\n        });\n      }\n    }\n    return result;\n  }\n}\n",
             "constructorObj": {
                 "name": "constructor",
                 "description": "",
@@ -6876,12 +6910,12 @@
         },
         {
             "name": "UserCtrl",
-            "id": "class-UserCtrl-eb768a2104b06325cce6a34e27d58f026062912330331b4f1bf1062203a65659e42b3aa3c3d3c9260e755e0066b786d68c4137b13d080e001a415329fb7d99d8",
+            "id": "class-UserCtrl-b45bb852048757c2ba0bbe29eedfb0b8fcbce439757ca96bf9ba74604a16b9ef7614a93b9ee0d885606f7f461382b2517fa8178afe3489efbffd33b6b6a895ea",
             "file": "server/controllers/user.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "class",
-            "sourceCode": "import { Response, Router } from 'express';\nimport * as LdapClient from 'ldapjs';\nimport * as request from 'request';\n\nimport {\n  LDAP,\n  IDENTITY_TOKEN_SOURCE,\n  CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,\n} from '../config';\nimport { HelixUserRequest } from './d';\n\nexport class UserCtrl {\n  constructor(router: Router) {\n    router.route('/user/authorize').get(this.authorize);\n    router.route('/user/login').post(this.login.bind(this));\n    router.route('/user/current').get(this.current);\n    router.route('/user/can').get(this.can);\n  }\n\n  protected authorize(req: HelixUserRequest, res: Response) {\n    //\n    // you can rewrite this function\n    // to support your own authorization logic\n    // by default, do nothing but redirect\n    //\n    if (req.query.url) {\n      res.redirect(req.query.url as string);\n    } else {\n      res.redirect('/');\n    }\n  }\n\n  protected current(req: HelixUserRequest, res: Response) {\n    res.json(req.session.username || 'Sign In');\n  }\n\n  //\n  // Check the server-side session store,\n  // see if this helix-front ExpressJS server\n  // already knows that the current user is an admin.\n  //\n  protected can(req: HelixUserRequest, res: Response) {\n    try {\n      return res.json(req.session.isAdmin ? true : false);\n    } catch (err) {\n      throw new Error(\n        `Error from /can logged in admin user session status endpoint: ${err}`\n      );\n      return false;\n    }\n  }\n\n  protected login(req: HelixUserRequest, res: Response) {\n    const credential = req.body;\n    if (!credential.username || !credential.password) {\n      res.status(401).json(false);\n      return;\n    }\n\n    // check LDAP\n    const ldap = LdapClient.createClient({ url: LDAP.uri });\n    ldap.bind(\n      credential.username + LDAP.principalSuffix,\n      credential.password,\n      (err) => {\n        if (err) {\n          res.status(401).json(false);\n        } else {\n          // LDAP login success\n          const opts = {\n            filter:\n              '(&(sAMAccountName=' +\n              credential.username +\n              ')(objectcategory=person))',\n            scope: 'sub',\n          };\n\n          req.session.username = credential.username;\n          res.set('Username', credential.username);\n\n          ldap.search(LDAP.base, opts, function (err, result) {\n            let isInAdminGroup = false;\n            result.on('searchEntry', function (entry) {\n              if (entry.object && !err) {\n                const groups = entry.object['memberOf'];\n                for (const group of groups) {\n                  const groupName = group.split(',', 1)[0].split('=')[1];\n                  if (groupName == LDAP.adminGroup) {\n                    isInAdminGroup = true;\n\n                    //\n                    // Get an Identity-Token\n                    // if an IDENTITY_TOKEN_SOURCE\n                    // is specified in the config\n                    //\n                    if (IDENTITY_TOKEN_SOURCE) {\n                      const body = JSON.stringify({\n                        username: credential.username,\n                        password: credential.password,\n                        ...CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,\n                      });\n\n                      const options = {\n                        url: IDENTITY_TOKEN_SOURCE,\n                        json: '',\n                        body,\n                        headers: {\n                          'Content-Type': 'application/json',\n                        },\n                        agentOptions: {\n                          rejectUnauthorized: false,\n                        },\n                      };\n\n                      function callback(error, _res, body) {\n                        if (error) {\n                          throw new Error(\n                            `Failed to get ${IDENTITY_TOKEN_SOURCE} Token: ${error}`\n                          );\n                        } else if (body?.error) {\n                          throw new Error(body?.error);\n                        } else {\n                          const parsedBody = JSON.parse(body);\n                          req.session.isAdmin = isInAdminGroup;\n                          req.session.identityToken = parsedBody;\n                          //\n                          // TODO possibly also send identity token\n                          // TODO parsedBody to the client as a cookie\n                          // TODO Github issue #2236\n                          //\n                          res.set('Identity-Token-Payload', body);\n                          res.json(isInAdminGroup);\n\n                          return parsedBody;\n                        }\n                      }\n                      request.post(options, callback);\n                    } else {\n                      req.session.isAdmin = isInAdminGroup;\n                      res.json(isInAdminGroup);\n                    }\n                    //\n                    // END Get an Identity-Token\n                    //\n                  }\n                }\n              } else {\n                req.session.isAdmin = isInAdminGroup;\n                res.json(isInAdminGroup);\n              }\n            });\n          });\n        }\n      }\n    );\n  }\n}\n",
+            "sourceCode": "import { Response, Router } from 'express';\nimport * as LdapClient from 'ldapjs';\nimport * as request from 'request';\nimport { readFileSync } from 'fs';\n\nimport {\n  LDAP,\n  IDENTITY_TOKEN_SOURCE,\n  CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,\n  SSL,\n} from '../config';\nimport { HelixRequest, HelixRequestOptions } from './d';\nimport { TOKEN_EXPIRATION_KEY, TOKEN_RESPONSE_KEY } from '../config';\n\nexport class UserCtrl {\n  constructor(router: Router) {\n    // uncomment the following line to use customized login\n    // router.route('/user/authorize').get(this.authorize);\n    router.route('/user/login').post(this.login.bind(this));\n    router.route('/user/current').get(this.current);\n    router.route('/user/can').get(this.can);\n  }\n\n  //\n  // You may rewrite this function to support your own authorization logic.\n  // Usually it would be helpful to integrate with 3rd party login.\n  // For example:\n  //\n  /*\n  protected authorize(req: HelixRequest, res: Response) {\n    const { isAdmin, username, token } = get_auth_state();\n    req.session.isAdmin = isAdmin;\n    req.session.username = username;\n    req.session.identityToken = token;\n    res.redirect('/');\n  }\n  */\n\n  protected current(req: HelixRequest, res: Response) {\n    res.json(req.session.username || 'Sign In');\n  }\n\n  //\n  // Check the server-side session store,\n  // see if this helix-front ExpressJS server\n  // already knows that the current user is an admin.\n  //\n  protected can(req: HelixRequest, res: Response) {\n    try {\n      return res.json(req.session.isAdmin ? true : false);\n    } catch (err) {\n      throw new Error(\n        `Error from /can logged in admin user session status endpoint: ${err}`\n      );\n      return false;\n    }\n  }\n\n  protected login(req: HelixRequest, res: Response) {\n    const credential = req.body;\n    if (!credential.username || !credential.password) {\n      res.status(401).json(false);\n      return;\n    }\n\n    // check LDAP\n    const ldap = LdapClient.createClient({ url: LDAP.uri });\n    ldap.bind(\n      credential.username + LDAP.principalSuffix,\n      credential.password,\n      (err) => {\n        if (err) {\n          res.status(401).json(false);\n        } else {\n          // LDAP login success\n          const opts = {\n            filter:\n              '(&(sAMAccountName=' +\n              credential.username +\n              ')(objectcategory=person))',\n            scope: 'sub',\n          };\n\n          req.session.username = credential.username;\n          res.set('Username', credential.username);\n\n          ldap.search(LDAP.base, opts, function (err, result) {\n            let isInAdminGroup = false;\n            result.on('searchEntry', function (entry) {\n              if (entry.object && !err) {\n                const groups = entry.object['memberOf'];\n                for (const group of groups) {\n                  const groupName = group.split(',', 1)[0].split('=')[1];\n                  if (groupName == LDAP.adminGroup) {\n                    isInAdminGroup = true;\n\n                    //\n                    // Get an Identity-Token\n                    // if an IDENTITY_TOKEN_SOURCE\n                    // is specified in the config\n                    //\n                    if (IDENTITY_TOKEN_SOURCE) {\n                      const body = JSON.stringify({\n                        username: credential.username,\n                        password: credential.password,\n                        ...CUSTOM_IDENTITY_TOKEN_REQUEST_BODY,\n                      });\n\n                      const options: HelixRequestOptions = {\n                        url: IDENTITY_TOKEN_SOURCE,\n                        json: '',\n                        body,\n                        headers: {\n                          'Content-Type': 'application/json',\n                        },\n                        agentOptions: {\n                          rejectUnauthorized: false,\n                        },\n                      };\n\n                      if (SSL.cafiles.length > 0) {\n                        options.agentOptions.ca = readFileSync(SSL.cafiles[0], {\n                          encoding: 'utf-8',\n                        });\n                      }\n\n                      function callback(error, _res, body) {\n                        if (error) {\n                          throw new Error(\n                            `Failed to get ${IDENTITY_TOKEN_SOURCE} Token: ${error}`\n                          );\n                        } else if (body?.error) {\n                          throw new Error(body?.error);\n                        } else {\n                          const parsedBody = JSON.parse(body);\n                          req.session.isAdmin = isInAdminGroup;\n                          req.session.identityToken = parsedBody;\n\n                          const cookieName = 'helixui_identity.token';\n                          const cookieValue =\n                            parsedBody.value[TOKEN_RESPONSE_KEY];\n                          const cookieExpiresDate = new Date(\n                            parsedBody.value[TOKEN_EXPIRATION_KEY]\n                          );\n                          const cookieOptions = {\n                            expires: cookieExpiresDate,\n                          };\n                          res.cookie(cookieName, cookieValue, cookieOptions);\n                          res.json(isInAdminGroup);\n\n                          return parsedBody;\n                        }\n                      }\n                      request.post(options, callback);\n                    } else {\n                      req.session.isAdmin = isInAdminGroup;\n                      res.json(isInAdminGroup);\n                    }\n                    //\n                    // END Get an Identity-Token\n                    //\n                  }\n                }\n              } else {\n                req.session.isAdmin = isInAdminGroup;\n                res.json(isInAdminGroup);\n              }\n            });\n          });\n        }\n      }\n    );\n  }\n}\n",
             "constructorObj": {
                 "name": "constructor",
                 "description": "",
@@ -6895,7 +6929,7 @@
                         "deprecationMessage": ""
                     }
                 ],
-                "line": 12,
+                "line": 15,
                 "jsdoctags": [
                     {
                         "name": "router",
@@ -6911,57 +6945,11 @@
             "properties": [],
             "methods": [
                 {
-                    "name": "authorize",
-                    "args": [
-                        {
-                            "name": "req",
-                            "type": "HelixUserRequest",
-                            "deprecated": false,
-                            "deprecationMessage": ""
-                        },
-                        {
-                            "name": "res",
-                            "type": "Response",
-                            "deprecated": false,
-                            "deprecationMessage": ""
-                        }
-                    ],
-                    "optional": false,
-                    "returnType": "void",
-                    "typeParameters": [],
-                    "line": 20,
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "modifierKind": [
-                        122
-                    ],
-                    "jsdoctags": [
-                        {
-                            "name": "req",
-                            "type": "HelixUserRequest",
-                            "deprecated": false,
-                            "deprecationMessage": "",
-                            "tagName": {
-                                "text": "param"
-                            }
-                        },
-                        {
-                            "name": "res",
-                            "type": "Response",
-                            "deprecated": false,
-                            "deprecationMessage": "",
-                            "tagName": {
-                                "text": "param"
-                            }
-                        }
-                    ]
-                },
-                {
                     "name": "can",
                     "args": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": ""
                         },
@@ -6975,7 +6963,7 @@
                     "optional": false,
                     "returnType": "any",
                     "typeParameters": [],
-                    "line": 42,
+                    "line": 48,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "modifierKind": [
@@ -6984,7 +6972,7 @@
                     "jsdoctags": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -7007,7 +6995,7 @@
                     "args": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": ""
                         },
@@ -7021,7 +7009,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 33,
+                    "line": 39,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "modifierKind": [
@@ -7030,7 +7018,7 @@
                     "jsdoctags": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -7053,7 +7041,7 @@
                     "args": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": ""
                         },
@@ -7067,7 +7055,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 53,
+                    "line": 59,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "modifierKind": [
@@ -7076,7 +7064,7 @@
                     "jsdoctags": [
                         {
                             "name": "req",
-                            "type": "HelixUserRequest",
+                            "type": "HelixRequest",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -7439,7 +7427,7 @@
         },
         {
             "name": "AppComponent",
-            "id": "component-AppComponent-d59185f86d30e473711e732239cf4a5fb2df02a89685c5e8b3f4e8780db508f2dcede12517ba61757bbb051b780a96de518e9589fe463b48667342da66cd2f0f",
+            "id": "component-AppComponent-ab0f2d07d9bbe2b2304e8801b2049073dc9e2ea892d1bd8ecd75058bd815db3565891a02eab931fffaf1ed578523751bdde179b10f9a18a117fe0215f7b552c6",
             "file": "src/app/app.component.ts",
             "encapsulation": [],
             "entryComponents": [],
@@ -7469,7 +7457,7 @@
                     "type": "any",
                     "optional": false,
                     "description": "",
-                    "line": 33
+                    "line": 28
                 },
                 {
                     "name": "footerEnabled",
@@ -7479,7 +7467,7 @@
                     "type": "",
                     "optional": false,
                     "description": "",
-                    "line": 31
+                    "line": 26
                 },
                 {
                     "name": "headerEnabled",
@@ -7489,7 +7477,7 @@
                     "type": "",
                     "optional": false,
                     "description": "",
-                    "line": 30
+                    "line": 25
                 },
                 {
                     "name": "isLoading",
@@ -7499,7 +7487,7 @@
                     "type": "",
                     "optional": false,
                     "description": "",
-                    "line": 32
+                    "line": 27
                 }
             ],
             "methodsClass": [
@@ -7509,7 +7497,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 70,
+                    "line": 65,
                     "deprecated": false,
                     "deprecationMessage": ""
                 },
@@ -7519,7 +7507,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 60,
+                    "line": 55,
                     "deprecated": false,
                     "deprecationMessage": ""
                 }
@@ -7531,7 +7519,7 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import { Component, OnInit } from '@angular/core';\nimport {\n  Router,\n  ActivatedRoute,\n  NavigationStart,\n  NavigationEnd,\n  NavigationCancel,\n  NavigationError,\n} from '@angular/router';\nimport { MatDialog } from '@angular/material/dialog';\n\n// import { Angulartics2Piwik } from 'angulartics2/piwik';\n\nimport { UserService } from './core/user.service';\nimport { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';\nimport { HelperService } from './shared/helper.service';\nimport {\n  TOKEN_RESPONSE_KEY,\n  TOKEN_EXPIRATION_KEY,\n  IDENTITY_TOKEN_SOURCE,\n} from '../../server/config';\n\n@Component({\n  selector: 'hi-root',\n  templateUrl: './app.component.html',\n  styleUrls: ['./app.component.scss'],\n  providers: [UserService /*, Angulartics2Piwik */],\n})\nexport class AppComponent implements OnInit {\n  headerEnabled = true;\n  footerEnabled = true;\n  isLoading = true;\n  currentUser: any;\n\n  constructor(\n    // protected angulartics2Piwik: Angulartics2Piwik,\n    protected route: ActivatedRoute,\n    protected router: Router,\n    protected dialog: MatDialog,\n    protected service: UserService,\n    protected helper: HelperService\n  ) {\n    router.events.subscribe((event) => {\n      if (event instanceof NavigationStart) {\n        this.isLoading = true;\n      }\n      if (event instanceof NavigationEnd) {\n        this.isLoading = false;\n      }\n      if (event instanceof NavigationError) {\n        this.isLoading = false;\n      }\n      if (event instanceof NavigationCancel) {\n        this.isLoading = false;\n      }\n    });\n    // angulartics2Piwik.startTracking();\n  }\n\n  ngOnInit() {\n    this.currentUser = this.service.getCurrentUser();\n\n    this.route.queryParams.subscribe((params) => {\n      if (params['embed'] == 'true') {\n        this.headerEnabled = this.footerEnabled = false;\n      }\n    });\n  }\n\n  login() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Sign In',\n          message: 'Please enter your LDAP username and password to continue:',\n          values: {\n            username: {\n              label: 'Username',\n            },\n            password: {\n              label: 'Password',\n              type: 'password',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe(\n        (result) => {\n          if (result && result.username.value && result.password.value) {\n            this.service\n              .login(result.username.value, result.password.value)\n              .subscribe(\n                (loginResponse) => {\n                  if (!loginResponse) {\n                    this.helper.showError(\n                      `${loginResponse.status}: Either You are not part of helix-admin LDAP group or your password is incorrect.`\n                    );\n                  }\n\n                  //\n                  // set cookie with Identity Token\n                  // if an Identity Token Source is configured\n                  //\n                  if (IDENTITY_TOKEN_SOURCE && TOKEN_RESPONSE_KEY) {\n                    const identityTokenPayload = loginResponse.headers.get(\n                      'Identity-Token-Payload'\n                    );\n\n                    const parsedIdentityTokenPayload =\n                      JSON.parse(identityTokenPayload);\n\n                    const cookie = {\n                      name: 'helixui_identity.token',\n                      value:\n                        parsedIdentityTokenPayload.value[TOKEN_RESPONSE_KEY],\n                      expirationDate: new Date(\n                        parsedIdentityTokenPayload.value[TOKEN_EXPIRATION_KEY]\n                      ).toUTCString(),\n                    };\n\n                    const cookieString = `${cookie.name}=${\n                      cookie.value || ''\n                    }; expires=${cookie.expirationDate}; path=/; domain=`;\n                    document.cookie = cookieString;\n                  }\n\n                  this.currentUser = this.service.getCurrentUser();\n                },\n                (error) => {\n                  // since rest API simply throws 404 instead of empty config when config is not initialized yet\n                  // frontend has to treat 404 as normal result\n                  if (error != 'Not Found') {\n                    this.helper.showError(error);\n                  }\n                  this.isLoading = false;\n                }\n              );\n          }\n        },\n        (error) => {\n          // since rest API simply throws 404 instead of empty config when config is not initialized yet\n          // frontend has to treat 404 as normal result\n          if (error != 'Not Found') {\n            this.helper.showError(error);\n          }\n          this.isLoading = false;\n        }\n      );\n  }\n}\n",
+            "sourceCode": "import { Component, OnInit } from '@angular/core';\nimport {\n  Router,\n  ActivatedRoute,\n  NavigationStart,\n  NavigationEnd,\n  NavigationCancel,\n  NavigationError,\n} from '@angular/router';\nimport { MatDialog } from '@angular/material/dialog';\n\n// import { Angulartics2Piwik } from 'angulartics2/piwik';\n\nimport { UserService } from './core/user.service';\nimport { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';\nimport { HelperService } from './shared/helper.service';\n\n@Component({\n  selector: 'hi-root',\n  templateUrl: './app.component.html',\n  styleUrls: ['./app.component.scss'],\n  providers: [UserService /*, Angulartics2Piwik */],\n})\nexport class AppComponent implements OnInit {\n  headerEnabled = true;\n  footerEnabled = true;\n  isLoading = true;\n  currentUser: any;\n\n  constructor(\n    // protected angulartics2Piwik: Angulartics2Piwik,\n    protected route: ActivatedRoute,\n    protected router: Router,\n    protected dialog: MatDialog,\n    protected service: UserService,\n    protected helper: HelperService\n  ) {\n    router.events.subscribe((event) => {\n      if (event instanceof NavigationStart) {\n        this.isLoading = true;\n      }\n      if (event instanceof NavigationEnd) {\n        this.isLoading = false;\n      }\n      if (event instanceof NavigationError) {\n        this.isLoading = false;\n      }\n      if (event instanceof NavigationCancel) {\n        this.isLoading = false;\n      }\n    });\n    // angulartics2Piwik.startTracking();\n  }\n\n  ngOnInit() {\n    this.currentUser = this.service.getCurrentUser();\n\n    this.route.queryParams.subscribe((params) => {\n      if (params['embed'] == 'true') {\n        this.headerEnabled = this.footerEnabled = false;\n      }\n    });\n  }\n\n  login() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Sign In',\n          message: 'Please enter your LDAP username and password to continue:',\n          values: {\n            username: {\n              label: 'Username',\n            },\n            password: {\n              label: 'Password',\n              type: 'password',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe(\n        (result) => {\n          if (result && result.username.value && result.password.value) {\n            this.service\n              .login(result.username.value, result.password.value)\n              .subscribe(\n                (loginResponse) => {\n                  if (!loginResponse) {\n                    this.helper.showError(\n                      `${loginResponse.status}: Either You are not part of helix-admin LDAP group or your password is incorrect.`\n                    );\n                  }\n\n                  this.currentUser = this.service.getCurrentUser();\n                },\n                (error) => {\n                  // since rest API simply throws 404 instead of empty config when config is not initialized yet\n                  // frontend has to treat 404 as normal result\n                  if (error != 'Not Found') {\n                    this.helper.showError(error);\n                  }\n                  this.isLoading = false;\n                }\n              );\n          }\n        },\n        (error) => {\n          // since rest API simply throws 404 instead of empty config when config is not initialized yet\n          // frontend has to treat 404 as normal result\n          if (error != 'Not Found') {\n            this.helper.showError(error);\n          }\n          this.isLoading = false;\n        }\n      );\n  }\n}\n",
             "assetsDirs": [],
             "styleUrlsData": [
                 {
@@ -7577,7 +7565,7 @@
                         "deprecationMessage": ""
                     }
                 ],
-                "line": 33,
+                "line": 28,
                 "jsdoctags": [
                     {
                         "name": "route",
@@ -7748,7 +7736,7 @@
         },
         {
             "name": "ClusterDetailComponent",
-            "id": "component-ClusterDetailComponent-ddbc6c258e23b5f3d987edb840f8bb0acbe1f8911737b357b55e6540c03cf4382447ff8ae97ddb271ed70d02bc05fcaf91e76ea4ab2e276b40ae8e1b05f071e1",
+            "id": "component-ClusterDetailComponent-c113526e36f3c537ef54d6e94ae2437e25a4350adba3e1311f167d0913656b2da2fe391edee3eb40924bf4ebd85424f8e595f44db590d0750c5c7bc5d5d32dcb",
             "file": "src/app/cluster/cluster-detail/cluster-detail.component.ts",
             "encapsulation": [],
             "entryComponents": [],
@@ -7925,7 +7913,7 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import { map } from 'rxjs/operators';\nimport { Component, OnInit } from '@angular/core';\nimport { ActivatedRoute, Router } from '@angular/router';\nimport { MatDialog } from '@angular/material/dialog';\n\nimport { Cluster } from '../shared/cluster.model';\nimport { HelperService } from '../../shared/helper.service';\nimport { ClusterService } from '../shared/cluster.service';\nimport { InstanceService } from '../../instance/shared/instance.service';\nimport { AlertDialogComponent } from '../../shared/dialog/alert-dialog/alert-dialog.component';\nimport { InputDialogComponent } from '../../shared/dialog/input-dialog/input-dialog.component';\n\n@Component({\n  selector: 'hi-cluster-detail',\n  templateUrl: './cluster-detail.component.html',\n  styleUrls: ['./cluster-detail.component.scss'],\n  providers: [InstanceService],\n})\nexport class ClusterDetailComponent implements OnInit {\n  readonly tabLinks = [\n    { label: 'Dashboard (beta)', link: 'dashboard' },\n    { label: 'Resources', link: 'resources' },\n    { label: 'Workflows', link: 'workflows' },\n    { label: 'Instances', link: 'instances' },\n    { label: 'Configuration', link: 'configs' },\n  ];\n\n  isLoading = false;\n  clusterName: string; // for better UX needs\n  cluster: Cluster;\n  can = false;\n\n  constructor(\n    protected route: ActivatedRoute,\n    protected router: Router,\n    protected dialog: MatDialog,\n    protected helperService: HelperService,\n    protected clusterService: ClusterService,\n    protected instanceService: InstanceService\n  ) {}\n\n  ngOnInit() {\n    this.clusterService.can().subscribe((data) => (this.can = data));\n    this.route.params.pipe(map((p) => p.name)).subscribe((name) => {\n      this.clusterName = name;\n      this.loadCluster();\n    });\n  }\n\n  protected loadCluster() {\n    this.isLoading = true;\n    this.clusterService.get(this.clusterName).subscribe(\n      (data) => (this.cluster = data),\n      (error) => this.helperService.showError(error),\n      () => (this.isLoading = false)\n    );\n  }\n\n  addInstance() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Add a new Instance',\n          message: 'Please enter the following information to continue:',\n          values: {\n            host: {\n              label: 'Hostname',\n            },\n            port: {\n              label: 'Port',\n            },\n            enabled: {\n              label: 'Enabled',\n              type: 'boolean',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result) {\n          this.instanceService\n            .create(\n              this.cluster.name,\n              result.host.value,\n              result.port.value,\n              result.enabled.value\n            )\n            .subscribe(\n              (data) => {\n                this.helperService.showSnackBar('New Instance added!');\n                // temporarily navigate back to instance view to refresh\n                // will fix this using ngrx/store\n                this.router.navigate(['workflows'], { relativeTo: this.route });\n                setTimeout(() => {\n                  this.router.navigate(['instances'], {\n                    relativeTo: this.route,\n                  });\n                }, 100);\n              },\n              (error) => this.helperService.showError(error),\n              () => {}\n            );\n        }\n      });\n  }\n\n  enableCluster() {\n    this.clusterService.enable(this.clusterName).subscribe(\n      () => this.loadCluster(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  disableCluster() {\n    this.clusterService.disable(this.clusterName).subscribe(\n      () => this.loadCluster(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  activateCluster() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Activate this Cluster',\n          message:\n            'To link this cluster to a Helix super cluster (controller), please enter the super cluster name:',\n          values: {\n            name: {\n              label: 'super cluster name',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result && result.name.value) {\n          this.clusterService\n            .activate(this.clusterName, result.name.value)\n            .subscribe(\n              () => {\n                // since this action may delay a little bit, to prevent re-activation,\n                // use an alert dialog to reload the data later\n                this.dialog\n                  .open(AlertDialogComponent, {\n                    data: {\n                      title: 'Cluster Activated',\n                      message: `Cluster '${this.clusterName}' is linked to super cluster '${result.name.value}'.`,\n                    },\n                  })\n                  .afterClosed()\n                  .subscribe(() => {\n                    this.loadCluster();\n                  });\n              },\n              (error) => this.helperService.showError(error)\n            );\n        }\n      });\n  }\n\n  enableMaintenanceMode() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Enable maintenance mode',\n          message:\n            'What reason do you want to use to put the cluster in maintenance mode?',\n          values: {\n            reason: {\n              label: 'reason',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result && result.reason.value) {\n          this.clusterService\n            .enableMaintenanceMode(this.clusterName, result.reason.value)\n            .subscribe(\n              () => this.loadCluster(),\n              (error) => this.helperService.showError(error)\n            );\n        }\n      });\n  }\n\n  disableMaintenanceMode() {\n    this.clusterService.disableMaintenanceMode(this.clusterName).subscribe(\n      () => this.loadCluster(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  deleteCluster() {\n    this.helperService\n      .showConfirmation('Are you sure you want to delete this cluster?')\n      .then((result) => {\n        if (result) {\n          this.clusterService.remove(this.cluster.name).subscribe((data) => {\n            this.helperService.showSnackBar('Cluster deleted!');\n            // FIXME: should reload cluster list as well\n            this.router.navigate(['..'], { relativeTo: this.route });\n          });\n        }\n      });\n  }\n}\n",
+            "sourceCode": "import { map } from 'rxjs/operators';\nimport { Component, OnInit } from '@angular/core';\nimport { ActivatedRoute, Router } from '@angular/router';\nimport { MatDialog } from '@angular/material/dialog';\n\nimport { Cluster } from '../shared/cluster.model';\nimport { HelperService } from '../../shared/helper.service';\nimport { ClusterService } from '../shared/cluster.service';\nimport { InstanceService } from '../../instance/shared/instance.service';\nimport { AlertDialogComponent } from '../../shared/dialog/alert-dialog/alert-dialog.component';\nimport { InputDialogComponent } from '../../shared/dialog/input-dialog/input-dialog.component';\n\n@Component({\n  selector: 'hi-cluster-detail',\n  templateUrl: './cluster-detail.component.html',\n  styleUrls: ['./cluster-detail.component.scss'],\n  providers: [InstanceService],\n})\nexport class ClusterDetailComponent implements OnInit {\n  readonly tabLinks = [\n    { label: 'Dashboard (beta)', link: 'dashboard' },\n    { label: 'Resources', link: 'resources' },\n    { label: 'Workflows', link: 'workflows' },\n    { label: 'Instances', link: 'instances' },\n    { label: 'Configuration', link: 'configs' },\n  ];\n\n  isLoading = false;\n  clusterName: string; // for better UX needs\n  cluster: Cluster;\n  can = false;\n\n  constructor(\n    protected route: ActivatedRoute,\n    protected router: Router,\n    protected dialog: MatDialog,\n    protected helperService: HelperService,\n    protected clusterService: ClusterService,\n    protected instanceService: InstanceService\n  ) {}\n\n  ngOnInit() {\n    this.clusterService.can().subscribe((data) => (this.can = data));\n    this.route.params.pipe(map((p) => p.name)).subscribe((name) => {\n      this.clusterName = name;\n      this.loadCluster();\n    });\n  }\n\n  protected loadCluster() {\n    this.isLoading = true;\n    this.clusterService.get(this.clusterName).subscribe(\n      (data) => (this.cluster = data),\n      (error) => this.helperService.showError(error),\n      () => (this.isLoading = false)\n    );\n  }\n\n  addInstance() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Add a new Instance',\n          message: 'Please enter the following information to continue:',\n          values: {\n            host: {\n              label: 'Hostname',\n            },\n            port: {\n              label: 'Port',\n            },\n            enabled: {\n              label: 'Enabled',\n              type: 'boolean',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result) {\n          this.instanceService\n            .create(\n              this.cluster.name,\n              result.host.value,\n              result.port.value,\n              result.enabled.value\n            )\n            .subscribe(\n              (data) => {\n                this.helperService.showSnackBar('New Instance added!');\n                // temporarily navigate back to instance view to refresh\n                // will fix this using ngrx/store\n                this.router.navigate(['workflows'], { relativeTo: this.route });\n                setTimeout(() => {\n                  this.router.navigate(['instances'], {\n                    relativeTo: this.route,\n                  });\n                }, 100);\n              },\n              (error) => this.helperService.showError(error),\n              () => {}\n            );\n        }\n      });\n  }\n\n  enableCluster() {\n    this.clusterService.enable(this.clusterName).subscribe(\n      () => this.loadCluster(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  disableCluster() {\n    this.clusterService.disable(this.clusterName).subscribe(\n      () => this.loadCluster(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  activateCluster() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Activate this Cluster',\n          message:\n            'To link this cluster to a Helix super cluster (controller), please enter the super cluster name:',\n          values: {\n            name: {\n              label: 'super cluster name',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result && result.name.value) {\n          this.clusterService\n            .activate(this.clusterName, result.name.value)\n            .subscribe(\n              () => {\n                // since this action may delay a little bit, to prevent re-activation,\n                // use an alert dialog to reload the data later\n                this.dialog\n                  .open(AlertDialogComponent, {\n                    data: {\n                      title: 'Cluster Activated',\n                      message: `Cluster '${this.clusterName}' is linked to super cluster '${result.name.value}'.`,\n                    },\n                  })\n                  .afterClosed()\n                  .subscribe(() => {\n                    this.loadCluster();\n                  });\n              },\n              (error) => this.helperService.showError(error)\n            );\n        }\n      });\n  }\n\n  enableMaintenanceMode() {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: 'Enable maintenance mode',\n          message:\n            'What reason do you want to use to put the cluster in maintenance mode?',\n          values: {\n            reason: {\n              label: 'reason',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result && result.reason.value) {\n          this.clusterService\n            .enableMaintenanceMode(this.clusterName, result.reason.value)\n            .subscribe(\n              () => this.loadCluster(),\n              (error) => this.helperService.showError(error)\n            );\n        }\n      });\n  }\n\n  disableMaintenanceMode() {\n    this.clusterService.disableMaintenanceMode(this.clusterName).subscribe(\n      () => this.loadCluster(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  deleteCluster() {\n    this.helperService\n      .showConfirmation(\n        'Are you sure you want to delete this cluster? This cannot be undone.',\n        'Confirm Cluster Deletion',\n        `Delete Cluster ${this.clusterName}`\n      )\n      .then((result) => {\n        if (result) {\n          this.clusterService.remove(this.cluster.name).subscribe((data) => {\n            this.helperService.showSnackBar(\n              `Cluster ${this.clusterName} deleted`\n            );\n            // FIXME: should reload cluster list as well\n            this.router.navigate(['..'], { relativeTo: this.route });\n          });\n        }\n      });\n  }\n}\n",
             "assetsDirs": [],
             "styleUrlsData": [
                 {
@@ -8504,7 +8492,7 @@
         },
         {
             "name": "ConfirmDialogComponent",
-            "id": "component-ConfirmDialogComponent-040b64af83bf2524ae5e83c1434f5ae6a3b73436fa093083f01868ee225b876c6b10d9a3e0f144b2937faaf634c5b944f690cf3f8b54610c349f91f0acf5c058",
+            "id": "component-ConfirmDialogComponent-48a0f9fe0e37f8bd5340e5f536cbf9375ac0a8e58bf2616bd82f418ff626eb2029bd3fe6d9fabfdeaad6711e34696274e4c72561d29e3a704f702d1c701bbd3d",
             "file": "src/app/shared/dialog/confirm-dialog/confirm-dialog.component.ts",
             "encapsulation": [],
             "entryComponents": [],
@@ -8523,6 +8511,15 @@
             "inputsClass": [],
             "outputsClass": [],
             "propertiesClass": [
+                {
+                    "name": "confirmButtonText",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string",
+                    "optional": false,
+                    "description": "",
+                    "line": 13
+                },
                 {
                     "name": "message",
                     "deprecated": false,
@@ -8549,7 +8546,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 19,
+                    "line": 20,
                     "deprecated": false,
                     "deprecationMessage": ""
                 },
@@ -8559,7 +8556,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 29,
+                    "line": 32,
                     "deprecated": false,
                     "deprecationMessage": ""
                 },
@@ -8569,7 +8566,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 25,
+                    "line": 28,
                     "deprecated": false,
                     "deprecationMessage": ""
                 }
@@ -8581,7 +8578,7 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import { Component, OnInit, Inject } from '@angular/core';\nimport { MatDialogRef } from '@angular/material/dialog';\nimport { MAT_DIALOG_DATA } from '@angular/material/dialog';\n\n@Component({\n  selector: 'hi-confirm-dialog',\n  templateUrl: './confirm-dialog.component.html',\n  styleUrls: ['./confirm-dialog.component.scss'],\n})\nexport class ConfirmDialogComponent implements OnInit {\n  title: string;\n  message: string;\n\n  constructor(\n    @Inject(MAT_DIALOG_DATA) protected data: any,\n    protected dialogRef: MatDialogRef<ConfirmDialogComponent>\n  ) {}\n\n  ngOnInit() {\n    this.title = (this.data && this.data.title) || 'Confirmation';\n    this.message =\n      (this.data && this.data.message) || 'Are you sure about this?';\n  }\n\n  onConfirm() {\n    this.dialogRef.close(true);\n  }\n\n  onCancel() {\n    this.dialogRef.close();\n  }\n}\n",
+            "sourceCode": "import { Component, OnInit, Inject } from '@angular/core';\nimport { MatDialogRef } from '@angular/material/dialog';\nimport { MAT_DIALOG_DATA } from '@angular/material/dialog';\n\n@Component({\n  selector: 'hi-confirm-dialog',\n  templateUrl: './confirm-dialog.component.html',\n  styleUrls: ['./confirm-dialog.component.scss'],\n})\nexport class ConfirmDialogComponent implements OnInit {\n  title: string;\n  message: string;\n  confirmButtonText: string;\n\n  constructor(\n    @Inject(MAT_DIALOG_DATA) protected data: any,\n    protected dialogRef: MatDialogRef<ConfirmDialogComponent>\n  ) {}\n\n  ngOnInit() {\n    this.title = (this.data && this.data.title) || 'Confirmation';\n    this.message =\n      (this.data && this.data.message) || 'Are you sure about this?';\n    this.confirmButtonText =\n      (this.data && this.data.confirmButtonText) || 'Continue';\n  }\n\n  onConfirm() {\n    this.dialogRef.close(true);\n  }\n\n  onCancel() {\n    this.dialogRef.close();\n  }\n}\n",
             "assetsDirs": [],
             "styleUrlsData": [
                 {
@@ -8609,7 +8606,7 @@
                         "deprecationMessage": ""
                     }
                 ],
-                "line": 12,
+                "line": 13,
                 "jsdoctags": [
                     {
                         "name": "data",
@@ -8634,11 +8631,11 @@
             "implements": [
                 "OnInit"
             ],
-            "templateData": "<!--\n  ~ Licensed to the Apache Software Foundation (ASF) under one\n  ~ or more contributor license agreements.  See the NOTICE file\n  ~ distributed with this work for additional information\n  ~ regarding copyright ownership.  The ASF licenses this file\n  ~ to you under the Apache License, Version 2.0 (the\n  ~ \"License\"); you may not use this file except in compliance\n  ~ with the License.  You may obtain a copy of the License at\n  ~\n  ~     http://www.apache.org/licenses/LICENSE-2.0\n  ~\n  ~ Unless required by applicable law or agreed to in writing,\n  ~ software distributed under the License is distributed on an\n  ~ \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n  ~ KIND, either express or implied.  See the License for the\n  ~ specific language governing permissions and limitations\n  ~ under the License.\n  -->\n\n<form (ngSubmit)=\"onCancel()\" #inputForm=\"ngForm\">\n  <h1 mat-dialog-title>{{ title }}</h1>\n  <div mat-dialog-content>\n    <section>\n      {{ message }}\n    </section>\n  </div>\n  <div mat-dialog-actions>\n    <button\n      mat-button\n      type=\"submit\"\n      color=\"primary\"\n      [disabled]=\"!inputForm.form.valid\"\n    >\n      Cancel\n    </button>\n    <button mat-button type=\"button\" (click)=\"onConfirm()\">Continue</button>\n  </div>\n</form>\n"
+            "templateData": "<!--\n  ~ Licensed to the Apache Software Foundation (ASF) under one\n  ~ or more contributor license agreements.  See the NOTICE file\n  ~ distributed with this work for additional information\n  ~ regarding copyright ownership.  The ASF licenses this file\n  ~ to you under the Apache License, Version 2.0 (the\n  ~ \"License\"); you may not use this file except in compliance\n  ~ with the License.  You may obtain a copy of the License at\n  ~\n  ~     http://www.apache.org/licenses/LICENSE-2.0\n  ~\n  ~ Unless required by applicable law or agreed to in writing,\n  ~ software distributed under the License is distributed on an\n  ~ \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n  ~ KIND, either express or implied.  See the License for the\n  ~ specific language governing permissions and limitations\n  ~ under the License.\n  -->\n\n<form (ngSubmit)=\"onCancel()\" #inputForm=\"ngForm\">\n  <h1 mat-dialog-title>{{ title }}</h1>\n  <div mat-dialog-content>\n    <section>\n      {{ message }}\n    </section>\n  </div>\n  <div mat-dialog-actions>\n    <button\n      mat-button\n      type=\"submit\"\n      color=\"primary\"\n      [disabled]=\"!inputForm.form.valid\"\n    >\n      Cancel\n    </button>\n    <button mat-button type=\"button\" (click)=\"onConfirm()\">\n      {{ confirmButtonText }}\n    </button>\n  </div>\n</form>\n"
         },
         {
             "name": "ConfirmDialogTestComponent",
-            "id": "component-ConfirmDialogTestComponent-a1fe3ea07605b8814e649ad8d7416f2460dbf9fcb315a9bf08101456f2cce9f73ddeeea00e8bff65a34898783e29f8bbcf5b6ecd81d4150a8f07473aa4a91b12",
+            "id": "component-ConfirmDialogTestComponent-de0078ca900ade63a7a114ed07a1a6b39665b99125c58043d2bcc3ed2e672f8d85618a960a9470e6d371d97d40a5466bb0f5c438b368dd7ff97224534899aa06",
             "file": "src/app/shared/dialog/confirm-dialog/confirm-dialog-test.component.ts",
             "encapsulation": [],
             "entryComponents": [],
@@ -8650,20 +8647,42 @@
                 "./confirm-dialog.component.scss"
             ],
             "styles": [],
-            "template": "<button mat-flat-button (click)=\"launch()\">Launch</button>",
+            "template": "<button mat-flat-button (click)=\"openDialog()\">   Open Dialog\n </button>",
             "templateUrl": [],
             "viewProviders": [],
-            "inputsClass": [],
+            "inputsClass": [
+                {
+                    "name": "data",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "line": 17,
+                    "type": "any",
+                    "decorators": []
+                }
+            ],
             "outputsClass": [],
-            "propertiesClass": [],
+            "propertiesClass": [
+                {
+                    "name": "dialog",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "MatDialog",
+                    "optional": false,
+                    "description": "",
+                    "line": 19,
+                    "modifierKind": [
+                        123
+                    ]
+                }
+            ],
             "methodsClass": [
                 {
-                    "name": "launch",
+                    "name": "openDialog",
                     "args": [],
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 17,
+                    "line": 21,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "modifierKind": [
@@ -8678,7 +8697,7 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import { Component } from '@angular/core';\nimport { MatDialog, MatDialogModule } from '@angular/material/dialog';\nimport { BrowserAnimationsModule } from '@angular/platform-browser/animations';\nimport { MaterialModule } from 'app/shared/material.module';\nimport { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';\n\n// Wrapper component for testing approach recommended in this answer:\n// https://stackoverflow.com/a/63953851/1732222\n@Component({\n  selector: 'hi-confirm-dialog-test',\n  template: ` <button mat-flat-button (click)=\"launch()\">Launch</button>`,\n  styleUrls: ['./confirm-dialog.component.scss'],\n})\nclass ConfirmDialogTestComponent {\n  constructor(private _dialog: MatDialog) {}\n\n  public launch(): void {\n    this._dialog.open(ConfirmDialogComponent);\n  }\n}\n\nexport default () => ({\n  moduleMetadata: {\n    _imports: [BrowserAnimationsModule, MatDialogModule, MaterialModule],\n    get imports() {\n      return this._imports;\n    },\n    set imports(value) {\n      this._imports = value;\n    },\n    declarations: [ConfirmDialogTestComponent],\n  },\n  component: ConfirmDialogTestComponent,\n});\n",
+            "sourceCode": "import { Component, OnInit, Input } from '@angular/core';\nimport { MatDialog, MatDialogModule } from '@angular/material/dialog';\nimport { BrowserAnimationsModule } from '@angular/platform-browser/animations';\nimport { MaterialModule } from 'app/shared/material.module';\nimport { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';\n\n// Wrapper component for testing approach recommended in this answer:\n// https://stackoverflow.com/a/63953851/1732222\n@Component({\n  selector: 'hi-confirm-dialog-test',\n  template: ` <button mat-flat-button (click)=\"openDialog()\">\n    Open Dialog\n  </button>`,\n  styleUrls: ['./confirm-dialog.component.scss'],\n})\nexport class ConfirmDialogTestComponent {\n  @Input() data: any;\n\n  constructor(public dialog: MatDialog) {}\n\n  public openDialog(): void {\n    this.dialog.open(ConfirmDialogComponent, {\n      data: this.data,\n    });\n  }\n}\n\nexport default () => ({\n  moduleMetadata: {\n    _imports: [BrowserAnimationsModule, MatDialogModule, MaterialModule],\n    get imports() {\n      return this._imports;\n    },\n    set imports(value) {\n      this._imports = value;\n    },\n    declarations: [ConfirmDialogTestComponent],\n  },\n  component: ConfirmDialogTestComponent,\n});\n",
             "assetsDirs": [],
             "styleUrlsData": [
                 {
@@ -8694,16 +8713,16 @@
                 "deprecationMessage": "",
                 "args": [
                     {
-                        "name": "_dialog",
+                        "name": "dialog",
                         "type": "MatDialog",
                         "deprecated": false,
                         "deprecationMessage": ""
                     }
                 ],
-                "line": 14,
+                "line": 17,
                 "jsdoctags": [
                     {
-                        "name": "_dialog",
+                        "name": "dialog",
                         "type": "MatDialog",
                         "deprecated": false,
                         "deprecationMessage": "",
@@ -10726,7 +10745,7 @@
         },
         {
             "name": "InstanceDetailComponent",
-            "id": "component-InstanceDetailComponent-eb61d3f495bda1e016f4fc31a5f34db0689114bd1a6ad0fa97c4d56accee9381e2853a021e5adbc9920e7f681f6fe000f1d7cf0f914e02ba4a4f55981a6d31b8",
+            "id": "component-InstanceDetailComponent-b55a7689c26a2aac4ab7ea9cdcacbf15fd4540921055407c528f90d2ec255779b62656dcfbab878b749f8780bb3996f25e282609c9fc9fd96a9f4260068d8681",
             "file": "src/app/instance/instance-detail/instance-detail.component.ts",
             "encapsulation": [],
             "entryComponents": [],
@@ -10817,7 +10836,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 65,
+                    "line": 68,
                     "deprecated": false,
                     "deprecationMessage": ""
                 },
@@ -10827,7 +10846,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 58,
+                    "line": 60,
                     "deprecated": false,
                     "deprecationMessage": ""
                 },
@@ -10837,7 +10856,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 72,
+                    "line": 76,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "modifierKind": [
@@ -10872,7 +10891,7 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import { Component, OnInit } from '@angular/core';\nimport { ActivatedRoute, Router } from '@angular/router';\n\nimport { Instance } from '../shared/instance.model';\nimport { HelperService } from '../../shared/helper.service';\nimport { InstanceService } from '../shared/instance.service';\n\n@Component({\n  selector: 'hi-instance-detail',\n  templateUrl: './instance-detail.component.html',\n  styleUrls: ['./instance-detail.component.scss'],\n  providers: [InstanceService],\n})\nexport class InstanceDetailComponent implements OnInit {\n  readonly tabLinks = [\n    { label: 'Resources', link: 'resources' },\n    { label: 'Configuration', link: 'configs' },\n    { label: 'History', link: 'history' },\n  ];\n\n  clusterName: string;\n  instanceName: string;\n  instance: Instance;\n  isLoading = true;\n  can = false;\n\n  constructor(\n    protected route: ActivatedRoute,\n    protected router: Router,\n    protected service: InstanceService,\n    protected helperService: HelperService\n  ) {}\n\n  ngOnInit() {\n    this.service.can().subscribe((data) => (this.can = data));\n    this.clusterName = this.route.snapshot.params.cluster_name;\n    this.instanceName = this.route.snapshot.params.instance_name;\n    this.loadInstance();\n  }\n\n  removeInstance() {\n    this.helperService\n      .showConfirmation('Are you sure you want to remove this Instance?')\n      .then((result) => {\n        if (result) {\n          this.service\n            .remove(this.clusterName, this.instance.name)\n            .subscribe((data) => {\n              this.helperService.showSnackBar(\n                `Instance: ${this.instance.name} removed!`\n              );\n              this.router.navigate(['..'], { relativeTo: this.route });\n            });\n        }\n      });\n  }\n\n  enableInstance() {\n    this.service.enable(this.clusterName, this.instance.name).subscribe(\n      () => this.loadInstance(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  disableInstance() {\n    this.service.disable(this.clusterName, this.instance.name).subscribe(\n      () => this.loadInstance(),\n      (error) => this.helperService.showError(error)\n    );\n  }\n\n  protected loadInstance() {\n    this.isLoading = true;\n    this.service.get(this.clusterName, this.instanceName).subscribe(\n      (instance) => (this.instance = instance),\n      (error) => this.helperService.showError(error),\n      () => (this.isLoading = false)\n    );\n  }\n}\n",
+            "sourceCode": "import { Component, OnInit } from '@angular/core';\nimport { ActivatedRoute, Router } from '@angular/router';\n\nimport { Instance } from '../shared/instance.model';\nimport { HelperService } from '../../shared/helper.service';\nimport { InstanceService } from '../shared/instance.service';\n\n@Component({\n  selector: 'hi-instance-detail',\n  templateUrl: './instance-detail.component.html',\n  styleUrls: ['./instance-detail.component.scss'],\n  providers: [InstanceService],\n})\nexport class InstanceDetailComponent implements OnInit {\n  readonly tabLinks = [\n    { label: 'Resources', link: 'resources' },\n    { label: 'Configuration', link: 'configs' },\n    { label: 'History', link: 'history' },\n  ];\n\n  clusterName: string;\n  instanceName: string;\n  instance: Instance;\n  isLoading = true;\n  can = false;\n\n  constructor(\n    protected route: ActivatedRoute,\n    protected router: Router,\n    protected service: InstanceService,\n    protected helperService: HelperService\n  ) {}\n\n  ngOnInit() {\n    this.service.can().subscribe((data) => (this.can = data));\n    this.clusterName = this.route.snapshot.params.cluster_name;\n    this.instanceName = this.route.snapshot.params.instance_name;\n    this.loadInstance();\n  }\n\n  removeInstance() {\n    this.helperService\n      .showConfirmation('Are you sure you want to remove this Instance?')\n      .then((result) => {\n        if (result) {\n          this.service.remove(this.clusterName, this.instance.name).subscribe(\n            /* happy path */ () => {\n              this.helperService.showSnackBar(\n                `Instance: ${this.instance.name} removed!`\n              );\n              this.router.navigate(['..'], { relativeTo: this.route });\n            },\n            /* error path */ (error) => this.helperService.showError(error),\n            /* onComplete */ () => (this.isLoading = false)\n          );\n        }\n      });\n  }\n\n  enableInstance() {\n    this.service.enable(this.clusterName, this.instance.name).subscribe(\n      /* happy path */ () => this.loadInstance(),\n      /* error path */ (error) => this.helperService.showError(error),\n      /* onComplete */ () => (this.isLoading = false)\n    );\n  }\n\n  disableInstance() {\n    this.service.disable(this.clusterName, this.instance.name).subscribe(\n      /* happy path */ () => this.loadInstance(),\n      /* error path */ (error) => this.helperService.showError(error),\n      /* onComplete */ () => (this.isLoading = false)\n    );\n  }\n\n  protected loadInstance() {\n    this.isLoading = true;\n    this.service.get(this.clusterName, this.instanceName).subscribe(\n      /* happy path */ (instance) => (this.instance = instance),\n      /* error path */ (error) => this.helperService.showError(error),\n      /* onComplete */ () => (this.isLoading = false)\n    );\n  }\n}\n",
             "assetsDirs": [],
             "styleUrlsData": [
                 {
@@ -11629,7 +11648,7 @@
         },
         {
             "name": "NodeViewerComponent",
-            "id": "component-NodeViewerComponent-ccadefbaeb906479af0e1837831d04bf9238f87c230a5a091cb1ad41a8766887740c8dd9ff4251b12ff3218675e305862d70256e36b34c91d22be68fda7b0566",
+            "id": "component-NodeViewerComponent-c30983867249a031151ea924d5136b0949a6f2f247d308780a18b62f1f93b61371fb7ac285d7bfd2776de183a6e015aa5bea0e6bf7f93f0286cfec140a1aeb81",
             "file": "src/app/shared/node-viewer/node-viewer.component.ts",
             "encapsulation": [
                 "ViewEncapsulation.None"
@@ -12210,7 +12229,7 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import {\n  Component,\n  OnInit,\n  Input,\n  Output,\n  ViewChild,\n  ViewEncapsulation,\n  EventEmitter,\n} from '@angular/core';\nimport { ActivatedRoute } from '@angular/router';\nimport { MatDialog } from '@angular/material/dialog';\n\nimport * as _ from 'lodash';\n// import * as ace from 'ace-builds/src-noconflict/ace';\nimport 'ace-builds';\nimport 'ace-builds/webpack-resolver';\nimport 'ace-builds/src-noconflict/mode-json';\nimport 'ace-builds/src-noconflict/theme-chrome';\nimport { config } from 'ace-builds';\n\nimport { ResourceService } from '../../resource/shared/resource.service';\nimport { HelperService } from '../../shared/helper.service';\nimport { Node } from '../models/node.model';\nimport { Settings } from '../../core/settings';\nimport { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';\nimport { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';\n\nexport type IdealState = {\n  id: string;\n  simpleFields?: { [key: string]: any };\n  listFields?: { [key: string]: any };\n  mapFields?: { [key: string]: any };\n};\n\nconfig.set(\n  'basePath',\n  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/'\n);\nconfig.setModuleUrl(\n  'ace/mode/javascript_worker',\n  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/worker-json.js'\n);\n@Component({\n  selector: 'hi-node-viewer',\n  templateUrl: './node-viewer.component.html',\n  styleUrls: ['./node-viewer.component.scss'],\n  providers: [ResourceService],\n  // Since we are importing external styles in this component\n  // we will not use Shadow DOM at all to make sure the styles apply\n  encapsulation: ViewEncapsulation.None,\n})\nexport class NodeViewerComponent implements OnInit {\n  isLoading = true;\n  clusterName: string;\n  resourceName: string;\n  @ViewChild('simpleTable', { static: true }) simpleTable;\n  @ViewChild('listTable', { static: true }) listTable;\n  @ViewChild('mapTable', { static: true }) mapTable;\n\n  @Output('update')\n  change: EventEmitter<Node> = new EventEmitter<Node>();\n\n  @Output('create')\n  create: EventEmitter<Node> = new EventEmitter<Node>();\n\n  @Output('delete')\n  delete: EventEmitter<Node> = new EventEmitter<Node>();\n\n  @Input()\n  unlockable = false;\n\n  @Input()\n  loadingIndicator = false;\n\n  private _editable = false;\n\n  protected _obj: any;\n  protected node: Node;\n\n  headerHeight = Settings.tableHeaderHeight;\n  rowHeight = Settings.tableRowHeight;\n  sorts = [{ prop: 'name', dir: 'asc' }];\n  keyword = '';\n  columns = {\n    simpleConfigs: [\n      {\n        name: 'Name',\n        editable: false,\n      },\n      {\n        name: 'Value',\n        editable: false,\n      },\n    ],\n    listConfigs: [\n      {\n        name: 'Value',\n        editable: false,\n      },\n    ],\n  };\n\n  _simpleConfigs: any[];\n\n  _listConfigs: any[];\n\n  _mapConfigs: any[];\n\n  // MODE 1: use directly in components\n  @Input()\n  set obj(value: any) {\n    if (value !== null) {\n      this._obj = value;\n      this.node = new Node(value);\n    }\n  }\n  get obj(): any {\n    return this._obj;\n  }\n  set objString(value: string | null) {\n    let parsedValue = null;\n    if (value && value !== null) {\n      parsedValue = JSON.parse(value);\n    }\n\n    this.obj = parsedValue;\n    this.node = new Node(parsedValue);\n  }\n  get objString(): string {\n    return JSON.stringify(this.obj, null, 2);\n  }\n  set editable(value: boolean) {\n    this._editable = value;\n    this.columns.simpleConfigs[1].editable = this._editable;\n    this.columns.listConfigs[0].editable = this._editable;\n  }\n  get editable() {\n    return this._editable;\n  }\n  get simpleConfigs(): any[] {\n    return this.node\n      ? _.filter(\n          this.node.simpleFields,\n          (config) =>\n            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||\n            config.value.toLowerCase().indexOf(this.keyword) >= 0\n        )\n      : [];\n  }\n  get listConfigs(): any[] {\n    return this.node\n      ? _.filter(\n          this.node.listFields,\n          (config) =>\n            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||\n            _.some(\n              config.value as any[],\n              (subconfig) =>\n                subconfig.value.toLowerCase().indexOf(this.keyword) >= 0\n            )\n        )\n      : [];\n  }\n  get mapConfigs(): any[] {\n    return this.node\n      ? _.filter(\n          this.node.mapFields,\n          (config) =>\n            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||\n            _.some(\n              config.value as any[],\n              (subconfig) =>\n                subconfig.name.toLowerCase().indexOf(this.keyword) >= 0 ||\n                subconfig.value.toLowerCase().indexOf(this.keyword) >= 0\n            )\n        )\n      : [];\n  }\n\n  public constructor(\n    protected dialog: MatDialog,\n    protected route: ActivatedRoute,\n    protected resourceService: ResourceService,\n    protected helper: HelperService\n  ) {}\n\n  ngOnInit() {\n    // MODE 2: use in router\n    if (this.route.snapshot.data.path) {\n      const path = this.route.snapshot.data.path;\n\n      // try parent data first\n      this.obj = _.get(this.route.parent, `snapshot.data.${path}`);\n\n      if (this.obj == null) {\n        // try self data then\n        this.obj = _.get(this.route.snapshot.data, path);\n      }\n\n      this.objString = JSON.stringify(this.obj, null, 2);\n    }\n\n    if (this.route.parent) {\n      this.clusterName =\n        this.route.parent.snapshot.params.name ||\n        this.route.parent.snapshot.params.cluster_name;\n      this.resourceName = this.route.parent.snapshot.params.resource_name;\n    }\n  }\n\n  updateFilter(event) {\n    this.keyword = event.target.value.toLowerCase().trim();\n\n    // Whenever the filter changes, always go back to the first page\n    if (this.simpleTable) {\n      this.simpleTable.offset = 0;\n    }\n    if (this.listTable) {\n      this.listTable.offset = 0;\n    }\n    if (this.mapTable) {\n      this.mapTable.offset = 0;\n    }\n  }\n\n  getNameCellClass({ value }): any {\n    return {\n      // highlight HELIX own configs\n      primary: _.snakeCase(value).toUpperCase() === value,\n    };\n  }\n\n  onCreate(type) {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: `Create a new ${type} configuration`,\n          message:\n            \"Please enter the name of the new configuration. You'll be able to add values later:\",\n          values: {\n            name: {\n              label: 'the name of the new configuration',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result) {\n          const entry = [\n            {\n              name: result.name.value,\n              value: [],\n            },\n          ];\n\n          const newNode: Node = new Node(null);\n          if (type === 'list') {\n            newNode.listFields = entry;\n          } else if (type === 'map') {\n            newNode.mapFields = entry;\n          }\n\n          this.create.emit(newNode);\n        }\n      });\n  }\n\n  beforeDelete(type, row) {\n    this.dialog\n      .open(ConfirmDialogComponent, {\n        data: {\n          title: 'Confirmation',\n          message: 'Are you sure you want to delete this configuration?',\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result) {\n          this.onDelete(type, row);\n        }\n      });\n  }\n\n  onDelete(type, row) {\n    const newNode: Node = new Node(null);\n\n    if (type === 'simple') {\n      newNode.appendSimpleField(row.name, '');\n    } else if (type === 'list') {\n      newNode.listFields = [{ name: row.name, value: [] }];\n    } else if (type === 'map') {\n      newNode.mapFields = [{ name: row.name, value: null }];\n    }\n\n    this.delete.emit(newNode);\n  }\n\n  created(type, data, key) {\n    const newNode: Node = new Node(null);\n\n    switch (type) {\n      case 'simple':\n        newNode.appendSimpleField(data.name.value, data.value.value);\n        break;\n\n      case 'list':\n        if (key) {\n          const entry = _.find(this.node.listFields, { name: key });\n\n          entry.value.push({\n            name: '',\n            value: data.value.value,\n          });\n\n          newNode.listFields.push(entry);\n        }\n        break;\n\n      case 'map':\n        if (key) {\n          const entry = _.find(this.node.mapFields, { name: key });\n\n          _.forEach(entry.value, (item: any) => {\n            newNode.appendMapField(key, item.name, item.value);\n          });\n\n          newNode.appendMapField(key, data.name.value, data.value.value);\n        }\n        break;\n    }\n\n    this.create.emit(newNode);\n  }\n\n  edited(type, { row, column, value }, key, isDeleting) {\n    if (!isDeleting && column.name !== 'Value') {\n      return;\n    }\n\n    const newNode: Node = new Node(null);\n\n    switch (type) {\n      case 'simple':\n        newNode.appendSimpleField(row.name, value);\n        break;\n\n      case 'list':\n        if (key) {\n          const entry = _.find(this.node.listFields, { name: key });\n          const index = _.findIndex(entry.value, { value: row.value });\n\n          if (isDeleting) {\n            entry.value.splice(index, 1);\n          } else {\n            entry.value[index].value = value;\n          }\n\n          newNode.listFields.push(entry);\n        }\n        break;\n\n      case 'map':\n        if (key) {\n          // have to fetch all other configs under this key\n          const entry = _.find(this.node.mapFields, { name: key });\n          newNode.mapFields = [{ name: key, value: [] }];\n\n          _.forEach(entry.value, (item: any) => {\n            if (item.name === row.name) {\n              if (!isDeleting) {\n                newNode.appendMapField(key, item.name, value);\n              }\n            } else {\n              newNode.appendMapField(key, item.name, item.value);\n            }\n          });\n        }\n        break;\n    }\n\n    const path = this?.route?.snapshot?.data?.path;\n    if (path && path === 'idealState') {\n      const idealState: IdealState = {\n        id: this.resourceName,\n      };\n\n      // format the payload the way that helix-rest expects\n      // before: { simpleFields: [{ name: 'NUM_PARTITIONS', value: 2 }] };\n      // after:  { simpleFields: { NUM_PARTITIONS: 2 } };\n      function appendIdealStateProperty(property: keyof Node) {\n        if (Array.isArray(newNode[property]) && newNode[property].length > 0) {\n          idealState[property] = {} as any;\n          (newNode[property] as any[]).forEach((field) => {\n            idealState[property][field.name] = field.value;\n          });\n        }\n      }\n      Object.keys(newNode).forEach((key) =>\n        appendIdealStateProperty(key as keyof Node)\n      );\n\n      const observer = this.resourceService.setIdealState(\n        this.clusterName,\n        this.resourceName,\n        idealState\n      );\n\n      if (observer) {\n        this.isLoading = true;\n        observer.subscribe(\n          () => {\n            this.helper.showSnackBar('Ideal State updated!');\n          },\n          (error) => {\n            this.helper.showError(error);\n            this.isLoading = false;\n          },\n          () => (this.isLoading = false)\n        );\n      }\n    }\n\n    this.change.emit(newNode);\n  }\n}\n",
+            "sourceCode": "import {\n  Component,\n  OnInit,\n  Input,\n  Output,\n  ViewChild,\n  ViewEncapsulation,\n  EventEmitter,\n} from '@angular/core';\nimport { ActivatedRoute } from '@angular/router';\nimport { MatDialog } from '@angular/material/dialog';\n\nimport * as _ from 'lodash';\n// import * as ace from 'ace-builds/src-noconflict/ace';\nimport 'ace-builds';\nimport 'ace-builds/webpack-resolver';\nimport 'ace-builds/src-noconflict/mode-json';\nimport 'ace-builds/src-noconflict/theme-chrome';\nimport { config } from 'ace-builds';\n\nimport { ResourceService } from '../../resource/shared/resource.service';\nimport { HelperService } from '../../shared/helper.service';\nimport { Node } from '../models/node.model';\nimport { Settings } from '../../core/settings';\nimport { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';\nimport { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';\n\nexport type IdealState = {\n  id: string;\n  simpleFields?: { [key: string]: any };\n  listFields?: { [key: string]: any };\n  mapFields?: { [key: string]: any };\n};\n\nconfig.set(\n  'basePath',\n  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/'\n);\nconfig.setModuleUrl(\n  'ace/mode/javascript_worker',\n  'https://cdn.jsdelivr.net/npm/ace-builds@1.6.0/src-noconflict/worker-json.js'\n);\n@Component({\n  selector: 'hi-node-viewer',\n  templateUrl: './node-viewer.component.html',\n  styleUrls: ['./node-viewer.component.scss'],\n  providers: [ResourceService],\n  // Since we are importing external styles in this component\n  // we will not use Shadow DOM at all to make sure the styles apply\n  encapsulation: ViewEncapsulation.None,\n})\nexport class NodeViewerComponent implements OnInit {\n  isLoading = true;\n  clusterName: string;\n  resourceName: string;\n  @ViewChild('simpleTable', { static: true }) simpleTable;\n  @ViewChild('listTable', { static: true }) listTable;\n  @ViewChild('mapTable', { static: true }) mapTable;\n\n  @Output('update')\n  change: EventEmitter<Node> = new EventEmitter<Node>();\n\n  @Output('create')\n  create: EventEmitter<Node> = new EventEmitter<Node>();\n\n  @Output('delete')\n  delete: EventEmitter<Node> = new EventEmitter<Node>();\n\n  @Input()\n  unlockable = false;\n\n  @Input()\n  loadingIndicator = false;\n\n  private _editable = false;\n\n  protected _obj: any;\n  protected node: Node;\n\n  headerHeight = Settings.tableHeaderHeight;\n  rowHeight = Settings.tableRowHeight;\n  sorts = [{ prop: 'name', dir: 'asc' }];\n  keyword = '';\n  columns = {\n    simpleConfigs: [\n      {\n        name: 'Name',\n        editable: false,\n      },\n      {\n        name: 'Value',\n        editable: false,\n      },\n    ],\n    listConfigs: [\n      {\n        name: 'Value',\n        editable: false,\n      },\n    ],\n  };\n\n  _simpleConfigs: any[];\n\n  _listConfigs: any[];\n\n  _mapConfigs: any[];\n\n  // MODE 1: use directly in components\n  @Input()\n  set obj(value: any) {\n    if (value !== null) {\n      this._obj = value;\n      this.node = new Node(value);\n    }\n  }\n  get obj(): any {\n    return this._obj;\n  }\n  set objString(value: string | null) {\n    let parsedValue = null;\n    if (value && value !== null) {\n      parsedValue = JSON.parse(value);\n    }\n\n    this.obj = parsedValue;\n    this.node = new Node(parsedValue);\n  }\n  get objString(): string {\n    return JSON.stringify(this.obj, null, 2);\n  }\n  set editable(value: boolean) {\n    this._editable = value;\n    this.columns.simpleConfigs[1].editable = this._editable;\n    this.columns.listConfigs[0].editable = this._editable;\n  }\n  get editable() {\n    return this._editable;\n  }\n  get simpleConfigs(): any[] {\n    return this.node\n      ? _.filter(\n          this.node.simpleFields,\n          (config) =>\n            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||\n            config.value.toLowerCase().indexOf(this.keyword) >= 0\n        )\n      : [];\n  }\n  get listConfigs(): any[] {\n    return this.node\n      ? _.filter(\n          this.node.listFields,\n          (config) =>\n            config.name.toLowerCase().indexOf(this.keyword) >= 0 ||\n            _.some(\n              config.value as any[],\n              (subconfig) =>\n                subconfig.value.toLowerCase().indexOf(this.keyword) >= 0\n            )\n        )\n      : [];\n  }\n  get mapConfigs(): any[] {\n    return this.node\n      ? _.filter(\n          this.node.mapFields,\n          (config) =>\n            config.name.toLowerCase().trim().indexOf(this.keyword) >= 0 ||\n            _.some(\n              config.value as any[],\n              (subconfig) =>\n                subconfig.name.toLowerCase().trim().indexOf(this.keyword) >=\n                  0 || subconfig.value.toLowerCase().indexOf(this.keyword) >= 0\n            )\n        )\n      : [];\n  }\n\n  public constructor(\n    protected dialog: MatDialog,\n    protected route: ActivatedRoute,\n    protected resourceService: ResourceService,\n    protected helper: HelperService\n  ) {}\n\n  ngOnInit() {\n    // MODE 2: use in router\n    if (this.route.snapshot.data.path) {\n      const path = this.route.snapshot.data.path;\n\n      // try parent data first\n      this.obj = _.get(this.route.parent, `snapshot.data.${path}`);\n\n      if (this.obj == null) {\n        // try self data then\n        this.obj = _.get(this.route.snapshot.data, path);\n      }\n\n      this.objString = JSON.stringify(this.obj, null, 2);\n    }\n\n    if (this.route.parent) {\n      this.clusterName =\n        this.route.parent.snapshot.params.name ||\n        this.route.parent.snapshot.params.cluster_name;\n      this.resourceName = this.route.parent.snapshot.params.resource_name;\n    }\n  }\n\n  updateFilter(event) {\n    this.keyword = event.target.value.toLowerCase().trim();\n\n    // Whenever the filter changes, always go back to the first page\n    if (this.simpleTable) {\n      this.simpleTable.offset = 0;\n    }\n    if (this.listTable) {\n      this.listTable.offset = 0;\n    }\n    if (this.mapTable) {\n      this.mapTable.offset = 0;\n    }\n  }\n\n  getNameCellClass({ value }): any {\n    return {\n      // highlight HELIX own configs\n      primary: _.snakeCase(value).toUpperCase() === value,\n    };\n  }\n\n  onCreate(type) {\n    this.dialog\n      .open(InputDialogComponent, {\n        data: {\n          title: `Create a new ${type} configuration`,\n          message:\n            \"Please enter the name of the new configuration. You'll be able to add values later:\",\n          values: {\n            name: {\n              label: 'the name of the new configuration',\n            },\n          },\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result) {\n          const entry = [\n            {\n              name: result.name.value,\n              value: [],\n            },\n          ];\n\n          const newNode: Node = new Node(null);\n          if (type === 'list') {\n            newNode.listFields = entry;\n          } else if (type === 'map') {\n            newNode.mapFields = entry;\n          }\n\n          this.create.emit(newNode);\n        }\n      });\n  }\n\n  beforeDelete(type, row) {\n    this.dialog\n      .open(ConfirmDialogComponent, {\n        data: {\n          title: 'Confirmation',\n          message: 'Are you sure you want to delete this configuration?',\n        },\n      })\n      .afterClosed()\n      .subscribe((result) => {\n        if (result) {\n          this.onDelete(type, row);\n        }\n      });\n  }\n\n  onDelete(type, row) {\n    const newNode: Node = new Node(null);\n\n    if (type === 'simple') {\n      newNode.appendSimpleField(row.name, '');\n    } else if (type === 'list') {\n      newNode.listFields = [{ name: row.name.trim(), value: [] }];\n    } else if (type === 'map') {\n      newNode.mapFields = [{ name: row.name.trim(), value: null }];\n    }\n\n    this.delete.emit(newNode);\n  }\n\n  created(type, data, key) {\n    const newNode: Node = new Node(null);\n\n    switch (type) {\n      case 'simple':\n        newNode.appendSimpleField(data.name.value, data.value.value);\n        break;\n\n      case 'list':\n        if (key) {\n          const entry = _.find(this.node.listFields, { name: key });\n\n          entry.value.push({\n            name: '',\n            value: data.value.value,\n          });\n\n          newNode.listFields.push(entry);\n        }\n        break;\n\n      case 'map':\n        if (key) {\n          const entry = _.find(this.node.mapFields, { name: key.trim() });\n\n          _.forEach(entry.value, (item: any) => {\n            newNode.appendMapField(key, item.name, item.value);\n          });\n\n          newNode.appendMapField(key, data.name.value, data.value.value);\n        }\n        break;\n    }\n\n    this.create.emit(newNode);\n  }\n\n  edited(type, { row, column, value }, key, isDeleting) {\n    if (!isDeleting && column.name !== 'Value') {\n      return;\n    }\n\n    const newNode: Node = new Node(null);\n\n    switch (type) {\n      case 'simple':\n        newNode.appendSimpleField(row.name, value);\n        break;\n\n      case 'list':\n        if (key) {\n          const entry = _.find(this.node.listFields, { name: key });\n          const index = _.findIndex(entry.value, { value: row.value });\n\n          if (isDeleting) {\n            entry.value.splice(index, 1);\n          } else {\n            entry.value[index].value = value;\n          }\n\n          newNode.listFields.push(entry);\n        }\n        break;\n\n      case 'map':\n        if (key) {\n          // have to fetch all other configs under this key\n          const entry = _.find(this.node.mapFields, { name: key.trim() });\n          newNode.mapFields = [{ name: key.trim(), value: [] }];\n\n          _.forEach(entry.value, (item: any) => {\n            if (item.name === row.name) {\n              if (!isDeleting) {\n                newNode.appendMapField(key.trim(), item.name.trim(), value);\n              }\n            } else {\n              newNode.appendMapField(key.trim(), item.name.trim(), item.value);\n            }\n          });\n        }\n        break;\n    }\n\n    const path = this?.route?.snapshot?.data?.path;\n    if (path && path === 'idealState') {\n      const idealState: IdealState = {\n        id: this.resourceName,\n      };\n\n      // format the payload the way that helix-rest expects\n      // before: { simpleFields: [{ name: 'NUM_PARTITIONS', value: 2 }] };\n      // after:  { simpleFields: { NUM_PARTITIONS: 2 } };\n      function appendIdealStateProperty(property: keyof Node) {\n        if (Array.isArray(newNode[property]) && newNode[property].length > 0) {\n          idealState[property] = {} as any;\n          (newNode[property] as any[]).forEach((field) => {\n            idealState[property][field.name] = field.value;\n          });\n        }\n      }\n      Object.keys(newNode).forEach((key) =>\n        appendIdealStateProperty(key as keyof Node)\n      );\n\n      const observer = this.resourceService.setIdealState(\n        this.clusterName,\n        this.resourceName,\n        idealState\n      );\n\n      if (observer) {\n        this.isLoading = true;\n        observer.subscribe(\n          () => {\n            this.helper.showSnackBar('Ideal State updated!');\n          },\n          (error) => {\n            this.helper.showError(error);\n            this.isLoading = false;\n          },\n          () => (this.isLoading = false)\n        );\n      }\n    }\n\n    this.change.emit(newNode);\n  }\n}\n",
             "assetsDirs": [],
             "styleUrlsData": [
                 {
@@ -15071,7 +15090,7 @@
                 "name": "CUSTOM_IDENTITY_TOKEN_REQUEST_BODY",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.ts",
+                "file": "server/config.example.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "any",
@@ -15083,7 +15102,7 @@
                 "name": "CUSTOM_IDENTITY_TOKEN_REQUEST_BODY",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.example.ts",
+                "file": "server/config.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "any",
@@ -15145,7 +15164,7 @@
                 "name": "HELIX_ENDPOINTS",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.ts",
+                "file": "server/config.example.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "object",
@@ -15155,7 +15174,7 @@
                 "name": "HELIX_ENDPOINTS",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.example.ts",
+                "file": "server/config.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "object",
@@ -15175,7 +15194,7 @@
                 "name": "IDENTITY_TOKEN_SOURCE",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.ts",
+                "file": "server/config.example.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "string | undefined",
@@ -15187,7 +15206,7 @@
                 "name": "IDENTITY_TOKEN_SOURCE",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.example.ts",
+                "file": "server/config.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "string | undefined",
@@ -15199,7 +15218,7 @@
                 "name": "LDAP",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.ts",
+                "file": "server/config.example.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "object",
@@ -15209,7 +15228,7 @@
                 "name": "LDAP",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.example.ts",
+                "file": "server/config.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "object",
@@ -15259,7 +15278,7 @@
                 "name": "SESSION_STORE",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.ts",
+                "file": "server/config.example.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "",
@@ -15269,7 +15288,7 @@
                 "name": "SESSION_STORE",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.example.ts",
+                "file": "server/config.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "",
@@ -15279,7 +15298,7 @@
                 "name": "SSL",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.ts",
+                "file": "server/config.example.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "object",
@@ -15289,7 +15308,7 @@
                 "name": "SSL",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.example.ts",
+                "file": "server/config.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "object",
@@ -15333,19 +15352,7 @@
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "Story",
-                "defaultValue": "(args) => ({\n  component: ConfirmDialogTestComponent,\n  template: `<hi-confirm-dialog-test></hi-confirm-dialog-test>`,\n  props: { ...args },\n})"
-            },
-            {
-                "name": "TOKEN_EXPIRATION_KEY",
-                "ctype": "miscellaneous",
-                "subtype": "variable",
-                "file": "server/config.ts",
-                "deprecated": false,
-                "deprecationMessage": "",
-                "type": "string",
-                "defaultValue": "'expires'",
-                "rawdescription": "This is the key that helix-front uses\nto access the token expiration datetime",
-                "description": "<p>This is the key that helix-front uses\nto access the token expiration datetime</p>\n"
+                "defaultValue": "(args) => ({\n  component: ConfirmDialogTestComponent,\n  template: `<hi-confirm-dialog-test [data]=\"data\"></hi-confirm-dialog-test>`,\n  props: {\n    ...args,\n  },\n})"
             },
             {
                 "name": "TOKEN_EXPIRATION_KEY",
@@ -15360,10 +15367,22 @@
                 "description": "<p>This is the key that helix-front uses\nto access the token expiration datetime</p>\n"
             },
             {
-                "name": "TOKEN_RESPONSE_KEY",
+                "name": "TOKEN_EXPIRATION_KEY",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
                 "file": "server/config.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "string",
+                "defaultValue": "'expires'",
+                "rawdescription": "This is the key that helix-front uses\nto access the token expiration datetime",
+                "description": "<p>This is the key that helix-front uses\nto access the token expiration datetime</p>\n"
+            },
+            {
+                "name": "TOKEN_RESPONSE_KEY",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "server/config.example.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "string",
@@ -15375,7 +15394,7 @@
                 "name": "TOKEN_RESPONSE_KEY",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "server/config.example.ts",
+                "file": "server/config.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "string",
@@ -15425,6 +15444,28 @@
             }
         ],
         "typealiases": [
+            {
+                "name": "AgentOptions",
+                "ctype": "miscellaneous",
+                "subtype": "typealias",
+                "rawtype": "literal type",
+                "file": "server/controllers/d.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "description": "",
+                "kind": 181
+            },
+            {
+                "name": "HelixRequestOptions",
+                "ctype": "miscellaneous",
+                "subtype": "typealias",
+                "rawtype": "literal type",
+                "file": "server/controllers/d.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "description": "",
+                "kind": 181
+            },
             {
                 "name": "IdealState",
                 "ctype": "miscellaneous",
@@ -15546,96 +15587,6 @@
                     "defaultValue": "[{ name: 'workflow1' }]"
                 }
             ],
-            "server/config.ts": [
-                {
-                    "name": "CUSTOM_IDENTITY_TOKEN_REQUEST_BODY",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "any",
-                    "defaultValue": "{}",
-                    "rawdescription": "Any custom object that you would like\nto include in the body of the request\nto your custom identity source.",
-                    "description": "<p>Any custom object that you would like\nto include in the body of the request\nto your custom identity source.</p>\n"
-                },
-                {
-                    "name": "HELIX_ENDPOINTS",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "object",
-                    "defaultValue": "{\n  helix: [\n    {\n      default: 'http://localhost:8100/admin/v2',\n    },\n  ],\n}"
-                },
-                {
-                    "name": "IDENTITY_TOKEN_SOURCE",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "string | undefined",
-                    "defaultValue": "undefined",
-                    "rawdescription": "The url of your Identity Token API.\nThis an API that should expect LDAP credentials\nand if the LDAP credentials are valid\nrespond with a unique token of some kind.",
-                    "description": "<p>The url of your Identity Token API.\nThis an API that should expect LDAP credentials\nand if the LDAP credentials are valid\nrespond with a unique token of some kind.</p>\n"
-                },
-                {
-                    "name": "LDAP",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "object",
-                    "defaultValue": "{\n  uri: 'ldap://example.com',\n  base: 'DC=example,DC=com',\n  principalSuffix: '@example.com',\n  adminGroup: 'admin',\n}"
-                },
-                {
-                    "name": "SESSION_STORE",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "",
-                    "defaultValue": "undefined"
-                },
-                {
-                    "name": "SSL",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "object",
-                    "defaultValue": "{\n  port: 0,\n  keyfile: '',\n  certfile: '',\n  passfile: '',\n  cafiles: [],\n}"
-                },
-                {
-                    "name": "TOKEN_EXPIRATION_KEY",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "string",
-                    "defaultValue": "'expires'",
-                    "rawdescription": "This is the key that helix-front uses\nto access the token expiration datetime",
-                    "description": "<p>This is the key that helix-front uses\nto access the token expiration datetime</p>\n"
-                },
-                {
-                    "name": "TOKEN_RESPONSE_KEY",
-                    "ctype": "miscellaneous",
-                    "subtype": "variable",
-                    "file": "server/config.ts",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "string",
-                    "defaultValue": "'token'",
-                    "rawdescription": "This is the key that helix-front uses\nto access the token itself\nfrom the custom identity token response\nsent by your Identity Token API.",
-                    "description": "<p>This is the key that helix-front uses\nto access the token itself\nfrom the custom identity token response\nsent by your Identity Token API.</p>\n"
-                }
-            ],
             "server/config.example.ts": [
                 {
                     "name": "CUSTOM_IDENTITY_TOKEN_REQUEST_BODY",
@@ -15726,6 +15677,96 @@
                     "description": "<p>This is the key that helix-front uses\nto access the token itself\nfrom the custom identity token response\nsent by your Identity Token API.</p>\n"
                 }
             ],
+            "server/config.ts": [
+                {
+                    "name": "CUSTOM_IDENTITY_TOKEN_REQUEST_BODY",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "any",
+                    "defaultValue": "{}",
+                    "rawdescription": "Any custom object that you would like\nto include in the body of the request\nto your custom identity source.",
+                    "description": "<p>Any custom object that you would like\nto include in the body of the request\nto your custom identity source.</p>\n"
+                },
+                {
+                    "name": "HELIX_ENDPOINTS",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "object",
+                    "defaultValue": "{\n  helix: [\n    {\n      default: 'http://localhost:8100/admin/v2',\n    },\n  ],\n}"
+                },
+                {
+                    "name": "IDENTITY_TOKEN_SOURCE",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string | undefined",
+                    "defaultValue": "undefined",
+                    "rawdescription": "The url of your Identity Token API.\nThis an API that should expect LDAP credentials\nand if the LDAP credentials are valid\nrespond with a unique token of some kind.",
+                    "description": "<p>The url of your Identity Token API.\nThis an API that should expect LDAP credentials\nand if the LDAP credentials are valid\nrespond with a unique token of some kind.</p>\n"
+                },
+                {
+                    "name": "LDAP",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "object",
+                    "defaultValue": "{\n  uri: 'ldap://example.com',\n  base: 'DC=example,DC=com',\n  principalSuffix: '@example.com',\n  adminGroup: 'admin',\n}"
+                },
+                {
+                    "name": "SESSION_STORE",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "defaultValue": "undefined"
+                },
+                {
+                    "name": "SSL",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "object",
+                    "defaultValue": "{\n  port: 0,\n  keyfile: '',\n  certfile: '',\n  passfile: '',\n  cafiles: [],\n}"
+                },
+                {
+                    "name": "TOKEN_EXPIRATION_KEY",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string",
+                    "defaultValue": "'expires'",
+                    "rawdescription": "This is the key that helix-front uses\nto access the token expiration datetime",
+                    "description": "<p>This is the key that helix-front uses\nto access the token expiration datetime</p>\n"
+                },
+                {
+                    "name": "TOKEN_RESPONSE_KEY",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "server/config.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string",
+                    "defaultValue": "'token'",
+                    "rawdescription": "This is the key that helix-front uses\nto access the token itself\nfrom the custom identity token response\nsent by your Identity Token API.",
+                    "description": "<p>This is the key that helix-front uses\nto access the token itself\nfrom the custom identity token response\nsent by your Identity Token API.</p>\n"
+                }
+            ],
             "src/app/shared/dialog/confirm-dialog/confirm-dialog.stories.ts": [
                 {
                     "name": "Delete",
@@ -15745,7 +15786,7 @@
                     "deprecated": false,
                     "deprecationMessage": "",
                     "type": "Story",
-                    "defaultValue": "(args) => ({\n  component: ConfirmDialogTestComponent,\n  template: `<hi-confirm-dialog-test></hi-confirm-dialog-test>`,\n  props: { ...args },\n})"
+                    "defaultValue": "(args) => ({\n  component: ConfirmDialogTestComponent,\n  template: `<hi-confirm-dialog-test [data]=\"data\"></hi-confirm-dialog-test>`,\n  props: {\n    ...args,\n  },\n})"
                 }
             ],
             "src/environments/environment.prod.ts": [
@@ -15861,6 +15902,30 @@
         },
         "groupedEnumerations": {},
         "groupedTypeAliases": {
+            "server/controllers/d.ts": [
+                {
+                    "name": "AgentOptions",
+                    "ctype": "miscellaneous",
+                    "subtype": "typealias",
+                    "rawtype": "literal type",
+                    "file": "server/controllers/d.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "description": "",
+                    "kind": 181
+                },
+                {
+                    "name": "HelixRequestOptions",
+                    "ctype": "miscellaneous",
+                    "subtype": "typealias",
+                    "rawtype": "literal type",
+                    "file": "server/controllers/d.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "description": "",
+                    "kind": 181
+                }
+            ],
             "src/app/shared/node-viewer/node-viewer.component.ts": [
                 {
                     "name": "IdealState",
@@ -16078,18 +16143,18 @@
                 "filePath": "server/controllers/d.ts",
                 "type": "interface",
                 "linktype": "interface",
-                "name": "HelixSession",
+                "name": "HelixRequest",
                 "coveragePercent": 0,
-                "coverageCount": "0/4",
+                "coverageCount": "0/2",
                 "status": "low"
             },
             {
                 "filePath": "server/controllers/d.ts",
                 "type": "interface",
                 "linktype": "interface",
-                "name": "HelixUserRequest",
+                "name": "HelixSession",
                 "coveragePercent": 0,
-                "coverageCount": "0/2",
+                "coverageCount": "0/4",
                 "status": "low"
             },
             {
@@ -16107,7 +16172,7 @@
                 "linktype": "classe",
                 "name": "UserCtrl",
                 "coveragePercent": 0,
-                "coverageCount": "0/6",
+                "coverageCount": "0/5",
                 "status": "low"
             },
             {
@@ -16487,7 +16552,7 @@
                 "linktype": "component",
                 "name": "ConfirmDialogTestComponent",
                 "coveragePercent": 0,
-                "coverageCount": "0/3",
+                "coverageCount": "0/5",
                 "status": "low"
             },
             {
@@ -16496,7 +16561,7 @@
                 "linktype": "component",
                 "name": "ConfirmDialogComponent",
                 "coveragePercent": 0,
-                "coverageCount": "0/7",
+                "coverageCount": "0/8",
                 "status": "low"
             },
             {

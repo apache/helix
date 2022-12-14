@@ -235,8 +235,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="65"
-                            class="link-to-prism">server/controllers/helix.ts:65</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="82"
+                            class="link-to-prism">server/controllers/helix.ts:82</a></div>
                 </td>
             </tr>
 
@@ -311,7 +311,7 @@
             <tr>
                 <td class="col-md-4">
                     <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>proxy(req: <a href="../interfaces/HelixUserRequest.html" target="_self">HelixUserRequest</a>, res: Response)</code>
+                    <code>proxy(req: <a href="../interfaces/HelixRequest.html" target="_self">HelixRequest</a>, res: Response)</code>
                 </td>
             </tr>
 
@@ -342,7 +342,7 @@
                                 <tr>
                                     <td>req</td>
                                     <td>
-                                                <code><a href="../interfaces/HelixUserRequest.html" target="_self" >HelixUserRequest</a></code>
+                                                <code><a href="../interfaces/HelixRequest.html" target="_self" >HelixRequest</a></code>
                                     </td>
 
                                     <td>
@@ -390,11 +390,11 @@
 
     <div class="tab-pane fade  tab-source-code" id="c-source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Request, Response, Router } from &#x27;express&#x27;;
-
 import * as request from &#x27;request&#x27;;
+import { readFileSync } from &#x27;fs&#x27;;
 
-import { HELIX_ENDPOINTS } from &#x27;../config&#x27;;
-import { HelixUserRequest } from &#x27;./d&#x27;;
+import { HELIX_ENDPOINTS, IDENTITY_TOKEN_SOURCE, SSL } from &#x27;../config&#x27;;
+import { HelixRequest, HelixRequestOptions } from &#x27;./d&#x27;;
 
 export class HelixCtrl {
   static readonly ROUTE_PREFIX &#x3D; &#x27;/api/helix&#x27;;
@@ -404,7 +404,7 @@ export class HelixCtrl {
     router.route(&#x27;/helix/*&#x27;).all(this.proxy);
   }
 
-  protected proxy(req: HelixUserRequest, res: Response) {
+  protected proxy(req: HelixRequest, res: Response) {
     const url &#x3D; req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, &#x27;&#x27;);
     const helixKey &#x3D; url.split(&#x27;/&#x27;)[1];
 
@@ -432,20 +432,37 @@ export class HelixCtrl {
 
     if (apiPrefix) {
       const realUrl &#x3D; apiPrefix + url.replace(&#x60;/${helixKey}&#x60;, &#x27;&#x27;);
-      const options &#x3D; {
+      console.log(&#x60;helix-rest request url ${realUrl}&#x60;);
+
+      const options: HelixRequestOptions &#x3D; {
         url: realUrl,
         json: req.body,
         headers: {
           &#x27;Helix-User&#x27;: user,
         },
+        agentOptions: {
+          rejectUnauthorized: false,
+        },
       };
+
+      if (SSL.cafiles.length &gt; 0) {
+        options.agentOptions.ca &#x3D; readFileSync(SSL.cafiles[0], {
+          encoding: &#x27;utf-8&#x27;,
+        });
+      }
+
+      if (IDENTITY_TOKEN_SOURCE) {
+        options.headers[&#x27;Identity-Token&#x27;] &#x3D;
+          res.locals.cookie[&#x27;helixui_identity.token&#x27;];
+      }
+
       request[method](options, (error, response, body) &#x3D;&gt; {
         if (error) {
-          res.status(500).send(error);
+          res.status(response?.statusCode || 500).send(error);
         } else if (body?.error) {
-          res.status(500).send(body?.error);
+          res.status(response?.statusCode || 500).send(body?.error);
         } else {
-          res.status(response.statusCode).send(body);
+          res.status(response?.statusCode).send(body);
         }
       });
     } else {

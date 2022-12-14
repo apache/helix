@@ -84,6 +84,12 @@
                         <td class="col-md-4">
                             <ul class="index-list">
                                 <li>
+                                        <a href="#identityToken" 
+>
+                                            identityToken
+                                        </a>
+                                </li>
+                                <li>
                                         <a href="#isAdmin" 
 >
                                             isAdmin
@@ -106,6 +112,39 @@
 
             <section>
                 <h3 id="inputs">Properties</h3>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                                <tr>
+                                    <td class="col-md-4">
+                                        <a name="identityToken"></a>
+                                        <span class="name "><b>identityToken</b>
+                                            <a href="#identityToken">
+                                                <span class="icon ion-ios-link"></span>
+                                            </a>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="col-md-4">
+                                        <code>identityToken:         <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+</code>
+                                    </td>
+                                </tr>
+
+
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                                        </td>
+                                    </tr>
+
+
+
+
+
+                        </tbody>
+                    </table>
                     <table class="table table-sm table-bordered">
                         <tbody>
                                 <tr>
@@ -178,15 +217,33 @@
 
     <div class="tab-pane fade  tab-source-code" id="c-source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Request } from &#x27;express&#x27;;
+import request from &#x27;request&#x27;;
 
-export interface HelixUserRequest extends Request {
+export interface HelixRequest extends Request {
   session?: HelixSession;
 }
 
 interface HelixSession {
+  // since this token is from a configurable
+  // identity source, the format really is
+  // &#x60;any&#x60; from helix-front&#x27;s point of view.
+  identityToken: any;
   username: string;
   isAdmin: boolean;
 }
+
+type AgentOptions &#x3D; {
+  rejectUnauthorized: boolean;
+  ca?: string;
+};
+
+export type HelixRequestOptions &#x3D; {
+  url: string;
+  json: string;
+  headers: request.Headers;
+  agentOptions: AgentOptions;
+  body?: string;
+};
 </code></pre>
     </div>
 </div>

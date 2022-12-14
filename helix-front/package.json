@@ -2,7 +2,7 @@
   "name": "helix-front",
   "version": "1.4.1",
   "main": "/dist/server/app.js",
-  "author": "Vivo Xu <xuxu@xuxu.name>",
+  "author": "Vivo Xu <git@vivoxu.com>",
   "contributors": [
     {
       "name": "@micahstubbs",

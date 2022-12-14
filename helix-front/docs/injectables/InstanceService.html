@@ -1303,7 +1303,7 @@ export class InstanceService extends HelixService {
 
     return this.put(
       &#x60;/clusters/${clusterName}/instances/${name}&#x60;,
-      node.json(name)
+      JSON.parse(node.json(name))
     );
   }
 

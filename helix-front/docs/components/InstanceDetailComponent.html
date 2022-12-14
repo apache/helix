@@ -312,8 +312,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="65"
-                            class="link-to-prism">src/app/instance/instance-detail/instance-detail.component.ts:65</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="68"
+                            class="link-to-prism">src/app/instance/instance-detail/instance-detail.component.ts:68</a></div>
                 </td>
             </tr>
 
@@ -349,8 +349,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="58"
-                            class="link-to-prism">src/app/instance/instance-detail/instance-detail.component.ts:58</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="60"
+                            class="link-to-prism">src/app/instance/instance-detail/instance-detail.component.ts:60</a></div>
                 </td>
             </tr>
 
@@ -388,8 +388,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="72"
-                            class="link-to-prism">src/app/instance/instance-detail/instance-detail.component.ts:72</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="76"
+                            class="link-to-prism">src/app/instance/instance-detail/instance-detail.component.ts:76</a></div>
                 </td>
             </tr>
 
@@ -700,38 +700,42 @@ export class InstanceDetailComponent implements OnInit {
       .showConfirmation(&#x27;Are you sure you want to remove this Instance?&#x27;)
       .then((result) &#x3D;&gt; {
         if (result) {
-          this.service
-            .remove(this.clusterName, this.instance.name)
-            .subscribe((data) &#x3D;&gt; {
+          this.service.remove(this.clusterName, this.instance.name).subscribe(
+            /* happy path */ () &#x3D;&gt; {
               this.helperService.showSnackBar(
                 &#x60;Instance: ${this.instance.name} removed!&#x60;
               );
               this.router.navigate([&#x27;..&#x27;], { relativeTo: this.route });
-            });
+            },
+            /* error path */ (error) &#x3D;&gt; this.helperService.showError(error),
+            /* onComplete */ () &#x3D;&gt; (this.isLoading &#x3D; false)
+          );
         }
       });
   }
 
   enableInstance() {
     this.service.enable(this.clusterName, this.instance.name).subscribe(
-      () &#x3D;&gt; this.loadInstance(),
-      (error) &#x3D;&gt; this.helperService.showError(error)
+      /* happy path */ () &#x3D;&gt; this.loadInstance(),
+      /* error path */ (error) &#x3D;&gt; this.helperService.showError(error),
+      /* onComplete */ () &#x3D;&gt; (this.isLoading &#x3D; false)
     );
   }
 
   disableInstance() {
     this.service.disable(this.clusterName, this.instance.name).subscribe(
-      () &#x3D;&gt; this.loadInstance(),
-      (error) &#x3D;&gt; this.helperService.showError(error)
+      /* happy path */ () &#x3D;&gt; this.loadInstance(),
+      /* error path */ (error) &#x3D;&gt; this.helperService.showError(error),
+      /* onComplete */ () &#x3D;&gt; (this.isLoading &#x3D; false)
     );
   }
 
   protected loadInstance() {
     this.isLoading &#x3D; true;
     this.service.get(this.clusterName, this.instanceName).subscribe(
-      (instance) &#x3D;&gt; (this.instance &#x3D; instance),
-      (error) &#x3D;&gt; this.helperService.showError(error),
-      () &#x3D;&gt; (this.isLoading &#x3D; false)
+      /* happy path */ (instance) &#x3D;&gt; (this.instance &#x3D; instance),
+      /* error path */ (error) &#x3D;&gt; this.helperService.showError(error),
+      /* onComplete */ () &#x3D;&gt; (this.isLoading &#x3D; false)
     );
   }
 }
@@ -876,7 +880,7 @@ export class InstanceDetailComponent implements OnInit {
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
         var COMPONENT_TEMPLATE = '<div><!--  ~ Licensed to the Apache Software Foundation (ASF) under one  ~ or more contributor license agreements.  See the NOTICE file  ~ distributed with this work for additional information  ~ regarding copyright ownership.  The ASF licenses this file  ~ to you under the Apache License, Version 2.0 (the  ~ "License"); you may not use this file except in compliance  ~ with the License.  You may obtain a copy of the License at  ~  ~     http://www.apache.org/licenses/LICENSE-2.0  ~  ~ Unless required by applicable law or agreed to in writing,  ~ software distributed under the License is distributed on an  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY  ~ KIND, either express or implied.  See the License for the  ~ specific language governing permissions and limitations  ~ under the License.  --><section>  <mat-toolbar class="mat-elevation-z1">    <mat-toolbar-row>      <hi-detail-header        [cluster]="clusterName"        [instance]="instanceName"      ></hi-detail-header>      <hi-disabled-label        *ngIf="!isLoading && !instance.liveInstance"        text="OFFLINE"      ></hi-disabled-label>      <hi-disabled-label        *ngIf="!isLoading && !instance.enabled"        text="DISABLED"      ></hi-disabled-label>    </mat-toolbar-row>    <mat-toolbar-row class="information">      <a mat-mini-fab routerLink="../"><mat-icon>arrow_back</mat-icon></a>      <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>      <hi-key-value-pairs *ngIf="!isLoading" [obj]="instance">        <hi-key-value-pair          name="Instance"          prop="liveInstance"        ></hi-key-value-pair>        <hi-key-value-pair          name="Session ID"          prop="sessionId"        ></hi-key-value-pair>        <hi-key-value-pair          name="Helix Version"          prop="helixVersion"        ></hi-key-value-pair>      </hi-key-value-pairs>      <span fxFlex="1 1 auto"></span>      <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">        <mat-icon>menu</mat-icon>      </button>      <mat-menu #menu="matMenu">        <button          mat-menu-item          *ngIf="instance && instance.enabled"          (click)="disableInstance()"        >          <mat-icon>not_interested</mat-icon>          <span>Disable this Instance</span>        </button>        <button          mat-menu-item          *ngIf="instance && !instance.enabled"          (click)="enableInstance()"        >          <mat-icon>play_circle_outline</mat-icon>          <span>Enable this Instance</span>        </button>        <button mat-menu-item (click)="removeInstance()">          <mat-icon>delete</mat-icon>          <span>REMOVE this Instance</span>        </button>      </mat-menu>    </mat-toolbar-row>  </mat-toolbar>  <nav mat-tab-nav-bar>    <a      mat-tab-link      *ngFor="let tabLink of tabLinks"      [routerLink]="tabLink.link"      routerLinkActive      #rla="routerLinkActive"      [active]="rla.isActive"    >      {{ tabLink.label }}    </a>  </nav>  <router-outlet></router-outlet></section></div>'
-    var COMPONENTS = [{'name': 'AlertDialogComponent', 'selector': 'hi-alert-dialog'},{'name': 'AppComponent', 'selector': 'hi-root'},{'name': 'ClusterComponent', 'selector': 'hi-cluster'},{'name': 'ClusterDetailComponent', 'selector': 'hi-cluster-detail'},{'name': 'ClusterListComponent', 'selector': 'hi-cluster-list'},{'name': 'ConfigDetailComponent', 'selector': 'hi-config-detail'},{'name': 'ConfirmDialogComponent', 'selector': 'hi-confirm-dialog'},{'name': 'ControllerDetailComponent', 'selector': 'hi-controller-detail'},{'name': 'DashboardComponent', 'selector': 'hi-dashboard'},{'name': 'DataTableComponent', 'selector': 'hi-data-table'},{'name': 'DetailHeaderComponent', 'selector': 'hi-detail-header'},{'name': 'DisabledLabelComponent', 'selector': 'hi-disabled-label'},{'name': 'HelixListComponent', 'selector': 'hi-helix-list'},{'name': 'HistoryListComponent', 'selector': 'hi-history-list'},{'name': 'InputDialogComponent', 'selector': 'hi-input-dialog'},{'name': 'InputInlineComponent', 'selector': 'hi-input-inline'},{'name': 'InstanceDetailComponent', 'selector': 'hi-instance-detail'},{'name': 'InstanceListComponent', 'selector': 'hi-instance-list'},{'name': 'JobDetailComponent', 'selector': 'hi-job-detail'},{'name': 'JobListComponent', 'selector': 'hi-job-list'},{'name': 'JsonViewerComponent', 'selector': 'hi-json-viewer'},{'name': 'KeyValuePairsComponent', 'selector': 'hi-key-value-pairs'},{'name': 'NodeViewerComponent', 'selector': 'hi-node-viewer'},{'name': 'PartitionDetailComponent', 'selector': 'hi-partition-detail'},{'name': 'PartitionListComponent', 'selector': 'hi-partition-list'},{'name': 'ResourceDetailComponent', 'selector': 'hi-resource-detail'},{'name': 'ResourceDetailForInstanceComponent', 'selector': 'hi-resource-detail-for-instance'},{'name': 'ResourceListComponent', 'selector': 'hi-resource-list'},{'name': 'ResourceNodeViewerComponent', 'selector': 'hi-resource-node-viewer'},{'name': 'StateLabelComponent', 'selector': 'hi-state-label'},{'name': 'WorkflowDagComponent', 'selector': 'hi-workflow-dag'},{'name': 'WorkflowDetailComponent', 'selector': 'hi-workflow-detail'},{'name': 'WorkflowListComponent', 'selector': 'hi-workflow-list'}];
+    var COMPONENTS = [{'name': 'AlertDialogComponent', 'selector': 'hi-alert-dialog'},{'name': 'AppComponent', 'selector': 'hi-root'},{'name': 'ClusterComponent', 'selector': 'hi-cluster'},{'name': 'ClusterDetailComponent', 'selector': 'hi-cluster-detail'},{'name': 'ClusterListComponent', 'selector': 'hi-cluster-list'},{'name': 'ConfigDetailComponent', 'selector': 'hi-config-detail'},{'name': 'ConfirmDialogComponent', 'selector': 'hi-confirm-dialog'},{'name': 'ConfirmDialogTestComponent', 'selector': 'hi-confirm-dialog-test'},{'name': 'ControllerDetailComponent', 'selector': 'hi-controller-detail'},{'name': 'DashboardComponent', 'selector': 'hi-dashboard'},{'name': 'DataTableComponent', 'selector': 'hi-data-table'},{'name': 'DetailHeaderComponent', 'selector': 'hi-detail-header'},{'name': 'DisabledLabelComponent', 'selector': 'hi-disabled-label'},{'name': 'HelixListComponent', 'selector': 'hi-helix-list'},{'name': 'HistoryListComponent', 'selector': 'hi-history-list'},{'name': 'InputDialogComponent', 'selector': 'hi-input-dialog'},{'name': 'InputInlineComponent', 'selector': 'hi-input-inline'},{'name': 'InstanceDetailComponent', 'selector': 'hi-instance-detail'},{'name': 'InstanceListComponent', 'selector': 'hi-instance-list'},{'name': 'JobDetailComponent', 'selector': 'hi-job-detail'},{'name': 'JobListComponent', 'selector': 'hi-job-list'},{'name': 'JsonViewerComponent', 'selector': 'hi-json-viewer'},{'name': 'KeyValuePairsComponent', 'selector': 'hi-key-value-pairs'},{'name': 'NodeViewerComponent', 'selector': 'hi-node-viewer'},{'name': 'PartitionDetailComponent', 'selector': 'hi-partition-detail'},{'name': 'PartitionListComponent', 'selector': 'hi-partition-list'},{'name': 'ResourceDetailComponent', 'selector': 'hi-resource-detail'},{'name': 'ResourceDetailForInstanceComponent', 'selector': 'hi-resource-detail-for-instance'},{'name': 'ResourceListComponent', 'selector': 'hi-resource-list'},{'name': 'ResourceNodeViewerComponent', 'selector': 'hi-resource-node-viewer'},{'name': 'StateLabelComponent', 'selector': 'hi-state-label'},{'name': 'WorkflowDagComponent', 'selector': 'hi-workflow-dag'},{'name': 'WorkflowDetailComponent', 'selector': 'hi-workflow-detail'},{'name': 'WorkflowListComponent', 'selector': 'hi-workflow-list'}];
     var DIRECTIVES = [{'name': 'KeyValuePairDirective', 'selector': 'hi-key-value-pair'}];
     var ACTUAL_COMPONENT = {'name': 'InstanceDetailComponent'};
 </script>

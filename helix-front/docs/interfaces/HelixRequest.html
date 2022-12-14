@@ -47,7 +47,7 @@
   <li>Interfaces</li>
   <li
   >
-  SimpleFieldObject</li>
+  HelixRequest</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -65,11 +65,17 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>src/app/shared/models/node.model.ts</code>
+            <code>server/controllers/d.ts</code>
         </p>
 
 
 
+            <p class="comment">
+                <h3>Extends</h3>
+            </p>
+            <p class="comment">
+                    <code>Request</code>
+            </p>
 
         <section>
             <h3 id="index">Index</h3>
@@ -84,15 +90,10 @@
                         <td class="col-md-4">
                             <ul class="index-list">
                                 <li>
-                                        <a href="#name" 
+                                            <span class="modifier">Optional</span>
+                                        <a href="#session" 
 >
-                                            name
-                                        </a>
-                                </li>
-                                <li>
-                                        <a href="#value" 
->
-                                            value
+                                            session
                                         </a>
                                 </li>
                             </ul>
@@ -110,9 +111,9 @@
                         <tbody>
                                 <tr>
                                     <td class="col-md-4">
-                                        <a name="name"></a>
-                                        <span class="name "><b>name</b>
-                                            <a href="#name">
+                                        <a name="session"></a>
+                                        <span class="name "><b>session</b>
+                                            <a href="#session">
                                                 <span class="icon ion-ios-link"></span>
                                             </a>
                                         </span>
@@ -120,7 +121,7 @@
                                 </tr>
                                 <tr>
                                     <td class="col-md-4">
-                                        <code>name:         <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                        <code>session:         <code><a href="../interfaces/HelixSession.html" target="_self" >HelixSession</a></code>
 </code>
                                     </td>
                                 </tr>
@@ -128,44 +129,16 @@
 
                                     <tr>
                                         <td class="col-md-4">
-                                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            <i>Type : </i>        <code><a href="../interfaces/HelixSession.html" target="_self" >HelixSession</a></code>
 
                                         </td>
                                     </tr>
-
-
-
-
-
-                        </tbody>
-                    </table>
-                    <table class="table table-sm table-bordered">
-                        <tbody>
-                                <tr>
-                                    <td class="col-md-4">
-                                        <a name="value"></a>
-                                        <span class="name "><b>value</b>
-                                            <a href="#value">
-                                                <span class="icon ion-ios-link"></span>
-                                            </a>
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="col-md-4">
-                                        <code>value:         <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-</code>
-                                    </td>
-                                </tr>
-
 
                                     <tr>
                                         <td class="col-md-4">
-                                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
+                                            <i>Optional</i>
                                         </td>
                                     </tr>
-
 
 
 
@@ -177,149 +150,34 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="c-source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import * as _ from &#x27;lodash&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Request } from &#x27;express&#x27;;
+import request from &#x27;request&#x27;;
 
-interface SimpleFieldObject {
-  name: string;
-  value: string;
+export interface HelixRequest extends Request {
+  session?: HelixSession;
 }
 
-interface ListFieldObject {
-  name: string;
-  value: SimpleFieldObject[];
+interface HelixSession {
+  // since this token is from a configurable
+  // identity source, the format really is
+  // &#x60;any&#x60; from helix-front&#x27;s point of view.
+  identityToken: any;
+  username: string;
+  isAdmin: boolean;
 }
 
-interface MapFieldObject {
-  name: string;
-  value: SimpleFieldObject[];
-}
+type AgentOptions &#x3D; {
+  rejectUnauthorized: boolean;
+  ca?: string;
+};
 
-interface Payload {
-  id: string;
-  simpleFields?: any;
-  listFields?: any;
-  mapFields?: any;
-}
-
-// This is a typical Helix Node definition
-export class Node {
-  id: string;
-  simpleFields: SimpleFieldObject[] &#x3D; [];
-  listFields: ListFieldObject[] &#x3D; [];
-  mapFields: MapFieldObject[] &#x3D; [];
-
-  constructor(obj: any) {
-    if (obj !&#x3D; null) {
-      this.id &#x3D; obj.id;
-      this.simpleFields &#x3D; this.keyValueToArray(obj.simpleFields);
-
-      _.forOwn(obj[&#x27;listFields&#x27;], (v, k) &#x3D;&gt; {
-        this.listFields.push(&lt;ListFieldObject&gt;{
-          name: k,
-          value: _.map(
-            v,
-            (item) &#x3D;&gt;
-              &lt;SimpleFieldObject&gt;{
-                value: item,
-              }
-          ),
-        });
-      });
-
-      _.forOwn(obj[&#x27;mapFields&#x27;], (v, k) &#x3D;&gt; {
-        this.mapFields.push(&lt;MapFieldObject&gt;{
-          name: k.trim(),
-          value: this.keyValueToArray(v),
-        });
-      });
-    }
-  }
-
-  public appendSimpleField(name: string, value: string) {
-    this.simpleFields.push(&lt;SimpleFieldObject&gt;{
-      name,
-      value,
-    });
-  }
-
-  public appendMapField(key: string, name: string, value: string) {
-    const index &#x3D; _.findIndex(this.mapFields, { name: key });
-    if (index &gt;&#x3D; 0) {
-      this.mapFields[index].value.push(&lt;SimpleFieldObject&gt;{
-        name: name.trim(),
-        value,
-      });
-    } else {
-      this.mapFields.push(&lt;MapFieldObject&gt;{
-        name: key,
-        value: [
-          &lt;SimpleFieldObject&gt;{
-            name: name.trim(),
-            value,
-          },
-        ],
-      });
-    }
-  }
-
-  public json(id: string): string {
-    const obj: Payload &#x3D; {
-      id,
-    };
-
-    if (this?.simpleFields.length &gt; 0) {
-      obj.simpleFields &#x3D; {};
-      _.forEach(this.simpleFields, (item: SimpleFieldObject) &#x3D;&gt; {
-        obj.simpleFields[item.name] &#x3D; item.value;
-      });
-    }
-
-    if (this?.listFields.length &gt; 0) {
-      obj.listFields &#x3D; {};
-      _.forEach(this.listFields, (item: ListFieldObject) &#x3D;&gt; {
-        obj.listFields[item.name] &#x3D; [];
-        _.forEach(item.value, (subItem: SimpleFieldObject) &#x3D;&gt; {
-          obj.listFields[item.name].push(subItem.value);
-        });
-      });
-    }
-
-    if (this?.mapFields.length &gt; 0) {
-      obj.mapFields &#x3D; {};
-      _.forEach(this.mapFields, (item: MapFieldObject) &#x3D;&gt; {
-        obj.mapFields[item.name.trim()] &#x3D; item.value ? {} : null;
-        _.forEach(item.value, (subItem: SimpleFieldObject) &#x3D;&gt; {
-          // if the value is a string that contains all digits, parse it to a number
-          let parsedValue: string | number &#x3D; subItem.value;
-          if (
-            typeof subItem.value &#x3D;&#x3D;&#x3D; &#x27;string&#x27; &amp;&amp;
-            /^\d+$/.test(subItem.value)
-          ) {
-            parsedValue &#x3D; Number(subItem.value);
-          }
-
-          obj.mapFields[item.name.trim()][subItem.name] &#x3D; parsedValue;
-        });
-      });
-    }
-
-    return JSON.stringify(obj);
-  }
-
-  // Converting raw simpleFields to SimpleFieldObject[]
-  private keyValueToArray(obj: Object): SimpleFieldObject[] {
-    const result: SimpleFieldObject[] &#x3D; [];
-    for (const k in obj) {
-      if (obj.hasOwnProperty(k)) {
-        result.push(&lt;SimpleFieldObject&gt;{
-          name: k,
-          value: obj[k],
-        });
-      }
-    }
-    return result;
-  }
-}
+export type HelixRequestOptions &#x3D; {
+  url: string;
+  json: string;
+  headers: request.Headers;
+  agentOptions: AgentOptions;
+  body?: string;
+};
 </code></pre>
     </div>
 </div>
@@ -357,7 +215,7 @@ export class Node {
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
             var COMPODOC_CURRENT_PAGE_CONTEXT = 'interface';
-            var COMPODOC_CURRENT_PAGE_URL = 'SimpleFieldObject.html';
+            var COMPODOC_CURRENT_PAGE_URL = 'HelixRequest.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

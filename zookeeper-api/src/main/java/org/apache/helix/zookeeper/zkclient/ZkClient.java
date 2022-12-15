@@ -229,7 +229,7 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
-    _watcher = watcher == null ? this : watcher;
+
     _uid = UID.getAndIncrement();
     validateWriteSizeLimitConfig();
 
@@ -250,14 +250,7 @@ public class ZkClient implements Watcher {
     } else {
       LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
     }
-
-    try {
-      if (_monitor != null) {
-        _monitor.register();
-      }
-    } catch (JMException e){
-      LOG.error("Error in creating ZkClientMonitor", e);
-    }
+    _watcher = watcher == null ? this : watcher;
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
@@ -1575,7 +1568,7 @@ public class ZkClient implements Watcher {
     getEventLock().lock();
     try {
       ZkConnection connection = ((ZkConnection) getConnection());
-      connection.reconnect(_watcher);
+      connection.reconnect(_watcher == null ? this : _watcher);
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
     } finally {
@@ -2513,7 +2506,7 @@ public class ZkClient implements Watcher {
    * @throws IllegalStateException
    *           if the connection timed out due to thread interruption
    */
-  public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
+  public void connect(final long maxMsToWaitUntilConnected, @Nullable Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
     if (isClosed()) {
       throw new IllegalStateException("ZkClient already closed!");
@@ -2538,7 +2531,7 @@ public class ZkClient implements Watcher {
       LOG.debug("ZkClient {},  _eventThread {}", _uid, _eventThread.getId());
 
       if (isManagingZkConnection()) {
-        zkConnection.connect(watcher);
+        zkConnection.connect(watcher == null ? this : watcher);
         LOG.debug("zkclient{} Awaiting connection to Zookeeper server", _uid);
         if (!waitUntilConnected(maxMsToWaitUntilConnected, TimeUnit.MILLISECONDS)) {
           throw new ZkTimeoutException(
@@ -2566,6 +2559,13 @@ public class ZkClient implements Watcher {
       if (!started) {
         close();
       }
+    }
+    try {
+      if (_monitor != null) {
+        _monitor.register();
+      }
+    } catch (JMException e){
+      LOG.error("Error in creating ZkClientMonitor", e);
     }
   }
 

@@ -124,7 +124,7 @@ public class ZkTestBase {
    * @param zkAddress
    * @return
    */
-  protected ZkServer startZkServer(final String zkAddress) {
+  protected static ZkServer startZkServer(final String zkAddress) {
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
     final String dataDir = "/tmp/" + zkDir + "/dataDir";

@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -246,7 +245,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, Watcher, Closeab
         entryListeners.add(listener);
         _oneTimeDataChangeListener.put(key, entryListeners);
       } else {
-        Set<DataChangeListener> entryListeners = _dataChangeListener.computeIfAbsent(key, k -> new CopyOnWriteArraySet<>());
+        Set<DataChangeListener> entryListeners = _dataChangeListener.computeIfAbsent(key, k -> new HashSet<>());
         entryListeners.add(listener);
         _dataChangeListener.put(key, entryListeners);
       }

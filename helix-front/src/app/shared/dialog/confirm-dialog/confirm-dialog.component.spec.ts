@@ -15,9 +15,6 @@ describe('ConfirmDialogComponent', () => {
   let fixture: ComponentFixture<ConfirmDialogComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       declarations: [ConfirmDialogComponent],
     }).compileComponents();

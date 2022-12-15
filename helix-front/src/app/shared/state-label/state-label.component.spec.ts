@@ -15,8 +15,6 @@ describe('StateLabelComponent', () => {
   let fixture: ComponentFixture<StateLabelComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       declarations: [StateLabelComponent],
       imports: [HttpClientTestingModule],

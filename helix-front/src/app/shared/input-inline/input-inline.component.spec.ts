@@ -16,8 +16,6 @@ describe('InputInlineComponent', () => {
   let fixture: ComponentFixture<InputInlineComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       declarations: [InputInlineComponent],
       imports: [HttpClientTestingModule],

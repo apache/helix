@@ -18,9 +18,6 @@ describe('ControllerDetailComponent', () => {
   let fixture: ComponentFixture<ControllerDetailComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
       declarations: [ControllerDetailComponent],

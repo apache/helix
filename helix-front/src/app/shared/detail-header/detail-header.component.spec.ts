@@ -16,8 +16,6 @@ describe('DetailHeaderComponent', () => {
   let fixture: ComponentFixture<DetailHeaderComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       declarations: [DetailHeaderComponent],
       imports: [HttpClientTestingModule],

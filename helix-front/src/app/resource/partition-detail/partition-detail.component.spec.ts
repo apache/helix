@@ -16,9 +16,6 @@ describe('PartitionDetailComponent', () => {
   let fixture: ComponentFixture<PartitionDetailComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       declarations: [PartitionDetailComponent],
       schemas: [

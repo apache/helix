@@ -17,8 +17,6 @@ describe('ConfigDetailComponent', () => {
   let fixture: ComponentFixture<ConfigDetailComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule, HttpClientTestingModule],
       declarations: [ConfigDetailComponent],

@@ -17,9 +17,6 @@ describe('InstanceDetailComponent', () => {
   let fixture: ComponentFixture<InstanceDetailComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [InstanceDetailComponent],

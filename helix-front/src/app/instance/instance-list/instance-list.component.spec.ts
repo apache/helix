@@ -17,9 +17,6 @@ describe('InstanceListComponent', () => {
   let fixture: ComponentFixture<InstanceListComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [RouterTestingModule],
       declarations: [InstanceListComponent],

@@ -23,9 +23,7 @@ import { TestingModule } from '../testing/testing.module';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
-  beforeAll(() => {
-
-  });
+  beforeAll(() => {});
 
   beforeEach(() => {
     TestBed.configureTestingModule({

@@ -15,9 +15,6 @@ describe('AlertDialogComponent', () => {
   let fixture: ComponentFixture<AlertDialogComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       declarations: [AlertDialogComponent],
     }).compileComponents();

@@ -17,7 +17,6 @@ describe('HelixListComponent', () => {
   let fixture: ComponentFixture<HelixListComponent>;
 
   beforeEach(() => {
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [HelixListComponent],

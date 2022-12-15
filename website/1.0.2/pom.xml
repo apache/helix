@@ -23,12 +23,16 @@
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>website</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>${revision}</version>
   </parent>
 
   <artifactId>1.0.2-docs</artifactId>
   <packaging>bundle</packaging>
   <name>Apache Helix :: Website :: 1.0.2</name>
+
+  <properties>
+    <revision>1.0.5-SNAPSHOT</revision>
+  </properties>
 
   <licenses>
     <license>

@@ -29,7 +29,7 @@
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>1.1.0</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -389,7 +389,7 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/helix.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/helix.git</developerConnection>
     <url>https://gitbox.apache.org/repos/asf?p=helix.git;a=summary</url>
-    <tag>HEAD</tag>
+    <tag>helix-1.1.0</tag>
   </scm>
   <issueManagement>
     <system>Github</system>
@@ -403,7 +403,7 @@
   <properties>
     <revision>1.1.1-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.build.outputTimestamp>1670405428</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1670404913</project.build.outputTimestamp>
 
     <sonar.host.url>https://analysis.apache.org/</sonar.host.url>
 

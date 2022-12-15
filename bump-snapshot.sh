@@ -21,7 +21,7 @@
 
 
 echo There are $# arguments to $0: $*
-version=`grep "<revision>" pom.xml | awk 'BEGIN {FS="[<,>]"};{print $3}'`
+version=`grep -A 1 "<artifactId>helix</artifactId>" pom.xml |tail -1 | awk 'BEGIN {FS="[<,>]"};{print $3}'`
 if [ "$#" -eq 1 ]; then
   new_version=$1
 elif [ "$#" -eq 2 ]; then
@@ -47,7 +47,7 @@ mv helix-view-aggregator/helix-view-aggregator-$version-SNAPSHOT.ivy helix-view-
 
 
 find . -type f -name '*.ivy' -exec sed -i "s/$version/$new_version/g" {} \;
-find . -type f -name 'pom.xml' -exec sed -i "s/<revision>$version/<revision>$new_version/g" pom.xml;
+find . -type f -name 'pom.xml' -exec sed -i "s/$version/$new_version/g" {} \;
 
 
 

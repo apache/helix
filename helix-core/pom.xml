@@ -44,7 +44,6 @@
   </organization>
 
   <properties>
-    <revision>1.0.5-SNAPSHOT</revision>
     <osgi.import>
       javax.management*,
       javax.xml.bind*,

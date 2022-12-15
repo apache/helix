@@ -401,7 +401,7 @@
   </ciManagement>
 
   <properties>
-    <revision>1.0.5-SNAPSHOT</revision>
+    <revision>1.1.1-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.build.outputTimestamp>1671078135</project.build.outputTimestamp>
 

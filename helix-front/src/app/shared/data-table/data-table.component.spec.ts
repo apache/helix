@@ -16,8 +16,6 @@ describe('DataTableComponent', () => {
   let fixture: ComponentFixture<DataTableComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [DataTableComponent],

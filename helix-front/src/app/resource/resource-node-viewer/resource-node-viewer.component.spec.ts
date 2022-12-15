@@ -18,9 +18,6 @@ describe('ResourceNodeViewerComponent', () => {
   let fixture: ComponentFixture<ResourceNodeViewerComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [ResourceNodeViewerComponent],

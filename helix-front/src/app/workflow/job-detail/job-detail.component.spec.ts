@@ -21,9 +21,6 @@ describe('JobDetailComponent', () => {
   let fixture: ComponentFixture<JobDetailComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       providers: [

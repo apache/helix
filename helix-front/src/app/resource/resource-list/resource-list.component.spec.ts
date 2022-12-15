@@ -17,8 +17,6 @@ describe('ResourceListComponent', () => {
   let fixture: ComponentFixture<ResourceListComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [ResourceListComponent],

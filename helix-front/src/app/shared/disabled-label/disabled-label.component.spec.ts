@@ -14,8 +14,6 @@ describe('DisabledLabelComponent', () => {
   let fixture: ComponentFixture<DisabledLabelComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       declarations: [DisabledLabelComponent],
     }).compileComponents();

@@ -15,9 +15,6 @@ describe('InputDialogComponent', () => {
   let fixture: ComponentFixture<InputDialogComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       declarations: [InputDialogComponent],
     }).compileComponents();

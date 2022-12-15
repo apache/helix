@@ -15,8 +15,6 @@ describe('JsonViewerComponent', () => {
   let fixture: ComponentFixture<JsonViewerComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       imports: [RouterTestingModule],
       declarations: [JsonViewerComponent],

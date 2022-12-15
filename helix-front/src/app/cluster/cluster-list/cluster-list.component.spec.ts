@@ -17,9 +17,6 @@ describe('ClusterListComponent', () => {
   let fixture: ComponentFixture<ClusterListComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [ClusterListComponent],

@@ -18,8 +18,6 @@ describe('JobListComponent', () => {
   let fixture: ComponentFixture<JobListComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [JobListComponent],

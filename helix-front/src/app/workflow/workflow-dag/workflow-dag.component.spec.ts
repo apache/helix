@@ -18,9 +18,6 @@ describe('WorkflowDagComponent', () => {
   let fixture: ComponentFixture<WorkflowDagComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       declarations: [WorkflowDagComponent],

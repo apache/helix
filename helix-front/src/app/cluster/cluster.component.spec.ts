@@ -35,9 +35,7 @@ describe('ClusterComponent', () => {
   let component: ClusterComponent;
   let fixture: ComponentFixture<ClusterComponent>;
 
-  beforeAll(() => {
-
-  });
+  beforeAll(() => {});
 
   beforeEach(() => {
     TestBed.configureTestingModule({

@@ -14,8 +14,6 @@ describe('KeyValuePairsComponent', () => {
   let fixture: ComponentFixture<KeyValuePairsComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       declarations: [KeyValuePairsComponent],
     }).compileComponents();

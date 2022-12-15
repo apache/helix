@@ -17,8 +17,6 @@ describe('PartitionListComponent', () => {
   let fixture: ComponentFixture<PartitionListComponent>;
 
   beforeEach(() => {
-
-
     TestBed.configureTestingModule({
       imports: [TestingModule],
       providers: [ResourceService],

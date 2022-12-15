@@ -18,9 +18,6 @@ describe('HistoryListComponent', () => {
   let fixture: ComponentFixture<HistoryListComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
       declarations: [HistoryListComponent],

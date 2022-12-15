@@ -19,9 +19,6 @@ describe('ResourceDetailForInstanceComponent', () => {
   let fixture: ComponentFixture<ResourceDetailForInstanceComponent>;
 
   beforeEach(() => {
-
-
-
     TestBed.configureTestingModule({
       imports: [HttpClientModule, RouterTestingModule],
       declarations: [ResourceDetailForInstanceComponent],

@@ -63,9 +63,7 @@ public interface RealmAwareZkClient {
     SINGLE_REALM, MULTI_REALM
   }
 
-  // Setting default operation retry timeout to 24 hours. It can also be overwritten via RealmAwareZkClientConfig.
-  // This timeout will be used while retrying zookeeper operations.
-  int DEFAULT_OPERATION_TIMEOUT = 24 * 60 * 60 * 1000;
+  int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 

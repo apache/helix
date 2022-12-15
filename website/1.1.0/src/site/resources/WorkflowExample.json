@@ -1,0 +1,46 @@
+{"id":"Workflow1",
+ "WorkflowConfig":{
+    "id":"Workflow1",
+    "Expiry":"43200000",
+    "FailureThreshold":"0",
+    "IsJobQueue":"true",
+    "TargetState":"START",
+    "Terminable":"false",
+    "capacity":"500"
+ },
+ "Jobs":[
+         {
+	   "id" : "Job1",
+  	   "simpleFields": {
+	       "JobID":"Job1",
+  	       "WorkflowID" : "Workflow1"
+  	   },
+  	   "mapFields":{
+	       "Task1" : {
+                   "TASK_ID" : "Task1",
+                   "TASK_COMMAND" : "Backup",
+                   "TASK_TARGET_PARTITION" : "p1"
+               },
+               "Task2" : {
+                   "TASK_ID" : "Task2",
+                   "TASK_COMMAND" : "ReIndex"
+               }
+           },
+           "listFields":{}
+         },
+         {
+           "id":"Job2",
+           "Command":"Cleanup",
+           "TargetResource":"DB2"
+         },
+         {
+           "id":"Job3",
+           "Command":"Backup",
+           "TargetResource":"DB3"
+        }
+  ],
+  "ParentJobs":{
+      "Job1":["Job2","Job3],
+      "Job2":["Job3"]
+  }
+}

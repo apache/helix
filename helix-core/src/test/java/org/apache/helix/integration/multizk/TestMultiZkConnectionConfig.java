@@ -110,7 +110,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     _clusterSetupZkAddr.close();
     _clusterSetupBuilder.close();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   public void setupCluster() {

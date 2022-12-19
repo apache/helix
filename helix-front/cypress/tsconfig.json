@@ -1,0 +1,20 @@
+{
+  "include": ["**/*.cy.ts"],
+  "compileOnSave": false,
+  "compilerOptions": {
+    "importHelpers": false,
+    "sourceMap": false,
+    "declaration": false,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "target": "es2015",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "../out-tsc/e2e",
+    "typeRoots": ["node_modules/@types"],
+    "types": ["cypress", "jest", "node"],
+    "lib": ["es2016", "dom"],
+    "module": "es2020"
+  }
+}

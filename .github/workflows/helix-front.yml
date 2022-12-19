@@ -1,0 +1,33 @@
+name: Helix Front CI
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'helix-front/**'
+
+jobs:
+  CI:
+    name: helix-front CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checks-out the repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          cache: 'yarn'
+          cache-dependency-path: 'helix-front/yarn.lock'
+
+      - name: Install dependencies
+        run: yarn
+        working-directory: helix-front
+
+      - name: Format check
+        run: yarn format:check
+        working-directory: helix-front
+
+      - name: Build
+        run: yarn prepack
+        working-directory: helix-front

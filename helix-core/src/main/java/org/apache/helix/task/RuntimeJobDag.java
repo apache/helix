@@ -198,12 +198,14 @@ public class RuntimeJobDag extends JobDag {
     resetJobListAndDependencyMaps();
     computeIndependentNodes();
     _readyJobList.addAll(_independentNodes);
-    if (_isJobQueue && _readyJobList.size() > 0) {
+    if (_isJobQueue && !_readyJobList.isEmpty()) {
       // For job queue, only get number of parallel jobs to run in the ready list.
       for (int i = 1; i < _numParallelJobs; i++) {
-        if (_parentsToChildren.containsKey(_readyJobList.peekLast())) {
-          _readyJobList.offer(_parentsToChildren.get(_readyJobList.peekLast()).iterator().next());
+        Set<String> children = _parentsToChildren.get(_readyJobList.peekLast());
+        if (children == null) {
+          break;
         }
+        _readyJobList.offer(children.iterator().next());
       }
     }
     _hasDagChanged = false;

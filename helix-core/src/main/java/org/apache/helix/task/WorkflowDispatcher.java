@@ -21,7 +21,6 @@ package org.apache.helix.task;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -75,7 +74,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Clean up if workflow marked for deletion
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
-      LOG.info("Workflow is marked as deleted {} cleaning up the workflow context.", workflow);
+      LOG.debug("Workflow is marked as deleted {} cleaning up the workflow context.", workflow);
       updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       cleanupWorkflow(workflow);
       return;
@@ -119,7 +118,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
     // Step 4: Handle finished workflows
     if (workflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
-      LOG.info("Workflow {} is finished.", workflow);
+      LOG.debug("Workflow {} is finished.", workflow);
       updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       long expiryTime = workflowCfg.getExpiry();
       // Check if this workflow has been finished past its expiry.
@@ -150,9 +149,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // For workflows that have already reached final states, STOP should not take into effect.
     if (!TaskConstants.FINAL_STATES.contains(workflowCtx.getWorkflowState())
         && TargetState.STOP.equals(targetState)) {
-      LOG.info("Workflow {} is marked as stopped. Workflow state is {}", workflow,
-          workflowCtx.getWorkflowState());
-      if (isWorkflowStopped(workflowCtx, workflowCfg)) {
+      if (isWorkflowStopped(workflowCtx, workflowCfg) && workflowCtx.getWorkflowState() != TaskState.STOPPED) {
+        LOG.debug("Workflow {} is marked as stopped. Workflow state is {}", workflow,
+            workflowCtx.getWorkflowState());
         workflowCtx.setWorkflowState(TaskState.STOPPED);
         _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
       }

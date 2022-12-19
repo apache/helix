@@ -285,7 +285,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     if (_zkBucketDataAccessor == null) {
       synchronized (this) {
         if (_zkBucketDataAccessor == null) {
-          _zkBucketDataAccessor = new ZkBucketDataAccessor(_zkAddr);
+          _zkBucketDataAccessor = new ZkBucketDataAccessor(getByteArrayRealmAwareZkClient());
         }
       }
     }

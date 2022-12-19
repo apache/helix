@@ -1,0 +1,79 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<ngx-datatable
+  class="material"
+  [headerHeight]="headerHeight"
+  [rowHeight]="rowHeight"
+  columnMode="force"
+  [rows]="partition?.replicas"
+>
+  <ngx-datatable-column
+    name="Replica"
+    [width]="80"
+    [resizeable]="false"
+    [canAutoResize]="false"
+  >
+    <ng-template
+      let-row="row"
+      let-rowIndex="rowIndex"
+      ngx-datatable-cell-template
+    >
+      <strong>#{{ rowIndex + 1 }}</strong>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column name="Instance" prop="instanceName">
+    <ng-template let-value="value" ngx-datatable-cell-template>
+      {{ value }}
+      <a
+        mat-icon-button
+        color="accent"
+        [routerLink]="['../../..', 'instances', value, 'resources']"
+      >
+        <mat-icon>arrow_forward</mat-icon>
+      </a>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column
+    name="External View"
+    [width]="120"
+    [resizeable]="false"
+    [canAutoResize]="false"
+  >
+    <ng-template let-row="row" ngx-datatable-cell-template>
+      <hi-state-label
+        [state]="row.externalView"
+        [isReady]="row.externalView && row.externalView == row.idealState"
+      ></hi-state-label>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column
+    name="Ideal State"
+    [width]="120"
+    [resizeable]="false"
+    [canAutoResize]="false"
+  >
+    <ng-template let-row="row" ngx-datatable-cell-template>
+      <hi-state-label
+        [state]="row.idealState"
+        [isReady]="row.externalView && row.externalView == row.idealState"
+      ></hi-state-label>
+    </ng-template>
+  </ngx-datatable-column>
+</ngx-datatable>

@@ -19,6 +19,7 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,10 +35,12 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -45,6 +48,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
+import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +58,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
   private final HelixTaskExecutor _taskExecutor;
   // TODO:rename to factory, this is not a service
   private final AsyncCallbackService _asyncCallbackService;
+  private final int _taskThreadpoolResetTimeout;
 
   private static Logger _logger = LoggerFactory.getLogger(DefaultMessagingService.class);
   ConcurrentHashMap<String, MessageHandlerFactory> _messageHandlerFactoriestobeAdded =
@@ -72,8 +77,12 @@ public class DefaultMessagingService implements ClusterMessagingService {
         new ParticipantStatusMonitor(isParticipant, manager.getInstanceName()),
         new MessageQueueMonitor(manager.getClusterName(), manager.getInstanceName()));
     _asyncCallbackService = new AsyncCallbackService();
-    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.name(),
-        _asyncCallbackService);
+
+    _taskThreadpoolResetTimeout = HelixUtil
+        .getSystemPropertyAsInt(SystemPropertyKeys.TASK_THREADPOOL_RESET_TIMEOUT,
+            TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS);
+    _taskExecutor.registerMessageHandlerFactory(_asyncCallbackService, TaskExecutor.DEFAULT_PARALLEL_TASKS,
+        _taskThreadpoolResetTimeout);
   }
 
   @Override
@@ -333,6 +342,11 @@ public class DefaultMessagingService implements ClusterMessagingService {
 
   public HelixTaskExecutor getExecutor() {
     return _taskExecutor;
+  }
+
+  @VisibleForTesting
+  int getTaskThreadpoolResetTimeout() {
+    return _taskThreadpoolResetTimeout;
   }
 
   @Override

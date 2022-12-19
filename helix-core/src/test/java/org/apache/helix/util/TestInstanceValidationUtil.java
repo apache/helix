@@ -70,7 +70,7 @@ public class TestInstanceValidationUtil {
     };
   }
 
-  @Test(dataProvider = "isEnabledTestSuite")
+  @Test(dataProvider = "isEnabledTestSuite", enabled = false)
   public void TestIsInstanceEnabled(boolean instanceConfigEnabled, boolean clusterConfigEnabled,
       boolean expected) {
     Mock mock = new Mock();

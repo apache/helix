@@ -42,7 +42,7 @@ public class TestClusterTopology {
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(clusterTopology);
 
-    Assert.assertEquals(result,
-        "{\"id\":\"cluster0\",\"zones\":[{\"id\":\"zone\",\"instances\":[{\"id\":\"instance\"}]}],\"allInstances\":[]}");
+    Assert.assertEquals(mapper.readTree(result),
+                        mapper.readTree("{\"id\":\"cluster0\",\"zones\":[{\"id\":\"zone\",\"instances\":[{\"id\":\"instance\"}]}],\"allInstances\":[]}"));
   }
 }

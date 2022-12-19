@@ -211,6 +211,69 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
+  public void testSyncCreateWithTTL() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+    ZNRecord record = new ZNRecord("msg_0");
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
+
+    boolean success = accessor.create(path, record, AccessOption.PERSISTENT_WITH_TTL);
+    Assert.assertFalse(success);
+    long ttl = 1L;
+    success = accessor.create(path, record, AccessOption.PERSISTENT_WITH_TTL, ttl);
+    Assert.assertTrue(success);
+    ZNRecord getRecord = _gZkClient.readData(path);
+    Assert.assertNotNull(getRecord);
+    Assert.assertEquals(getRecord.getId(), "msg_0");
+
+    record.setSimpleField("key0", "value0");
+    success = accessor.create(path, record, AccessOption.PERSISTENT_WITH_TTL, ttl);
+    Assert.assertFalse(success, "Should fail since node already exists");
+    getRecord = _gZkClient.readData(path);
+    Assert.assertNotNull(getRecord);
+    Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
+
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSyncCreateContainer() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+    ZNRecord record = new ZNRecord("msg_0");
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
+
+    boolean success = accessor.create(path, record, AccessOption.CONTAINER);
+    Assert.assertTrue(success);
+    ZNRecord getRecord = _gZkClient.readData(path);
+    Assert.assertNotNull(getRecord);
+    Assert.assertEquals(getRecord.getId(), "msg_0");
+
+    record.setSimpleField("key0", "value0");
+    success = accessor.create(path, record, AccessOption.CONTAINER);
+    Assert.assertFalse(success, "Should fail since node already exists");
+    getRecord = _gZkClient.readData(path);
+    Assert.assertNotNull(getRecord);
+    Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
+
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
   public void testDefaultAccessorCreateCustomData() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -371,6 +434,36 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
+  public void testDeleteNodeWithChildren() {
+    String root = _rootPath;
+
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
+
+    // CreateChildren
+    List<ZNRecord> records = new ArrayList<>();
+    List<String> paths = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      paths.add(PropertyPathBuilder.instanceMessage(root, "host_1", msgId));
+      records.add(new ZNRecord(msgId));
+    }
+    boolean[] success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
+
+    // Attempt to remove parent. Shouldn't throw an error or warning log.
+    // Should return True if recursive deletion succeeds.
+    Assert.assertTrue(accessor.remove(PropertyPathBuilder.instanceMessage(root, "host_1"), 0),
+            "Should return True despite log errors.");
+
+    // Assert child message nodes were removed when calling remove on parent
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      String path = PropertyPathBuilder.instanceMessage(root, "host_1", msgId);
+      boolean pathExists = _gZkClient.exists(path);
+      Assert.assertFalse(pathExists, "Message znode should have been removed by accessor msgId=" + msgId);
+    }
+  }
+
+  @Test
   public void testSyncGet() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -512,6 +605,52 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
       ZNRecord record = _gZkClient.readData(path);
       Assert.assertEquals(record.getId(), msgId, "Should get what we created");
     }
+
+    // test async createChildren with TTL
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    records = new ArrayList<>();
+    paths = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      paths.add(PropertyPathBuilder.instanceMessage(root, "host_2", msgId));
+      records.add(new ZNRecord(msgId));
+    }
+    success = accessor.createChildren(paths, records, AccessOption.PERSISTENT_WITH_TTL, 1L);
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      Assert.assertTrue(success[i], "Should succeed in create " + msgId);
+    }
+
+    // test get what we created
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      String path = PropertyPathBuilder.instanceMessage(root, "host_2", msgId);
+      ZNRecord record = _gZkClient.readData(path);
+      Assert.assertEquals(record.getId(), msgId, "Should get what we created");
+    }
+
+    // test async createChildren with Container mode
+    records = new ArrayList<>();
+    paths = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      paths.add(PropertyPathBuilder.instanceMessage(root, "host_3", msgId));
+      records.add(new ZNRecord(msgId));
+    }
+    success = accessor.createChildren(paths, records, AccessOption.CONTAINER);
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      Assert.assertTrue(success[i], "Should succeed in create " + msgId);
+    }
+
+    // test get what we created
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      String path = PropertyPathBuilder.instanceMessage(root, "host_3", msgId);
+      ZNRecord record = _gZkClient.readData(path);
+      Assert.assertEquals(record.getId(), msgId, "Should get what we created");
+    }
+    System.clearProperty("zookeeper.extendedTypesEnabled");
 
     // test async setChildren
     records = new ArrayList<>();

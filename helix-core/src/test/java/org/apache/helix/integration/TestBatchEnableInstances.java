@@ -20,24 +20,18 @@ package org.apache.helix.integration;
  */
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.constants.InstanceConstants;
+import org.apache.helix.HelixException;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.util.InstanceValidationUtil;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestBatchEnableInstances extends TaskTestBase {
-  private ConfigAccessor _accessor;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -46,10 +40,15 @@ public class TestBatchEnableInstances extends TaskTestBase {
     _numNodes = 5;
     _numPartitions = 4;
     super.beforeClass();
-    _accessor = new ConfigAccessor(_gZkClient);
   }
 
-  @Test
+  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Batch.*is not supported")
+  public void testBatchModeNotSupported() {
+    // ensure batch enable/disable is not supported and shouldn't be used yet
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, Collections.emptyList(), true);
+  }
+
+  @Test(enabled = false)
   public void testOldEnableDisable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         _participants[0].getInstanceName(), false);
@@ -65,7 +64,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
         _participants[0].getInstanceName(), true);
   }
 
-  @Test
+  @Test(enabled = false)
   public void testBatchEnableDisable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
@@ -84,7 +83,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
         true);
   }
 
-  @Test
+  @Test(enabled = false)
   public void testOldDisableBatchEnable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         _participants[0].getInstanceName(), false);
@@ -107,40 +106,13 @@ public class TestBatchEnableInstances extends TaskTestBase {
         _participants[0].getInstanceName(), true);
   }
 
-  @Test
+  @Test(enabled = false)
   public void testBatchDisableOldEnable() throws InterruptedException {
-    // disable 2 instances
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
-        false, InstanceConstants.InstanceDisabledType.USER_OPERATION, "reason_1");
-    // check disabled type from InstanceValidationUtil
-    HelixDataAccessor dataAccessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
-    Assert.assertEquals(InstanceValidationUtil
-            .getInstanceHelixDisabledType(dataAccessor, _participants[1].getInstanceName()),
-        InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());
-    // check disabled reason from getter in clusterConfig
-    ClusterConfig clusterConfig =
-        dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
-    Assert.assertEquals(
-        clusterConfig.getInstanceHelixDisabledReason(_participants[1].getInstanceName()),
-        "reason_1");
-    Assert.assertNotNull(
-        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[0].getInstanceName()));
-    // enable the second instance
-    _gSetupTool.getClusterManagementTool()
-        .enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), true);
-    // check disabled type for second instance from InstanceValidationUtil and clusterConfig
-    Assert.assertEquals(InstanceValidationUtil
-            .getInstanceHelixDisabledType(dataAccessor, _participants[0].getInstanceName()),
-        InstanceConstants.INSTANCE_NOT_DISABLED);
-    clusterConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
-    Assert.assertEquals(
-        clusterConfig.getInstanceHelixDisabledType(_participants[0].getInstanceName()),
-        InstanceConstants.INSTANCE_NOT_DISABLED);
-    Assert.assertNull(
-        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[0].getInstanceName()));
-
+        false);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
+        _participants[0].getInstanceName(), true);
     Thread.sleep(2000);
 
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
@@ -158,5 +130,4 @@ public class TestBatchEnableInstances extends TaskTestBase {
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
         true);
   }
-
 }

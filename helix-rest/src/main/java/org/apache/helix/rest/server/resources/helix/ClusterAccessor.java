@@ -66,6 +66,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.rest.acl.AclRegister;
+import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.rest.server.filters.NamespaceAuth;
@@ -179,6 +181,13 @@ public class ClusterAccessor extends AbstractHelixResource {
         LOG.error(errMsg, e);
         return badRequest(errMsg + " Exception: " + e.getMessage());
       }
+    }
+
+    try {
+      getAclRegister().createACL(_servletRequest);
+    } catch (Exception ex) {
+      LOG.error("Failed to create ACL for cluster {}. Exception: {}.", clusterId, ex);
+      return serverError(ex);
     }
 
     try {
@@ -1211,5 +1220,9 @@ public class ClusterAccessor extends AbstractHelixResource {
         break;
     }
     return history;
+  }
+
+  private AclRegister getAclRegister() {
+    return (AclRegister) _application.getProperties().get(ContextPropertyKeys.ACL_REGISTER.name());
   }
 }

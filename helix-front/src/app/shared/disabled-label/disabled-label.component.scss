@@ -1,0 +1,16 @@
+@use '@angular/material' as mat;
+
+.status-disabled {
+  margin-left: 10px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 40px;
+  border-radius: 4px;
+  border: 1px solid
+    mat.get-color-from-palette(mat.define-palette(mat.$red-palette), 900);
+  background-color: mat.get-color-from-palette(
+    mat.define-palette(mat.$red-palette),
+    darker
+  );
+  color: rgb(255, 255, 255);
+}

@@ -39,6 +39,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -190,6 +191,33 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public void createPersistentWithTTL(String path, long ttl) {
+    createPersistentWithTTL(path, false, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, boolean createParents, long ttl) {
+    createPersistentWithTTL(path, createParents, ZooDefs.Ids.OPEN_ACL_UNSAFE, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, boolean createParents, List<ACL> acl, long ttl) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createPersistentWithTTL(path, createParents, acl, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, Object data, long ttl) {
+    createPersistentWithTTL(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, Object data, List<ACL> acl, long ttl) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createPersistentWithTTL(path, data, acl, ttl);
+  }
+
+  @Override
   public String createPersistentSequential(String path, Object data) {
     checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.createPersistentSequential(path, data);
@@ -199,6 +227,44 @@ public class SharedZkClient implements RealmAwareZkClient {
   public String createPersistentSequential(String path, Object data, List<ACL> acl) {
     checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.createPersistentSequential(path, data, acl);
+  }
+
+  @Override
+  public String createPersistentSequentialWithTTL(String path, Object data, long ttl) {
+    return createPersistentSequentialWithTTL(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, ttl);
+  }
+
+  @Override
+  public String createPersistentSequentialWithTTL(String path, Object data, List<ACL> acl, long ttl) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.createPersistentSequentialWithTTL(path, data, acl, ttl);
+  }
+
+  @Override
+  public void createContainer(String path) {
+    createContainer(path, false);
+  }
+
+  @Override
+  public void createContainer(String path, boolean createParents) {
+    createContainer(path, createParents, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+  }
+
+  @Override
+  public void createContainer(String path, boolean createParents, List<ACL> acl) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createContainer(path, createParents, acl);
+  }
+
+  @Override
+  public void createContainer(String path, Object data) {
+    createContainer(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+  }
+
+  @Override
+  public void createContainer(String path, Object data, List<ACL> acl) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createContainer(path, data, acl);
   }
 
   @Override
@@ -231,16 +297,26 @@ public class SharedZkClient implements RealmAwareZkClient {
 
   @Override
   public String create(String path, Object data, CreateMode mode) {
+    return create(path, data, mode, ZkClient.TTL_NOT_SET);
+  }
+
+  @Override
+  public String create(String path, Object data, CreateMode mode, long ttl) {
     checkIfPathContainsShardingKey(path);
     // delegate to _innerSharedZkClient is fine as _innerSharedZkClient would not allow creating ephemeral node.
     // this still keeps the same behavior.
-    return _innerSharedZkClient.create(path, data, mode);
+    return _innerSharedZkClient.create(path, data, mode, ttl);
   }
 
   @Override
   public String create(String path, Object datat, List<ACL> acl, CreateMode mode) {
+    return create(path, datat, acl, mode, ZkClient.TTL_NOT_SET);
+  }
+
+  @Override
+  public String create(String path, Object datat, List<ACL> acl, CreateMode mode, long ttl) {
     checkIfPathContainsShardingKey(path);
-    return _innerSharedZkClient.create(path, datat, acl, mode);
+    return _innerSharedZkClient.create(path, datat, acl, mode, ttl);
   }
 
   @Override
@@ -403,10 +479,16 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public void asyncCreate(String path, Object datat, CreateMode mode,
+  public void asyncCreate(String path, Object datat, CreateMode mode, long ttl,
       ZkAsyncCallbacks.CreateCallbackHandler cb) {
     checkIfPathContainsShardingKey(path);
-    _innerSharedZkClient.asyncCreate(path, datat, mode, cb);
+    _innerSharedZkClient.asyncCreate(path, datat, mode, ttl, cb);
+  }
+
+  @Override
+  public void asyncCreate(String path, Object datat, CreateMode mode,
+      ZkAsyncCallbacks.CreateCallbackHandler cb) {
+    asyncCreate(path, datat, mode, ZkClient.TTL_NOT_SET, cb);
   }
 
   @Override

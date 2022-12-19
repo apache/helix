@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
 import org.apache.zookeeper.AsyncCallback;
+import org.apache.zookeeper.AsyncCallback.Create2Callback;
 import org.apache.zookeeper.AsyncCallback.DataCallback;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
@@ -111,9 +112,14 @@ public class ZkAsyncCallbacks {
     }
   }
 
-  public static class CreateCallbackHandler extends DefaultCallback implements StringCallback {
+  public static class CreateCallbackHandler extends DefaultCallback implements StringCallback, Create2Callback {
     @Override
     public void processResult(int rc, String path, Object ctx, String name) {
+      callback(rc, path, ctx);
+    }
+
+    @Override
+    public void processResult(int rc, String path, Object ctx, String name, Stat stat) {
       callback(rc, path, ctx);
     }
 

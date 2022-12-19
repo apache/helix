@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * 3. PostEventHandlerCallback -> only one allowed
  * to enable an easy management of event listeners and callbacks.
  */
-public class CloudEventHandler {
+public class CloudEventHandler implements AbstractEventHandler {
   private static final Logger LOG = LoggerFactory.getLogger(CloudEventHandler.class.getName());
   private List<CloudEventListener> _unorderedEventListenerList = new ArrayList<>();
   private Optional<CloudEventListener> _preEventHandlerCallback = Optional.empty();
@@ -44,6 +44,7 @@ public class CloudEventHandler {
    * If no listener type is specified, register as an unordered listener.
    * @param listener
    */
+  @Override
   public void registerCloudEventListener(CloudEventListener listener) {
     if (listener != null) {
       switch (listener.getListenerType()) {
@@ -65,6 +66,7 @@ public class CloudEventHandler {
    * Unregister an event listener to the event handler.
    * @param listener
    */
+  @Override
   public void unregisterCloudEventListener(CloudEventListener listener) {
     _unorderedEventListenerList.remove(listener);
   }

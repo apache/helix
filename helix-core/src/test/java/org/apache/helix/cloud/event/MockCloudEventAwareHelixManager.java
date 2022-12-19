@@ -75,21 +75,33 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
             .build());
   }
 
-  public void connect() throws IllegalAccessException, InstantiationException {
+  @Override
+  public void connect()
+      throws IllegalAccessException, InstantiationException, ClassNotFoundException {
     if (_helixManagerProperty != null) {
       HelixCloudProperty helixCloudProperty = _helixManagerProperty.getHelixCloudProperty();
       if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
         _cloudEventListener =
             new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
-        CloudEventHandlerFactory.getInstance().registerCloudEventListener(_cloudEventListener);
+        System.out.println("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
+        CloudEventHandlerFactory.getInstance(
+            _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+            .registerCloudEventListener(_cloudEventListener);
       }
     }
   }
 
+  @Override
   public void disconnect() {
     if (_cloudEventListener != null) {
-      CloudEventHandlerFactory.getInstance().unregisterCloudEventListener(_cloudEventListener);
-      _cloudEventListener = null;
+      try {
+        CloudEventHandlerFactory.getInstance(
+            _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+            .unregisterCloudEventListener(_cloudEventListener);
+      } catch (Exception e) {
+        System.out.println("Failed to unregister cloudEventListener." );
+        e.printStackTrace();
+      }
     }
   }
 

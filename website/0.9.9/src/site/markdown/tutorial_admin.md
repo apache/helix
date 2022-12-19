@@ -161,7 +161,7 @@ chmod +x *.sh
     * Add a resource to cluster
 
     ```
-    curl -d 'jsonParameters={"command":"addResource","resourceGroupName":"MyDB","partitions":"8","stateModelDefRef":"MasterSlave" }' -H "Content-Type: application/json" http://localhost:8100/clusters/MyCluster/resourceGroups
+    curl -d 'jsonParameters={"command":"addResource","resourceGroupName":"MyDB","partitions":"8","stateModelDefRef":"LeaderStandby" }' -H "Content-Type: application/json" http://localhost:8100/clusters/MyCluster/resourceGroups
     ```
 
 * _/clusters/{clusterName}/resourceGroups/{resourceName}_
@@ -202,15 +202,15 @@ chmod +x *.sh
         "NUM_PARTITIONS" : "8",
         "REBALANCE_MODE" : "SEMI_AUTO",
         "REPLICAS" : "0",
-        "STATE_MODEL_DEF_REF" : "MasterSlave",
+        "STATE_MODEL_DEF_REF" : "LeaderStandby",
         "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
       },
       "listFields" : {
       },
       "mapFields" : {
         "MyDB_0" : {
-          "localhost_1001" : "MASTER",
-          "localhost_1002" : "SLAVE"
+          "localhost_1001" : "LEADER",
+          "localhost_1002" : "STANDBY"
         }
       }
     }

@@ -36,7 +36,7 @@ public class TestStoppableCheck {
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(stoppableCheck);
 
-    Assert.assertEquals(result, "{\"stoppable\":false,\"failedChecks\":[\"HELIX:check\"]}");
+    Assert.assertEquals(mapper.readTree(result), mapper.readTree("{\"stoppable\":false,\"failedChecks\":[\"HELIX:check\"]}"));
   }
 
   @Test

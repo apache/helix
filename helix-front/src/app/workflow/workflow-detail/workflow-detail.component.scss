@@ -1,0 +1,19 @@
+@use '@angular/material' as mat;
+
+.content {
+  padding: 20px;
+}
+
+.state-default {
+  color: mat.get-color-from-palette(
+    mat.define-palette(mat.$deep-orange-palette)
+  );
+}
+
+.state-COMPLETED {
+  color: mat.get-color-from-palette(mat.define-palette(mat.$green-palette));
+}
+
+.state-PENDING {
+  color: mat.get-color-from-palette(mat.define-palette(mat.$grey-palette));
+}

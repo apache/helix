@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
@@ -302,35 +303,7 @@ public class MockHelixAdmin implements HelixAdmin {
 
   @Override
   public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
-    enableInstance(clusterName, instances, enabled, null, null);
-  }
 
-  @Override
-  public void enableInstance(String clusterName, List<String> instances, boolean enabled,
-      InstanceConstants.InstanceDisabledType disabledType, String reason) {
-
-    String path = PropertyPathBuilder.clusterConfig(clusterName);
-
-    if (!_baseDataAccessor.exists(path, 0)) {
-      _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
-    }
-
-    ZNRecord record = (ZNRecord) _baseDataAccessor.get(path, null, 0);
-    ClusterConfig clusterConfig = new ClusterConfig(record);
-
-    Map<String, String> disabledInstances = new TreeMap<>();
-    if (clusterConfig.getDisabledInstances() != null) {
-      disabledInstances.putAll(clusterConfig.getDisabledInstances());
-    }
-    if (enabled) {
-      disabledInstances.keySet().removeAll(instances);
-    } else {
-      for (String disabledInstance : instances) {
-        disabledInstances
-            .put(disabledInstance, assembleInstanceBatchedDisabledInfo(disabledType, reason));
-      }
-    }
-    clusterConfig.setDisabledInstances(disabledInstances);
   }
 
   @Override

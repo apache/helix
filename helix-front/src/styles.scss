@@ -1,0 +1,45 @@
+// Material Icons & Fonts
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic');
+
+// ngx-vis styles (vis styles)
+@import '~vis-network/styles/vis-network.min.css';
+
+// ngx-datatable styles
+@import '~@swimlane/ngx-datatable/index.css';
+@import '~@swimlane/ngx-datatable/themes/material.css';
+@import '~@swimlane/ngx-datatable/assets/icons.css';
+// with overrides
+.ngx-datatable.material {
+  &.single-selection,
+  &.multi-selection,
+  &.multi-click-selection {
+    .datatable-body-row {
+      // use hand cursor for selectable rows
+      cursor: pointer;
+
+      &.active,
+      &.active .datatable-row-group {
+        background-color: #0077b5 !important;
+
+        .datatable-body-cell {
+          color: #fff !important;
+        }
+      }
+    }
+  }
+  // .datatable-body {
+  //   .datatable-body-row {
+  //     .datatable-body-cell {
+  //       line-height: 40px;
+  //     }
+  //   }
+  // }
+}
+
+body {
+  font-family: Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+}

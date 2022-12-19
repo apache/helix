@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
 
+import java.util.Set;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.TaskConfig;
@@ -74,19 +75,16 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
   public Map<String, TaskAssignResult> assignTasks(
       AssignableInstanceManager assignableInstanceManager, Collection<String> instances,
       Iterable<TaskConfig> tasks, String quotaType) {
-    Iterable<AssignableInstance> assignableInstances = new HashSet<>();
+    Set<AssignableInstance> assignableInstances = new HashSet<>();
     // Only add the AssignableInstances that are also in instances
     for (String instance : instances) {
-      ((HashSet<AssignableInstance>) assignableInstances)
-          .add(assignableInstanceManager.getAssignableInstance(instance));
+      assignableInstances.add(assignableInstanceManager.getAssignableInstance(instance));
     }
 
     if (tasks == null || !tasks.iterator().hasNext()) {
-      logger.warn("No task to assign!");
       return Collections.emptyMap();
     }
-    if (assignableInstances == null || !assignableInstances.iterator().hasNext()) {
-      logger.warn("No instance to assign!");
+    if (assignableInstances.isEmpty()) {
       return buildNoInstanceAssignment(tasks, quotaType);
     }
     if (quotaType == null || quotaType.equals("") || quotaType.equals("null")) {
@@ -148,7 +146,7 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
     return result;
   }
 
-  private class AssignableInstanceComparator implements Comparator<AssignableInstance> {
+  private static class AssignableInstanceComparator implements Comparator<AssignableInstance> {
 
     /**
      * Resource type this comparator needs to compare

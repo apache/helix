@@ -1,0 +1,49 @@
+@use '@angular/material' as mat;
+
+.secondary {
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.tag {
+  padding-left: 10px;
+
+  span {
+    color: #fff;
+    font-size: 12px;
+    line-height: 12px;
+    text-transform: uppercase;
+    font-weight: normal;
+    border-radius: 24px;
+    padding: 6px 8px;
+  }
+
+  .cluster {
+    background-color: mat.get-color-from-palette(
+      mat.define-palette(mat.$indigo-palette)
+    );
+  }
+
+  .controller {
+    background-color: mat.get-color-from-palette(
+      mat.define-palette(mat.$purple-palette)
+    );
+  }
+
+  .resource {
+    background-color: mat.get-color-from-palette(
+      mat.define-palette(mat.$teal-palette)
+    );
+  }
+
+  .instance {
+    background-color: mat.get-color-from-palette(
+      mat.define-palette(mat.$blue-palette)
+    );
+  }
+
+  .workflow {
+    background-color: mat.get-color-from-palette(
+      mat.define-palette(mat.$deep-orange-palette)
+    );
+  }
+}

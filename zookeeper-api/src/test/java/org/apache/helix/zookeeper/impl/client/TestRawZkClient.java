@@ -89,6 +89,135 @@ public class TestRawZkClient extends ZkTestBase {
     _zkClient.close();
   }
 
+  @Test
+  void testUnimplementedTypes() {
+    // Make sure extended types are disabled
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/unimplemented";
+    _zkClient.deleteRecursively(parentPath);
+
+    try {
+      long ttl = 1L;
+      _zkClient.createPersistentWithTTL(path, true, ttl);
+    } catch (ZkException e) {
+      AssertJUnit.assertTrue(e.getCause() instanceof KeeperException.UnimplementedException);
+      return;
+    }
+
+    // Clean up
+    _zkClient.deleteRecursively(parentPath);
+    AssertJUnit.fail();
+  }
+
+  @Test
+  void testCreatePersistentWithTTL() {
+    // Enable extended types and create a ZkClient
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/createTTL";
+    zkClient.deleteRecursively(parentPath);
+    AssertJUnit.assertFalse(zkClient.exists(parentPath));
+    AssertJUnit.assertFalse(zkClient.exists(path));
+
+    long ttl = 1L;
+    ZNRecord record = new ZNRecord("record");
+    String key = "key";
+    String value = "value";
+    record.setSimpleField(key, value);
+
+    // Create a ZNode with the above ZNRecord and read back its data
+    zkClient.createPersistentWithTTL(parentPath, record, ttl);
+    AssertJUnit.assertTrue(zkClient.exists(parentPath));
+    ZNRecord retrievedRecord = zkClient.readData(parentPath);
+    AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
+
+    // Clear the path and test with createParents = true
+    AssertJUnit.assertTrue(zkClient.delete(parentPath));
+    zkClient.createPersistentWithTTL(path, true, ttl);
+    AssertJUnit.assertTrue(zkClient.exists(path));
+
+    // Clean up
+    zkClient.deleteRecursively(parentPath);
+    zkClient.close();
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+  }
+
+  @Test
+  void testCreatePersistentSequentialWithTTL() {
+    // Enable extended types and create a ZkClient
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/createSequentialTTL";
+    zkClient.deleteRecursively(parentPath);
+    AssertJUnit.assertFalse(zkClient.exists(parentPath));
+    AssertJUnit.assertFalse(zkClient.exists(path + "0000000000"));
+
+    long ttl = 1L;
+    ZNRecord record = new ZNRecord("record");
+    String key = "key";
+    String value = "value";
+    record.setSimpleField(key, value);
+
+    // Create a ZNode with the above ZNRecord and read back its data
+    zkClient.createPersistent(parentPath);
+    zkClient.createPersistentSequentialWithTTL(path, record, ttl);
+    AssertJUnit.assertTrue(zkClient.exists(path + "0000000000"));
+    ZNRecord retrievedRecord = zkClient.readData(path + "0000000000");
+    AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
+
+    // Clean up
+    zkClient.deleteRecursively(parentPath);
+    zkClient.close();
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+  }
+
+  @Test
+  void testCreateContainer() {
+    // Enable extended types and create a ZkClient
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/createContainer";
+    zkClient.deleteRecursively(parentPath);
+    AssertJUnit.assertFalse(zkClient.exists(parentPath));
+    AssertJUnit.assertFalse(zkClient.exists(path));
+
+    ZNRecord record = new ZNRecord("record");
+    String key = "key";
+    String value = "value";
+    record.setSimpleField(key, value);
+
+    // Create a ZNode with the above ZNRecord and read back its data
+    zkClient.createContainer(parentPath, record);
+    AssertJUnit.assertTrue(zkClient.exists(parentPath));
+    ZNRecord retrievedRecord = zkClient.readData(parentPath);
+    AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
+
+    // Clear the path and test with createParents = true
+    AssertJUnit.assertTrue(zkClient.delete(parentPath));
+    zkClient.createContainer(path, true);
+    AssertJUnit.assertTrue(zkClient.exists(path));
+
+    // Clean up
+    zkClient.deleteRecursively(parentPath);
+    zkClient.close();
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+  }
+
   @Test()
   void testGetStat() {
     String path = "/tmp/getStatTest";
@@ -934,23 +1063,29 @@ public class TestRawZkClient extends ZkTestBase {
    * Tests getChildren() when there are an excessive number of children and connection loss happens,
    * the operation should terminate and exit retry loop.
    */
-  @Test(timeOut = 30 * 1000L)
+  @Test
   public void testGetChildrenOnLargeNumChildren() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
     System.out.println("Start test: " + methodName);
     // Create 110K children to make packet length of children exceed 4 MB
     // and cause connection loss for getChildren() operation
     String path = "/" + methodName;
+    int numOps = 110;
+    int numOpInOps = 1000;
+    // All the paths that are going to be created as children nodes, plus one parent node
+    // Record paths so can be deleted at the end of the test
+    String[] nodePaths = new String[numOps * numOpInOps + 1];
+    nodePaths[numOps * numOpInOps] = path;
 
     _zkClient.createPersistent(path);
 
-    for (int i = 0; i < 110; i++) {
-      List<Op> ops = new ArrayList<>(1000);
-      for (int j = 0; j < 1000; j++) {
+    for (int i = 0; i < numOps; i++) {
+      List<Op> ops = new ArrayList<>(numOpInOps);
+      for (int j = 0; j < numOpInOps; j++) {
         String childPath = path + "/" + UUID.randomUUID().toString();
-        // Create ephemeral nodes so closing zkClient deletes them for cleanup
+        nodePaths[numOpInOps * i + j] = childPath;
         ops.add(
-            Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
+            Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
       }
       // Reduce total creation time by batch creating znodes
       _zkClient.multi(ops);
@@ -969,11 +1104,14 @@ public class TestRawZkClient extends ZkTestBase {
       _zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
 
       Assert.assertTrue(TestHelper.verify(() -> {
-        try {
-          return _zkClient.delete(path);
-        } catch (ZkException e) {
-          return false;
+        for (String toDelete: nodePaths) {
+          try {
+            _zkClient.delete(toDelete);
+          } catch (ZkException e) {
+            return false;
+          }
         }
+        return true;
       }, TestHelper.WAIT_DURATION));
     }
     System.out.println("End test: " + methodName);

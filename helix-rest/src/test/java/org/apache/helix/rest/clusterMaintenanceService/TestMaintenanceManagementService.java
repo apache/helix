@@ -176,6 +176,7 @@ public class TestMaintenanceManagementService {
     Assert.assertEquals(actual.getFailedChecks().size(), expectedFailedChecksSize);
     Assert.assertEquals(actual.getFailedChecks().get(0), expectedFailedCheck);
   }
+
   @Test
   public void testCustomPartitionCheckWithSkipZKRead() throws IOException {
     // Let ZK result is health, but http request is unhealthy.
@@ -256,7 +257,7 @@ public class TestMaintenanceManagementService {
     Assert.assertEquals(instanceInfo2.getOperationResult(), "DummyTakeOperationResult");
   }
 
-    /*
+  /*
    * Tests stoppable check api when all checks query is enabled. After helix own check fails,
    * the subsequent checks should be performed.
    */
@@ -294,6 +295,7 @@ public class TestMaintenanceManagementService {
     verify(_customRestClient, times(2))
         .getPartitionStoppableCheck(anyString(), nullable(List.class), anyMap());
   }
+
   // TODO re-enable the test when partition health checks get decoupled
   @Test(enabled = false)
   public void testGetInstanceStoppableCheckWhenPartitionsCheckFail() throws IOException {

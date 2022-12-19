@@ -45,7 +45,6 @@ import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
@@ -236,18 +235,6 @@ public class TestMultiZkHelixJavaApis {
       } else {
         System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
       }
-    }
-
-    boolean status = false;
-    try {
-      status = ThreadLeakageChecker.afterClassCheck(testClassName);
-    } catch (Exception e) {
-      LOG.error("ThreadLeakageChecker exception:", e);
-    }
-    // todo: We should fail test here once we achieved 0 leakage and remove the following System print
-    if (!status) {
-      System.out.println(
-          "---------- Test Class " + testClassName + " thread leakage detected! ---------------");
     }
   }
 
@@ -716,7 +703,7 @@ public class TestMultiZkHelixJavaApis {
   public void testGenericBaseDataAccessorBuilder() {
     // Custom session timeout value is used to count active connections in SharedZkClientFactory
     int customSessionTimeout = 10000;
-    String firstZkAddress = "localhost:8777"; // has "CLUSTER_1"
+    String firstZkAddress = ZK_PREFIX + ZK_START_PORT; // has "CLUSTER_1"
     String firstClusterPath = "/CLUSTER_1";
     String secondClusterPath = "/CLUSTER_2";
     ZkBaseDataAccessor.Builder<ZNRecord> zkBaseDataAccessorBuilder =

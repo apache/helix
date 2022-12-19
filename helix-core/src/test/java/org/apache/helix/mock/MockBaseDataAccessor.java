@@ -68,6 +68,11 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   }
 
   @Override
+  public boolean create(String path, ZNRecord record, int options, long ttl) {
+    return set(path, record, options);
+  }
+
+  @Override
   public boolean set(String path, ZNRecord record, int options) {
     ZNode zNode = _recordMap.get(path);
     if (zNode == null) {
@@ -109,6 +114,12 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   @Override
   public boolean[] createChildren(List<String> paths, List<ZNRecord> records,
       int options) {
+    return setChildren(paths, records, options);
+  }
+
+  @Override
+  public boolean[] createChildren(List<String> paths, List<ZNRecord> records,
+      int options, long ttl) {
     return setChildren(paths, records, options);
   }
 

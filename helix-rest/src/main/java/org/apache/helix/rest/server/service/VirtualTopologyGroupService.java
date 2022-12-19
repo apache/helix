@@ -89,11 +89,6 @@ public class VirtualTopologyGroupService {
    */
   public void addVirtualTopologyGroup(String clusterName, Map<String, String> customFields) {
     // validation
-    CloudConfig cloudConfig = _configAccessor.getCloudConfig(clusterName);
-    if (cloudConfig == null || !cloudConfig.isCloudEnabled()) {
-      throw new HelixException(
-          "Cloud is not enabled, addVirtualTopologyGroup is not allowed to run in non-cloud environment.");
-    }
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     Preconditions.checkState(clusterConfig.isTopologyAwareEnabled(),
         "Topology-aware rebalance is not enabled in cluster " + clusterName);

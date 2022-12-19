@@ -4,7 +4,6 @@ import { UserCtrl } from './controllers/user';
 import { HelixCtrl } from './controllers/helix';
 
 export default function setRoutes(app) {
-
   const router = express.Router();
 
   const userCtrl = new UserCtrl(router);
@@ -15,6 +14,6 @@ export default function setRoutes(app) {
 
   /* GET /admin to check app health. */
   app.get('/admin', (req, res, next) => {
-      res.status(200).send("GOOD");
+    res.status(200).send('GOOD');
   });
 }

@@ -1,0 +1,20 @@
+.mat-sidenav {
+  width: 25vw;
+  min-width: 200px;
+}
+
+.toggle-button {
+  position: fixed;
+  top: 50%;
+  z-index: 3;
+  transition: all 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+
+  &.open {
+    left: calc(25vw - 20px);
+  }
+
+  &.close {
+    left: -15px;
+  }
+}

@@ -21,7 +21,7 @@
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.1.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
@@ -31,14 +31,27 @@
 
   <url>https://helix.apache.org</url>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <organization>
+    <name>Apache Software Foundation</name>
+    <url>https://www.apache.org</url>
+  </organization>
+
   <modules>
     <module>0.9.9</module>
-    <module>1.0.2</module>
-    <module>1.0.3</module>
+    <module>1.1.0</module>
+    <module>1.0.4</module>
   </modules>
 
   <properties>
-
+    <revision>1.1.1-SNAPSHOT</revision>
     <!-- for svnpubsub site deployment -->
     <!-- you can use javasvn too -->
     <svnImpl>svn</svnImpl>

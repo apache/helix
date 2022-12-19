@@ -1,0 +1,116 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<section *ngIf="clusterName" class="cluster-detail" fxLayout="column" fxFill>
+  <mat-toolbar class="mat-elevation-z1" fxFlex="none">
+    <mat-toolbar-row>
+      <hi-detail-header [cluster]="clusterName"></hi-detail-header>
+      <hi-disabled-label
+        *ngIf="!cluster?.enabled"
+        text="DISABLED"
+      ></hi-disabled-label>
+      <hi-disabled-label
+        *ngIf="cluster?.inMaintenance"
+        text="In Maintenance Mode"
+      ></hi-disabled-label>
+    </mat-toolbar-row>
+    <mat-toolbar-row class="information">
+      <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>
+      <h6 *ngIf="!isLoading">
+        Controller:
+        <a mat-button color="accent" routerLink="controller">{{
+          cluster.controller
+        }}</a>
+      </h6>
+      <span fxFlex="1 1 auto"></span>
+      <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <button
+          mat-menu-item
+          *ngIf="cluster?.controller === 'No Lead Controller!'"
+          (click)="activateCluster()"
+        >
+          <mat-icon>settings_input_antenna</mat-icon>
+          <span>Activate this Cluster</span>
+        </button>
+        <button
+          mat-menu-item
+          *ngIf="!cluster?.inMaintenance"
+          (click)="enableMaintenanceMode()"
+        >
+          <mat-icon>music_off</mat-icon>
+          <span>Enable maintenance mode</span>
+        </button>
+        <button
+          mat-menu-item
+          *ngIf="cluster?.inMaintenance"
+          (click)="disableMaintenanceMode()"
+        >
+          <mat-icon>music_note</mat-icon>
+          <span>Disable maintenance mode</span>
+        </button>
+        <button
+          mat-menu-item
+          *ngIf="cluster?.enabled"
+          (click)="disableCluster()"
+        >
+          <mat-icon>not_interested</mat-icon>
+          <span>Disable this Cluster</span>
+        </button>
+        <button
+          mat-menu-item
+          *ngIf="!cluster?.enabled"
+          (click)="enableCluster()"
+        >
+          <mat-icon>play_circle_outline</mat-icon>
+          <span>Enable this Cluster</span>
+        </button>
+        <button mat-menu-item *ngIf="false" (click)="addResource()">
+          <mat-icon>note_add</mat-icon>
+          <span>Add a Resource</span>
+        </button>
+        <button mat-menu-item (click)="addInstance()">
+          <mat-icon>add_circle</mat-icon>
+          <span>Add an Instance</span>
+        </button>
+        <button mat-menu-item (click)="deleteCluster()">
+          <mat-icon>delete</mat-icon>
+          <span>DELETE this Cluster</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar-row>
+  </mat-toolbar>
+  <nav mat-tab-nav-bar>
+    <a
+      mat-tab-link
+      *ngFor="let tabLink of tabLinks"
+      [routerLink]="tabLink.link"
+      routerLinkActive
+      #rla="routerLinkActive"
+      [active]="rla.isActive"
+    >
+      {{ tabLink.label }}
+    </a>
+  </nav>
+  <section fxFlex>
+    <router-outlet></router-outlet>
+  </section>
+</section>

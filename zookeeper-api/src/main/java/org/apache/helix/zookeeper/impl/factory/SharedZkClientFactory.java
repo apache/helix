@@ -194,12 +194,17 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
     @Override
     public String create(final String path, Object datat, final List<ACL> acl,
         final CreateMode mode) {
+      return create(path, datat, acl, mode, TTL_NOT_SET);
+    }
+    @Override
+    public String create(final String path, Object datat, final List<ACL> acl,
+        final CreateMode mode, long ttl) {
       if (mode.isEphemeral()) {
         throw new UnsupportedOperationException(
             "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
                 + " is not supported.");
       }
-      return super.create(path, datat, acl, mode);
+      return super.create(path, datat, acl, mode, ttl);
     }
 
     @Override

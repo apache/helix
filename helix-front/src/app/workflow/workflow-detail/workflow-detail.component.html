@@ -1,0 +1,112 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<mat-toolbar class="mat-elevation-z1">
+  <mat-toolbar-row>
+    <hi-detail-header
+      [cluster]="clusterName"
+      [workflow]="workflow?.name"
+    ></hi-detail-header>
+    <hi-disabled-label
+      *ngIf="!isLoading && workflow.state !== 'IN_PROGRESS'"
+      [text]="workflow.state"
+    ></hi-disabled-label>
+  </mat-toolbar-row>
+  <mat-toolbar-row class="information">
+    <a mat-mini-fab routerLink="../"><mat-icon>arrow_back</mat-icon></a>
+    <hi-key-value-pairs [obj]="workflow">
+      <hi-key-value-pair
+        name="Capacity"
+        prop="config.capacity"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Target State"
+        prop="config.TargetState"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Terminable"
+        prop="config.Terminable"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Parallel Jobs"
+        prop="config.ParallelJobs"
+      ></hi-key-value-pair>
+      <hi-key-value-pair
+        name="Failure Threshold"
+        prop="config.FailureThreshold"
+      ></hi-key-value-pair>
+      <hi-key-value-pair name="Expiry" prop="config.Expiry"></hi-key-value-pair>
+    </hi-key-value-pairs>
+    <span fxFlex="1 1 auto"></span>
+    <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <mat-menu #menu="matMenu">
+      <button mat-menu-item (click)="stopWorkflow()">
+        <mat-icon>pause_circle_outline</mat-icon>
+        <span>Pause this Workflow</span>
+      </button>
+      <button mat-menu-item (click)="resumeWorkflow()">
+        <mat-icon>play_circle_outline</mat-icon>
+        <span>Resume this workflow</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar-row>
+</mat-toolbar>
+<section fxLayout="column" fxLayoutAlign="center center">
+  <mat-spinner *ngIf="isLoading"></mat-spinner>
+  <section
+    *ngIf="!isLoading"
+    class="content"
+    fxLayout="column"
+    fxLayoutAlign="center center"
+    fxLayoutGap="10px"
+    fxFlexFill
+  >
+    <mat-button-toggle-group #group="matButtonToggleGroup" [value]="'list'">
+      <mat-button-toggle *ngIf="!workflow.isJobQueue" value="graph">
+        Graph View
+      </mat-button-toggle>
+      <mat-button-toggle value="list"> List View </mat-button-toggle>
+      <mat-button-toggle value="json"> JSON View </mat-button-toggle>
+    </mat-button-toggle-group>
+    <section
+      class="viewer"
+      [ngSwitch]="group.value"
+      fxLayout="column"
+      fxLayoutAlign="center center"
+      fxFill
+    >
+      <hi-workflow-dag
+        *ngSwitchCase="'graph'"
+        [workflow]="workflow"
+      ></hi-workflow-dag>
+      <hi-job-list
+        *ngSwitchCase="'list'"
+        [jobs]="workflow.jobs"
+        fxFill
+      ></hi-job-list>
+      <ngx-json-viewer
+        *ngSwitchCase="'json'"
+        [json]="workflow.json"
+        fxFill
+      ></ngx-json-viewer>
+    </section>
+  </section>
+</section>

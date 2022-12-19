@@ -459,10 +459,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           String state = instanceStateMap.get(instance);
           PerInstanceResourceMonitor.BeanName beanName =
               new PerInstanceResourceMonitor.BeanName(_clusterName, instance, resource);
-          if (!beanMap.containsKey(beanName)) {
-            beanMap.put(beanName, new HashMap<Partition, String>());
-          }
-          beanMap.get(beanName).put(partition, state);
+          beanMap.computeIfAbsent(beanName, k -> new HashMap<>()).put(partition, state);
         }
       }
     }

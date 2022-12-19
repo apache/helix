@@ -19,12 +19,12 @@ package org.apache.helix.common;
  * under the License.
  */
 
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +44,6 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -61,7 +60,6 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -71,7 +69,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -79,26 +76,19 @@ import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.zkclient.IZkStateListener;
-import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.testng.AssertJUnit;
 import org.testng.ITestContext;
 import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
 public class ZkTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(ZkTestBase.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZkTestBase.class);
   private static final String MULTI_ZK_PROPERTY_KEY = "multiZk";
   private static final String NUM_ZK_PROPERTY_KEY = "numZk";
 
@@ -108,7 +98,7 @@ public class ZkTestBase {
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
   protected static MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
 
-  private Map<String, Map<String, HelixZkClient>> _liveInstanceOwners = new HashMap<>();
+  private final Map<String, Map<String, HelixZkClient>> _liveInstanceOwners = new HashMap<>();
 
   private static final String ZK_PREFIX = "localhost:";
   private static final int ZK_START_PORT = 2183;
@@ -123,10 +113,10 @@ public class ZkTestBase {
    * Multiple ZK references
    */
   // The following maps hold ZK connect string as keys
-  protected Map<String, ZkServer> _zkServerMap = new HashMap<>();
-  protected Map<String, HelixZkClient> _helixZkClientMap = new HashMap<>();
-  protected Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
-  protected Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
+  protected static final Map<String, ZkServer> _zkServerMap = new HashMap<>();
+  protected static final Map<String, HelixZkClient> _helixZkClientMap = new HashMap<>();
+  protected static final Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
+  protected static final Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
 
   static public void reportPhysicalMemory() {
     com.sun.management.OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean)
@@ -143,7 +133,6 @@ public class ZkTestBase {
 
   @BeforeSuite
   public void beforeSuite() throws Exception {
-    reportPhysicalMemory();
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
@@ -195,22 +184,27 @@ public class ZkTestBase {
    * @param i index to be added to the ZK port to avoid conflicts
    * @throws Exception
    */
-  private void startZooKeeper(int i)
-      throws Exception {
+  private static synchronized void startZooKeeper(int i) {
     String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
-    ZkServer zkServer = TestHelper.startZkServer(zkAddress);
-    AssertJUnit.assertNotNull(zkServer);
+    _zkServerMap.computeIfAbsent(zkAddress, ZkTestBase::createZookeeperServer);
+    _helixZkClientMap.computeIfAbsent(zkAddress, ZkTestBase::createZkClient);
+    _clusterSetupMap.computeIfAbsent(zkAddress, key -> new ClusterSetup(_helixZkClientMap.get(key)));
+    _baseDataAccessorMap.computeIfAbsent(zkAddress, key -> new ZkBaseDataAccessor(_helixZkClientMap.get(key)));
+  }
+
+  private static ZkServer createZookeeperServer(String zkAddress) {
+    try {
+      return Preconditions.checkNotNull(TestHelper.startZkServer(zkAddress));
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Failed to start zookeeper server at " + zkAddress, e);
+    }
+  }
+
+  private static HelixZkClient createZkClient(String zkAddress) {
     HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
     clientConfig.setZkSerializer(new ZNRecordSerializer());
-    HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+    return DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
-    ClusterSetup gSetupTool = new ClusterSetup(zkClient);
-    BaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
-
-    _zkServerMap.put(zkAddress, zkServer);
-    _helixZkClientMap.put(zkAddress, zkClient);
-    _clusterSetupMap.put(zkAddress, gSetupTool);
-    _baseDataAccessorMap.put(zkAddress, baseDataAccessor);
   }
 
   @AfterSuite
@@ -224,17 +218,17 @@ public class ZkTestBase {
       }
     }
 
-    // Close all ZK resources
-    _baseDataAccessorMap.values().forEach(BaseDataAccessor::close);
-    _clusterSetupMap.values().forEach(ClusterSetup::close);
-    _helixZkClientMap.values().forEach(HelixZkClient::close);
-    _zkServerMap.values().forEach(TestHelper::stopZkServer);
+    synchronized (ZkTestBase.class) {
+      // Close all ZK resources
+      _baseDataAccessorMap.values().forEach(BaseDataAccessor::close);
+      _clusterSetupMap.values().forEach(ClusterSetup::close);
+      _helixZkClientMap.values().forEach(HelixZkClient::close);
+      _zkServerMap.values().forEach(TestHelper::stopZkServer);
+    }
   }
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("BeforeClass: " + testClassName + " called.");
     cleanupJMXObjects();
     // Giving each test some time to settle (such as gc pause, etc).
     // Note that this is the best effort we could make to stabilize tests, not a complete solution
@@ -244,17 +238,7 @@ public class ZkTestBase {
 
   @BeforeMethod
   public void beforeTest(Method testMethod, ITestContext testContext) {
-    long startTime = System.currentTimeMillis();
-    System.out.println("START " + getShortClassName() + " " + testMethod.getName() + " at " + new Date(startTime));
     testContext.setAttribute("StartTime", System.currentTimeMillis());
-  }
-
-  @AfterMethod
-  public void endTest(Method testMethod, ITestContext testContext) {
-    Long startTime = (Long) testContext.getAttribute("StartTime");
-    long endTime = System.currentTimeMillis();
-    System.out.println("END " + getShortClassName() + " " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
-        + (endTime - startTime) + "ms.");
   }
 
   protected void cleanupJMXObjects() throws IOException {
@@ -282,47 +266,6 @@ public class ZkTestBase {
       return null;
     }
     return leader.getInstanceName();
-  }
-
-  protected void stopCurrentLeader(HelixZkClient zkClient, String clusterName,
-      Map<String, Thread> threadMap, Map<String, HelixManager> managerMap) {
-    String leader = getCurrentLeader(zkClient, clusterName);
-    Assert.assertTrue(leader != null);
-    System.out.println("stop leader:" + leader + " in " + clusterName);
-    Assert.assertTrue(leader != null);
-
-    HelixManager manager = managerMap.remove(leader);
-    Assert.assertTrue(manager != null);
-    manager.disconnect();
-
-    Thread thread = threadMap.remove(leader);
-    Assert.assertTrue(thread != null);
-    thread.interrupt();
-
-    boolean isNewLeaderElected = false;
-    try {
-      // Thread.sleep(2000);
-      for (int i = 0; i < 5; i++) {
-        Thread.sleep(1000);
-        String newLeader = getCurrentLeader(zkClient, clusterName);
-        if (!newLeader.equals(leader)) {
-          isNewLeaderElected = true;
-          System.out.println("new leader elected: " + newLeader + " in " + clusterName);
-          break;
-        }
-      }
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    if (!isNewLeaderElected) {
-      System.out.println("fail to elect a new leader elected in " + clusterName);
-    }
-    AssertJUnit.assertTrue(isNewLeaderElected);
-  }
-
-  protected void enableHealthCheck(String clusterName) {
-    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName).build();
-    new ConfigAccessor(_gZkClient).set(scope, "healthChange" + ".enabled", "" + true);
   }
 
   protected void enablePersistBestPossibleAssignment(HelixZkClient zkClient, String clusterName,
@@ -560,14 +503,14 @@ public class ZkTestBase {
     String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     String instanceConfigPath = instanceConfigsPath + "/" + instance;
     String instancePath = PropertyPathBuilder.instance(clusterName, instance);
-    AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
-    AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
+    Assert.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
+    Assert.assertEquals(wantExists, zkClient.exists(instancePath));
   }
 
   public void verifyResource(HelixZkClient zkClient, String clusterName, String resource,
       boolean wantExists) {
     String resourcePath = PropertyPathBuilder.idealState(clusterName, resource);
-    AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
+    Assert.assertEquals(wantExists, zkClient.exists(resourcePath));
   }
 
   public void verifyEnabled(HelixZkClient zkClient, String clusterName, String instance,
@@ -577,7 +520,7 @@ public class ZkTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
-    AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
+    Assert.assertEquals(wantEnabled, config.getInstanceEnabled());
   }
 
   public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource,
@@ -589,77 +532,11 @@ public class ZkTestBase {
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
     for (String partitionName : idealState.getPartitionSet()) {
       if (idealState.getRebalanceMode() == IdealState.RebalanceMode.SEMI_AUTO) {
-        AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
+        Assert.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
       } else if (idealState.getRebalanceMode() == IdealState.RebalanceMode.CUSTOMIZED) {
-        AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
+        Assert.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
       }
     }
-  }
-
-  protected void simulateSessionExpiry(ZkConnection zkConnection)
-      throws IOException, InterruptedException {
-    ZooKeeper oldZookeeper = zkConnection.getZookeeper();
-    LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
-
-    Watcher watcher = new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        LOG.info("In New connection, process event:" + event);
-      }
-    };
-
-    ZooKeeper newZookeeper =
-        new ZooKeeper(zkConnection.getServers(), oldZookeeper.getSessionTimeout(), watcher,
-            oldZookeeper.getSessionId(), oldZookeeper.getSessionPasswd());
-    LOG.info("New sessionId = " + newZookeeper.getSessionId());
-    // Thread.sleep(3000);
-    newZookeeper.close();
-    Thread.sleep(10000);
-    oldZookeeper = zkConnection.getZookeeper();
-    LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
-  }
-
-  protected void simulateSessionExpiry(HelixZkClient client)
-      throws IOException, InterruptedException, IOException {
-    ZkClient zkClient = (ZkClient) client;
-
-    IZkStateListener listener = new IZkStateListener() {
-      @Override
-      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
-        LOG.info("In Old connection, state changed:" + state);
-      }
-
-      @Override
-      public void handleNewSession(final String sessionId) throws Exception {
-        LOG.info("In Old connection, new session: {}.", sessionId);
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable var1) throws Exception {
-      }
-    };
-    zkClient.subscribeStateChanges(listener);
-    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
-    ZooKeeper oldZookeeper = connection.getZookeeper();
-    LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
-
-    Watcher watcher = new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        LOG.info("In New connection, process event:" + event);
-      }
-    };
-
-    ZooKeeper newZookeeper =
-        new ZooKeeper(connection.getServers(), oldZookeeper.getSessionTimeout(), watcher,
-            oldZookeeper.getSessionId(), oldZookeeper.getSessionPasswd());
-    LOG.info("New sessionId = " + newZookeeper.getSessionId());
-    // Thread.sleep(3000);
-    newZookeeper.close();
-    Thread.sleep(10000);
-    connection = (ZkConnection) zkClient.getConnection();
-    oldZookeeper = connection.getZookeeper();
-    LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
   protected void setupStateModel(String clusterName) {
@@ -738,17 +615,6 @@ public class ZkTestBase {
       clientMap.clear();
     }
     _liveInstanceOwners.clear();
-
-    boolean status = false;
-    try {
-      status = ThreadLeakageChecker.afterClassCheck(testClassName);
-    } catch (Exception e) {
-      LOG.error("ThreadLeakageChecker exception:", e);
-    }
-    // todo: We should fail test here once we achieved 0 leakage and remove the following System print
-    if (!status) {
-      System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
-    }
   }
 
   protected List<LiveInstance> setupLiveInstances(String clusterName, int[] liveInstances) {
@@ -948,7 +814,7 @@ public class ZkTestBase {
 
     @Override
     public ZkClient getZkClient() {
-      return (ZkClient) _gZkClient;
+      return (ZkClient) _zkClient;
     }
 
     @Override

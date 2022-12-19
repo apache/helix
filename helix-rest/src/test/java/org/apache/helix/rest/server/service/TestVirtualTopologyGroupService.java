@@ -83,13 +83,6 @@ public class TestVirtualTopologyGroupService {
     clusterConfig.setTopologyAwareEnabled(true);
     when(_configAccessor.getClusterConfig(TEST_CLUSTER0)).thenReturn(clusterConfig);
 
-    CloudConfig.Builder cloudConfigBuilder = new CloudConfig.Builder();
-    cloudConfigBuilder.setCloudEnabled(true);
-    cloudConfigBuilder.setCloudProvider(CloudProvider.AZURE);
-    cloudConfigBuilder.setCloudID("TestID");
-    CloudConfig cloudConfig = cloudConfigBuilder.build();
-    when(_configAccessor.getCloudConfig(TEST_CLUSTER0)).thenReturn(cloudConfig);
-
     _helixAdmin = mock(HelixAdmin.class);
     when(_helixAdmin.isInMaintenanceMode(anyString())).thenReturn(true);
 
@@ -101,10 +94,10 @@ public class TestVirtualTopologyGroupService {
     _service = new VirtualTopologyGroupService(_helixAdmin, clusterService, _configAccessor, _dataAccessor);
   }
 
-  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Cloud is not enabled.*")
-  public void testClusterCloudConfigSetup() {
-    ClusterConfig clusterConfig1 = new ClusterConfig(TEST_CLUSTER1);
-    when(_configAccessor.getClusterConfig(TEST_CLUSTER1)).thenReturn(clusterConfig1);
+  @Test(expectedExceptions = IllegalStateException.class,
+      expectedExceptionsMessageRegExp = "Topology-aware rebalance is not enabled.*")
+  public void testTopologyAwareEnabledSetup() {
+    when(_configAccessor.getClusterConfig(TEST_CLUSTER1)).thenReturn(new ClusterConfig(TEST_CLUSTER1));
     _service.addVirtualTopologyGroup(TEST_CLUSTER1, ImmutableMap.of(GROUP_NAME, "test-group", GROUP_NUMBER, "2"));
   }
 

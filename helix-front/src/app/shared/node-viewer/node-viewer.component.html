@@ -1,0 +1,307 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<section
+  class="node-viewer"
+  fxLayout="column"
+  fxLayoutAlign="center center"
+  fxLayoutGap="10px"
+>
+  <mat-progress-bar
+    *ngIf="loadingIndicator"
+    mode="indeterminate"
+  ></mat-progress-bar>
+  <mat-button-toggle-group #group="matButtonToggleGroup" value="table">
+    <mat-button-toggle value="table"> Table View </mat-button-toggle>
+    <mat-button-toggle value="tree"> Tree View </mat-button-toggle>
+    <mat-button-toggle value="json"> JSON View </mat-button-toggle>
+  </mat-button-toggle-group>
+  <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
+    <ngx-json-viewer *ngSwitchCase="'tree'" [json]="obj"></ngx-json-viewer>
+    <ace-editor
+      *ngSwitchCase="'json'"
+      [(text)]="objString"
+      mode="json"
+      theme="chrome"
+      [options]="{ useWorker: false }"
+      style="min-height: 300px"
+      #editor
+    >
+    </ace-editor>
+    <section *ngSwitchCase="'table'">
+      <!-- TODO vxu: use mat-simple-table when it's available -->
+
+      <section fxLayout="row" fxLayoutAlign="center center">
+        <span fxFlex="1 1 auto"></span>
+        <mat-icon>search</mat-icon>
+        <mat-form-field class="search-form-field">
+          <input
+            matInput
+            placeholder="Type to filter the fields..."
+            (keyup)="updateFilter($event)"
+          />
+        </mat-form-field>
+        <span fxFlex="1 1 auto"></span>
+        <!-- *ngIf="unlockable" -->
+        <button
+          mat-button
+          (click)="editable = !editable"
+          [matTooltip]="
+            editable
+              ? 'Click to prevent further changes'
+              : 'Click to make changes'
+          "
+        >
+          <mat-icon>{{ editable ? 'lock_open' : 'lock' }}</mat-icon>
+          {{ editable ? 'Unlocked' : 'Locked' }}
+        </button>
+      </section>
+
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            Simple Fields
+            <span *ngIf="simpleConfigs.length == 0">is empty.</span>
+            <span *ngIf="keyword" class="primary">(filtered)</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <hi-data-table
+            *ngIf="simpleConfigs.length || editable"
+            [rows]="simpleConfigs"
+            [sorts]="sorts"
+            [columns]="columns.simpleConfigs"
+            [deletable]="editable"
+            [insertable]="editable"
+            (update)="edited('simple', $event)"
+            (create)="created('simple', $event)"
+            (delete)="onDelete('simple', $event.row)"
+          >
+          </hi-data-table>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            List Fields
+            <span *ngIf="listConfigs.length == 0">is empty.</span>
+            <span *ngIf="keyword" class="primary">(filtered)</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <ngx-datatable
+            *ngIf="listConfigs.length || editable"
+            #listTable
+            class="material"
+            [headerHeight]="headerHeight"
+            rowHeight="auto"
+            [footerHeight]="headerHeight"
+            columnMode="force"
+            [rows]="listConfigs"
+            [sorts]="sorts"
+            [limit]="10"
+          >
+            <ngx-datatable-column
+              *ngIf="editable"
+              [width]="40"
+              [resizeable]="false"
+              [draggable]="false"
+              [canAutoResize]="false"
+            >
+              <ng-template let-row="row" ngx-datatable-cell-template>
+                <button
+                  mat-icon-button
+                  class="delete-button"
+                  matTooltip="Click to delete"
+                  (click)="beforeDelete('list', row)"
+                >
+                  <mat-icon>delete_forever</mat-icon>
+                </button>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-column
+              name="Name"
+              [width]="80"
+              [cellClass]="getNameCellClass"
+            ></ngx-datatable-column>
+            <ngx-datatable-column name="Value" [width]="400">
+              <ng-template
+                let-row="row"
+                let-value="value"
+                ngx-datatable-cell-template
+              >
+                <hi-data-table
+                  [rows]="value"
+                  [sorts]="sorts"
+                  [columns]="columns.listConfigs"
+                  [deletable]="editable"
+                  [insertable]="editable"
+                  (update)="edited('list', $event, row.name)"
+                  (create)="created('list', $event, row.name)"
+                  (delete)="edited('list', $event, row.name, true)"
+                >
+                </hi-data-table>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-footer>
+              <ng-template
+                ngx-datatable-footer-template
+                let-rowCount="rowCount"
+                let-pageSize="pageSize"
+                let-curPage="curPage"
+              >
+                <section
+                  class="footer"
+                  fxLayout="row"
+                  fxLayoutAlign="space-between center"
+                >
+                  <button
+                    mat-button
+                    *ngIf="editable"
+                    (click)="onCreate('list')"
+                  >
+                    <mat-icon>add</mat-icon>
+                    Add new entry
+                  </button>
+                  <section>{{ rowCount }} total</section>
+                  <section>
+                    <datatable-pager
+                      [pagerLeftArrowIcon]="'datatable-icon-left'"
+                      [pagerRightArrowIcon]="'datatable-icon-right'"
+                      [pagerPreviousIcon]="'datatable-icon-prev'"
+                      [pagerNextIcon]="'datatable-icon-skip'"
+                      [page]="curPage"
+                      [size]="pageSize"
+                      [count]="rowCount"
+                      [hidden]="!(rowCount / pageSize > 1)"
+                      (change)="listTable.onFooterPage($event)"
+                    >
+                    </datatable-pager>
+                  </section>
+                </section>
+              </ng-template>
+            </ngx-datatable-footer>
+          </ngx-datatable>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            Map Fields
+            <span *ngIf="mapConfigs.length == 0">is empty.</span>
+            <span *ngIf="keyword" class="primary">(filtered)</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <ngx-datatable
+            *ngIf="mapConfigs.length || editable"
+            #mapTable
+            class="material"
+            [headerHeight]="headerHeight"
+            rowHeight="auto"
+            [footerHeight]="headerHeight"
+            columnMode="force"
+            [rows]="mapConfigs"
+            [sorts]="sorts"
+            [limit]="10"
+          >
+            <ngx-datatable-column
+              *ngIf="editable"
+              [width]="40"
+              [resizeable]="false"
+              [draggable]="false"
+              [canAutoResize]="false"
+            >
+              <ng-template let-row="row" ngx-datatable-cell-template>
+                <button
+                  mat-icon-button
+                  class="delete-button"
+                  matTooltip="Click to delete"
+                  (click)="beforeDelete('map', row)"
+                >
+                  <mat-icon>delete_forever</mat-icon>
+                </button>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-column
+              name="Name"
+              [width]="80"
+              [cellClass]="getNameCellClass"
+            ></ngx-datatable-column>
+            <ngx-datatable-column name="Value" [width]="500">
+              <ng-template
+                let-row="row"
+                let-value="value"
+                ngx-datatable-cell-template
+              >
+                <hi-data-table
+                  [rows]="value"
+                  [sorts]="sorts"
+                  [columns]="columns.simpleConfigs"
+                  [deletable]="editable"
+                  [insertable]="editable"
+                  (update)="edited('map', $event, row.name)"
+                  (create)="created('map', $event, row.name)"
+                  (delete)="edited('map', $event, row.name, true)"
+                >
+                </hi-data-table>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-footer>
+              <ng-template
+                ngx-datatable-footer-template
+                let-rowCount="rowCount"
+                let-pageSize="pageSize"
+                let-curPage="curPage"
+              >
+                <section
+                  class="footer"
+                  fxLayout="row"
+                  fxLayoutAlign="space-between center"
+                >
+                  <button mat-button *ngIf="editable" (click)="onCreate('map')">
+                    <mat-icon>add</mat-icon>
+                    Add new entry
+                  </button>
+                  <section>{{ rowCount }} total</section>
+                  <section>
+                    <datatable-pager
+                      [pagerLeftArrowIcon]="'datatable-icon-left'"
+                      [pagerRightArrowIcon]="'datatable-icon-right'"
+                      [pagerPreviousIcon]="'datatable-icon-prev'"
+                      [pagerNextIcon]="'datatable-icon-skip'"
+                      [page]="curPage"
+                      [size]="pageSize"
+                      [count]="rowCount"
+                      [hidden]="!(rowCount / pageSize > 1)"
+                      (change)="mapTable.onFooterPage($event)"
+                    >
+                    </datatable-pager>
+                  </section>
+                </section>
+              </ng-template>
+            </ngx-datatable-footer>
+          </ngx-datatable>
+        </mat-card-content>
+      </mat-card>
+    </section>
+  </section>
+</section>

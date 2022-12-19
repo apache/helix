@@ -12,9 +12,7 @@
       "webRoot": "${workspaceRoot}",
       "sourceMaps": true,
       "userDataDir": "${workspaceRoot}/.vscode/chrome",
-      "runtimeArgs": [
-        "--disable-session-crashed-bubble"
-      ]
+      "runtimeArgs": ["--disable-session-crashed-bubble"]
     },
     {
       "name": "Attach Chrome",

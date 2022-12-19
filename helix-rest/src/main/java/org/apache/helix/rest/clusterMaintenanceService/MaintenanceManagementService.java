@@ -78,6 +78,9 @@ public class MaintenanceManagementService {
   private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_DURATION =
       MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_duration");
   public static final String ALL_HEALTH_CHECK_NONBLOCK = "allHealthCheckNonBlock";
+  public static final String HELIX_INSTANCE_STOPPABLE_CHECK = "HelixInstanceStoppableCheck";
+  public static final String HELIX_CUSTOM_STOPPABLE_CHECK = "CustomInstanceStoppableCheck";
+  public static final String OPERATION_CONFIG_SHARED_INPUT = "OperationConfigSharedInput";
 
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
@@ -361,6 +364,11 @@ public class MaintenanceManagementService {
           PerInstanceAccessor.PerInstanceProperties.continueOnFailures.name();
       Map<String, Map<String, String>> operationConfigSet = new HashMap<>();
 
+      Map<String, String> commonOperationConfig =
+          (operationConfig == null || !operationConfig.containsKey(OPERATION_CONFIG_SHARED_INPUT))
+              ? Collections.emptyMap()
+              : getMapFromJsonPayload(operationConfig.get(OPERATION_CONFIG_SHARED_INPUT));
+
       // perform operation check
       for (OperationInterface operationClass : operationAbstractClassList) {
         String operationClassName = operationClass.getClass().getName();
@@ -368,6 +376,8 @@ public class MaintenanceManagementService {
             (operationConfig == null || !operationConfig.containsKey(operationClassName))
                 ? Collections.emptyMap()
                 : getMapFromJsonPayload(operationConfig.get(operationClassName));
+        commonOperationConfig
+            .forEach(singleOperationConfig::putIfAbsent);
         operationConfigSet.put(operationClassName, singleOperationConfig);
         boolean continueOnFailures =
             singleOperationConfig.containsKey(continueOnFailuresName) && getBooleanFromJsonPayload(
@@ -468,14 +478,15 @@ public class MaintenanceManagementService {
     // CostumeInstanceStoppableCheck. We should add finer grain check groups to choose from
     // i.e. HELIX:INSTANCE_NOT_ENABLED, CUSTOM_PARTITION_HEALTH_FAILURE:PARTITION_INITIAL_STATE_FAIL etc.
     for (String healthCheck : healthChecks) {
-      if (healthCheck.equals("HelixInstanceStoppableCheck")) {
+      if (healthCheck.equals(HELIX_INSTANCE_STOPPABLE_CHECK)) {
         // this is helix own check
         instancesForNext =
             batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks);
-      } else if (healthCheck.equals("CustomInstanceStoppableCheck")) {
+      } else if (healthCheck.equals(HELIX_CUSTOM_STOPPABLE_CHECK)) {
         // custom check, includes custom Instance check and partition check.
-        instancesForNext = batchCustomInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
-            healthCheckConfig);
+        instancesForNext =
+            batchCustomInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
+                healthCheckConfig);
       } else {
         throw new UnsupportedOperationException(healthCheck + " is not supported yet!");
       }

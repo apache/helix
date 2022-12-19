@@ -1,0 +1,57 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<section>
+  <mat-form-field
+    *ngIf="editing"
+    class="full-width {{ hasError() ? 'error' : '' }}"
+  >
+    <input
+      matInput
+      #inputControl
+      [min]="min"
+      [max]="max"
+      [minlength]="minlength"
+      [maxlength]="maxlength"
+      (focus)="focus($event)"
+      (blur)="onBlur($event)"
+      (keyup.enter)="onBlur($event)"
+      (keyup.escape)="cancel()"
+      [required]="required"
+      [name]="value"
+      [(ngModel)]="value"
+      [type]="type"
+      [placeholder]="label"
+    />
+    <mat-hint *ngIf="hasError()" align="start">{{ errorLabel }}</mat-hint>
+    <mat-hint align="end">press ESC to cancel</mat-hint>
+  </mat-form-field>
+  <section *ngIf="!editing">
+    <div
+      class="inline-edit {{ hasError() ? 'error' : '' }}"
+      [matTooltip]="editLabel"
+      (click)="edit(value)"
+      (focus)="edit(value)"
+      tabindex="0"
+    >
+      <span *ngIf="value.length">{{ value }}</span>
+      <span *ngIf="!value.length" class="empty-value">( Empty )</span>
+    </div>
+  </section>
+</section>

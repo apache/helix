@@ -45,7 +45,7 @@
   <body>
 
     <breadcrumbs position="left">
-      <item name="Apache Helix" href="http://helix.apache.org/"/>
+      <item name="Apache Helix" href="https://helix.apache.org/"/>
     </breadcrumbs>
 
     <menu name="Learn">
@@ -56,17 +56,17 @@
     </menu>
 
     <menu name="Documentation">
-      <item name="1.0.3" href="./1.0.3-docs/index.html"/>
+      <item name="1.0.4" href="./1.0.4-docs/index.html"/>
       <item name="1.0.2" href="./1.0.2-docs/index.html"/>
       <item name="0.9.10 (0.9.9)" href="./0.9.9-docs/index.html"/>
       <item name="trunk" href="./trunk-docs/index.html"/>
     </menu>
 
-    <menu name="Helix 1.0.3">
-      <item name="Documentation" href="./1.0.3-docs/index.html"/>
-      <item name="Quick Start" href="./1.0.3-docs/Quickstart.html"/>
-      <item name="Tutorial" href="./1.0.3-docs/Tutorial.html"/>
-      <item name="Download" href="./1.0.3-docs/download.html"/>
+    <menu name="Helix 1.0.4">
+      <item name="Documentation" href="./1.0.4-docs/index.html"/>
+      <item name="Quick Start" href="./1.0.4-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./1.0.4-docs/Tutorial.html"/>
+      <item name="Download" href="./1.0.4-docs/download.html"/>
     </menu>
 
     <menu name="Helix 0.9.10 (0.9.9)">
@@ -93,11 +93,11 @@
 
 -->
     <menu name="ASF">
-      <item name="ASF Home" href="http://www.apache.org/"/>
-      <item name="License" href="http://www.apache.org/licenses/"/>
-      <item name="Sponsorship" href="http://www.apache.org/foundation/sponsorship.html"/>
-      <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
-      <item name="Security" href="http://www.apache.org/security/"/>
+      <item name="ASF Home" href="https://www.apache.org/"/>
+      <item name="License" href="https://www.apache.org/licenses/"/>
+      <item name="Sponsorship" href="https://www.apache.org/foundation/sponsorship.html"/>
+      <item name="Thanks" href="https://www.apache.org/foundation/thanks.html"/>
+      <item name="Security" href="https://www.apache.org/security/"/>
     </menu>
     <footer><![CDATA[
       <div class="row span16"><div>Apache Helix, Apache, the Apache feather logo, and the Apache Helix project logos are trademarks of The Apache Software Foundation.
@@ -140,7 +140,7 @@
       <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
       <bottomNav>
         <column>Learn</column>
-        <column>Documentation|Helix 1.0.3|Helix 0.9.10</column>
+        <column>Documentation|Helix 1.0.4|Helix 0.9.10</column>
         <column>Get Involved</column>
         <column>ASF</column>
       </bottomNav>

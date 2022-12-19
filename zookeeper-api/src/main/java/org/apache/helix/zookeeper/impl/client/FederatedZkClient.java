@@ -192,6 +192,31 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public void createPersistentWithTTL(String path, long ttl) {
+    createPersistentWithTTL(path, false, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, boolean createParents, long ttl) {
+    createPersistentWithTTL(path, createParents, ZooDefs.Ids.OPEN_ACL_UNSAFE, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, boolean createParents, List<ACL> acl, long ttl) {
+    getZkClient(path).createPersistentWithTTL(path, createParents, acl, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, Object data, long ttl) {
+    create(path, data, CreateMode.PERSISTENT_WITH_TTL, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, Object data, List<ACL> acl, long ttl) {
+    create(path, data, acl, CreateMode.PERSISTENT_WITH_TTL, ttl);
+  }
+
+  @Override
   public String createPersistentSequential(String path, Object data) {
     return create(path, data, CreateMode.PERSISTENT_SEQUENTIAL);
   }
@@ -199,6 +224,41 @@ public class FederatedZkClient implements RealmAwareZkClient {
   @Override
   public String createPersistentSequential(String path, Object data, List<ACL> acl) {
     return create(path, data, acl, CreateMode.PERSISTENT_SEQUENTIAL);
+  }
+
+  @Override
+  public String createPersistentSequentialWithTTL(String path, Object data, long ttl) {
+    return create(path, data, CreateMode.PERSISTENT_SEQUENTIAL_WITH_TTL, ttl);
+  }
+
+  @Override
+  public String createPersistentSequentialWithTTL(String path, Object data, List<ACL> acl, long ttl) {
+    return create(path, data, acl, CreateMode.PERSISTENT_SEQUENTIAL_WITH_TTL, ttl);
+  }
+
+  @Override
+  public void createContainer(String path) {
+    createContainer(path, false);
+  }
+
+  @Override
+  public void createContainer(String path, boolean createParents) {
+    createContainer(path, createParents, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+  }
+
+  @Override
+  public void createContainer(String path, boolean createParents, List<ACL> acl) {
+    getZkClient(path).createContainer(path, createParents, acl);
+  }
+
+  @Override
+  public void createContainer(String path, Object data) {
+    create(path, data, CreateMode.CONTAINER);
+  }
+
+  @Override
+  public void createContainer(String path, Object data, List<ACL> acl) {
+    create(path, data, acl, CreateMode.CONTAINER);
   }
 
   @Override
@@ -227,8 +287,18 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public String create(String path, Object data, CreateMode mode, long ttl) {
+    return create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, ttl);
+  }
+
+  @Override
   public String create(String path, Object data, List<ACL> acl, CreateMode mode) {
     return create(path, data, acl, mode, null);
+  }
+
+  @Override
+  public String create(String path, Object data, List<ACL> acl, CreateMode mode, long ttl) {
+    return create(path, data, acl, mode, ttl, null);
   }
 
   @Override
@@ -357,6 +427,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
   @Override
   public Stat writeDataGetStat(String path, Object data, int expectedVersion) {
     return writeDataReturnStat(path, data, expectedVersion);
+  }
+
+  @Override
+  public void asyncCreate(String path, Object data, CreateMode mode, long ttl,
+      ZkAsyncCallbacks.CreateCallbackHandler cb) {
+    getZkClient(path).asyncCreate(path, data, mode, ttl, cb);
   }
 
   @Override
@@ -501,13 +577,18 @@ public class FederatedZkClient implements RealmAwareZkClient {
 
   private String create(final String path, final Object dataObject, final List<ACL> acl,
       final CreateMode mode, final String expectedSessionId) {
+    return create(path, dataObject, acl, mode, ZkClient.TTL_NOT_SET, expectedSessionId);
+  }
+
+  private String create(final String path, final Object dataObject, final List<ACL> acl,
+      final CreateMode mode, final long ttl, final String expectedSessionId) {
     if (mode.isEphemeral()) {
       throwUnsupportedOperationException();
     }
 
     // Create mode is not session-aware, so the node does not have to be created
     // by the expectedSessionId.
-    return getZkClient(path).create(path, dataObject, acl, mode);
+    return getZkClient(path).create(path, dataObject, acl, mode, ttl);
   }
 
   private ZkClient getZkClient(String path) {

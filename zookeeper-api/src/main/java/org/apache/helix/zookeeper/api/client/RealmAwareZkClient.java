@@ -63,7 +63,9 @@ public interface RealmAwareZkClient {
     SINGLE_REALM, MULTI_REALM
   }
 
-  int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
+  // Setting default operation retry timeout to 24 hours. It can also be overwritten via RealmAwareZkClientConfig.
+  // This timeout will be used while retrying zookeeper operations.
+  int DEFAULT_OPERATION_TIMEOUT = 24 * 60 * 60 * 1000;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
@@ -175,9 +177,33 @@ public interface RealmAwareZkClient {
 
   void createPersistent(String path, Object data, List<ACL> acl);
 
+  void createPersistentWithTTL(String path, long ttl);
+
+  void createPersistentWithTTL(String path, boolean createParents, long ttl);
+
+  void createPersistentWithTTL(String path, boolean createParents, List<ACL> acl, long ttl);
+
+  void createPersistentWithTTL(String path, Object data, long ttl);
+
+  void createPersistentWithTTL(String path, Object data, List<ACL> acl, long ttl);
+
   String createPersistentSequential(String path, Object data);
 
   String createPersistentSequential(String path, Object data, List<ACL> acl);
+
+  String createPersistentSequentialWithTTL(String path, Object data, long ttl);
+
+  String createPersistentSequentialWithTTL(String path, Object data, List<ACL> acl, long ttl);
+
+  void createContainer(String path);
+
+  void createContainer(String path, boolean createParents);
+
+  void createContainer(String path, boolean createParents, List<ACL> acl);
+
+  void createContainer(String path, Object data);
+
+  void createContainer(String path, Object data, List<ACL> acl);
 
   void createEphemeral(final String path);
 
@@ -189,7 +215,12 @@ public interface RealmAwareZkClient {
 
   String create(final String path, Object data, final CreateMode mode);
 
+  String create(final String path, Object data, final CreateMode mode, long ttl);
+
   String create(final String path, Object datat, final List<ACL> acl, final CreateMode mode);
+
+  String create(final String path, Object datat, final List<ACL> acl, final CreateMode mode,
+      long ttl);
 
   void createEphemeral(final String path, final Object data);
 
@@ -244,6 +275,9 @@ public interface RealmAwareZkClient {
   Stat writeDataGetStat(final String path, Object datat, final int expectedVersion);
 
   void asyncCreate(final String path, Object datat, final CreateMode mode,
+      final ZkAsyncCallbacks.CreateCallbackHandler cb);
+
+  void asyncCreate(final String path, Object datat, final CreateMode mode, long ttl,
       final ZkAsyncCallbacks.CreateCallbackHandler cb);
 
   void asyncSetData(final String path, Object datat, final int version,

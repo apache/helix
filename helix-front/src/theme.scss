@@ -1,0 +1,58 @@
+@use '@angular/material' as mat;
+
+// Include the common styles for Angular Material
+@include mat.core();
+
+@mixin md-icon-size($size: 24px) {
+  font-size: $size;
+  line-height: $size;
+  height: $size;
+  width: $size;
+}
+
+// Customized palette designed by vivo
+$hi-nuage: (
+  50: #e0eff6,
+  100: #b3d6e9,
+  200: #80bbda,
+  300: #4da0cb,
+  400: #268bc0,
+  500: #0077b5,
+  600: #006fae,
+  700: #0064a5,
+  800: #005a9d,
+  900: #00478d,
+  A100: #b9d7ff,
+  A200: #86baff,
+  A400: #539dff,
+  A700: #3a8fff,
+  contrast: map-get(mat.$indigo-palette, contrast),
+);
+
+// Define the palettes for the theme using the Material Design palettes available in palette.scss
+// For each palette, optionally specify a default, lighter, and darker hue.
+$hi-primary: mat.define-palette($hi-nuage);
+$hi-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+
+// The warn palette is optional (defaults to red).
+$hi-warn: mat.define-palette(mat.$red-palette);
+
+// Create the theme object (a Sass map containing all of the palettes).
+$hi-theme: mat.define-light-theme($hi-primary, $hi-accent, $hi-warn);
+
+// Include theme styles for core and each component used in the app
+@include mat.all-component-themes($hi-theme);
+
+// Additional adjusts by vivo
+.mat-toolbar {
+  background-color: #fff;
+
+  .mat-icon.secondary {
+    vertical-align: bottom;
+  }
+
+  .mat-toolbar-row.information {
+    height: 24px;
+    margin-bottom: 24px;
+  }
+}

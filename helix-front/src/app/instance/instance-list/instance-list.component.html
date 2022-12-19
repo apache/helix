@@ -1,0 +1,78 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<section>
+  <ngx-datatable
+    #instancesTable
+    class="material"
+    [headerHeight]="headerHeight"
+    [rowHeight]="rowHeight"
+    columnMode="force"
+    [footerHeight]="rowHeight"
+    [rows]="instances"
+    [loadingIndicator]="isLoading"
+    selectionType="single"
+    [sorts]="sorts"
+    (select)="onSelect($event)"
+  >
+    <ngx-datatable-column
+      name="Status"
+      prop="healthy"
+      [width]="85"
+      [resizeable]="false"
+      [draggable]="false"
+      [canAutoResize]="false"
+    >
+      <ng-template let-row="row" ngx-datatable-cell-template>
+        <mat-icon *ngIf="row.healthy" class="status-healthy"
+          >check_circle</mat-icon
+        >
+        <mat-icon
+          *ngIf="!row.healthy && row.enabled"
+          class="status-not-healthy"
+          matTooltip="The instance is offline."
+          >cancel</mat-icon
+        >
+        <mat-icon
+          *ngIf="!row.healthy && row.liveInstance"
+          class="status-not-healthy"
+          matTooltip="The instance is disabled."
+          >cancel</mat-icon
+        >
+        <mat-icon
+          *ngIf="!row.healthy && !row.enabled && !row.liveInstance"
+          class="status-not-healthy"
+          matTooltip="The instance is offline and disabled."
+          >cancel</mat-icon
+        >
+      </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-column name="Name">
+      <ng-template let-row="row" ngx-datatable-cell-template>
+        <section fxLayout="row" fxLayoutAlign="start center">
+          {{ row.name }}
+          <hi-disabled-label
+            *ngIf="!row.enabled"
+            text="DISABLED"
+          ></hi-disabled-label>
+        </section>
+      </ng-template>
+    </ngx-datatable-column>
+  </ngx-datatable>
+</section>

@@ -1,0 +1,51 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<section class="cluster-list">
+  <section *ngIf="isLoading" fxLayout="row" fxLayoutAlign="center center">
+    <mat-spinner> Loading all clusters ... </mat-spinner>
+  </section>
+  <mat-nav-list *ngIf="!isLoading && !errorMessage">
+    <div class="cluster-list-button-group">
+      <button class="back-to-index-button" mat-button routerLink="/">
+        <mat-icon>arrow_back</mat-icon> Back to Index
+      </button>
+      <button mat-mini-fab *ngIf="can" (click)="createCluster()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+    <h3 mat-subheader>Clusters in {{ service }} ({{ clusters.length }})</h3>
+    <a
+      *ngFor="let cluster of clusters"
+      mat-list-item
+      [routerLink]="[cluster.name]"
+      routerLinkActive="cluster-list-item-selected"
+    >
+      <mat-icon mat-list-icon>blur_circular</mat-icon>
+      <h4 mat-line>{{ cluster.name }}</h4>
+    </a>
+    <div *ngIf="clusters.length == 0" class="empty">
+      There's no cluster here.
+      <a mat-button *ngIf="can" (click)="createCluster()">Create one?</a>
+    </div>
+  </mat-nav-list>
+  <section class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </section>
+</section>

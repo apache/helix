@@ -344,8 +344,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     // Note the user-defined list is intentionally applied to the final mapping after calculation.
     // This is to avoid persisting it into the assignment store, which impacts the long term
     // assignment evenness and partition movements.
-    newIdealStates.entrySet().stream().forEach(idealStateEntry -> applyUserDefinedPreferenceList(
-        clusterData.getResourceConfig(idealStateEntry.getKey()), idealStateEntry.getValue()));
+    newIdealStates.forEach((key, value) -> applyUserDefinedPreferenceList(clusterData.getResourceConfig(key), value));
 
     return newIdealStates;
   }

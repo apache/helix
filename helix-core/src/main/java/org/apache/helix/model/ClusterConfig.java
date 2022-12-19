@@ -34,10 +34,9 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.util.ConfigStringUtil;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
@@ -86,6 +85,9 @@ public class ClusterConfig extends HelixProperty {
     // partitons that need recovery or in
     // error exceeds this limitation
     DISABLED_INSTANCES,
+    DISABLED_INSTANCES_WITH_INFO,
+    // disabled instances and disabled instances with info are for storing batch disabled instances.
+    // disabled instances will write into both 2 fields for backward compatibility.
 
     VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
     VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
@@ -773,11 +775,31 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
+   * Set the disabled instance list with concatenated Info
+   */
+  public void setDisabledInstancesWithInfo(Map<String, String> disabledInstancesWithInfo) {
+    _record.setMapField(ClusterConfigProperty.DISABLED_INSTANCES_WITH_INFO.name(),
+        disabledInstancesWithInfo);
+  }
+
+  /**
    * Get current disabled instance map of <instance, disabledTimeStamp>
    * @return a non-null map of disabled instances in cluster config
    */
   public Map<String, String> getDisabledInstances() {
-    Map<String, String> disabledInstances = _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
+    Map<String, String> disabledInstances =
+        _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
+    return disabledInstances == null ? Collections.emptyMap() : disabledInstances;
+  }
+
+  /**
+   * Get current disabled instance map of
+   * <instance, disabledReason = "res, disabledType = typ, disabledTimeStamp = time">
+   * @return a non-null map of disabled instances in cluster config
+   */
+  public Map<String, String> getDisabledInstancesWithInfo() {
+    Map<String, String> disabledInstances =
+        _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES_WITH_INFO.name());
     return disabledInstances == null ? Collections.emptyMap() : disabledInstances;
   }
 
@@ -1103,7 +1125,6 @@ public class ClusterConfig extends HelixProperty {
     }
     return idealStateRuleMap;
   }
-
   @Override
   public int hashCode() {
     return getId().hashCode();
@@ -1118,26 +1139,40 @@ public class ClusterConfig extends HelixProperty {
   }
 
   public String getPlainInstanceHelixDisabledType(String instanceName) {
-    return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstances().get(instanceName))
+    return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstancesWithInfo().get(instanceName))
         .get(ClusterConfigProperty.HELIX_DISABLED_TYPE.toString());
   }
 
   public String getInstanceHelixDisabledType(String instanceName) {
-    if (!getDisabledInstances().containsKey(instanceName)) {
+    if (!getDisabledInstancesWithInfo().containsKey(instanceName) &&
+        !getDisabledInstances().containsKey(instanceName)) {
       return InstanceConstants.INSTANCE_NOT_DISABLED;
     }
-    return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstances().get(instanceName))
+    return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstancesWithInfo().get(instanceName))
         .getOrDefault(ClusterConfigProperty.HELIX_DISABLED_TYPE.toString(),
             InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
   }
 
+  /**
+   * @return a String representing reason.
+   * null if instance is not disabled in batch mode or do not have disabled reason
+   */
   public String getInstanceHelixDisabledReason(String instanceName) {
-    return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstances().get(instanceName))
+    return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstancesWithInfo().get(instanceName))
         .get(ClusterConfigProperty.HELIX_DISABLED_REASON.toString());
   }
 
+  /**
+   * @param instanceName
+   * @return a String representation of unix time
+   * null if the instance is not disabled in batch mode.
+   */
   public String getInstanceHelixDisabledTimeStamp(String instanceName) {
-    return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstances().get(instanceName))
-        .get(ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.toString());
+    if (getDisabledInstancesWithInfo().containsKey(instanceName)) {
+      return ConfigStringUtil
+          .parseConcatenatedConfig(getDisabledInstancesWithInfo().get(instanceName))
+          .get(ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.toString());
+    }
+    return getDisabledInstances().get(instanceName);
   }
 }

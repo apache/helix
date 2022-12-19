@@ -54,7 +54,7 @@ public final class HelixPropertyFactory {
    * Clients may override these values.
    */
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
-    CloudConfig cloudConfig = getCloudConfig(zkAddress, clusterName);
+    CloudConfig cloudConfig = getCloudConfig(zkAddress, clusterName, null);
     Properties properties = new Properties();
     try {
       InputStream stream = Thread.currentThread().getContextClassLoader()
@@ -80,7 +80,12 @@ public final class HelixPropertyFactory {
    * @param clusterName
    * @return
    */
+
   public static CloudConfig getCloudConfig(String zkAddress, String clusterName) {
+    return getCloudConfig(zkAddress, clusterName, null);
+  }
+  public static CloudConfig getCloudConfig(String zkAddress, String clusterName,
+      RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
     CloudConfig cloudConfig;
     RealmAwareZkClient dedicatedZkClient = null;
     try {
@@ -88,12 +93,14 @@ public final class HelixPropertyFactory {
         // If the multi ZK config is enabled or zkAddress is null, use realm-aware mode with
         // DedicatedZkClient
         try {
-          RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-              new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-                  .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-                  .setZkRealmShardingKey("/" + clusterName).build();
+          if (realmAwareZkConnectionConfig == null) {
+            realmAwareZkConnectionConfig =
+                new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+                    .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+                    .setZkRealmShardingKey("/" + clusterName).build();
+          }
           dedicatedZkClient =
-              DedicatedZkClientFactory.getInstance().buildZkClient(connectionConfig);
+              DedicatedZkClientFactory.getInstance().buildZkClient(realmAwareZkConnectionConfig);
         } catch (IOException | InvalidRoutingDataException e) {
           throw new HelixException("Not able to connect on multi-ZK mode!", e);
         }

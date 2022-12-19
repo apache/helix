@@ -88,10 +88,5 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
       _bestPossibleAssignment = bestPossibleAssignment;
       return true;
     }
-
-    @Override
-    // BucketDataAccessor will be reused, won't be closed here.
-    public void close() {
-    }
   }
 }

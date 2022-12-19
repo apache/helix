@@ -75,7 +75,7 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
     _viewClusterManager = HelixManagerFactory
         .getZKHelixManager(_viewClusterName, generateHelixManagerInstanceName(_viewClusterName),
             InstanceType.SPECTATOR, zkAddr);
-    _refreshViewCluster = new AtomicBoolean(false);
+    _refreshViewCluster = new AtomicBoolean(true);
     _monitor = new ViewAggregatorMonitor(viewClusterName);
     _aggregator = new DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent>(_viewClusterName,
         "Aggregator") {
@@ -191,7 +191,11 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
         _refreshViewCluster.set(true);
         break;
       case PeriodicViewRefresh:
-        if (!_refreshViewCluster.get()) {
+        // refresh local view cluster data cache
+        boolean cacheChanged = _viewClusterRefresher.refreshViewClusterDataCache();
+        if (cacheChanged) {
+          logger.info("Detected change in view cluster data, trigger a refresh");
+        } else if (!_refreshViewCluster.get()) {
           logger.info("Skip refresh: No event happened since last refresh, and no force refresh.");
           return;
         }
@@ -199,6 +203,7 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
         // least some of the elements in view cluster
         logger.info("Refreshing cluster based on event " + event.getEventType().name());
         refreshViewCluster();
+        _viewClusterRefresher.refreshViewClusterDataCache();
         break;
       default:
         logger.error(String.format("Unrecognized event type: %s", event.getEventType()));

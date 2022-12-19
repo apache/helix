@@ -89,11 +89,10 @@ public class AdminTestHelper {
     result.write(sw);
 
     String responseStr = sw.toString();
-    Assert.assertTrue(responseStr.toLowerCase().indexOf("error") == -1);
-    Assert.assertTrue(responseStr.toLowerCase().indexOf("exception") == -1);
+    Assert.assertEquals(responseStr.toLowerCase().indexOf("error"), -1);
+    Assert.assertEquals(responseStr.toLowerCase().indexOf("exception"), -1);
     ObjectMapper mapper = new ObjectMapper();
-    ZNRecord record = mapper.readValue(new StringReader(responseStr), ZNRecord.class);
-    return record;
+    return mapper.readValue(new StringReader(responseStr), ZNRecord.class);
   }
 
   public static void delete(Client client, String url) throws IOException {
@@ -119,11 +118,10 @@ public class AdminTestHelper {
       result.write(sw);
     }
     String responseStr = sw.toString();
-    Assert.assertTrue(responseStr.toLowerCase().indexOf("error") == -1);
-    Assert.assertTrue(responseStr.toLowerCase().indexOf("exception") == -1);
+    Assert.assertEquals(responseStr.toLowerCase().indexOf("error"), -1);
+    Assert.assertEquals(responseStr.toLowerCase().indexOf("exception"), -1);
 
     ObjectMapper mapper = new ObjectMapper();
-    ZNRecord record = mapper.readValue(new StringReader(responseStr), ZNRecord.class);
-    return record;
+    return mapper.readValue(new StringReader(responseStr), ZNRecord.class);
   }
 }

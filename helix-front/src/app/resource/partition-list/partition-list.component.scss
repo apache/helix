@@ -1,0 +1,21 @@
+@use '@angular/material' as mat;
+
+div.message {
+  padding: 20px;
+}
+
+.status-ready {
+  color: mat.get-color-from-palette(mat.define-palette(mat.$blue-palette));
+}
+
+.status-not-ready {
+  color: mat.get-color-from-palette(
+    mat.define-palette(mat.$grey-palette, 900, 900, 900),
+    darker
+  );
+}
+
+.footer {
+  width: 100%;
+  padding: 0 20px;
+}

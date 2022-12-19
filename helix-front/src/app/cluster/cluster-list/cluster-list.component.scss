@@ -1,0 +1,40 @@
+@use '@angular/material' as mat;
+@import 'src/theme.scss';
+
+.mat-nav-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cluster-list-button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-right: 1rem;
+}
+
+.back-to-index-button {
+  align-self: flex-start;
+}
+
+.add-cluster-button {
+  align-self: flex-end;
+}
+
+.mat-spinner {
+  margin: 20px;
+}
+
+.cluster-list-item-selected h4 {
+  font-weight: 500;
+  color: mat.get-color-from-palette($hi-primary);
+}
+
+.error-message {
+  padding: 10px;
+}
+
+.empty {
+  font-size: 14px;
+  // font-style: italic;
+  padding: 10px;
+}

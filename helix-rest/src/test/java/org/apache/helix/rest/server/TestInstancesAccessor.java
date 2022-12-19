@@ -137,7 +137,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(enabled = false)
   public void testUpdateInstances() throws IOException {
     // TODO: Reenable the test after storage node fix the problem
     // Batch disable instances
@@ -153,6 +153,8 @@ public class TestInstancesAccessor extends AbstractTestClass {
             "instanceDisabledReason", "reason_1"), entity, Response.Status.OK.getStatusCode());
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
+        new HashSet<>(instancesToDisable));
+    Assert.assertEquals(clusterConfig.getDisabledInstancesWithInfo().keySet(),
         new HashSet<>(instancesToDisable));
     Assert
         .assertEquals(clusterConfig.getInstanceHelixDisabledType(CLUSTER_NAME + "localhost_12918"),
@@ -171,6 +173,11 @@ public class TestInstancesAccessor extends AbstractTestClass {
     clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
+    Assert.assertEquals(clusterConfig.getDisabledInstancesWithInfo().keySet(),
+        new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
+    Assert.assertEquals(Long.parseLong(
+        clusterConfig.getInstanceHelixDisabledTimeStamp(CLUSTER_NAME + "localhost_12919")),
+        Long.parseLong(clusterConfig.getDisabledInstances().get(CLUSTER_NAME + "localhost_12919")));
     Assert
         .assertEquals(clusterConfig.getInstanceHelixDisabledType(CLUSTER_NAME + "localhost_12918"),
             "INSTANCE_NOT_DISABLED");

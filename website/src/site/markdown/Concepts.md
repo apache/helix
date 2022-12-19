@@ -114,9 +114,9 @@ For increasing the availability of the system, it\'s better to place the replica
 
 ### State
 
-Now let\'s take a slightly more complicated scenario where a task represents a database.  Unlike an index which is in general read-only, a database supports both reads and writes. Keeping the data consistent among the replicas is crucial in distributed data stores. One commonly applied technique is to assign one replica as the MASTER and remaining replicas as SLAVEs. All writes go to the MASTER and are then replicated to the SLAVE replicas.
+Now let\'s take a slightly more complicated scenario where a task represents a database.  Unlike an index which is in general read-only, a database supports both reads and writes. Keeping the data consistent among the replicas is crucial in distributed data stores. One commonly applied technique is to assign one replica as the LEADER and remaining replicas as STANDBYs. All writes go to the LEADER and are then replicated to the STANDBY replicas.
 
-Helix allows one to assign different __states__ to each replica. Let\'s say you have two MySQL instances N1 and N2, where one will serve as MASTER and another as SLAVE. The IdealState can be changed to:
+Helix allows one to assign different __states__ to each replica. Let\'s say you have two MySQL instances N1 and N2, where one will serve as LEADER and another as STANDBY. The IdealState can be changed to:
 
 ```
 {
@@ -127,8 +127,8 @@ Helix allows one to assign different __states__ to each replica. Let\'s say you 
   },
   "mapFields" : {
     "myDB" : {
-      "N1" : "MASTER",
-      "N2" : "SLAVE",
+      "N1" : "LEADER",
+      "N2" : "STANDBY",
     }
   }
 }
@@ -144,20 +144,20 @@ The next logical question is: how does the controller compute the transitions re
 * __State__: Describes the role of a replica
 * __Transition__: An action that allows a replica to move from one state to another, thus changing its role.
 
-Here is an example of MasterSlave state machine:
+Here is an example of LeaderStandby state machine:
 
 ```
-          OFFLINE  | SLAVE  |  MASTER
-         _____________________________
-        |          |        |         |
-OFFLINE |   N/A    | SLAVE  | SLAVE   |
-        |__________|________|_________|
-        |          |        |         |
-SLAVE   |  OFFLINE |   N/A  | MASTER  |
-        |__________|________|_________|
-        |          |        |         |
-MASTER  | SLAVE    | SLAVE  |   N/A   |
-        |__________|________|_________|
+          OFFLINE  | STANDBY  |  LEADER
+         ______________________________
+        |          |         |         |
+OFFLINE |   N/A    | STANDBY | STANDBY |
+        |__________|_________|_________|
+        |          |         |         |
+STANDBY |  OFFLINE |   N/A   | LEADER  |
+        |__________|_________|_________|
+        |          |         |         |
+LEADER  | STANDBY  | STANDBY |   N/A   |
+        |__________|_________|_________|
 
 ```
 
@@ -169,12 +169,12 @@ Helix allows each resource to be associated with one state machine. This means y
   "simpleFields" : {
     "NUM_PARTITIONS" : "1",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   },
   "mapFields" : {
     "myDB" : {
-      "N1" : "MASTER",
-      "N2" : "SLAVE",
+      "N1" : "LEADER",
+      "N2" : "STANDBY",
     }
   }
 }
@@ -194,17 +194,17 @@ The __CurrentState__ of a resource simply represents its actual state at a parti
   ,"simpleFields":{
     ,"SESSION_ID":"13d0e34675e0002"
     ,"INSTANCE_NAME":"node1"
-    ,"STATE_MODEL_DEF":"MasterSlave"
+    ,"STATE_MODEL_DEF":"LeaderStandby"
   }
   ,"mapFields":{
     "MyResource_0":{
-      "CURRENT_STATE":"SLAVE"
+      "CURRENT_STATE":"STANDBY"
     }
     ,"MyResource_1":{
-      "CURRENT_STATE":"MASTER"
+      "CURRENT_STATE":"LEADER"
     }
     ,"MyResource_2":{
-      "CURRENT_STATE":"MASTER"
+      "CURRENT_STATE":"LEADER"
     }
   }
 }
@@ -221,19 +221,19 @@ In order to communicate with the participants, external clients need to know the
   "id":"MyResource",
   "mapFields":{
     "MyResource_0":{
-      "N1":"SLAVE",
-      "N2":"MASTER",
+      "N1":"STANDBY",
+      "N2":"LEADER",
       "N3":"OFFLINE"
     },
     "MyResource_1":{
-      "N1":"MASTER",
-      "N2":"SLAVE",
+      "N1":"LEADER",
+      "N2":"STANDBY",
       "N3":"ERROR"
     },
     "MyResource_2":{
-      "N1":"MASTER",
-      "N2":"SLAVE",
-      "N3":"SLAVE"
+      "N1":"LEADER",
+      "N2":"STANDBY",
+      "N3":"STANDBY"
     }
   }
 }

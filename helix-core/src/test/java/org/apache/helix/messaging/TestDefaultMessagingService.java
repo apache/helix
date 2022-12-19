@@ -34,10 +34,12 @@ import org.apache.helix.MockAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
+import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
@@ -290,5 +292,16 @@ public class TestDefaultMessagingService {
         .containsKey(Message.MessageType.STATE_TRANSITION_CANCELLATION.name()));
     Assert.assertTrue(
         svc.getMessageHandlerFactoryMap().containsKey(Message.MessageType.CONTROLLER_MSG.name()));
+  }
+
+  @Test
+  public void testTaskThreadpoolResetTimeoutProperty() {
+    HelixManager manager = new MockManager();
+    System.setProperty(SystemPropertyKeys.TASK_THREADPOOL_RESET_TIMEOUT, "300");
+    MockDefaultMessagingService svc = new MockDefaultMessagingService(manager);
+    Assert.assertEquals(svc.getTaskThreadpoolResetTimeout(), 300);
+    System.clearProperty(SystemPropertyKeys.TASK_THREADPOOL_RESET_TIMEOUT);
+    svc = new MockDefaultMessagingService(new MockManager());
+    Assert.assertEquals(svc.getTaskThreadpoolResetTimeout(), TaskExecutor.DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS);
   }
 }

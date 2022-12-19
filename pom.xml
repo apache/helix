@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ Licensed to the Apache Software Foundation (ASF) under one
   ~ or more contributor license agreements.  See the NOTICE file
@@ -29,7 +29,7 @@
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>1.0.4-SNAPSHOT</version>
+  <version>1.1.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -38,14 +38,36 @@
     distributed resources hosted on a cluster of nodes.
   </description>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <organization>
+    <name>Apache Software Foundation</name>
+    <url>http://www.apache.org</url>
+  </organization>
+
   <url>http://helix.apache.org</url>
   <developers>
+    <developer>
+      <id>jxue</id>
+      <name>Junkai Xue</name>
+      <email>jxue@apache.org</email>
+      <roles>
+        <role>PMC Chair</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
     <developer>
       <id>kishoreg</id>
       <name>Kishore Gopalakrishna</name>
       <email>kishoreg@apache.org</email>
       <roles>
-        <role>PMC Chair</role>
+        <role>PMC Member</role>
       </roles>
       <timezone>-8</timezone>
     </developer>
@@ -71,15 +93,6 @@
       <id>mahadev</id>
       <name>Mahadev Konar</name>
       <email>mahadev@apache.org</email>
-      <roles>
-        <role>Mentor / PMC Member</role>
-      </roles>
-      <timezone>-8</timezone>
-    </developer>
-    <developer>
-      <id>omalley</id>
-      <name>Owen O'Malley</name>
-      <email>omalley@apache.org</email>
       <roles>
         <role>Mentor / PMC Member</role>
       </roles>
@@ -212,15 +225,6 @@
       <timezone>-8</timezone>
     </developer>
     <developer>
-      <id>jxue</id>
-      <name>Junkai Xue</name>
-      <email>jxue@apache.org</email>
-      <roles>
-        <role>Committer / PMC Member</role>
-      </roles>
-      <timezone>-8</timezone>
-    </developer>
-    <developer>
       <id>jiajunwang</id>
       <name>Jiajun Wang</name>
       <email>jiajunwang@apache.org</email>
@@ -265,6 +269,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>nealsun</id>
+      <name>Neal Sun</name>
+      <email>nealsun@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>
@@ -276,7 +289,7 @@
     <module>helix-rest</module>
     <module>helix-lock</module>
     <module>helix-agent</module>
-    <!--<module>helix-front</module>-->
+    <module>helix-front</module>
     <module>recipes</module>
     <module>helix-view-aggregator</module>
   </modules>
@@ -373,10 +386,10 @@
   </pluginRepositories>
 
   <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</developerConnection>
-    <url>https://git-wip-us.apache.org/repos/asf?p=helix.git;a=summary</url>
-    <tag>HEAD</tag>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/helix.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/helix.git</developerConnection>
+    <url>https://gitbox.apache.org/repos/asf?p=helix.git;a=summary</url>
+    <tag>helix-1.1.0</tag>
   </scm>
   <issueManagement>
     <system>Github</system>
@@ -388,9 +401,9 @@
   </ciManagement>
 
   <properties>
-
+    <revision>1.1.1-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.build.outputTimestamp>10</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1671078135</project.build.outputTimestamp>
 
     <sonar.host.url>https://analysis.apache.org/</sonar.host.url>
 
@@ -529,7 +542,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.7</version>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -921,6 +934,6 @@
         <SKIP_INTEGRATION_TESTS>false</SKIP_INTEGRATION_TESTS>
       </properties>
     </profile>
-    <!-- Configuration for unit/integration tests section 3 of 3 (profiles) ENDS HERE.-->
+    <!-- Configuration for unit and integration tests. Section 3 of 3 (profiles) ENDS HERE.-->
   </profiles>
 </project>

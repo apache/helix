@@ -1,0 +1,98 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<ngx-datatable
+  #dataTable
+  class="material"
+  [headerHeight]="rowHeight"
+  rowHeight="auto"
+  [footerHeight]="rowHeight"
+  columnMode="force"
+  [rows]="rows"
+  [sorts]="sorts"
+  [limit]="20"
+>
+  <ngx-datatable-column
+    *ngIf="deletable"
+    [width]="40"
+    [resizeable]="false"
+    [draggable]="false"
+    [canAutoResize]="false"
+  >
+    <ng-template let-row="row" ngx-datatable-cell-template>
+      <button
+        mat-icon-button
+        matTooltip="Click to delete"
+        (click)="onDelete(row)"
+      >
+        <mat-icon>delete_forever</mat-icon>
+      </button>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column
+    *ngFor="let column of columns"
+    [name]="column.name"
+    [prop]="getPropName(column)"
+  >
+    <ng-template ngx-datatable-cell-template let-value="value" let-row="row">
+      <span *ngIf="!column.editable" [title]="value">{{ value }}</span>
+      <hi-input-inline
+        *ngIf="column.editable"
+        [value]="value"
+        label="new value"
+        (update)="onEdited(row, column, $event)"
+      >
+      </hi-input-inline>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-footer>
+    <ng-template
+      ngx-datatable-footer-template
+      let-rowCount="rowCount"
+      let-pageSize="pageSize"
+      let-curPage="curPage"
+    >
+      <section
+        class="footer"
+        fxLayout="row"
+        fxLayoutAlign="space-between center"
+      >
+        <button mat-button *ngIf="insertable" (click)="onCreate()">
+          <mat-icon>add</mat-icon>
+          Add new entry
+        </button>
+        <section>{{ rowCount }} total</section>
+        <section>
+          <datatable-pager
+            [pagerLeftArrowIcon]="'datatable-icon-left'"
+            [pagerRightArrowIcon]="'datatable-icon-right'"
+            [pagerPreviousIcon]="'datatable-icon-prev'"
+            [pagerNextIcon]="'datatable-icon-skip'"
+            [page]="curPage"
+            [size]="pageSize"
+            [count]="rowCount"
+            [hidden]="!(rowCount / pageSize > 1)"
+            (change)="dataTable.onFooterPage($event)"
+          >
+          </datatable-pager>
+        </section>
+      </section>
+    </ng-template>
+  </ngx-datatable-footer>
+</ngx-datatable>

@@ -167,7 +167,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     }
   }
 
-  public void increasExpiredSessionCounter() {
+  public void increaseExpiredSessionCounter() {
     synchronized (_expiredSessionCounter) {
       _expiredSessionCounter.updateValue(_expiredSessionCounter.getValue() + 1);
     }

@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.Nullable;
 import javax.management.JMException;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
@@ -58,6 +59,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy;
+import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
@@ -107,6 +109,7 @@ public class ZkClient implements Watcher {
       Integer.getInteger(ZkSystemPropertyKeys.JUTE_MAXBUFFER, ZNRecord.SIZE_LIMIT);
 
   private final IZkConnection _connection;
+  private final Watcher _watcher;
   private final long _operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
@@ -215,6 +218,14 @@ public class ZkClient implements Watcher {
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       String monitorInstanceName, boolean monitorRootPathOnly) {
+    this(zkConnection, null, operationRetryTimeout, zkSerializer, monitorType, monitorKey,
+        monitorInstanceName, monitorRootPathOnly);
+    connect(connectionTimeout, _watcher);
+  }
+
+  protected ZkClient(IZkConnection zkConnection, @Nullable Watcher watcher, long operationRetryTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      String monitorInstanceName, boolean monitorRootPathOnly) {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
@@ -239,16 +250,7 @@ public class ZkClient implements Watcher {
     } else {
       LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
     }
-
-    connect(connectionTimeout, this);
-
-    try {
-      if (_monitor != null) {
-        _monitor.register();
-      }
-    } catch (JMException e){
-      LOG.error("Error in creating ZkClientMonitor", e);
-    }
+    _watcher = watcher == null ? this : watcher;
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
@@ -305,7 +307,7 @@ public class ZkClient implements Watcher {
       }
     }
 
-    boolean watchInstalled = watchForData(path, skipWatchingNonExistNode);
+    boolean watchInstalled = watchForData(path, skipWatchingNonExistNode, false);
     if (!watchInstalled) {
       // Now let us remove this handler.
       unsubscribeDataChanges(path, listener);
@@ -1424,7 +1426,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient exists, path: {}, time: {} ms", _uid, path, (endT - startT));
+        LOG.trace("zkclient {} exists, path: {}, time: {} ms", _uid, path, (endT - startT));
       }
     }
   }
@@ -1447,7 +1449,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient exists, path: {}, time: {} ms", _uid, path, (endT - startT));
+        LOG.trace("zkclient {} exists, path: {}, time: {} ms", _uid, path, (endT - startT));
       }
     }
   }
@@ -1455,7 +1457,7 @@ public class ZkClient implements Watcher {
   /*
    * This one installs watch only if path is there. Meant to avoid leaking watch in Zk server.
    */
-  private Stat installWatchOnlyPathExist(final String path) {
+  public Stat installWatchOnlyPathExist(final String path) {
     long startT = System.currentTimeMillis();
     final Stat stat;
     try {
@@ -1476,7 +1478,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient getData (installWatchOnlyPathExist), path: {}, time: {} ms",
+        LOG.trace("zkclient {} getData (installWatchOnlyPathExist), path: {}, time: {} ms",
             _uid, path, (endT - startT));
       }
     }
@@ -1566,7 +1568,7 @@ public class ZkClient implements Watcher {
     getEventLock().lock();
     try {
       ZkConnection connection = ((ZkConnection) getConnection());
-      connection.reconnect(this);
+      connection.reconnect(_watcher == null ? this : _watcher);
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
     } finally {
@@ -1639,7 +1641,7 @@ public class ZkClient implements Watcher {
           sessionId) {
         @Override
         public void run() throws Exception {
-          if (issueSync(zk) == false) {
+          if (!issueSync(zk)) {
             LOG.warn("zkclient{}, Failed to call sync() on new session {}", _uid, sessionId);
           }
         }
@@ -1691,10 +1693,7 @@ public class ZkClient implements Watcher {
       return true;
     }
     Set<IZkChildListener> childListeners = _childListener.get(path);
-    if (childListeners != null && childListeners.size() > 0) {
-      return true;
-    }
-    return false;
+    return childListeners != null && childListeners.size() > 0;
   }
 
   /**
@@ -2396,12 +2395,17 @@ public class ZkClient implements Watcher {
   }
 
   public void watchForData(final String path) {
-    watchForData(path, false);
+    watchForData(path, false, false);
   }
 
-  private boolean watchForData(final String path, boolean skipWatchingNonExistNode) {
+  public boolean watchForData(final String path, boolean skipWatchingNonExistNode, boolean persistListener) {
     try {
-      if (skipWatchingNonExistNode) {
+      if (persistListener) {
+        retryUntilConnected(() -> {
+          ((ZkConnection) getConnection()).getZookeeper().addWatch(path, AddWatchMode.PERSISTENT);
+          return true;
+        });
+      } else if (skipWatchingNonExistNode) {
         retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().getData(path, true, new Stat())));
       } else {
         retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
@@ -2499,7 +2503,7 @@ public class ZkClient implements Watcher {
    * @throws IllegalStateException
    *           if the connection timed out due to thread interruption
    */
-  public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
+  public void connect(final long maxMsToWaitUntilConnected, @Nullable Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
     if (isClosed()) {
       throw new IllegalStateException("ZkClient already closed!");
@@ -2524,7 +2528,7 @@ public class ZkClient implements Watcher {
       LOG.debug("ZkClient {},  _eventThread {}", _uid, _eventThread.getId());
 
       if (isManagingZkConnection()) {
-        zkConnection.connect(watcher);
+        zkConnection.connect(watcher == null ? this : watcher);
         LOG.debug("zkclient{} Awaiting connection to Zookeeper server", _uid);
         if (!waitUntilConnected(maxMsToWaitUntilConnected, TimeUnit.MILLISECONDS)) {
           throw new ZkTimeoutException(
@@ -2552,6 +2556,13 @@ public class ZkClient implements Watcher {
       if (!started) {
         close();
       }
+    }
+    try {
+      if (_monitor != null) {
+        _monitor.register();
+      }
+    } catch (JMException e){
+      LOG.error("Error in creating ZkClientMonitor", e);
     }
   }
 
@@ -2784,9 +2795,13 @@ public class ZkClient implements Watcher {
         _monitor.increaseDataChangeEventCounter();
       }
       if (sessionExpired) {
-        _monitor.increasExpiredSessionCounter();
+        _monitor.increaseExpiredSessionCounter();
       }
     }
+  }
+
+  public ZkClientMonitor getMonitor() {
+    return _monitor;
   }
 
   /**

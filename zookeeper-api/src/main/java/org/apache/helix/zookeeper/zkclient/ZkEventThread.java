@@ -81,7 +81,7 @@ public class ZkEventThread extends Thread {
     }
   }
 
-  ZkEventThread(String name) {
+  public ZkEventThread(String name) {
     setDaemon(true);
     setName("ZkClient-EventThread-" + getId() + "-" + name);
   }

@@ -27,6 +27,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,8 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
    *
    * @param zkConnection
    *            The Zookeeper connection
+   * @param watcher
+   *            The watcher to register to zookeeper
    * @param connectionTimeout
    *            The connection timeout in milli seconds
    * @param zkSerializer
@@ -86,6 +89,17 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
    * @param monitorRootPathOnly
    *            Should only stat of access to root path be reported to JMX bean or path-specific stat be reported too.
    */
+  public ZkClient(IZkConnection zkConnection, Watcher watcher, int connectionTimeout, long operationRetryTimeout,
+      PathBasedZkSerializer zkSerializer,
+      String monitorType, String monitorKey, String monitorInstanceName,
+      boolean monitorRootPathOnly, boolean connectOnInit) {
+    super(zkConnection, watcher, operationRetryTimeout, zkSerializer, monitorType, monitorKey, monitorInstanceName,
+        monitorRootPathOnly);
+    if (connectOnInit) {
+      connect(connectionTimeout, watcher);
+    }
+  }
+
   public ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer,
       String monitorType, String monitorKey, String monitorInstanceName,
@@ -175,6 +189,7 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
 
   public static class Builder {
     IZkConnection _connection;
+    Watcher _watcher;
     String _zkServer;
 
     PathBasedZkSerializer _zkSerializer;
@@ -187,9 +202,20 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
     String _monitorKey;
     String _monitorInstanceName = null;
     boolean _monitorRootPathOnly = true;
+    boolean _connectOnInit = true;
 
     public Builder setConnection(IZkConnection connection) {
       this._connection = connection;
+      return this;
+    }
+
+    public Builder setWatcher(Watcher watcher) {
+      this._watcher = watcher;
+      return this;
+    }
+
+    public Builder setConnectOnInit(boolean connectOnInit) {
+      _connectOnInit = connectOnInit;
       return this;
     }
 
@@ -270,8 +296,8 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
         _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
       }
 
-      return new ZkClient(_connection, _connectionTimeout, _operationRetryTimeout, _zkSerializer,
-          _monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly);
+      return new ZkClient(_connection, _watcher, _connectionTimeout, _operationRetryTimeout, _zkSerializer,
+          _monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly, _connectOnInit);
     }
   }
 }

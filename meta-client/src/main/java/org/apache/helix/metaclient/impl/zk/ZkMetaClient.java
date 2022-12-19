@@ -22,16 +22,11 @@ package org.apache.helix.metaclient.impl.zk;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Stream;
 import org.apache.helix.metaclient.api.AsyncCallback;
 import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
@@ -42,6 +37,7 @@ import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.impl.common.ListenerContainer;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
@@ -62,14 +58,11 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, Watcher, Closeab
   private static final Set<Event.EventType> DATA_CHANGE_EVENT_TYPE = EnumSet.of(
       Event.EventType.NodeCreated, Event.EventType.NodeDeleted, Event.EventType.NodeDataChanged);
   private final long _uid;
-  private final Map<String, Set<DataChangeListener>> _dataChangeListener = new HashMap<>();
-  private final Map<String, Set<DataChangeListener>> _oneTimeDataChangeListener = new HashMap<>();
+  private final ListenerContainer<DataChangeListener> _dataChangeListenerContainer = new ListenerContainer<>();
   private final ZkClient _zkClient;
   private final ZkMetaClientConfig _config;
-  private final ReentrantReadWriteLock _readWriteLock = new ReentrantReadWriteLock();
 
   private ZkEventThread _eventThread;
-
   private boolean _shutdownTriggered;
 
   public ZkMetaClient(ZkMetaClientConfig config) {
@@ -225,8 +218,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, Watcher, Closeab
       _eventThread.interrupt();
       _eventThread.join(2000);
     } catch (InterruptedException e) {
-      //TODO: to remove
-      System.out.println("Caught exception in close(), " + e);
+      LOG.error("Failed to close ZkMetaClient {}. Caught exception in close()", _uid, e);
     }
   }
 
@@ -238,20 +230,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, Watcher, Closeab
   @Override
   public boolean subscribeDataChange(String key, DataChangeListener listener,
       boolean skipWatchingNonExistNode, boolean persistListener) {
-    _readWriteLock.writeLock().lock();
-    try {
-      if (!persistListener) {
-        Set<DataChangeListener> entryListeners = _oneTimeDataChangeListener.computeIfAbsent(key, k -> new HashSet<>());
-        entryListeners.add(listener);
-        _oneTimeDataChangeListener.put(key, entryListeners);
-      } else {
-        Set<DataChangeListener> entryListeners = _dataChangeListener.computeIfAbsent(key, k -> new HashSet<>());
-        entryListeners.add(listener);
-        _dataChangeListener.put(key, entryListeners);
-      }
-    } finally {
-      _readWriteLock.writeLock().unlock();
-    }
+    _dataChangeListenerContainer.addListener(key, listener, persistListener);
     // TODO: fix persistent watcher leakage!!!
     boolean watchInstalled = _zkClient.watchForData(key, skipWatchingNonExistNode, persistListener);
     if (!watchInstalled) {
@@ -283,25 +262,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, Watcher, Closeab
 
   @Override
   public void unsubscribeDataChange(String key, DataChangeListener listener) {
-    _readWriteLock.writeLock().lock();
-    try {
-      removeFromListenerMap(key, listener, _oneTimeDataChangeListener);
-      removeFromListenerMap(key, listener, _dataChangeListener);
-    } finally {
-      _readWriteLock.writeLock().unlock();
-    }
-  }
-
-  private static void removeFromListenerMap(String key, DataChangeListener listener,
-      Map<String, Set<DataChangeListener>> listenerMap) {
-    Set<DataChangeListener> listeners = listenerMap.get(key);
-    if (listeners == null) {
-      return;
-    }
-    listeners.remove(listener);
-    if (listeners.isEmpty()) {
-      listenerMap.remove(key);
-    }
+    _dataChangeListenerContainer.removeListener(key, listener);
   }
 
   @Override
@@ -404,36 +365,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, Watcher, Closeab
     if (!DATA_CHANGE_EVENT_TYPE.contains(event.getType())) {
       return;
     }
-    // TODO: to remove
-    System.out.println("handleDataChanged triggered by " + event);
-    Set<DataChangeListener> onetimeListeners;
-    _readWriteLock.readLock().lock();
     try {
-      Set<DataChangeListener> listeners = _dataChangeListener.getOrDefault(event.getPath(), Collections.emptySet());
-      onetimeListeners = _oneTimeDataChangeListener.getOrDefault(event.getPath(), Collections.emptySet());
-      if (listeners.isEmpty() && onetimeListeners.isEmpty()) {
-        return;
-      }
-      try {
-        final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(event.getPath(), _zkClient.getMonitor());
-        Stream.concat(listeners.stream(), onetimeListeners.stream())
-            .forEach(listener ->
-                _eventThread.send(new DataChangedZkEvent(event, listener, pathStatRecord, notificationTime)));
-      } catch (Exception e) {
-        LOG.error("ZkMetaClient {} failed to process event {}.", _uid, event, e);
-      }
-    } finally {
-      _readWriteLock.readLock().unlock();
-    }
-    if (onetimeListeners.isEmpty()) {
-      return;
-    }
-    // remove the one-time listeners
-    _readWriteLock.writeLock().lock();
-    try {
-      _oneTimeDataChangeListener.get(event.getPath()).removeAll(onetimeListeners);
-    } finally {
-      _readWriteLock.writeLock().unlock();
+      final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(event.getPath(), _zkClient.getMonitor());
+      _dataChangeListenerContainer.consumeListeners(event.getPath(),
+          listener -> _eventThread.send(new DataChangedZkEvent(event, listener, pathStatRecord, notificationTime))
+      );
+    } catch (Exception e) {
+      LOG.error("ZkMetaClient {} failed to process event {}.", _uid, event, e);
     }
   }
 
@@ -442,8 +380,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, Watcher, Closeab
       // not state change
       return;
     }
-    // TODO: to remove
-    System.out.println("handleStateChanged triggered by " + event);
     _zkClient.setCurrentState(event.getState());
     if (_zkClient.getMonitor() != null) {
       _zkClient.getMonitor().increaseStateChangeEventCounter();

@@ -19,6 +19,7 @@ package org.apache.helix.integration.multizk;
  * under the License.
  */
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -30,6 +31,8 @@ import org.apache.zookeeper.ZooDefs;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import java.util.Date;
 import java.util.List;
 import java.util.Arrays;
 
@@ -38,6 +41,8 @@ import java.util.Arrays;
  * server setup.
  */
 public class TestMultiInMultiZk extends MultiZkTestBase {
+
+    private static final String _className = TestHelper.getTestClassName();
 
     @BeforeClass
     public void beforeClass() throws Exception {
@@ -66,6 +71,9 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
      */
     @Test
     public void testMultiDiffRealm() {
+        String methodName = TestHelper.getTestMethodName();
+        System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
+
         List<Op> ops = Arrays.asList(
                 Op.create(CLUSTER_LIST.get(0), new byte[0],
                         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
@@ -83,5 +91,6 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
         } catch (UnsupportedOperationException ex) {
             Assert.assertTrue(ex.getMessage().startsWith("Session-aware operation is not supported by FederatedZkClient."));
         }
+        System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
     }
 }

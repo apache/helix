@@ -218,7 +218,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
     helixAdminBuilder.close();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   protected void createParticipantsAndVerify(HelixAdmin admin, int numParticipants,
@@ -307,7 +307,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     managerAdministrator.disconnect();
     _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   protected void createZkConnectionConfigs(String clusterName) {
@@ -396,6 +396,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     managerParticipant.disconnect();
     _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 }

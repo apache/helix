@@ -91,6 +91,6 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
         } catch (UnsupportedOperationException ex) {
             Assert.assertTrue(ex.getMessage().startsWith("Session-aware operation is not supported by FederatedZkClient."));
         }
-        System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+        System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
     }
 }

@@ -128,7 +128,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     _clusterSetupZkAddr.close();
     _clusterSetupBuilder.close();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Override
@@ -139,7 +139,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     super.testCreateParticipants();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Override
@@ -150,7 +150,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     super.testZKHelixManager();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Override
@@ -161,7 +161,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     super.testZKHelixManagerCloudConfig();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testZKHelixManager")
@@ -174,7 +174,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
           .isInstanceSetup("DummyZk", cluster, instance, InstanceType.PARTICIPANT));
     });
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -249,7 +249,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     dataAccessorZkAddr.close();
     dataAccessorBuilder.close();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -272,7 +272,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     configAccessorZkAddr.close();
     configAccessorBuilder.close();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void setClusterConfigAndVerify(ConfigAccessor configAccessorMultiZk) {
@@ -341,7 +341,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
       Assert.assertEquals(context.getWorkflowState(), wfStateFromTaskDriver);
     }
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -354,7 +354,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     Assert.assertEquals(new HashSet<>(_zkHelixAdmin.getClusters()), new HashSet<>(CLUSTER_LIST));
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -547,7 +547,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
       // Expected because the sharding key wouldn't be found
     }
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -601,7 +601,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
       zkClient.close();
       secondMsds.stopServer();
     }
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void verifyHelixManagerMsdsEndpoint() {
@@ -855,6 +855,6 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     zkBasedAccessor.close();
     httpZkFallbackBasedAccessor.close();
 
-    System.out.println("END " + _className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 }

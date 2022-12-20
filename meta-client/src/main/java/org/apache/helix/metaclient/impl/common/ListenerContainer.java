@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.common;
  * under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,8 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 /**
@@ -109,10 +108,12 @@ public class ListenerContainer<T> {
       if (persistentListeners.isEmpty() && onetimeListeners.isEmpty()) {
         return;
       }
+      Set<T> listeners = new HashSet<>(onetimeListeners);
+      listeners.addAll(persistentListeners);
+      listeners.forEach(consumer);
     } finally {
       _readWriteLock.readLock().unlock();
     }
-    Stream.concat(persistentListeners.stream(), onetimeListeners.stream()).forEach(consumer);
     // remove one-time listeners
     if (!onetimeListeners.isEmpty()) {
       removeListeners(key, onetimeListeners, false);
@@ -139,5 +140,18 @@ public class ListenerContainer<T> {
       return;
     }
     current.removeAll(listeners);
+    if (current.isEmpty()) {
+      listenerMap.remove(key);
+    }
+  }
+
+  @VisibleForTesting
+  Map<String, Set<T>> getPersistentListener() {
+    return _persistentListener;
+  }
+
+  @VisibleForTesting
+  Map<String, Set<T>> getOnetimeListener() {
+    return _onetimeListener;
   }
 }

@@ -19,6 +19,8 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -30,15 +32,25 @@ import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.DirectChildChangeListener;
 import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.constants.MetaClientBadVersionException;
+import org.apache.helix.metaclient.constants.MetaClientException;
+import org.apache.helix.metaclient.constants.MetaClientNoNodeException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.zookeeper.Watcher;
+import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.server.EphemeralType;
 
 
-public class ZkMetaClient implements MetaClientInterface {
+public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
 
   private final ZkClient _zkClient;
 
@@ -51,55 +63,105 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public void create(String key, Object data) {
+  public void create(String key, T data) {
+    // TODO: This function is implemented only for test. It does not have proper error handling
+    _zkClient.create(key, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+  }
+
+  @Override
+  public void create(String key, T data, EntryMode mode) {
 
   }
 
   @Override
-  public void create(String key, Object data, EntryMode mode) {
-
+  public void set(String key, T data, int version) {
+    try {
+      _zkClient.writeData(key, version);
+    } catch (ZkBadVersionException e) {
+      throw new MetaClientBadVersionException(e);
+    } catch (ZkNoNodeException e) {
+      throw new MetaClientNoNodeException(e);
+    } catch (ZkException e) {
+      throw new MetaClientException(e);
+    }
   }
 
   @Override
-  public void set(String key, Object data, int version) {
+  public T update( String key, DataUpdater<T> updater) {
+    org.apache.zookeeper.data.Stat stat = new org.apache.zookeeper.data.Stat();
+    // TODO: add retry logic for ZkBadVersionException.
+    try {
+      T oldData = _zkClient.readData(key, stat);
+      T newData = updater.update(oldData);
+      set(key, newData, stat.getVersion());
+      return newData;
+    } catch (ZkBadVersionException e) {
+      throw new MetaClientBadVersionException(e);
+    } catch (ZkNoNodeException e) {
+      throw new MetaClientNoNodeException(e);
+    } catch (ZkException e) {
+      throw new MetaClientException(e);
+    }
 
-  }
-
-  @Override
-  public Object update(String key, DataUpdater updater) {
-    return null;
   }
 
   @Override
   public Stat exists(String key) {
+    org.apache.zookeeper.data.Stat zkStats;
+    try {
+      zkStats = _zkClient.getStat(key);
+      return new Stat(EphemeralType.get(zkStats.getEphemeralOwner()) == EphemeralType.VOID
+          ? EntryMode.PERSISTENT : EntryMode.EPHEMERAL, zkStats.getCversion());
+    } catch (ZkNoNodeException e) {
+      return null;
+    } catch (ZkException e) {
+      throw new MetaClientException(e);
+    }
+  }
+
+  @Override
+  public T get(String key) {
+    return _zkClient.readData(key, true);
+  }
+
+  @Override
+  public List<OpResult> transactionOP(Iterable<Op> ops) {
     return null;
   }
 
   @Override
-  public Object get(String key) {
-    return null;
+  public List<String> getDirectChildrenKeys(String key) {
+    try {
+      return _zkClient.getChildren(key);
+    } catch (ZkException e) {
+      throw new MetaClientException(e);
+    }
   }
 
   @Override
-  public List<String> getDirestChildrenKeys(String key) {
-    return null;
-  }
-
-  @Override
-  public int countDirestChildren(String key) {
-    return 0;
+  public int countDirectChildren(String key) {
+    return _zkClient.countChildren(key);
   }
 
   @Override
   public boolean delete(String key) {
-    return false;
+    try {
+      return _zkClient.delete(key);
+    } catch (ZkException e) {
+      throw new MetaClientException(e);
+    }
   }
 
   @Override
   public boolean recursiveDelete(String key) {
-    return false;
+    _zkClient.deleteRecursively(key);
+    return true;
   }
 
+  // Zookeeper execute async callbacks at zookeeper server side. In our first version of
+  // implementation, we will keep this behavior.
+  // In later version, we may consider creating a thread pool to execute registered callbacks.
+  // However, this will change metaclient from stateless to stateful.
   @Override
   public void setAsyncExecPoolSize(int poolSize) {
 
@@ -157,12 +219,15 @@ public class ZkMetaClient implements MetaClientInterface {
 
   @Override
   public boolean connect() {
-    return false;
+    // TODO: This is a tempp impl for test only. no proper event handling and error handling.
+    _zkClient.connect(Integer.MAX_VALUE, _zkClient);
+    return true;
   }
 
   @Override
   public void disconnect() {
-
+    // TODO: This is a tempp impl for test only. no proper event handling and error handling.
+    _zkClient.close();
   }
 
   @Override
@@ -246,8 +311,8 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public List<OpResult> transactionOP(Iterable iterable) {
-    return null;
+  public void close() throws IOException {
+
   }
 
   /**

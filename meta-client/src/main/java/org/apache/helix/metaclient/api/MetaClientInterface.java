@@ -71,6 +71,11 @@ public interface MetaClientInterface<T> {
     public int getVersion() {
       return _version;
     }
+
+    public Stat (EntryMode mode, int version) {
+      _version = version;
+      _entryMode = mode;
+    }
   }
 
   //synced CRUD API
@@ -143,7 +148,7 @@ public interface MetaClientInterface<T> {
    * @eturn Return a list of children keys. Return direct child name only for hierarchical key
    *        space, return the whole sub key for non-hierarchical key space.
    */
-  List<String> getDirestChildrenKeys(final String key);
+  List<String> getDirectChildrenKeys(final String key);
 
   /**
    * Return the number of children for the given keys.
@@ -152,7 +157,7 @@ public interface MetaClientInterface<T> {
    *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
    *            be a prefix key.
    */
-  int countDirestChildren(final String key);
+  int countDirectChildren(final String key);
 
   /**
    * Remove the entry associated with the given key.

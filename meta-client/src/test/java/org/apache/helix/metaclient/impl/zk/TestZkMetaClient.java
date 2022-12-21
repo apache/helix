@@ -21,10 +21,11 @@ package org.apache.helix.metaclient.impl.zk;
 
 import java.io.File;
 import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -40,9 +41,86 @@ public class TestZkMetaClient {
     _zkServer = startZkServer(ZK_ADDR);
   }
 
+  /*@Test
+  public void testConnect() {
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+    } catch (IOException e) {
+
+    }
+  }*/
+
   @Test
-  public void dummyTest() {
-    Assert.assertEquals(1+1, 2);
+  public void testGet() {
+    final String path = "/TestZkMetaClient";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      //zkMetaClient.connect();
+      zkMetaClient.create(path, "test-node");
+      zkMetaClient.set(path, "test-node-changed", -1);
+      zkMetaClient.delete(path);
+    } catch (IOException e) {
+
+    }
+  }
+
+  @Test
+  public void testUpdate() {
+    final String path = "/TestZkMetaClient";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      //zkMetaClient.connect();
+      zkMetaClient.create(path, "test-node");
+      zkMetaClient.set(path, "test-node-changed", -1);
+      zkMetaClient.delete(path);
+    } catch (IOException e) {
+
+    }
+  }
+
+  @Test
+  public void testExists() {
+    final String path = "/TestZkMetaClient";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      //zkMetaClient.connect();
+      zkMetaClient.create(path, "test-node");
+      zkMetaClient.set(path, "test-node-changed", -1);
+      zkMetaClient.delete(path);
+    } catch (IOException e) {
+
+    }
+  }
+
+  @Test
+  public void testGetCountChildren() {
+    final String path = "/TestZkMetaClient";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      //zkMetaClient.connect();
+      zkMetaClient.create(path, "test-node");
+      zkMetaClient.set(path, "test-node-changed", -1);
+      zkMetaClient.delete(path);
+    } catch (IOException e) {
+
+    }
+  }
+
+  @Test
+  public void testRecursiveDelete() {
+    final String path = "/TestZkMetaClient";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      //zkMetaClient.connect();
+      zkMetaClient.create(path, "test-node");
+      zkMetaClient.set(path, "test-node-changed", -1);
+      zkMetaClient.delete(path);
+    } catch (IOException e) {
+
+    }
+  }
+
+
+
+  private static ZkMetaClient<String> createZkMetaClient() {
+    ZkMetaClientConfig config =
+        new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
+    return new ZkMetaClient<>(config);
   }
 
   private static ZkServer startZkServer(final String zkAddress) {

@@ -65,7 +65,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
   @Override
   public void create(String key, T data) {
     // TODO: This function is implemented only for test. It does not have proper error handling
-    _zkClient.create(key, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+    _zkClient.create(key, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
   }
 
   @Override
@@ -76,7 +76,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
   @Override
   public void set(String key, T data, int version) {
     try {
-      _zkClient.writeData(key, version);
+      _zkClient.writeData(key, data, version);
     } catch (ZkBadVersionException e) {
       throw new MetaClientBadVersionException(e);
     } catch (ZkNoNodeException e) {
@@ -102,7 +102,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
     } catch (ZkException e) {
       throw new MetaClientException(e);
     }
-
   }
 
   @Override
@@ -110,8 +109,11 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
     org.apache.zookeeper.data.Stat zkStats;
     try {
       zkStats = _zkClient.getStat(key);
+      if (zkStats == null) {
+        return null;
+      }
       return new Stat(EphemeralType.get(zkStats.getEphemeralOwner()) == EphemeralType.VOID
-          ? EntryMode.PERSISTENT : EntryMode.EPHEMERAL, zkStats.getCversion());
+          ? EntryMode.PERSISTENT : EntryMode.EPHEMERAL, zkStats.getVersion());
     } catch (ZkNoNodeException e) {
       return null;
     } catch (ZkException e) {

@@ -51,7 +51,31 @@ public class ClusterModelProvider {
     PARTIAL,
     // Set the rebalance scope to cover all replicas that need relocation based on the cluster
     // changes.
-    GLOBAL_BASELINE
+    GLOBAL_BASELINE,
+    // Set the rebalance scope to cover only replicas that are assigned to downed instances.
+    EMERGENCY
+  }
+
+  /**
+   * Generate a new Cluster Model object according to the current cluster status for emergency
+   * rebalance. The rebalance scope is configured for recovering replicas that are on permanently
+   * downed nodes
+   * @param dataProvider           The controller's data cache.
+   * @param resourceMap            The full list of the resources to be rebalanced. Note that any
+   *                               resources that are not in this list will be removed from the
+   *                               final assignment.
+   * @param activeInstances        The active instances that will be used in the calculation.
+   *                               Note this list can be different from the real active node list
+   *                               according to the rebalancer logic.
+   * @param bestPossibleAssignment The persisted Best Possible assignment that was generated in the
+   *                               previous rebalance.
+   * @return the new cluster model
+   */
+  public static ClusterModel generateClusterModelForEmergencyRebalance(ResourceControllerDataProvider dataProvider,
+      Map<String, Resource> resourceMap, Set<String> activeInstances,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    return generateClusterModel(dataProvider, resourceMap, activeInstances, Collections.emptyMap(),
+        Collections.emptyMap(), bestPossibleAssignment, RebalanceScopeType.EMERGENCY);
   }
 
   /**
@@ -164,6 +188,10 @@ public class ClusterModelProvider {
         toBeAssignedReplicas =
             findToBeAssignedReplicasByComparingWithIdealAssignment(replicaMap, activeInstances,
                 idealAssignment, currentAssignment, allocatedReplicas);
+        break;
+      case EMERGENCY:
+        toBeAssignedReplicas = findToBeAssignedReplicasOnDownInstances(replicaMap, activeInstances,
+            currentAssignment, allocatedReplicas);
         break;
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);
@@ -388,6 +416,46 @@ public class ClusterModelProvider {
         }
       }
     }
+    return toBeAssignedReplicas;
+  }
+
+  /**
+   * Find replicas that were assigned to non-active nodes in the current assignment.
+   *
+   * @param replicaMap             A map contains all the replicas grouped by resource name.
+   * @param activeInstances        All the instances that are live and enabled according to the delay rebalance configuration.
+   * @param currentAssignment      The current assignment that was generated in the previous rebalance.
+   * @param allocatedReplicas      A map of <Instance -> replicas> to return the allocated replicas grouped by the target instance name.
+   * @return The replicas that need to be reassigned.
+   */
+  private static Set<AssignableReplica> findToBeAssignedReplicasOnDownInstances(
+      Map<String, Set<AssignableReplica>> replicaMap, Set<String> activeInstances,
+      Map<String, ResourceAssignment> currentAssignment,
+      Map<String, Set<AssignableReplica>> allocatedReplicas) {
+    // For any replica that are assigned to non-active instances (down instances), add them.
+    Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+    for (String resourceName : replicaMap.keySet()) {
+      Map<String, Map<String, Set<String>>> stateInstanceMap = getStateInstanceMap(currentAssignment.get(resourceName));
+
+      for (AssignableReplica replica : replicaMap.get(resourceName)) {
+        String partitionName = replica.getPartitionName();
+        String replicaState = replica.getReplicaState();
+        Set<String> currentAllocations =
+            stateInstanceMap.getOrDefault(partitionName, Collections.emptyMap())
+                .getOrDefault(replicaState, Collections.emptySet());
+        if (!currentAllocations.isEmpty()) {
+          String allocatedInstance = currentAllocations.iterator().next();
+          if (activeInstances.contains(allocatedInstance)) {
+            allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
+          }
+          else {
+            toBeAssignedReplicas.add(replica);
+          }
+          currentAllocations.remove(allocatedInstance);
+        }
+      }
+    }
+
     return toBeAssignedReplicas;
   }
 

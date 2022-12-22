@@ -51,6 +51,7 @@ public class AssignmentMetadataStore {
   // volatile for double-checked locking
   protected volatile Map<String, ResourceAssignment> _globalBaseline;
   protected volatile Map<String, ResourceAssignment> _bestPossibleAssignment;
+  protected volatile int _bestPossibleVersion = 0;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
@@ -99,60 +100,78 @@ public class AssignmentMetadataStore {
   }
 
   /**
-   * @return true if a new baseline was persisted.
-   * @throws HelixException if the method failed to persist the baseline.
-   */
-  public synchronized boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
-    return persistAssignment(globalBaseline, getBaseline(), _baselinePath, BASELINE_KEY);
-  }
-
-  /**
-   * @return true if a new best possible assignment was persisted.
-   * @throws HelixException if the method failed to persist the baseline.
-   */
-  public synchronized boolean persistBestPossibleAssignment(
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
-    return persistAssignment(bestPossibleAssignment, getBestPossibleAssignment(), _bestPossiblePath,
-        BEST_POSSIBLE_KEY);
-  }
-
-  public synchronized void clearAssignmentMetadata() {
-    persistAssignment(Collections.emptyMap(), getBaseline(), _baselinePath, BASELINE_KEY);
-    persistAssignment(Collections.emptyMap(), getBestPossibleAssignment(), _bestPossiblePath,
-        BEST_POSSIBLE_KEY);
-  }
-
-  /**
    * @param newAssignment
-   * @param cachedAssignment
    * @param path the path of the assignment record
    * @param key  the key of the assignment in the record
-   * @return true if a new assignment was persisted.
+   * @throws HelixException if the method failed to persist the baseline.
    */
-  // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
-  // TODO: when it is skipped.
-  private boolean persistAssignment(Map<String, ResourceAssignment> newAssignment,
-      Map<String, ResourceAssignment> cachedAssignment, String path,
-      String key) {
+  private void persistAssignmentToMetadataStore(Map<String, ResourceAssignment> newAssignment, String path, String key)
+      throws HelixException {
     // TODO: Make the write async?
-    // If the assignment hasn't changed, skip writing to metadata store
-    if (compareAssignments(cachedAssignment, newAssignment)) {
-      return false;
-    }
     // Persist to ZK
     HelixProperty combinedAssignments = combineAssignments(key, newAssignment);
     try {
       _dataAccessor.compressedBucketWrite(path, combinedAssignments);
     } catch (IOException e) {
-      // TODO: Improve failure handling
-      throw new HelixException(
-          String.format("Failed to persist %s assignment to path %s", key, path), e);
+      throw new HelixException(String.format("Failed to persist %s assignment to path %s", key, path), e);
+    }
+  }
+
+  /**
+   * Persist a new baseline assignment to metadata store first, then to memory
+   * @param globalBaseline
+   */
+  public synchronized void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+    // write to metadata store
+    persistAssignmentToMetadataStore(globalBaseline, _baselinePath, BASELINE_KEY);
+    // write to memory
+    getBaseline().clear();
+    getBaseline().putAll(globalBaseline);
+  }
+
+  /**
+   * Persist a new best possible assignment to metadata store first, then to memory.
+   * Increment best possible version by 1 - this is a high priority in-memory write.
+   * @param bestPossibleAssignment
+   */
+  public synchronized void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
+    // write to metadata store
+    persistAssignmentToMetadataStore(bestPossibleAssignment, _bestPossiblePath, BEST_POSSIBLE_KEY);
+    // write to memory
+    getBestPossibleAssignment().clear();
+    getBestPossibleAssignment().putAll(bestPossibleAssignment);
+    _bestPossibleVersion++;
+  }
+
+  /**
+   * Attempts to persist Best Possible Assignment in memory from an asynchronous thread.
+   * Persist only happens when the provided version is not stale - this is a low priority in-memory write.
+   * @param bestPossibleAssignment - new assignment to be persisted
+   * @param newVersion - attempted new version to write. This version is obtained earlier from getBestPossibleVersion()
+   * @return true if the attempt succeeded, false otherwise.
+   */
+  public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
+      Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
+    // Check if the version is stale by this point
+    if (newVersion > _bestPossibleVersion) {
+      getBestPossibleAssignment().clear();
+      getBestPossibleAssignment().putAll(bestPossibleAssignment);
+      _bestPossibleVersion = newVersion;
+      return true;
     }
 
-    // Update the in-memory reference
-    cachedAssignment.clear();
-    cachedAssignment.putAll(newAssignment);
-    return true;
+    return false;
+  }
+
+  public int getBestPossibleVersion() {
+    return _bestPossibleVersion;
+  }
+
+  public synchronized void clearAssignmentMetadata() {
+    persistAssignmentToMetadataStore(Collections.emptyMap(), _baselinePath, BASELINE_KEY);
+    persistAssignmentToMetadataStore(Collections.emptyMap(), _bestPossiblePath, BEST_POSSIBLE_KEY);
+    getBaseline().clear();
+    getBestPossibleAssignment().clear();
   }
 
   protected synchronized void reset() {
@@ -207,16 +226,11 @@ public class AssignmentMetadataStore {
     return assignmentMap;
   }
 
-  /**
-   * Returns whether two assignments are same.
-   * @param oldAssignment
-   * @param newAssignment
-   * @return true if they are the same. False otherwise or oldAssignment is null
-   */
-  protected boolean compareAssignments(Map<String, ResourceAssignment> oldAssignment,
-      Map<String, ResourceAssignment> newAssignment) {
-    // If oldAssignment is null, that means that we haven't read from/written to
-    // the metadata store yet. In that case, we return false so that we write to metadata store.
-    return oldAssignment != null && oldAssignment.equals(newAssignment);
+  protected boolean isBaselineChanged(Map<String, ResourceAssignment> newBaseline) {
+    return !getBaseline().equals(newBaseline);
+  }
+
+  protected boolean isBestPossibleChanged(Map<String, ResourceAssignment> newBestPossible) {
+    return !getBestPossibleAssignment().equals(newBestPossible);
   }
 }

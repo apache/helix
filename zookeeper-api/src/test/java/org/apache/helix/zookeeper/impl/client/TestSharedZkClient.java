@@ -57,7 +57,7 @@ public class TestSharedZkClient extends RealmAwareZkClientFactoryTestBase {
       // this is expected
     }
 
-    // test creating Ephemeral via creat would also fail
+    // test creating Ephemeral via create would also fail
     try {
       _realmAwareZkClient.create(TEST_VALID_PATH, znRecord, CreateMode.EPHEMERAL);
       Assert.fail(

@@ -20,13 +20,13 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Collection;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
@@ -59,7 +59,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   private static final String UNSUPPORTED_OPERATION_MESSAGE =
       "Session-aware operation is not supported by FederatedZkClient.";
 
-  private RealmAwareZkClient _realmAwareZkClient;
 
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
@@ -103,8 +102,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
-    List<Op> ops = Arrays.asList(
-        Op.create(TEST_REALM_ONE_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+    List<Op> ops = Arrays.asList(Op.create(TEST_REALM_ONE_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
             CreateMode.PERSISTENT), Op.delete(TEST_REALM_ONE_VALID_PATH, -1));
     try {
       _realmAwareZkClient.multi(ops);

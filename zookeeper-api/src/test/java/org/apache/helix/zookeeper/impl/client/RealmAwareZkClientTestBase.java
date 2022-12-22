@@ -24,6 +24,8 @@ import java.io.IOException;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.api.factory.RealmAwareZkClientFactory;
 import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.testng.annotations.AfterClass;
@@ -40,6 +42,8 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   protected static final String MSDS_HOSTNAME = "localhost";
   protected static final int MSDS_PORT = 19910;
   protected static final String MSDS_NAMESPACE = "test";
+  protected RealmAwareZkClient _realmAwareZkClient;
+  protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
 
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {

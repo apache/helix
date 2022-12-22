@@ -494,7 +494,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
     throwUnsupportedOperationException();
     return null;
   }
-
   @Override
   public long getSessionId() {
     // Session-aware is unsupported.

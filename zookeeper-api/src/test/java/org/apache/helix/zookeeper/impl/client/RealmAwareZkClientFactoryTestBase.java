@@ -24,7 +24,6 @@ import java.util.NoSuchElementException;
 
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.api.factory.RealmAwareZkClientFactory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.testng.Assert;
@@ -41,7 +40,6 @@ import org.testng.annotations.Test;
  */
 public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClientTestBase {
   // The following RealmAwareZkClientFactory is to be defined in subclasses
-  protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
   protected RealmAwareZkClient _realmAwareZkClient;
   private static final ZNRecord DUMMY_RECORD = new ZNRecord("DummyRecord");
 

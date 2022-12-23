@@ -63,6 +63,7 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
                 System.out.println(elm);
             }
         }
+        System.out.println("end start");
     }
 
     /**
@@ -87,9 +88,10 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
         try {
             //Execute transactional support on operations and verify they were run
             _zkClient.multi(ops);
-            Assert.fail("Should have thrown an exception. Multi not supported");
-        } catch (UnsupportedOperationException ex) {
-            Assert.assertTrue(ex.getMessage().startsWith("Session-aware operation is not supported by FederatedZkClient."));
+            Assert.fail("Should have thrown an exception. Cannot run multi on ops of different servers.");
+        } catch (IllegalArgumentException e) {
+            boolean pathExists = _zkClient.exists("/" + CLUSTER_LIST.get(0) + "/test");
+            Assert.assertFalse(pathExists, "Path should not have been created.");
         }
         System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
     }

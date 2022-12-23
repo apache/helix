@@ -20,13 +20,12 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.io.IOException;
-import java.util.NoSuchElementException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Arrays;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
@@ -42,9 +41,7 @@ import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.Op;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -98,15 +95,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       _realmAwareZkClient
           .create(TEST_REALM_ONE_VALID_PATH, "Hello", CreateMode.EPHEMERAL_SEQUENTIAL);
       Assert.fail("Ephemeral node should not be created.");
-    } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
-    }
-
-    List<Op> ops = Arrays.asList(Op.create(TEST_REALM_ONE_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-            CreateMode.PERSISTENT), Op.delete(TEST_REALM_ONE_VALID_PATH, -1));
-    try {
-      _realmAwareZkClient.multi(ops);
-      Assert.fail("multi() should not be supported.");
     } catch (UnsupportedOperationException ex) {
       Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
@@ -658,6 +646,14 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
           .fail("createPersistent() should not be executed because RealmAwareZkClient is closed.");
     } catch (IllegalStateException ex) {
       Assert.assertEquals(ex.getMessage(), "FederatedZkClient is closed!");
+    }
+  }
+
+  @Override
+  public void testMulti() {
+    super.testMulti();
+    if (!_realmAwareZkClient.exists(ZK_SHARDING_KEY_PREFIX)) {
+      _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
     }
   }
 }

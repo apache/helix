@@ -278,6 +278,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>vivo</id>
+      <name>Vivo Xu</name>
+      <email>vivo@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>

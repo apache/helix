@@ -71,7 +71,7 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
    * @param zkConnection
    *            The Zookeeper connection
    * @param watcher
-   *            The watcher to register to zookeeper
+   *            The watcher to register to zookeeper. If null is passed in, the native zkclient is used as default
    * @param connectionTimeout
    *            The connection timeout in milli seconds
    * @param zkSerializer
@@ -88,6 +88,8 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
    *            The JMX bean name will be: HelixZkClient.monitorType.monitorKey.monitorInstanceName.
    * @param monitorRootPathOnly
    *            Should only stat of access to root path be reported to JMX bean or path-specific stat be reported too.
+   * @param connectOnInit true if connect to ZK during initialization, otherwise user will need to call connect
+   *                      explicitly before talking to ZK.
    */
   public ZkClient(IZkConnection zkConnection, Watcher watcher, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer,
@@ -209,11 +211,20 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
       return this;
     }
 
+    /**
+     * Set zookeeper watcher to register for notification.
+     * If left empty, a NULL is passed down to the native {@link org.apache.helix.zookeeper.zkclient.ZkClient},
+     * where the native zkclient will be used as watcher by default.
+     */
     public Builder setWatcher(Watcher watcher) {
       this._watcher = watcher;
       return this;
     }
 
+    /**
+     * If set true, the client will connect to ZK during initialization.
+     * Otherwise, user has to call connect() method explicitly before talking to ZK.
+     */
     public Builder setConnectOnInit(boolean connectOnInit) {
       _connectOnInit = connectOnInit;
       return this;

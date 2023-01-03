@@ -250,6 +250,7 @@ public class ZkClient implements Watcher {
     } else {
       LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
     }
+    // set the zookeeper watcher for notification, use "this" native zkclient instance by default if not explicitly set
     _watcher = watcher == null ? this : watcher;
   }
 
@@ -1568,7 +1569,7 @@ public class ZkClient implements Watcher {
     getEventLock().lock();
     try {
       ZkConnection connection = ((ZkConnection) getConnection());
-      connection.reconnect(_watcher == null ? this : _watcher);
+      connection.reconnect(_watcher);
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
     } finally {
@@ -2398,6 +2399,13 @@ public class ZkClient implements Watcher {
     watchForData(path, false, false);
   }
 
+  /**
+   * Register watcher for certain ZK path for notification.
+   * @param path the zk path
+   * @param skipWatchingNonExistNode whether skip watching non exist node
+   * @param persistListener if set true, a persistent ZK watcher is set to the given path
+   * @return true if set successfully
+   */
   public boolean watchForData(final String path, boolean skipWatchingNonExistNode, boolean persistListener) {
     try {
       if (persistListener) {

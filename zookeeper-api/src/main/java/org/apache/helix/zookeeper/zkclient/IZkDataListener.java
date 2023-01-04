@@ -19,6 +19,9 @@ package org.apache.helix.zookeeper.zkclient;
  * under the License.
  */
 
+import org.apache.zookeeper.Watcher;
+
+
 /**
  * An {@link IZkDataListener} can be registered at a {@link ZkClient} for listening on zk data changes for a given path.
  *
@@ -31,4 +34,8 @@ public interface IZkDataListener {
     public void handleDataChange(String dataPath, Object data) throws Exception;
 
     public void handleDataDeleted(String dataPath) throws Exception;
+
+    default void handleDataChange(String dataPath, Object data, Watcher.Event.EventType eventType) throws Exception {
+        handleDataChange(dataPath, data);
+    }
 }

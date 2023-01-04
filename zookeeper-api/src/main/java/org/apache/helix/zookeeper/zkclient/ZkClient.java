@@ -1312,13 +1312,13 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireAllEvents() {
+  private void fireAllEvents(WatchedEvent event) {
     //TODO: During handling new session, if the path is deleted, watcher leakage could still happen
     for (Entry<String, Set<IZkChildListener>> entry : _childListener.entrySet()) {
       fireChildChangedEvents(entry.getKey(), entry.getValue(), true);
     }
     for (Entry<String, Set<IZkDataListenerEntry>> entry : _dataListener.entrySet()) {
-      fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty(), true);
+      fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty(), true, event.getType());
     }
   }
 
@@ -1518,7 +1518,7 @@ public class ZkClient implements Watcher {
          * reconnecting when the session expired. Because previous session expired, we also have to
          * notify all listeners that something might have changed.
          */
-        fireAllEvents();
+        fireAllEvents(event);
       }
     } else if (event.getState() == KeeperState.Expired) {
       _isNewSessionEventFired = false;
@@ -1766,13 +1766,13 @@ public class ZkClient implements Watcher {
       Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
       if (listeners != null && !listeners.isEmpty()) {
         fireDataChangedEvents(event.getPath(), listeners, OptionalLong.of(notificationTime),
-            pathExists);
+            pathExists, event.getType());
       }
     }
   }
 
   private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners,
-      final OptionalLong notificationTime, boolean pathExists) {
+      final OptionalLong notificationTime, boolean pathExists, EventType eventType) {
     try {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       // Trigger listener callbacks
@@ -1815,7 +1815,7 @@ public class ZkClient implements Watcher {
                   return;
                 }
               }
-              listener.getDataListener().handleDataChange(path, data);
+              listener.getDataListener().handleDataChange(path, data, eventType);
             }
           }
         });

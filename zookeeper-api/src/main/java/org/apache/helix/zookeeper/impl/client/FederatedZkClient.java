@@ -19,12 +19,11 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
@@ -489,19 +488,15 @@ public class FederatedZkClient implements RealmAwareZkClient {
     if (ops == null) {
       throw new NullPointerException("ops must not be null.");
     }
-    String opPath = null;
-    String opPathRealm = null;
-    for (Op op : ops) {
-      if (opPath == null) {
-        opPath = op.getPath();
-        opPathRealm = getZkRealm(op.getPath());
-      } else {
-        if (!opPathRealm.equals(getZkRealm(op.getPath()))){
-          throw new IllegalArgumentException("Cannot execute multi on ops of different realms!");
-        }
-      }
+    boolean anyDifferent = StreamSupport.stream(ops.spliterator(), false)
+            .map(op -> getZkRealm(op.getPath()))
+            .anyMatch(s -> !s.equals(getZkRealm(ops.iterator().next().getPath())));
+
+    if (anyDifferent) {
+      throw new IllegalArgumentException("Cannot execute multi on ops of different realms!");
     }
-    return getZkClient(opPath).multi(ops);
+    // No different zk realms so call multi on the realm of the first op
+    return getZkClient(ops.iterator().next().getPath()).multi(ops);
   }
 
   @Override

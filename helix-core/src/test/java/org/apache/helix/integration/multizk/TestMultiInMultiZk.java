@@ -63,7 +63,6 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
                 System.out.println(elm);
             }
         }
-        System.out.println("end start");
     }
 
     /**

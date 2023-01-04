@@ -191,6 +191,7 @@ public class TestZkMetaClient {
     };
 
     int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
+    System.out.println("Starting ZK server at " + zkAddress);
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
     zkServer.start();
     return zkServer;

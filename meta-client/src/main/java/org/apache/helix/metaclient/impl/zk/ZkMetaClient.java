@@ -44,7 +44,7 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.zookeeper.Watcher;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.server.EphemeralType;
@@ -77,12 +77,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
   public void set(String key, T data, int version) {
     try {
       _zkClient.writeData(key, data, version);
-    } catch (ZkBadVersionException e) {
-      throw new MetaClientBadVersionException(e);
-    } catch (ZkNoNodeException e) {
-      throw new MetaClientNoNodeException(e);
     } catch (ZkException e) {
-      throw new MetaClientException(e);
+      throw translateZkExceptionToMetaclientException(e);
     }
   }
 
@@ -95,12 +91,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
       T newData = updater.update(oldData);
       set(key, newData, stat.getVersion());
       return newData;
-    } catch (ZkBadVersionException e) {
-      throw new MetaClientBadVersionException(e);
-    } catch (ZkNoNodeException e) {
-      throw new MetaClientNoNodeException(e);
     } catch (ZkException e) {
-      throw new MetaClientException(e);
+      throw translateZkExceptionToMetaclientException(e);
     }
   }
 
@@ -114,10 +106,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
       }
       return new Stat(EphemeralType.get(zkStats.getEphemeralOwner()) == EphemeralType.VOID
           ? EntryMode.PERSISTENT : EntryMode.EPHEMERAL, zkStats.getVersion());
-    } catch (ZkNoNodeException e) {
-      return null;
     } catch (ZkException e) {
-      throw new MetaClientException(e);
+      throw translateZkExceptionToMetaclientException(e);
     }
   }
 
@@ -368,4 +358,14 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
       return _listener.hashCode();
     }
   }
+  private MetaClientException translateZkExceptionToMetaclientException(ZkException e) {
+    if (e instanceof ZkNodeExistsException) {
+      return new MetaClientNoNodeException(e);
+    } else if (e instanceof ZkBadVersionException) {
+      return new MetaClientBadVersionException(e);
+    } else {
+      return new MetaClientException(e);
+    }
+  }
+
 }

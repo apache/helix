@@ -19,7 +19,7 @@ package org.apache.helix.metaclient.constants;
  * under the License.
  */
 
-public class MetaClientException extends RuntimeException{
+public class MetaClientException extends RuntimeException {
   public MetaClientException() {
     super();
   }

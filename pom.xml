@@ -287,6 +287,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>xyuanlu</id>
+      <name>Xiaoyuan Lu</name>
+      <email>xyuanlu@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>

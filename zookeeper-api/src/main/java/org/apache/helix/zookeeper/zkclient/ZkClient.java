@@ -214,7 +214,7 @@ public class ZkClient implements Watcher {
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
-      String monitorInstanceName, boolean monitorRootPathOnly) {
+      String monitorInstanceName, boolean monitorRootPathOnly, boolean connectOnInit) {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
@@ -240,15 +240,16 @@ public class ZkClient implements Watcher {
       LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
     }
 
-    connect(connectionTimeout, this);
-
-    try {
-      if (_monitor != null) {
-        _monitor.register();
-      }
-    } catch (JMException e){
-      LOG.error("Error in creating ZkClientMonitor", e);
+    if (connectOnInit) {
+      connect(connectionTimeout, this);
     }
+  }
+
+  protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      String monitorInstanceName, boolean monitorRootPathOnly) {
+    this(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType, monitorKey,
+        monitorInstanceName, monitorRootPathOnly, true);
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
@@ -2488,6 +2489,11 @@ public class ZkClient implements Watcher {
     });
   }
 
+  protected void connect(final long maxMsToWaitUntilConnected)
+      throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
+    connect(maxMsToWaitUntilConnected, this);
+  }
+
   /**
    * Connect to ZooKeeper.
    * @param maxMsToWaitUntilConnected
@@ -2552,6 +2558,13 @@ public class ZkClient implements Watcher {
       if (!started) {
         close();
       }
+    }
+    try {
+      if (_monitor != null) {
+        _monitor.register();
+      }
+    } catch (JMException e){
+      LOG.error("Error in creating ZkClientMonitor", e);
     }
   }
 

@@ -80,7 +80,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
    * Initialize requirement for testing multi support.
    */
   @Test
-  public void testMulti() {
+  public void testMultiSetup() {
     // Create a connection config with a valid sharding key
     RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder builder =
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
@@ -99,7 +99,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   /**
    * Test that zk multi works for create.
    */
-  @Test(dependsOnMethods = "testMulti")
+  @Test(dependsOnMethods = "testMultiSetup")
   public void testMultiCreate() {
     String test_name = "/test_multi_create";
 

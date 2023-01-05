@@ -650,8 +650,8 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   }
 
   @Override
-  public void testMulti() {
-    super.testMulti();
+  public void testMultiSetup() {
+    super.testMultiSetup();
     if (!_realmAwareZkClient.exists(ZK_SHARDING_KEY_PREFIX)) {
       _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);
     }

@@ -211,14 +211,14 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
 
   @Override
   public boolean connect() {
-    // TODO: This is a tempp impl for test only. no proper event handling and error handling.
-    _zkClient.connect(Integer.MAX_VALUE, _zkClient);
+    // TODO: Currently zkclient is connected to ZK when initiated in constructor. This is temp behavior
+    // for test only. Change later.
     return true;
   }
 
   @Override
   public void disconnect() {
-    // TODO: This is a tempp impl for test only. no proper event handling and error handling.
+    // TODO: This is a temp impl for test only. no proper event handling and error handling.
     _zkClient.close();
   }
 

@@ -34,6 +34,7 @@ import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -52,6 +53,11 @@ public class TestZkMetaClient {
     _zkServer = startZkServer(ZK_ADDR);
   }
 
+  @AfterClass
+  public void cleanUp() {
+    _zkServer.shutdown();
+  }
+
   @Test
   public void testGet() {
     final String key = "/TestZkMetaClient_testGet";
@@ -68,6 +74,7 @@ public class TestZkMetaClient {
 
     value = zkMetaClient.get(key);
     Assert.assertNull(value);
+    zkMetaClient.disconnect();
   }
 
   @Test
@@ -100,6 +107,7 @@ public class TestZkMetaClient {
           "org.apache.helix.metaclient.constants.MetaClientBadVersionException");
     }
     zkMetaClient.delete(key);
+    zkMetaClient.disconnect();
   }
 
   @Test
@@ -137,6 +145,7 @@ public class TestZkMetaClient {
     Assert.assertEquals(entryStat.getVersion(), 2);
     Assert.assertEquals((int) newData, (int) initValue+2);
     zkMetaClient.delete(key);
+    zkMetaClient.disconnect();
   }
 
   @Test
@@ -164,6 +173,7 @@ public class TestZkMetaClient {
     Assert.assertNotNull(zkMetaClient.exists(key));
     zkMetaClient.recursiveDelete(key);
     Assert.assertNull(zkMetaClient.exists(key));
+    zkMetaClient.disconnect();
   }
 
 

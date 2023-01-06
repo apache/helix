@@ -283,5 +283,22 @@ public class ZkMetaClient implements MetaClientInterface {
     public void handleDataChange(String dataPath, Object data, Watcher.Event.EventType eventType) throws Exception {
       _listener.handleDataChange(dataPath, data, convertType(eventType));
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      DataListenerConverter that = (DataListenerConverter) o;
+      return _listener.equals(that._listener);
+    }
+
+    @Override
+    public int hashCode() {
+      return _listener.hashCode();
+    }
   }
 }

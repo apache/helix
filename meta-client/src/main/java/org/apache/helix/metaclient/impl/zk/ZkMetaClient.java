@@ -126,7 +126,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
     try {
       return _zkClient.getChildren(key);
     } catch (ZkException e) {
-      throw new MetaClientException(e);
+      throw translateZkExceptionToMetaclientException(e);
     }
   }
 
@@ -140,7 +140,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
     try {
       return _zkClient.delete(key);
     } catch (ZkException e) {
-      throw new MetaClientException(e);
+      throw translateZkExceptionToMetaclientException(e);
     }
   }
 

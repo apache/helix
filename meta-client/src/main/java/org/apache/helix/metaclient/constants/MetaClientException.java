@@ -20,19 +20,19 @@ package org.apache.helix.metaclient.constants;
  */
 
 public class MetaClientException extends RuntimeException {
-  public MetaClientException() {
-    super();
-  }
+    public MetaClientException() {
+        super();
+    }
 
-  public MetaClientException(String message, Throwable cause) {
-    super(message, cause);
-  }
+    public MetaClientException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-  public MetaClientException(String message) {
-    super(message);
-  }
+    public MetaClientException(String message) {
+        super(message);
+    }
 
-  public MetaClientException(Throwable cause) {
-    super(cause);
-  }
+    public MetaClientException(Throwable cause) {
+        super(cause);
+    }
 }

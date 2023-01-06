@@ -52,7 +52,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.server.EphemeralType;
 
 
-public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
+public class ZkMetaClient<T><T> implements MetaClientInterface<T><T>, AutoCloseable {
 
   private final ZkClient _zkClient;
   private final int _connectionTimeout;
@@ -67,14 +67,28 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void create(String key, T data) {
-    // TODO: This function is implemented only for test. It does not have proper error handling
-    _zkClient.create(key, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+  public void create(String key, Object data) {
+    try {
+      create(key, data, EntryMode.PERSISTENT);
+    } catch (Exception e) {
+      throw new MetaClientException(e);
+    }
   }
 
   @Override
-  public void create(String key, T data, EntryMode mode) {
-
+  public void create(String key, Object data, MetaClientInterface.EntryMode mode) {
+    int zkFlag = -1;
+    if (mode.name().equals(EntryMode.PERSISTENT.name())) {
+      zkFlag = 0;
+    }
+    if (mode.name().equals(EntryMode.EPHEMERAL.name())) {
+      zkFlag = 1;
+    }
+    try{
+      _zkClient.create(key, data, CreateMode.fromFlag(zkFlag));
+    } catch (ZkException | KeeperException e) {
+      throw new MetaClientException(e);
+    }
   }
 
   @Override
@@ -122,6 +136,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public List<OpResult> transactionOP(Iterable<Op> ops) {
     return null;
+>>>>>>> a7fd23482 (Create operation with half test implementation)
   }
 
   @Override

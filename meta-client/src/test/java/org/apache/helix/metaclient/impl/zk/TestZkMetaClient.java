@@ -210,4 +210,19 @@ public class TestZkMetaClient {
     zkServer.start();
     return zkServer;
   }
+
+  @Test
+  public void testCreate() {
+    final String key = "/TestZkMetaClient_testGet";
+    ZkMetaClient<String> zkMetaClient = createZkMetaClient();
+    zkMetaClient.create(key, ENTRY_STRING_VALUE);
+
+    Assert.assertTrue(zkMetaClient.exists(key));
+  }
+
+  private static ZkMetaClient<String> createZkMetaClient() {
+    ZkMetaClientConfig config =
+            (ZkMetaClientConfig) new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
+    return new ZkMetaClient<>(config);
+  }
 }

@@ -115,6 +115,10 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
     Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
     Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
 
+    //Verify that the znodes were created
+    Assert.assertTrue(_realmAwareZkClient.exists(PARENT_PATH), "Path has not been created.");
+    Assert.assertTrue(_realmAwareZkClient.exists(PARENT_PATH + test_name), "Path has not been created.");
+
     cleanup();
   }
 
@@ -163,6 +167,9 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
     Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
     Assert.assertTrue(opResults.get(2) instanceof OpResult.DeleteResult);
 
+    Assert.assertTrue(_realmAwareZkClient.exists(PARENT_PATH), "Path has not been created.");
+    Assert.assertFalse(_realmAwareZkClient.exists(PARENT_PATH + test_name), "Path should have been removed.");
+
     cleanup();
   }
 
@@ -185,6 +192,9 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
     Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
     Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
     Assert.assertTrue(opResults.get(2) instanceof OpResult.SetDataResult);
+
+    Assert.assertTrue(_realmAwareZkClient.exists(PARENT_PATH), "Path has not been created.");
+    Assert.assertTrue(_realmAwareZkClient.exists(PARENT_PATH + test_name), "Path has not been created.");
 
     cleanup();
   }

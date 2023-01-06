@@ -80,20 +80,15 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
    * Initialize requirement for testing multi support.
    */
   @Test
-  public void testMultiSetup() {
+  public void testMultiSetup() throws InvalidRoutingDataException {
     // Create a connection config with a valid sharding key
     RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder builder =
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
     RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
             builder.setZkRealmShardingKey(ZK_SHARDING_KEY_PREFIX).build();
-    try {
-      _realmAwareZkClient = new FederatedZkClient(connectionConfig,
+
+    _realmAwareZkClient = new FederatedZkClient(connectionConfig,
               new RealmAwareZkClient.RealmAwareZkClientConfig());
-    } catch (IllegalArgumentException e) {
-      Assert.fail("Invalid Sharding Key.");
-    } catch (Exception e) {
-      Assert.fail("Should not see any other types of Exceptions: " + e);
-    }
   }
 
   /**

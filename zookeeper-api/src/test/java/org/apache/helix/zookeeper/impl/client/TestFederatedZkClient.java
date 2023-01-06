@@ -650,7 +650,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   }
 
   @Override
-  public void testMultiSetup() {
+  public void testMultiSetup() throws InvalidRoutingDataException {
     super.testMultiSetup();
     if (!_realmAwareZkClient.exists(ZK_SHARDING_KEY_PREFIX)) {
       _realmAwareZkClient.createPersistent(ZK_SHARDING_KEY_PREFIX);

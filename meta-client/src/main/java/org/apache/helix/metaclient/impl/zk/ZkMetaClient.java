@@ -33,7 +33,9 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.zookeeper.Watcher;
 
 
 public class ZkMetaClient implements MetaClientInterface {
@@ -246,5 +248,57 @@ public class ZkMetaClient implements MetaClientInterface {
   @Override
   public List<OpResult> transactionOP(Iterable iterable) {
     return null;
+  }
+
+  /**
+   * A converter class to transform {@link DataChangeListener} to {@link IZkDataListener}
+   */
+  static class DataListenerConverter implements IZkDataListener {
+    private final DataChangeListener _listener;
+
+    DataListenerConverter(DataChangeListener listener) {
+      _listener = listener;
+    }
+
+    private DataChangeListener.ChangeType convertType(Watcher.Event.EventType eventType) {
+      switch (eventType) {
+        case NodeCreated: return DataChangeListener.ChangeType.ENTRY_CREATED;
+        case NodeDataChanged: return DataChangeListener.ChangeType.ENTRY_UPDATE;
+        case NodeDeleted: return DataChangeListener.ChangeType.ENTRY_DELETED;
+        default: throw new IllegalArgumentException("EventType " + eventType + " is not supported.");
+      }
+    }
+
+    @Override
+    public void handleDataChange(String dataPath, Object data) throws Exception {
+      throw new UnsupportedOperationException("handleDataChange(String dataPath, Object data) is not supported.");
+    }
+
+    @Override
+    public void handleDataDeleted(String dataPath) throws Exception {
+      handleDataChange(dataPath, null, Watcher.Event.EventType.NodeDeleted);
+    }
+
+    @Override
+    public void handleDataChange(String dataPath, Object data, Watcher.Event.EventType eventType) throws Exception {
+      _listener.handleDataChange(dataPath, data, convertType(eventType));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      DataListenerConverter that = (DataListenerConverter) o;
+      return _listener.equals(that._listener);
+    }
+
+    @Override
+    public int hashCode() {
+      return _listener.hashCode();
+    }
   }
 }

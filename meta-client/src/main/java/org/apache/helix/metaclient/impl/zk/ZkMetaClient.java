@@ -36,16 +36,20 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.constants.MetaClientBadVersionException;
 import org.apache.helix.metaclient.constants.MetaClientException;
+import org.apache.helix.metaclient.constants.MetaClientInterruptException;
 import org.apache.helix.metaclient.constants.MetaClientNoNodeException;
+import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
-import org.apache.zookeeper.Watcher;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.server.EphemeralType;
 
@@ -53,13 +57,15 @@ import org.apache.zookeeper.server.EphemeralType;
 public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
 
   private final ZkClient _zkClient;
+  private final int _connectionTimeout;
 
   public ZkMetaClient(ZkMetaClientConfig config) {
-    _zkClient =  new ZkClient(new ZkConnection(config.getConnectionAddress(),
-        (int) config.getSessionTimeoutInMillis()),
-        (int) config.getConnectionInitTimeoutInMillis(), -1 /*operationRetryTimeout*/,
-        config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
-        config.getMonitorInstanceName(), config.getMonitorRootPathOnly());
+    _connectionTimeout = (int) config.getConnectionInitTimeoutInMillis();
+    _zkClient = new ZkClient(
+        new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
+        _connectionTimeout, -1 /*operationRetryTimeout*/, config.getZkSerializer(),
+        config.getMonitorType(), config.getMonitorKey(), config.getMonitorInstanceName(),
+        config.getMonitorRootPathOnly(), false);
   }
 
   @Override
@@ -211,9 +217,12 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
 
   @Override
   public boolean connect() {
-    // TODO: Currently zkclient is connected to ZK when initiated in constructor. This is temp behavior
-    // for test only. Change later.
-    return true;
+    try {
+      _zkClient.connect(_connectionTimeout, _zkClient);
+      return true;
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override
@@ -363,6 +372,10 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
       return new MetaClientNoNodeException(e);
     } else if (e instanceof ZkBadVersionException) {
       return new MetaClientBadVersionException(e);
+    } else if (e instanceof ZkTimeoutException) {
+      return new MetaClientTimeoutException(e);
+    } else if (e instanceof ZkInterruptedException) {
+      return new MetaClientInterruptException(e);
     } else {
       return new MetaClientException(e);
     }

@@ -1,6 +1,6 @@
 package org.apache.helix.metaclient.constants;
 
-public class MetaClientBadVersionException extends MetaClientException {
+public final class MetaClientBadVersionException extends MetaClientException {
   public MetaClientBadVersionException() {
     super();
   }

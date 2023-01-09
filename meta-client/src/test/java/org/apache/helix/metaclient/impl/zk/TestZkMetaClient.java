@@ -62,6 +62,7 @@ public class TestZkMetaClient {
   public void testGet() {
     final String key = "/TestZkMetaClient_testGet";
     ZkMetaClient<String> zkMetaClient = createZkMetaClient();
+    zkMetaClient.connect();
     String value;
     zkMetaClient.create(key, ENTRY_STRING_VALUE);
     String dataValue = zkMetaClient.get(key);
@@ -81,6 +82,7 @@ public class TestZkMetaClient {
   public void testSet() {
     final String key = "/TestZkMetaClient_testSet";
     ZkMetaClient<String> zkMetaClient = createZkMetaClient();
+    zkMetaClient.connect();
     zkMetaClient.create(key, ENTRY_STRING_VALUE);
     String testValueV1 = ENTRY_STRING_VALUE + "-v1";
     String testValueV2 = ENTRY_STRING_VALUE + "-v2";
@@ -116,6 +118,7 @@ public class TestZkMetaClient {
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
     ZkMetaClient<Integer> zkMetaClient = new ZkMetaClient<>(config);
+    zkMetaClient.connect();
     int initValue = 3;
     zkMetaClient.create(key, initValue);
     MetaClientInterface.Stat entryStat = zkMetaClient.exists(key);
@@ -155,6 +158,7 @@ public class TestZkMetaClient {
 
     // create child nodes and validate retrieved children count and names
     ZkMetaClient<String> zkMetaClient = createZkMetaClient();
+    zkMetaClient.connect();
     zkMetaClient.create(key, ENTRY_STRING_VALUE);
     Assert.assertEquals(zkMetaClient.countDirectChildren(key), 0);
     for (String str : childrenNames) {

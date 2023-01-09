@@ -19,8 +19,6 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -54,7 +52,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.server.EphemeralType;
 
 
-public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
+public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   private final ZkClient _zkClient;
   private final int _connectionTimeout;
@@ -215,10 +213,9 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
   }
 
   @Override
-  public boolean connect() {
+  public void connect() {
     try {
       _zkClient.connect(_connectionTimeout, _zkClient);
-      return true;
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
     }
@@ -226,7 +223,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
 
   @Override
   public void disconnect() {
-    // TODO: This is a temp impl for test only. no proper event handling and error handling.
+    // TODO: This is a temp impl for test only. no proper interrupt handling and error handling.
     _zkClient.close();
   }
 
@@ -311,8 +308,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
   }
 
   @Override
-  public void close() throws IOException {
-
+  public void close() {
+    disconnect();
   }
 
   /**

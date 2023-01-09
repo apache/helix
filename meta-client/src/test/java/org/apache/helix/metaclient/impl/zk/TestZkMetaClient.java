@@ -61,55 +61,55 @@ public class TestZkMetaClient {
   @Test
   public void testGet() {
     final String key = "/TestZkMetaClient_testGet";
-    ZkMetaClient<String> zkMetaClient = createZkMetaClient();
-    zkMetaClient.connect();
-    String value;
-    zkMetaClient.create(key, ENTRY_STRING_VALUE);
-    String dataValue = zkMetaClient.get(key);
-    Assert.assertEquals(dataValue, ENTRY_STRING_VALUE);
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      String value;
+      zkMetaClient.create(key, ENTRY_STRING_VALUE);
+      String dataValue = zkMetaClient.get(key);
+      Assert.assertEquals(dataValue, ENTRY_STRING_VALUE);
 
-    value = zkMetaClient.get(key + "/a/b/c");
-    Assert.assertNull(value);
+      value = zkMetaClient.get(key + "/a/b/c");
+      Assert.assertNull(value);
 
-    zkMetaClient.delete(key);
+      zkMetaClient.delete(key);
 
-    value = zkMetaClient.get(key);
-    Assert.assertNull(value);
-    zkMetaClient.disconnect();
+      value = zkMetaClient.get(key);
+      Assert.assertNull(value);
+    }
   }
 
   @Test
   public void testSet() {
     final String key = "/TestZkMetaClient_testSet";
-    ZkMetaClient<String> zkMetaClient = createZkMetaClient();
-    zkMetaClient.connect();
-    zkMetaClient.create(key, ENTRY_STRING_VALUE);
-    String testValueV1 = ENTRY_STRING_VALUE + "-v1";
-    String testValueV2 = ENTRY_STRING_VALUE + "-v2";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.create(key, ENTRY_STRING_VALUE);
+      String testValueV1 = ENTRY_STRING_VALUE + "-v1";
+      String testValueV2 = ENTRY_STRING_VALUE + "-v2";
 
-    // test set() with no expected version and validate result.
-    zkMetaClient.set(key, testValueV1, -1);
-    Assert.assertEquals(zkMetaClient.get(key), testValueV1);
-    MetaClientInterface.Stat entryStat = zkMetaClient.exists(key);
-    Assert.assertEquals(entryStat.getVersion(), 1);
-    Assert.assertEquals(entryStat.getEntryType().name(), PERSISTENT.name());
+      // test set() with no expected version and validate result.
+      zkMetaClient.set(key, testValueV1, -1);
+      Assert.assertEquals(zkMetaClient.get(key), testValueV1);
+      MetaClientInterface.Stat entryStat = zkMetaClient.exists(key);
+      Assert.assertEquals(entryStat.getVersion(), 1);
+      Assert.assertEquals(entryStat.getEntryType().name(), PERSISTENT.name());
 
-    // test set() with expected version and validate result and new version number
-    zkMetaClient.set(key, testValueV2, 1);
-    entryStat = zkMetaClient.exists(key);
-    Assert.assertEquals(zkMetaClient.get(key), testValueV2);
-    Assert.assertEquals(entryStat.getVersion(), 2);
+      // test set() with expected version and validate result and new version number
+      zkMetaClient.set(key, testValueV2, 1);
+      entryStat = zkMetaClient.exists(key);
+      Assert.assertEquals(zkMetaClient.get(key), testValueV2);
+      Assert.assertEquals(entryStat.getVersion(), 2);
 
-    // test set() with a wrong version
-    try {
-      zkMetaClient.set(key, "test-node-changed", 10);
-      Assert.fail("No reach.");
-    } catch (MetaClientException ex) {
-      Assert.assertEquals(ex.getClass().getName(),
-          "org.apache.helix.metaclient.constants.MetaClientBadVersionException");
+      // test set() with a wrong version
+      try {
+        zkMetaClient.set(key, "test-node-changed", 10);
+        Assert.fail("No reach.");
+      } catch (MetaClientException ex) {
+        Assert.assertEquals(ex.getClass().getName(),
+            "org.apache.helix.metaclient.constants.MetaClientBadVersionException");
+      }
+      zkMetaClient.delete(key);
     }
-    zkMetaClient.delete(key);
-    zkMetaClient.disconnect();
   }
 
   @Test
@@ -117,38 +117,38 @@ public class TestZkMetaClient {
     final String key = "/TestZkMetaClient_testUpdate";
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
-    ZkMetaClient<Integer> zkMetaClient = new ZkMetaClient<>(config);
-    zkMetaClient.connect();
-    int initValue = 3;
-    zkMetaClient.create(key, initValue);
-    MetaClientInterface.Stat entryStat = zkMetaClient.exists(key);
-    Assert.assertEquals(entryStat.getVersion(), 0);
+    try (ZkMetaClient<Integer> zkMetaClient = new ZkMetaClient<>(config)) {
+      zkMetaClient.connect();
+      int initValue = 3;
+      zkMetaClient.create(key, initValue);
+      MetaClientInterface.Stat entryStat = zkMetaClient.exists(key);
+      Assert.assertEquals(entryStat.getVersion(), 0);
 
-    // test update() and validate entry value and version
-    Integer newData = zkMetaClient.update(key, new DataUpdater<Integer>() {
-      @Override
-      public Integer update(Integer currentData) {
-        return currentData + 1;
-      }
-    });
-    Assert.assertEquals((int) newData, (int) initValue+1);
+      // test update() and validate entry value and version
+      Integer newData = zkMetaClient.update(key, new DataUpdater<Integer>() {
+        @Override
+        public Integer update(Integer currentData) {
+          return currentData + 1;
+        }
+      });
+      Assert.assertEquals((int) newData, (int) initValue + 1);
 
-    entryStat = zkMetaClient.exists(key);
-    Assert.assertEquals(entryStat.getVersion(), 1);
+      entryStat = zkMetaClient.exists(key);
+      Assert.assertEquals(entryStat.getVersion(), 1);
 
-    newData = zkMetaClient.update(key, new DataUpdater<Integer>() {
+      newData = zkMetaClient.update(key, new DataUpdater<Integer>() {
 
-      @Override
-      public Integer update(Integer currentData) {
-        return currentData + 1;
-      }
-    });
+        @Override
+        public Integer update(Integer currentData) {
+          return currentData + 1;
+        }
+      });
 
-    entryStat = zkMetaClient.exists(key);
-    Assert.assertEquals(entryStat.getVersion(), 2);
-    Assert.assertEquals((int) newData, (int) initValue+2);
-    zkMetaClient.delete(key);
-    zkMetaClient.disconnect();
+      entryStat = zkMetaClient.exists(key);
+      Assert.assertEquals(entryStat.getVersion(), 2);
+      Assert.assertEquals((int) newData, (int) initValue + 2);
+      zkMetaClient.delete(key);
+    }
   }
 
   @Test
@@ -157,27 +157,27 @@ public class TestZkMetaClient {
     List<String> childrenNames = Arrays.asList("/c1", "/c2", "/c3");
 
     // create child nodes and validate retrieved children count and names
-    ZkMetaClient<String> zkMetaClient = createZkMetaClient();
-    zkMetaClient.connect();
-    zkMetaClient.create(key, ENTRY_STRING_VALUE);
-    Assert.assertEquals(zkMetaClient.countDirectChildren(key), 0);
-    for (String str : childrenNames) {
-      zkMetaClient.create(key + str, ENTRY_STRING_VALUE);
-    }
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.create(key, ENTRY_STRING_VALUE);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(key), 0);
+      for (String str : childrenNames) {
+        zkMetaClient.create(key + str, ENTRY_STRING_VALUE);
+      }
 
-    List<String> retrievedChildrenNames = zkMetaClient.getDirectChildrenKeys(key);
-    Assert.assertEquals(retrievedChildrenNames.size(), childrenNames.size());
-    Set<String> childrenNameSet = new HashSet<>(childrenNames);
-    for (String str : retrievedChildrenNames) {
-      Assert.assertTrue(childrenNameSet.contains("/"+str));
-    }
+      List<String> retrievedChildrenNames = zkMetaClient.getDirectChildrenKeys(key);
+      Assert.assertEquals(retrievedChildrenNames.size(), childrenNames.size());
+      Set<String> childrenNameSet = new HashSet<>(childrenNames);
+      for (String str : retrievedChildrenNames) {
+        Assert.assertTrue(childrenNameSet.contains("/" + str));
+      }
 
-    // recursive delete and validate
-    Assert.assertEquals(zkMetaClient.countDirectChildren(key), childrenNames.size());
-    Assert.assertNotNull(zkMetaClient.exists(key));
-    zkMetaClient.recursiveDelete(key);
-    Assert.assertNull(zkMetaClient.exists(key));
-    zkMetaClient.disconnect();
+      // recursive delete and validate
+      Assert.assertEquals(zkMetaClient.countDirectChildren(key), childrenNames.size());
+      Assert.assertNotNull(zkMetaClient.exists(key));
+      zkMetaClient.recursiveDelete(key);
+      Assert.assertNull(zkMetaClient.exists(key));
+    }
   }
 
 

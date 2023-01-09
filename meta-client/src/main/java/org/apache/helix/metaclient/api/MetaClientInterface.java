@@ -34,12 +34,20 @@ public interface MetaClientInterface<T> {
     // An ephemeral node cannot have sub entry.
     PERSISTENT,
 
-    // The node will not be automatically deleted when the last sub-entry of the node is deleted.
+    // For metadata storage that has hierarchical key space (e.g. ZK), the node will be
+    // automatically deleted at some point in the future if the last child of the node is deleted.
+    // For metadata storage that has non-hierarchical key space (e.g. etcd), the node will be
+    // automatically deleted at some point in the future if the last entry that has the prefix
+    // is deleted.
     // The node is an ephemeral node.
     CONTAINER,
 
-    // If the entry is not modified within the TTL and has no children it will become a candidate
-    // to be deleted by the server at some point in the future.
+    // For metadata storage that has hierarchical key space (e.g. ZK) If the entry is not modified
+    // within the TTL and has no children it will become a candidate to be deleted by the server
+    // at some point in the future.
+    // For metadata storage that has non-hierarchical key space (e.g. etcd) If the entry is not modified
+    // within the TTL, it will become a candidate to be deleted by the server at some point in the
+    // future.
     TTL
   }
 
@@ -341,9 +349,9 @@ public interface MetaClientInterface<T> {
   /**
    * Maintains a connection with underlying metadata service based on config params. Connection
    * created by this method will be used to perform CRUD operations on metadata service.
-   * @return True if connection is successfully established.
+   * @Throws MetaClientException when failed to connect.
    */
-  boolean connect();
+  void connect();
 
   /**
    * Disconnect from server explicitly.

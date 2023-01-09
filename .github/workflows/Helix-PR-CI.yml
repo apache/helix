@@ -1,7 +1,7 @@
 name: Helix PR CI
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ master, metaclient ] # TODO: remove side branch
     paths-ignore:
       - '.github/**'
       - 'helix-front/**'

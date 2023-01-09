@@ -55,6 +55,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
   private String _monitorKey;
   private String _monitorInstanceName;
   private boolean _monitorRootOnly;
+  private volatile boolean _registered = false;
 
   private SimpleDynamicMetric<Long> _stateChangeEventCounter;
   private SimpleDynamicMetric<Long> _expiredSessionCounter;
@@ -123,6 +124,9 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
 
   @Override
   public DynamicMBeanProvider register() throws JMException {
+    if (_registered) {
+      return this;
+    }
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_dataChangeEventCounter);
     attributeList.add(_outstandingRequestGauge);
@@ -143,6 +147,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
         }
       }
     });
+    _registered = true;
     return this;
   }
 
@@ -154,6 +159,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     for (ZkClientPathMonitor zkClientPathMonitor : _zkClientPathMonitorMap.values()) {
       zkClientPathMonitor.unregister();
     }
+    _registered = false;
   }
 
   @Override

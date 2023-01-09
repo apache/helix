@@ -33,6 +33,7 @@ import org.apache.helix.metaclient.constants.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -213,10 +214,19 @@ public class TestZkMetaClient {
 
   @Test
   public void testCreate() {
-    final String key = "/TestZkMetaClient_testGet";
+    final String key = "/TestZkMetaClient_testCreate";
     ZkMetaClient<String> zkMetaClient = createZkMetaClient();
     zkMetaClient.create(key, ENTRY_STRING_VALUE);
     Assert.assertNotNull(zkMetaClient.exists(key));
+
+    try {
+      zkMetaClient.create("a/b/c", "invalid_path");
+      Assert.fail("Should have failed with incorrect path.");
+    } catch (Exception e) {
+      return;
+    }
+
+    zkMetaClient.disconnect();
   }
 
   private static ZkMetaClient<String> createZkMetaClient() {

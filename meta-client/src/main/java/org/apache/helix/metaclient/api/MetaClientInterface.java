@@ -36,7 +36,11 @@ public interface MetaClientInterface<T> {
 
     // The node will not be automatically deleted when the last sub-entry of the node is deleted.
     // The node is an ephemeral node.
-    CONTAINER
+    CONTAINER,
+
+    // If the entry is not modified within the TTL and has no children it will become a candidate
+    // to be deleted by the server at some point in the future.
+    TTL
   }
 
   enum ConnectState {

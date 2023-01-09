@@ -110,8 +110,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
       if (zkStats == null) {
         return null;
       }
-      return new Stat(EphemeralType.get(zkStats.getEphemeralOwner()) == EphemeralType.VOID
-          ? EntryMode.PERSISTENT : EntryMode.EPHEMERAL, zkStats.getVersion());
+      return new Stat(convertZkEntryMode(zkStats.getEphemeralOwner()), zkStats.getVersion());
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
     }
@@ -381,4 +380,20 @@ public class ZkMetaClient<T> implements MetaClientInterface<T> , Closeable {
     }
   }
 
+  private EntryMode convertZkEntryMode(long ephemeralOwner) {
+    EphemeralType zkEphemeralType = EphemeralType.get(ephemeralOwner);
+    switch (zkEphemeralType) {
+      case VOID:
+        return EntryMode.PERSISTENT;
+      case CONTAINER:
+        return EntryMode.CONTAINER;
+      case NORMAL:
+        return EntryMode.EPHEMERAL;
+      // TODO: TTL is not supported now.
+      //case TTL:
+      //  return EntryMode.TTL;
+      default:
+        throw new IllegalArgumentException(zkEphemeralType + " is not supported.");
+    }
+  }
 }

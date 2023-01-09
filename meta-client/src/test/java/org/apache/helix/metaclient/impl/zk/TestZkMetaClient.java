@@ -216,8 +216,7 @@ public class TestZkMetaClient {
     final String key = "/TestZkMetaClient_testGet";
     ZkMetaClient<String> zkMetaClient = createZkMetaClient();
     zkMetaClient.create(key, ENTRY_STRING_VALUE);
-
-    Assert.assertTrue(zkMetaClient.exists(key));
+    Assert.assertNotNull(zkMetaClient.exists(key));
   }
 
   private static ZkMetaClient<String> createZkMetaClient() {

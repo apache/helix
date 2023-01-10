@@ -214,6 +214,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void connect() {
+    // TODO: throws IllegalStateException when already connected
     try {
       _zkClient.connect(_connectionTimeout, _zkClient);
     } catch (ZkException e) {
@@ -363,7 +364,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       return _listener.hashCode();
     }
   }
-  private MetaClientException translateZkExceptionToMetaclientException(ZkException e) {
+
+  private static MetaClientException translateZkExceptionToMetaclientException(ZkException e) {
     if (e instanceof ZkNodeExistsException) {
       return new MetaClientNoNodeException(e);
     } else if (e instanceof ZkBadVersionException) {
@@ -377,7 +379,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     }
   }
 
-  private EntryMode convertZkEntryMode(long ephemeralOwner) {
+  private static EntryMode convertZkEntryMode(long ephemeralOwner) {
     EphemeralType zkEphemeralType = EphemeralType.get(ephemeralOwner);
     switch (zkEphemeralType) {
       case VOID:

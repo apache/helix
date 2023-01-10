@@ -22,6 +22,9 @@ package org.apache.helix.metaclient.api;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.metaclient.constants.MetaClientInterruptException;
+import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
+
 
 public interface MetaClientInterface<T> {
 
@@ -349,7 +352,12 @@ public interface MetaClientInterface<T> {
   /**
    * Maintains a connection with underlying metadata service based on config params. Connection
    * created by this method will be used to perform CRUD operations on metadata service.
-   * @Throws MetaClientException when failed to connect.
+   * @throws MetaClientInterruptException
+   *          if the connection timed out due to thread interruption
+   * @throws MetaClientTimeoutException
+   *          if the connection timed out
+   * @throws IllegalStateException
+   *         if already connected or the connection is already closed explicitly
    */
   void connect();
 

@@ -25,13 +25,25 @@ import java.util.List;
  * Represent the result of a single operation of a multi operation transaction.
  */
 public class OpResult {
-  private int type;
 
-  private OpResult(int type) {
+  enum Type {
+    ERRORRESULT,
+    GETDATARESULT,
+    GETCHILDRENRESULT,
+    CHECKRESULT,
+    SETDATARESULT,
+    DELETERESULT,
+    CREATERESULT,
+    CREATERESULT_WITH_STAT
+  }
+
+  private Type type;
+
+  private OpResult(Type type) {
       this.type = type;
   }
 
-  public int getType() {
+  public Type getType() {
       return this.type;
   }
 
@@ -39,7 +51,7 @@ public class OpResult {
     private int err;
 
     public ErrorResult(int err) {
-      super(-1);
+      super(Type.ERRORRESULT);
       this.err = err;
     }
 
@@ -53,7 +65,7 @@ public class OpResult {
     private MetaClientInterface.Stat stat;
 
     public GetDataResult(byte[] data, MetaClientInterface.Stat stat) {
-      super(4);
+      super(Type.GETDATARESULT);
       this.data = data == null ? null : Arrays.copyOf(data, data.length);
       this.stat = stat;
     }
@@ -71,7 +83,7 @@ public class OpResult {
     private List<String> children;
 
     public GetChildrenResult(List<String> children) {
-      super(8);
+      super(Type.GETCHILDRENRESULT);
       this.children = children;
     }
 
@@ -82,22 +94,7 @@ public class OpResult {
 
   public static class CheckResult extends OpResult {
     public CheckResult() {
-      super(13);
-    }
-
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      } else if (!(o instanceof CheckResult)) {
-        return false;
-      } else {
-        CheckResult other = (CheckResult)o;
-        return this.getType() == other.getType();
-      }
-    }
-
-    public int hashCode() {
-      return this.getType();
+      super(Type.CHECKRESULT);
     }
   }
 
@@ -105,7 +102,7 @@ public class OpResult {
     private MetaClientInterface.Stat stat;
 
     public SetDataResult(MetaClientInterface.Stat stat) {
-      super(5);
+      super(Type.SETDATARESULT);
       this.stat = stat;
     }
 
@@ -116,7 +113,7 @@ public class OpResult {
 
   public static class DeleteResult extends OpResult {
     public DeleteResult() {
-      super(2);
+      super(Type.DELETERESULT);
     }
   }
 
@@ -125,15 +122,15 @@ public class OpResult {
     private MetaClientInterface.Stat stat;
 
     public CreateResult(String path) {
-      this(1, path, null);
+      this(Type.CREATERESULT, path, null);
     }
 
     public CreateResult(String path, MetaClientInterface.Stat stat) {
-      this(15, path, stat);
+      this(Type.CREATERESULT_WITH_STAT, path, stat);
     }
 
-    private CreateResult(int opcode, String path, MetaClientInterface.Stat stat) {
-      super(opcode);
+    private CreateResult(Type type, String path, MetaClientInterface.Stat stat) {
+      super(type);
       this.path = path;
       this.stat = stat;
     }

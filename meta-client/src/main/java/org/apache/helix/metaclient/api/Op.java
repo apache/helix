@@ -24,12 +24,19 @@ package org.apache.helix.metaclient.api;
  *  version check or delete operation.
  */
 public abstract class Op {
-  private int type;
-  private String path;
+  enum Type {
+    CREATE,
+    DELETE,
+    SET,
+    CHECK
+    }
 
-  private Op(int type, String path) {
-    this.type = type;
-    this.path = path;
+  private String _path;
+  private Type _type;
+
+  private Op(Type type, String path) {
+    this._type = type;
+    this._path = path;
   }
   public static Op create(String path, byte[] data) {
     return new Create(path, data);
@@ -51,12 +58,12 @@ public abstract class Op {
     return new Check(path, version);
   }
 
-  public int getType() {
-    return this.type;
+  public Type getType() {
+    return this._type;
   }
 
   public String getPath() {
-    return this.path;
+    return this._path;
   }
 
   /**
@@ -66,7 +73,7 @@ public abstract class Op {
     private final int version;
     public int getVersion() { return version;}
     private Check(String path, int version) {
-      super(13, path);
+      super(Type.CHECK, path);
       this.version = version;
     }
   }
@@ -80,12 +87,12 @@ public abstract class Op {
     public MetaClientInterface.EntryMode getEntryMode() {return mode;}
 
     private Create(String path, byte[] data) {
-      super(1, path);
+      super(Type.CREATE, path);
       this.data = data;
     }
 
     private Create(String path, byte[] data, MetaClientInterface.EntryMode mode) {
-      super(1, path);
+      super(Type.CREATE, path);
       this.data = data;
       this.mode = mode;
     }
@@ -96,7 +103,7 @@ public abstract class Op {
     public int getVersion() { return version;}
 
     private Delete(String path, int version) {
-      super(2, path);
+      super(Type.DELETE, path);
       this.version = version;
     }
   }
@@ -110,7 +117,7 @@ public abstract class Op {
     public int getVersion() { return version;}
 
     private Set(String path, byte[] data, int version) {
-      super(5, path);
+      super(Type.SET, path);
       this.data = data;
       this.version = version;
     }

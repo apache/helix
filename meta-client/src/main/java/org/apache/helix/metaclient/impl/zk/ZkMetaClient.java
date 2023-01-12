@@ -20,7 +20,6 @@ package org.apache.helix.metaclient.impl.zk;
  */
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.metaclient.api.AsyncCallback;
@@ -50,7 +49,6 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.server.EphemeralType;
 
 

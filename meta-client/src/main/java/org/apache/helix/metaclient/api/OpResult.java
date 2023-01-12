@@ -47,6 +47,9 @@ public class OpResult {
       return this.type;
   }
 
+  /**
+   * Represents the result of an operation that was attempted to execute but failed.
+   */
   public static class ErrorResult extends OpResult {
     private int err;
 
@@ -60,6 +63,9 @@ public class OpResult {
     }
   }
 
+  /**
+   * Represents the result of a getData() operation.
+   */
   public static class GetDataResult extends OpResult {
     private byte[] data;
     private MetaClientInterface.Stat stat;
@@ -79,6 +85,9 @@ public class OpResult {
     }
   }
 
+  /**
+   * Represents the result of a getChildren() operation.
+   */
   public static class GetChildrenResult extends OpResult {
     private List<String> children;
 
@@ -92,12 +101,18 @@ public class OpResult {
     }
   }
 
+  /**
+   * Represents the result of a check() operation.
+   */
   public static class CheckResult extends OpResult {
     public CheckResult() {
       super(Type.CHECKRESULT);
     }
   }
 
+  /**
+   * Represents the result of a set() operation.
+   */
   public static class SetDataResult extends OpResult {
     private MetaClientInterface.Stat stat;
 
@@ -111,12 +126,18 @@ public class OpResult {
     }
   }
 
+  /**
+   * Represents the result of a delete() operation.
+   */
   public static class DeleteResult extends OpResult {
     public DeleteResult() {
       super(Type.DELETERESULT);
     }
   }
 
+  /**
+   * Represents the result of a create() operation.
+   */
   public static class CreateResult extends OpResult {
     private String path;
     private MetaClientInterface.Stat stat;

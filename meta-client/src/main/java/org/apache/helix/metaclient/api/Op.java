@@ -77,6 +77,10 @@ public abstract class Op {
       this.version = version;
     }
   }
+
+  /**
+   * Represents a Create operation. Creates a new node.
+   */
   public static class Create extends Op {
     protected final byte[] data;
     private MetaClientInterface.EntryMode mode;
@@ -98,6 +102,9 @@ public abstract class Op {
     }
   }
 
+  /**
+   * Represents a Delete operations. Deletes an existing node.
+   */
   public static class Delete extends Op{
     private final int version;
     public int getVersion() { return version;}
@@ -107,6 +114,10 @@ public abstract class Op {
       this.version = version;
     }
   }
+
+  /**
+   * Represents a Set operation. Sets or updates the data of a node.
+   */
   public static class Set extends Op {
     private final byte[] data;
     private final int version;

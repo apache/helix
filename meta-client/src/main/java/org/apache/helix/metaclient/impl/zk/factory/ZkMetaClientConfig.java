@@ -128,7 +128,7 @@ public class ZkMetaClientConfig extends MetaClientConfig {
     }
 
     @Override
-    public MetaClientConfig build() {
+    public ZkMetaClientConfig build() {
       if (_zkSerializer == null) {
         _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
       }

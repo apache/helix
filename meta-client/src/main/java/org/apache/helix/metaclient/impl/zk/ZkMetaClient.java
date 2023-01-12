@@ -47,12 +47,13 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.server.EphemeralType;
 
 
-public class ZkMetaClient<T><T> implements MetaClientInterface<T><T>, AutoCloseable {
+public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   private final ZkClient _zkClient;
   private final int _connectionTimeout;
@@ -136,7 +137,6 @@ public class ZkMetaClient<T><T> implements MetaClientInterface<T><T>, AutoClosea
   @Override
   public List<OpResult> transactionOP(Iterable<Op> ops) {
     return null;
->>>>>>> a7fd23482 (Create operation with half test implementation)
   }
 
   @Override

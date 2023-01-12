@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.impl.zk;
  */
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.metaclient.api.AsyncCallback;
@@ -78,6 +79,15 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void create(String key, Object data, MetaClientInterface.EntryMode mode) {
+
+    try{
+      _zkClient.create(key, data, metaClientModeToZkMode(mode));
+    } catch (ZkException | KeeperException e) {
+      throw new MetaClientException(e);
+    }
+  }
+
+  private CreateMode metaClientModeToZkMode(EntryMode mode) throws KeeperException {
     int zkFlag = -1;
     if (mode.name().equals(EntryMode.PERSISTENT.name())) {
       zkFlag = 0;
@@ -85,11 +95,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     if (mode.name().equals(EntryMode.EPHEMERAL.name())) {
       zkFlag = 1;
     }
-    try{
-      _zkClient.create(key, data, CreateMode.fromFlag(zkFlag));
-    } catch (ZkException | KeeperException e) {
-      throw new MetaClientException(e);
-    }
+    return CreateMode.fromFlag(zkFlag);
   }
 
   @Override

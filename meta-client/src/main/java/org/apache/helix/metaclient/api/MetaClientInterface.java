@@ -22,6 +22,9 @@ package org.apache.helix.metaclient.api;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.metaclient.constants.MetaClientInterruptException;
+import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
+
 
 public interface MetaClientInterface<T> {
 
@@ -34,9 +37,21 @@ public interface MetaClientInterface<T> {
     // An ephemeral node cannot have sub entry.
     PERSISTENT,
 
-    // The node will not be automatically deleted when the last sub-entry of the node is deleted.
+    // For metadata storage that has hierarchical key space (e.g. ZK), the node will be
+    // automatically deleted at some point in the future if the last child of the node is deleted.
+    // For metadata storage that has non-hierarchical key space (e.g. etcd), the node will be
+    // automatically deleted at some point in the future if the last entry that has the prefix
+    // is deleted.
     // The node is an ephemeral node.
-    CONTAINER
+    CONTAINER,
+
+    // For metadata storage that has hierarchical key space (e.g. ZK) If the entry is not modified
+    // within the TTL and has no children it will become a candidate to be deleted by the server
+    // at some point in the future.
+    // For metadata storage that has non-hierarchical key space (e.g. etcd) If the entry is not modified
+    // within the TTL, it will become a candidate to be deleted by the server at some point in the
+    // future.
+    TTL
   }
 
   enum ConnectState {
@@ -70,6 +85,11 @@ public interface MetaClientInterface<T> {
 
     public int getVersion() {
       return _version;
+    }
+
+    public Stat (EntryMode mode, int version) {
+      _version = version;
+      _entryMode = mode;
     }
   }
 
@@ -143,7 +163,7 @@ public interface MetaClientInterface<T> {
    * @eturn Return a list of children keys. Return direct child name only for hierarchical key
    *        space, return the whole sub key for non-hierarchical key space.
    */
-  List<String> getDirestChildrenKeys(final String key);
+  List<String> getDirectChildrenKeys(final String key);
 
   /**
    * Return the number of children for the given keys.
@@ -152,7 +172,7 @@ public interface MetaClientInterface<T> {
    *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
    *            be a prefix key.
    */
-  int countDirestChildren(final String key);
+  int countDirectChildren(final String key);
 
   /**
    * Remove the entry associated with the given key.
@@ -332,9 +352,14 @@ public interface MetaClientInterface<T> {
   /**
    * Maintains a connection with underlying metadata service based on config params. Connection
    * created by this method will be used to perform CRUD operations on metadata service.
-   * @return True if connection is successfully established.
+   * @throws MetaClientInterruptException
+   *          if the connection timed out due to thread interruption
+   * @throws MetaClientTimeoutException
+   *          if the connection timed out
+   * @throws IllegalStateException
+   *         if already connected or the connection is already closed explicitly
    */
-  boolean connect();
+  void connect();
 
   /**
    * Disconnect from server explicitly.

@@ -30,76 +30,133 @@ import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.DirectChildChangeListener;
 import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.constants.MetaClientBadVersionException;
+import org.apache.helix.metaclient.constants.MetaClientException;
+import org.apache.helix.metaclient.constants.MetaClientInterruptException;
+import org.apache.helix.metaclient.constants.MetaClientNoNodeException;
+import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.server.EphemeralType;
 
 
-public class ZkMetaClient implements MetaClientInterface {
+public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   private final ZkClient _zkClient;
+  private final int _connectionTimeout;
 
   public ZkMetaClient(ZkMetaClientConfig config) {
-    _zkClient =  new ZkClient(new ZkConnection(config.getConnectionAddress(),
-        (int) config.getSessionTimeoutInMillis()),
-        (int) config.getConnectionInitTimeoutInMillis(), -1 /*operationRetryTimeout*/,
-        config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
-        config.getMonitorInstanceName(), config.getMonitorRootPathOnly());
+    _connectionTimeout = (int) config.getConnectionInitTimeoutInMillis();
+    _zkClient = new ZkClient(
+        new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
+        _connectionTimeout, -1 /*operationRetryTimeout*/, config.getZkSerializer(),
+        config.getMonitorType(), config.getMonitorKey(), config.getMonitorInstanceName(),
+        config.getMonitorRootPathOnly(), false);
   }
 
   @Override
-  public void create(String key, Object data) {
+  public void create(String key, T data) {
+    // TODO: This function is implemented only for test. It does not have proper error handling
+    _zkClient.create(key, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+  }
+
+  @Override
+  public void create(String key, T data, EntryMode mode) {
 
   }
 
   @Override
-  public void create(String key, Object data, EntryMode mode) {
-
+  public void set(String key, T data, int version) {
+    try {
+      _zkClient.writeData(key, data, version);
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override
-  public void set(String key, Object data, int version) {
-
-  }
-
-  @Override
-  public Object update(String key, DataUpdater updater) {
-    return null;
+  public T update( String key, DataUpdater<T> updater) {
+    org.apache.zookeeper.data.Stat stat = new org.apache.zookeeper.data.Stat();
+    // TODO: add retry logic for ZkBadVersionException.
+    try {
+      T oldData = _zkClient.readData(key, stat);
+      T newData = updater.update(oldData);
+      set(key, newData, stat.getVersion());
+      return newData;
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override
   public Stat exists(String key) {
+    org.apache.zookeeper.data.Stat zkStats;
+    try {
+      zkStats = _zkClient.getStat(key);
+      if (zkStats == null) {
+        return null;
+      }
+      return new Stat(convertZkEntryMode(zkStats.getEphemeralOwner()), zkStats.getVersion());
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
+  }
+
+  @Override
+  public T get(String key) {
+    return _zkClient.readData(key, true);
+  }
+
+  @Override
+  public List<OpResult> transactionOP(Iterable<Op> ops) {
     return null;
   }
 
   @Override
-  public Object get(String key) {
-    return null;
+  public List<String> getDirectChildrenKeys(String key) {
+    try {
+      return _zkClient.getChildren(key);
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override
-  public List<String> getDirestChildrenKeys(String key) {
-    return null;
-  }
-
-  @Override
-  public int countDirestChildren(String key) {
-    return 0;
+  public int countDirectChildren(String key) {
+    return _zkClient.countChildren(key);
   }
 
   @Override
   public boolean delete(String key) {
-    return false;
+    try {
+      return _zkClient.delete(key);
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override
   public boolean recursiveDelete(String key) {
-    return false;
+    _zkClient.deleteRecursively(key);
+    return true;
   }
 
+  // Zookeeper execute async callbacks at zookeeper server side. In our first version of
+  // implementation, we will keep this behavior.
+  // In later version, we may consider creating a thread pool to execute registered callbacks.
+  // However, this will change metaclient from stateless to stateful.
   @Override
   public void setAsyncExecPoolSize(int poolSize) {
 
@@ -156,13 +213,19 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public boolean connect() {
-    return false;
+  public void connect() {
+    // TODO: throws IllegalStateException when already connected
+    try {
+      _zkClient.connect(_connectionTimeout, _zkClient);
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override
   public void disconnect() {
-
+    // TODO: This is a temp impl for test only. no proper interrupt handling and error handling.
+    _zkClient.close();
   }
 
   @Override
@@ -246,8 +309,8 @@ public class ZkMetaClient implements MetaClientInterface {
   }
 
   @Override
-  public List<OpResult> transactionOP(Iterable iterable) {
-    return null;
+  public void close() {
+    disconnect();
   }
 
   /**
@@ -299,6 +362,37 @@ public class ZkMetaClient implements MetaClientInterface {
     @Override
     public int hashCode() {
       return _listener.hashCode();
+    }
+  }
+
+  private static MetaClientException translateZkExceptionToMetaclientException(ZkException e) {
+    if (e instanceof ZkNodeExistsException) {
+      return new MetaClientNoNodeException(e);
+    } else if (e instanceof ZkBadVersionException) {
+      return new MetaClientBadVersionException(e);
+    } else if (e instanceof ZkTimeoutException) {
+      return new MetaClientTimeoutException(e);
+    } else if (e instanceof ZkInterruptedException) {
+      return new MetaClientInterruptException(e);
+    } else {
+      return new MetaClientException(e);
+    }
+  }
+
+  private static EntryMode convertZkEntryMode(long ephemeralOwner) {
+    EphemeralType zkEphemeralType = EphemeralType.get(ephemeralOwner);
+    switch (zkEphemeralType) {
+      case VOID:
+        return EntryMode.PERSISTENT;
+      case CONTAINER:
+        return EntryMode.CONTAINER;
+      case NORMAL:
+        return EntryMode.EPHEMERAL;
+      // TODO: TTL is not supported now.
+      //case TTL:
+      //  return EntryMode.TTL;
+      default:
+        throw new IllegalArgumentException(zkEphemeralType + " is not supported.");
     }
   }
 }

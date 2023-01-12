@@ -19,20 +19,20 @@ package org.apache.helix.metaclient.constants;
  * under the License.
  */
 
-public class MetaClientException extends RuntimeException {
-  public MetaClientException() {
+public final class MetaClientInterruptException extends MetaClientException {
+  public MetaClientInterruptException() {
     super();
   }
 
-  public MetaClientException(String message, Throwable cause) {
+  public MetaClientInterruptException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public MetaClientException(String message) {
+  public MetaClientInterruptException(String message) {
     super(message);
   }
 
-  public MetaClientException(Throwable cause) {
+  public MetaClientInterruptException(Throwable cause) {
     super(cause);
   }
 }

@@ -19,20 +19,21 @@ package org.apache.helix.metaclient.constants;
  * under the License.
  */
 
-public class MetaClientException extends RuntimeException {
-  public MetaClientException() {
+public final class MetaClientNoNodeException extends MetaClientException {
+  public MetaClientNoNodeException() {
     super();
   }
 
-  public MetaClientException(String message, Throwable cause) {
+  public MetaClientNoNodeException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public MetaClientException(String message) {
+  public MetaClientNoNodeException(String message) {
     super(message);
   }
 
-  public MetaClientException(Throwable cause) {
+  public MetaClientNoNodeException(Throwable cause) {
     super(cause);
   }
+
 }

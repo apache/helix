@@ -33,7 +33,6 @@ import org.apache.helix.metaclient.constants.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;

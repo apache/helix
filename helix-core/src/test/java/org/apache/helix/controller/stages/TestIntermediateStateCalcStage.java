@@ -313,7 +313,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
         for (int r = 0; r < nReplica; r++) {
           String instanceName = HOSTNAME_PREFIX + r;
           partitionMap.put(partition.getPartitionName(), Collections.singletonList(instanceName));
-          // a resource with 2 replicas in error state and one need recovery in offline->online. error state
+          // A resource with 2 replicas in error state and one need recovery in offline->online. error state
           // throttle won't block recovery rebalance
           if (resource.endsWith("0")) {
             if (p <= 1) {
@@ -331,7 +331,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
               }
             }
           } else if (resource.endsWith("1")) {
-            // a resource with 1 replicas in error state and one need load balance in offline->online. error state
+            // A resource with 1 replicas in error state and one need load balance in offline->online. error state
             // throttle will block load rebalance
             if (p <= 0) {
               currentStateOutput.setCurrentState(resource, partition, instanceName, "ERROR");
@@ -352,7 +352,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
               }
             }
           } else {
-            // Regular load balance
+            // A resource need regular load balance
             currentStateOutput.setCurrentState(resource, partition, instanceName, "ONLINE");
             currentStateOutput.setCurrentState(resource, partition, instanceName + "-1", "OFFLINE");
             bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
@@ -376,9 +376,16 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
 
     IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
 
+    // Validate that there are 2 resourced load balance been throttled
     ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
     Assert.assertEquals(clusterStatusMonitor.getRebalanceThrottledByErrorPartition(), 2);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_0")
+        .getRebalanceThrottledByErrorPartition(), 1);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_1")
+        .getRebalanceThrottledByErrorPartition(), 1);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_2")
+        .getRebalanceThrottledByErrorPartition(), 0);
 
     for (String resource : resources) {
       // Note Assert.assertEquals won't work. If "actual" is an empty map, it won't compare

@@ -36,6 +36,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
@@ -937,7 +938,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  // For test only
+  @VisibleForTesting
   protected ResourceMonitor getResourceMonitor(String resourceName) {
     return _resourceMonitorMap.get(resourceName);
   }

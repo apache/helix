@@ -419,7 +419,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     if (clusterStatusMonitor != null) {
       clusterStatusMonitor
           .updateRebalancerStats(resourceName, messagesForRecovery.size(), messagesForLoad.size(),
-              messagesThrottledForRecovery.size(), messagesThrottledForLoad.size(), onlyDownwardLoadBalance);
+              messagesThrottledForRecovery.size(), messagesThrottledForLoad.size(),
+              onlyDownwardLoadBalance);
     }
 
     if (logger.isDebugEnabled()) {

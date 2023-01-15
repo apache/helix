@@ -85,15 +85,15 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     }
   }
 
-  private CreateMode metaClientModeToZkMode(EntryMode mode) throws KeeperException {
-    int zkFlag = -1;
-    if (mode.name().equals(EntryMode.PERSISTENT.name())) {
-      zkFlag = 0;
+  private static CreateMode metaClientModeToZkMode(EntryMode mode) throws KeeperException {
+    switch (mode) {
+      case PERSISTENT:
+        return CreateMode.PERSISTENT;
+      case EPHEMERAL:
+        return CreateMode.EPHEMERAL;
+      default:
+        return CreateMode.PERSISTENT;
     }
-    if (mode.name().equals(EntryMode.EPHEMERAL.name())) {
-      zkFlag = 1;
-    }
-    return CreateMode.fromFlag(zkFlag);
   }
 
   @Override

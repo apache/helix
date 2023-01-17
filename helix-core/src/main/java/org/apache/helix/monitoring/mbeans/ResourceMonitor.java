@@ -65,7 +65,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledReplicas;
   private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledReplicas;
   private SimpleDynamicMetric<Long> _numPendingStateTransitions;
-  private SimpleDynamicMetric<Long> _rebalanceThrottledByErrorPartition;
+  private SimpleDynamicMetric<Long> _rebalanceThrottledByErrorPartitionGauge;
 
   // Counters
   private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter;
@@ -129,7 +129,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numOfPartitionsInExternalView = new SimpleDynamicMetric("ExternalViewPartitionGauge", 0L);
     _numOfPartitions = new SimpleDynamicMetric("PartitionGauge", 0L);
     _numPendingStateTransitions = new SimpleDynamicMetric("PendingStateTransitionGauge", 0L);
-    _rebalanceThrottledByErrorPartition =
+    _rebalanceThrottledByErrorPartitionGauge =
         new SimpleDynamicMetric("RebalanceThrottledByErrorPartitionGauge", 0L);
 
     _partitionTopStateHandoffDurationGauge =
@@ -379,7 +379,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numPendingLoadRebalanceReplicas.updateValue(numPendingLoadRebalancePartitions);
     _numRecoveryRebalanceThrottledReplicas.updateValue(numRecoveryRebalanceThrottledPartitions);
     _numLoadRebalanceThrottledReplicas.updateValue(numLoadRebalanceThrottledPartitions);
-    _rebalanceThrottledByErrorPartition.updateValue(rebalanceThrottledByErrorPartitio? 1L : 0L);
+    _rebalanceThrottledByErrorPartitionGauge.updateValue(rebalanceThrottledByErrorPartitio? 1L : 0L);
   }
 
   /**
@@ -452,8 +452,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     return _rebalanceState.getValue();
   }
 
-  public long getRebalanceThrottledByErrorPartition() {
-    return _rebalanceThrottledByErrorPartition.getValue();
+  public long getRebalanceThrottledByErrorPartitionGauge() {
+    return _rebalanceThrottledByErrorPartitionGauge.getValue();
   }
 
   public void resetMaxTopStateHandoffGauge() {
@@ -475,13 +475,19 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         _numPendingLoadRebalanceReplicas,
         _numRecoveryRebalanceThrottledReplicas,
         _numLoadRebalanceThrottledReplicas,
-        _externalViewIdealStateDiff, _successfulTopStateHandoffDurationCounter,
-        _successTopStateHandoffCounter, _failedTopStateHandoffCounter,
-        _maxSinglePartitionTopStateHandoffDuration, _partitionTopStateHandoffDurationGauge,
+        _externalViewIdealStateDiff,
+        _successfulTopStateHandoffDurationCounter,
+        _successTopStateHandoffCounter,
+        _failedTopStateHandoffCounter,
+        _maxSinglePartitionTopStateHandoffDuration,
+        _partitionTopStateHandoffDurationGauge,
         _partitionTopStateHandoffHelixLatencyGauge,
-        _partitionTopStateNonGracefulHandoffDurationGauge, _totalMessageReceived,
-        _totalMessageReceivedCounter, _numPendingStateTransitions, _rebalanceState,
-        _rebalanceThrottledByErrorPartition);
+        _partitionTopStateNonGracefulHandoffDurationGauge,
+        _totalMessageReceived,
+        _totalMessageReceivedCounter,
+        _numPendingStateTransitions,
+        _rebalanceState,
+        _rebalanceThrottledByErrorPartitionGauge);
 
     attributeList.addAll(_dynamicCapacityMetricsMap.values());
 

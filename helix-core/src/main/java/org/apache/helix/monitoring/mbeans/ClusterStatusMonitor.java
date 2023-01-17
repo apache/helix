@@ -1122,10 +1122,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   @Override
-  public long getRebalanceThrottledByErrorPartition() {
+  public long getRebalanceThrottledByErrorPartitionGauge() {
     long total = 0;
     for (Map.Entry<String, ResourceMonitor> entry : _resourceMonitorMap.entrySet()) {
-      total += entry.getValue().getRebalanceThrottledByErrorPartition();
+      total += entry.getValue().getRebalanceThrottledByErrorPartitionGauge();
     }
     return total;
   }

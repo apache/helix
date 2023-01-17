@@ -379,13 +379,13 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     // Validate that there are 2 resourced load balance been throttled
     ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    Assert.assertEquals(clusterStatusMonitor.getRebalanceThrottledByErrorPartition(), 2);
+    Assert.assertEquals(clusterStatusMonitor.getRebalanceThrottledByErrorPartitionGauge(), 2);
     Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_0")
-        .getRebalanceThrottledByErrorPartition(), 1);
+        .getRebalanceThrottledByErrorPartitionGauge(), 1);
     Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_1")
-        .getRebalanceThrottledByErrorPartition(), 1);
+        .getRebalanceThrottledByErrorPartitionGauge(), 1);
     Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_2")
-        .getRebalanceThrottledByErrorPartition(), 0);
+        .getRebalanceThrottledByErrorPartitionGauge(), 0);
 
     for (String resource : resources) {
       // Note Assert.assertEquals won't work. If "actual" is an empty map, it won't compare

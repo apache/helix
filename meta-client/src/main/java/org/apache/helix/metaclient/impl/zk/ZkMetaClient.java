@@ -47,8 +47,8 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.server.EphemeralType;
 
 
@@ -67,14 +67,33 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void create(String key, T data) {
-    // TODO: This function is implemented only for test. It does not have proper error handling
-    _zkClient.create(key, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+  public void create(String key, Object data) {
+    try {
+      create(key, data, EntryMode.PERSISTENT);
+    } catch (Exception e) {
+      throw new MetaClientException(e);
+    }
   }
 
   @Override
-  public void create(String key, T data, EntryMode mode) {
+  public void create(String key, Object data, MetaClientInterface.EntryMode mode) {
 
+    try{
+      _zkClient.create(key, data, metaClientModeToZkMode(mode));
+    } catch (ZkException | KeeperException e) {
+      throw new MetaClientException(e);
+    }
+  }
+
+  private static CreateMode metaClientModeToZkMode(EntryMode mode) throws KeeperException {
+    switch (mode) {
+      case PERSISTENT:
+        return CreateMode.PERSISTENT;
+      case EPHEMERAL:
+        return CreateMode.EPHEMERAL;
+      default:
+        return CreateMode.PERSISTENT;
+    }
   }
 
   @Override

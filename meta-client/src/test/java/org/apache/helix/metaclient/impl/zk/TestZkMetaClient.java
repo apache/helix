@@ -31,8 +31,11 @@ import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.constants.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.metaclient.api.Op;
+import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.zookeeper.*;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -46,6 +49,11 @@ public class TestZkMetaClient {
   private static final String ZK_ADDR = "localhost:2183";
   private ZkServer _zkServer;
   private static final String ENTRY_STRING_VALUE = "test-value";
+  protected static final String ZK_SHARDING_KEY_PREFIX = "/sharding-key-0";
+  protected static String PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/RealmAwareZkClient";
+  protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
+
+
 
   @BeforeClass
   public void prepare() {
@@ -196,8 +204,6 @@ public class TestZkMetaClient {
     }
   }
 
-
-
   private static ZkMetaClient<String> createZkMetaClient() {
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
@@ -225,5 +231,71 @@ public class TestZkMetaClient {
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
     zkServer.start();
     return zkServer;
+  }
+
+  /**
+   * Test that zk multi works for zkmetaclient operations create,
+   * delete, and set.
+   */
+  @Test
+  public void testMultiOps() throws KeeperException {
+    String test_name = "/test_multi_ops";
+
+    try(ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.create(ZK_SHARDING_KEY_PREFIX, ENTRY_STRING_VALUE);
+
+      //Create Nodes
+      List<Op> ops = Arrays.asList(
+          Op.create(PARENT_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.create(PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.delete(PARENT_PATH + test_name, -1),
+          Op.create(PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.set(PARENT_PATH + test_name, new byte[0], -1));
+
+      //Execute transactional support on operations
+      List<OpResult> opResults = zkMetaClient.transactionOP(ops);
+
+      //Verify opResults types
+      Assert.assertTrue(opResults.get(0) instanceof OpResult.CreateResult);
+      Assert.assertTrue(opResults.get(1) instanceof OpResult.CreateResult);
+      Assert.assertTrue(opResults.get(2) instanceof OpResult.DeleteResult);
+      Assert.assertTrue(opResults.get(4) instanceof OpResult.SetDataResult);
+
+      //Verify paths have been created
+      MetaClientInterface.Stat entryStat = zkMetaClient.exists(PARENT_PATH + test_name);
+      Assert.assertNotNull(entryStat, "Path should have been created.");
+
+      //Cleanup
+      zkMetaClient.recursiveDelete(PARENT_PATH);
+      if (zkMetaClient.exists(PARENT_PATH) != null) {
+        Assert.fail("Parent Path should have been removed.");
+      }
+    }
+  }
+
+  /**
+   * Tests that attempts to call multi on an invalid path. Should fail.
+   * @throws KeeperException
+   */
+  @Test(dependsOnMethods = "testMultiOps")
+  public void testMultiFail() {
+    String test_name = "/test_multi_fail";
+    try(ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      //Create Nodes
+      List<Op> ops = Arrays.asList(
+          Op.create(PARENT_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.create(PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.create(TEST_INVALID_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT));
+
+      try {
+        zkMetaClient.transactionOP(ops);
+        Assert.fail("Should have thrown an exception. Cannot run multi on incorrect path.");
+      } catch (Exception e) {
+        MetaClientInterface.Stat entryStat = zkMetaClient.exists(PARENT_PATH);
+        Assert.assertNull(entryStat);
+      }
+    }
   }
 }

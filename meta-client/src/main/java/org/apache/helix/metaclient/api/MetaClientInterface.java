@@ -19,6 +19,8 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
+import org.apache.zookeeper.KeeperException;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -152,7 +154,7 @@ public interface MetaClientInterface<T> {
    * @param ops a list of operations. These operations will all be executed or non of them.
    * @return Return a list of OpResult.
    */
-  List<OpResult> transactionOP(final Iterable<Op> ops);
+  List<OpResult> transactionOP(final Iterable<Op> ops) throws KeeperException;;
 
   /**
    * Return a list of children for the given keys.

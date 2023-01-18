@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -50,11 +51,15 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.server.EphemeralType;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
 
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   private final ZkClient _zkClient;
+  //Default ACL value until metaClient Op has ACL of its own.
+  private final List<ACL> DEFAULT_ACL = ZooDefs.Ids.OPEN_ACL_UNSAFE;
   private final int _connectionTimeout;
 
   public ZkMetaClient(ZkMetaClientConfig config) {
@@ -136,11 +141,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public T get(String key) {
     return _zkClient.readData(key, true);
-  }
-
-  @Override
-  public List<OpResult> transactionOP(Iterable<Op> ops) {
-    return null;
   }
 
   @Override
@@ -413,5 +413,131 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       default:
         throw new IllegalArgumentException(zkEphemeralType + " is not supported.");
     }
+  }
+
+
+  @Override
+  public List<OpResult> transactionOP(Iterable<Op> iterable) throws KeeperException {
+    // Convert list of MetaClient Ops to Zk Ops
+    List<org.apache.zookeeper.Op> zkOps = metaClientOpToZk(iterable);
+    // Execute Zk transactional support
+    List<org.apache.zookeeper.OpResult> zkResult = _zkClient.multi(zkOps);
+    // Convert list of Zk OpResults to MetaClient OpResults
+    return zkOpResultToMetaClient(zkResult);
+  }
+
+  /**
+   * Helper function for transactionOp. Converts MetaClient Op's into Zk Ops to execute
+   * zk transactional support.
+   * @param ops
+   * @return
+   */
+  public List<org.apache.zookeeper.Op> metaClientOpToZk(Iterable<Op> ops) throws KeeperException {
+    List<org.apache.zookeeper.Op> zkOps = new ArrayList<>();
+    org.apache.zookeeper.Op temp;
+    for (Op op : ops) {
+      switch (op.getType()) {
+        case CREATE:
+          int zkFlag = zkFlagFromEntryMode(((Op.Create) op).getEntryMode());
+          temp = org.apache.zookeeper.Op.create(
+              op.getPath(), ((Op.Create) op).getData(), DEFAULT_ACL, CreateMode.fromFlag(zkFlag));
+          break;
+        case DELETE:
+          temp = org.apache.zookeeper.Op.delete(
+              op.getPath(), ((Op.Delete) op).getVersion());
+          break;
+        case SET:
+          temp = org.apache.zookeeper.Op.setData(
+              op.getPath(), ((Op.Set) op).getData(), ((Op.Set) op).getVersion());
+          break;
+        case CHECK:
+          temp = org.apache.zookeeper.Op.check(
+              op.getPath(), ((Op.Check) op).getVersion());
+          break;
+        default:
+          throw new KeeperException.BadArgumentsException();
+      }
+      zkOps.add(temp);
+    }
+    return zkOps;
+  }
+
+  /**
+   * Helper function for transactionOP. Converts the result from calling zk transactional support into
+   * metaclient OpResults.
+   * @param zkResult
+   * @return
+   */
+  public List<OpResult> zkOpResultToMetaClient(List<org.apache.zookeeper.OpResult> zkResult) throws KeeperException.BadArgumentsException {
+    List<OpResult> metaClientOpResult = new ArrayList<>();
+    OpResult temp;
+    EntryMode zkMode;
+    for (org.apache.zookeeper.OpResult opResult : zkResult) {
+      Stat metaClientStat;
+      switch (opResult.getType()) {
+        // CreateResult
+        case 1:
+          temp = new OpResult.CreateResult(
+                  ((org.apache.zookeeper.OpResult.CreateResult) opResult).getPath());
+          break;
+        // DeleteResult
+        case 2:
+          temp = new OpResult.DeleteResult();
+          break;
+        // GetDataResult
+        case 4:
+          org.apache.zookeeper.OpResult.GetDataResult zkOpGetDataResult =
+                  (org.apache.zookeeper.OpResult.GetDataResult) opResult;
+          metaClientStat = new Stat(convertZkEntryMode(zkOpGetDataResult.getStat().getEphemeralOwner()),
+              zkOpGetDataResult.getStat().getVersion());
+          temp = new OpResult.GetDataResult(zkOpGetDataResult.getData(), metaClientStat);
+          break;
+        //SetDataResult
+        case 5:
+          org.apache.zookeeper.OpResult.SetDataResult zkOpSetDataResult =
+                  (org.apache.zookeeper.OpResult.SetDataResult) opResult;
+          metaClientStat = new Stat(convertZkEntryMode(zkOpSetDataResult.getStat().getEphemeralOwner()),
+              zkOpSetDataResult.getStat().getVersion());
+          temp = new OpResult.SetDataResult(metaClientStat);
+          break;
+        //GetChildrenResult
+        case 8:
+          temp = new OpResult.GetChildrenResult(
+                  ((org.apache.zookeeper.OpResult.GetChildrenResult) opResult).getChildren());
+          break;
+        //CheckResult
+        case 13:
+          temp = new OpResult.CheckResult();
+          break;
+        //CreateResult with stat
+        case 15:
+          org.apache.zookeeper.OpResult.CreateResult zkOpCreateResult =
+                  (org.apache.zookeeper.OpResult.CreateResult) opResult;
+          metaClientStat = new Stat(convertZkEntryMode(zkOpCreateResult.getStat().getEphemeralOwner()),
+              zkOpCreateResult.getStat().getVersion());
+          temp = new OpResult.CreateResult(zkOpCreateResult.getPath(), metaClientStat);
+          break;
+        //ErrorResult
+        case -1:
+          temp = new OpResult.ErrorResult(
+                  ((org.apache.zookeeper.OpResult.ErrorResult) opResult).getErr());
+          break;
+        default:
+          throw new KeeperException.BadArgumentsException();
+      }
+      metaClientOpResult.add(temp);
+    }
+    return metaClientOpResult;
+  }
+
+  private int zkFlagFromEntryMode (EntryMode entryMode) {
+    String mode = entryMode.name();
+    if (mode.equals(EntryMode.PERSISTENT.name())) {
+      return 0;
+    }
+    if (mode.equals(EntryMode.EPHEMERAL.name())) {
+      return 1;
+    }
+    return -1;
   }
 }

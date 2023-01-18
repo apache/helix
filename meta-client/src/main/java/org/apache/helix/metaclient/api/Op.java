@@ -19,12 +19,13 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
+import java.util.Arrays;
 /**
  *  Represents a single operation in a multi-operation transaction.  Each operation can be a create, set,
  *  version check or delete operation.
  */
 public abstract class Op {
-  enum Type {
+  public enum Type {
     CREATE,
     DELETE,
     SET,

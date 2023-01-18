@@ -59,6 +59,22 @@ public class TestZkMetaClient {
   }
 
   @Test
+  public void testCreate() {
+    final String key = "/TestZkMetaClient_testCreate";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.create(key, ENTRY_STRING_VALUE);
+      Assert.assertNotNull(zkMetaClient.exists(key));
+
+      try {
+        zkMetaClient.create("a/b/c", "invalid_path");
+        Assert.fail("Should have failed with incorrect path.");
+      } catch (Exception ignored) {
+      }
+    }
+  }
+
+  @Test
   public void testGet() {
     final String key = "/TestZkMetaClient_testGet";
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {

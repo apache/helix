@@ -374,12 +374,12 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   public void updateRebalancerStats(long numPendingRecoveryRebalancePartitions,
       long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
-      long numLoadRebalanceThrottledPartitions, boolean rebalanceThrottledByErrorPartitio) {
+      long numLoadRebalanceThrottledPartitions, boolean rebalanceThrottledByErrorPartitions) {
     _numPendingRecoveryRebalanceReplicas.updateValue(numPendingRecoveryRebalancePartitions);
     _numPendingLoadRebalanceReplicas.updateValue(numPendingLoadRebalancePartitions);
     _numRecoveryRebalanceThrottledReplicas.updateValue(numRecoveryRebalanceThrottledPartitions);
     _numLoadRebalanceThrottledReplicas.updateValue(numLoadRebalanceThrottledPartitions);
-    _rebalanceThrottledByErrorPartitionGauge.updateValue(rebalanceThrottledByErrorPartitio? 1L : 0L);
+    _rebalanceThrottledByErrorPartitionGauge.updateValue(rebalanceThrottledByErrorPartitions? 1L : 0L);
   }
 
   /**

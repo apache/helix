@@ -585,13 +585,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   public void updateRebalancerStats(String resourceName, long numPendingRecoveryRebalancePartitions,
       long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
-      long numLoadRebalanceThrottledPartitions, boolean rebalanceThrottledByErrorPartition) {
+      long numLoadRebalanceThrottledPartitions, boolean rebalanceThrottledByErrorPartitions) {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
       resourceMonitor.updateRebalancerStats(numPendingRecoveryRebalancePartitions,
           numPendingLoadRebalancePartitions, numRecoveryRebalanceThrottledPartitions,
-          numLoadRebalanceThrottledPartitions, rebalanceThrottledByErrorPartition);
+          numLoadRebalanceThrottledPartitions, rebalanceThrottledByErrorPartitions);
     }
   }
 

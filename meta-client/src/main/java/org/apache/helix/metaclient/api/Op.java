@@ -23,16 +23,114 @@ package org.apache.helix.metaclient.api;
  *  Represents a single operation in a multi-operation transaction.  Each operation can be a create, set,
  *  version check or delete operation.
  */
-public class Op {
+public abstract class Op {
+  enum Type {
+    CREATE,
+    DELETE,
+    SET,
+    CHECK
+    }
+
+  private String _path;
+  private Type _type;
+
+  private Op(Type type, String path) {
+    this._type = type;
+    this._path = path;
+  }
+  public static Op create(String path, byte[] data) {
+    return new Create(path, data);
+  }
+
+  public static Op create(String path, byte[] data, MetaClientInterface.EntryMode createMode) {
+    return new Create(path, data, createMode);
+  }
+
+  public static Op delete(String path, int version) {
+    return new Op.Delete(path, version);
+  }
+
+  public static Op set(String path, byte[] data, int version) {
+    return new Set(path, data, version);
+  }
+
+  public static Op check(String path, int version) {
+    return new Check(path, version);
+  }
+
+  public Type getType() {
+    return this._type;
+  }
+
+  public String getPath() {
+    return this._path;
+  }
+
   /**
    * Check the version of an entry. True only when the version is the same as expected.
    */
   public static class Check extends Op {
+    private final int version;
+    public int getVersion() { return version;}
+    private Check(String path, int version) {
+      super(Type.CHECK, path);
+      this.version = version;
+    }
   }
-  public static class Create extends Op{
+
+  /**
+   * Represents a Create operation. Creates a new node.
+   */
+  public static class Create extends Op {
+    protected final byte[] data;
+    private MetaClientInterface.EntryMode mode;
+
+    public byte[] getData() {
+      return data;
+    }
+    public MetaClientInterface.EntryMode getEntryMode() {return mode;}
+
+    private Create(String path, byte[] data) {
+      super(Type.CREATE, path);
+      this.data = data;
+    }
+
+    private Create(String path, byte[] data, MetaClientInterface.EntryMode mode) {
+      super(Type.CREATE, path);
+      this.data = data;
+      this.mode = mode;
+    }
   }
+
+  /**
+   * Represents a Delete operations. Deletes an existing node.
+   */
   public static class Delete extends Op{
+    private final int version;
+    public int getVersion() { return version;}
+
+    private Delete(String path, int version) {
+      super(Type.DELETE, path);
+      this.version = version;
+    }
   }
-  public static class Set extends Op{
+
+  /**
+   * Represents a Set operation. Sets or updates the data of a node.
+   */
+  public static class Set extends Op {
+    private final byte[] data;
+    private final int version;
+
+    public byte[] getData() {
+      return data;
+    }
+    public int getVersion() { return version;}
+
+    private Set(String path, byte[] data, int version) {
+      super(Type.SET, path);
+      this.data = data;
+      this.version = version;
+    }
   }
 }

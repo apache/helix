@@ -455,7 +455,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
               op.getPath(), ((Op.Check) op).getVersion());
           break;
         default:
-          throw new KeeperException.BadArgumentsException();
+          throw new IllegalArgumentException(op.getType() + " is not supported.");
       }
       zkOps.add(temp);
     }
@@ -523,7 +523,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
                   ((org.apache.zookeeper.OpResult.ErrorResult) opResult).getErr());
           break;
         default:
-          throw new KeeperException.BadArgumentsException();
+          throw new IllegalArgumentException(opResult.getType() + " is not supported.");
       }
       metaClientOpResult.add(temp);
     }

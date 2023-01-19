@@ -208,6 +208,9 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), getResourceMap(resources, nPartition, "OnlineOffline"));
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
         getResourceMap(resources, nPartition, "OnlineOffline"));
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(_clusterName);
+    monitor.active();
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
 
     // Initialize best possible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
@@ -264,6 +267,14 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     runStage(event, new IntermediateStateCalcStage());
 
     IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+
+
+    // Validate that there are 2 resourced load balance been throttled
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    Assert.assertEquals(clusterStatusMonitor.getRebalanceThrottledByErrorPartitionGauge(), 0);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_0")
+        .getRebalanceThrottledByErrorPartitionGauge(), 0);
 
     for (String resource : resources) {
       // Note Assert.assertEquals won't work. If "actual" is an empty map, it won't compare

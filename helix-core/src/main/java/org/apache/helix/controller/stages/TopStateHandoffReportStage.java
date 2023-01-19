@@ -85,6 +85,9 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     if (cache.getClusterConfig() != null) {
       durationThreshold = cache.getClusterConfig().getMissTopStateDurationThreshold();
     }
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.updateMissingTopStateDurationThreshold(durationThreshold);
+    }
 
     // Remove any resource records that no longer exists
     missingTopStateMap.keySet().retainAll(resourceMap.keySet());
@@ -206,7 +209,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
     if (missingTopStateMap.containsKey(resourceName) && missingTopStateMap.get(resourceName)
         .containsKey(partition.getPartitionName())) {
-      // We previously recorded a top state missing, and it's not coming back
+      // We previously recorded a top state missing, and it has not come back
       reportTopStateComesBack(cache, currentStateOutput.getCurrentStateMap(resourceName, partition),
           resourceName, partition, clusterStatusMonitor, durationThreshold,
           stateModelDef.getTopState());
@@ -319,12 +322,17 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     String partitionName = partition.getPartitionName();
     MissingTopStateRecord record = missingTopStateMap.get(resourceName).get(partitionName);
     long startTime = record.getStartTimeStamp();
-    if (startTime > 0 && System.currentTimeMillis() - startTime > durationThreshold && !record
+    if (startTime > 0 && !record
         .isFailed()) {
-      record.setFailed();
-      missingTopStateMap.get(resourceName).put(partitionName, record);
       if (clusterStatusMonitor != null) {
-        clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L, false, false);
+        clusterStatusMonitor.updateMissingTopStateResourceMap(resourceName, partitionName, true, startTime);
+      }
+      if (System.currentTimeMillis() - startTime > durationThreshold) {
+        record.setFailed();
+        missingTopStateMap.get(resourceName).put(partitionName, record);
+        if (clusterStatusMonitor != null) {
+          clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L, false, false);
+        }
       }
     }
   }
@@ -488,6 +496,10 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       }
     }
     removeFromStatsMap(missingTopStateMap, resourceName, partition);
+    if (clusterStatusMonitor != null) {
+      // Update recovered top state for partition in resource map.
+      clusterStatusMonitor.updateMissingTopStateResourceMap(resourceName, partition.getPartitionName(), false, 0L);
+    }
   }
 
   private void removeFromStatsMap(

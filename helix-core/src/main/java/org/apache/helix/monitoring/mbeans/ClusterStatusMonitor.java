@@ -55,6 +55,54 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
+  private class AsyncMissingTopStateMonitor extends Thread {
+    private final Map<String, Map<String, Long>> _missingTopStateResourceMap;
+    private long _missingTopStateDurationThreshold = Long.MAX_VALUE;;
+
+    public AsyncMissingTopStateMonitor(Map<String, Map<String, Long>> missingTopStateResourceMap) {
+      _missingTopStateResourceMap = missingTopStateResourceMap;
+    }
+
+    public void setMissingTopStateDurationThreshold(long missingTopStateDurationThreshold) {
+      _missingTopStateDurationThreshold = missingTopStateDurationThreshold;
+    }
+
+    @Override
+    public void run() {
+      try {
+        synchronized (this) {
+          while (true) {
+            while (_missingTopStateResourceMap.size() == 0) {
+              this.wait();
+            }
+            for (Iterator<Map.Entry<String, Map<String, Long>>> resourcePartitionIt =
+                _missingTopStateResourceMap.entrySet().iterator(); resourcePartitionIt.hasNext(); ) {
+              Map.Entry<String, Map<String, Long>> resourcePartitionEntry = resourcePartitionIt.next();
+              // Iterate over all partitions and if any partition has missing top state greater than threshold then report
+              // it.
+              ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourcePartitionEntry.getKey());
+              // If all partitions of resource has top state recovered then reset the counter
+              if (resourcePartitionEntry.getValue().isEmpty()) {
+                resourceMonitor.resetOneOrManyPartitionsMissingTopStateRealTimeGuage();
+                resourcePartitionIt.remove();
+              } else {
+                for (Long missingTopStateStartTime : resourcePartitionEntry.getValue().values()) {
+                  if (_missingTopStateDurationThreshold < Long.MAX_VALUE && System.currentTimeMillis() - missingTopStateStartTime > _missingTopStateDurationThreshold) {
+                    resourceMonitor.updateOneOrManyPartitionsMissingTopStateRealTimeGuage();
+                  }
+                }
+              }
+            }
+            // TODO: Check if this SLEEP_TIME is correct? Thread should keep on increasing the counter continuously until top
+            //  state is recovered but it can sleep for reasonable amount of time in between.
+            sleep(100);
+          }
+        }
+      } catch (InterruptedException e) {
+        LOG.error("AsyncMissingTopStateMonitor has been interrupted {}", e);
+      }
+    }
+  };
   private static final Logger LOG = LoggerFactory.getLogger(ClusterStatusMonitor.class);
 
   static final String MESSAGE_QUEUE_STATUS_KEY = "MessageQueueStatus";
@@ -109,9 +157,21 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   private final Map<String, JobMonitor> _perTypeJobMonitorMap = new ConcurrentHashMap<>();
 
+  /**
+   * Missing top state resource map: resourceName-><PartitionName->startTimeOfMissingTopState>
+   */
+  private final Map<String, Map<String, Long>> _missingTopStateResourceMap = new ConcurrentHashMap<>();
+  private final AsyncMissingTopStateMonitor _asyncMissingTopStateMonitor = new AsyncMissingTopStateMonitor(_missingTopStateResourceMap);
+
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
+    /**
+     * Start a async thread for each cluster which keeps monitoring missing top states of any resource for a cluster.
+     * This thread will keep on iterating over resources and report missingTopStateDuration for them until there are at
+     * least one resource with missing top state for a cluster.
+     */
+    _asyncMissingTopStateMonitor.start();
   }
 
   public ObjectName getObjectName(String name) throws MalformedObjectNameException {
@@ -580,6 +640,33 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     if (resourceMonitor != null) {
       resourceMonitor.updateStateHandoffStats(ResourceMonitor.MonitorState.TOP_STATE, totalDuration,
           helixLatency, isGraceful, succeeded);
+    }
+  }
+
+  public void updateMissingTopStateDurationThreshold(long missingTopStateDurationThreshold) {
+    _asyncMissingTopStateMonitor.setMissingTopStateDurationThreshold(missingTopStateDurationThreshold);
+  }
+
+  public void updateMissingTopStateResourceMap(String resourceName,String partitionName, boolean isTopStateMissing, long startTime) {
+    // Top state started missing
+    if (isTopStateMissing) {
+      // Wake up asyncMissingTopStateMonitor thread on first resource being added to map
+      if (_missingTopStateResourceMap.isEmpty()) {
+        synchronized (_asyncMissingTopStateMonitor) {
+          _asyncMissingTopStateMonitor.notify();
+        }
+      }
+      if (!_missingTopStateResourceMap.containsKey(resourceName)) {
+        _missingTopStateResourceMap.put(resourceName, new HashMap<String, Long>());
+      }
+      _missingTopStateResourceMap.get(resourceName).put(partitionName, startTime);
+    } else { // top state recovered
+      // remove partitions from resourceMap whose top state has been recovered, this will put
+      // asyncMissingTopStateMonitor thread to sleep when no resources left to monitor.
+      Map<String, Long> entry = _missingTopStateResourceMap.get(resourceName);
+      if (entry != null) {
+        entry.remove(partitionName);
+      }
     }
   }
 

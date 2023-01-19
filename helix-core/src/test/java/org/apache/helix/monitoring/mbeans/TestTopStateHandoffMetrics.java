@@ -171,9 +171,12 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     //  - S->M from 8000 to 9000
     // Therefore the recorded latency should be 9000 - 7500 = 1500, though original master crashed,
     // since this is a single top state handoff observed within 1 pipeline, we treat it as graceful,
-    // and only record user latency for transiting to master
+    // and only record user latency for transiting to master.
+    // Realtime metric for tracking missing top state should be started at 7000 and will be reset at 9000. Now since
+    // top state got recovered under threshold (7500), metric won't be incremented.
     Range<Long> expectedDuration = Range.closed(1500L, 1500L);
     Range<Long> expectedHelixLatency = Range.closed(500L, 500L);
+    // Now even if handoff took more than threshold real time metric should be correctly reset to 0 after successful handoff.
     runStageAndVerify(
         cfg.initialCurrentStates, cfg.currentStateWithMissingTopState, cfg.finalCurrentState,
         new MissingStatesDataCacheInject() {
@@ -183,7 +186,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
             liMap.remove("localhost_1");
             cache.setLiveInstances(new ArrayList<>(liMap.values()));
           }
-        }, 1, 0,
+        }, 1, 0, 0,
         expectedDuration,
         DURATION_ZERO,
         expectedDuration, expectedHelixLatency
@@ -212,7 +215,44 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
             cache.getInstanceOfflineTimeMap().put("localhost_0", lastOfflineTime);
             cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
           }
-        }, 1, 0,
+        },
+        1,
+        0,
+        0, // real time metric should have been incremented but reset to 0 after successful handoff.
+        DURATION_ZERO, // graceful handoff duration should be 0
+        expectedDuration, // we should have an record for non-graceful handoff
+        expectedDuration, // max handoff should be same as non-graceful handoff
+        DURATION_ZERO // we don't record user latency for non-graceful transition
+    );
+  }
+
+  @Test(dataProvider = "failedYetRecoveredTopStateNonGraceful")
+  public void testTopStateFailedYetNonGracefulHandoffCompleted(TestCaseConfig cfg) {
+    // localhost_0 crashed at 15000
+    // localhost_1 slave -> master started 20000, ended 22000, top state handoff = 7000
+    preSetup();
+    final String downInstance = "localhost_0";
+    final Long lastOfflineTime = 15000L;
+    Range<Long> expectedDuration = Range.closed(7000L, 7000L);
+    ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
+    clusterConfig.setMissTopStateDurationThreshold(500L);
+    setClusterConfig(clusterConfig);
+    runStageAndVerify(
+        cfg.initialCurrentStates, cfg.currentStateWithMissingTopState, cfg.finalCurrentState,
+        new MissingStatesDataCacheInject() {
+          @Override
+          public void doInject(ResourceControllerDataProvider cache) {
+            accessor.removeProperty(accessor.keyBuilder().liveInstance(downInstance));
+            Map<String, LiveInstance> liMap = new HashMap<>(cache.getLiveInstances());
+            liMap.remove("localhost_0");
+            cache.setLiveInstances(new ArrayList<>(liMap.values()));
+            cache.getInstanceOfflineTimeMap().put("localhost_0", lastOfflineTime);
+            cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
+          }
+        },
+        0, // since handoff could not be completed under threshold it's counted as failed.
+        1,
+        0, // real time metric should have been incremented but reset to 0 after handoff is COMPLETED.
         DURATION_ZERO, // graceful handoff duration should be 0
         expectedDuration, // we should have an record for non-graceful handoff
         expectedDuration, // max handoff should be same as non-graceful handoff
@@ -222,6 +262,8 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
 
   @Test(dataProvider = "failedCurrentStateInput")
   public void testTopStateFailedHandoff(TestCaseConfig cfg) {
+    // Since current resource has at least one partition with missing top state then real time gurage should have non-zero
+    // value.
     ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
     clusterConfig.setMissTopStateDurationThreshold(5000L);
     setClusterConfig(clusterConfig);
@@ -254,7 +296,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     // actual timestamp when running the stage will be later than current time, so the expected
     // helix latency will be less than the mocked helix latency
     runStageAndVerify(Collections.EMPTY_MAP, cfg.currentStateWithMissingTopState,
-        cfg.finalCurrentState, null, 1, 0,
+        cfg.finalCurrentState, null, 1, 0, 0,
         Range.closed(0L, helixLatency + userLatency),
         DURATION_ZERO,
         Range.closed(0L, helixLatency + userLatency),
@@ -312,7 +354,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
               cache.cacheMessages(Collections.singletonList(message));
             }
           }
-        }, 1, 0,
+        }, 1, 0, 0,
         Range.closed(durationToVerify, durationToVerify),
         DURATION_ZERO,
         Range.closed(durationToVerify, durationToVerify),
@@ -355,7 +397,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     Range<Long> expectedHelixLatency =
         cfg.isGraceful ? Range.closed(cfg.helixLatency, cfg.helixLatency) : DURATION_ZERO;
     runStageAndVerify(cfg.initialCurrentStates, cfg.currentStateWithMissingTopState,
-        cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, expectedDuration, expectedNonGracefulDuration,
+        cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, expectFail ? 1 : 0, expectedDuration, expectedNonGracefulDuration,
         expectedDuration, expectedHelixLatency);
   }
 
@@ -412,6 +454,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       MissingStatesDataCacheInject inject,
       int successCnt,
       int failCnt,
+      int oneOrManyPartitionsMissingTopStateCnt,
       Range<Long> expectedDuration,
       Range<Long> expectedNonGracefulDuration,
       Range<Long> expectedMaxDuration,
@@ -426,6 +469,8 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
 
     Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), successCnt);
     Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), failCnt);
+
+    Assert.assertTrue(monitor.getOneOrManyPartitionsMissingTopStateRealTimeGuage() >= oneOrManyPartitionsMissingTopStateCnt);
 
     long graceful = monitor.getPartitionTopStateHandoffDurationGauge()
         .getAttributeValue(GRACEFUL_HANDOFF_DURATION).longValue();

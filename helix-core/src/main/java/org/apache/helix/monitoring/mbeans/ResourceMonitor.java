@@ -65,6 +65,9 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledReplicas;
   private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledReplicas;
   private SimpleDynamicMetric<Long> _numPendingStateTransitions;
+  // Real-time guage which keeps on increasing until a resource has "at least" 1 partition missing top state greater than
+  // threshold value. Guage will be reset when resource has no partition with missing top state.
+  private SimpleDynamicMetric<Long> _oneOrManyPartitionsMissingTopStateRealTimeGuage;
 
   // Counters
   private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter;
@@ -108,7 +111,6 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _resourceName = resourceName;
     _initObjectName = objectName;
     _dynamicCapacityMetricsMap = new ConcurrentHashMap<>();
-
     _externalViewIdealStateDiff = new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0L);
     _numPendingRecoveryRebalanceReplicas =
         new SimpleDynamicMetric("PendingRecoveryRebalanceReplicaGauge", 0L);
@@ -128,6 +130,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numOfPartitionsInExternalView = new SimpleDynamicMetric("ExternalViewPartitionGauge", 0L);
     _numOfPartitions = new SimpleDynamicMetric("PartitionGauge", 0L);
     _numPendingStateTransitions = new SimpleDynamicMetric("PendingStateTransitionGauge", 0L);
+    _oneOrManyPartitionsMissingTopStateRealTimeGuage = new SimpleDynamicMetric<>("OneOrManyPartitionsMissingTopStateRealTimeGuage", 0L);
 
     _partitionTopStateHandoffDurationGauge =
         new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", new Histogram(
@@ -205,6 +208,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   public long getTotalMessageReceived() {
     return _totalMessageReceived.getValue();
   }
+
+  public long getOneOrManyPartitionsMissingTopStateRealTimeGuage() { return _oneOrManyPartitionsMissingTopStateRealTimeGuage.getValue(); }
 
   @Deprecated
   public synchronized void increaseMessageCount(long messageReceived) {
@@ -335,10 +340,19 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numOfPartitionsInExternalView.updateValue(0L);
     _numLessMinActiveReplicaPartitions.updateValue(0L);
     _numLessReplicaPartitions.updateValue(0L);
+    _oneOrManyPartitionsMissingTopStateRealTimeGuage.updateValue(0L);
   }
 
   public void updatePendingStateTransitionMessages(int messageCount) {
     _numPendingStateTransitions.updateValue((long) messageCount);
+  }
+
+  public void resetOneOrManyPartitionsMissingTopStateRealTimeGuage() {
+    _oneOrManyPartitionsMissingTopStateRealTimeGuage.updateValue(0L);
+  }
+
+  public void updateOneOrManyPartitionsMissingTopStateRealTimeGuage() {
+    _oneOrManyPartitionsMissingTopStateRealTimeGuage.updateValue(_oneOrManyPartitionsMissingTopStateRealTimeGuage.getValue() +1);
   }
 
   public void updateStateHandoffStats(MonitorState monitorState, long totalDuration,

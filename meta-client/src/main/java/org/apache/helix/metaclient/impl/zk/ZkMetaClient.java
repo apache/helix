@@ -38,6 +38,7 @@ import org.apache.helix.metaclient.constants.MetaClientException;
 import org.apache.helix.metaclient.constants.MetaClientInterruptException;
 import org.apache.helix.metaclient.constants.MetaClientNoNodeException;
 import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
+import org.apache.helix.metaclient.constants.MetaClientKeeperException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -417,7 +418,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
 
   @Override
-  public List<OpResult> transactionOP(Iterable<Op> iterable) throws KeeperException {
+  public List<OpResult> transactionOP(Iterable<Op> iterable) {
     // Convert list of MetaClient Ops to Zk Ops
     List<org.apache.zookeeper.Op> zkOps = metaClientOpToZk(iterable);
     // Execute Zk transactional support
@@ -432,15 +433,19 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
    * @param ops
    * @return
    */
-  public List<org.apache.zookeeper.Op> metaClientOpToZk(Iterable<Op> ops) throws KeeperException {
+  public List<org.apache.zookeeper.Op> metaClientOpToZk(Iterable<Op> ops) {
     List<org.apache.zookeeper.Op> zkOps = new ArrayList<>();
     org.apache.zookeeper.Op temp;
     for (Op op : ops) {
       switch (op.getType()) {
         case CREATE:
           int zkFlag = zkFlagFromEntryMode(((Op.Create) op).getEntryMode());
-          temp = org.apache.zookeeper.Op.create(
-              op.getPath(), ((Op.Create) op).getData(), DEFAULT_ACL, CreateMode.fromFlag(zkFlag));
+          try {
+            temp = org.apache.zookeeper.Op.create(
+                op.getPath(), ((Op.Create) op).getData(), DEFAULT_ACL, CreateMode.fromFlag(zkFlag));
+          } catch (KeeperException e) {
+            throw new MetaClientKeeperException(e);
+          }
           break;
         case DELETE:
           temp = org.apache.zookeeper.Op.delete(
@@ -468,57 +473,51 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
    * @param zkResult
    * @return
    */
-  public List<OpResult> zkOpResultToMetaClient(List<org.apache.zookeeper.OpResult> zkResult) throws KeeperException.BadArgumentsException {
+  public List<OpResult> zkOpResultToMetaClient(List<org.apache.zookeeper.OpResult> zkResult) {
     List<OpResult> metaClientOpResult = new ArrayList<>();
     OpResult temp;
-    EntryMode zkMode;
+    String resultClass;
     for (org.apache.zookeeper.OpResult opResult : zkResult) {
       Stat metaClientStat;
-      switch (opResult.getType()) {
-        // CreateResult
-        case 1:
-          temp = new OpResult.CreateResult(
-                  ((org.apache.zookeeper.OpResult.CreateResult) opResult).getPath());
+      resultClass = opResult.getClass().getSimpleName();
+      switch (resultClass) {
+        case "CreateResult":
+          org.apache.zookeeper.OpResult.CreateResult zkOpCreateResult =
+              (org.apache.zookeeper.OpResult.CreateResult) opResult;
+          if (opResult.getType() == 1) {
+            temp = new OpResult.CreateResult(zkOpCreateResult.getPath());
+          } else {
+            //CreateResult with sat
+            metaClientStat = new Stat(convertZkEntryMode(zkOpCreateResult.getStat().getEphemeralOwner()),
+                zkOpCreateResult.getStat().getVersion());
+            temp = new OpResult.CreateResult(zkOpCreateResult.getPath(), metaClientStat);
+          }
           break;
-        // DeleteResult
-        case 2:
+        case "DeleteResult":
           temp = new OpResult.DeleteResult();
           break;
-        // GetDataResult
-        case 4:
+        case "GetDataResult":
           org.apache.zookeeper.OpResult.GetDataResult zkOpGetDataResult =
                   (org.apache.zookeeper.OpResult.GetDataResult) opResult;
           metaClientStat = new Stat(convertZkEntryMode(zkOpGetDataResult.getStat().getEphemeralOwner()),
               zkOpGetDataResult.getStat().getVersion());
           temp = new OpResult.GetDataResult(zkOpGetDataResult.getData(), metaClientStat);
           break;
-        //SetDataResult
-        case 5:
+        case "SetDataResult":
           org.apache.zookeeper.OpResult.SetDataResult zkOpSetDataResult =
                   (org.apache.zookeeper.OpResult.SetDataResult) opResult;
           metaClientStat = new Stat(convertZkEntryMode(zkOpSetDataResult.getStat().getEphemeralOwner()),
               zkOpSetDataResult.getStat().getVersion());
           temp = new OpResult.SetDataResult(metaClientStat);
           break;
-        //GetChildrenResult
-        case 8:
+        case "GetChildrenResult":
           temp = new OpResult.GetChildrenResult(
                   ((org.apache.zookeeper.OpResult.GetChildrenResult) opResult).getChildren());
           break;
-        //CheckResult
-        case 13:
+        case "CheckResult":
           temp = new OpResult.CheckResult();
           break;
-        //CreateResult with stat
-        case 15:
-          org.apache.zookeeper.OpResult.CreateResult zkOpCreateResult =
-                  (org.apache.zookeeper.OpResult.CreateResult) opResult;
-          metaClientStat = new Stat(convertZkEntryMode(zkOpCreateResult.getStat().getEphemeralOwner()),
-              zkOpCreateResult.getStat().getVersion());
-          temp = new OpResult.CreateResult(zkOpCreateResult.getPath(), metaClientStat);
-          break;
-        //ErrorResult
-        case -1:
+        case "ErrorResult":
           temp = new OpResult.ErrorResult(
                   ((org.apache.zookeeper.OpResult.ErrorResult) opResult).getErr());
           break;

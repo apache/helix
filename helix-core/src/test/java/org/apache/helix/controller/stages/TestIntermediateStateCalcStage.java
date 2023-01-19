@@ -269,10 +269,10 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
 
 
-    // Validate that there are 2 resourced load balance been throttled
+    // Validate that there are 0 resourced load balance been throttled
     ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    Assert.assertEquals(clusterStatusMonitor.getRebalanceThrottledByErrorPartitionGauge(), 0);
+    Assert.assertEquals(clusterStatusMonitor.getNumOfResourcesRebalanceThrottledGauge(), 0);
     Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_0")
         .getRebalanceThrottledByErrorPartitionGauge(), 0);
 
@@ -390,7 +390,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     // Validate that there are 2 resourced load balance been throttled
     ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    Assert.assertEquals(clusterStatusMonitor.getRebalanceThrottledByErrorPartitionGauge(), 2);
+    Assert.assertEquals(clusterStatusMonitor.getNumOfResourcesRebalanceThrottledGauge(), 2);
     Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_0")
         .getRebalanceThrottledByErrorPartitionGauge(), 1);
     Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_1")

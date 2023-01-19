@@ -19,7 +19,6 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -33,34 +32,24 @@ import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.metaclient.constants.MetaClientBadVersionException;
 import org.apache.helix.metaclient.constants.MetaClientException;
-import org.apache.helix.metaclient.constants.MetaClientInterruptException;
-import org.apache.helix.metaclient.constants.MetaClientNoNodeException;
-import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
-import org.apache.helix.metaclient.constants.MetaClientKeeperException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
-import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.server.EphemeralType;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.ACL;
+
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryMode;
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
 
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   private final ZkClient _zkClient;
-  //Default ACL value until metaClient Op has ACL of its own.
-  private final List<ACL> DEFAULT_ACL = ZooDefs.Ids.OPEN_ACL_UNSAFE;
   private final int _connectionTimeout;
 
   public ZkMetaClient(ZkMetaClientConfig config) {
@@ -385,158 +374,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     }
   }
 
-  private static MetaClientException translateZkExceptionToMetaclientException(ZkException e) {
-    if (e instanceof ZkNodeExistsException) {
-      return new MetaClientNoNodeException(e);
-    } else if (e instanceof ZkBadVersionException) {
-      return new MetaClientBadVersionException(e);
-    } else if (e instanceof ZkTimeoutException) {
-      return new MetaClientTimeoutException(e);
-    } else if (e instanceof ZkInterruptedException) {
-      return new MetaClientInterruptException(e);
-    } else {
-      return new MetaClientException(e);
-    }
-  }
-
-  private static EntryMode convertZkEntryMode(long ephemeralOwner) {
-    EphemeralType zkEphemeralType = EphemeralType.get(ephemeralOwner);
-    switch (zkEphemeralType) {
-      case VOID:
-        return EntryMode.PERSISTENT;
-      case CONTAINER:
-        return EntryMode.CONTAINER;
-      case NORMAL:
-        return EntryMode.EPHEMERAL;
-      // TODO: TTL is not supported now.
-      //case TTL:
-      //  return EntryMode.TTL;
-      default:
-        throw new IllegalArgumentException(zkEphemeralType + " is not supported.");
-    }
-  }
-
-
   @Override
   public List<OpResult> transactionOP(Iterable<Op> iterable) {
     // Convert list of MetaClient Ops to Zk Ops
-    List<org.apache.zookeeper.Op> zkOps = metaClientOpToZk(iterable);
+    List<org.apache.zookeeper.Op> zkOps = ZkMetaClientUtil.metaClientOpToZk(iterable);
     // Execute Zk transactional support
     List<org.apache.zookeeper.OpResult> zkResult = _zkClient.multi(zkOps);
     // Convert list of Zk OpResults to MetaClient OpResults
-    return zkOpResultToMetaClient(zkResult);
-  }
-
-  /**
-   * Helper function for transactionOp. Converts MetaClient Op's into Zk Ops to execute
-   * zk transactional support.
-   * @param ops
-   * @return
-   */
-  public List<org.apache.zookeeper.Op> metaClientOpToZk(Iterable<Op> ops) {
-    List<org.apache.zookeeper.Op> zkOps = new ArrayList<>();
-    org.apache.zookeeper.Op temp;
-    for (Op op : ops) {
-      switch (op.getType()) {
-        case CREATE:
-          int zkFlag = zkFlagFromEntryMode(((Op.Create) op).getEntryMode());
-          try {
-            temp = org.apache.zookeeper.Op.create(
-                op.getPath(), ((Op.Create) op).getData(), DEFAULT_ACL, CreateMode.fromFlag(zkFlag));
-          } catch (KeeperException e) {
-            throw new MetaClientKeeperException(e);
-          }
-          break;
-        case DELETE:
-          temp = org.apache.zookeeper.Op.delete(
-              op.getPath(), ((Op.Delete) op).getVersion());
-          break;
-        case SET:
-          temp = org.apache.zookeeper.Op.setData(
-              op.getPath(), ((Op.Set) op).getData(), ((Op.Set) op).getVersion());
-          break;
-        case CHECK:
-          temp = org.apache.zookeeper.Op.check(
-              op.getPath(), ((Op.Check) op).getVersion());
-          break;
-        default:
-          throw new IllegalArgumentException(op.getType() + " is not supported.");
-      }
-      zkOps.add(temp);
-    }
-    return zkOps;
-  }
-
-  /**
-   * Helper function for transactionOP. Converts the result from calling zk transactional support into
-   * metaclient OpResults.
-   * @param zkResult
-   * @return
-   */
-  public List<OpResult> zkOpResultToMetaClient(List<org.apache.zookeeper.OpResult> zkResult) {
-    List<OpResult> metaClientOpResult = new ArrayList<>();
-    OpResult temp;
-    String resultClass;
-    for (org.apache.zookeeper.OpResult opResult : zkResult) {
-      Stat metaClientStat;
-      resultClass = opResult.getClass().getSimpleName();
-      switch (resultClass) {
-        case "CreateResult":
-          org.apache.zookeeper.OpResult.CreateResult zkOpCreateResult =
-              (org.apache.zookeeper.OpResult.CreateResult) opResult;
-          if (opResult.getType() == 1) {
-            temp = new OpResult.CreateResult(zkOpCreateResult.getPath());
-          } else {
-            //CreateResult with sat
-            metaClientStat = new Stat(convertZkEntryMode(zkOpCreateResult.getStat().getEphemeralOwner()),
-                zkOpCreateResult.getStat().getVersion());
-            temp = new OpResult.CreateResult(zkOpCreateResult.getPath(), metaClientStat);
-          }
-          break;
-        case "DeleteResult":
-          temp = new OpResult.DeleteResult();
-          break;
-        case "GetDataResult":
-          org.apache.zookeeper.OpResult.GetDataResult zkOpGetDataResult =
-                  (org.apache.zookeeper.OpResult.GetDataResult) opResult;
-          metaClientStat = new Stat(convertZkEntryMode(zkOpGetDataResult.getStat().getEphemeralOwner()),
-              zkOpGetDataResult.getStat().getVersion());
-          temp = new OpResult.GetDataResult(zkOpGetDataResult.getData(), metaClientStat);
-          break;
-        case "SetDataResult":
-          org.apache.zookeeper.OpResult.SetDataResult zkOpSetDataResult =
-                  (org.apache.zookeeper.OpResult.SetDataResult) opResult;
-          metaClientStat = new Stat(convertZkEntryMode(zkOpSetDataResult.getStat().getEphemeralOwner()),
-              zkOpSetDataResult.getStat().getVersion());
-          temp = new OpResult.SetDataResult(metaClientStat);
-          break;
-        case "GetChildrenResult":
-          temp = new OpResult.GetChildrenResult(
-                  ((org.apache.zookeeper.OpResult.GetChildrenResult) opResult).getChildren());
-          break;
-        case "CheckResult":
-          temp = new OpResult.CheckResult();
-          break;
-        case "ErrorResult":
-          temp = new OpResult.ErrorResult(
-                  ((org.apache.zookeeper.OpResult.ErrorResult) opResult).getErr());
-          break;
-        default:
-          throw new IllegalArgumentException(opResult.getType() + " is not supported.");
-      }
-      metaClientOpResult.add(temp);
-    }
-    return metaClientOpResult;
-  }
-
-  private int zkFlagFromEntryMode (EntryMode entryMode) {
-    String mode = entryMode.name();
-    if (mode.equals(EntryMode.PERSISTENT.name())) {
-      return 0;
-    }
-    if (mode.equals(EntryMode.EPHEMERAL.name())) {
-      return 1;
-    }
-    return -1;
+    return ZkMetaClientUtil.zkOpResultToMetaClient(zkResult);
   }
 }

@@ -22,6 +22,7 @@ package org.apache.helix.metaclient.impl.zk;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.metaclient.api.AsyncCallback;
 import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
@@ -45,10 +46,12 @@ import org.apache.zookeeper.Watcher;
 
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryMode;
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
-
+  private static final Logger LOG  = LoggerFactory.getLogger(ZkMetaClient.class);
   private final ZkClient _zkClient;
   private final int _connectionTimeout;
 
@@ -245,6 +248,10 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public boolean subscribeDataChange(String key, DataChangeListener listener,
       boolean skipWatchingNonExistNode, boolean persistListener) {
+    if (!persistListener) {
+      throw new NotImplementedException("Currently the non-persist (one-time) listener is not supported in ZkMetaClient.");
+    }
+    _zkClient.subscribeDataChanges(key, new DataListenerConverter(listener));
     return false;
   }
 
@@ -269,7 +276,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void unsubscribeDataChange(String key, DataChangeListener listener) {
-
+    _zkClient.unsubscribeDataChanges(key, new DataListenerConverter(listener));
   }
 
   @Override

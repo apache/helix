@@ -99,7 +99,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           }
         }
       } catch (InterruptedException e) {
-        LOG.error("AsyncMissingTopStateMonitor has been interrupted {}", e);
+        LOG.error("AsyncMissingTopStateMonitor has been interrupted.", e);
       }
     }
   };
@@ -739,6 +739,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       _rebalanceFailureCount.set(0L);
       _continuousResourceRebalanceFailureCount.set(0L);
       _continuousTaskRebalanceFailureCount.set(0L);
+      _asyncMissingTopStateMonitor.interrupt();
+      _missingTopStateResourceMap.clear();
     } catch (Exception e) {
       LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }

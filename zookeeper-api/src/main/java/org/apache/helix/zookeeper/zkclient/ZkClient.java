@@ -2489,7 +2489,7 @@ public class ZkClient implements Watcher {
     });
   }
 
-  protected void connect(final long maxMsToWaitUntilConnected)
+  public void connect(final long maxMsToWaitUntilConnected)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
     connect(maxMsToWaitUntilConnected, this);
   }

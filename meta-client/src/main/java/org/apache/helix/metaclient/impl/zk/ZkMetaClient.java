@@ -381,12 +381,12 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public List<OpResult> transactionOP(Iterable<Op> iterable) {
+  public List<OpResult> transactionOP(Iterable<Op> ops) {
     // Convert list of MetaClient Ops to Zk Ops
-    List<org.apache.zookeeper.Op> zkOps = ZkMetaClientUtil.metaClientOpToZk(iterable);
+    List<org.apache.zookeeper.Op> zkOps = ZkMetaClientUtil.metaClientOpsToZkOps(ops);
     // Execute Zk transactional support
     List<org.apache.zookeeper.OpResult> zkResult = _zkClient.multi(zkOps);
     // Convert list of Zk OpResults to MetaClient OpResults
-    return ZkMetaClientUtil.zkOpResultToMetaClient(zkResult);
+    return ZkMetaClientUtil.zkOpResultToMetaClientOpResults(zkResult);
   }
 }

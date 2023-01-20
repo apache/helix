@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 public class ZkMetaClientUtil {
+  //TODO Implement MetaClient ACL
   //Default ACL value until metaClient Op has ACL of its own.
   private static final List<ACL> DEFAULT_ACL = Collections.unmodifiableList(ZooDefs.Ids.OPEN_ACL_UNSAFE);
 
@@ -51,7 +52,33 @@ public class ZkMetaClientUtil {
    * @param ops
    * @return
    */
-  public static List<Op> metaClientOpToZk(Iterable<org.apache.helix.metaclient.api.Op> ops) {
+  public static List<Op> metaClientOpsToZkOps(Iterable<org.apache.helix.metaclient.api.Op> ops) {
+    if (getOpMap().isEmpty()) {
+      initializeOpMap();
+    }
+
+    List<Op> zkOps = new ArrayList<>();
+    for (org.apache.helix.metaclient.api.Op op : ops) {
+      Function<org.apache.helix.metaclient.api.Op, Op> function = getOpMap().get(op.getType());
+      if (function != null) {
+        zkOps.add(function.apply(op));
+      } else {
+        throw new IllegalArgumentException("Op type " + op.getType().name() + " is not supported.");
+      }
+    }
+    return zkOps;
+  }
+
+  private static final class OpMapHolder {
+    static final Map<org.apache.helix.metaclient.api.Op.Type, Function<org.apache.helix.metaclient.api.Op, Op>> OPMAP =
+        new EnumMap<>(org.apache.helix.metaclient.api.Op.Type.class);
+  }
+
+  private static Map<org.apache.helix.metaclient.api.Op.Type, Function<org.apache.helix.metaclient.api.Op, Op>> getOpMap() {
+    return OpMapHolder.OPMAP;
+  }
+
+  private static void initializeOpMap() {
     getOpMap().put(org.apache.helix.metaclient.api.Op.Type.CREATE, op -> {
       try {
         CreateMode mode = convertMetaClientMode(((org.apache.helix.metaclient.api.Op.Create) op).getEntryMode());
@@ -70,39 +97,19 @@ public class ZkMetaClientUtil {
 
     getOpMap().put(org.apache.helix.metaclient.api.Op.Type.CHECK,
         op -> Op.check(op.getPath(), ((org.apache.helix.metaclient.api.Op.Check) op).getVersion()));
-
-    List<Op> zkOps = new ArrayList<>();
-    for (org.apache.helix.metaclient.api.Op op : ops) {
-      Function<org.apache.helix.metaclient.api.Op, Op> function = getOpMap().get(op.getType());
-      if (function != null) {
-        zkOps.add(function.apply(op));
-      } else {
-        throw new IllegalArgumentException("Op type " + op.getType().name() + "is not supported.");
-      }
-    }
-    return zkOps;
-  }
-
-  private static final class OpmapHolder {
-    static final Map<org.apache.helix.metaclient.api.Op.Type, Function<org.apache.helix.metaclient.api.Op, Op>> OPMAP =
-        new EnumMap<>(org.apache.helix.metaclient.api.Op.Type.class);
-  }
-
-  private static Map<org.apache.helix.metaclient.api.Op.Type, Function<org.apache.helix.metaclient.api.Op, Op>> getOpMap() {
-    return OpmapHolder.OPMAP;
   }
 
   private static CreateMode convertMetaClientMode(MetaClientInterface.EntryMode entryMode) throws KeeperException {
-    if (entryMode == MetaClientInterface.EntryMode.PERSISTENT) {
-      return CreateMode.fromFlag(0);
+    switch (entryMode) {
+      case PERSISTENT:
+        return CreateMode.PERSISTENT;
+      case EPHEMERAL:
+        return CreateMode.EPHEMERAL;
+      case CONTAINER:
+        return CreateMode.CONTAINER;
+      default:
+        throw new IllegalArgumentException(entryMode.name() + " is not a supported EntryMode.");
     }
-    if (entryMode == MetaClientInterface.EntryMode.EPHEMERAL) {
-      return CreateMode.fromFlag(1);
-    }
-    if (entryMode == MetaClientInterface.EntryMode.CONTAINER) {
-      return CreateMode.fromFlag(4);
-    }
-    throw new IllegalArgumentException(entryMode.name() + " is not a supported EntryMode.");
   }
 
   /**
@@ -111,7 +118,33 @@ public class ZkMetaClientUtil {
    * @param zkResult
    * @return
    */
-  public static List<OpResult> zkOpResultToMetaClient(List<org.apache.zookeeper.OpResult> zkResult) {
+  public static List<OpResult> zkOpResultToMetaClientOpResults(List<org.apache.zookeeper.OpResult> zkResult) {
+    if (getOpResultMap().isEmpty()) {
+      initializeOpResultMap();
+    }
+    List<OpResult> metaClientOpResult = new ArrayList<>();
+    for (org.apache.zookeeper.OpResult opResult : zkResult) {
+      Function<org.apache.zookeeper.OpResult, OpResult> function = getOpResultMap().get(opResult.getClass());
+      if (function != null) {
+        metaClientOpResult.add(function.apply(opResult));
+      } else {
+        throw new IllegalArgumentException("OpResult type " + opResult.getType() + "is not supported.");
+      }
+    }
+
+    return metaClientOpResult;
+  }
+
+  private static final class OpResultMapHolder {
+    static final Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>> OPRESULTMAP =
+        new HashMap<>();
+  }
+
+  private static Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>> getOpResultMap() {
+    return OpResultMapHolder.OPRESULTMAP;
+  }
+
+  private static void initializeOpResultMap() {
     getOpResultMap().put(org.apache.zookeeper.OpResult.CreateResult.class, opResult -> {
       org.apache.zookeeper.OpResult.CreateResult zkOpCreateResult = (org.apache.zookeeper.OpResult.CreateResult) opResult;
       if (opResult.getType() == 1) {
@@ -145,27 +178,6 @@ public class ZkMetaClientUtil {
 
     getOpResultMap().put(org.apache.zookeeper.OpResult.ErrorResult.class, opResult -> new OpResult.ErrorResult(
         ((org.apache.zookeeper.OpResult.ErrorResult) opResult).getErr()));
-
-    List<OpResult> metaClientOpResult = new ArrayList<>();
-    for (org.apache.zookeeper.OpResult opResult : zkResult) {
-      Function<org.apache.zookeeper.OpResult, OpResult> function = getOpResultMap().get(opResult.getClass());
-      if (function != null) {
-        metaClientOpResult.add(function.apply(opResult));
-      } else {
-        throw new IllegalArgumentException("OpResult type " + opResult.getType() + "is not supported.");
-      }
-    }
-
-    return metaClientOpResult;
-  }
-
-  private static final class OpResultMapHolder {
-    static final Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>> OPRESULTMAP =
-        new HashMap<>();
-  }
-
-  private static Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>> getOpResultMap() {
-    return OpResultMapHolder.OPRESULTMAP;
   }
 
   public static MetaClientInterface.EntryMode convertZkEntryMode(long ephemeralOwner) {

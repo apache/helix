@@ -43,7 +43,7 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-import org.apache.zookeeper.*;
+import org.apache.zookeeper.KeeperException;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -334,7 +334,7 @@ public class TestZkMetaClient {
    * delete, and set.
    */
   @Test
-  public void testMultiOps() throws KeeperException {
+  public void testMultiOps() {
     String test_name = "/test_multi_ops";
 
     try(ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {

@@ -61,7 +61,6 @@ public class TestZkMetaClient {
   protected static String PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/RealmAwareZkClient";
   protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
 
-
   private final Object _syncObject = new Object();
 
   private ZkServer _zkServer;
@@ -329,7 +328,7 @@ public class TestZkMetaClient {
     zkServer.start();
     return zkServer;
   }
-
+  
   /**
    * Test that zk multi works for zkmetaclient operations create,
    * delete, and set.
@@ -395,7 +394,7 @@ public class TestZkMetaClient {
       }
     }
   }
-
+  
   private class MockDataChangeListener implements DataChangeListener {
     private final AtomicInteger _triggeredCount = new AtomicInteger(0);
     private volatile ChangeType _lastEventType;

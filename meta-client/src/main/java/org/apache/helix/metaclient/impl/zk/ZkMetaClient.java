@@ -44,11 +44,11 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 
-import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryMode;
-import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
+import org.apache.zookeeper.server.EphemeralType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryMode;
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   private static final Logger LOG  = LoggerFactory.getLogger(ZkMetaClient.class);

@@ -20,6 +20,8 @@ package org.apache.helix.zookeeper.zkclient;
  */
 
 import java.util.List;
+import org.apache.zookeeper.Watcher;
+
 
 /**
  * An {@link IZkChildListener} can be registered at a {@link ZkClient} for listening on zk child changes for a given
@@ -42,4 +44,9 @@ public interface IZkChildListener {
      * @throws Exception
      */
     public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception;
+
+    default void handleChildChange(String parentPath, List<String> currentChilds, Watcher.Event.EventType eventType)
+        throws Exception {
+        handleChildChange(parentPath, currentChilds);
+    }
 }

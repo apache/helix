@@ -38,9 +38,9 @@ import org.apache.helix.metaclient.constants.MetaClientException;
 import org.apache.helix.metaclient.constants.MetaClientInterruptException;
 import org.apache.helix.metaclient.constants.MetaClientNoNodeException;
 import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
+import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
@@ -49,7 +49,6 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.server.EphemeralType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -261,7 +260,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     if (!persistListener) {
       throw new NotImplementedException("Currently the non-persist (one-time) listener is not supported in ZkMetaClient.");
     }
-    _zkClient.subscribeDataChanges(key, new DataListenerConverter(listener));
+    _zkClient.subscribeDataChanges(key, new DataListenerAdapter(listener));
     return false;
   }
 
@@ -286,7 +285,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void unsubscribeDataChange(String key, DataChangeListener listener) {
-    _zkClient.unsubscribeDataChanges(key, new DataListenerConverter(listener));
+    _zkClient.unsubscribeDataChanges(key, new DataListenerAdapter(listener));
   }
 
   @Override
@@ -337,58 +336,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public void close() {
     disconnect();
-  }
-
-  /**
-   * A converter class to transform {@link DataChangeListener} to {@link IZkDataListener}
-   */
-  static class DataListenerConverter implements IZkDataListener {
-    private final DataChangeListener _listener;
-
-    DataListenerConverter(DataChangeListener listener) {
-      _listener = listener;
-    }
-
-    private DataChangeListener.ChangeType convertType(Watcher.Event.EventType eventType) {
-      switch (eventType) {
-        case NodeCreated: return DataChangeListener.ChangeType.ENTRY_CREATED;
-        case NodeDataChanged: return DataChangeListener.ChangeType.ENTRY_UPDATE;
-        case NodeDeleted: return DataChangeListener.ChangeType.ENTRY_DELETED;
-        default: throw new IllegalArgumentException("EventType " + eventType + " is not supported.");
-      }
-    }
-
-    @Override
-    public void handleDataChange(String dataPath, Object data) throws Exception {
-      throw new UnsupportedOperationException("handleDataChange(String dataPath, Object data) is not supported.");
-    }
-
-    @Override
-    public void handleDataDeleted(String dataPath) throws Exception {
-      handleDataChange(dataPath, null, Watcher.Event.EventType.NodeDeleted);
-    }
-
-    @Override
-    public void handleDataChange(String dataPath, Object data, Watcher.Event.EventType eventType) throws Exception {
-      _listener.handleDataChange(dataPath, data, convertType(eventType));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      DataListenerConverter that = (DataListenerConverter) o;
-      return _listener.equals(that._listener);
-    }
-
-    @Override
-    public int hashCode() {
-      return _listener.hashCode();
-    }
   }
 
   private static MetaClientException translateZkExceptionToMetaclientException(ZkException e) {

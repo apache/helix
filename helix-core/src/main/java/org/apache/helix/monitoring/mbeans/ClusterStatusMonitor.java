@@ -585,13 +585,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   public void updateRebalancerStats(String resourceName, long numPendingRecoveryRebalancePartitions,
       long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
-      long numLoadRebalanceThrottledPartitions) {
+      long numLoadRebalanceThrottledPartitions, boolean rebalanceThrottledByErrorPartitions) {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
       resourceMonitor.updateRebalancerStats(numPendingRecoveryRebalancePartitions,
           numPendingLoadRebalancePartitions, numRecoveryRebalanceThrottledPartitions,
-          numLoadRebalanceThrottledPartitions);
+          numLoadRebalanceThrottledPartitions, rebalanceThrottledByErrorPartitions);
     }
   }
 
@@ -937,8 +937,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  // For test only
-  protected ResourceMonitor getResourceMonitor(String resourceName) {
+  public ResourceMonitor getResourceMonitor(String resourceName) {
     return _resourceMonitorMap.get(resourceName);
   }
 
@@ -1118,6 +1117,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     long total = 0;
     for (Map.Entry<String, ResourceMonitor> entry : _resourceMonitorMap.entrySet()) {
       total += entry.getValue().getNumPendingStateTransitionGauge();
+    }
+    return total;
+  }
+
+  @Override
+  public long getNumOfResourcesRebalanceThrottledGauge() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMonitorMap.entrySet()) {
+      total += entry.getValue().getRebalanceThrottledByErrorPartitionGauge();
     }
     return total;
   }

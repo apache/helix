@@ -31,6 +31,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -207,6 +208,9 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), getResourceMap(resources, nPartition, "OnlineOffline"));
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
         getResourceMap(resources, nPartition, "OnlineOffline"));
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(_clusterName);
+    monitor.active();
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
 
     // Initialize best possible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
@@ -263,6 +267,136 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     runStage(event, new IntermediateStateCalcStage());
 
     IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+
+
+    // Validate that there are 0 resourced load balance been throttled
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    Assert.assertEquals(clusterStatusMonitor.getNumOfResourcesRebalanceThrottledGauge(), 0);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_0")
+        .getRebalanceThrottledByErrorPartitionGauge(), 0);
+
+    for (String resource : resources) {
+      // Note Assert.assertEquals won't work. If "actual" is an empty map, it won't compare
+      // anything.
+      Assert.assertEquals(output.getPartitionStateMap(resource).getStateMap(),
+          expectedResult.getPartitionStateMap(resource).getStateMap());
+    }
+  }
+
+  @Test
+  public void testThrottleByErrorPartition() {
+    String resourcePrefix = "resource";
+    int nResource = 3;
+    int nPartition = 3;
+    int nReplica = 3;
+
+    String[] resources = new String[nResource];
+    for (int i = 0; i < nResource; i++) {
+      resources[i] = resourcePrefix + "_" + i;
+    }
+
+    preSetup(resources, nReplica, nReplica);
+    event.addAttribute(AttributeName.RESOURCES.name(),
+        getResourceMap(resources, nPartition, "OnlineOffline"));
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
+        getResourceMap(resources, nPartition, "OnlineOffline"));
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(_clusterName);
+    monitor.active();
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
+
+    // Initialize best possible state and current state
+    BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    MessageOutput messageSelectOutput = new MessageOutput();
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    IntermediateStateOutput expectedResult = new IntermediateStateOutput();
+
+    _clusterConfig.setErrorOrRecoveryPartitionThresholdForLoadBalance(0);
+    setClusterConfig(_clusterConfig);
+
+    for (String resource : resources) {
+      IdealState is = accessor.getProperty(accessor.keyBuilder().idealStates(resource));
+      setSingleIdealState(is);
+
+      Map<String, List<String>> partitionMap = new HashMap<>();
+      for (int p = 0; p < nPartition; p++) {
+        Partition partition = new Partition(resource + "_" + p);
+        for (int r = 0; r < nReplica; r++) {
+          String instanceName = HOSTNAME_PREFIX + r;
+          partitionMap.put(partition.getPartitionName(), Collections.singletonList(instanceName));
+          // A resource with 2 replicas in error state and one need recovery in offline->online. error state
+          // throttle won't block recovery rebalance
+          if (resource.endsWith("0")) {
+            if (p <= 1) {
+              currentStateOutput.setCurrentState(resource, partition, instanceName, "ERROR");
+              bestPossibleStateOutput.setState(resource, partition, instanceName, "ERROR");
+              expectedResult.setState(resource, partition, instanceName, "ERROR");
+            } else {
+              currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
+              bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+              expectedResult.setState(resource, partition, instanceName, "OFFLINE");
+              if (r == 0) {
+                messageSelectOutput.addMessage(resource, partition,
+                    generateMessage("OFFLINE", "ONLINE", instanceName));
+                expectedResult.setState(resource, partition, instanceName, "ONLINE");
+              }
+            }
+          } else if (resource.endsWith("1")) {
+            // A resource with 1 replicas in error state and one need load balance in offline->online. error state
+            // throttle will block load rebalance
+            if (p <= 0) {
+              currentStateOutput.setCurrentState(resource, partition, instanceName, "ERROR");
+              bestPossibleStateOutput.setState(resource, partition, instanceName, "ERROR");
+              expectedResult.setState(resource, partition, instanceName, "ERROR");
+            } else {
+              if (r == 0) {
+                currentStateOutput.setCurrentState(resource, partition, instanceName, "ONLINE");
+                bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+                expectedResult.setState(resource, partition, instanceName, "ONLINE");
+              } else {
+                // even though there is ST msg, it should be throttled
+                currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
+                bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+                messageSelectOutput.addMessage(resource, partition,
+                    generateMessage("OFFLINE", "ONLINE", instanceName));
+                expectedResult.setState(resource, partition, instanceName, "OFFLINE");
+              }
+            }
+          } else {
+            // A resource need regular load balance
+            currentStateOutput.setCurrentState(resource, partition, instanceName, "ONLINE");
+            currentStateOutput.setCurrentState(resource, partition, instanceName + "-1", "OFFLINE");
+            bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+            messageSelectOutput.addMessage(resource, partition,
+                generateMessage("OFFLINE", "DROPPED", instanceName + "-1"));
+            // should be recovered:
+            expectedResult.setState(resource, partition, instanceName, "ONLINE");
+          }
+        }
+      }
+      bestPossibleStateOutput.setPreferenceLists(resource, partitionMap);
+    }
+
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
+    runStage(event, new ReadClusterDataStage());
+    runStage(event, new IntermediateStateCalcStage());
+
+    IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+
+    // Validate that there are 2 resourced load balance been throttled
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    Assert.assertEquals(clusterStatusMonitor.getNumOfResourcesRebalanceThrottledGauge(), 2);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_0")
+        .getRebalanceThrottledByErrorPartitionGauge(), 1);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_1")
+        .getRebalanceThrottledByErrorPartitionGauge(), 1);
+    Assert.assertEquals(clusterStatusMonitor.getResourceMonitor("resource_2")
+        .getRebalanceThrottledByErrorPartitionGauge(), 0);
 
     for (String resource : resources) {
       // Note Assert.assertEquals won't work. If "actual" is an empty map, it won't compare

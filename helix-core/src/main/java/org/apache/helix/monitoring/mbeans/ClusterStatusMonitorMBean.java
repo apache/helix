@@ -141,4 +141,10 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
    * @return number of pending state transitions in this cluster
    */
   long getPendingStateTransitionGuage();
+
+  /**
+   * @return number of resources will only do downward state transition because the number of ERROR
+   * state partition is larger than configured threshold (default is 1).
+   */
+  long getNumOfResourcesRebalanceThrottledGauge();
 }

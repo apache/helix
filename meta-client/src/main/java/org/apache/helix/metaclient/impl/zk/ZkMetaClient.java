@@ -44,7 +44,6 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 
-import org.apache.zookeeper.server.EphemeralType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryMode;

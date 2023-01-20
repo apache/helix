@@ -27,18 +27,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 
 /**
  * A thread-safe container wrapper class for Listeners registered to ZkClient.
  * It stores 2 types of listener separately, one-time listener and persistent listener. The former ones are removed
- * right after its consumption, while the latter need to be explicitly removed. 
+ * right after its consumption, while the latter need to be explicitly removed.
  * @param <T> the type of listener
  */
 public class ListenerContainer<T> {
-  private final ReentrantLock _lock = new ReentrantLock(true);
   private final Map<String, Set<T>> _persistentListener = new ConcurrentHashMap<>();
   private final Map<String, Set<T>> _onetimeListener = new ConcurrentHashMap<>();
 
@@ -58,14 +56,9 @@ public class ListenerContainer<T> {
    * @param key the key to remove
    * @param listener the listener to remove
    */
-  public void removeListener(String key, T listener) {
-    _lock.lock();
-    try {
-      removeFromListenerMap(key, listener, _persistentListener);
-      removeFromListenerMap(key, listener, _onetimeListener);
-    } finally {
-      _lock.unlock();
-    }
+  public synchronized void removeListener(String key, T listener) {
+    removeFromListenerMap(key, listener, _persistentListener);
+    removeFromListenerMap(key, listener, _onetimeListener);
   }
 
   /**
@@ -74,16 +67,11 @@ public class ListenerContainer<T> {
    * @param listener the listener to remove
    * @param persistListener true if remove the persistent listener, otherwise remove the one-time listener
    */
-  public void removeListener(String key, T listener, boolean persistListener) {
-    _lock.lock();
-    try {
-      if (persistListener) {
-        removeFromListenerMap(key, listener, _persistentListener);
-      } else {
-        removeFromListenerMap(key, listener, _onetimeListener);
-      }
-    } finally {
-      _lock.unlock();
+  public synchronized void removeListener(String key, T listener, boolean persistListener) {
+    if (persistListener) {
+      removeFromListenerMap(key, listener, _persistentListener);
+    } else {
+      removeFromListenerMap(key, listener, _onetimeListener);
     }
   }
 
@@ -93,16 +81,11 @@ public class ListenerContainer<T> {
    * @param listeners the listeners to remove
    * @param persistListener true if remove the persistent listener, otherwise remove the one-time listener
    */
-  public void removeListeners(String key, Collection<T> listeners, boolean persistListener) {
-    _lock.lock();
-    try {
-      if (persistListener) {
-        removeFromListenerMap(key, listeners, _persistentListener);
-      } else {
-        removeFromListenerMap(key, listeners, _onetimeListener);
-      }
-    } finally {
-      _lock.unlock();
+  public synchronized void removeListeners(String key, Collection<T> listeners, boolean persistListener) {
+    if (persistListener) {
+      removeFromListenerMap(key, listeners, _persistentListener);
+    } else {
+      removeFromListenerMap(key, listeners, _onetimeListener);
     }
   }
 
@@ -116,12 +99,9 @@ public class ListenerContainer<T> {
   public void consumeListeners(String key, Consumer<? super T> consumer) {
     Set<T> onetimeListeners;
     Set<T> persistentListeners;
-    _lock.lock();
-    try {
+    synchronized (this) {
       // remove one-time listeners
       onetimeListeners = _onetimeListener.remove(key);
-    } finally {
-      _lock.unlock();
     }
     if (onetimeListeners == null) {
       onetimeListeners = Collections.emptySet();
@@ -139,14 +119,9 @@ public class ListenerContainer<T> {
     return !_persistentListener.containsKey(key) && !_onetimeListener.containsKey(key);
   }
 
-  private void addListener(String key, T listener, Map<String, Set<T>> listenerMap) {
-    _lock.lock();
-    try {
-      Set<T> entryListeners = listenerMap.computeIfAbsent(key, k -> new CopyOnWriteArraySet<>());
-      entryListeners.add(listener);
-    } finally {
-      _lock.unlock();
-    }
+  private synchronized void addListener(String key, T listener, Map<String, Set<T>> listenerMap) {
+    Set<T> entryListeners = listenerMap.computeIfAbsent(key, k -> new CopyOnWriteArraySet<>());
+    entryListeners.add(listener);
   }
 
   private static <T> void removeFromListenerMap(String key, T listener, Map<String, Set<T>> listenerMap) {

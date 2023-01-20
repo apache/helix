@@ -77,7 +77,7 @@ public class ZkMetaClientUtil {
       if (function != null) {
         zkOps.add(function.apply(op));
       } else {
-        throw new IllegalArgumentException("OpResult type " + op.getType().name() + "is not supported.");
+        throw new IllegalArgumentException("Op type " + op.getType().name() + "is not supported.");
       }
     }
     return zkOps;

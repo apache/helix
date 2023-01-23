@@ -20,6 +20,8 @@ package org.apache.helix.zookeeper.zkclient;
  */
 
 import java.util.List;
+import org.apache.zookeeper.Watcher;
+
 
 /**
  * An {@link IZkChildListener} can be registered at a {@link ZkClient} for listening on zk child changes for a given
@@ -42,4 +44,17 @@ public interface IZkChildListener {
      * @throws Exception
      */
     public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception;
+
+    /**
+     * Called when the children of the given path changed.
+     *
+     * @param parentPath The parent path
+     * @param currentChilds The children or null if the root node (parent path) was deleted.
+     * @param eventType The zookeeper event type
+     * @throws Exception
+     */
+    default void handleChildChange(String parentPath, List<String> currentChilds, Watcher.Event.EventType eventType)
+        throws Exception {
+        handleChildChange(parentPath, currentChilds);
+    }
 }

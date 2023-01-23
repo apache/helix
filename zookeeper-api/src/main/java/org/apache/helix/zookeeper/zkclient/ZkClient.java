@@ -1310,7 +1310,7 @@ public class ZkClient implements Watcher {
   private void fireAllEvents(WatchedEvent event) {
     //TODO: During handling new session, if the path is deleted, watcher leakage could still happen
     for (Entry<String, Set<IZkChildListener>> entry : _childListener.entrySet()) {
-      fireChildChangedEvents(entry.getKey(), entry.getValue(), true);
+      fireChildChangedEvents(entry.getKey(), entry.getValue(), true, event.getType());
     }
     for (Entry<String, Set<IZkDataListenerEntry>> entry : _dataListener.entrySet()) {
       fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty(), true, event.getType());
@@ -1752,7 +1752,7 @@ public class ZkClient implements Watcher {
       if (childListeners != null && !childListeners.isEmpty()) {
         // TODO recording child changed event propagation latency as well. Note this change will
         // introduce additional ZK access.
-        fireChildChangedEvents(path, childListeners, pathExists);
+        fireChildChangedEvents(path, childListeners, pathExists, event.getType());
       }
     }
 
@@ -1818,7 +1818,8 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners, boolean pathExists) {
+  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners, boolean pathExists,
+      EventType eventType) {
     try {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       for (final IZkChildListener listener : childListeners) {
@@ -1845,7 +1846,7 @@ public class ZkClient implements Watcher {
                 // Continue trigger the change handler
               }
             }
-            listener.handleChildChange(path, children);
+            listener.handleChildChange(path, children, eventType);
           }
         });
       }

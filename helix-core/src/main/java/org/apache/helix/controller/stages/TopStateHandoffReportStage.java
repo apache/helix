@@ -322,8 +322,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     String partitionName = partition.getPartitionName();
     MissingTopStateRecord record = missingTopStateMap.get(resourceName).get(partitionName);
     long startTime = record.getStartTimeStamp();
-    if (startTime > 0 && !record
-        .isFailed()) {
+    if (startTime > 0 && !record.isFailed()) {
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor.updateMissingTopStateResourceMap(resourceName, partitionName, true, startTime);
       }

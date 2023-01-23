@@ -56,10 +56,10 @@ import org.slf4j.LoggerFactory;
 
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private class AsyncMissingTopStateMonitor extends Thread {
-    private final Map<String, Map<String, Long>> _missingTopStateResourceMap;
+    private final ConcurrentHashMap<String, Map<String, Long>> _missingTopStateResourceMap;
     private long _missingTopStateDurationThreshold = Long.MAX_VALUE;;
 
-    public AsyncMissingTopStateMonitor(Map<String, Map<String, Long>> missingTopStateResourceMap) {
+    public AsyncMissingTopStateMonitor(ConcurrentHashMap<String, Map<String, Long>> missingTopStateResourceMap) {
       _missingTopStateResourceMap = missingTopStateResourceMap;
     }
 
@@ -91,6 +91,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
                     resourceMonitor.updateOneOrManyPartitionsMissingTopStateRealTimeGuage();
                   }
                 }
+
               }
             }
             // TODO: Check if this SLEEP_TIME is correct? Thread should keep on increasing the counter continuously until top
@@ -160,7 +161,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   /**
    * Missing top state resource map: resourceName-><PartitionName->startTimeOfMissingTopState>
    */
-  private final Map<String, Map<String, Long>> _missingTopStateResourceMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Map<String, Long>> _missingTopStateResourceMap = new ConcurrentHashMap<>();
   private final AsyncMissingTopStateMonitor _asyncMissingTopStateMonitor = new AsyncMissingTopStateMonitor(_missingTopStateResourceMap);
 
   public ClusterStatusMonitor(String clusterName) {
@@ -656,9 +657,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           _asyncMissingTopStateMonitor.notify();
         }
       }
-      if (!_missingTopStateResourceMap.containsKey(resourceName)) {
-        _missingTopStateResourceMap.put(resourceName, new HashMap<String, Long>());
-      }
+      _missingTopStateResourceMap.computeIfAbsent(resourceName, k -> new HashMap<String, Long>());
       _missingTopStateResourceMap.get(resourceName).put(partitionName, startTime);
     } else { // top state recovered
       // remove partitions from resourceMap whose top state has been recovered, this will put

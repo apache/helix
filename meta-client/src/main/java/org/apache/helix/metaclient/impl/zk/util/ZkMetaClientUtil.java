@@ -53,10 +53,7 @@ public class ZkMetaClientUtil {
    * @return
    */
   public static List<Op> metaClientOpsToZkOps(Iterable<org.apache.helix.metaclient.api.Op> ops) {
-    if (getOpMap().isEmpty()) {
-      initializeOpMap();
-    }
-
+    initializeOpMap();
     List<Op> zkOps = new ArrayList<>();
     for (org.apache.helix.metaclient.api.Op op : ops) {
       Function<org.apache.helix.metaclient.api.Op, Op> function = getOpMap().get(op.getType());
@@ -119,9 +116,7 @@ public class ZkMetaClientUtil {
    * @return
    */
   public static List<OpResult> zkOpResultToMetaClientOpResults(List<org.apache.zookeeper.OpResult> zkResult) {
-    if (getOpResultMap().isEmpty()) {
-      initializeOpResultMap();
-    }
+    initializeOpResultMap();
     List<OpResult> metaClientOpResult = new ArrayList<>();
     for (org.apache.zookeeper.OpResult opResult : zkResult) {
       Function<org.apache.zookeeper.OpResult, OpResult> function = getOpResultMap().get(opResult.getClass());

@@ -250,7 +250,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     if (!persistListener) {
       throw new NotImplementedException("Currently the non-persist (one-time) listener is not supported in ZkMetaClient.");
     }
-    _zkClient.subscribeDataChanges(key, new DataListenerConverter(listener));
+    _zkClient.subscribeDataChanges(key, new DataListenerAdapter(listener));
     return false;
   }
 
@@ -275,7 +275,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void unsubscribeDataChange(String key, DataChangeListener listener) {
-    _zkClient.unsubscribeDataChanges(key, new DataListenerConverter(listener));
+    _zkClient.unsubscribeDataChanges(key, new DataListenerAdapter(listener));
   }
 
   @Override

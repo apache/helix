@@ -63,7 +63,6 @@ public class TestZkMetaClient {
 
   private final Object _syncObject = new Object();
 
-  private final Object _syncObject = new Object();
 
   private ZkServer _zkServer;
 
@@ -301,93 +300,6 @@ public class TestZkMetaClient {
       Assert.assertTrue(dataExpected.get());
     }
   }
-
-  @Test
-  public void testDataChangeListenerTriggerWithZkWatcher() throws Exception {
-    final String path = "/TestZkMetaClient_testTriggerWithZkWatcher";
-    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
-      zkMetaClient.connect();
-      MockDataChangeListener listener = new MockDataChangeListener();
-      zkMetaClient.subscribeDataChange(path, listener, false, true);
-      zkMetaClient.create(path, "test-node");
-      int expectedCallCount = 0;
-      synchronized (_syncObject) {
-        while (listener.getTriggeredCount() == expectedCallCount) {
-          _syncObject.wait(DEFAULT_TIMEOUT_MS);
-        }
-        expectedCallCount++;
-        Assert.assertEquals(listener.getTriggeredCount(), expectedCallCount);
-        Assert.assertEquals(listener.getLastEventType(), DataChangeListener.ChangeType.ENTRY_CREATED);
-      }
-      zkMetaClient.set(path, "test-node-changed", -1);
-      synchronized (_syncObject) {
-        while (listener.getTriggeredCount() == expectedCallCount) {
-          _syncObject.wait(DEFAULT_TIMEOUT_MS);
-        }
-        expectedCallCount++;
-        Assert.assertEquals(listener.getTriggeredCount(), expectedCallCount);
-        Assert.assertEquals(listener.getLastEventType(), DataChangeListener.ChangeType.ENTRY_UPDATE);
-      }
-      zkMetaClient.delete(path);
-      synchronized (_syncObject) {
-        while (listener.getTriggeredCount() == expectedCallCount) {
-          _syncObject.wait(DEFAULT_TIMEOUT_MS);
-        }
-        expectedCallCount++;
-        Assert.assertEquals(listener.getTriggeredCount(), expectedCallCount);
-        Assert.assertEquals(listener.getLastEventType(), DataChangeListener.ChangeType.ENTRY_DELETED);
-      }
-      // unregister listener, expect no more call
-      zkMetaClient.unsubscribeDataChange(path, listener);
-      zkMetaClient.create(path, "test-node");
-      synchronized (_syncObject) {
-        _syncObject.wait(DEFAULT_TIMEOUT_MS);
-        Assert.assertEquals(listener.getTriggeredCount(), expectedCallCount);
-      }
-      // register a new non-persistent listener
-      try {
-        zkMetaClient.subscribeDataChange(path, new MockDataChangeListener(), false, false);
-        Assert.fail("One-time listener is not supported, NotImplementedException should be thrown.");
-      } catch (NotImplementedException e) {
-        // expected
-      }
-    }
-  }
-
-  @Test(dependsOnMethods = "testDataChangeListenerTriggerWithZkWatcher")
-  public void testMultipleDataChangeListeners() throws Exception {
-    final String basePath = "/TestZkMetaClient_testMultipleDataChangeListeners";
-    final int count = 5;
-    final String testData = "test-data";
-    final AtomicBoolean dataExpected = new AtomicBoolean(true);
-    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
-      zkMetaClient.connect();
-      Map<String, Set<DataChangeListener>> listeners = new HashMap<>();
-      CountDownLatch countDownLatch = new CountDownLatch(count);
-      zkMetaClient.create(basePath + "_1", testData);
-      // create paths
-      for (int i = 0; i < 2; i++) {
-        String path = basePath + "_" + i;
-        listeners.put(path, new HashSet<>());
-        // 5 listeners for each path
-        for (int j = 0; j < count; j++) {
-          DataChangeListener listener = new DataChangeListener() {
-            @Override
-            public void handleDataChange(String key, Object data, ChangeType changeType) {
-              countDownLatch.countDown();
-              dataExpected.set(dataExpected.get() && testData.equals(data));
-            }
-          };
-          listeners.get(path).add(listener);
-          zkMetaClient.subscribeDataChange(path, listener, false, true);
-        }
-      }
-      zkMetaClient.set(basePath + "_1", testData, -1);
-      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
-      Assert.assertTrue(dataExpected.get());
-    }
-  }
-
   private static ZkMetaClient<String> createZkMetaClient() {
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();

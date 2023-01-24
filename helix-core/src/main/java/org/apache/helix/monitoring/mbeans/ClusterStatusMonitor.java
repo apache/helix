@@ -83,25 +83,30 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
               ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourcePartitionEntry.getKey());
               // If all partitions of resource has top state recovered then reset the counter
               if (resourcePartitionEntry.getValue().isEmpty()) {
-                resourceMonitor.resetOneOrManyPartitionsMissingTopStateRealTimeGuage();
+                resourceMonitor.resetMissingTopStateDurationGuage();
                 resourcePartitionIt.remove();
               } else {
                 for (Long missingTopStateStartTime : resourcePartitionEntry.getValue().values()) {
                   if (_missingTopStateDurationThreshold < Long.MAX_VALUE && System.currentTimeMillis() - missingTopStateStartTime > _missingTopStateDurationThreshold) {
-                    resourceMonitor.updateOneOrManyPartitionsMissingTopStateRealTimeGuage();
+                    resourceMonitor.updateMissingTopStateDurationGuage(System.currentTimeMillis() - missingTopStateStartTime);
                   }
                 }
 
               }
             }
-            // TODO: Check if this SLEEP_TIME is correct? Thread should keep on increasing the counter continuously until top
-            //  state is recovered but it can sleep for reasonable amount of time in between.
-            sleep(100);
           }
         }
       } catch (InterruptedException e) {
         LOG.error("AsyncMissingTopStateMonitor has been interrupted.", e);
       }
+    }
+
+    public void reset() {
+      for (String resource : _missingTopStateResourceMap.keySet()) {
+        ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resource);
+        resourceMonitor.resetMissingTopStateDurationGuage();
+      }
+      _missingTopStateResourceMap.clear();
     }
   };
   private static final Logger LOG = LoggerFactory.getLogger(ClusterStatusMonitor.class);
@@ -167,12 +172,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
-    /**
-     * Start a async thread for each cluster which keeps monitoring missing top states of any resource for a cluster.
-     * This thread will keep on iterating over resources and report missingTopStateDuration for them until there are at
-     * least one resource with missing top state for a cluster.
-     */
-    _asyncMissingTopStateMonitor.start();
   }
 
   public ObjectName getObjectName(String name) throws MalformedObjectNameException {
@@ -710,6 +709,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     LOG.info("Active ClusterStatusMonitor");
     try {
       register(this, getObjectName(clusterBeanName()));
+      /**
+       * Start a async thread for each cluster which keeps monitoring missing top states of any resource for a cluster.
+       * This thread will keep on iterating over resources and report missingTopStateDuration for them until there are at
+       * least one resource with missing top state for a cluster.
+       */
+      _asyncMissingTopStateMonitor.start();
     } catch (Exception e) {
       LOG.error("Fail to register ClusterStatusMonitor", e);
     }
@@ -738,8 +743,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       _rebalanceFailureCount.set(0L);
       _continuousResourceRebalanceFailureCount.set(0L);
       _continuousTaskRebalanceFailureCount.set(0L);
+      // No need to wait until this async thread finishes because interrupting it means stop reporting metric.
       _asyncMissingTopStateMonitor.interrupt();
-      _missingTopStateResourceMap.clear();
+      _asyncMissingTopStateMonitor.reset();
     } catch (Exception e) {
       LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }

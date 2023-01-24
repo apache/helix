@@ -56,6 +56,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   private static final String NON_GRACEFUL_HANDOFF_DURATION = "PartitionTopStateNonGracefulHandoffGauge.Max";
   private static final String GRACEFUL_HANDOFF_DURATION = "PartitionTopStateHandoffDurationGauge.Max";
   private static final String HANDOFF_HELIX_LATENCY = "PartitionTopStateHandoffHelixLatencyGauge.Max";
+  private static final String MISSING_TOP_STATE_DURATION = "MissingTopStateDurationGauge.Max";
   private static final Range<Long> DURATION_ZERO = Range.closed(0L, 0L);
   private TestConfig config;
 
@@ -454,7 +455,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       MissingStatesDataCacheInject inject,
       int successCnt,
       int failCnt,
-      int oneOrManyPartitionsMissingTopStateCnt,
+      long missingTopStateDuration,
       Range<Long> expectedDuration,
       Range<Long> expectedNonGracefulDuration,
       Range<Long> expectedMaxDuration,
@@ -470,7 +471,9 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), successCnt);
     Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), failCnt);
 
-    Assert.assertTrue(monitor.getOneOrManyPartitionsMissingTopStateRealTimeGuage() >= oneOrManyPartitionsMissingTopStateCnt);
+    long duration = monitor.getMissingTopStateDurationGauge()
+        .getAttributeValue(MISSING_TOP_STATE_DURATION).longValue();
+    Assert.assertTrue(duration >= missingTopStateDuration);
 
     long graceful = monitor.getPartitionTopStateHandoffDurationGauge()
         .getAttributeValue(GRACEFUL_HANDOFF_DURATION).longValue();

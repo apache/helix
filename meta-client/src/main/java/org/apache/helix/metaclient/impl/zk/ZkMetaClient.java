@@ -33,26 +33,21 @@ import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.metaclient.constants.MetaClientBadVersionException;
 import org.apache.helix.metaclient.constants.MetaClientException;
-import org.apache.helix.metaclient.constants.MetaClientInterruptException;
-import org.apache.helix.metaclient.constants.MetaClientNoNodeException;
-import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
-import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.server.EphemeralType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryMode;
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   private static final Logger LOG  = LoggerFactory.getLogger(ZkMetaClient.class);
@@ -138,11 +133,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public T get(String key) {
     return _zkClient.readData(key, true);
-  }
-
-  @Override
-  public List<OpResult> transactionOP(Iterable<Op> ops) {
-    return null;
   }
 
   @Override
@@ -338,34 +328,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     disconnect();
   }
 
-  private static MetaClientException translateZkExceptionToMetaclientException(ZkException e) {
-    if (e instanceof ZkNodeExistsException) {
-      return new MetaClientNoNodeException(e);
-    } else if (e instanceof ZkBadVersionException) {
-      return new MetaClientBadVersionException(e);
-    } else if (e instanceof ZkTimeoutException) {
-      return new MetaClientTimeoutException(e);
-    } else if (e instanceof ZkInterruptedException) {
-      return new MetaClientInterruptException(e);
-    } else {
-      return new MetaClientException(e);
-    }
-  }
-
-  private static EntryMode convertZkEntryMode(long ephemeralOwner) {
-    EphemeralType zkEphemeralType = EphemeralType.get(ephemeralOwner);
-    switch (zkEphemeralType) {
-      case VOID:
-        return EntryMode.PERSISTENT;
-      case CONTAINER:
-        return EntryMode.CONTAINER;
-      case NORMAL:
-        return EntryMode.EPHEMERAL;
-      // TODO: TTL is not supported now.
-      //case TTL:
-      //  return EntryMode.TTL;
-      default:
-        throw new IllegalArgumentException(zkEphemeralType + " is not supported.");
-    }
+  @Override
+  public List<OpResult> transactionOP(Iterable<Op> ops) {
+    // Convert list of MetaClient Ops to Zk Ops
+    List<org.apache.zookeeper.Op> zkOps = ZkMetaClientUtil.metaClientOpsToZkOps(ops);
+    // Execute Zk transactional support
+    List<org.apache.zookeeper.OpResult> zkResult = _zkClient.multi(zkOps);
+    // Convert list of Zk OpResults to MetaClient OpResults
+    return ZkMetaClientUtil.zkOpResultToMetaClientOpResults(zkResult);
   }
 }

@@ -744,8 +744,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       _continuousResourceRebalanceFailureCount.set(0L);
       _continuousTaskRebalanceFailureCount.set(0L);
       // No need to wait until this async thread finishes because interrupting it means stop reporting metric.
-      _asyncMissingTopStateMonitor.interrupt();
       _asyncMissingTopStateMonitor.reset();
+      _asyncMissingTopStateMonitor.interrupt();
     } catch (Exception e) {
       LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }

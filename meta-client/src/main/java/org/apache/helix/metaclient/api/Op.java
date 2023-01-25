@@ -24,7 +24,7 @@ package org.apache.helix.metaclient.api;
  *  version check or delete operation.
  */
 public abstract class Op {
-  enum Type {
+  public enum Type {
     CREATE,
     DELETE,
     SET,

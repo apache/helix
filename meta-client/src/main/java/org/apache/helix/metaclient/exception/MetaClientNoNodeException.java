@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.constants;
+package org.apache.helix.metaclient.exception;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -18,6 +18,8 @@ package org.apache.helix.metaclient.constants;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import org.apache.helix.metaclient.exception.MetaClientException;
 
 public final class MetaClientNoNodeException extends MetaClientException {
   public MetaClientNoNodeException() {

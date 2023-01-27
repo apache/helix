@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.constants;
+package org.apache.helix.metaclient.exception;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,20 +19,23 @@ package org.apache.helix.metaclient.constants;
  * under the License.
  */
 
-public final class MetaClientInterruptException extends MetaClientException {
-  public MetaClientInterruptException() {
+import org.apache.helix.metaclient.exception.MetaClientException;
+
+public final class MetaClientTimeoutException extends MetaClientException {
+  public MetaClientTimeoutException() {
     super();
   }
 
-  public MetaClientInterruptException(String message, Throwable cause) {
+  public MetaClientTimeoutException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public MetaClientInterruptException(String message) {
+  public MetaClientTimeoutException(String message) {
     super(message);
   }
 
-  public MetaClientInterruptException(Throwable cause) {
+  public MetaClientTimeoutException(Throwable cause) {
     super(cause);
   }
+
 }

@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.constants;
+package org.apache.helix.metaclient.exception;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

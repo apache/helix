@@ -19,8 +19,6 @@ package org.apache.helix.metaclient.exception;
  * under the License.
  */
 
-import org.apache.helix.metaclient.exception.MetaClientException;
-
 public final class MetaClientNoNodeException extends MetaClientException {
   public MetaClientNoNodeException() {
     super();

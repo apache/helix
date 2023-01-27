@@ -21,7 +21,7 @@ package org.apache.helix.metaclient.impl.zk.util;
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.metaclient.constants.*;
+import org.apache.helix.metaclient.exception.*;
 import org.apache.helix.zookeeper.zkclient.exception.*;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;

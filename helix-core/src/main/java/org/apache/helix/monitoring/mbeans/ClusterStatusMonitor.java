@@ -94,6 +94,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
               }
             }
+            sleep(50); // Instead of providing stream of durtion values to histogram thread can sleep in between to save some CPU cycles.
           }
         }
       } catch (InterruptedException e) {

@@ -22,8 +22,8 @@ package org.apache.helix.metaclient.api;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.metaclient.constants.MetaClientInterruptException;
-import org.apache.helix.metaclient.constants.MetaClientTimeoutException;
+import org.apache.helix.metaclient.exception.MetaClientInterruptException;
+import org.apache.helix.metaclient.exception.MetaClientTimeoutException;
 
 
 public interface MetaClientInterface<T> {

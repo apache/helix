@@ -29,7 +29,7 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.MetaClientInterface;
-import org.apache.helix.metaclient.constants.MetaClientException;
+import org.apache.helix.metaclient.exception.MetaClientException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -141,7 +141,7 @@ public class TestZkMetaClient {
         Assert.fail("No reach.");
       } catch (MetaClientException ex) {
         Assert.assertEquals(ex.getClass().getName(),
-            "org.apache.helix.metaclient.constants.MetaClientBadVersionException");
+            "org.apache.helix.metaclient.exception.MetaClientBadVersionException");
       }
       zkMetaClient.delete(key);
     }

@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.constants;
+package org.apache.helix.metaclient.exception;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,20 +19,21 @@ package org.apache.helix.metaclient.constants;
  * under the License.
  */
 
-public class MetaClientException extends RuntimeException {
-  public MetaClientException() {
+public final class MetaClientTimeoutException extends MetaClientException {
+  public MetaClientTimeoutException() {
     super();
   }
 
-  public MetaClientException(String message, Throwable cause) {
+  public MetaClientTimeoutException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public MetaClientException(String message) {
+  public MetaClientTimeoutException(String message) {
     super(message);
   }
 
-  public MetaClientException(Throwable cause) {
+  public MetaClientTimeoutException(Throwable cause) {
     super(cause);
   }
+
 }

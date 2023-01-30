@@ -22,25 +22,25 @@ package org.apache.helix.metaclient.impl.zk;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.helix.metaclient.api.DataUpdater;
-import org.apache.helix.metaclient.api.MetaClientInterface;
-import org.apache.helix.metaclient.exception.MetaClientException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.metaclient.api.DataChangeListener;
-import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.metaclient.api.DataUpdater;
+import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.exception.MetaClientException;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.apache.zookeeper.KeeperException;
@@ -57,9 +57,9 @@ public class TestZkMetaClient {
   private static final String ZK_ADDR = "localhost:2183";
   private static final int DEFAULT_TIMEOUT_MS = 1000;
   private static final String ENTRY_STRING_VALUE = "test-value";
-  protected static final String ZK_SHARDING_KEY_PREFIX = "/sharding-key-0";
-  protected static String PARENT_PATH = ZK_SHARDING_KEY_PREFIX + "/RealmAwareZkClient";
-  protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
+  protected static final String TRANSACTION_TEST_KEY_PREFIX = "/sharding-key-0";
+  protected static String PARENT_PATH = TRANSACTION_TEST_KEY_PREFIX + "/RealmAwareZkClient";
+  protected static final String TEST_INVALID_PATH = TRANSACTION_TEST_KEY_PREFIX + "_invalid" + "/a/b/c";
 
   private final Object _syncObject = new Object();
 
@@ -300,6 +300,9 @@ public class TestZkMetaClient {
       Assert.assertTrue(dataExpected.get());
     }
   }
+
+  // TODO: Create a ZkMetadata test base class and move these helper to base class when more tests
+  // are added.
   private static ZkMetaClient<String> createZkMetaClient() {
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
@@ -328,18 +331,18 @@ public class TestZkMetaClient {
     zkServer.start();
     return zkServer;
   }
-  
+
   /**
-   * Test that zk multi works for zkmetaclient operations create,
+   * Test that zk transactional operation works for zkmetaclient operations create,
    * delete, and set.
    */
   @Test
-  public void testMultiOps() {
-    String test_name = "/test_multi_ops";
+  public void testTransactionOps() {
+    String test_name = "/test_transaction_ops";
 
     try(ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.create(ZK_SHARDING_KEY_PREFIX, ENTRY_STRING_VALUE);
+      zkMetaClient.create(TRANSACTION_TEST_KEY_PREFIX, ENTRY_STRING_VALUE);
 
       //Create Nodes
       List<Op> ops = Arrays.asList(
@@ -371,12 +374,12 @@ public class TestZkMetaClient {
   }
 
   /**
-   * Tests that attempts to call multi on an invalid path. Should fail.
+   * Tests that attempts to call transactional operation on an invalid path. Should fail.
    * @throws KeeperException
    */
-  @Test(dependsOnMethods = "testMultiOps")
-  public void testMultiFail() {
-    String test_name = "/test_multi_fail";
+  @Test(dependsOnMethods = "testTransactionOps")
+  public void testTransactionFail() {
+    String test_name = "/test_transaction_fail";
     try(ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
       //Create Nodes
@@ -387,7 +390,8 @@ public class TestZkMetaClient {
 
       try {
         zkMetaClient.transactionOP(ops);
-        Assert.fail("Should have thrown an exception. Cannot run multi on incorrect path.");
+        Assert.fail(
+            "Should have thrown an exception. Cannot run transactional create OP on incorrect path.");
       } catch (Exception e) {
         MetaClientInterface.Stat entryStat = zkMetaClient.exists(PARENT_PATH);
         Assert.assertNull(entryStat);

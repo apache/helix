@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private class AsyncMissingTopStateMonitor extends Thread {
     private final ConcurrentHashMap<String, Map<String, Long>> _missingTopStateResourceMap;
-    private long _missingTopStateDurationThreshold = Long.MAX_VALUE;;
+    private long _missingTopStateDurationThreshold = Long.MAX_VALUE;
 
     public AsyncMissingTopStateMonitor(ConcurrentHashMap<String, Map<String, Long>> missingTopStateResourceMap) {
       _missingTopStateResourceMap = missingTopStateResourceMap;
@@ -68,6 +68,18 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
 
     @Override
+    /**
+     * This async metric reporting thread does following things :
+     *    1. Async thread is started when ClusterStatusMonitor is activated and stopped when ClusterStatusMonitor is reset.
+     *    2. Sleeps until any resource has at least one partition with missing top state.
+     *    3. Once waken up by ClusterStatusMonitor, scans over all the resources which are added
+     *       in _missingTopStateResourceMap and for partition of each resource, reports a duration
+     *       (CurrentTime - TopStateMissingStartTime).
+     *       NOTE : Now since, reporting this metric for every partition in each iteration won't make sense
+     *       because monitoring system might not be reading this metrics every ms. Hence we report metric for partition
+     *       only if it has not been reported in sliding window interval (1 min is current sliding window interval) for that
+     *       partition.
+     */
     public void run() {
       try {
         synchronized (this) {
@@ -75,26 +87,34 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
             while (_missingTopStateResourceMap.size() == 0) {
               this.wait();
             }
+            Map<String, Long> partitionToLastReportTimeMap = new HashMap<String, Long>();
             for (Iterator<Map.Entry<String, Map<String, Long>>> resourcePartitionIt =
                 _missingTopStateResourceMap.entrySet().iterator(); resourcePartitionIt.hasNext(); ) {
               Map.Entry<String, Map<String, Long>> resourcePartitionEntry = resourcePartitionIt.next();
-              // Iterate over all partitions and if any partition has missing top state greater than threshold then report
-              // it.
               ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourcePartitionEntry.getKey());
+              long resetInterval = resourceMonitor.getSlidingWindowResetIntervalInMs();
               // If all partitions of resource has top state recovered then reset the counter
               if (resourcePartitionEntry.getValue().isEmpty()) {
                 resourceMonitor.resetMissingTopStateDurationGuage();
                 resourcePartitionIt.remove();
               } else {
+                // Iterate over all partitions and if any partition has missing top state greater than threshold then report
+                // it.
                 for (Long missingTopStateStartTime : resourcePartitionEntry.getValue().values()) {
-                  if (_missingTopStateDurationThreshold < Long.MAX_VALUE && System.currentTimeMillis() - missingTopStateStartTime > _missingTopStateDurationThreshold) {
+                  // If metric for this partition has already reported within last sliding window interval then it can be skipped.
+                  if (System.currentTimeMillis() -
+                      partitionToLastReportTimeMap.getOrDefault(resourcePartitionEntry.getKey(), 0L) < resetInterval) {
+                    continue;
+                  }
+                  if (_missingTopStateDurationThreshold < Long.MAX_VALUE &&
+                      System.currentTimeMillis() - missingTopStateStartTime > _missingTopStateDurationThreshold) {
                     resourceMonitor.updateMissingTopStateDurationGuage(System.currentTimeMillis() - missingTopStateStartTime);
+                    // Reset last reported time for the partition
+                    partitionToLastReportTimeMap.put(resourcePartitionEntry.getKey(), System.currentTimeMillis());
                   }
                 }
-
               }
             }
-            sleep(50); // Instead of providing stream of durtion values to histogram thread can sleep in between to save some CPU cycles.
           }
         }
       } catch (InterruptedException e) {
@@ -168,7 +188,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * Missing top state resource map: resourceName-><PartitionName->startTimeOfMissingTopState>
    */
   private final ConcurrentHashMap<String, Map<String, Long>> _missingTopStateResourceMap = new ConcurrentHashMap<>();
-  private final AsyncMissingTopStateMonitor _asyncMissingTopStateMonitor = new AsyncMissingTopStateMonitor(_missingTopStateResourceMap);
+  private final AsyncMissingTopStateMonitor _asyncMissingTopStateMonitor =
+      new AsyncMissingTopStateMonitor(_missingTopStateResourceMap);
 
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;

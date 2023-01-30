@@ -213,6 +213,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     return _totalMessageReceived.getValue();
   }
 
+  public long getSlidingWindowResetIntervalInMs() {
+    return getResetIntervalInMs();
+  }
+
   public HistogramDynamicMetric getMissingTopStateDurationGauge() {
     return _missingTopStateDurationGuage;
   }

@@ -19,10 +19,26 @@ package org.apache.helix.metaclient.impl.zk.util;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.metaclient.exception.*;
-import org.apache.helix.zookeeper.zkclient.exception.*;
+import org.apache.helix.metaclient.exception.MetaClientBadVersionException;
+import org.apache.helix.metaclient.exception.MetaClientException;
+import org.apache.helix.metaclient.exception.MetaClientInterruptException;
+import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.exception.MetaClientTimeoutException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
@@ -30,18 +46,11 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.server.EphemeralType;
 
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.function.Function;
-
 public class ZkMetaClientUtil {
   //TODO Implement MetaClient ACL
   //Default ACL value until metaClient Op has ACL of its own.
-  private static final List<ACL> DEFAULT_ACL = Collections.unmodifiableList(ZooDefs.Ids.OPEN_ACL_UNSAFE);
+  private static final List<ACL> DEFAULT_ACL =
+      Collections.unmodifiableList(ZooDefs.Ids.OPEN_ACL_UNSAFE);
 
   private ZkMetaClientUtil(){
   }
@@ -74,22 +83,24 @@ public class ZkMetaClientUtil {
 
       opmap.put(org.apache.helix.metaclient.api.Op.Type.CREATE, op -> {
         try {
-          CreateMode mode = convertMetaClientMode(((org.apache.helix.metaclient.api.Op.Create) op).getEntryMode());
-          return Op.create(op.getPath(), ((org.apache.helix.metaclient.api.Op.Create) op).getData(), DEFAULT_ACL, mode);
+          CreateMode mode = convertMetaClientMode(
+              ((org.apache.helix.metaclient.api.Op.Create) op).getEntryMode());
+          return Op.create(op.getPath(), ((org.apache.helix.metaclient.api.Op.Create) op).getData(),
+              DEFAULT_ACL, mode);
         } catch (KeeperException e) {
           throw translateZkExceptionToMetaclientException(ZkException.create(e));
         }
       });
 
-      opmap.put(org.apache.helix.metaclient.api.Op.Type.DELETE,
-          op -> Op.delete(op.getPath(), ((org.apache.helix.metaclient.api.Op.Delete) op).getVersion()));
+      opmap.put(org.apache.helix.metaclient.api.Op.Type.DELETE, op -> Op
+          .delete(op.getPath(), ((org.apache.helix.metaclient.api.Op.Delete) op).getVersion()));
 
-      opmap.put(org.apache.helix.metaclient.api.Op.Type.SET,
-          op -> Op.setData(op.getPath(),
-              ((org.apache.helix.metaclient.api.Op.Set) op).getData(), ((org.apache.helix.metaclient.api.Op.Set) op).getVersion()));
+      opmap.put(org.apache.helix.metaclient.api.Op.Type.SET, op -> Op
+          .setData(op.getPath(), ((org.apache.helix.metaclient.api.Op.Set) op).getData(),
+              ((org.apache.helix.metaclient.api.Op.Set) op).getVersion()));
 
-      opmap.put(org.apache.helix.metaclient.api.Op.Type.CHECK,
-          op -> Op.check(op.getPath(), ((org.apache.helix.metaclient.api.Op.Check) op).getVersion()));
+      opmap.put(org.apache.helix.metaclient.api.Op.Type.CHECK, op -> Op
+          .check(op.getPath(), ((org.apache.helix.metaclient.api.Op.Check) op).getVersion()));
 
       return opmap;
     }
@@ -121,11 +132,13 @@ public class ZkMetaClientUtil {
   public static List<OpResult> zkOpResultToMetaClientOpResults(List<org.apache.zookeeper.OpResult> zkResult) {
     List<OpResult> metaClientOpResult = new ArrayList<>();
     for (org.apache.zookeeper.OpResult opResult : zkResult) {
-      Function<org.apache.zookeeper.OpResult, OpResult> function = getOpResultMap().get(opResult.getClass());
+      Function<org.apache.zookeeper.OpResult, OpResult> function =
+          getOpResultMap().get(opResult.getClass());
       if (function != null) {
         metaClientOpResult.add(function.apply(opResult));
       } else {
-        throw new IllegalArgumentException("OpResult type " + opResult.getType() + "is not supported.");
+        throw new IllegalArgumentException(
+            "OpResult type " + opResult.getType() + "is not supported.");
       }
     }
 
@@ -133,44 +146,59 @@ public class ZkMetaClientUtil {
   }
 
   private static final class OpResultMapHolder {
-    static final Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>> OPRESULTMAP = initializeOpResultMap();
+    static final Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>>
+        OPRESULTMAP = initializeOpResultMap();
 
     private static Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>> initializeOpResultMap() {
-      Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>> opResultMap =
-          new HashMap<>();
+      Map<Class<? extends org.apache.zookeeper.OpResult>, Function<org.apache.zookeeper.OpResult, OpResult>>
+          opResultMap = new HashMap<>();
       opResultMap.put(org.apache.zookeeper.OpResult.CreateResult.class, opResult -> {
-        org.apache.zookeeper.OpResult.CreateResult zkOpCreateResult = (org.apache.zookeeper.OpResult.CreateResult) opResult;
+        org.apache.zookeeper.OpResult.CreateResult zkOpCreateResult =
+            (org.apache.zookeeper.OpResult.CreateResult) opResult;
         if (opResult.getType() == 1) {
           return new OpResult.CreateResult(zkOpCreateResult.getPath());
         } else {
-          MetaClientInterface.Stat metaClientStat = new MetaClientInterface.Stat(convertZkEntryMode(zkOpCreateResult.getStat().getEphemeralOwner()),
+          MetaClientInterface.Stat metaClientStat = new MetaClientInterface.Stat(
+              convertZkEntryModeToMetaClientEntryMode(
+                  zkOpCreateResult.getStat().getEphemeralOwner()),
               zkOpCreateResult.getStat().getVersion());
           return new OpResult.CreateResult(zkOpCreateResult.getPath(), metaClientStat);
-        }});
+        }
+      });
 
-      opResultMap.put(org.apache.zookeeper.OpResult.DeleteResult.class, opResult -> new OpResult.DeleteResult());
+      opResultMap.put(org.apache.zookeeper.OpResult.DeleteResult.class,
+          opResult -> new OpResult.DeleteResult());
 
       opResultMap.put(org.apache.zookeeper.OpResult.GetDataResult.class, opResult -> {
-        org.apache.zookeeper.OpResult.GetDataResult zkOpGetDataResult = (org.apache.zookeeper.OpResult.GetDataResult) opResult;
-        MetaClientInterface.Stat metaClientStat = new MetaClientInterface.Stat(convertZkEntryMode(zkOpGetDataResult.getStat().getEphemeralOwner()),
+        org.apache.zookeeper.OpResult.GetDataResult zkOpGetDataResult =
+            (org.apache.zookeeper.OpResult.GetDataResult) opResult;
+        MetaClientInterface.Stat metaClientStat = new MetaClientInterface.Stat(
+            convertZkEntryModeToMetaClientEntryMode(
+                zkOpGetDataResult.getStat().getEphemeralOwner()),
             zkOpGetDataResult.getStat().getVersion());
         return new OpResult.GetDataResult(zkOpGetDataResult.getData(), metaClientStat);
       });
 
       opResultMap.put(org.apache.zookeeper.OpResult.SetDataResult.class, opResult -> {
-        org.apache.zookeeper.OpResult.SetDataResult zkOpSetDataResult = (org.apache.zookeeper.OpResult.SetDataResult) opResult;
-        MetaClientInterface.Stat metaClientStat = new MetaClientInterface.Stat(convertZkEntryMode(zkOpSetDataResult.getStat().getEphemeralOwner()),
+        org.apache.zookeeper.OpResult.SetDataResult zkOpSetDataResult =
+            (org.apache.zookeeper.OpResult.SetDataResult) opResult;
+        MetaClientInterface.Stat metaClientStat = new MetaClientInterface.Stat(
+            convertZkEntryModeToMetaClientEntryMode(
+                zkOpSetDataResult.getStat().getEphemeralOwner()),
             zkOpSetDataResult.getStat().getVersion());
         return new OpResult.SetDataResult(metaClientStat);
       });
 
-      opResultMap.put(org.apache.zookeeper.OpResult.GetChildrenResult.class, opResult -> new OpResult.GetChildrenResult(
-          ((org.apache.zookeeper.OpResult.GetChildrenResult) opResult).getChildren()));
+      opResultMap.put(org.apache.zookeeper.OpResult.GetChildrenResult.class,
+          opResult -> new OpResult.GetChildrenResult(
+              ((org.apache.zookeeper.OpResult.GetChildrenResult) opResult).getChildren()));
 
-      opResultMap.put(org.apache.zookeeper.OpResult.CheckResult.class, opResult -> new OpResult.CheckResult());
+      opResultMap.put(org.apache.zookeeper.OpResult.CheckResult.class,
+          opResult -> new OpResult.CheckResult());
 
-      opResultMap.put(org.apache.zookeeper.OpResult.ErrorResult.class, opResult -> new OpResult.ErrorResult(
-          ((org.apache.zookeeper.OpResult.ErrorResult) opResult).getErr()));
+      opResultMap.put(org.apache.zookeeper.OpResult.ErrorResult.class,
+          opResult -> new OpResult.ErrorResult(
+              ((org.apache.zookeeper.OpResult.ErrorResult) opResult).getErr()));
 
       return opResultMap;
     }
@@ -180,7 +208,8 @@ public class ZkMetaClientUtil {
     return OpResultMapHolder.OPRESULTMAP;
   }
 
-  public static MetaClientInterface.EntryMode convertZkEntryMode(long ephemeralOwner) {
+  public static MetaClientInterface.EntryMode convertZkEntryModeToMetaClientEntryMode(
+      long ephemeralOwner) {
     EphemeralType zkEphemeralType = EphemeralType.get(ephemeralOwner);
     switch (zkEphemeralType) {
       case VOID:
@@ -206,8 +235,7 @@ public class ZkMetaClientUtil {
       return new MetaClientTimeoutException(e);
     } else if (e instanceof ZkInterruptedException) {
       return new MetaClientInterruptException(e);
-    } else {
-      return new MetaClientException(e);
     }
+    return new MetaClientException(e);
   }
 }

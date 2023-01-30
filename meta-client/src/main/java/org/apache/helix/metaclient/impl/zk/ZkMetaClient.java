@@ -44,7 +44,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryMode;
+
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryModeToMetaClientEntryMode;
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
@@ -122,7 +123,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       if (zkStats == null) {
         return null;
       }
-      return new Stat(convertZkEntryMode(zkStats.getEphemeralOwner()), zkStats.getVersion());
+      return new Stat(convertZkEntryModeToMetaClientEntryMode(zkStats.getEphemeralOwner()),
+          zkStats.getVersion());
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
     }
@@ -177,7 +179,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void asyncSet(String key, Object data, int version, AsyncCallback.VoidCallback cb) {
+  public void asyncSet(String key, T data, int version, AsyncCallback.VoidCallback cb) {
 
   }
 

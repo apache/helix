@@ -35,4 +35,5 @@ public class MetaClientException extends RuntimeException {
   public MetaClientException(Throwable cause) {
     super(cause);
   }
+
 }

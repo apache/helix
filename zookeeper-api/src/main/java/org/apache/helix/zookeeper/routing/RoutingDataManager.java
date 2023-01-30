@@ -28,7 +28,9 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.constant.RoutingDataConstants;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
+import org.apache.helix.zookeeper.constant.RoutingSystemPropertyKeys;
 import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
 import org.slf4j.Logger;
@@ -67,6 +69,7 @@ public class RoutingDataManager {
    */
   private RoutingDataManager() {
     // Private constructor for Singleton
+    getRoutingDataUpdateInterval();
   }
 
   /**
@@ -175,12 +178,38 @@ public class RoutingDataManager {
     _lastResetTimestamp = System.currentTimeMillis();
   }
 
+  public synchronized void reset(boolean enforceThrottle) {
+    if (enforceThrottle && System.currentTimeMillis() - RoutingDataManager.getInstance().getLastResetTimestamp()
+        < getRoutingDataUpdateInterval()) {
+      return;
+    }
+
+    reset();
+  }
+
   /**
    * Returns the timestamp for the last reset().
    * @return
    */
   public long getLastResetTimestamp() {
     return _lastResetTimestamp;
+  }
+
+  /**
+   * Resolves the routing data update interval value from System Properties.
+   */
+  private static long getRoutingDataUpdateInterval() {
+    long routingDataUpdateInterval;
+    try {
+      routingDataUpdateInterval =
+          Long.parseLong(System.getProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS));
+      if (routingDataUpdateInterval < 0) {
+        routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+      }
+    } catch (NumberFormatException e) {
+      routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+    }
+    return routingDataUpdateInterval;
   }
 
   /**

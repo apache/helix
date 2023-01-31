@@ -38,7 +38,7 @@ public class MetaClientException extends RuntimeException {
 
   public enum ReturnCode {
     /** Connection to the server has been lost. */
-    CONNECTION_LOSS(-104, "Connection to the server has been lost.") {
+    CONNECTION_LOSS(-105, "Connection to the server has been lost.") {
     },
 
     /** Operation is unimplemented. */

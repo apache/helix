@@ -311,11 +311,13 @@ public class ZkMetaClientUtil {
        * APIERROR is ZooKeeper Code value separator. It is never thrown by ZK server,
        * ZK error codes greater than its value are user or client errors and values less than
        * this indicate a ZK server.
+       * Note: there are some mismatch between ZK doc and Zk code intValue define. We are comparing
+       * ordinal instead of using intValue().
        *   https://zookeeper.apache.org/doc/r3.6.2/apidocs/zookeeper-server/index.html?org/apache/zookeeper/KeeperException.Code.html
        */
       default:
-        if (zkCode.intValue() < KeeperException.Code.APIERROR.intValue()
-            && zkCode.intValue() >= KeeperException.Code.SYSTEMERROR.intValue()) {
+        if (zkCode.ordinal() < KeeperException.Code.APIERROR.ordinal()
+            && zkCode.ordinal() >= KeeperException.Code.SYSTEMERROR.ordinal()) {
           return MetaClientException.ReturnCode.DB_SYSTEM_ERROR;
         }
         return MetaClientException.ReturnCode.DB_USER_ERROR;

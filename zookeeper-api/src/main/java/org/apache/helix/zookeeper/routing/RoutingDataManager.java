@@ -61,6 +61,9 @@ public class RoutingDataManager {
   // Tracks the time at which reset() was called last. Used to throttle reset()
   private volatile long _lastResetTimestamp;
 
+  // Interval value used to throttle reset()
+  private long _routingDataUpdateInterval;
+
   // Singleton instance
   private static RoutingDataManager _instance;
 
@@ -69,7 +72,7 @@ public class RoutingDataManager {
    */
   private RoutingDataManager() {
     // Private constructor for Singleton
-    getRoutingDataUpdateInterval();
+    parseRoutingDataUpdateInterval();
   }
 
   /**
@@ -169,22 +172,23 @@ public class RoutingDataManager {
 
   /**
    * Clears the statically-cached routing data and private fields.
+   * @param isForcedReset - if true, ignore throttle settings
    */
-  public synchronized void reset() {
+  public synchronized void reset(boolean isForcedReset) {
+    if (!isForcedReset && System.currentTimeMillis() - RoutingDataManager.getInstance().getLastResetTimestamp()
+        < _routingDataUpdateInterval) {
+      return;
+    }
+
+    reset();
+  }
+  
+  private synchronized void reset() {
     _rawRoutingDataMap.clear();
     _metadataStoreRoutingDataMap.clear();
     _defaultMsdsEndpoint =
         System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
     _lastResetTimestamp = System.currentTimeMillis();
-  }
-
-  public synchronized void reset(boolean enforceThrottle) {
-    if (enforceThrottle && System.currentTimeMillis() - RoutingDataManager.getInstance().getLastResetTimestamp()
-        < getRoutingDataUpdateInterval()) {
-      return;
-    }
-
-    reset();
   }
 
   /**
@@ -198,18 +202,20 @@ public class RoutingDataManager {
   /**
    * Resolves the routing data update interval value from System Properties.
    */
-  private static long getRoutingDataUpdateInterval() {
-    long routingDataUpdateInterval;
+  public void parseRoutingDataUpdateInterval() {
     try {
-      routingDataUpdateInterval =
+      _routingDataUpdateInterval =
           Long.parseLong(System.getProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS));
-      if (routingDataUpdateInterval < 0) {
-        routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+      if (_routingDataUpdateInterval < 0) {
+        LOG.warn("FederatedZkClient::shouldThrottleRead(): invalid value: {} given for "
+            + "ROUTING_DATA_UPDATE_INTERVAL_MS, using the default value (5 sec) instead!", _routingDataUpdateInterval);
+        _routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
       }
     } catch (NumberFormatException e) {
-      routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+      LOG.warn("FederatedZkClient::shouldThrottleRead(): failed to parse "
+          + "ROUTING_DATA_UPDATE_INTERVAL_MS, using the default value (5 sec) instead!", e);
+      _routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
     }
-    return routingDataUpdateInterval;
   }
 
   /**

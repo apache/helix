@@ -48,7 +48,7 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
     public void beforeClass() throws Exception {
         super.beforeClass();
         // Routing data may be set by other tests using the same endpoint; reset() for good measure
-        RoutingDataManager.getInstance().reset();
+        RoutingDataManager.getInstance().reset(true);
         // Create a FederatedZkClient for admin work
 
         try {

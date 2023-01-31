@@ -60,7 +60,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
     System.out.println("Starting " + TestFederatedZkClient.class.getSimpleName());
-    super.beforeClass();
 
     // Feed the raw routing data into TrieRoutingData to construct an in-memory representation
     // of routing information.
@@ -71,7 +70,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
 
   @AfterClass
   public void afterClass() {
-    super.afterClass();
     // Close it as it is created in before class.
     _realmAwareZkClient.close();
     System.out.println("Ending " + TestFederatedZkClient.class.getSimpleName());
@@ -344,6 +342,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     System.setProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS, "true");
     // Set the routing data update interval to 0 so there's no delay in testing
     System.setProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS, "0");
+    RoutingDataManager.getInstance().parseRoutingDataUpdateInterval();
 
     RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     _msdsServer.stopServer();
@@ -406,7 +405,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     _msdsServer.startServer();
 
     // Make sure RoutingDataManager has the key
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     Assert.assertEquals(zkRealm, RoutingDataManager.getInstance().getMetadataStoreRoutingData()
         .getMetadataStoreRealm(newShardingKey2));
 
@@ -426,7 +425,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
         .getMetadataStoreRealm(newShardingKey2));
     // Also check that MSDS does not have the new sharding key through resetting RoutingDataManager
     // and re-reading from MSDS
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     try {
       RoutingDataManager.getInstance().getMetadataStoreRoutingData()
           .getMetadataStoreRealm(newShardingKey2);
@@ -437,8 +436,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
 
     // Clean up federatedZkClient
     federatedZkClient.close();
-    // Shut down MSDS
-    _msdsServer.stopServer();
     // Disable System property
     System.clearProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS);
     System.clearProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS);
@@ -470,8 +467,9 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     System.setProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS, "true");
     // Set the routing data update interval to 0 so there's no delay in testing
     System.setProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS, "0");
+    RoutingDataManager.getInstance().parseRoutingDataUpdateInterval();
 
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     RoutingDataManager.getInstance().getMetadataStoreRoutingData(RoutingDataReaderType.ZK, zkRealm);
     /*
      * Test is 2-tiered because cache update is 2-tiered
@@ -526,7 +524,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
         .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm, zkRealmRecord);
 
     // Update RoutingDataManager so it has the key
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     Assert.assertEquals(zkRealm, RoutingDataManager.getInstance()
         .getMetadataStoreRoutingData(RoutingDataReaderType.ZK, zkRealm)
         .getMetadataStoreRealm(newShardingKey2));
@@ -548,7 +546,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
         .getMetadataStoreRealm(newShardingKey2));
     // Also check that ZK does not have the new sharding key through resetting RoutingDataManager
     // and re-reading from ZK
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     try {
       RoutingDataManager.getInstance()
           .getMetadataStoreRoutingData(RoutingDataReaderType.ZK, zkRealm)
@@ -577,7 +575,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   @Test(dependsOnMethods = "testUpdateRoutingDataOnCacheMissZK")
   public void testRoutingDataUpdateThrottle() throws InvalidRoutingDataException {
     // Call reset to set the last reset() timestamp in RoutingDataManager
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
 
     // Set up routing data in ZK with empty sharding key list
     String zkRealm = "localhost:2127";
@@ -597,6 +595,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     // Set the throttle value to a very long value
     System.setProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS,
         String.valueOf(Integer.MAX_VALUE));
+    RoutingDataManager.getInstance().parseRoutingDataUpdateInterval();
 
     // Create a new FederatedZkClient, whose _routingDataUpdateInterval should be MAX_VALUE
     FederatedZkClient federatedZkClient = new FederatedZkClient(

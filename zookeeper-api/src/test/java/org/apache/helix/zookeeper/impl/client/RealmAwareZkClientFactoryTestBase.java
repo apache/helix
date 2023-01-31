@@ -45,13 +45,11 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
 
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
-    super.beforeClass();
     DUMMY_RECORD.setSimpleField("Dummy", "Value");
   }
 
   @AfterClass
   public void afterClass() {
-    super.afterClass();
     if (_realmAwareZkClient != null && !_realmAwareZkClient.isClosed()) {
       _realmAwareZkClient.close();
       _realmAwareZkClient = null;

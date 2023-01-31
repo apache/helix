@@ -61,7 +61,7 @@ public class TestRoutingDataManager extends ZkTestBase {
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, MSDS_ENDPOINT);
 
     // Reset RoutingDataManager
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
   }
 
   @AfterClass

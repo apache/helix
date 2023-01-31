@@ -625,25 +625,21 @@ public class DedicatedZkClient implements RealmAwareZkClient {
           // ZkClient objects may have triggered a cache refresh, so we first update the
           // in-memory reference. This refresh only affects this object/thread, so we synchronize
           // on "this".
-          _metadataStoreRoutingData =
-              RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
+          _metadataStoreRoutingData = RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
           try {
             zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
           } catch (NoSuchElementException e3) {
-            synchronized (this) {
-              try {
-                zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
-              } catch (NoSuchElementException e4) {
-                // Try 2) Reset RoutingDataManager and re-read the routing data from routing data
-                // source via I/O, since RoutingDataManager's cache doesn't have it either.
-                RoutingDataManager.getInstance().reset(true);
-                _metadataStoreRoutingData =
-                    RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
-                // No try-catch for the following call because if this throws a
-                // NoSuchElementException, it means the ZK path sharding key doesn't exist even
-                // after a full cache refresh
-                zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
-              }
+            try {
+              zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+            } catch (NoSuchElementException e4) {
+              // Try 2) Reset RoutingDataManager and re-read the routing data from routing data
+              // source via I/O, since RoutingDataManager's cache doesn't have it either.
+              RoutingDataManager.getInstance().reset(false);
+              _metadataStoreRoutingData = RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
+              // No try-catch for the following call because if this throws a
+              // NoSuchElementException, it means the ZK path sharding key doesn't exist even
+              // after a full cache refresh
+              zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
             }
           }
         }

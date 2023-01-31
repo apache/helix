@@ -91,7 +91,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, _msdsEndpoint);
 
     // Routing data may be set by other tests using the same endpoint; reset() for good measure
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     // Create a FederatedZkClient for admin work
     _zkClient =
         new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
@@ -832,7 +832,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
             .setRoutingDataSourceEndpoint(_msdsEndpoint).build();
 
     // Reset cached routing data
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     // Shutdown MSDS to ensure that these accessors are able to pull routing data from ZK
     _msds.stopServer();
 

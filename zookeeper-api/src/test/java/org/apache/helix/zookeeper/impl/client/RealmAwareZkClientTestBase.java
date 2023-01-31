@@ -35,8 +35,8 @@ import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
 import org.apache.zookeeper.ZooDefs;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
+import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 
@@ -54,8 +54,8 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   protected RealmAwareZkClient _realmAwareZkClient;
   protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
 
-  @BeforeClass
-  public void beforeClass() throws IOException, InvalidRoutingDataException {
+  @BeforeTest
+  public void beforeTest() throws IOException, InvalidRoutingDataException {
     // Create a mock MSDS so that HttpRoutingDataReader could fetch the routing data
     if (_msdsServer == null) {
       // Do not create again if Mock MSDS server has already been created by other tests
@@ -70,8 +70,8 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, msdsEndpoint);
   }
 
-  @AfterClass
-  public void afterClass() {
+  @AfterTest
+  public void afterTest() {
     if (_msdsServer != null) {
       _msdsServer.stopServer();
     }

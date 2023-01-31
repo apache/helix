@@ -32,7 +32,7 @@ public class DirectChildListenerAdapter implements IZkChildListener {
   }
 
   @Override
-  public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
+  public void handleChildChange(String parentPath, List<String> currentChildren) throws Exception {
     _listener.handleDirectChildChange(parentPath);
   }
 

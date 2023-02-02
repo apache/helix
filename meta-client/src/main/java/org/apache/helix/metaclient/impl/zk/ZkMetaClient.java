@@ -35,8 +35,10 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
+import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil;
+import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
@@ -258,7 +260,12 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   public DirectChildSubscribeResult subscribeDirectChildChange(String key,
       DirectChildChangeListener listener, boolean skipWatchingNonExistNode,
       boolean persistListener) {
-    return null;
+    if (!persistListener) {
+      throw new NotImplementedException("Currently the non-persist (one-time) listener is not supported in ZkMetaClient.");
+    }
+    ChildrenSubscribeResult result =
+        _zkClient.subscribeChildChanges(key, new DirectChildListenerAdapter(listener), skipWatchingNonExistNode);
+    return new DirectChildSubscribeResult(result.getChildren(), result.isInstalled());
   }
 
   @Override
@@ -280,7 +287,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void unsubscribeDirectChildChange(String key, DirectChildChangeListener listener) {
-
+    _zkClient.unsubscribeChildChanges(key, new DirectChildListenerAdapter(listener));
   }
 
   @Override

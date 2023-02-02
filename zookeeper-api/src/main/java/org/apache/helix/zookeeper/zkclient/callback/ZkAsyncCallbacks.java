@@ -283,8 +283,8 @@ public class ZkAsyncCallbacks {
     @Override
     public void notifyCallers() {
       LOG.warn("The callback {} has been cancelled.", this);
-      markOperationDone();
       handle();
+      markOperationDone();
     }
 
     /**

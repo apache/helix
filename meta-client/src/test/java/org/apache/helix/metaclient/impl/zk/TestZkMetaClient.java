@@ -25,18 +25,20 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.helix.metaclient.api.DataUpdater;
+import org.apache.helix.metaclient.api.DirectChildChangeListener;
+import org.apache.helix.metaclient.api.MetaClientInterface;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.metaclient.api.DataChangeListener;
-import org.apache.helix.metaclient.api.DataUpdater;
-import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
@@ -298,6 +300,34 @@ public class TestZkMetaClient {
       zkMetaClient.set(basePath + "_1", testData, -1);
       Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
       Assert.assertTrue(dataExpected.get());
+    }
+  }
+
+  @Test
+  public void testDirectChildChangeListener() throws Exception {
+    final String basePath = "/TestZkMetaClient_testDirectChildChangeListener";
+    final int count = 3;
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      CountDownLatch countDownLatch = new CountDownLatch(count);
+      DirectChildChangeListener listener = new DirectChildChangeListener() {
+        @Override
+        public void handleDirectChildChange(String key) throws Exception {
+          countDownLatch.countDown();
+        }
+      };
+      zkMetaClient.create(basePath, "");
+      Assert.assertTrue(
+          zkMetaClient.subscribeDirectChildChange(basePath, listener, false, true)
+              .isRegistered());
+      zkMetaClient.create(basePath + "/child_1", "test-data");
+      //TODO: the native zkclient failed to provide persistent listener, and event might be lost.
+      // Remove Thread.sleep() below when the persistent watcher is supported
+      Thread.sleep(500);
+      zkMetaClient.create(basePath + "/child_2", "test-data");
+      Thread.sleep(500);
+      zkMetaClient.create(basePath + "/child_3", "test-data");
+      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
     }
   }
 

@@ -57,9 +57,8 @@ public class TestZkMetaClient {
   private static final String ZK_ADDR = "localhost:2183";
   private static final int DEFAULT_TIMEOUT_MS = 1000;
   private static final String ENTRY_STRING_VALUE = "test-value";
-  protected static final String TRANSACTION_TEST_KEY_PREFIX = "/sharding-key-0";
-  protected static String PARENT_PATH = TRANSACTION_TEST_KEY_PREFIX + "/RealmAwareZkClient";
-  protected static final String TEST_INVALID_PATH = TRANSACTION_TEST_KEY_PREFIX + "_invalid" + "/a/b/c";
+  protected static String PARENT_PATH = "/ZkClient";
+  protected static final String TEST_INVALID_PATH = "_invalid" + "/a/b/c";
 
   private final Object _syncObject = new Object();
 
@@ -342,7 +341,6 @@ public class TestZkMetaClient {
 
     try(ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.create(TRANSACTION_TEST_KEY_PREFIX, ENTRY_STRING_VALUE);
 
       //Create Nodes
       List<Op> ops = Arrays.asList(

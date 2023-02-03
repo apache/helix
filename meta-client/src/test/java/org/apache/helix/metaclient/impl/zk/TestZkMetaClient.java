@@ -59,9 +59,8 @@ public class TestZkMetaClient {
   private static final String ZK_ADDR = "localhost:2183";
   private static final int DEFAULT_TIMEOUT_MS = 1000;
   private static final String ENTRY_STRING_VALUE = "test-value";
-  protected static final String TRANSACTION_TEST_KEY_PREFIX = "/sharding-key-0";
-  protected static String PARENT_PATH = TRANSACTION_TEST_KEY_PREFIX + "/RealmAwareZkClient";
-  protected static final String TEST_INVALID_PATH = TRANSACTION_TEST_KEY_PREFIX + "_invalid" + "/a/b/c";
+  private static String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
+  private static final String TEST_INVALID_PATH = "_invalid/a/b/c";
 
   private final Object _syncObject = new Object();
 
@@ -363,8 +362,10 @@ public class TestZkMetaClient {
   }
 
   /**
-   * Test that zk transactional operation works for zkmetaclient operations create,
-   * delete, and set.
+   * Transactional op calls zk.multi() with a set of ops (operations)
+   * and the return values are converted into metaclient opResults.
+   * This test checks whether each op was run by verifying its opResult and
+   * the created/deleted/set path in zk.
    */
   @Test
   public void testTransactionOps() {
@@ -372,15 +373,14 @@ public class TestZkMetaClient {
 
     try(ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.create(TRANSACTION_TEST_KEY_PREFIX, ENTRY_STRING_VALUE);
 
       //Create Nodes
       List<Op> ops = Arrays.asList(
-          Op.create(PARENT_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
-          Op.create(PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
-          Op.delete(PARENT_PATH + test_name, -1),
-          Op.create(PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
-          Op.set(PARENT_PATH + test_name, new byte[0], -1));
+          Op.create(TRANSACTION_TEST_PARENT_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.create(TRANSACTION_TEST_PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.delete(TRANSACTION_TEST_PARENT_PATH + test_name, -1),
+          Op.create(TRANSACTION_TEST_PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.set(TRANSACTION_TEST_PARENT_PATH + test_name, new byte[0], -1));
 
       //Execute transactional support on operations
       List<OpResult> opResults = zkMetaClient.transactionOP(ops);
@@ -392,19 +392,21 @@ public class TestZkMetaClient {
       Assert.assertTrue(opResults.get(4) instanceof OpResult.SetDataResult);
 
       //Verify paths have been created
-      MetaClientInterface.Stat entryStat = zkMetaClient.exists(PARENT_PATH + test_name);
+      MetaClientInterface.Stat entryStat = zkMetaClient.exists(TRANSACTION_TEST_PARENT_PATH + test_name);
       Assert.assertNotNull(entryStat, "Path should have been created.");
 
       //Cleanup
-      zkMetaClient.recursiveDelete(PARENT_PATH);
-      if (zkMetaClient.exists(PARENT_PATH) != null) {
+      zkMetaClient.recursiveDelete(TRANSACTION_TEST_PARENT_PATH);
+      if (zkMetaClient.exists(TRANSACTION_TEST_PARENT_PATH) != null) {
         Assert.fail("Parent Path should have been removed.");
       }
     }
   }
 
   /**
-   * Tests that attempts to call transactional operation on an invalid path. Should fail.
+   * This test calls transactionOp on an invalid path.
+   * It checks that the invalid path has not been created to verify the
+   * "all or nothing" behavior of transactionOp.
    * @throws KeeperException
    */
   @Test(dependsOnMethods = "testTransactionOps")
@@ -414,8 +416,8 @@ public class TestZkMetaClient {
       zkMetaClient.connect();
       //Create Nodes
       List<Op> ops = Arrays.asList(
-          Op.create(PARENT_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
-          Op.create(PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.create(TRANSACTION_TEST_PARENT_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
+          Op.create(TRANSACTION_TEST_PARENT_PATH + test_name, new byte[0], MetaClientInterface.EntryMode.PERSISTENT),
           Op.create(TEST_INVALID_PATH, new byte[0], MetaClientInterface.EntryMode.PERSISTENT));
 
       try {
@@ -423,7 +425,7 @@ public class TestZkMetaClient {
         Assert.fail(
             "Should have thrown an exception. Cannot run transactional create OP on incorrect path.");
       } catch (Exception e) {
-        MetaClientInterface.Stat entryStat = zkMetaClient.exists(PARENT_PATH);
+        MetaClientInterface.Stat entryStat = zkMetaClient.exists(TRANSACTION_TEST_PARENT_PATH);
         Assert.assertNull(entryStat);
       }
     }

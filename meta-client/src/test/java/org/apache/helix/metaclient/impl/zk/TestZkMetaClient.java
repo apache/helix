@@ -58,7 +58,7 @@ public class TestZkMetaClient {
   private static final int DEFAULT_TIMEOUT_MS = 1000;
   private static final String ENTRY_STRING_VALUE = "test-value";
   protected static String PARENT_PATH = "/transactionOpTestPath";
-  protected static final String TEST_INVALID_PATH = "_invalid" + "/a/b/c";
+  protected static final String TEST_INVALID_PATH = "_invalid/a/b/c";
 
   private final Object _syncObject = new Object();
 

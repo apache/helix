@@ -7,11 +7,11 @@ on:
         required: true
         default: refs/pull/1234/merge
       mvnOpts:
-        description: Maven options
+        description: Can provide custom Maven options in addition to existing one.
         required: true
         default: --fail-at-end
       goals:
-        description: Maven goals
+        description: Can provide custom Maven goals in addition to existing one.
         required: true
         default: -fae test
 

@@ -64,8 +64,8 @@ public class RoutingDataManager {
   // Interval value used to throttle reset()
   private long _routingDataUpdateInterval;
 
-  // Singleton instance
-  private static RoutingDataManager _instance;
+  // Singleton instance; volatile for multithread safety
+  private volatile static RoutingDataManager _instance;
 
   /**
    * This class is a Singleton.
@@ -182,7 +182,7 @@ public class RoutingDataManager {
 
     reset();
   }
-  
+
   private synchronized void reset() {
     _rawRoutingDataMap.clear();
     _metadataStoreRoutingDataMap.clear();

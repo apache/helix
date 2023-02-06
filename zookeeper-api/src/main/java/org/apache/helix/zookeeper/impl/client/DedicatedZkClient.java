@@ -594,10 +594,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
       try {
         return updateRoutingDataOnCacheMiss(path);
       } catch (InvalidRoutingDataException e) {
-        LOG.error(
-            "DedicatedZkClient::getZkRealm: Failed to update routing data due to invalid routing "
-                + "data!", e);
-        throw new MultiZkException(e);
+        throw new MultiZkException("DedicatedZkClient::getZkRealm: Failed to update routing data due to invalid routing "
+            + "data!", e);
       }
     }
     return _metadataStoreRoutingData.getMetadataStoreRealm(path);

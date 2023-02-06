@@ -644,10 +644,8 @@ public class FederatedZkClient implements RealmAwareZkClient {
       try {
         return updateRoutingDataOnCacheMiss(path);
       } catch (InvalidRoutingDataException e) {
-        LOG.error(
-            "FederatedZkClient::getZkRealm: Failed to update routing data due to invalid routing "
-                + "data!", e);
-        throw new MultiZkException(e);
+        throw new MultiZkException("FederatedZkClient::getZkRealm: Failed to update routing data due to invalid routing "
+            + "data!", e);
       }
     }
     return _metadataStoreRoutingData.getMetadataStoreRealm(path);

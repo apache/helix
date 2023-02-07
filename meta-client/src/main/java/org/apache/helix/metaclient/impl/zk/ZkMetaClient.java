@@ -166,47 +166,53 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return true;
   }
 
-  // Zookeeper execute async callbacks at zookeeper server side. In our first version of
-  // implementation, we will keep this behavior.
-  // In later version, we may consider creating a thread pool to execute registered callbacks.
-  // However, this will change metaclient from stateless to stateful.
+  // In Current ZkClient, Async CRUD do auto retry when connection lost or session mismatch using
+  // existing retry handling logic in zkClient. (defined in ZkAsyncCallbacks)
+  // ZkClient execute async callbacks at zkClient main thead, retry is handles in a separate retry
+  // thread. In our first version of implementation, we will keep similar behavior and have
+  // callbacks executed in ZkClient event thread, and reuse zkclient retry logic.
+
+  // It is highly recommended NOT to perform any blocking operation inside the callbacks.
+  // If you block the thread the meta client won't process other events.
+
+  // corresponding callbacks for each operation are invoked in order.
   @Override
   public void setAsyncExecPoolSize(int poolSize) {
 
   }
 
   @Override
-  public void asyncCreate(String key, Object data, EntryMode mode, AsyncCallback.VoidCallback cb) {
+  public void asyncCreate(String key, Object data, EntryMode mode, AsyncCallback.VoidCallback cb, Object context) {
 
   }
 
   @Override
-  public void asyncSet(String key, T data, int version, AsyncCallback.VoidCallback cb) {
+  public void asyncSet(String key, T data, int version, AsyncCallback.StatCallback cb, Object context) {
 
   }
 
   @Override
-  public void asyncUpdate(String key, DataUpdater updater, AsyncCallback.DataCallback cb) {
+  public void asyncUpdate(String key, DataUpdater updater, AsyncCallback.DataCallback cb, Object context) {
 
   }
 
   @Override
-  public void asyncGet(String key, AsyncCallback.DataCallback cb) {
+  public void asyncGet(String key, AsyncCallback.DataCallback cb, Object context) {
 
   }
 
   @Override
-  public void asyncCountChildren(String key, AsyncCallback.DataCallback cb) {
+  public void asyncCountChildren(String key, AsyncCallback.DataCallback cb, Object context) {
 
   }
 
   @Override
-  public void asyncExist(String key, AsyncCallback.StatCallback cb) {
+  public void asyncExist(String key, AsyncCallback.StatCallback cb, Object context) {
 
   }
 
   @Override
-  public void asyncDelete(String keys, AsyncCallback.VoidCallback cb) {
+  public void asyncDelete(String keys, AsyncCallback.VoidCallback cb, Object context) {
 
   }
 
@@ -221,7 +227,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void asyncTransaction(Iterable iterable, AsyncCallback.TransactionCallback cb) {
+  public void asyncTransaction(Iterable iterable, AsyncCallback.TransactionCallback cb, Object context) {
 
   }
 

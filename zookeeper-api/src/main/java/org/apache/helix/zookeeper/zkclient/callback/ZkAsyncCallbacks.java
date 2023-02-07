@@ -54,6 +54,14 @@ public class ZkAsyncCallbacks {
       callback(rc, path, ctx);
     }
 
+    public Stat getStat() {
+      return _stat;
+    }
+
+    public byte[] getData() {
+      return _data;
+    }
+
     @Override
     public void handle() {
       // TODO Auto-generated method stub
@@ -61,7 +69,7 @@ public class ZkAsyncCallbacks {
 
     @Override
     protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
-      if(rc != Code.NONODE.intValue()) {
+      if (rc != Code.NONODE.intValue()) {
         monitor.recordFailure(path);
       }
     }
@@ -99,6 +107,10 @@ public class ZkAsyncCallbacks {
       callback(rc, path, ctx);
     }
 
+    public Stat getStat() {
+      return _stat;
+    }
+
     @Override
     public void handle() {
       // TODO Auto-generated method stub
@@ -106,7 +118,7 @@ public class ZkAsyncCallbacks {
 
     @Override
     protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
-      if(rc != Code.NONODE.intValue()) {
+      if (rc != Code.NONODE.intValue()) {
         monitor.recordFailure(path);
       }
     }
@@ -182,6 +194,7 @@ public class ZkAsyncCallbacks {
   public static abstract class DefaultCallback implements CancellableZkAsyncCallback {
     AtomicBoolean _isOperationDone = new AtomicBoolean(false);
     int _rc = KeeperException.Code.APIERROR.intValue();
+    String _path;
 
     public void callback(int rc, String path, Object ctx) {
       if (rc != 0) {
@@ -198,12 +211,14 @@ public class ZkAsyncCallbacks {
       }
 
       _rc = rc;
+      _path = path;
 
       // If retry is requested by passing the retry callback context, do retry if necessary.
       if (needRetry(rc)) {
         if (ctx != null && ctx instanceof ZkAsyncRetryCallContext) {
           try {
             if (((ZkAsyncRetryCallContext) ctx).requestRetry()) {
+              LOG.info("Received {} for async request on path {}, requested retry.", rc, path);
               // The retry operation will be done asynchronously. Once it is done, the same callback
               // handler object shall be triggered to ensure the result is notified to the right
               // caller(s).
@@ -225,6 +240,8 @@ public class ZkAsyncCallbacks {
       // If operation is done successfully or no retry needed, notify the caller(s).
       try {
         handle();
+      } catch (Exception ex) {
+        LOG.error("Exception while handling user callback for path {}.", _path, ex);
       } finally {
         markOperationDone();
       }
@@ -259,9 +276,14 @@ public class ZkAsyncCallbacks {
       return _rc;
     }
 
+    public String getPath() {
+      return _path;
+    }
+
     @Override
     public void notifyCallers() {
       LOG.warn("The callback {} has been cancelled.", this);
+      handle();
       markOperationDone();
     }
 

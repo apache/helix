@@ -27,6 +27,10 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataConstants;
+import org.apache.helix.zookeeper.constant.RoutingSystemPropertyKeys;
+import org.apache.helix.zookeeper.exception.MultiZkException;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
@@ -56,10 +60,12 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   private static Logger LOG = LoggerFactory.getLogger(DedicatedZkClient.class);
 
   private final ZkClient _rawZkClient;
-  private final MetadataStoreRoutingData _metadataStoreRoutingData;
+  private volatile MetadataStoreRoutingData _metadataStoreRoutingData;
   private final String _zkRealmShardingKey;
   private final RealmAwareZkClient.RealmAwareZkConnectionConfig _connectionConfig;
   private final RealmAwareZkClient.RealmAwareZkClientConfig _clientConfig;
+  private final boolean _routingDataUpdateOnCacheMissEnabled = Boolean.parseBoolean(
+      System.getProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS));
 
   /**
    * DedicatedZkClient connects to a single ZK realm and supports full ZkClient functionalities
@@ -86,7 +92,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
     }
 
     // Get the ZkRealm address based on the ZK path sharding key
-    String zkRealmAddress = _metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
+    String zkRealmAddress = getZkRealm(_zkRealmShardingKey);
     if (zkRealmAddress == null || zkRealmAddress.isEmpty()) {
       throw new IllegalArgumentException(
           "ZK realm address for the given ZK realm sharding key is invalid! ZK realm address: "
@@ -581,5 +587,62 @@ public class DedicatedZkClient implements RealmAwareZkClient {
       throw new IllegalArgumentException("Given path: " + path
           + " does not have a valid sharding key or its ZK sharding key is not found in the cached routing data!");
     }
+  }
+
+  private String getZkRealm(String path) {
+    if (_routingDataUpdateOnCacheMissEnabled) {
+      try {
+        return updateRoutingDataOnCacheMiss(path);
+      } catch (InvalidRoutingDataException e) {
+        throw new MultiZkException("DedicatedZkClient::getZkRealm: Failed to update routing data due to invalid routing "
+            + "data!", e);
+      }
+    }
+    return _metadataStoreRoutingData.getMetadataStoreRealm(path);
+  }
+
+  /**
+   * Perform a 2-tier routing data cache update:
+   * 1. Do an in-memory update from the singleton RoutingDataManager
+   * 2. Do an I/O based read from the routing data source by resetting RoutingDataManager
+   * @param path
+   * @return
+   * @throws InvalidRoutingDataException
+   */
+  private String updateRoutingDataOnCacheMiss(String path) throws InvalidRoutingDataException {
+    String zkRealm;
+    try {
+      zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+    } catch (NoSuchElementException e1) {
+      synchronized (this) {
+        try {
+          zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+        } catch (NoSuchElementException e2) {
+          // Try 1) Refresh MetadataStoreRoutingData from RoutingDataManager
+          // This is an in-memory refresh from the Singleton RoutingDataManager - other
+          // ZkClient objects may have triggered a cache refresh, so we first update the
+          // in-memory reference. This refresh only affects this object/thread, so we synchronize
+          // on "this".
+          _metadataStoreRoutingData = RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
+          try {
+            zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+          } catch (NoSuchElementException e3) {
+            try {
+              zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+            } catch (NoSuchElementException e4) {
+              // Try 2) Reset RoutingDataManager and re-read the routing data from routing data
+              // source via I/O, since RoutingDataManager's cache doesn't have it either.
+              RoutingDataManager.getInstance().reset(false);
+              _metadataStoreRoutingData = RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
+              // No try-catch for the following call because if this throws a
+              // NoSuchElementException, it means the ZK path sharding key doesn't exist even
+              // after a full cache refresh
+              zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+            }
+          }
+        }
+      }
+    }
+    return zkRealm;
   }
 }

@@ -91,7 +91,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
         testMSDSServerEndpointKey);
 
-    RoutingDataManager.getInstance().reset();
+    RoutingDataManager.getInstance().reset(true);
     verifyThreadPoolSizeAndZkClientClass(anyParticipantManager, TEST_TARGET_TASK_THREAD_POOL_SIZE,
         FederatedZkClient.class);
 

@@ -379,7 +379,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
           _zkAddr);
       try {
         // Reset RoutingDataManager's cache
-        RoutingDataManager.getInstance().reset();
+        RoutingDataManager.getInstance().reset(true);
 
         // Close all ZkClients
         if (_zkClient != null && !_zkClient.isClosed()) {

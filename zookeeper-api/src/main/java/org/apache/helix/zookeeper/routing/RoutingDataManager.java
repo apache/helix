@@ -28,7 +28,9 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.constant.RoutingDataConstants;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
+import org.apache.helix.zookeeper.constant.RoutingSystemPropertyKeys;
 import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
 import org.slf4j.Logger;
@@ -59,14 +61,18 @@ public class RoutingDataManager {
   // Tracks the time at which reset() was called last. Used to throttle reset()
   private volatile long _lastResetTimestamp;
 
-  // Singleton instance
-  private static RoutingDataManager _instance;
+  // Interval value used to throttle reset()
+  private long _routingDataUpdateInterval;
+
+  // Singleton instance; volatile for multithread safety
+  private volatile static RoutingDataManager _instance;
 
   /**
    * This class is a Singleton.
    */
   private RoutingDataManager() {
     // Private constructor for Singleton
+    parseRoutingDataUpdateInterval();
   }
 
   /**
@@ -166,8 +172,18 @@ public class RoutingDataManager {
 
   /**
    * Clears the statically-cached routing data and private fields.
+   * @param isForcedReset - if true, ignore throttle settings
    */
-  public synchronized void reset() {
+  public synchronized void reset(boolean isForcedReset) {
+    if (!isForcedReset && System.currentTimeMillis() - RoutingDataManager.getInstance().getLastResetTimestamp()
+        < _routingDataUpdateInterval) {
+      return;
+    }
+
+    reset();
+  }
+
+  private synchronized void reset() {
     _rawRoutingDataMap.clear();
     _metadataStoreRoutingDataMap.clear();
     _defaultMsdsEndpoint =
@@ -181,6 +197,25 @@ public class RoutingDataManager {
    */
   public long getLastResetTimestamp() {
     return _lastResetTimestamp;
+  }
+
+  /**
+   * Resolves the routing data update interval value from System Properties.
+   */
+  public void parseRoutingDataUpdateInterval() {
+    try {
+      _routingDataUpdateInterval =
+          Long.parseLong(System.getProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS));
+      if (_routingDataUpdateInterval < 0) {
+        LOG.warn("FederatedZkClient::shouldThrottleRead(): invalid value: {} given for "
+            + "ROUTING_DATA_UPDATE_INTERVAL_MS, using the default value (5 sec) instead!", _routingDataUpdateInterval);
+        _routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+      }
+    } catch (NumberFormatException e) {
+      LOG.warn("FederatedZkClient::shouldThrottleRead(): failed to parse "
+          + "ROUTING_DATA_UPDATE_INTERVAL_MS, using the default value (5 sec) instead!", e);
+      _routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+    }
   }
 
   /**

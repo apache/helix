@@ -20,6 +20,8 @@ package org.apache.helix.metaclient.api;
  */
 
 import java.util.List;
+import javax.annotation.Nullable;
+
 
 /**
  * An asynchronous callback is deferred to invoke after an async CRUD operation finish and return.
@@ -34,10 +36,10 @@ public interface AsyncCallback {
      * Process the result of asynchronous calls that returns a stat object.
      * @param returnCode  The return code of the call.
      * @param key the key that passed to asynchronous calls.
-     * @param context context object that passed to asynchronous calls.
      * @param stat the stats of the entry of the given key, returned from the async call.
+     *             Could be null if the entry did not exist.
      */
-    void processResult(int returnCode, String key, Object context, MetaClientInterface.Stat stat);
+    void processResult(int returnCode, String key, @Nullable MetaClientInterface.Stat stat);
   }
 
   //This callback is used when data is returned from the operation.
@@ -46,11 +48,10 @@ public interface AsyncCallback {
      * Process the result of asynchronous calls that returns entry data.
      * @param returnCode  The return code of the call.
      * @param key The key that passed to asynchronous calls.
-     * @param context context object that passed to asynchronous calls.
      * @param data returned entry data from the call.
-     * @param stat the stats of the entry of the given key.
+     * @param stat the stats of the entry of the given key. Could be null if the entry did not exist.
      */
-    void processResult(int returnCode, String key, Object context, byte[] data, MetaClientInterface.Stat stat);
+    void processResult(int returnCode, String key, byte[] data, @Nullable MetaClientInterface.Stat stat);
   }
 
   //This callback is used when nothing is returned from the operation.
@@ -59,9 +60,8 @@ public interface AsyncCallback {
      * Process the result of asynchronous calls that has no return value.
      * @param returnCode  The return code of the call.
      * @param key he key that passed to asynchronous calls.
-     * @param context context object that passed to asynchronous calls.
      */
-    void processResult(int returnCode, String key, Object context);
+    void processResult(int returnCode, String key);
   }
 
   //This callback is used to process the list if OpResults from a single transactional call.
@@ -70,10 +70,9 @@ public interface AsyncCallback {
      * Process the result of asynchronous transactional calls.
      * @param returnCode  The return code of the transaction call.
      * @param keys List of keys passed to the async transactional call.
-     * @param context context object that passed to asynchronous calls.
      * @param opResults The list of transactional results.
      */
-    void processResult(int returnCode, List<String> keys, Object context, List<OpResult> opResults);
+    void processResult(int returnCode, List<String> keys, List<OpResult> opResults);
   }
 
 }

@@ -213,10 +213,9 @@ public interface MetaClientInterface<T> {
    * @param mode EntryMode identifying if the entry will be deleted upon client disconnect
    * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.VoidCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
   void asyncCreate(final String key, final T data, final EntryMode mode,
-      AsyncCallback.VoidCallback cb, Object context);
+      AsyncCallback.VoidCallback cb);
 
   /**
    * The asynchronous version of set.
@@ -225,9 +224,8 @@ public interface MetaClientInterface<T> {
    * @param version expected version if the entry. -1 matched any version
    * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.StatCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
-  void asyncSet(final String key, final T data, final int version, AsyncCallback.StatCallback cb, Object context);
+  void asyncSet(final String key, final T data, final int version, AsyncCallback.StatCallback cb);
 
   /**
    * The asynchronous version of update.
@@ -236,9 +234,8 @@ public interface MetaClientInterface<T> {
    * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
    *           It will contain the newly updated data if update succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
-  void asyncUpdate(final String key, DataUpdater<T> updater, AsyncCallback.DataCallback cb, Object context);
+  void asyncUpdate(final String key, DataUpdater<T> updater, AsyncCallback.DataCallback cb);
 
   /**
    * The asynchronous version of get.
@@ -246,9 +243,8 @@ public interface MetaClientInterface<T> {
    * @param cb An user defined VoidCallback implementation that will be invoked when async get return.
    *           It will contain the entry data if get succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
-  void asyncGet(final String key, AsyncCallback.DataCallback cb, Object context);
+  void asyncGet(final String key, AsyncCallback.DataCallback cb);
 
   /**
    * The asynchronous version of get sub entries.
@@ -256,9 +252,8 @@ public interface MetaClientInterface<T> {
    * @param cb An user defined VoidCallback implementation that will be invoked when async count child return.
    *           It will contain the list of child keys if succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
-  void asyncCountChildren(final String key, AsyncCallback.DataCallback cb, Object context);
+  void asyncCountChildren(final String key, AsyncCallback.DataCallback cb);
 
   /**
    * The asynchronous version of get sub entries.
@@ -266,18 +261,16 @@ public interface MetaClientInterface<T> {
    * @param cb An user defined VoidCallback implementation that will be invoked when async exist return.
    *           It will contain the stats of the entry if succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.StatCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
-  void asyncExist(final String key, AsyncCallback.StatCallback cb, Object context);
+  void asyncExist(final String key, AsyncCallback.StatCallback cb);
 
   /**
    * The asynchronous version of delete.
    * @param key key to identify the entry
    * @param cb An user defined VoidCallback implementation that will be invoked when async delete
    *           finish and return.  @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
-  void asyncDelete(final String key, AsyncCallback.VoidCallback cb, Object context);
+  void asyncDelete(final String key, AsyncCallback.VoidCallback cb);
 
   /**
    * The asynchronous version of transaction operations.
@@ -286,9 +279,8 @@ public interface MetaClientInterface<T> {
    *           transaction operations finish and return. The TransactionCallback will contain
    *           either a list of OpResult if transaction finish successfully, or a return code
    *           indicating failure reason. @see org.apache.helix.metaclient.api.AsyncCallback.TransactionCallback
-   * @param context context object that will be passed to AsyncCallback.processResult(). could be Nullable.
    */
-  void asyncTransaction(final Iterable<Op> ops, AsyncCallback.TransactionCallback cb, Object context);
+  void asyncTransaction(final Iterable<Op> ops, AsyncCallback.TransactionCallback cb);
 
   /* Batched APIs return result to user when all request finishes.
    * These calls are not executed as a transaction.

@@ -182,37 +182,37 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void asyncCreate(String key, Object data, EntryMode mode, AsyncCallback.VoidCallback cb, Object context) {
+  public void asyncCreate(String key, Object data, EntryMode mode, AsyncCallback.VoidCallback cb) {
 
   }
 
   @Override
-  public void asyncSet(String key, T data, int version, AsyncCallback.StatCallback cb, Object context) {
+  public void asyncSet(String key, T data, int version, AsyncCallback.StatCallback cb) {
 
   }
 
   @Override
-  public void asyncUpdate(String key, DataUpdater updater, AsyncCallback.DataCallback cb, Object context) {
+  public void asyncUpdate(String key, DataUpdater updater, AsyncCallback.DataCallback cb) {
 
   }
 
   @Override
-  public void asyncGet(String key, AsyncCallback.DataCallback cb, Object context) {
+  public void asyncGet(String key, AsyncCallback.DataCallback cb) {
 
   }
 
   @Override
-  public void asyncCountChildren(String key, AsyncCallback.DataCallback cb, Object context) {
+  public void asyncCountChildren(String key, AsyncCallback.DataCallback cb) {
 
   }
 
   @Override
-  public void asyncExist(String key, AsyncCallback.StatCallback cb, Object context) {
+  public void asyncExist(String key, AsyncCallback.StatCallback cb) {
 
   }
 
   @Override
-  public void asyncDelete(String keys, AsyncCallback.VoidCallback cb, Object context) {
+  public void asyncDelete(String keys, AsyncCallback.VoidCallback cb) {
 
   }
 
@@ -227,7 +227,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void asyncTransaction(Iterable iterable, AsyncCallback.TransactionCallback cb, Object context) {
+  public void asyncTransaction(Iterable iterable, AsyncCallback.TransactionCallback cb) {
 
   }
 

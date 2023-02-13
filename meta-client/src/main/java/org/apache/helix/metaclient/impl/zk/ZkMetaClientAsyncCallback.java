@@ -39,47 +39,42 @@ public class ZkMetaClientAsyncCallback extends ZkAsyncCallbacks {
 
   public static class ZkMetaClientCreateCallbackHandler extends CreateCallbackHandler {
     AsyncCallback.VoidCallback _userCallback;
-    Object _userContext;
 
-    public ZkMetaClientCreateCallbackHandler(AsyncCallback.VoidCallback cb, Object context) {
+    public ZkMetaClientCreateCallbackHandler(AsyncCallback.VoidCallback cb) {
       _userCallback = cb;
-      _userContext = context;
     }
 
     @Override
     public void handle() {
-      _userCallback.processResult(getRc(), getPath(), _userContext);
+      // TODO: the processResult is changed in another PR. Will remove the `null` param when
+      // dependent PR is merged
+      _userCallback.processResult(getRc(), getPath(), null);
     }
-
   }
 
   public static class ZkMetaClientDeleteCallbackHandler extends DeleteCallbackHandler {
     AsyncCallback.VoidCallback _userCallback;
-    Object _userContext;
 
-    public ZkMetaClientDeleteCallbackHandler(AsyncCallback.VoidCallback cb, Object context) {
+    public ZkMetaClientDeleteCallbackHandler(AsyncCallback.VoidCallback cb) {
       _userCallback = cb;
-      _userContext = context;
     }
 
     @Override
     public void handle() {
-      _userCallback.processResult(getRc(), getPath(), _userContext);
+      _userCallback.processResult(getRc(), getPath(), null);
     }
   }
 
   public static class ZkMetaClientSetCallbackHandler extends SetDataCallbackHandler {
     AsyncCallback.StatCallback _userCallback;
-    Object _userContext;
 
-    public ZkMetaClientSetCallbackHandler(AsyncCallback.StatCallback cb, Object context) {
+    public ZkMetaClientSetCallbackHandler(AsyncCallback.StatCallback cb) {
       _userCallback = cb;
-      _userContext = context;
     }
 
     @Override
     public void handle() {
-      _userCallback.processResult(getRc(), getPath(), _userContext, getStat() == null ? null
+      _userCallback.processResult(getRc(), getPath(), null, getStat() == null ? null
           : new MetaClientInterface.Stat(
               ZkMetaClientUtil.convertZkEntryModeToMetaClientEntryMode(getStat().getEphemeralOwner()),
               getStat().getVersion()));
@@ -88,16 +83,14 @@ public class ZkMetaClientAsyncCallback extends ZkAsyncCallbacks {
 
   public static class ZkMetaClientExistCallbackHandler extends ExistsCallbackHandler {
     AsyncCallback.StatCallback _userCallback;
-    Object _userContext;
 
-    public ZkMetaClientExistCallbackHandler(AsyncCallback.StatCallback cb, Object context) {
+    public ZkMetaClientExistCallbackHandler(AsyncCallback.StatCallback cb) {
       _userCallback = cb;
-      _userContext = context;
     }
 
     @Override
     public void handle() {
-      _userCallback.processResult(getRc(), getPath(), _userContext, getStat() == null ? null
+      _userCallback.processResult(getRc(), getPath(), null, getStat() == null ? null
           : new MetaClientInterface.Stat(
               ZkMetaClientUtil.convertZkEntryModeToMetaClientEntryMode(getStat().getEphemeralOwner()),
               getStat().getVersion()));
@@ -106,16 +99,14 @@ public class ZkMetaClientAsyncCallback extends ZkAsyncCallbacks {
 
   public static class ZkMetaClientGetCallbackHandler extends GetDataCallbackHandler {
     AsyncCallback.DataCallback _userCallback;
-    Object _userContext;
 
-    public ZkMetaClientGetCallbackHandler(AsyncCallback.DataCallback cb, Object context) {
+    public ZkMetaClientGetCallbackHandler(AsyncCallback.DataCallback cb) {
       _userCallback = cb;
-      _userContext = context;
     }
 
     @Override
     public void handle() {
-      _userCallback.processResult(getRc(), getPath(), _userContext, getData(),
+      _userCallback.processResult(getRc(), getPath(), null, getData(),
           getStat() == null ? null : new MetaClientInterface.Stat(
               ZkMetaClientUtil.convertZkEntryModeToMetaClientEntryMode(getStat().getEphemeralOwner()),
               getStat().getVersion()));

@@ -19,7 +19,7 @@ jobs:
       with:
         java-version: 1.8
     - name: Build with Maven
-      run: mvn clean install -Dmaven.test.skip.exec=true
+      run: mvn clean install -Dmaven.test.skip.exec=true -DretryFailedDeploymentCount=5
     - name: Run All Tests
       run: mvn -q -fae -Dsurefire.rerunFailingTestsCount=5 test
     - name: Print Tests Results

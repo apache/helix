@@ -238,4 +238,89 @@ public class ZkMetaClientUtil {
     }
     return new MetaClientException(e);
   }
+
+  /**
+   * This function translate and group Zk exception code to metaclient code.
+   * It currently includes all ZK code on 3.6.3.
+   */
+  public static MetaClientException.ReturnCode translateZooKeeperCodeToMetaClientCode(
+      KeeperException.Code zkCode) {
+    // TODO: add log to track ZK origional code.
+    switch (zkCode) {
+      case AUTHFAILED:
+      case SESSIONCLOSEDREQUIRESASLAUTH:
+      case INVALIDACL:
+        return MetaClientException.ReturnCode.AUTH_FAILED;
+
+      case CONNECTIONLOSS:
+        return MetaClientException.ReturnCode.CONNECTION_LOSS;
+
+      case BADARGUMENTS:
+        return MetaClientException.ReturnCode.INVALID_ARGUMENTS;
+
+      case BADVERSION:
+        return MetaClientException.ReturnCode.BAD_VERSION;
+
+      case NOAUTH:
+        return MetaClientException.ReturnCode.NO_AUTH;
+
+      case NOWATCHER:
+        return MetaClientException.ReturnCode.INVALID_LISTENER;
+
+      case NOTEMPTY:
+        return MetaClientException.ReturnCode.NOT_LEAF_ENTRY;
+
+      case NODEEXISTS:
+        return MetaClientException.ReturnCode.ENTRY_EXISTS;
+
+      case SESSIONEXPIRED:
+      case SESSIONMOVED:
+      case UNKNOWNSESSION:
+        return MetaClientException.ReturnCode.SESSION_ERROR;
+
+      case NONODE:
+        return MetaClientException.ReturnCode.NO_SUCH_ENTRY;
+
+      case OPERATIONTIMEOUT:
+        return MetaClientException.ReturnCode.OPERATION_TIMEOUT;
+
+      case OK:
+        return MetaClientException.ReturnCode.OK;
+
+      case UNIMPLEMENTED:
+        return MetaClientException.ReturnCode.UNIMPLEMENTED;
+
+      case RUNTIMEINCONSISTENCY:
+      case DATAINCONSISTENCY:
+        return MetaClientException.ReturnCode.CONSISTENCY_ERROR;
+
+      case SYSTEMERROR:
+      case MARSHALLINGERROR:
+      case NEWCONFIGNOQUORUM:
+      case RECONFIGINPROGRESS:
+        return MetaClientException.ReturnCode.DB_SYSTEM_ERROR;
+
+      case NOCHILDRENFOREPHEMERALS:
+      case INVALIDCALLBACK:
+      case NOTREADONLY:
+      case EPHEMERALONLOCALSESSION:
+      case RECONFIGDISABLED:
+        return MetaClientException.ReturnCode.DB_USER_ERROR;
+
+      /*
+       * APIERROR is ZooKeeper Code value separator. It is never thrown by ZK server,
+       * ZK error codes greater than its value are user or client errors and values less than
+       * this indicate a ZK server.
+       * Note: there are some mismatch between ZK doc and Zk code intValue define. We are comparing
+       * ordinal instead of using intValue().
+       *   https://zookeeper.apache.org/doc/r3.6.2/apidocs/zookeeper-server/index.html?org/apache/zookeeper/KeeperException.Code.html
+       */
+      default:
+        if (zkCode.ordinal() < KeeperException.Code.APIERROR.ordinal()
+            && zkCode.ordinal() >= KeeperException.Code.SYSTEMERROR.ordinal()) {
+          return MetaClientException.ReturnCode.DB_SYSTEM_ERROR;
+        }
+        return MetaClientException.ReturnCode.DB_USER_ERROR;
+    }
+  }
 }

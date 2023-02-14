@@ -223,9 +223,9 @@ public interface MetaClientInterface<T> {
    * @param data new data of the entry
    * @param version expected version if the entry. -1 matched any version
    * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
-   *           @see org.apache.helix.metaclient.api.AsyncCallback.VoidCallback
+   *           @see org.apache.helix.metaclient.api.AsyncCallback.StatCallback
    */
-  void asyncSet(final String key, final T data, final int version, AsyncCallback.VoidCallback cb);
+  void asyncSet(final String key, final T data, final int version, AsyncCallback.StatCallback cb);
 
   /**
    * The asynchronous version of update.

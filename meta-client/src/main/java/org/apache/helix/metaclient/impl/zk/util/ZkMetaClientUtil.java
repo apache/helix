@@ -110,7 +110,7 @@ public class ZkMetaClientUtil {
     return OpMapHolder.OPMAP;
   }
 
-  private static CreateMode convertMetaClientMode(MetaClientInterface.EntryMode entryMode) throws KeeperException {
+  public static CreateMode convertMetaClientMode(MetaClientInterface.EntryMode entryMode) throws KeeperException {
     switch (entryMode) {
       case PERSISTENT:
         return CreateMode.PERSISTENT;

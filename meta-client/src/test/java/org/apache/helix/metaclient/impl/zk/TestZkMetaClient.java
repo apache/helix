@@ -49,6 +49,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.CONTAINER;
 import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.PERSISTENT;
 
 
@@ -65,8 +66,16 @@ public class TestZkMetaClient {
 
   private ZkServer _zkServer;
 
+  /**
+   * Creates local Zk Server
+   * Note: Cannot test container / TTL node end to end behavior as
+   * the zk server setup doesn't allow for that. However, the actual
+   * behavior has been verified to work on native ZK Client.
+   * TODO: Change zk server setup to test TTL and Container Node behavior
+   */
   @BeforeClass
   public void prepare() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // start local zookeeper server
     _zkServer = startZkServer(ZK_ADDR);
   }
@@ -92,6 +101,16 @@ public class TestZkMetaClient {
     }
   }
 
+  @Test
+  public void testCreateContainer() {
+    final String key = "/TestZkMetaClient_testCreateContainer";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.create(key, ENTRY_STRING_VALUE, CONTAINER);
+      Assert.assertNotNull(zkMetaClient.exists(key));
+    }
+  }
+  
   @Test
   public void testGet() {
     final String key = "/TestZkMetaClient_testGet";

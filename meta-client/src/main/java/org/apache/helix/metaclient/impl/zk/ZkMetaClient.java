@@ -75,20 +75,9 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   public void create(String key, Object data, MetaClientInterface.EntryMode mode) {
 
     try{
-      _zkClient.create(key, data, metaClientModeToZkMode(mode));
+      _zkClient.create(key, data, ZkMetaClientUtil.convertMetaClientMode(mode));
     } catch (ZkException | KeeperException e) {
       throw new MetaClientException(e);
-    }
-  }
-
-  private static CreateMode metaClientModeToZkMode(EntryMode mode) throws KeeperException {
-    switch (mode) {
-      case PERSISTENT:
-        return CreateMode.PERSISTENT;
-      case EPHEMERAL:
-        return CreateMode.EPHEMERAL;
-      default:
-        return CreateMode.PERSISTENT;
     }
   }
 

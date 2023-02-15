@@ -222,7 +222,7 @@ public class TestZkMetaClient {
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
       MockDataChangeListener listener = new MockDataChangeListener();
-      zkMetaClient.subscribeDataChange(path, listener, false, true);
+      zkMetaClient.subscribeDataChange(path, listener, false);
       zkMetaClient.create(path, "test-node");
       int expectedCallCount = 0;
       synchronized (_syncObject) {
@@ -260,7 +260,7 @@ public class TestZkMetaClient {
       }
       // register a new non-persistent listener
       try {
-        zkMetaClient.subscribeDataChange(path, new MockDataChangeListener(), false, false);
+        zkMetaClient.subscribeOneTimeDataChange(path, new MockDataChangeListener(), false);
         Assert.fail("One-time listener is not supported, NotImplementedException should be thrown.");
       } catch (NotImplementedException e) {
         // expected
@@ -293,7 +293,7 @@ public class TestZkMetaClient {
             }
           };
           listeners.get(path).add(listener);
-          zkMetaClient.subscribeDataChange(path, listener, false, true);
+          zkMetaClient.subscribeDataChange(path, listener, false);
         }
       }
       zkMetaClient.set(basePath + "_1", testData, -1);
@@ -317,7 +317,7 @@ public class TestZkMetaClient {
       };
       zkMetaClient.create(basePath, "");
       Assert.assertTrue(
-          zkMetaClient.subscribeDirectChildChange(basePath, listener, false, true)
+          zkMetaClient.subscribeDirectChildChange(basePath, listener, false)
               .isRegistered());
       zkMetaClient.create(basePath + "/child_1", "test-data");
       //TODO: the native zkclient failed to provide persistent listener, and event might be lost.

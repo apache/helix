@@ -253,36 +253,26 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public boolean subscribeDataChange(String key, DataChangeListener listener,
-      boolean skipWatchingNonExistNode, boolean persistListener) {
-    if (!persistListener) {
-      throw new NotImplementedException("Currently the non-persist (one-time) listener is not supported in ZkMetaClient.");
-    }
+  public boolean subscribeDataChange(String key, DataChangeListener listener, boolean skipWatchingNonExistNode) {
     _zkClient.subscribeDataChanges(key, new DataListenerAdapter(listener));
     return false;
   }
 
   @Override
   public DirectChildSubscribeResult subscribeDirectChildChange(String key,
-      DirectChildChangeListener listener, boolean skipWatchingNonExistNode,
-      boolean persistListener) {
-    if (!persistListener) {
-      throw new NotImplementedException("Currently the non-persist (one-time) listener is not supported in ZkMetaClient.");
-    }
+      DirectChildChangeListener listener, boolean skipWatchingNonExistNode) {
     ChildrenSubscribeResult result =
         _zkClient.subscribeChildChanges(key, new DirectChildListenerAdapter(listener), skipWatchingNonExistNode);
     return new DirectChildSubscribeResult(result.getChildren(), result.isInstalled());
   }
 
   @Override
-  public boolean subscribeStateChanges(ConnectStateChangeListener listener,
-      boolean persistListener) {
+  public boolean subscribeStateChanges(ConnectStateChangeListener listener) {
     return false;
   }
 
   @Override
-  public boolean subscribeChildChanges(String key, ChildChangeListener listener,
-      boolean skipWatchingNonExistNode, boolean persistListener) {
+  public boolean subscribeChildChanges(String key, ChildChangeListener listener, boolean skipWatchingNonExistNode) {
     return false;
   }
 

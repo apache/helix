@@ -75,6 +75,8 @@ public class TestZkMetaClient {
    * setup must invoke ContainerManager.java. However, the actual
    * behavior has been verified to work on native ZK Client.
    * TODO: Modify zk server setup to include ContainerManager.
+   * This can be done through ZooKeeperServerMain.java or
+   * LeaderZooKeeperServer.java.
    */
   @BeforeClass
   public void prepare() {

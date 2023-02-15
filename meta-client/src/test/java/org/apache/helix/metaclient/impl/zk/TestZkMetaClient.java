@@ -71,9 +71,10 @@ public class TestZkMetaClient {
   /**
    * Creates local Zk Server
    * Note: Cannot test container / TTL node end to end behavior as
-   * the zk server setup doesn't allow for that. However, the actual
+   * the zk server setup doesn't allow for that. To enable this, zk server
+   * setup must invoke ContainerManager.java. However, the actual
    * behavior has been verified to work on native ZK Client.
-   * TODO: Change zk server setup to test TTL and Container Node behavior
+   * TODO: Modify zk server setup to include ContainerManager.
    */
   @BeforeClass
   public void prepare() {

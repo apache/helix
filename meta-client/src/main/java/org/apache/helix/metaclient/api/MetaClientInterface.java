@@ -22,6 +22,7 @@ package org.apache.helix.metaclient.api;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.metaclient.exception.MetaClientInterruptException;
 import org.apache.helix.metaclient.exception.MetaClientTimeoutException;
 
@@ -378,61 +379,105 @@ public interface MetaClientInterface<T> {
   /**
    * Subscribe change of a particular entry. Including entry data change, entry deletion and creation
    * of the given key.
+   * The listener should be permanent until it's unsubscribed.
    * @param key Key to identify the entry
    * @param listener An implementation of DataChangeListener
    *                 @see org.apache.helix.metaclient.api.DataChangeListener
    * @param skipWatchingNonExistNode Will not register lister to an non-exist key if set to true.
    *                                 Please set to false if you are expecting ENTRY_CREATED type.
-   * @param persistListener The listener will persist when set to true. Otherwise it will be a one
-   *                        time triggered listener.
    * @return Return an boolean indication if subscribe succeeded.
    */
-  boolean subscribeDataChange(String key, DataChangeListener listener,
-       boolean skipWatchingNonExistNode, boolean persistListener);
+  boolean subscribeDataChange(String key, DataChangeListener listener, boolean skipWatchingNonExistNode);
+
+  /**
+   * Subscribe a one-time change of a particular entry. Including entry data change, entry deletion and creation
+   * of the given key.
+   * The implementation should use at-most-once delivery semantic.
+   * @param key Key to identify the entry
+   * @param listener An implementation of DataChangeListener
+   *                 @see org.apache.helix.metaclient.api.DataChangeListener
+   * @param skipWatchingNonExistNode Will not register lister to an non-exist key if set to true.
+   *                                 Please set to false if you are expecting ENTRY_CREATED type.
+   * @return Return an boolean indication if subscribe succeeded.
+   */
+  default boolean subscribeOneTimeDataChange(String key, DataChangeListener listener,
+      boolean skipWatchingNonExistNode) {
+    throw new NotImplementedException("subscribeOneTimeDataChange is not implemented");
+  }
 
   /**
    * Subscribe for direct child change event on a particular key. It includes new child
    * creation or deletion. It does not include existing child data change.
+   * The listener should be permanent until it's unsubscribed.
    * For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
    * For flat key spaces, it refers to keys that matches `prefix*separator`.
    * @param key key to identify the entry.
    * @param listener An implementation of DirectSubEntryChangeListener.
    *                 @see org.apache.helix.metaclient.api.DirectChildChangeListener
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
-   * @param persistListener The listener will persist when set to true. Otherwise it will be a one
-   *                        time triggered listener.
    *
    * @return Return an DirectSubEntrySubscribeResult. It will contain a list of direct sub children if
    *         subscribe succeeded.
    */
   DirectChildSubscribeResult subscribeDirectChildChange(String key,
-      DirectChildChangeListener listener, boolean skipWatchingNonExistNode,
-      boolean persistListener);
+      DirectChildChangeListener listener, boolean skipWatchingNonExistNode);
+
+  /**
+   * Subscribe for a one-time direct child change event on a particular key. It includes new child
+   * creation or deletion. It does not include existing child data change.
+   * The implementation should use at-most-once delivery semantic.
+   * For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
+   * For flat key spaces, it refers to keys that matches `prefix*separator`.
+   *
+   * @param key key to identify the entry.
+   * @param listener An implementation of DirectSubEntryChangeListener.
+   *                 @see org.apache.helix.metaclient.api.DirectChildChangeListener
+   * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
+   *
+   * @return Return an DirectSubEntrySubscribeResult. It will contain a list of direct sub children if
+   *         subscribe succeeded.
+   */
+  default DirectChildSubscribeResult subscribeOneTimeDirectChildChange(String key,
+      DirectChildChangeListener listener, boolean skipWatchingNonExistNode) {
+    throw new NotImplementedException("subscribeOneTimeDirectChildChange is not implemented");
+  }
 
   /**
    * Subscribe for connection state change.
+   * The listener should be permanent until it's unsubscribed.
    * @param listener An implementation of ConnectStateChangeListener.
    *                 @see org.apache.helix.metaclient.api.ConnectStateChangeListener
-   * @param persistListener The listener will persist when set to true. Otherwise it will be a one
-   *                        time triggered listener.
    *
    * @return Return an boolean indication if subscribe succeeded.
    */
-  boolean subscribeStateChanges(ConnectStateChangeListener listener, boolean persistListener);
+  boolean subscribeStateChanges(ConnectStateChangeListener listener);
 
   /**
    * Subscribe change for all children including entry change and data change.
+   * The listener should be permanent until it's unsubscribed.
    * For hierarchy key spaces like zookeeper, it would watch the whole tree structure.
    * For flat key spaces, it would watch for keys with certain prefix.
    * @param key key to identify the entry.
    * @param listener An implementation of ChildChangeListener.
    *                 @see org.apache.helix.metaclient.api.ChildChangeListener
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
-   * @param persistListener The listener will persist when set to true. Otherwise it will be a one
-   *                        time triggered listener.
    */
-  boolean subscribeChildChanges(String key, ChildChangeListener listener,
-      boolean skipWatchingNonExistNode, boolean persistListener);
+  boolean subscribeChildChanges(String key, ChildChangeListener listener, boolean skipWatchingNonExistNode);
+
+  /**
+   * Subscribe a one-time change for all children including entry change and data change.
+   * The implementation should use at-most-once delivery semantic.
+   * For hierarchy key spaces like zookeeper, it would watch the whole tree structure.
+   * For flat key spaces, it would watch for keys with certain prefix.
+   * @param key key to identify the entry.
+   * @param listener An implementation of ChildChangeListener.
+   *                 @see org.apache.helix.metaclient.api.ChildChangeListener
+   * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
+   */
+  default boolean subscribeOneTimeChildChanges(String key, ChildChangeListener listener,
+      boolean skipWatchingNonExistNode) {
+    throw new NotImplementedException("subscribeOneTimeChildChanges is not implemented");
+  }
 
   /**
    * Unsubscribe the listener to further changes. No-op if the listener is not subscribed to the key.

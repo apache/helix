@@ -42,9 +42,11 @@ public class ZkMetaClientGetCallbackHandler extends ZkAsyncCallbacks.GetDataCall
     _userCallback = cb;
   }
 
+
+  // Call user passed in callback. Will pass a null for stats if get operation fails.
   @Override
   public void handle() {
-    _userCallback.processResult(getRc(), getPath(), null, getData(),
+    _userCallback.processResult(getRc(), getPath(), getData(),
         getStat() == null ? null : new MetaClientInterface.Stat(
             ZkMetaClientUtil.convertZkEntryModeToMetaClientEntryMode(getStat().getEphemeralOwner()),
             getStat().getVersion()));

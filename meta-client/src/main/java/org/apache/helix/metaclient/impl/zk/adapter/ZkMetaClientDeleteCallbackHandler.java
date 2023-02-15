@@ -42,6 +42,6 @@ public  class ZkMetaClientDeleteCallbackHandler extends ZkAsyncCallbacks.DeleteC
 
   @Override
   public void handle() {
-    _userCallback.processResult(getRc(), getPath(), null);
+    _userCallback.processResult(getRc(), getPath());
   }
 }

@@ -43,8 +43,6 @@ public  class ZkMetaClientCreateCallbackHandler extends ZkAsyncCallbacks.CreateC
 
   @Override
   public void handle() {
-    // TODO: the processResult is changed in another PR. Will remove the `null` param when
-    // dependent PR is merged
-    _userCallback.processResult(getRc(), getPath(), null);
+    _userCallback.processResult(getRc(), getPath());
   }
 }

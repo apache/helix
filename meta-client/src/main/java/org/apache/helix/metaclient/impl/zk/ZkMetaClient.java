@@ -36,6 +36,11 @@ import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
+import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientCreateCallbackHandler;
+import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientDeleteCallbackHandler;
+import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientExistCallbackHandler;
+import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientGetCallbackHandler;
+import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientSetCallbackHandler;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
@@ -44,6 +49,8 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.server.EphemeralType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +58,7 @@ import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZ
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
-  private static final Logger LOG  = LoggerFactory.getLogger(ZkMetaClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZkMetaClient.class);
   private final ZkClient _zkClient;
   private final int _connectionTimeout;
 
@@ -93,7 +100,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public T update( String key, DataUpdater<T> updater) {
+  public T update(String key, DataUpdater<T> updater) {
     org.apache.zookeeper.data.Stat stat = new org.apache.zookeeper.data.Stat();
     // TODO: add retry logic for ZkBadVersionException.
     try {
@@ -167,57 +174,67 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   // corresponding callbacks for each operation are invoked in order.
   @Override
   public void setAsyncExecPoolSize(int poolSize) {
-
+    throw new UnsupportedOperationException(
+        "All async calls are executed at the current client thread.");
   }
 
   @Override
   public void asyncCreate(String key, Object data, EntryMode mode, AsyncCallback.VoidCallback cb) {
-
+    try {
+      _zkClient.asyncCreate(key, data, ZkMetaClientUtil.convertMetaClientMode(mode),
+          new ZkMetaClientCreateCallbackHandler(cb));
+    } catch (KeeperException e) {
+      throw translateZkExceptionToMetaclientException(ZkException.create(e));
+    }
   }
 
   @Override
-  public void asyncSet(String key, T data, int version, AsyncCallback.StatCallback cb) {
-
-  }
-
-  @Override
-  public void asyncUpdate(String key, DataUpdater updater, AsyncCallback.DataCallback cb) {
-
+  public void asyncUpdate(String key, DataUpdater<T> updater, AsyncCallback.DataCallback cb) {
+    throw new NotImplementedException("Currently asyncUpdate is not supported in ZkMetaClient.");
+    /*
+     * TODO:  Only Helix has potential using this API as of now.  (ZkBaseDataAccessor.update())
+     *  Will move impl from ZkBaseDataAccessor to here when retiring ZkBaseDataAccessor.
+     */
   }
 
   @Override
   public void asyncGet(String key, AsyncCallback.DataCallback cb) {
-
+    _zkClient.asyncGetData(key,
+        new ZkMetaClientGetCallbackHandler(cb));
   }
 
   @Override
   public void asyncCountChildren(String key, AsyncCallback.DataCallback cb) {
+    throw new NotImplementedException(
+        "Currently asyncCountChildren is not supported in ZkMetaClient.");
+    /*
+     * TODO:  Only Helix has potential using this API as of now. (ZkBaseDataAccessor.getChildren())
+     *  Will move impl from ZkBaseDataAccessor to here when retiring ZkBaseDataAccessor.
+     */
 
   }
 
   @Override
   public void asyncExist(String key, AsyncCallback.StatCallback cb) {
+    _zkClient.asyncExists(key,
+        new ZkMetaClientExistCallbackHandler(cb));
+  }
+
+  public void asyncDelete(String key, AsyncCallback.VoidCallback cb) {
+    _zkClient.asyncDelete(key, new ZkMetaClientDeleteCallbackHandler(cb));
+  }
+
+  @Override
+  public void asyncTransaction(Iterable<Op> ops, AsyncCallback.TransactionCallback cb) {
+    throw new NotImplementedException(
+        "Currently asyncTransaction is not supported in ZkMetaClient.");
 
   }
 
   @Override
-  public void asyncDelete(String keys, AsyncCallback.VoidCallback cb) {
-
-  }
-
-  @Override
-  public boolean[] create(List key, List data, List mode) {
-    return new boolean[0];
-  }
-
-  @Override
-  public boolean[] create(List key, List data) {
-    return new boolean[0];
-  }
-
-  @Override
-  public void asyncTransaction(Iterable iterable, AsyncCallback.TransactionCallback cb) {
-
+  public void asyncSet(String key, T data, int version, AsyncCallback.StatCallback cb) {
+    _zkClient.asyncSetData(key, data, version,
+        new ZkMetaClientSetCallbackHandler(cb));
   }
 
   @Override
@@ -291,6 +308,16 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
+  public boolean[] create(List key, List data, List mode) {
+    return new boolean[0];
+  }
+
+  @Override
+  public boolean[] create(List key, List data) {
+    return new boolean[0];
+  }
+
+  @Override
   public boolean[] delete(List keys) {
     return new boolean[0];
   }
@@ -328,5 +355,9 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     List<org.apache.zookeeper.OpResult> zkResult = _zkClient.multi(zkOps);
     // Convert list of Zk OpResults to MetaClient OpResults
     return ZkMetaClientUtil.zkOpResultToMetaClientOpResults(zkResult);
+  }
+
+  public T deserialize(byte[] bytes, String path) {
+    return _zkClient.deserialize(bytes, path);
   }
 }

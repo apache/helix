@@ -49,8 +49,6 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.server.EphemeralType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,24 +166,26 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   // thread. In our first version of implementation, we will keep similar behavior and have
   // callbacks executed in ZkClient event thread, and reuse zkclient retry logic.
 
-  // It is highly recommended NOT to perform any blocking operation inside the callbacks.
+  // It is highly recommended *NOT* to perform any blocking operation inside the callbacks.
   // If you block the thread the meta client won't process other events.
 
   // corresponding callbacks for each operation are invoked in order.
   @Override
   public void setAsyncExecPoolSize(int poolSize) {
     throw new UnsupportedOperationException(
-        "All async calls are executed at the current client thread.");
+        "All async calls are executed in a single thread to maintain sequence.");
   }
 
   @Override
   public void asyncCreate(String key, Object data, EntryMode mode, AsyncCallback.VoidCallback cb) {
+    CreateMode entryMode;
     try {
-      _zkClient.asyncCreate(key, data, ZkMetaClientUtil.convertMetaClientMode(mode),
-          new ZkMetaClientCreateCallbackHandler(cb));
-    } catch (KeeperException e) {
-      throw translateZkExceptionToMetaclientException(ZkException.create(e));
+      entryMode = ZkMetaClientUtil.convertMetaClientMode(mode);
+    } catch (ZkException | KeeperException e) {
+      throw new MetaClientException(e);
     }
+    _zkClient.asyncCreate(key, data, entryMode,
+          new ZkMetaClientCreateCallbackHandler(cb));
   }
 
   @Override
@@ -229,6 +229,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     throw new NotImplementedException(
         "Currently asyncTransaction is not supported in ZkMetaClient.");
 
+     //TODO: There is no active use case for Async transaction.
   }
 
   @Override
@@ -357,6 +358,12 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return ZkMetaClientUtil.zkOpResultToMetaClientOpResults(zkResult);
   }
 
+  @Override
+  public byte[] serialize(T data, String path) {
+    return _zkClient.serialize(data, path);
+  }
+
+  @Override
   public T deserialize(byte[] bytes, String path) {
     return _zkClient.deserialize(bytes, path);
   }

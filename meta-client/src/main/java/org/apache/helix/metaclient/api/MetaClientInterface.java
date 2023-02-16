@@ -515,5 +515,9 @@ public interface MetaClientInterface<T> {
    */
   boolean waitUntilExists(String key, TimeUnit timeUnit, long timeOut);
 
+  public byte[] serialize(T data, String path);
+
+  public T deserialize(byte[] bytes, String path);
+
   // TODO: Secure CRUD APIs
 }

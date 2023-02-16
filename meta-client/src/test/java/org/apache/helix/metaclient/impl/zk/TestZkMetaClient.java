@@ -72,31 +72,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
   private final Object _syncObject = new Object();
 
-
-  private ZkServer _zkServer;
-
-  /**
-   * Creates local Zk Server
-   * Note: Cannot test container / TTL node end to end behavior as
-   * the zk server setup doesn't allow for that. To enable this, zk server
-   * setup must invoke ContainerManager.java. However, the actual
-   * behavior has been verified to work on native ZK Client.
-   * TODO: Modify zk server setup to include ContainerManager.
-   * This can be done through ZooKeeperServerMain.java or
-   * LeaderZooKeeperServer.java.
-   */
-  @BeforeClass
-  public void prepare() {
-    System.setProperty("zookeeper.extendedTypesEnabled", "true");
-    // start local zookeeper server
-    _zkServer = startZkServer(ZK_ADDR);
-  }
-
-  @AfterClass
-  public void cleanUp() {
-    _zkServer.shutdown();
-  }
-
   @Test
   public void testCreate() {
     final String key = "/TestZkMetaClient_testCreate";

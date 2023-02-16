@@ -21,33 +21,16 @@ package org.apache.helix.metaclient.impl.zk;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
-import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
+import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeSuite;
 
 
 public abstract class ZkMetaClientTestBase {
-
-  // A Serializer for test. transfer byte <-> String
-  public static class TestStringSerializer implements PathBasedZkSerializer {
-
-    @Override
-    public byte[] serialize(Object data, String path) throws ZkMarshallingError {
-      return ((String) data).getBytes();
-    }
-
-    @Override
-    public Object deserialize(byte[] bytes, String path) throws ZkMarshallingError {
-      return new String(bytes, StandardCharsets.UTF_8);
-    }
-  }
 
   protected static final String ZK_ADDR = "localhost:2183";
   protected static final int DEFAULT_TIMEOUT_MS = 1000;
@@ -57,13 +40,24 @@ public abstract class ZkMetaClientTestBase {
 
   private ZkServer _zkServer;
 
-  @BeforeClass
+
+  /**
+   * Creates local Zk Server
+   * Note: Cannot test container / TTL node end to end behavior as
+   * the zk server setup doesn't allow for that. To enable this, zk server
+   * setup must invoke ContainerManager.java. However, the actual
+   * behavior has been verified to work on native ZK Client.
+   * TODO: Modify zk server setup to include ContainerManager.
+   * This can be done through ZooKeeperServerMain.java or
+   * LeaderZooKeeperServer.java.
+   */
+  @BeforeSuite
   public void prepare() {
     // start local zookeeper server
     _zkServer = startZkServer(ZK_ADDR);
   }
 
-  @AfterClass
+  @AfterSuite
   public void cleanUp() {
     _zkServer.shutdown();
   }
@@ -98,7 +92,4 @@ public abstract class ZkMetaClientTestBase {
     zkServer.start();
     return zkServer;
   }
-
-
-
 }

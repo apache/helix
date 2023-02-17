@@ -966,4 +966,46 @@ public class Message extends HelixProperty {
     }
     return true;
   }
+
+  /**
+   * This class is for categorizing state transition messages based on certain properties, and generating
+   */
+  public static class MessageInfo {
+    public String _msgType;
+    public String _resourceName;
+    public String _fromState;
+    public String _toState;
+
+    public enum MessageIdentifierBase {
+      PER_MSG_TYPE, PER_RESOURCE, PER_STATE_TRANSITION_TYPE
+    }
+
+    public MessageInfo(Message message) {
+      _msgType = message.getMsgType();
+      _resourceName = message.getResourceName();
+      _fromState = message.getFromState();
+      _toState = message.getToState();
+    }
+
+    public String getMessageIdentifier(MessageIdentifierBase basis) {
+      String delimiter = ".";
+      if (_msgType == null) {
+        return null;
+      }
+      String identifier = _msgType;
+      if (basis.ordinal() >= MessageIdentifierBase.PER_RESOURCE.ordinal()) {
+        if (_resourceName == null) {
+          return null;
+        }
+        identifier = String.join(delimiter, identifier, _resourceName);
+      }
+      if (basis.ordinal() >= MessageIdentifierBase.PER_STATE_TRANSITION_TYPE.ordinal()) {
+        if (_fromState == null || _toState == null) {
+          return null;
+        }
+        identifier = String.join(delimiter, identifier, _fromState, _toState);
+      }
+      return identifier;
+    }
+  }
 }

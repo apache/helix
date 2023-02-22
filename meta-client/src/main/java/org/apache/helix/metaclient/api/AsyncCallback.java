@@ -28,8 +28,8 @@ import javax.annotation.Nullable;
  * The corresponding callback is registered when async CRUD API is invoked. Implementation processes
  * the result of each CRUD call. It should check return code and perform accordingly.
  */
-// TODO: define return code. failure code should map to MetaClient exceptions.
 public interface AsyncCallback {
+
   //This callback is used when stat object is returned from the operation.
   interface StatCallback extends AsyncCallback {
     /**

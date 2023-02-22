@@ -27,6 +27,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.helix.metaclient.api.DataUpdater;
+import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.exception.MetaClientException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.DirectChildChangeListener;
@@ -55,7 +62,7 @@ import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.CONT
 import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.PERSISTENT;
 
 
-public class TestZkMetaClient {
+public class TestZkMetaClient extends ZkMetaClientTestBase{
 
   private static final String ZK_ADDR = "localhost:2183";
   private static final int DEFAULT_TIMEOUT_MS = 1000;
@@ -64,31 +71,6 @@ public class TestZkMetaClient {
   private static final String TEST_INVALID_PATH = "_invalid/a/b/c";
 
   private final Object _syncObject = new Object();
-
-
-  private ZkServer _zkServer;
-
-  /**
-   * Creates local Zk Server
-   * Note: Cannot test container / TTL node end to end behavior as
-   * the zk server setup doesn't allow for that. To enable this, zk server
-   * setup must invoke ContainerManager.java. However, the actual
-   * behavior has been verified to work on native ZK Client.
-   * TODO: Modify zk server setup to include ContainerManager.
-   * This can be done through ZooKeeperServerMain.java or
-   * LeaderZooKeeperServer.java.
-   */
-  @BeforeClass
-  public void prepare() {
-    System.setProperty("zookeeper.extendedTypesEnabled", "true");
-    // start local zookeeper server
-    _zkServer = startZkServer(ZK_ADDR);
-  }
-
-  @AfterClass
-  public void cleanUp() {
-    _zkServer.shutdown();
-  }
 
   @Test
   public void testCreate() {
@@ -115,7 +97,7 @@ public class TestZkMetaClient {
       Assert.assertNotNull(zkMetaClient.exists(key));
     }
   }
-  
+
   @Test
   public void testGet() {
     final String key = "/TestZkMetaClient_testGet";
@@ -350,37 +332,6 @@ public class TestZkMetaClient {
       zkMetaClient.create(basePath + "/child_3", "test-data");
       Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
     }
-  }
-
-  // TODO: Create a ZkMetadata test base class and move these helper to base class when more tests
-  // are added.
-  private static ZkMetaClient<String> createZkMetaClient() {
-    ZkMetaClientConfig config =
-        new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
-    return new ZkMetaClient<>(config);
-  }
-
-  private static ZkServer startZkServer(final String zkAddress) {
-    String zkDir = zkAddress.replace(':', '_');
-    final String logDir = "/tmp/" + zkDir + "/logs";
-    final String dataDir = "/tmp/" + zkDir + "/dataDir";
-
-    // Clean up local directory
-    try {
-      FileUtils.deleteDirectory(new File(dataDir));
-      FileUtils.deleteDirectory(new File(logDir));
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    IDefaultNameSpace defaultNameSpace = zkClient -> {
-    };
-
-    int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
-    System.out.println("Starting ZK server at " + zkAddress);
-    ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
-    zkServer.start();
-    return zkServer;
   }
 
   /**

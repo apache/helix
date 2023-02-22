@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.impl.zk;
  */
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -35,6 +36,7 @@ public class TestZkMetaClientAsyncOperations extends ZkMetaClientTestBase {
   static TestAsyncContext[] asyncContext = new TestAsyncContext[1];
   static final String entryKey = "/TestAsyncEntryKey";
   static final String nonExistsEntry = "/a/b/c";
+  static final long LATCH_WAIT_TIMEOUT_IN_S = 3 * 60;
 
   static class TestAsyncContext {
     int _asyncCallSize;
@@ -109,7 +111,7 @@ public class TestZkMetaClientAsyncOperations extends ZkMetaClientTestBase {
             }
           });
 
-      asyncContext[0].getCountDownLatch().await();
+      asyncContext[0].getCountDownLatch().await(LATCH_WAIT_TIMEOUT_IN_S, TimeUnit.SECONDS);
 
       Assert.assertEquals(asyncContext[0].getReturnCode(0), KeeperException.Code.OK.intValue());
       Assert.assertEquals(asyncContext[0].getReturnCode(1), KeeperException.Code.NONODE.intValue());
@@ -125,7 +127,7 @@ public class TestZkMetaClientAsyncOperations extends ZkMetaClientTestBase {
                   asyncContext[0].countDown();
                 }
               });
-      asyncContext[0].getCountDownLatch().await();
+      asyncContext[0].getCountDownLatch().await(LATCH_WAIT_TIMEOUT_IN_S, TimeUnit.SECONDS);
       Assert.assertEquals(asyncContext[0].getReturnCode(0),
           KeeperException.Code.NODEEXISTS.intValue());
 
@@ -143,7 +145,7 @@ public class TestZkMetaClientAsyncOperations extends ZkMetaClientTestBase {
                   asyncContext[0].countDown();
                 }
               });
-      asyncContext[0].getCountDownLatch().await();
+      asyncContext[0].getCountDownLatch().await(LATCH_WAIT_TIMEOUT_IN_S, TimeUnit.SECONDS);
       Assert.assertEquals(asyncContext[0].getReturnCode(0),
           KeeperException.Code.OK.intValue());
       Assert.assertEquals(asyncContext[0].getStats(0).getEntryType(),
@@ -163,7 +165,7 @@ public class TestZkMetaClientAsyncOperations extends ZkMetaClientTestBase {
         }
       });
 
-      asyncContext[0].getCountDownLatch().await();
+      asyncContext[0].getCountDownLatch().await(LATCH_WAIT_TIMEOUT_IN_S, TimeUnit.SECONDS);
 
       Assert.assertEquals(asyncContext[0].getReturnCode(0), KeeperException.Code.OK.intValue());
       Assert.assertEquals(asyncContext[0].getStats(0).getEntryType(),
@@ -199,7 +201,7 @@ public class TestZkMetaClientAsyncOperations extends ZkMetaClientTestBase {
         }
       });
 
-      asyncContext[0].getCountDownLatch().await();
+      asyncContext[0].getCountDownLatch().await(LATCH_WAIT_TIMEOUT_IN_S, TimeUnit.SECONDS);
 
       Assert.assertEquals(asyncContext[0].getReturnCode(0), KeeperException.Code.OK.intValue());
       Assert.assertEquals(asyncContext[0].getStats(0).getEntryType(),
@@ -218,7 +220,7 @@ public class TestZkMetaClientAsyncOperations extends ZkMetaClientTestBase {
         }
       });
 
-      asyncContext[0].getCountDownLatch().await();
+      asyncContext[0].getCountDownLatch().await(LATCH_WAIT_TIMEOUT_IN_S, TimeUnit.SECONDS);
 
       Assert.assertEquals(asyncContext[0].getReturnCode(0), KeeperException.Code.OK.intValue());
 

@@ -515,9 +515,23 @@ public interface MetaClientInterface<T> {
    */
   boolean waitUntilExists(String key, TimeUnit timeUnit, long timeOut);
 
-  public byte[] serialize(T data, String path);
+  /**
+   * Serialize the data in type T to a byte array. This function can be used in API that returns or
+   * has input value in byte array format.
+   * @param data to be serialized.
+   * @param path timeout unit
+   * @return
+   */
+   byte[] serialize(T data, String path);
 
-  public T deserialize(byte[] bytes, String path);
+  /**
+   * Serialize a byte array to data in type T. This function can be used in API that returns or
+   * has input value in byte array format.
+   * @param bytes to be deserialized.
+   * @param path timeout unit
+   * @return
+   */
+   T deserialize(byte[] bytes, String path);
 
   // TODO: Secure CRUD APIs
 }

@@ -35,11 +35,7 @@ public abstract class ZkMetaClientTestBase {
   protected static final String ZK_ADDR = "localhost:2183";
   protected static final int DEFAULT_TIMEOUT_MS = 1000;
   protected static final String ENTRY_STRING_VALUE = "test-value";
-
-  private final Object _syncObject = new Object();
-
-  private ZkServer _zkServer;
-
+  private static ZkServer _zkServer;
 
   /**
    * Creates local Zk Server

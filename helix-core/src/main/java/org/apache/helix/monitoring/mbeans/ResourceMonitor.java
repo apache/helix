@@ -54,7 +54,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   // Gauges
   private SimpleDynamicMetric<Long> _numOfPartitions;
-  private SimpleDynamicMetric<Long> _missingTopStatePartitionsBeyondThresholdGuage;
+  private SimpleDynamicMetric<Long> _missingTopStatePartitionsBeyondThresholdGauge;
   private SimpleDynamicMetric<Long> _numOfPartitionsInExternalView;
   private SimpleDynamicMetric<Long> _numOfErrorPartitions;
   private SimpleDynamicMetric<Long> _numNonTopStatePartitions;
@@ -128,7 +128,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numLessMinActiveReplicaPartitions =
         new SimpleDynamicMetric("MissingMinActiveReplicaPartitionGauge", 0L);
     _numNonTopStatePartitions = new SimpleDynamicMetric("MissingTopStatePartitionGauge", 0L);
-    _missingTopStatePartitionsBeyondThresholdGuage = new SimpleDynamicMetric("MissingTopStatePartitionsBeyondThresholdGauge", 0L);
+    _missingTopStatePartitionsBeyondThresholdGauge = new SimpleDynamicMetric("MissingTopStatePartitionsBeyondThresholdGauge", 0L);
     _numOfErrorPartitions = new SimpleDynamicMetric("ErrorPartitionGauge", 0L);
     _numOfPartitionsInExternalView = new SimpleDynamicMetric("ExternalViewPartitionGauge", 0L);
     _numOfPartitions = new SimpleDynamicMetric("PartitionGauge", 0L);
@@ -178,7 +178,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   }
 
   public long getMissingTopStatePartitionsBeyondThresholdGuage() {
-    return _missingTopStatePartitionsBeyondThresholdGuage.getValue();
+    return _missingTopStatePartitionsBeyondThresholdGauge.getValue();
   }
 
   public long getDifferenceWithIdealStateGauge() {
@@ -378,8 +378,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         // TODO: Should be deprecated and not to be used. Instead of this counter a MissingTopStateBeyondThresholdGuage
         // should be used to find out number of partitions with missing top state.
         _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
-        _missingTopStatePartitionsBeyondThresholdGuage
-            .updateValue(_missingTopStatePartitionsBeyondThresholdGuage.getValue() + 1);
+        _missingTopStatePartitionsBeyondThresholdGauge
+            .updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() + 1);
         _lastResetTime = System.currentTimeMillis();
       }
       break;
@@ -476,7 +476,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   public void resetMaxTopStateHandoffGauge() {
     if (_lastResetTime + DEFAULT_RESET_INTERVAL_MS <= System.currentTimeMillis()) {
       _maxSinglePartitionTopStateHandoffDuration.updateValue(0L);
-      _missingTopStatePartitionsBeyondThresholdGuage.updateValue(0L);
+      _missingTopStatePartitionsBeyondThresholdGauge.updateValue(0L);
       _lastResetTime = System.currentTimeMillis();
     }
   }
@@ -487,7 +487,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         _numOfPartitionsInExternalView,
         _numOfErrorPartitions,
         _numNonTopStatePartitions,
-        _missingTopStatePartitionsBeyondThresholdGuage,
+        _missingTopStatePartitionsBeyondThresholdGauge,
         _numLessMinActiveReplicaPartitions,
         _numLessReplicaPartitions,
         _numPendingRecoveryRebalanceReplicas,

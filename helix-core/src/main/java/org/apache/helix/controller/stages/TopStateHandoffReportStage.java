@@ -206,7 +206,9 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
     if (missingTopStateMap.containsKey(resourceName) && missingTopStateMap.get(resourceName)
         .containsKey(partition.getPartitionName())) {
-      // We previously recorded a top state missing, and it's not coming back
+      // We previously recorded a top state missing, and it's coming back.
+      // Note : Decrement missingTopStatePartitionsBeyondGuage in this code path because this guage will be incremented
+      //        only if we were able to record it in the first place.
       reportTopStateComesBack(cache, currentStateOutput.getCurrentStateMap(resourceName, partition),
           resourceName, partition, clusterStatusMonitor, durationThreshold,
           stateModelDef.getTopState());
@@ -304,7 +306,8 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
   /**
    * Check if the given partition of the given resource has a missing top state duration larger
-   * than the threshold, if so, report a top state transition failure
+   * than the threshold, if so, report a top state transition failure as well increment a guage which reports number
+   * of partitions with missing top state.
    *
    * @param cache cluster data cache
    * @param resourceName resource name
@@ -471,6 +474,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       }
     }
 
+    // TODO: why are we checking if handoff happened within threshold here? it should be reported either way.
     if (handOffStartTime > 0 && handOffEndTime - handOffStartTime <= threshold) {
       long duration = handOffEndTime - handOffStartTime;
       long helixLatency = duration - fromTopStateUserLatency - toTopStateUserLatency;

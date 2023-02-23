@@ -71,6 +71,9 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   // Counters
   private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter;
   private SimpleDynamicMetric<Long> _successTopStateHandoffCounter;
+  // A new Gauage for reporting number of partitions with missing top state has been added. The main reason of deprecating
+  // this counter because it doesn't give clear picture on how many partitions are missing with top state at any point
+  // of time. New gauage will help with that. Please find more info at https://github.com/apache/helix/pull/2381
   @Deprecated
   private SimpleDynamicMetric<Long> _failedTopStateHandoffCounter;
   private SimpleDynamicMetric<Long> _maxSinglePartitionTopStateHandoffDuration;
@@ -80,6 +83,12 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   // Histograms
   private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge;
   private HistogramDynamicMetric _partitionTopStateHandoffHelixLatencyGauge;
+  // A new Gauage for reporting number of partitions with missing top state has been added. The main reason of deprecating
+  // this gauge because it's similar to other failedTopStateCounter and averaging out duration of all those handsoff
+  // won't really help in debugging the issue. Hence please use new gauage _missingTopStatePartitionsBeyondThresholdGauge
+  // to find number of partitions with missing top state beyond threshold and to find duration use
+  // _maxSinglePartitionTopStateHandoffDuration. New gauage will help with that. Please find more info at
+  // https://github.com/apache/helix/pull/2381
   @Deprecated
   private HistogramDynamicMetric _partitionTopStateNonGracefulHandoffDurationGauge;
 

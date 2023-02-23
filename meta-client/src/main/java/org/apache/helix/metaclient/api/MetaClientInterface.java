@@ -77,8 +77,8 @@ public interface MetaClientInterface<T> {
    * TODO: we will add session ID to entry stats in the future
    */
   class Stat {
-    private int _version;
-    private EntryMode _entryMode;
+    private final int _version;
+    private final EntryMode _entryMode;
 
     public EntryMode getEntryType() {
       return _entryMode;
@@ -97,7 +97,7 @@ public interface MetaClientInterface<T> {
   //synced CRUD API
 
   /**
-   * Create an persistent entry with given key and data. The entry will not be created if there is
+   * Create a persistent entry with given key and data. The entry will not be created if there is
    * an existing entry with the same key.
    * @param key key to identify the entry
    * @param data value of the entry
@@ -129,7 +129,7 @@ public interface MetaClientInterface<T> {
    * current data and apply updater upon the current data.
    * @param key key to identify the entry
    * @param updater An updater that modifies the entry value.
-   * @return: the updated value.
+   * @return the updated value.
    */
   T update(final String key, DataUpdater<T> updater);
 
@@ -161,7 +161,7 @@ public interface MetaClientInterface<T> {
    *            a parent key,
    *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
    *            be a prefix key.
-   * @eturn Return a list of children keys. Return direct child name only for hierarchical key
+   * @return Return a list of children keys. Return direct child name only for hierarchical key
    *        space, return the whole sub key for non-hierarchical key space.
    */
   List<String> getDirectChildrenKeys(final String key);
@@ -212,7 +212,7 @@ public interface MetaClientInterface<T> {
    * @param key key to identify the entry
    * @param data value of the entry
    * @param mode EntryMode identifying if the entry will be deleted upon client disconnect
-   * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
+   * @param cb A user defined VoidCallback implementation that will be invoked when async create return.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.VoidCallback
    */
   void asyncCreate(final String key, final T data, final EntryMode mode,
@@ -223,7 +223,7 @@ public interface MetaClientInterface<T> {
    * @param key key to identify the entry
    * @param data new data of the entry
    * @param version expected version if the entry. -1 matched any version
-   * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
+   * @param cb A user defined VoidCallback implementation that will be invoked when async create return.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.StatCallback
    */
   void asyncSet(final String key, final T data, final int version, AsyncCallback.StatCallback cb);
@@ -232,7 +232,7 @@ public interface MetaClientInterface<T> {
    * The asynchronous version of update.
    * @param key key to identify the entry
    * @param updater An updater that modifies the entry value.
-   * @param cb An user defined VoidCallback implementation that will be invoked when async create return.
+   * @param cb A user defined VoidCallback implementation that will be invoked when async create return.
    *           It will contain the newly updated data if update succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
    */
@@ -241,7 +241,7 @@ public interface MetaClientInterface<T> {
   /**
    * The asynchronous version of get.
    * @param key key to identify the entry
-   * @param cb An user defined VoidCallback implementation that will be invoked when async get return.
+   * @param cb A user defined VoidCallback implementation that will be invoked when async get return.
    *           It will contain the entry data if get succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
    */
@@ -250,7 +250,7 @@ public interface MetaClientInterface<T> {
   /**
    * The asynchronous version of get sub entries.
    * @param key key to identify the entry
-   * @param cb An user defined VoidCallback implementation that will be invoked when async count child return.
+   * @param cb A user defined VoidCallback implementation that will be invoked when async count child return.
    *           It will contain the list of child keys if succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
    */
@@ -259,7 +259,7 @@ public interface MetaClientInterface<T> {
   /**
    * The asynchronous version of get sub entries.
    * @param key key to identify the entry
-   * @param cb An user defined VoidCallback implementation that will be invoked when async exist return.
+   * @param cb A user defined VoidCallback implementation that will be invoked when async exist return.
    *           It will contain the stats of the entry if succeeded.
    *           @see org.apache.helix.metaclient.api.AsyncCallback.StatCallback
    */
@@ -268,7 +268,7 @@ public interface MetaClientInterface<T> {
   /**
    * The asynchronous version of delete.
    * @param key key to identify the entry
-   * @param cb An user defined VoidCallback implementation that will be invoked when async delete
+   * @param cb A user defined VoidCallback implementation that will be invoked when async delete
    *           finish and return.  @see org.apache.helix.metaclient.api.AsyncCallback.DataCallback
    */
   void asyncDelete(final String key, AsyncCallback.VoidCallback cb);
@@ -276,7 +276,7 @@ public interface MetaClientInterface<T> {
   /**
    * The asynchronous version of transaction operations.
    * @param ops A list of operations
-   * @param cb An user defined TransactionCallback implementation that will be invoked when
+   * @param cb A user defined TransactionCallback implementation that will be invoked when
    *           transaction operations finish and return. The TransactionCallback will contain
    *           either a list of OpResult if transaction finish successfully, or a return code
    *           indicating failure reason. @see org.apache.helix.metaclient.api.AsyncCallback.TransactionCallback
@@ -381,11 +381,10 @@ public interface MetaClientInterface<T> {
    * of the given key.
    * The listener should be permanent until it's unsubscribed.
    * @param key Key to identify the entry
-   * @param listener An implementation of DataChangeListener
-   *                 @see org.apache.helix.metaclient.api.DataChangeListener
-   * @param skipWatchingNonExistNode Will not register lister to an non-exist key if set to true.
+   * @param listener An implementation of {@link org.apache.helix.metaclient.api.DataChangeListener} to register
+   * @param skipWatchingNonExistNode Will not register lister to a non-exist key if set to true.
    *                                 Please set to false if you are expecting ENTRY_CREATED type.
-   * @return Return an boolean indication if subscribe succeeded.
+   * @return Return a boolean indication if subscribe succeeded.
    */
   boolean subscribeDataChange(String key, DataChangeListener listener, boolean skipWatchingNonExistNode);
 
@@ -394,11 +393,10 @@ public interface MetaClientInterface<T> {
    * of the given key.
    * The implementation should use at-most-once delivery semantic.
    * @param key Key to identify the entry
-   * @param listener An implementation of DataChangeListener
-   *                 @see org.apache.helix.metaclient.api.DataChangeListener
-   * @param skipWatchingNonExistNode Will not register lister to an non-exist key if set to true.
+   * @param listener An implementation of {@link org.apache.helix.metaclient.api.DataChangeListener} to register
+   * @param skipWatchingNonExistNode Will not register lister to a non-exist key if set to true.
    *                                 Please set to false if you are expecting ENTRY_CREATED type.
-   * @return Return an boolean indication if subscribe succeeded.
+   * @return Return a boolean indication if subscribe succeeded.
    */
   default boolean subscribeOneTimeDataChange(String key, DataChangeListener listener,
       boolean skipWatchingNonExistNode) {
@@ -412,11 +410,10 @@ public interface MetaClientInterface<T> {
    * For hierarchy key spaces like zookeeper, it refers to an entry's direct children nodes.
    * For flat key spaces, it refers to keys that matches `prefix*separator`.
    * @param key key to identify the entry.
-   * @param listener An implementation of DirectSubEntryChangeListener.
-   *                 @see org.apache.helix.metaclient.api.DirectChildChangeListener
+   * @param listener An implementation of {@link org.apache.helix.metaclient.api.DirectChildChangeListener} to register
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
    *
-   * @return Return an DirectSubEntrySubscribeResult. It will contain a list of direct sub children if
+   * @return Return a DirectChildSubscribeResult. It will contain a list of direct sub children if
    *         subscribe succeeded.
    */
   DirectChildSubscribeResult subscribeDirectChildChange(String key,
@@ -430,11 +427,10 @@ public interface MetaClientInterface<T> {
    * For flat key spaces, it refers to keys that matches `prefix*separator`.
    *
    * @param key key to identify the entry.
-   * @param listener An implementation of DirectSubEntryChangeListener.
-   *                 @see org.apache.helix.metaclient.api.DirectChildChangeListener
+   * @param listener An implementation of {@link org.apache.helix.metaclient.api.DirectChildChangeListener} to register
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
    *
-   * @return Return an DirectSubEntrySubscribeResult. It will contain a list of direct sub children if
+   * @return Return a DirectChildSubscribeResult. It will contain a list of direct sub children if
    *         subscribe succeeded.
    */
   default DirectChildSubscribeResult subscribeOneTimeDirectChildChange(String key,
@@ -445,10 +441,9 @@ public interface MetaClientInterface<T> {
   /**
    * Subscribe for connection state change.
    * The listener should be permanent until it's unsubscribed.
-   * @param listener An implementation of ConnectStateChangeListener.
-   *                 @see org.apache.helix.metaclient.api.ConnectStateChangeListener
+   * @param listener An implementation of {@link org.apache.helix.metaclient.api.ConnectStateChangeListener} to register
    *
-   * @return Return an boolean indication if subscribe succeeded.
+   * @return Return a boolean indication if subscribe succeeded.
    */
   boolean subscribeStateChanges(ConnectStateChangeListener listener);
 
@@ -458,8 +453,7 @@ public interface MetaClientInterface<T> {
    * For hierarchy key spaces like zookeeper, it would watch the whole tree structure.
    * For flat key spaces, it would watch for keys with certain prefix.
    * @param key key to identify the entry.
-   * @param listener An implementation of ChildChangeListener.
-   *                 @see org.apache.helix.metaclient.api.ChildChangeListener
+   * @param listener An implementation of {@link org.apache.helix.metaclient.api.ChildChangeListener} to register
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
    */
   boolean subscribeChildChanges(String key, ChildChangeListener listener, boolean skipWatchingNonExistNode);
@@ -470,8 +464,7 @@ public interface MetaClientInterface<T> {
    * For hierarchy key spaces like zookeeper, it would watch the whole tree structure.
    * For flat key spaces, it would watch for keys with certain prefix.
    * @param key key to identify the entry.
-   * @param listener An implementation of ChildChangeListener.
-   *                 @see org.apache.helix.metaclient.api.ChildChangeListener
+   * @param listener An implementation of {@link org.apache.helix.metaclient.api.ChildChangeListener} to register
    * @param skipWatchingNonExistNode If the passed in key does not exist, no listener wil be registered.
    */
   default boolean subscribeOneTimeChildChanges(String key, ChildChangeListener listener,

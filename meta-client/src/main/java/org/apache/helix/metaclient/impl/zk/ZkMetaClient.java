@@ -164,7 +164,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   // existing retry handling logic in zkClient. (defined in ZkAsyncCallbacks)
   // ZkClient execute async callbacks at zkClient main thead, retry is handles in a separate retry
   // thread. In our first version of implementation, we will keep similar behavior and have
-  // callbacks executed in ZkClient event thread, and reuse zkclient retry logic.
+  // callbacks executed in ZkClient event thread, and reuse zkClient retry logic.
 
   // It is highly recommended *NOT* to perform any blocking operation inside the callbacks.
   // If you block the thread the meta client won't process other events.
@@ -309,37 +309,37 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public boolean[] create(List key, List data, List mode) {
+  public boolean[] create(List<String> key, List<T> data, List<EntryMode> mode) {
     return new boolean[0];
   }
 
   @Override
-  public boolean[] create(List key, List data) {
+  public boolean[] create(List<String> key, List<T> data) {
     return new boolean[0];
   }
 
   @Override
-  public boolean[] delete(List keys) {
+  public boolean[] delete(List<String> keys) {
     return new boolean[0];
   }
 
   @Override
-  public List<Stat> exists(List keys) {
+  public List<Stat> exists(List<String> keys) {
     return null;
   }
 
   @Override
-  public List get(List keys) {
+  public List<T> get(List<String> keys) {
     return null;
   }
 
   @Override
-  public List update(List keys, List updater) {
+  public List<T> update(List<String> keys, List<DataUpdater<T>> updater) {
     return null;
   }
 
   @Override
-  public boolean[] set(List keys, List values, List version) {
+  public boolean[] set(List<String> keys, List<T> datas, List<Integer> version) {
     return new boolean[0];
   }
 

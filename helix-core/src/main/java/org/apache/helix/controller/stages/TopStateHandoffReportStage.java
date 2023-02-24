@@ -474,7 +474,6 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       }
     }
 
-    // TODO: why are we checking if handoff happened within threshold here? it should be reported either way.
     if (handOffStartTime > 0 && handOffEndTime - handOffStartTime <= threshold) {
       long duration = handOffEndTime - handOffStartTime;
       long helixLatency = duration - fromTopStateUserLatency - toTopStateUserLatency;

@@ -372,8 +372,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
           _partitionTopStateHandoffDurationGauge.updateValue(totalDuration);
           _partitionTopStateHandoffHelixLatencyGauge.updateValue(helixLatency);
         } else {
-          // TODO: Should be deprecated and not to be used. Instead of this counter a MissingTopStateBeyondThresholdGuage
-          // should be used to find out number of partitions with missing top state.
+          // TODO: Deprecated. use MissingTopStateBeyondThresholdGuage to find out number of partitions with missing top
+          //  state.
           _partitionTopStateNonGracefulHandoffDurationGauge.updateValue(totalDuration);
         }
         if (totalDuration > _maxSinglePartitionTopStateHandoffDuration.getValue()) {
@@ -381,8 +381,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
           _lastResetTime = System.currentTimeMillis();
         }
       } else {
-        // TODO: Should be deprecated and not to be used. Instead of this counter a MissingTopStateBeyondThresholdGuage
-        // should be used to find out number of partitions with missing top state.
+        // TODO: Deprecated. use MissingTopStateBeyondThresholdGuage to find out number of partitions with missing top
+        //  state.
         _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
         _missingTopStatePartitionsBeyondThresholdGauge
             .updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() + 1);

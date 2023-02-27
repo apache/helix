@@ -49,6 +49,7 @@ public class MissingTopStateRecord {
   }
 
   /* package */ void setFailed() {
+    // Mark missingTopStateRecord as failed if partition has missing top state beyond threshold value.
     failed = true;
   }
 

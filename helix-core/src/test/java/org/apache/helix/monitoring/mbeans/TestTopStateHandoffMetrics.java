@@ -183,7 +183,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
             liMap.remove("localhost_1");
             cache.setLiveInstances(new ArrayList<>(liMap.values()));
           }
-        }, 1, 0,
+        }, 1, 0, 0, // threshold value not set hence no change in guage
         expectedDuration,
         DURATION_ZERO,
         expectedDuration, expectedHelixLatency
@@ -212,7 +212,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
             cache.getInstanceOfflineTimeMap().put("localhost_0", lastOfflineTime);
             cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
           }
-        }, 1, 0,
+        }, 1, 0, 0, // threshold value not set hence no change in guage.
         DURATION_ZERO, // graceful handoff duration should be 0
         expectedDuration, // we should have an record for non-graceful handoff
         expectedDuration, // max handoff should be same as non-graceful handoff
@@ -222,6 +222,12 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
 
   @Test(dataProvider = "failedCurrentStateInput")
   public void testTopStateFailedHandoff(TestCaseConfig cfg) {
+    // There are two scenarios here :
+    //    1. localhost_0 looses top-state at 15000 and top state is recovered on localhost_1 at 22000. This means that
+    //       hand-off took 7000 which is greater than threshold (5000) hence both failed counter as well
+    //       missingTopStatePartitionsThresholdGuage will be set to 1.
+    //   2. localhost_0 looses top-state at 15000 and it's NEVER recovered. In this scenario as well both failed counter
+    //      as well as missingTopStatePartitionsThresholdGuage should be set to 1.
     ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
     clusterConfig.setMissTopStateDurationThreshold(5000L);
     setClusterConfig(clusterConfig);
@@ -255,6 +261,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     // helix latency will be less than the mocked helix latency
     runStageAndVerify(Collections.EMPTY_MAP, cfg.currentStateWithMissingTopState,
         cfg.finalCurrentState, null, 1, 0,
+        0, // No previous missingTopStateRecord so no change in guage
         Range.closed(0L, helixLatency + userLatency),
         DURATION_ZERO,
         Range.closed(0L, helixLatency + userLatency),
@@ -312,7 +319,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
               cache.cacheMessages(Collections.singletonList(message));
             }
           }
-        }, 1, 0,
+        }, 1, 0, 0,
         Range.closed(durationToVerify, durationToVerify),
         DURATION_ZERO,
         Range.closed(durationToVerify, durationToVerify),
@@ -355,7 +362,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     Range<Long> expectedHelixLatency =
         cfg.isGraceful ? Range.closed(cfg.helixLatency, cfg.helixLatency) : DURATION_ZERO;
     runStageAndVerify(cfg.initialCurrentStates, cfg.currentStateWithMissingTopState,
-        cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, expectedDuration, expectedNonGracefulDuration,
+        cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, expectFail ? 1 : 0, expectedDuration, expectedNonGracefulDuration,
         expectedDuration, expectedHelixLatency);
   }
 
@@ -412,6 +419,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       MissingStatesDataCacheInject inject,
       int successCnt,
       int failCnt,
+      int missingTopStatesBeyondThresholdCnt,
       Range<Long> expectedDuration,
       Range<Long> expectedNonGracefulDuration,
       Range<Long> expectedMaxDuration,
@@ -426,6 +434,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
 
     Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), successCnt);
     Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), failCnt);
+    Assert.assertEquals(monitor.getMissingTopStatePartitionsBeyondThresholdGuage(), missingTopStatesBeyondThresholdCnt);
 
     long graceful = monitor.getPartitionTopStateHandoffDurationGauge()
         .getAttributeValue(GRACEFUL_HANDOFF_DURATION).longValue();

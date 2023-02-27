@@ -161,7 +161,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   final Set<String> _knownMessageIds;
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/
-  final Set<String> _threadpoolChecked;
+  final Set<String> _resourcesThreadpoolChecked;
+  final Set<String> _transitionTypeThreadpoolChecked;
 
   // timer for schedule timeout tasks
   final Timer _timer;
@@ -190,7 +191,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _batchMessageExecutorService = Executors.newCachedThreadPool();
     _monitor.createExecutorMonitor("BatchMessageExecutor", _batchMessageExecutorService);
 
-    _threadpoolChecked = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    _resourcesThreadpoolChecked = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    _transitionTypeThreadpoolChecked = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
@@ -287,63 +289,64 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     StateModelFactory<? extends StateModel> stateModelFactory =
         manager.getStateMachineEngine().getStateModelFactory(stateModelName, factoryName);
 
-    if (stateModelFactory != null) {
-      Message.MessageInfo msgInfo = new Message.MessageInfo(message);
-      ExecutorService executorService = null;
-      String threadpoolKey =
-            msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_STATE_TRANSITION_TYPE);
-        if (threadpoolKey != null) {
-          if (_threadpoolChecked.contains(threadpoolKey)) {
-            return;
-          }
-          executorService =
-              stateModelFactory.getExecutorService(resourceName, message.getFromState(), message.getToState());
-        }
-        if (executorService == null) {
-          threadpoolKey = msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE);
-          if (threadpoolKey != null) {
-            if (_threadpoolChecked.contains(threadpoolKey)) {
-              return;
-            }
-            int threadpoolSize = -1;
-            ConfigAccessor configAccessor = manager.getConfigAccessor();
-            // Changes to this configuration on thread pool size will only take effect after the participant get restarted.
-            if (configAccessor != null) {
-              HelixConfigScope scope =
-                  new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(manager.getClusterName())
-                      .forResource(resourceName)
-                      .build();
+    Message.MessageInfo msgInfo = new Message.MessageInfo(message);
+    String perStateTransitionTypeKey =
+        msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_STATE_TRANSITION_TYPE);
+    if (perStateTransitionTypeKey != null && stateModelFactory != null && !_transitionTypeThreadpoolChecked.contains(
+        perStateTransitionTypeKey)) {
+      ExecutorService perStateTransitionTypeExecutor =
+          stateModelFactory.getExecutorService(resourceName, message.getFromState(), message.getToState());
+      _transitionTypeThreadpoolChecked.add(perStateTransitionTypeKey);
 
-              String threadpoolSizeStr = configAccessor.get(scope, MAX_THREADS);
-              try {
-                if (threadpoolSizeStr != null) {
-                  threadpoolSize = Integer.parseInt(threadpoolSizeStr);
-                }
-              } catch (Exception e) {
-                LOG.error("Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
-              }
-            }
-            if (threadpoolSize > 0) {
-              String finalThreadpoolKey = threadpoolKey;
-              executorService = Executors.newFixedThreadPool(threadpoolSize,
-                  r -> new Thread(r, "GerenricHelixController-message_handle_" + finalThreadpoolKey));
-              LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: " + threadpoolSize);
-            } else {
-              // if threadpool is not configured
-              // check whether client specifies customized threadpool.
-              executorService = stateModelFactory.getExecutorService(resourceName);
-            }
-          }
-        }
-
-      if (threadpoolKey != null && executorService != null) {
-        _threadpoolChecked.add(threadpoolKey);
-        _executorMap.put(threadpoolKey, executorService);
-        LOG.info(String.format("Added client specified dedicate threadpool for message %s", threadpoolKey));
+      if (perStateTransitionTypeExecutor != null) {
+        _executorMap.put(perStateTransitionTypeKey, perStateTransitionTypeExecutor);
+        LOG.info(String.format("Added client specified dedicate threadpool for resource %s from %s to %s",
+            msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE),
+            message.getFromState(), message.getToState()));
+        return;
       }
-    } else {
-      LOG.info("No state model factory {} is found for message {}, using default threadpool.", factoryName,
-          message.getMsgId());
+    }
+
+    if (!_resourcesThreadpoolChecked.contains(resourceName)) {
+      int threadpoolSize = -1;
+      ConfigAccessor configAccessor = manager.getConfigAccessor();
+      // Changes to this configuration on thread pool size will only take effect after the participant get restarted.
+      if (configAccessor != null) {
+        HelixConfigScope scope =
+            new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(manager.getClusterName())
+                .forResource(resourceName)
+                .build();
+
+        String threadpoolSizeStr = configAccessor.get(scope, MAX_THREADS);
+        try {
+          if (threadpoolSizeStr != null) {
+            threadpoolSize = Integer.parseInt(threadpoolSizeStr);
+          }
+        } catch (Exception e) {
+          LOG.error("Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
+        }
+      }
+      final String key = msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE);
+      if (threadpoolSize > 0) {
+        _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize,
+            r -> new Thread(r, "GerenricHelixController-message_handle_" + key)));
+        LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: " + threadpoolSize);
+      } else {
+        // if threadpool is not configured
+        // check whether client specifies customized threadpool.
+        if (stateModelFactory != null) {
+          ExecutorService executor = stateModelFactory.getExecutorService(resourceName);
+          if (executor != null) {
+            _executorMap.put(key, executor);
+            LOG.info("Added client specified dedicate threadpool for resource: " + key);
+          }
+        } else {
+          LOG.error(String.format(
+              "Fail to get dedicate threadpool defined in stateModelFactory %s: using factoryName: %s for resource %s. No stateModelFactory was found!",
+              stateModelName, factoryName, resourceName));
+        }
+      }
+      _resourcesThreadpoolChecked.add(resourceName);
     }
   }
 
@@ -354,18 +357,21 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   ExecutorService findExecutorServiceForMsg(Message message) {
     ExecutorService executorService = _executorMap.get(message.getMsgType());
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
-      if (message.getBatchMessageMode()) {
+      if (message.getBatchMessageMode() == true) {
         executorService = _batchMessageExecutorService;
       } else {
         Message.MessageInfo msgInfo = new Message.MessageInfo(message);
-        Message.MessageInfo.MessageIdentifierBase[] bases = Message.MessageInfo.MessageIdentifierBase.values();
-        for (int i = bases.length - 1; i >= 0; i--) {
-          Message.MessageInfo.MessageIdentifierBase base = bases[i];
-          String msgIdentifier = msgInfo.getMessageIdentifier(base);
-          if (msgIdentifier != null && _executorMap.containsKey(msgIdentifier)) {
-            LOG.info(String.format("Find %s thread pool for message %s", base.name(), msgIdentifier));
-            return _executorMap.get(msgIdentifier);
-          }
+        String perResourceTypeKey =
+            msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE);
+        String perStateTransitionTypeKey =
+            msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_STATE_TRANSITION_TYPE);
+        if (perStateTransitionTypeKey != null && _executorMap.containsKey(perStateTransitionTypeKey)) {
+          LOG.info(String.format("Find per state transition type thread pool for resource %s from %s to %s",
+              message.getResourceName(), message.getFromState(), message.getToState()));
+          executorService = _executorMap.get(perStateTransitionTypeKey);
+        } else if (_executorMap.containsKey(perResourceTypeKey)) {
+          LOG.info("Find per-resource thread pool with key: " + perResourceTypeKey);
+          executorService = _executorMap.get(perResourceTypeKey);
         }
       }
     }

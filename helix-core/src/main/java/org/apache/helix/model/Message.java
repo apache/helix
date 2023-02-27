@@ -977,7 +977,7 @@ public class Message extends HelixProperty {
     public String _toState;
 
     public enum MessageIdentifierBase {
-      PER_MSG_TYPE, PER_RESOURCE, PER_STATE_TRANSITION_TYPE
+      PER_RESOURCE, PER_STATE_TRANSITION_TYPE
     }
 
     public MessageInfo(Message message) {

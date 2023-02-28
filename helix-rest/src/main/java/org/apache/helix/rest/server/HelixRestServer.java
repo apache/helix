@@ -49,12 +49,12 @@ import org.apache.helix.rest.server.filters.CORSFilter;
 import org.apache.helix.rest.server.filters.ClusterAuthFilter;
 import org.apache.helix.rest.server.filters.NamespaceAuthFilter;
 import org.eclipse.jetty.http.HttpVersion;
-//import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
-//import org.eclipse.jetty.server.SecureRequestCustomizer;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
-//import org.eclipse.jetty.server.ServerConnector;
-//import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -283,8 +283,8 @@ public class HelixRestServer {
     }
   }
 
-  /*
-  public void setupSslServer(int port, SslContextFactory sslContextFactory) {
+
+  public void setupSslServer(int port, SslContextFactory.Server sslContextFactory) {
     if (_server != null && port > 0) {
       try {
         HttpConfiguration https = new HttpConfiguration();
@@ -303,7 +303,7 @@ public class HelixRestServer {
       }
     }
   }
-  */
+
 
   /**
    * Register a SSLContext so that it could be used to create HTTPS clients.

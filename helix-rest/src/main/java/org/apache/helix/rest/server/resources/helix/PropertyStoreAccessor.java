@@ -28,6 +28,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.ResponseMetered;
@@ -77,6 +78,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
     if (!propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+          .type(MediaType.TEXT_PLAIN)
           .entity(String.format("The property store path %s doesn't exist", recordPath))
           .build());
     }

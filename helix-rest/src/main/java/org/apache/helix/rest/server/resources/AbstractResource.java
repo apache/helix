@@ -117,11 +117,12 @@ public class AbstractResource {
   }
 
   protected Response notFound() {
-    return Response.status(Response.Status.NOT_FOUND).build();
+    return Response.status(Response.Status.NOT_FOUND).type(MediaType.TEXT_PLAIN).build();
   }
 
   protected Response notFound(String errorMsg) {
-    return Response.status(Response.Status.NOT_FOUND).entity(errorMsgToJson(errorMsg)).build();
+    return Response.status(Response.Status.NOT_FOUND).type(MediaType.TEXT_PLAIN)
+      .entity(errorMsgToJson(errorMsg)).build();
   }
 
   protected Response OK(Object entity) {

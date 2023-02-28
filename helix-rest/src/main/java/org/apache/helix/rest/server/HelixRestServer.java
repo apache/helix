@@ -283,7 +283,8 @@ public class HelixRestServer {
     }
   }
 
-  public void setupSslServer(int port, SslContextFactory sslContextFactory) {
+
+  public void setupSslServer(int port, SslContextFactory.Server sslContextFactory) {
     if (_server != null && port > 0) {
       try {
         HttpConfiguration https = new HttpConfiguration();
@@ -302,6 +303,7 @@ public class HelixRestServer {
       }
     }
   }
+
 
   /**
    * Register a SSLContext so that it could be used to create HTTPS clients.

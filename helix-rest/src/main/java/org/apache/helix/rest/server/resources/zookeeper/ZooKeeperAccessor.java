@@ -27,6 +27,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.ResponseMetered;
@@ -180,7 +181,8 @@ public class ZooKeeperAccessor extends AbstractResource {
       return zkBaseDataAccessor.get(path, stat, AccessOption.PERSISTENT);
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-          .entity(String.format("The ZNode at path %s does not exist!", path)).build());
+          .entity(String.format("The ZNode at path %s does not exist!", path))
+          .type(MediaType.TEXT_PLAIN).build());
     }
   }
 
@@ -197,6 +199,7 @@ public class ZooKeeperAccessor extends AbstractResource {
       return JSONRepresentation(result);
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+          .type(MediaType.TEXT_PLAIN)
           .entity(String.format("The ZNode at path %s does not exist", path)).build());
     }
   }
@@ -211,6 +214,7 @@ public class ZooKeeperAccessor extends AbstractResource {
     Stat stat = zkBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
     if (stat == null) {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+          .type(MediaType.TEXT_PLAIN)
           .entity(String.format("The ZNode at path %s does not exist!", path)).build());
     }
     Map<String, String> result = ZKUtil.fromStatToMap(stat);

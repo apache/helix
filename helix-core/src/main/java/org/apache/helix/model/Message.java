@@ -977,7 +977,8 @@ public class Message extends HelixProperty {
     public String _toState;
 
     public enum MessageIdentifierBase {
-      PER_RESOURCE, PER_STATE_TRANSITION_TYPE
+      PER_RESOURCE,
+      PER_STATE_TRANSITION_TYPE
     }
 
     public MessageInfo(Message message) {
@@ -989,17 +990,15 @@ public class Message extends HelixProperty {
 
     public String getMessageIdentifier(MessageIdentifierBase basis) {
       String delimiter = ".";
-      if (_msgType == null) {
+      if (basis == null || _msgType == null) {
         return null;
       }
       String identifier = _msgType;
-      if (basis.ordinal() >= MessageIdentifierBase.PER_RESOURCE.ordinal()) {
-        if (_resourceName == null) {
-          return null;
-        }
-        identifier = String.join(delimiter, identifier, _resourceName);
+      if (_resourceName == null) {
+        return null;
       }
-      if (basis.ordinal() >= MessageIdentifierBase.PER_STATE_TRANSITION_TYPE.ordinal()) {
+      identifier = String.join(delimiter, identifier, _resourceName);
+      if (basis == MessageIdentifierBase.PER_STATE_TRANSITION_TYPE) {
         if (_fromState == null || _toState == null) {
           return null;
         }

@@ -990,19 +990,17 @@ public class Message extends HelixProperty {
 
     public String getMessageIdentifier(MessageIdentifierBase basis) {
       String delimiter = ".";
-      if (basis == null || _msgType == null) {
+      if (basis == null || _msgType == null || _resourceName == null) {
         return null;
       }
-      String identifier = _msgType;
-      if (_resourceName == null) {
-        return null;
-      }
-      identifier = String.join(delimiter, identifier, _resourceName);
-      if (basis == MessageIdentifierBase.PER_STATE_TRANSITION_TYPE) {
-        if (_fromState == null || _toState == null) {
-          return null;
-        }
-        identifier = String.join(delimiter, identifier, _fromState, _toState);
+      String identifier = String.join(delimiter, _msgType, _resourceName);
+      switch (basis) {
+        case PER_STATE_TRANSITION_TYPE:
+          if (_fromState == null || _toState == null) {
+            return null;
+          }
+          identifier = String.join(delimiter, identifier, _fromState, _toState);
+          break;
       }
       return identifier;
     }

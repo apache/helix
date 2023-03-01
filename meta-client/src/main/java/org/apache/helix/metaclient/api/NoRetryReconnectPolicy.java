@@ -19,6 +19,12 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
+/**
+ * Policy to define client re-establish connection behavior when connection to underlying metadata
+ * store is expired.
+ * If this retry policy is passed to MetaClient, no auto retry connection will be issued when
+ * connection lost or expired.
+ */
 public class NoRetryReconnectPolicy implements MetaClientReconnectPolicy {
   @Override
   public RetryPolicyName getPolicyName() {

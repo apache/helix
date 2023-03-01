@@ -34,15 +34,16 @@ public class MetaClientConfig {
   // Wait for init timeout time until connection is initiated
   private final long _connectionInitTimeoutInMillis;
 
-  // Operation will be operation retry timeout time
+  // Operation failed because of connection lost will be auto retried if connection has recovered
+  // within timeout time.
   private final long _operationRetryTimeoutInMillis;
 
   // When a client becomes partitioned from the metadata service for more than session timeout,
   // new session will be established when reconnect.
   private final long _sessionTimeoutInMillis;
 
-  // Policy to define client re-establish connection behavior when connection to underlying metadata
-  // store is expired.
+  // Policy to define client re-establish connection behavior when the connection to underlying
+  // metadata store is expired.
   private final MetaClientReconnectPolicy _metaClientReconnectPolicy;
 
   private final boolean _enableAuth;
@@ -178,6 +179,12 @@ public class MetaClientConfig {
       }
 
       // check if reconnect policy and retry policy conflict.
+      if (_metaClientReconnectPolicy.getPolicyName()
+          == MetaClientReconnectPolicy.RetryPolicyName.NO_RETRY && _operationRetryTimeout > 0) {
+        throw new IllegalArgumentException(
+            "MetaClientConfig.Builder: Incompatible operationRetryTimeout with NO_RETRY ReconnectPolicy.");
+      }
+      // TODO: check operationRetryTimeout should be less than ReconnectPolicy timeout.
 
       if (_storeType == null || _connectionAddress == null) {
         throw new IllegalArgumentException(

@@ -62,9 +62,12 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   public ZkMetaClient(ZkMetaClientConfig config) {
     _connectionTimeout = (int) config.getConnectionInitTimeoutInMillis();
+    // TODO: Right new ZkClient reconnect using exp backoff with fixed max backoff interval. We should
+    // 1. Allow user to config max backoff interval (next PR)
+    // 2. Allow user to config reconnect policy (future PR)
     _zkClient = new ZkClient(
         new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
-        _connectionTimeout, -1 /*operationRetryTimeout*/, config.getZkSerializer(),
+        _connectionTimeout, config.getOperationRetryTimeoutInMillis(), config.getZkSerializer(),
         config.getMonitorType(), config.getMonitorKey(), config.getMonitorInstanceName(),
         config.getMonitorRootPathOnly(), false);
   }

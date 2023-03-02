@@ -79,8 +79,13 @@ public interface MetaClientInterface<T> {
   class Stat {
     private final int _version;
     private final EntryMode _entryMode;
+    // The expiry time of a TTL node in milliseconds. The default is -1 for nodes without expiry time.
     private long _expiryTime;
+
+    // The time when the node is created. Measured in milliseconds since the Unix epoch (January 1, 1970, 00:00:00 UTC).
     private long _creationTime;
+
+    // The time when the node was las modified. Measured in milliseconds since the Unix epoch when the node was last modified.
     private long _modifiedTime;
 
     public EntryMode getEntryType() {

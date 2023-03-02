@@ -32,25 +32,40 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.ImmutableList;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.InstanceType;
+import org.apache.helix.MockAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.examples.OnlineOfflineStateModelFactory;
+import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.mock.MockClusterMessagingService;
 import org.apache.helix.mock.MockManager;
+import org.apache.helix.mock.statemodel.MockMasterSlaveStateModel;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
+import org.apache.helix.participant.HelixStateMachineEngine;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import static org.mockito.Mockito.*;
+
 
 public class TestHelixTaskExecutor {
   @BeforeClass
@@ -1102,6 +1117,91 @@ public class TestHelixTaskExecutor {
     Assert.assertNotNull(currentState);
     Assert.assertEquals(currentState.getState(msg.getPartitionName()),
         HelixDefinedState.ERROR.toString());
+    System.out.println("END " + TestHelper.getTestMethodName());
+  }
+
+  @Test
+  public void testUpdateAndFindMessageThreadpool() throws Exception {
+    // Using ThreadPoolExecutor interface because it allows counting task number
+    ThreadPoolExecutor executor0 =
+        new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+    ThreadPoolExecutor executor1 =
+        new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+
+    class MockStateModelFactory_ResourceName
+        extends StateModelFactory<OnlineOfflineStateModelFactory.OnlineOfflineStateModel> {
+      @Override
+      public ExecutorService getExecutorService(String resourceName) {
+        return executor0;
+      }
+    }
+
+    class MockStateModelFactory_STType
+        extends StateModelFactory<OnlineOfflineStateModelFactory.OnlineOfflineStateModel> {
+      @Override
+      public ExecutorService getExecutorService(String resourceName, String fromState, String toState) {
+        return executor1;
+      }
+    }
+
+    System.out.println("START " + TestHelper.getTestMethodName());
+    String sessionId = UUID.randomUUID().toString();
+    String resourceName = "testDB";
+    String msgId = "testMsgId";
+    String fromState = "Offline";
+    String toState = "Online";
+    String stateModelDef = "OnlineOffline";
+    HelixManager manager = mock(ZKHelixManager.class);
+    StateMachineEngine engine = mock(HelixStateMachineEngine.class);
+    when(manager.getStateMachineEngine()).thenReturn(engine);
+    when(manager.getInstanceType()).thenReturn(InstanceType.PARTICIPANT);
+    when(manager.getHelixDataAccessor()).thenReturn(new MockAccessor());
+    when(manager.getSessionId()).thenReturn(sessionId);
+    when(manager.getInstanceName()).thenReturn("TestInstance");
+    when(manager.getMessagingService()).thenReturn(new MockClusterMessagingService());
+    when(manager.getClusterName()).thenReturn(TestHelper.getTestMethodName());
+    StateModel stateModel = new MockMasterSlaveStateModel();
+    NotificationContext context = new NotificationContext(manager);
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    Message message = new Message(Message.MessageType.STATE_TRANSITION, msgId);
+    message.setFromState(fromState);
+    message.setToState(toState);
+    message.setResourceName(resourceName);
+    message.setStateModelDef(stateModelDef);
+    message.setPartitionName("TestPartition");
+    message.setTgtName("TgtInstance");
+    message.setStateModelFactoryName("DEFAULT");
+    message.setTgtSessionId(sessionId);
+
+    // State transition type based
+    executor =
+        new HelixTaskExecutor(); // Re-initialize it because if the message exists in _taskMap, it won't be assigned again
+    StateModelFactory<? extends StateModel> factory = new MockStateModelFactory_STType();
+    Mockito.doReturn(factory)
+        .when(engine)
+        .getStateModelFactory(stateModelDef, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+    HelixStateTransitionHandler handler = new HelixStateTransitionHandler(factory, stateModel, message, context, new CurrentState(resourceName));
+    HelixTask task = new HelixTask(message, context, handler, executor);
+    executor.scheduleTask(task);
+    Assert.assertTrue(TestHelper.verify(() -> {
+      return executor1.getTaskCount() == 1;
+    }, TestHelper.WAIT_DURATION));
+    System.out.println(TestHelper.getTestMethodName() + ": State transition based test passed.");
+
+    // Resource name based
+    executor = new HelixTaskExecutor();
+    factory = new MockStateModelFactory_ResourceName();
+    Mockito.doReturn(factory)
+        .when(engine)
+        .getStateModelFactory(stateModelDef, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+    handler = new HelixStateTransitionHandler(factory, stateModel, message, context, new CurrentState(resourceName));
+    engine.registerStateModelFactory(stateModelDef, factory);
+    task = new HelixTask(message, context, handler, executor);
+    executor.scheduleTask(task);
+    Assert.assertTrue(TestHelper.verify(() -> {
+      return executor0.getTaskCount() == 1;
+    }, TestHelper.WAIT_DURATION));
+    System.out.println(TestHelper.getTestMethodName() + ": Resource name based test passed.");
     System.out.println("END " + TestHelper.getTestMethodName());
   }
 }

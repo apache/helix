@@ -79,6 +79,9 @@ public interface MetaClientInterface<T> {
   class Stat {
     private final int _version;
     private final EntryMode _entryMode;
+    private long _expiryTime;
+    private long _creationTime;
+    private long _modifiedTime;
 
     public EntryMode getEntryType() {
       return _entryMode;
@@ -88,9 +91,30 @@ public interface MetaClientInterface<T> {
       return _version;
     }
 
+    public long getExpiryTime() {
+      return _expiryTime;
+    }
+
+    public long getCreationTime() {
+      return _creationTime;
+    }
+
+    public long getModifiedTime() {
+      return _modifiedTime;
+    }
+
     public Stat (EntryMode mode, int version) {
       _version = version;
       _entryMode = mode;
+      _expiryTime = -1;
+    }
+
+    public Stat (EntryMode mode, int version, long ctime, long mtime, long etime) {
+      _version = version;
+      _entryMode = mode;
+      _creationTime = ctime;
+      _modifiedTime = mtime;
+      _expiryTime = etime;
     }
   }
 
@@ -113,7 +137,22 @@ public interface MetaClientInterface<T> {
    */
   void create(final String key, final T data, final EntryMode mode);
 
-  // TODO: add TTL create and renew API
+  /**
+   * Create an entry of given EntryMode with given key, data, and expiry time (ttl).
+   * The entry will automatically purge when reached expiry time and has no children.
+   * The entry will not be created if there is an existing entry with the same key.
+   * @param key key to identify the entry
+   * @param data value of the entry
+   * @param ttl Time-to-live value of the node in milliseconds.
+   */
+  void createWithTTL(final String key, final T data, final long ttl);
+
+  /**
+   * Renews the specified TTL node adding its original expiry time
+   * to the current time.
+   * @param key key to identify the entry
+   */
+  void renewTTLNode(final String key);
 
   /**
    * Set the data for the entry of the given key if it exists and the given version matches the

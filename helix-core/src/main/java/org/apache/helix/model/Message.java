@@ -103,7 +103,8 @@ public class Message extends HelixProperty {
     RELAY_TIME,
     RELAY_FROM,
     EXPIRY_PERIOD,
-    SRC_CLUSTER
+    SRC_CLUSTER,
+    ST_REBALANCE_TYPE
   }
 
   /**
@@ -113,6 +114,11 @@ public class Message extends HelixProperty {
     NEW,
     READ, // not used
     UNPROCESSABLE // get exception when create handler
+  }
+
+  public enum STRebalanceType {
+    LOAD_REBALANCE,
+    RECOVERY_REBALANCE
   }
 
   // default expiry time period for a relay message.
@@ -660,6 +666,18 @@ public class Message extends HelixProperty {
     }
   }
 
+  public void setSTRebalanceType(STRebalanceType stRebalanceType) {
+    setAttribute(Attributes.ST_REBALANCE_TYPE, stRebalanceType.name());
+  }
+
+  public STRebalanceType getSTRebalanceType() {
+    String rebalanceTypeStr = getAttribute(Attributes.ST_REBALANCE_TYPE);
+    if (rebalanceTypeStr == null) {
+      return null;
+    }
+    return STRebalanceType.valueOf(rebalanceTypeStr);
+  }
+
   /**
    * Add or change a message attribute
    * @param attr {@link Attributes} attribute name
@@ -969,16 +987,24 @@ public class Message extends HelixProperty {
 
   /**
    * This class is for categorizing state transition messages based on certain properties, and generating
+   * an identifier string for each category
    */
   public static class MessageInfo {
     public String _msgType;
     public String _resourceName;
     public String _fromState;
     public String _toState;
+    public STRebalanceType _sTRebalanceType;
 
+    /**
+     * This class is used for defining what properties are used to categorize messages.
+     * Note that the bases should be arranged in a lower level -> higher level order,
+     * because we do backwards searching when looking for customized threadpool.
+     */
     public enum MessageIdentifierBase {
-      PER_RESOURCE,
-      PER_STATE_TRANSITION_TYPE
+      PER_RESOURCE, // Most basic level (L0), just include message type and resource name
+      PER_REBALANCE_TYPE, // One level above PER_RESOURCE (L1), concatenate rebalance type (load / recovery) after PER_RESOURCE identifier string
+      PER_STATE_TRANSITION_TYPE // L1, concatenate state transition type (from state, to state) after PER_RESOURCE identifier string
     }
 
     public MessageInfo(Message message) {
@@ -986,6 +1012,7 @@ public class Message extends HelixProperty {
       _resourceName = message.getResourceName();
       _fromState = message.getFromState();
       _toState = message.getToState();
+      _sTRebalanceType = message.getSTRebalanceType();
     }
 
     public String getMessageIdentifier(MessageIdentifierBase basis) {
@@ -1000,6 +1027,13 @@ public class Message extends HelixProperty {
             return null;
           }
           identifier = String.join(delimiter, identifier, _fromState, _toState);
+          break;
+        case PER_REBALANCE_TYPE:
+          if (_sTRebalanceType == null) {
+            return null;
+          }
+          identifier =
+              String.join(delimiter, identifier, _sTRebalanceType.name());
           break;
       }
       return identifier;

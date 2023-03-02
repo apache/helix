@@ -379,10 +379,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
         // Number of states required by StateModelDefinition are not satisfied, need recovery
         if (rebalanceType.equals(RebalanceType.RECOVERY_BALANCE)) {
+          message.setSTRebalanceType(Message.STRebalanceType.RECOVERY_REBALANCE);
           messagesForRecovery.add(message.getId());
           recoveryRebalance(resource, partition, throttleController, message, cache,
               messagesThrottledForRecovery, resourceMessageMap);
         } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)) {
+          message.setSTRebalanceType(Message.STRebalanceType.LOAD_REBALANCE);
           messagesForLoad.add(message.getId());
           loadRebalance(resource, partition, throttleController, message, cache,
               onlyDownwardLoadBalance, stateModelDef, messagesThrottledForLoad, resourceMessageMap);

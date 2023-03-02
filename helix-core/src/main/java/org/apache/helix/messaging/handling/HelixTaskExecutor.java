@@ -163,6 +163,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /* Resources whose configuration for dedicate thread pool has been checked.*/
   final Set<String> _resourcesThreadpoolChecked;
   final Set<String> _transitionTypeThreadpoolChecked;
+  final Set<String> _msgInfoBasedThreadpoolChecked;
 
   // timer for schedule timeout tasks
   final Timer _timer;
@@ -193,6 +194,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _resourcesThreadpoolChecked = Collections.newSetFromMap(new ConcurrentHashMap<>());
     _transitionTypeThreadpoolChecked = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    _msgInfoBasedThreadpoolChecked = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
@@ -290,6 +292,17 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         manager.getStateMachineEngine().getStateModelFactory(stateModelName, factoryName);
 
     Message.MessageInfo msgInfo = new Message.MessageInfo(message);
+    if (stateModelFactory != null) {
+      StateModelFactory.CustomizedExecutorService customizedExecutorService =
+          stateModelFactory.getExecutorService(msgInfo);
+      if (customizedExecutorService != null) {
+        String msgInfoBasedKey = msgInfo.getMessageIdentifier(customizedExecutorService.getBase());
+        _msgInfoBasedThreadpoolChecked.add(msgInfoBasedKey);
+        _executorMap.put(msgInfoBasedKey, customizedExecutorService.getExecutorService());
+        return;
+      }
+    }
+
     String perStateTransitionTypeKey =
         msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_STATE_TRANSITION_TYPE);
     if (perStateTransitionTypeKey != null && stateModelFactory != null && !_transitionTypeThreadpoolChecked.contains(
@@ -361,17 +374,13 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         executorService = _batchMessageExecutorService;
       } else {
         Message.MessageInfo msgInfo = new Message.MessageInfo(message);
-        String perResourceTypeKey =
-            msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE);
-        String perStateTransitionTypeKey =
-            msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_STATE_TRANSITION_TYPE);
-        if (perStateTransitionTypeKey != null && _executorMap.containsKey(perStateTransitionTypeKey)) {
-          LOG.info(String.format("Find per state transition type thread pool for resource %s from %s to %s",
-              message.getResourceName(), message.getFromState(), message.getToState()));
-          executorService = _executorMap.get(perStateTransitionTypeKey);
-        } else if (_executorMap.containsKey(perResourceTypeKey)) {
-          LOG.info("Find per-resource thread pool with key: " + perResourceTypeKey);
-          executorService = _executorMap.get(perResourceTypeKey);
+        for (int i = Message.MessageInfo.MessageIdentifierBase.values().length - 1; i >= 0; i--) {
+          String msgIdentifer = msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.values()[i]);
+          if (msgIdentifer != null && _executorMap.containsKey(msgIdentifer)) {
+            LOG.info(String.format("Find customized threadpool for %s", msgIdentifer));
+            executorService = _executorMap.get(msgIdentifer);
+            break;
+          }
         }
       }
     }

@@ -1485,12 +1485,13 @@ public class ZkClient implements Watcher {
 
   protected void processStateChanged(WatchedEvent event) {
     LOG.info("zkclient {}, zookeeper state changed ( {} )", _uid, event.getState());
+    KeeperState prevState = _currentState;
     setCurrentState(event.getState());
     if (getShutdownTrigger()) {
       return;
     }
 
-    fireStateChangedEvent(event.getState());
+    fireStateChangedEvent(prevState, event.getState());
 
     /*
      *  Note, the intention is that only the ZkClient managing the session would do auto reconnect
@@ -1659,15 +1660,15 @@ public class ZkClient implements Watcher {
     }
   }
 
-  protected void fireStateChangedEvent(final KeeperState state) {
+  protected void fireStateChangedEvent(final KeeperState prevState, final KeeperState curState) {
     final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
-      final String description = "State changed to " + state + " sent to " + stateListener;
+      final String description = "State changed to " + curState + " sent to " + stateListener;
       _eventThread.send(new ZkEventThread.ZkEvent(description, sessionId) {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleStateChanged(state);
+          stateListener.handleStateChanged(prevState, curState);
         }
       });
     }

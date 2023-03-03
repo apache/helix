@@ -56,6 +56,9 @@ public interface MetaClientInterface<T> {
   }
 
   enum ConnectState {
+    // Client is not connected to server. Before initiating connection or after close.
+    NOT_CONNECTED,
+
     // Client is connected to server
     CONNECTED,
 
@@ -65,11 +68,15 @@ public interface MetaClientInterface<T> {
     // Server has expired this connection.
     EXPIRED,
 
-    // When client failed to connect server.
-    INIT_FAILED,
-
     // When client explicitly call disconnect.
-    CLOSED_BY_CLIENT
+    CLOSED_BY_CLIENT,
+
+    // Connection between client and server is lost.
+    DISCONNECTED,
+
+    // Client is authenticated. They can perform operation with authorized permissions.
+    // This state is not in use as of now.
+    AUTHENTICATED
   }
 
   /**

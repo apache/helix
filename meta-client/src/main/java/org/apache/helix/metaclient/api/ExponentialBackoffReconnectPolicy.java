@@ -48,12 +48,4 @@ public class ExponentialBackoffReconnectPolicy implements MetaClientReconnectPol
     _initBackoffInterval = initBackoffInterval;
 
   }
-
-  long getMaxBackOffInterval() {
-    return _maxBackOffInterval;
-  }
-
-  long getInitBackOffInterval() {
-    return _initBackoffInterval;
-  }
 }

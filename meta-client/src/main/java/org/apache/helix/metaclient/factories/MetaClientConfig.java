@@ -128,7 +128,7 @@ public class MetaClientConfig {
     }
 
     /**
-     * Set timeout in mm for connection initialization timeout
+     * Set timeout in ms for connection initialization timeout
      * @param timeout
      * @return
      */
@@ -138,7 +138,7 @@ public class MetaClientConfig {
     }
 
     /**
-     * Set timeout in mm for connection initialization timeout
+     * Set timeout in ms for operation retry timeout
      * @param timeout
      * @return
      */
@@ -147,6 +147,12 @@ public class MetaClientConfig {
       return self();
     }
 
+    /**
+     * Set reconnect policy when connection is lost or expired. By default is
+     * ExponentialBackoffReconnectPolicy
+     * @param reconnectPolicy an instance of type MetaClientReconnectPolicy
+     * @return
+     */
     public B setMetaClientReconnectPolicy(MetaClientReconnectPolicy reconnectPolicy) {
       _metaClientReconnectPolicy = reconnectPolicy;
       return self();

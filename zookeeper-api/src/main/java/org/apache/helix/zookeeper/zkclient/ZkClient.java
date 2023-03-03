@@ -33,6 +33,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
+
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
@@ -2508,11 +2509,17 @@ public class ZkClient implements Watcher {
    */
   public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
+    acquireEventLock();
+
     if (isClosed()) {
       throw new IllegalStateException("ZkClient already closed!");
     }
+    if (_currentState != null) {
+      throw new IllegalStateException(
+          "ZkClient is not in init state. connect() has already been called.");
+    }
+
     boolean started = false;
-    acquireEventLock();
     try {
       setShutdownTrigger(false);
 

@@ -999,9 +999,9 @@ public class Message extends HelixProperty {
      * because we do backwards searching when looking for customized threadpool.
      */
     public enum MessageIdentifierBase {
-      PER_RESOURCE, // Most basic level (L0), just include message type and resource name
-      PER_REBALANCE_TYPE, // One level above PER_RESOURCE (L1), concatenate rebalance type (load / recovery) after PER_RESOURCE identifier string
-      PER_STATE_TRANSITION_TYPE // L1, concatenate state transition type (from state, to state) after PER_RESOURCE identifier string
+      PER_RESOURCE, // L0: Most basic level, just include message type and resource name
+      PER_REBALANCE_TYPE, // L1: One level above PER_RESOURCE, concatenate rebalance type (load / recovery) after PER_RESOURCE identifier string
+      PER_STATE_TRANSITION_TYPE // L1: One level above PER_RESOURCE, concatenate state transition type (from state, to state) after PER_RESOURCE identifier string
     }
 
     public MessageInfo(Message message) {

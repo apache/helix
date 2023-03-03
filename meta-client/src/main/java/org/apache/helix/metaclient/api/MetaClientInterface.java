@@ -154,7 +154,8 @@ public interface MetaClientInterface<T> {
 
   /**
    * Renews the specified TTL node adding its original expiry time
-   * to the current time.
+   * to the current time. Throws an exception if the key is not a valid path
+   * or isn't of type TTL.
    * @param key key to identify the entry
    */
   void renewTTLNode(final String key);

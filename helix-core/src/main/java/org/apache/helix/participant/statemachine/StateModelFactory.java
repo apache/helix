@@ -263,8 +263,8 @@ public abstract class StateModelFactory<T extends StateModel> {
   }
 
   public static class CustomizedExecutorService {
-    private Message.MessageInfo.MessageIdentifierBase _base;
-    private ExecutorService _executorService;
+    private final Message.MessageInfo.MessageIdentifierBase _base;
+    private final ExecutorService _executorService;
 
     public CustomizedExecutorService(Message.MessageInfo.MessageIdentifierBase base, ExecutorService executorService) {
       if (base == null || executorService == null) {

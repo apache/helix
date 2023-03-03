@@ -672,10 +672,7 @@ public class Message extends HelixProperty {
 
   public STRebalanceType getSTRebalanceType() {
     String rebalanceTypeStr = getAttribute(Attributes.ST_REBALANCE_TYPE);
-    if (rebalanceTypeStr == null) {
-      return null;
-    }
-    return STRebalanceType.valueOf(rebalanceTypeStr);
+    return rebalanceTypeStr == null ? null : STRebalanceType.valueOf(rebalanceTypeStr);
   }
 
   /**
@@ -1022,18 +1019,18 @@ public class Message extends HelixProperty {
       }
       String identifier = String.join(delimiter, _msgType, _resourceName);
       switch (basis) {
-        case PER_STATE_TRANSITION_TYPE:
-          if (_fromState == null || _toState == null) {
-            return null;
-          }
-          identifier = String.join(delimiter, identifier, _fromState, _toState);
-          break;
         case PER_REBALANCE_TYPE:
           if (_sTRebalanceType == null) {
             return null;
           }
           identifier =
               String.join(delimiter, identifier, _sTRebalanceType.name());
+          break;
+        case PER_STATE_TRANSITION_TYPE:
+          if (_fromState == null || _toState == null) {
+            return null;
+          }
+          identifier = String.join(delimiter, identifier, _fromState, _toState);
           break;
       }
       return identifier;

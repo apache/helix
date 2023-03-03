@@ -297,9 +297,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           stateModelFactory.getExecutorService(msgInfo);
       if (customizedExecutorService != null) {
         String msgInfoBasedKey = msgInfo.getMessageIdentifier(customizedExecutorService.getBase());
-        _msgInfoBasedThreadpoolChecked.add(msgInfoBasedKey);
-        _executorMap.put(msgInfoBasedKey, customizedExecutorService.getExecutorService());
-        return;
+        if (msgInfoBasedKey != null) {
+          _msgInfoBasedThreadpoolChecked.add(msgInfoBasedKey);
+          _executorMap.put(msgInfoBasedKey, customizedExecutorService.getExecutorService());
+          return;
+        }
       }
     }
 

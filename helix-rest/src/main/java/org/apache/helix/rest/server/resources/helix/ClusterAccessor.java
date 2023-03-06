@@ -81,9 +81,12 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 
 
 @Path("/clusters")
+@Api (value = "", description = "Helix REST Clusters  APIs")
 public class ClusterAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(ClusterAccessor.class.getName());
 
@@ -106,6 +109,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
+  @ApiOperation (value = "Return list of all clusters", notes = "Helix REST Cluster Get API")
   public Response getClusters() {
     HelixAdmin helixAdmin = getHelixAdmin();
     List<String> clusters = helixAdmin.getClusters();
@@ -120,6 +124,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
+  @ApiOperation (value = "Return information for particular cluster", notes = "Helix REST Cluster  Get API")
   @Path("{clusterId}")
   public Response getClusterInfo(@PathParam("clusterId") String clusterId) {
     if (!doesClusterExist(clusterId)) {

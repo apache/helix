@@ -164,6 +164,26 @@
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-annotations</artifactId>
+      <version>1.6.4</version>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-core</artifactId>
+      <version>1.6.4</version>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-jaxrs</artifactId>
+      <version>1.6.4</version>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-models</artifactId>
+      <version>1.6.4</version>
+    </dependency>
   </dependencies>
   <build>
     <resources>
@@ -193,7 +213,6 @@
             </program>
           </programs>
         </configuration>
-
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
+import org.apache.helix.model.Message;
 
 public abstract class StateModelFactory<T extends StateModel> {
   /**
@@ -258,6 +259,44 @@ public abstract class StateModelFactory<T extends StateModel> {
    * @return
    */
   public ExecutorService getExecutorService(String resourceName, String fromState, String toState) {
+    return null;
+  }
+
+  public static class CustomizedExecutorService {
+    private final Message.MessageInfo.MessageIdentifierBase _base;
+    private final ExecutorService _executorService;
+
+    public CustomizedExecutorService(Message.MessageInfo.MessageIdentifierBase base, ExecutorService executorService) {
+      if (base == null || executorService == null) {
+        throw new IllegalArgumentException(
+            "MessageIdentifierBase or ExecutorService cannot be null to instantiate a CustomizedExecutorService object");
+      }
+      _base = base;
+      _executorService = executorService;
+    }
+
+    public Message.MessageInfo.MessageIdentifierBase getBase() {
+      return _base;
+    }
+
+    public ExecutorService getExecutorService() {
+      return _executorService;
+    }
+  }
+
+  /**
+   *Get thread pool to handle the given state transition message.
+   * If this method returns null, the threadpool returned from
+   * {@link StateModelFactory#getExecutorService(String resourceName, String fromState, String toState)} will be used;
+   * it this method returns null the threadpool returned from
+   * {@link StateModelFactory#getExecutorService(String resourceName)} will be used.
+   * If that method return null too, then the default shared threadpool will be used.
+   * This method may be called only once for each category of messages,
+   * it will NOT be called during each state transition.
+   * @param msgInfo contains information used to categorize messages to use different threadpools
+   * @return An object contains the MessageIdentifierBase and the assigned threadpool for the input message
+   */
+  public CustomizedExecutorService getExecutorService(Message.MessageInfo msgInfo) {
     return null;
   }
 }

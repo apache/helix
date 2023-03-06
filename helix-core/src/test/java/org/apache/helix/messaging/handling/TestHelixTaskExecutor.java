@@ -1127,6 +1127,8 @@ public class TestHelixTaskExecutor {
         new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
     ThreadPoolExecutor executor1 =
         new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+    ThreadPoolExecutor executor2 =
+        new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
     class MockStateModelFactory_ResourceName
         extends StateModelFactory<OnlineOfflineStateModelFactory.OnlineOfflineStateModel> {
@@ -1141,6 +1143,14 @@ public class TestHelixTaskExecutor {
       @Override
       public ExecutorService getExecutorService(String resourceName, String fromState, String toState) {
         return executor1;
+      }
+    }
+
+    class MockStateModelFactory_MsgInfo
+        extends StateModelFactory<OnlineOfflineStateModelFactory.OnlineOfflineStateModel> {
+      @Override
+      public CustomizedExecutorService getExecutorService(Message.MessageInfo msgInfo) {
+        return new CustomizedExecutorService(Message.MessageInfo.MessageIdentifierBase.PER_REBALANCE_TYPE, executor2);
       }
     }
 
@@ -1162,11 +1172,11 @@ public class TestHelixTaskExecutor {
     when(manager.getClusterName()).thenReturn(TestHelper.getTestMethodName());
     StateModel stateModel = new MockMasterSlaveStateModel();
     NotificationContext context = new NotificationContext(manager);
-    HelixTaskExecutor executor = new HelixTaskExecutor();
     Message message = new Message(Message.MessageType.STATE_TRANSITION, msgId);
     message.setFromState(fromState);
     message.setToState(toState);
     message.setResourceName(resourceName);
+    message.setSTRebalanceType(Message.STRebalanceType.LOAD_REBALANCE);
     message.setStateModelDef(stateModelDef);
     message.setPartitionName("TestPartition");
     message.setTgtName("TgtInstance");
@@ -1174,8 +1184,8 @@ public class TestHelixTaskExecutor {
     message.setTgtSessionId(sessionId);
 
     // State transition type based
-    executor =
-        new HelixTaskExecutor(); // Re-initialize it because if the message exists in _taskMap, it won't be assigned again
+    HelixTaskExecutor executor =
+        new HelixTaskExecutor();
     StateModelFactory<? extends StateModel> factory = new MockStateModelFactory_STType();
     Mockito.doReturn(factory)
         .when(engine)
@@ -1189,7 +1199,7 @@ public class TestHelixTaskExecutor {
     System.out.println(TestHelper.getTestMethodName() + ": State transition based test passed.");
 
     // Resource name based
-    executor = new HelixTaskExecutor();
+    executor = new HelixTaskExecutor(); // Re-initialize it because if the message exists in _taskMap, it won't be assigned again
     factory = new MockStateModelFactory_ResourceName();
     Mockito.doReturn(factory)
         .when(engine)
@@ -1202,6 +1212,22 @@ public class TestHelixTaskExecutor {
       return executor0.getTaskCount() == 1;
     }, TestHelper.WAIT_DURATION));
     System.out.println(TestHelper.getTestMethodName() + ": Resource name based test passed.");
+
+    // Message Info based
+    executor = new HelixTaskExecutor();
+    factory = new MockStateModelFactory_MsgInfo();
+    handler =
+        new HelixStateTransitionHandler(factory, stateModel, message, context, new CurrentState(resourceName));
+    Mockito.doReturn(factory)
+        .when(engine)
+        .getStateModelFactory(stateModelDef, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+    task = new HelixTask(message, context, handler, executor);
+    executor.scheduleTask(task);
+    Assert.assertTrue(TestHelper.verify(() -> {
+      return executor2.getTaskCount() == 1;
+    }, TestHelper.WAIT_DURATION));
+    System.out.println(TestHelper.getTestMethodName() + ": Message Info based test passed.");
+
     System.out.println("END " + TestHelper.getTestMethodName());
   }
 }

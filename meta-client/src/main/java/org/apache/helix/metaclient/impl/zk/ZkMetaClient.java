@@ -89,6 +89,16 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
+  public void createWithTTL(String key, T data, long ttl) {
+    throw new UnsupportedOperationException("TTL nodes aren't yet supported.");
+  }
+
+  @Override
+  public void renewTTLNode(String key) {
+    throw new UnsupportedOperationException("TTL nodes aren't yet supported.");
+  }
+
+  @Override
   public void set(String key, T data, int version) {
     try {
       _zkClient.writeData(key, data, version);

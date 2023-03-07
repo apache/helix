@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.api;
+package org.apache.helix.metaclient.policy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

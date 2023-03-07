@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.api;
+package org.apache.helix.metaclient.policy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -18,6 +18,9 @@ package org.apache.helix.metaclient.api;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
+
 
 /**
  * Policy to define client re-establish connection behavior when connection to underlying metadata

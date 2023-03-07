@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.api;
+package org.apache.helix.metaclient.policy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +19,8 @@ package org.apache.helix.metaclient.api;
  * under the License.
  */
 
+import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
+
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS;
 
@@ -30,8 +32,8 @@ import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_
  */
 public class ExponentialBackoffReconnectPolicy implements MetaClientReconnectPolicy {
 
-  private long _maxBackOffInterval;
-  private long _initBackoffInterval;
+  private final long _maxBackOffInterval;
+  private final long _initBackoffInterval;
 
   @Override
   public RetryPolicyName getPolicyName() {

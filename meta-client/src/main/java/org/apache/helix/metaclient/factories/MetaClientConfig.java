@@ -19,8 +19,8 @@ package org.apache.helix.metaclient.factories;
  * under the License.
  */
 
-import org.apache.helix.metaclient.api.ExponentialBackoffReconnectPolicy;
-import org.apache.helix.metaclient.api.MetaClientReconnectPolicy;
+import org.apache.helix.metaclient.policy.ExponentialBackoffReconnectPolicy;
+import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
 import org.apache.helix.metaclient.constants.MetaClientConstants;
 
 public class MetaClientConfig {

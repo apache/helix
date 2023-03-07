@@ -19,7 +19,7 @@ package org.apache.helix.metaclient.impl.zk.factory;
  * under the License.
  */
 
-import org.apache.helix.metaclient.api.MetaClientReconnectPolicy;
+import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;

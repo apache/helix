@@ -331,7 +331,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
         @Override
         public void handleConnectStateChanged(MetaClientInterface.ConnectState prevState,
             MetaClientInterface.ConnectState currentState) throws Exception {
-          System.out.println("from: " + prevState + " to State: " + currentState);
           connectState[0] = prevState;
           connectState[1] = currentState;
           countDownLatch.countDown();

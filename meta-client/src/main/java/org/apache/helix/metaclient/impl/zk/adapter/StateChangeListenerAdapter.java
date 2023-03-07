@@ -20,17 +20,15 @@ package org.apache.helix.metaclient.impl.zk.adapter;
  */
 
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
-import org.apache.helix.metaclient.exception.MetaClientTimeoutException;
 import org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
-import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.zookeeper.Watcher;
 
 
-public class StateChangeAdapter implements IZkStateListener {
+public class StateChangeListenerAdapter implements IZkStateListener {
   private final ConnectStateChangeListener _listener;
 
-  public StateChangeAdapter(ConnectStateChangeListener listener) {
+  public StateChangeListenerAdapter(ConnectStateChangeListener listener) {
     _listener = listener;
   }
 
@@ -41,6 +39,9 @@ public class StateChangeAdapter implements IZkStateListener {
 
   @Override
   public void handleNewSession(String sessionId) throws Exception {
+    // This function will be invoked when connection is established. It is a  no-op for metaclient.
+    // MetaClient will expose this to user as 'handleStateChanged' already covers state change
+    // notification for new connection establishment.
   }
 
   @Override
@@ -64,7 +65,7 @@ public class StateChangeAdapter implements IZkStateListener {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StateChangeAdapter that = (StateChangeAdapter) o;
+    StateChangeListenerAdapter that = (StateChangeListenerAdapter) o;
     return _listener.equals(that._listener);
   }
 

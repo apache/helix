@@ -36,7 +36,7 @@ import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
-import org.apache.helix.metaclient.impl.zk.adapter.StateChangeAdapter;
+import org.apache.helix.metaclient.impl.zk.adapter.StateChangeListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientCreateCallbackHandler;
 import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientDeleteCallbackHandler;
 import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientExistCallbackHandler;
@@ -276,7 +276,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public boolean subscribeStateChanges(ConnectStateChangeListener listener) {
-    _zkClient.subscribeStateChanges(new StateChangeAdapter(listener));
+    _zkClient.subscribeStateChanges(new StateChangeListenerAdapter(listener));
     return true;
   }
 
@@ -302,7 +302,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void unsubscribeConnectStateChanges(ConnectStateChangeListener listener) {
-    _zkClient.subscribeStateChanges(new StateChangeAdapter(listener));
+    _zkClient.subscribeStateChanges(new StateChangeListenerAdapter(listener));
   }
 
   @Override

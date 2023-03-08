@@ -48,6 +48,10 @@ import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.filters.CORSFilter;
 import org.apache.helix.rest.server.filters.ClusterAuthFilter;
 import org.apache.helix.rest.server.filters.NamespaceAuthFilter;
+import org.apache.helix.rest.server.resources.helix.AbstractHelixResource;
+import org.apache.helix.rest.server.resources.metadata.NamespacesAccessor;
+import org.apache.helix.rest.server.resources.metadatastore.MetadataStoreDirectoryAccessor;
+import org.apache.helix.rest.server.resources.zookeeper.ZooKeeperAccessor;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -55,13 +59,25 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.swagger.jaxrs.config.DefaultJaxrsConfig;
+import io.swagger.jaxrs.config.BeanConfig;
+import io.swagger.jaxrs.config.DefaultReaderConfig;
+import io.swagger.jaxrs.config.ReaderConfig;
+import io.swagger.jaxrs.listing.ApiListingResource;
+import io.swagger.jaxrs.listing.SwaggerSerializers;
+import javax.servlet.ServletContext;
+import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.core.Context;
 
 
 public class HelixRestServer {
@@ -149,6 +165,14 @@ public class HelixRestServer {
           prepareServlet(namespace, ServletType.COMMON_SERVLET);
         }
       }
+
+      initializeSwagger(_servletContextHandler.getServletContext());
+      // Setup Swagger API
+      ServletHolder swaggerServlet = _servletContextHandler.addServlet(DefaultJaxrsConfig.class, "/api/*");
+      swaggerServlet.setInitOrder(1);
+      swaggerServlet.setInitParameter("com.sun.jersey.config.property.packages",
+          "com.api.resources;org.apache.helix.rest.server;org.apache.helix.rest.server.resources;"
+          + "org.apache.helix.rest.server.helix;io.swagger.jaxrs.json;io.swagger.jaxrs.listing");
     } catch (Exception e) {
       cleanupResourceConfigs();
       throw e;
@@ -176,7 +200,7 @@ public class HelixRestServer {
     initMetricRegistry(config, namespace.getName());
 
     // Initialize servlet
-    initServlet(config, String.format(type.getServletPathSpecTemplate(), namespace.getName()));
+    initServlet(config, String.format(type.getServletPathSpecTemplate(), namespace.getName()), namespace.isDefault());
   }
 
   private String getResourceConfigMapKey(ServletType type, HelixRestNamespace namespace) {
@@ -231,8 +255,11 @@ public class HelixRestServer {
     _jmxReporterList.add(jmxReporter);
   }
 
-  private void initServlet(ResourceConfig cfg, String servletPathSpec) {
+  private void initServlet(ResourceConfig cfg, String servletPathSpec, boolean isDefault) {
     ServletHolder servlet = new ServletHolder(new ServletContainer(cfg));
+    if (isDefault) {
+      servlet.setInitOrder(0);
+    }
     _servletContextHandler.addServlet(servlet, servletPathSpec);
   }
 
@@ -304,6 +331,14 @@ public class HelixRestServer {
     }
   }
 
+  private void initializeSwagger(ServletContext servletContext) {
+    BeanConfig config = new BeanConfig();
+    config.setTitle("Helix REST API");
+    config.setVersion("1.0.0"); // FIXME: Pick this info from META-INF
+    config.setResourcePackage("org.apache.helix.rest.server");
+    config.setPrettyPrint(true);
+    config.setScan(true);
+  }
 
   /**
    * Register a SSLContext so that it could be used to create HTTPS clients.

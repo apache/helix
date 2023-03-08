@@ -47,6 +47,8 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 
 /**
  * ZooKeeperAccessor provides methods for accessing ZooKeeper resources (ZNodes).
@@ -54,6 +56,7 @@ import org.slf4j.LoggerFactory;
  */
 @NamespaceAuth
 @Path("/zookeeper{path: /.+}")
+@Api (value = "", description = "Helix REST zookeeper APIs")
 public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
@@ -69,6 +72,7 @@ public class ZooKeeperAccessor extends AbstractResource {
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
+  @ApiOperation (value = "Return ZNode", notes = "Helix REST Zookeeper Get API")
   public Response get(@PathParam("path") String path, @QueryParam("command") String commandStr) {
     ZooKeeperCommand cmd = getZooKeeperCommandIfPresent(commandStr);
     if (cmd == null) {

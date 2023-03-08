@@ -36,6 +36,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 
 import com.codahale.metrics.annotation.ResponseMetered;
 import com.codahale.metrics.annotation.Timed;
@@ -65,6 +67,7 @@ import org.slf4j.LoggerFactory;
  */
 @NamespaceAuth
 @Path("")
+@Api (value = "", description = "Helix REST MetadataStoreDirectory APIs")
 public class MetadataStoreDirectoryAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryAccessor.class);
 
@@ -89,6 +92,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/metadata-store-namespaces")
+  @ApiOperation (value = "Return list of namespaces", notes = "Helix REST MetadataStoreDirectory Get API")
   public Response getAllNamespaces() {
     Collection<String> namespaces = _metadataStoreDirectory.getAllNamespaces();
     Map<String, Collection<String>> responseMap =
@@ -108,6 +112,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/metadata-store-realms")
+  @ApiOperation (value = "Return all metadata store realms", notes = "Helix REST MetadataStoreDirectory Get API")
   public Response getAllMetadataStoreRealms(@QueryParam("sharding-key") String shardingKey) {
     try {
       if (shardingKey == null) {
@@ -190,6 +195,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/sharding-keys")
+  @ApiOperation (value = "Return list of sharding-keys", notes = "Helix REST MetadataStoreDirectory Get Sharding Key API")
   public Response getShardingKeys(@QueryParam("prefix") String prefix) {
     try {
       if (prefix == null) {
@@ -224,6 +230,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
+  @ApiOperation (value = "Get Routing Data", notes = "Helix REST MetadataStoreDirectory Get Routing Data API")
   @Path("/routing-data")
   public Response getRoutingData() {
     Map<String, List<String>> rawRoutingData;
@@ -281,6 +288,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/metadata-store-realms/{realm}/sharding-keys")
+  @ApiOperation (value = "Return all path-based sharding-keys ", notes = "Helix REST MetadataStoreDirectory Get API")
   public Response getRealmShardingKeys(@PathParam("realm") String realm,
       @QueryParam("prefix") String prefix) {
     try {

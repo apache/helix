@@ -34,7 +34,12 @@ public enum ServletType {
           AbstractHelixResource.class.getPackage().getName(),
           NamespacesAccessor.class.getPackage().getName(),
           ZooKeeperAccessor.class.getPackage().getName(),
-          MetadataStoreDirectoryAccessor.class.getPackage().getName()
+          MetadataStoreDirectoryAccessor.class.getPackage().getName(),
+          "com.api.resources",
+          "io.swagger.jaxrs.json",
+          "io.swagger.jaxrs.listing",
+          "org.apache.helix.rest.server",
+          "org.apache.helix.rest.server.resources"
       }),
 
   /**

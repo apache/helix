@@ -218,9 +218,8 @@ public class ZkMetaClientUtil {
         return MetaClientInterface.EntryMode.CONTAINER;
       case NORMAL:
         return MetaClientInterface.EntryMode.EPHEMERAL;
-      // TODO: TTL is not supported now.
-      //case TTL:
-      //  return EntryMode.TTL;
+      case TTL:
+        return MetaClientInterface.EntryMode.TTL;
       default:
         throw new IllegalArgumentException(zkEphemeralType + " is not supported.");
     }

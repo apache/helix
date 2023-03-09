@@ -75,12 +75,18 @@ public interface MetaClientInterface<T> {
   /**
    * Interface representing the metadata of an entry. It contains entry type and version number.
    * TODO: we will add session ID to entry stats in the future
+   * TODO: Add support for expiry node once it can be verified through testing.
    */
   class Stat {
     private final int _version;
     private final EntryMode _entryMode;
+    // The expiry time of a TTL node in milliseconds. The default is -1 for nodes without expiry time.
     private long _expiryTime;
+
+    // The time when the node is created. Measured in milliseconds since the Unix epoch (January 1, 1970, 00:00:00 UTC).
     private long _creationTime;
+
+    // The time when the node was las modified. Measured in milliseconds since the Unix epoch when the node was last modified.
     private long _modifiedTime;
 
     public EntryMode getEntryType() {
@@ -149,7 +155,8 @@ public interface MetaClientInterface<T> {
 
   /**
    * Renews the specified TTL node adding its original expiry time
-   * to the current time.
+   * to the current time. Throws an exception if the key is not a valid path
+   * or isn't of type TTL.
    * @param key key to identify the entry
    */
   void renewTTLNode(final String key);
@@ -189,7 +196,7 @@ public interface MetaClientInterface<T> {
 
   /**
    * API for transaction. The list of operation will be executed as an atomic operation.
-   * @param ops a list of operations. These operations will all be executed or non of them.
+   * @param ops a list of operations. These operations will all be executed or none of them.
    * @return Return a list of OpResult.
    */
   List<OpResult> transactionOP(final Iterable<Op> ops);

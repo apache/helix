@@ -19,8 +19,6 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,15 +28,8 @@ import java.util.Set;
 import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.DirectChildChangeListener;
-import org.apache.helix.metaclient.api.MetaClientInterface;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,14 +39,9 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
-import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
-import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
-import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.apache.zookeeper.KeeperException;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.CONTAINER;
@@ -67,7 +53,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
   private static final String ZK_ADDR = "localhost:2183";
   private static final int DEFAULT_TIMEOUT_MS = 1000;
   private static final String ENTRY_STRING_VALUE = "test-value";
-  private static String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
+  private static final String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
   private static final String TEST_INVALID_PATH = "_invalid/a/b/c";
 
   private final Object _syncObject = new Object();
@@ -94,6 +80,16 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
       zkMetaClient.create(key, ENTRY_STRING_VALUE, CONTAINER);
+      Assert.assertNotNull(zkMetaClient.exists(key));
+    }
+  }
+
+  @Test
+  public void testCreateTTL() {
+    final String key = "/TestZkMetaClient_testTTL";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.createWithTTL(key, ENTRY_STRING_VALUE, 1000);
       Assert.assertNotNull(zkMetaClient.exists(key));
     }
   }

@@ -90,12 +90,17 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void createWithTTL(String key, T data, long ttl) {
-    throw new UnsupportedOperationException("TTL nodes aren't yet supported.");
+    try{
+      _zkClient.createPersistentWithTTL(key, data, ttl);
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
+  //TODO: Implement logic for renewTTL once expiry time can be verified through testing.
   @Override
   public void renewTTLNode(String key) {
-    throw new UnsupportedOperationException("TTL nodes aren't yet supported.");
+    throw new NotImplementedException("Renew TTL node is not available yet.");
   }
 
   @Override

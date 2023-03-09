@@ -2514,12 +2514,18 @@ public class ZkClient implements Watcher {
    */
   public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
-    if (isClosed()) {
-      throw new IllegalStateException("ZkClient already closed!");
-    }
     boolean started = false;
-    acquireEventLock();
+
     try {
+      acquireEventLock();
+
+      if (isClosed()) {
+        throw new IllegalStateException("ZkClient already closed!");
+      }
+      if (_currentState != null) {
+        throw new IllegalStateException(
+            "ZkClient is not in init state. connect() has already been called.");
+      }
       setShutdownTrigger(false);
 
       IZkConnection zkConnection = getConnection();
@@ -2540,8 +2546,7 @@ public class ZkClient implements Watcher {
         zkConnection.connect(watcher);
         LOG.debug("zkclient{} Awaiting connection to Zookeeper server", _uid);
         if (!waitUntilConnected(maxMsToWaitUntilConnected, TimeUnit.MILLISECONDS)) {
-          throw new ZkTimeoutException(
-              "Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
+          throw new ZkTimeoutException("Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
         }
       } else {
         // if the client is not managing connection, the input connection is supposed to connect.

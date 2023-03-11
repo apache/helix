@@ -36,6 +36,11 @@ public final class MetaClientConstants {
   // new session will be established.
   public static final int DEFAULT_SESSION_TIMEOUT_MS = 30 * 1000;
 
+  // Max backoff window for exponential reconnect back off policy. by default is 30 seconds.
+  public static final long DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS = 30 * 1000;
 
+  // Initial backoff window for exponential reconnect back off policy. by default is 500 ms.
+  public static final long DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS = 500;
 
+  //public static final long DEFAULT_MAX_LINEAR_BACKOFF_RETRY_WINDOW_MS = 5*1000;
 }

@@ -19,6 +19,8 @@ package org.apache.helix.metaclient.factories;
  * under the License.
  */
 
+import org.apache.helix.metaclient.policy.ExponentialBackoffReconnectPolicy;
+import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
 import org.apache.helix.metaclient.constants.MetaClientConstants;
 
 public class MetaClientConfig {
@@ -32,9 +34,17 @@ public class MetaClientConfig {
   // Wait for init timeout time until connection is initiated
   private final long _connectionInitTimeoutInMillis;
 
+  // Operation failed because of connection lost will be auto retried if connection has recovered
+  // within timeout time.
+  private final long _operationRetryTimeoutInMillis;
+
   // When a client becomes partitioned from the metadata service for more than session timeout,
   // new session will be established when reconnect.
   private final long _sessionTimeoutInMillis;
+
+  // Policy to define client re-establish connection behavior when the connection to underlying
+  // metadata store is expired.
+  private final MetaClientReconnectPolicy _metaClientReconnectPolicy;
 
   private final boolean _enableAuth;
   private final StoreType _storeType;
@@ -45,6 +55,10 @@ public class MetaClientConfig {
 
   public long getConnectionInitTimeoutInMillis() {
     return _connectionInitTimeoutInMillis;
+  }
+
+  public long getOperationRetryTimeoutInMillis() {
+    return _operationRetryTimeoutInMillis;
   }
 
   public boolean isAuthEnabled() {
@@ -59,21 +73,22 @@ public class MetaClientConfig {
     return _sessionTimeoutInMillis;
   }
 
+  public MetaClientReconnectPolicy getMetaClientReconnectPolicy() {
+    return _metaClientReconnectPolicy;
+  }
+
   // TODO: More options to add later
   // private boolean _autoReRegistWatcher;  // re-register one time watcher when set to true
   // private boolean _resetWatchWhenReConnect; // re-register previous existing watcher when reconnect
-  //
-  //  public enum RetryProtocol {
-  //    NO_RETRY, EXP_BACK_OFF, CONST_RETRY_INTERVAL
-  //  }
-  //  private RetryProtocol _retryProtocol;
-
 
   protected MetaClientConfig(String connectionAddress, long connectionInitTimeoutInMillis,
-      long sessionTimeoutInMillis, boolean enableAuth, StoreType storeType) {
+      long operationRetryTimeoutInMillis, long sessionTimeoutInMillis,
+      MetaClientReconnectPolicy metaClientReconnectPolicy, boolean enableAuth, StoreType storeType) {
     _connectionAddress = connectionAddress;
     _connectionInitTimeoutInMillis = connectionInitTimeoutInMillis;
+    _operationRetryTimeoutInMillis = operationRetryTimeoutInMillis;
     _sessionTimeoutInMillis = sessionTimeoutInMillis;
+    _metaClientReconnectPolicy = metaClientReconnectPolicy;
     _enableAuth = enableAuth;
     _storeType = storeType;
   }
@@ -83,17 +98,16 @@ public class MetaClientConfig {
 
     protected long _connectionInitTimeoutInMillis;
     protected long _sessionTimeoutInMillis;
-    // protected long _operationRetryTimeout;
-    // protected RetryProtocol _retryProtocol;
+    protected long _operationRetryTimeout;
     protected boolean _enableAuth;
     protected StoreType _storeType;
+    protected MetaClientReconnectPolicy _metaClientReconnectPolicy;
 
 
     public MetaClientConfig build() {
       validate();
       return new MetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
-          _sessionTimeoutInMillis,
-          _enableAuth, _storeType);
+          _operationRetryTimeout, _sessionTimeoutInMillis, _metaClientReconnectPolicy, _enableAuth, _storeType);
     }
 
     public MetaClientConfigBuilder() {
@@ -114,12 +128,33 @@ public class MetaClientConfig {
     }
 
     /**
-     * Set timeout in mm for connection initialization timeout
+     * Set timeout in ms for connection initialization timeout
      * @param timeout
      * @return
      */
     public B setConnectionInitTimeoutInMillis(long timeout) {
       _connectionInitTimeoutInMillis = timeout;
+      return self();
+    }
+
+    /**
+     * Set timeout in ms for operation retry timeout
+     * @param timeout
+     * @return
+     */
+    public B setOperationRetryTimeoutInMillis(long timeout) {
+      _operationRetryTimeout = timeout;
+      return self();
+    }
+
+    /**
+     * Set reconnect policy when connection is lost or expired. By default is
+     * ExponentialBackoffReconnectPolicy
+     * @param reconnectPolicy an instance of type MetaClientReconnectPolicy
+     * @return
+     */
+    public B setMetaClientReconnectPolicy(MetaClientReconnectPolicy reconnectPolicy) {
+      _metaClientReconnectPolicy = reconnectPolicy;
       return self();
     }
 
@@ -145,6 +180,18 @@ public class MetaClientConfig {
     }
 
     protected void validate() {
+      if (_metaClientReconnectPolicy == null) {
+        _metaClientReconnectPolicy = new ExponentialBackoffReconnectPolicy();
+      }
+
+      // check if reconnect policy and retry policy conflict.
+      if (_metaClientReconnectPolicy.getPolicyName()
+          == MetaClientReconnectPolicy.RetryPolicyName.NO_RETRY && _operationRetryTimeout > 0) {
+        throw new IllegalArgumentException(
+            "MetaClientConfig.Builder: Incompatible operationRetryTimeout with NO_RETRY ReconnectPolicy.");
+      }
+      // TODO: check operationRetryTimeout should be less than ReconnectPolicy timeout.
+
       if (_storeType == null || _connectionAddress == null) {
         throw new IllegalArgumentException(
             "MetaClientConfig.Builder: store type or connection string is null");

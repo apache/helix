@@ -95,7 +95,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
     }
   }
 
-  @Ignore("This test works when ZkClient setup invokes helix manager.")
   @Test
   public void testRenewTTL() {
     final String key = "/TestZkMetaClient_testRenewTTL_1";
@@ -106,11 +105,15 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
       MetaClientInterface.Stat stat = zkMetaClient.exists(key);
 
+      // Sleep for a small period of time for a bigger difference between
+      // creation and modified time.
       Thread.sleep(5000);
+
       zkMetaClient.renewTTLNode(key);
 
+      // Renewing a ttl node changes the nodes modified_time. Should be different
+      // from the time the node was created.
       Assert.assertNotSame(stat.getCreationTime(), stat.getModifiedTime());
-
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }

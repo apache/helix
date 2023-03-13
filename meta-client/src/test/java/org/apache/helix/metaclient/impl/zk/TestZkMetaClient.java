@@ -36,7 +36,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.DataChangeListener;
+import org.apache.helix.metaclient.api.DataUpdater;
+import org.apache.helix.metaclient.api.DirectChildChangeListener;
+import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
@@ -352,6 +356,35 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Thread.sleep(500);
       zkMetaClient.create(basePath + "/child_3", "test-data");
       Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+    }
+  }
+
+  @Test
+  public void testConnectStateChangeListener() throws Exception {
+    final String basePath = "/TestZkMetaClient_testConnectionStateChangeListener";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      CountDownLatch countDownLatch = new CountDownLatch(1);
+      final MetaClientInterface.ConnectState[] connectState =
+          new MetaClientInterface.ConnectState[2];
+      ConnectStateChangeListener listener = new ConnectStateChangeListener() {
+        @Override
+        public void handleConnectStateChanged(MetaClientInterface.ConnectState prevState,
+            MetaClientInterface.ConnectState currentState) throws Exception {
+          connectState[0] = prevState;
+          connectState[1] = currentState;
+          countDownLatch.countDown();
+        }
+
+        @Override
+        public void handleConnectionEstablishmentError(Throwable error) throws Exception {
+
+        }
+      };
+      Assert.assertTrue(zkMetaClient.subscribeStateChanges(listener));
+      zkMetaClient.connect();
+      countDownLatch.await(5000, TimeUnit.SECONDS);
+      Assert.assertEquals(connectState[0], MetaClientInterface.ConnectState.NOT_CONNECTED);
+      Assert.assertEquals(connectState[1], MetaClientInterface.ConnectState.CONNECTED);
     }
   }
 

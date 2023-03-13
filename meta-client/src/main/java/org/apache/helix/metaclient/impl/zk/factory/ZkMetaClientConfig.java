@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk.factory;
  * under the License.
  */
 
+import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
@@ -60,17 +61,17 @@ public class ZkMetaClientConfig extends MetaClientConfig {
   }
 
   protected ZkMetaClientConfig(String connectionAddress, long connectionInitTimeoutInMillis,
-      long sessionTimeoutInMillis, boolean enableAuth, StoreType storeType, String monitorType,
-      String monitorKey, String monitorInstanceName, boolean monitorRootPathOnly,
-      PathBasedZkSerializer zkSerializer) {
-    super(connectionAddress, connectionInitTimeoutInMillis, sessionTimeoutInMillis, enableAuth,
-        storeType);
+      long operationRetryTimeoutInMillis, long sessionTimeoutInMillis,
+      MetaClientReconnectPolicy reconnectPolicy, boolean enableAuth, StoreType storeType,
+      String monitorType, String monitorKey, String monitorInstanceName,
+      boolean monitorRootPathOnly, PathBasedZkSerializer zkSerializer) {
+    super(connectionAddress, connectionInitTimeoutInMillis, operationRetryTimeoutInMillis,
+        sessionTimeoutInMillis, reconnectPolicy, enableAuth, storeType);
     _zkSerializer = zkSerializer;
     _monitorType = monitorType;
     _monitorKey = monitorKey;
     _monitorInstanceName = monitorInstanceName;
     _monitorRootPathOnly = monitorRootPathOnly;
-
   }
 
   public static class ZkMetaClientConfigBuilder extends MetaClientConfig.MetaClientConfigBuilder<ZkMetaClientConfigBuilder> {
@@ -133,8 +134,9 @@ public class ZkMetaClientConfig extends MetaClientConfig {
         _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
       }
       return new ZkMetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
-          _sessionTimeoutInMillis, _enableAuth, MetaClientConfig.StoreType.ZOOKEEPER, _monitorType,
-          _monitorKey, _monitorInstanceName, _monitorRootPathOnly, _zkSerializer);
+          _operationRetryTimeout, _sessionTimeoutInMillis, _metaClientReconnectPolicy, _enableAuth,
+          MetaClientConfig.StoreType.ZOOKEEPER, _monitorType, _monitorKey, _monitorInstanceName,
+          _monitorRootPathOnly, _zkSerializer);
     }
 
     @Override

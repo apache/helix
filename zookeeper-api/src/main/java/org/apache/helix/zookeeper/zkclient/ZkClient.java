@@ -33,6 +33,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
+
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
@@ -1485,12 +1486,13 @@ public class ZkClient implements Watcher {
 
   protected void processStateChanged(WatchedEvent event) {
     LOG.info("zkclient {}, zookeeper state changed ( {} )", _uid, event.getState());
+    KeeperState prevState = _currentState;
     setCurrentState(event.getState());
     if (getShutdownTrigger()) {
       return;
     }
 
-    fireStateChangedEvent(event.getState());
+    fireStateChangedEvent(prevState, event.getState());
 
     /*
      *  Note, the intention is that only the ZkClient managing the session would do auto reconnect
@@ -1659,15 +1661,15 @@ public class ZkClient implements Watcher {
     }
   }
 
-  protected void fireStateChangedEvent(final KeeperState state) {
+  protected void fireStateChangedEvent(final KeeperState prevState, final KeeperState curState) {
     final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
-      final String description = "State changed to " + state + " sent to " + stateListener;
+      final String description = "State changed to " + curState + " sent to " + stateListener;
       _eventThread.send(new ZkEventThread.ZkEvent(description, sessionId) {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleStateChanged(state);
+          stateListener.handleStateChanged(prevState, curState);
         }
       });
     }
@@ -2508,12 +2510,18 @@ public class ZkClient implements Watcher {
    */
   public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
-    if (isClosed()) {
-      throw new IllegalStateException("ZkClient already closed!");
-    }
     boolean started = false;
-    acquireEventLock();
+
     try {
+      acquireEventLock();
+
+      if (isClosed()) {
+        throw new IllegalStateException("ZkClient already closed!");
+      }
+      if (_currentState != null) {
+        throw new IllegalStateException(
+            "ZkClient is not in init state. connect() has already been called.");
+      }
       setShutdownTrigger(false);
 
       IZkConnection zkConnection = getConnection();
@@ -2534,8 +2542,7 @@ public class ZkClient implements Watcher {
         zkConnection.connect(watcher);
         LOG.debug("zkclient{} Awaiting connection to Zookeeper server", _uid);
         if (!waitUntilConnected(maxMsToWaitUntilConnected, TimeUnit.MILLISECONDS)) {
-          throw new ZkTimeoutException(
-              "Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
+          throw new ZkTimeoutException("Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
         }
       } else {
         // if the client is not managing connection, the input connection is supposed to connect.

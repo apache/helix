@@ -58,4 +58,8 @@ public interface IZkStateListener {
    *             On any error.
    */
   void handleSessionEstablishmentError(final Throwable error) throws Exception;
+
+  default void handleStateChanged(KeeperState prevState, KeeperState curState) throws Exception {
+    handleStateChanged(curState);
+  }
 }

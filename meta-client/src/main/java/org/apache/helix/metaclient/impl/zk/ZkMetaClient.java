@@ -19,7 +19,6 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.security.Key;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -52,7 +51,6 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,11 +104,10 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void renewTTLNode(String key) {
-    if (!_zkClient.exists(key)) {
-      throw new MetaClientNoNodeException("Node at path " + key + " does not exist.");
+    T oldData = get(key);
+    if (oldData == null) {
+      throw new MetaClientNoNodeException("Node at " + key + " does not exist.");
     }
-
-    T oldData = _zkClient.readData(key, _zkClient.getStat(key));
     set(key, oldData, _zkClient.getStat(key).getVersion());
   }
 

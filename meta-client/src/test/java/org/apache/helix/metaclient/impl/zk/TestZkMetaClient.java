@@ -19,16 +19,11 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
-import java.util.Map;
 import org.apache.helix.metaclient.api.DirectChildChangeListener;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -43,9 +38,9 @@ import org.apache.helix.metaclient.api.DirectChildChangeListener;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Ignore;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -59,7 +54,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
   private static final int DEFAULT_TIMEOUT_MS = 1000;
   private static final String ENTRY_STRING_VALUE = "test-value";
   private static final String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
-  private static final String TEST_INVALID_PATH = "_invalid/a/b/c";
+  private static final String TEST_INVALID_PATH = "/_invalid/a/b/c";
 
   private final Object _syncObject = new Object();
 
@@ -106,20 +101,15 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       zkMetaClient.connect();
       zkMetaClient.createWithTTL(key, ENTRY_STRING_VALUE, 10000);
       Assert.assertNotNull(zkMetaClient.exists(key));
-
       MetaClientInterface.Stat stat = zkMetaClient.exists(key);
-
-      // Sleep for a small period of time for a bigger difference between
-      // creation and modified time.
-      Thread.sleep(5000);
-
       zkMetaClient.renewTTLNode(key);
-
       // Renewing a ttl node changes the nodes modified_time. Should be different
       // from the time the node was created.
       Assert.assertNotSame(stat.getCreationTime(), stat.getModifiedTime());
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      try {
+        zkMetaClient.renewTTLNode(TEST_INVALID_PATH);
+      } catch (MetaClientNoNodeException ignored) {
+      }
     }
   }
 

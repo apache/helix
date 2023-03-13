@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.security.Key;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +35,7 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
+import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.ZkMetaClientCreateCallbackHandler;
@@ -49,6 +51,7 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,10 +100,14 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     }
   }
 
-  //TODO: Implement logic for renewTTL once expiry time can be verified through testing.
   @Override
   public void renewTTLNode(String key) {
-    throw new NotImplementedException("Renew TTL node is not available yet.");
+    if (!_zkClient.exists(key)) {
+      throw new MetaClientNoNodeException("Node at path " + key + " does not exist.");
+    }
+
+    T oldData = _zkClient.readData(key, _zkClient.getStat(key));
+    set(key, oldData, _zkClient.getStat(key).getVersion());
   }
 
   @Override
@@ -126,6 +133,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     }
   }
 
+  //TODO: Get Expiry Time in Stat
   @Override
   public Stat exists(String key) {
     org.apache.zookeeper.data.Stat zkStats;
@@ -135,7 +143,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         return null;
       }
       return new Stat(convertZkEntryModeToMetaClientEntryMode(zkStats.getEphemeralOwner()),
-          zkStats.getVersion());
+          zkStats.getVersion(), zkStats.getCtime(), zkStats.getMtime(), -1);
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
     }

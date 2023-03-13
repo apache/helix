@@ -41,6 +41,7 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.zookeeper.KeeperException;
+import org.junit.Ignore;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -91,6 +92,27 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       zkMetaClient.connect();
       zkMetaClient.createWithTTL(key, ENTRY_STRING_VALUE, 1000);
       Assert.assertNotNull(zkMetaClient.exists(key));
+    }
+  }
+
+  @Ignore("This test works when ZkClient setup invokes helix manager.")
+  @Test
+  public void testRenewTTL() {
+    final String key = "/TestZkMetaClient_testRenewTTL_1";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.createWithTTL(key, ENTRY_STRING_VALUE, 10000);
+      Assert.assertNotNull(zkMetaClient.exists(key));
+
+      MetaClientInterface.Stat stat = zkMetaClient.exists(key);
+
+      Thread.sleep(5000);
+      zkMetaClient.renewTTLNode(key);
+
+      Assert.assertNotSame(stat.getCreationTime(), stat.getModifiedTime());
+
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 

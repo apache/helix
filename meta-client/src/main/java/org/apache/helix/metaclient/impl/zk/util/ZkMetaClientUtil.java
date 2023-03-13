@@ -37,7 +37,7 @@ import org.apache.helix.metaclient.exception.MetaClientTimeoutException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -226,7 +226,7 @@ public class ZkMetaClientUtil {
   }
 
   public static MetaClientException translateZkExceptionToMetaclientException(ZkException e) {
-    if (e instanceof ZkNodeExistsException) {
+    if (e instanceof ZkNoNodeException) {
       return new MetaClientNoNodeException(e);
     } else if (e instanceof ZkBadVersionException) {
       return new MetaClientBadVersionException(e);

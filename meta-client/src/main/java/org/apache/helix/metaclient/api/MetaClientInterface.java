@@ -75,7 +75,7 @@ public interface MetaClientInterface<T> {
   /**
    * Interface representing the metadata of an entry. It contains entry type and version number.
    * TODO: we will add session ID to entry stats in the future
-   * TODO: Add support for expiry node once it can be verified through testing.
+   * TODO: Add support for expiry time
    */
   class Stat {
     private final int _version;

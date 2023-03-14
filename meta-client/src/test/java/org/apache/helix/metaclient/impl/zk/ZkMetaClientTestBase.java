@@ -49,6 +49,8 @@ public abstract class ZkMetaClientTestBase {
    */
   @BeforeSuite
   public void prepare() {
+    // Enable extended types and create a ZkClient
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // start local zookeeper server
     _zkServer = startZkServer(ZK_ADDR);
   }

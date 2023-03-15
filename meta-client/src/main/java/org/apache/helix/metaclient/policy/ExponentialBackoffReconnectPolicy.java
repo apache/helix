@@ -21,6 +21,7 @@ package org.apache.helix.metaclient.policy;
 
 import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
 
+import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS;
 
@@ -34,20 +35,42 @@ public class ExponentialBackoffReconnectPolicy implements MetaClientReconnectPol
 
   private final long _maxBackOffInterval;
   private final long _initBackoffInterval;
+  private final long _autoReconnectTimeout;
 
   @Override
   public RetryPolicyName getPolicyName() {
     return RetryPolicyName.EXP_BACKOFF;
   }
 
+  @Override
+  public long getAutoReconnectTimeout() {
+    return _autoReconnectTimeout;
+  }
+
   public ExponentialBackoffReconnectPolicy() {
     _initBackoffInterval = DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
     _maxBackOffInterval = DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS;
+    _autoReconnectTimeout = DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
   }
 
-  public ExponentialBackoffReconnectPolicy(long maxBackOffInterval, long initBackoffInterval) {
+  public ExponentialBackoffReconnectPolicy(long autoReconnectTimeout) {
+    _initBackoffInterval = DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
+    _maxBackOffInterval = DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS;
+    _autoReconnectTimeout = autoReconnectTimeout;
+  }
+
+  // TODO: Allow user to pass maxBackOffInterval and initBackoffInterval.
+  // Right now ZkClient does not take user configured maxBackOffInterval and initBackoffInterval
+  // Use static value for now. Will allow user defined value in the future.
+  /*
+  public ExponentialBackoffReconnectPolicy(long maxBackOffInterval, long initBackoffInterval, long autoReconnectTimeout) {
+    if (maxBackOffInterval < initBackoffInterval) {
+      throw new IllegalArgumentException(
+          "maxBackOffInterval can not be less than initBackoffInterval");
+    }
     _maxBackOffInterval = maxBackOffInterval;
     _initBackoffInterval = initBackoffInterval;
+    _autoReconnectTimeout = autoReconnectTimeout;
 
-  }
+  }*/
 }

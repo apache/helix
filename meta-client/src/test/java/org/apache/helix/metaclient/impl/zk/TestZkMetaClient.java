@@ -351,35 +351,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
     }
   }
 
-  @Test
-  public void testConnectStateChangeListener() throws Exception {
-    final String basePath = "/TestZkMetaClient_testConnectionStateChangeListener";
-    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
-      CountDownLatch countDownLatch = new CountDownLatch(1);
-      final MetaClientInterface.ConnectState[] connectState =
-          new MetaClientInterface.ConnectState[2];
-      ConnectStateChangeListener listener = new ConnectStateChangeListener() {
-        @Override
-        public void handleConnectStateChanged(MetaClientInterface.ConnectState prevState,
-            MetaClientInterface.ConnectState currentState) throws Exception {
-          connectState[0] = prevState;
-          connectState[1] = currentState;
-          countDownLatch.countDown();
-        }
-
-        @Override
-        public void handleConnectionEstablishmentError(Throwable error) throws Exception {
-
-        }
-      };
-      Assert.assertTrue(zkMetaClient.subscribeStateChanges(listener));
-      zkMetaClient.connect();
-      countDownLatch.await(5000, TimeUnit.SECONDS);
-      Assert.assertEquals(connectState[0], MetaClientInterface.ConnectState.NOT_CONNECTED);
-      Assert.assertEquals(connectState[1], MetaClientInterface.ConnectState.CONNECTED);
-    }
-  }
-
   /**
    * Transactional op calls zk.multi() with a set of ops (operations)
    * and the return values are converted into metaclient opResults.

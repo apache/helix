@@ -48,3 +48,11 @@ export const TOKEN_RESPONSE_KEY: string = 'token';
  * to access the token expiration datetime
  */
 export const TOKEN_EXPIRATION_KEY: string = 'expires';
+
+/**
+ * This is the key that helix-front uses
+ * to authenticate with the Azure AppInsights
+ * metrics service, if desired.
+ * This key can be null or a string.
+ */
+export const APP_INSIGHTS_CONNECTION_STRING: string | null = null;

@@ -7,9 +7,25 @@ import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import session from 'express-session';
+import * as appInsights from 'applicationinsights';
 
-import { SSL, SESSION_STORE } from './config';
+import { APP_INSIGHTS_CONNECTION_STRING, SSL, SESSION_STORE } from './config';
 import setRoutes from './routes';
+
+if (APP_INSIGHTS_CONNECTION_STRING) {
+  appInsights
+    .setup(APP_INSIGHTS_CONNECTION_STRING)
+    .setAutoDependencyCorrelation(true)
+    .setAutoCollectRequests(true)
+    .setAutoCollectPerformance(true, true)
+    .setAutoCollectExceptions(true)
+    .setAutoCollectDependencies(true)
+    .setAutoCollectConsole(true)
+    .setUseDiskRetryCaching(true)
+    .setSendLiveMetrics(false)
+    .setDistributedTracingMode(appInsights.DistributedTracingModes.AI)
+    .start();
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +45,16 @@ app.use(
     cookie: { expires: new Date(2147483647000) },
   })
 );
+
+if (APP_INSIGHTS_CONNECTION_STRING) {
+  app.use(function appInsightsMiddleWare(req, res, next) {
+    appInsights.defaultClient.trackNodeHttpRequest({
+      request: req,
+      response: res,
+    });
+    next();
+  });
+}
 
 app.use(morgan('dev'));
 

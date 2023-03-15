@@ -19,6 +19,9 @@ package org.apache.helix.metaclient.policy;
  * under the License.
  */
 
+import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
+
+
 /**
  * Policy to define client re-establish connection behavior when connection to underlying metadata
  * store is expired.
@@ -35,4 +38,7 @@ public interface MetaClientReconnectPolicy {
   RetryPolicyName getPolicyName();
 
   // TODO: add reconnect timeout
+  default  long getAutoReconnectTimeout() {
+    return DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
+  }
 }

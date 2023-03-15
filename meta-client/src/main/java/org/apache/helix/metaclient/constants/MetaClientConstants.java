@@ -42,5 +42,8 @@ public final class MetaClientConstants {
   // Initial backoff window for exponential reconnect back off policy. by default is 500 ms.
   public static final long DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS = 500;
 
+  // Auto Reconnect timeout
+  public static final long DEFAULT_AUTO_RECONNECT_TIMEOUT_MS = 30 * 60 * 1000;
+
   //public static final long DEFAULT_MAX_LINEAR_BACKOFF_RETRY_WINDOW_MS = 5*1000;
 }

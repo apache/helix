@@ -19,9 +19,9 @@ package org.apache.helix.metaclient.factories;
  * under the License.
  */
 
+import org.apache.helix.metaclient.constants.MetaClientConstants;
 import org.apache.helix.metaclient.policy.ExponentialBackoffReconnectPolicy;
 import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
-import org.apache.helix.metaclient.constants.MetaClientConstants;
 
 public class MetaClientConfig {
 
@@ -33,10 +33,6 @@ public class MetaClientConfig {
 
   // Wait for init timeout time until connection is initiated
   private final long _connectionInitTimeoutInMillis;
-
-  // Operation failed because of connection lost will be auto retried if connection has recovered
-  // within timeout time.
-  private final long _operationRetryTimeoutInMillis;
 
   // When a client becomes partitioned from the metadata service for more than session timeout,
   // new session will be established when reconnect.
@@ -55,10 +51,6 @@ public class MetaClientConfig {
 
   public long getConnectionInitTimeoutInMillis() {
     return _connectionInitTimeoutInMillis;
-  }
-
-  public long getOperationRetryTimeoutInMillis() {
-    return _operationRetryTimeoutInMillis;
   }
 
   public boolean isAuthEnabled() {
@@ -82,11 +74,10 @@ public class MetaClientConfig {
   // private boolean _resetWatchWhenReConnect; // re-register previous existing watcher when reconnect
 
   protected MetaClientConfig(String connectionAddress, long connectionInitTimeoutInMillis,
-      long operationRetryTimeoutInMillis, long sessionTimeoutInMillis,
-      MetaClientReconnectPolicy metaClientReconnectPolicy, boolean enableAuth, StoreType storeType) {
+      long sessionTimeoutInMillis, MetaClientReconnectPolicy metaClientReconnectPolicy,
+      boolean enableAuth, StoreType storeType) {
     _connectionAddress = connectionAddress;
     _connectionInitTimeoutInMillis = connectionInitTimeoutInMillis;
-    _operationRetryTimeoutInMillis = operationRetryTimeoutInMillis;
     _sessionTimeoutInMillis = sessionTimeoutInMillis;
     _metaClientReconnectPolicy = metaClientReconnectPolicy;
     _enableAuth = enableAuth;
@@ -98,7 +89,6 @@ public class MetaClientConfig {
 
     protected long _connectionInitTimeoutInMillis;
     protected long _sessionTimeoutInMillis;
-    protected long _operationRetryTimeout;
     protected boolean _enableAuth;
     protected StoreType _storeType;
     protected MetaClientReconnectPolicy _metaClientReconnectPolicy;
@@ -107,11 +97,12 @@ public class MetaClientConfig {
     public MetaClientConfig build() {
       validate();
       return new MetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
-          _operationRetryTimeout, _sessionTimeoutInMillis, _metaClientReconnectPolicy, _enableAuth, _storeType);
+          _sessionTimeoutInMillis, _metaClientReconnectPolicy, _enableAuth, _storeType);
     }
 
     public MetaClientConfigBuilder() {
       // set default values
+      setStoreType(StoreType.ZOOKEEPER);
       setAuthEnabled(false);
       setConnectionInitTimeoutInMillis(MetaClientConstants.DEFAULT_CONNECTION_INIT_TIMEOUT_MS);
       setSessionTimeoutInMillis(MetaClientConstants.DEFAULT_SESSION_TIMEOUT_MS);
@@ -134,16 +125,6 @@ public class MetaClientConfig {
      */
     public B setConnectionInitTimeoutInMillis(long timeout) {
       _connectionInitTimeoutInMillis = timeout;
-      return self();
-    }
-
-    /**
-     * Set timeout in ms for operation retry timeout
-     * @param timeout
-     * @return
-     */
-    public B setOperationRetryTimeoutInMillis(long timeout) {
-      _operationRetryTimeout = timeout;
       return self();
     }
 
@@ -183,14 +164,6 @@ public class MetaClientConfig {
       if (_metaClientReconnectPolicy == null) {
         _metaClientReconnectPolicy = new ExponentialBackoffReconnectPolicy();
       }
-
-      // check if reconnect policy and retry policy conflict.
-      if (_metaClientReconnectPolicy.getPolicyName()
-          == MetaClientReconnectPolicy.RetryPolicyName.NO_RETRY && _operationRetryTimeout > 0) {
-        throw new IllegalArgumentException(
-            "MetaClientConfig.Builder: Incompatible operationRetryTimeout with NO_RETRY ReconnectPolicy.");
-      }
-      // TODO: check operationRetryTimeout should be less than ReconnectPolicy timeout.
 
       if (_storeType == null || _connectionAddress == null) {
         throw new IllegalArgumentException(

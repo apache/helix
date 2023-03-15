@@ -55,4 +55,4 @@ export const TOKEN_EXPIRATION_KEY: string = 'expires';
  * metrics service, if desired.
  * This key can be null or a string.
  */
-export const APP_INSIGHTS_INSTRUMENTATION_KEY: string | null = null;
+export const APP_INSIGHTS_CONNECTION_STRING: string | null = null;

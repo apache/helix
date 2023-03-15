@@ -7,7 +7,7 @@ import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import session from 'express-session';
-import appInsights from 'applicationinsights';
+import * as appInsights from 'applicationinsights';
 
 import { APP_INSIGHTS_CONNECTION_STRING, SSL, SESSION_STORE } from './config';
 import setRoutes from './routes';

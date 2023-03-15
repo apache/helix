@@ -9,12 +9,12 @@ import https from 'https';
 import session from 'express-session';
 import appInsights from 'applicationinsights';
 
-import { APP_INSIGHTS_KEY, SSL, SESSION_STORE } from './config';
+import { APP_INSIGHTS_INSTRUMENTATION_KEY, SSL, SESSION_STORE } from './config';
 import setRoutes from './routes';
 
-if (APP_INSIGHTS_KEY) {
+if (APP_INSIGHTS_INSTRUMENTATION_KEY) {
   appInsights
-    .setup(APP_INSIGHTS_KEY)
+    .setup(APP_INSIGHTS_INSTRUMENTATION_KEY)
     .setAutoDependencyCorrelation(true)
     .setAutoCollectRequests(true)
     .setAutoCollectPerformance(true, true)
@@ -46,7 +46,7 @@ app.use(
   })
 );
 
-if (APP_INSIGHTS_KEY) {
+if (APP_INSIGHTS_INSTRUMENTATION_KEY) {
   app.use(function appInsightsMiddleWare(req, res, next) {
     appInsights.defaultClient.trackNodeHttpRequest({
       request: req,

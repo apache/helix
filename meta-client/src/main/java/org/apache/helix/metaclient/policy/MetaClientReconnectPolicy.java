@@ -37,7 +37,6 @@ public interface MetaClientReconnectPolicy {
 
   RetryPolicyName getPolicyName();
 
-  // TODO: add reconnect timeout
   default  long getAutoReconnectTimeout() {
     return DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
   }

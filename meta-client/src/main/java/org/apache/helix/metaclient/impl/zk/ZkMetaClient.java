@@ -60,18 +60,20 @@ import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translat
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(ZkMetaClient.class);
   private final ZkClient _zkClient;
-  private final int _connectionTimeout;
+  private final long _initConnectionTimeout;
+  private final long _reconnectTimeout;
 
   public ZkMetaClient(ZkMetaClientConfig config) {
-    _connectionTimeout = (int) config.getConnectionInitTimeoutInMillis();
+    _initConnectionTimeout = config.getConnectionInitTimeoutInMillis();
+    _reconnectTimeout = config.getMetaClientReconnectPolicy().getAutoReconnectTimeout();
     // TODO: Right new ZkClient reconnect using exp backoff with fixed max backoff interval. We should
     // 1. Allow user to config max backoff interval (next PR)
     // 2. Allow user to config reconnect policy (future PR)
     _zkClient = new ZkClient(
         new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
-        _connectionTimeout, config.getOperationRetryTimeoutInMillis(), config.getZkSerializer(),
-        config.getMonitorType(), config.getMonitorKey(), config.getMonitorInstanceName(),
-        config.getMonitorRootPathOnly(), false);
+        (int) _initConnectionTimeout, _reconnectTimeout /*use reconnect timeout for retry timeout*/,
+        config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
+        config.getMonitorInstanceName(), config.getMonitorRootPathOnly(), false);
   }
 
   @Override
@@ -266,7 +268,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   public void connect() {
     // TODO: throws IllegalStateException when already connected
     try {
-      _zkClient.connect(_connectionTimeout, _zkClient);
+      _zkClient.connect(_initConnectionTimeout, _zkClient);
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
     }

@@ -144,6 +144,7 @@ public class MultiZkTestBase {
                 return true;
             }, TestHelper.WAIT_DURATION));
 
+        } finally {
             // Tear down zookeepers
             ZK_CLIENT_MAP.forEach((zkAddress, zkClient) -> zkClient.close());
             ZK_SERVER_MAP.forEach((zkAddress, zkServer) -> zkServer.shutdown());
@@ -158,7 +159,7 @@ public class MultiZkTestBase {
             if (_zkClient != null && !_zkClient.isClosed()) {
                 _zkClient.close();
             }
-        } finally {
+
             // Restore System property configs
             if (_configStore.containsKey(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
                 System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED,

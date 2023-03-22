@@ -76,7 +76,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable, I
   private ReentrantLock _zkClientConnectionMutex = new ReentrantLock();
 
   public ZkMetaClient(ZkMetaClientConfig config) {
-      _initConnectionTimeout = config.getConnectionInitTimeoutInMillis();
+    _initConnectionTimeout = config.getConnectionInitTimeoutInMillis();
     _reconnectTimeout = config.getMetaClientReconnectPolicy().getAutoReconnectTimeout();
     // TODO: Right new ZkClient reconnect using exp backoff with fixed max backoff interval. We should
     // 1. Allow user to config max and init backoff interval
@@ -86,7 +86,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable, I
         (int) _initConnectionTimeout, _reconnectTimeout /*use reconnect timeout for retry timeout*/,
         config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
         config.getMonitorInstanceName(), config.getMonitorRootPathOnly(), false);
-    _zkClientReconnectMonitor = Executors.newScheduledThreadPool(1);
+    _zkClientReconnectMonitor = Executors.newSingleThreadScheduledExecutor();
   }
 
   @Override
@@ -283,7 +283,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable, I
       _zkClientConnectionMutex.lock();
       _zkClient.connect(_initConnectionTimeout, _zkClient);
       // register this client as state change listener to react to ZkClient EXPIRED event.
-      // When ZkClient has expired connection to ZK, it sill auto reconnect until ZkClient
+      // When ZkClient has expired connection to ZK, it still auto reconnect until ZkClient
       // is closed or connection re-established.
       // We will need to close ZkClient when user set retry connection timeout.
       _zkClient.subscribeStateChanges(this);
@@ -422,18 +422,19 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable, I
    */
   private void cleanUpAndClose(boolean cancel, boolean close) {
     _zkClientConnectionMutex.lock();
+    try {
+      if (close && !_zkClient.isClosed()) {
+        _zkClient.close();
+        LOG.info("ZkClient is closed");
+      }
 
-    if (close && !_zkClient.isClosed()) {
-      _zkClient.close();
-      LOG.info("ZkClient is closed");
+      if (cancel && _reconnectMonitorFuture != null) {
+        _reconnectMonitorFuture.cancel(true);
+        LOG.info("ZkClient reconnect monitor thread is canceled");
+      }
+    } finally {
+      _zkClientConnectionMutex.unlock();
     }
-
-    if (cancel && _reconnectMonitorFuture != null) {
-      _reconnectMonitorFuture.cancel(true);
-      LOG.info("ZkClient reconnect monitor thread is canceled");
-    }
-
-    _zkClientConnectionMutex.unlock();
   }
 
   // Schedule a monitor to track ZkClient auto reconnect when Disconnected
@@ -443,17 +444,20 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable, I
     if (state == Watcher.Event.KeeperState.Disconnected) {
       // Expired. start a new event monitoring retry
       _zkClientConnectionMutex.lockInterruptibly();
-      if (_reconnectMonitorFuture == null || _reconnectMonitorFuture.isCancelled()
-          || _reconnectMonitorFuture.isDone()) {
-        _reconnectMonitorFuture = _zkClientReconnectMonitor.schedule(() -> {
-          if (!_zkClient.getConnection().getZookeeperState().isConnected()) {
-            cleanUpAndClose(false, true);
-          }
-        }, _reconnectTimeout, TimeUnit.MILLISECONDS);
-        LOG.info("ZkClient is Disconnected, schedule a reconnect monitor after {}",
-            _reconnectTimeout);
+      try {
+        if (_reconnectMonitorFuture == null || _reconnectMonitorFuture.isCancelled()
+            || _reconnectMonitorFuture.isDone()) {
+          _reconnectMonitorFuture = _zkClientReconnectMonitor.schedule(() -> {
+            if (!_zkClient.getConnection().getZookeeperState().isConnected()) {
+              cleanUpAndClose(false, true);
+            }
+          }, _reconnectTimeout, TimeUnit.MILLISECONDS);
+          LOG.info("ZkClient is Disconnected, schedule a reconnect monitor after {}",
+              _reconnectTimeout);
+        }
+      } finally {
+        _zkClientConnectionMutex.unlock();
       }
-      _zkClientConnectionMutex.unlock();
     } else if (state == Watcher.Event.KeeperState.SyncConnected
         || state == Watcher.Event.KeeperState.ConnectedReadOnly) {
       cleanUpAndClose(true, false);

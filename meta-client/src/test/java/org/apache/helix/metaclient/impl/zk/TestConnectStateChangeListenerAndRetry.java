@@ -19,8 +19,13 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.util.Date;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.MetaClientInterface;
@@ -49,6 +54,7 @@ public class TestConnectStateChangeListenerAndRetry  {
 
   /**
    * Simulate a zk state change by calling {@link ZkClient#process(WatchedEvent)} directly
+   * This need to be done in a separate thread to simulate ZkClient eventThread.
    */
   private static void simulateZkStateReconnected(ZkClient zkClient) throws InterruptedException {
       WatchedEvent event =
@@ -65,17 +71,19 @@ public class TestConnectStateChangeListenerAndRetry  {
 
   @BeforeSuite
   public void prepare() {
+    System.out.println("START TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
     // start local zookeeper server
     _zkServer = ZkMetaClientTestBase.startZkServer(ZK_ADDR);
   }
 
   @AfterSuite
   public void cleanUp() {
-
+    System.out.println("END TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testConnectState() {
+    System.out.println("STARTING TestConnectStateChangeListenerAndRetry.testConnectState at " + new Date(System.currentTimeMillis()));
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClientReconnectTest()) {
       zkMetaClient.connect();
       zkMetaClient.connect();
@@ -83,23 +91,43 @@ public class TestConnectStateChangeListenerAndRetry  {
     } catch (Exception ex) {
       Assert.assertTrue(ex instanceof IllegalStateException);
     }
+    System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectState at " + new Date(System.currentTimeMillis()));
   }
 
   // test mock zkclient event
   @Test(dependsOnMethods = "testConnectState")
   public void testReConnectSucceed() throws InterruptedException {
+    System.out.println("STARTING TestConnectStateChangeListenerAndRetry.testReConnectSucceed at " + new Date(System.currentTimeMillis()));
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClientReconnectTest()) {
+      CountDownLatch countDownLatch = new CountDownLatch(1);
+
       zkMetaClient.connect();
-      simulateZkStateReconnected(zkMetaClient.getZkClient());
+      // We need a separate thread to simulate reconnect. In ZkClient there is assertion to check
+      // reconnect and and CRUDs are not in the same thread. (So one does not block another)
+      Executors.newSingleThreadExecutor().execute(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            simulateZkStateReconnected(zkMetaClient.getZkClient());
+          } catch (InterruptedException e) {
+           Assert.fail("Exception in simulateZkStateReconnected", e);
+          }
+          countDownLatch.countDown();
+        }
+      });
+      countDownLatch.await(5000, TimeUnit.SECONDS);
       Thread.sleep(AUTO_RECONNECT_WAIT_TIME_EXD);
       // When ZK reconnect happens within timeout window, zkMetaClient should ba able to perform CRUD.
       Assert.assertTrue(zkMetaClient.getZkClient().getConnection().getZookeeperState().isConnected());
+      zkMetaClient.create("/key", "value");
+      Assert.assertEquals(zkMetaClient.get("/key"), "value");
     }
+    System.out.println("END TestConnectStateChangeListenerAndRetry.testReConnectSucceed at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testReConnectSucceed")
   public void testConnectStateChangeListener() throws Exception {
-    final String basePath = "/TestConnectStateChangeListenerAndRetry_testListener";
+    System.out.println("START TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClientReconnectTest()) {
       CountDownLatch countDownLatch = new CountDownLatch(1);
       final MetaClientInterface.ConnectState[] connectState =
@@ -136,6 +164,7 @@ public class TestConnectStateChangeListenerAndRetry  {
         Assert.assertTrue(ex.getCause() instanceof IllegalStateException);
       }
     }
+    System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
   }
 
   static ZkMetaClient<String> createZkMetaClientReconnectTest() {

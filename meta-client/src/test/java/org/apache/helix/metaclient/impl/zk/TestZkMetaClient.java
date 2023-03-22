@@ -52,9 +52,6 @@ import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.PERS
 
 public class TestZkMetaClient extends ZkMetaClientTestBase{
 
-  private static final String ZK_ADDR = "localhost:2183";
-  private static final int DEFAULT_TIMEOUT_MS = 1000;
-  private static final String ENTRY_STRING_VALUE = "test-value";
   private static final String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
   private static final String TEST_INVALID_PATH = "/_invalid/a/b/c";
 

@@ -56,3 +56,9 @@ export const TOKEN_EXPIRATION_KEY: string = 'expires';
  * This key can be null or a string.
  */
 export const APP_INSIGHTS_CONNECTION_STRING: string | null = null;
+
+/**
+ * An optional proxy url
+ *
+ */
+export const PROXY_URL: string = 'www.example.com';

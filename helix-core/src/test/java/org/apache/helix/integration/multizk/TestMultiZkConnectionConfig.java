@@ -89,8 +89,9 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
   public void beforeApiClass() throws Exception {
     super.beforeClass();
-    System.out.println("end start");
+    System.out.println("beforeApiClass: end start");
   }
+
   /**
    * Test cluster creation according to the pre-set routing mapping.
    * Helix Java API tested is ClusterSetup in this method.

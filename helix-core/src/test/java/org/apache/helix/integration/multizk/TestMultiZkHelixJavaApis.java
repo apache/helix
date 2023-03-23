@@ -86,7 +86,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    super.beforeClass();
+    super.beforeApiClass();
     // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/multiZkTest
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, _msdsEndpoint);
 

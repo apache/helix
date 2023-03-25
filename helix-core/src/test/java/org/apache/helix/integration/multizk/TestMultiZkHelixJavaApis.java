@@ -92,10 +92,16 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     // Routing data may be set by other tests using the same endpoint; reset() for good measure
     RoutingDataManager.getInstance().reset(true);
-    // Create a FederatedZkClient for admin work
-    _zkClient =
+    try {
+      // Create a FederatedZkClient for admin work
+      _zkClient =
         new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
             new RealmAwareZkClient.RealmAwareZkClientConfig());
+    } catch (Exception ex) {
+      for (StackTraceElement elm : ex.getStackTrace()) {
+        System.out.println(elm);
+      }
+    }
   }
 
   @Override

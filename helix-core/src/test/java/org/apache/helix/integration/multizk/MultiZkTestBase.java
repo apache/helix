@@ -35,6 +35,8 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -51,6 +53,7 @@ import java.util.Collections;
  * This class sets up the clusters and zk servers for multiple zk server testing.
  */
 public class MultiZkTestBase {
+    protected static final Logger logger = LoggerFactory.getLogger(MultiZkTestBase.class);
     protected static final int NUM_ZK = 3;
     protected static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
     protected static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();

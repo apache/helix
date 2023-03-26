@@ -432,6 +432,10 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     try {
       if (close && !_zkClient.isClosed()) {
         _zkClient.close();
+        // TODO: need to unsubscribe all persist watcher from ZK
+        // Add this in ZkClient when persist watcher change is in
+        // Also need to manually send CLOSED state change to state
+        // change listener (in change adapter)
         LOG.info("ZkClient is closed");
       }
 
@@ -439,6 +443,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         _reconnectMonitorFuture.cancel(true);
         LOG.info("ZkClient reconnect monitor thread is canceled");
       }
+
     } finally {
       _zkClientConnectionMutex.unlock();
     }

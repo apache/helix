@@ -164,6 +164,7 @@ public class TestConnectStateChangeListenerAndRetry  {
         Assert.assertTrue(ex.getCause() instanceof IllegalStateException);
       }
     }
+    Thread.sleep(AUTO_RECONNECT_WAIT_TIME_EXD*100);
     System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
   }
 

@@ -75,12 +75,12 @@ public final class ZKUtil {
 
   public static boolean isClusterSetup(String clusterName, RealmAwareZkClient zkClient) {
     if (clusterName == null) {
-      logger.info("Fail to check cluster setup : cluster name is null!");
+      logger.warn("Fail to check cluster setup : cluster name is null!");
       return false;
     }
 
     if (zkClient == null) {
-      logger.info("Fail to check cluster setup : zookeeper client is null!");
+      logger.warn("Fail to check cluster setup : zookeeper client is null!");
       return false;
     }
     List<String> requiredPaths = new ArrayList<>();

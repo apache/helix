@@ -8,9 +8,17 @@ import http from 'http';
 import https from 'https';
 import session from 'express-session';
 import * as appInsights from 'applicationinsights';
+import ProxyAgent from 'proxy-agent';
 
-import { APP_INSIGHTS_CONNECTION_STRING, SSL, SESSION_STORE } from './config';
+import {
+  APP_INSIGHTS_CONNECTION_STRING,
+  PROXY_URL,
+  SSL,
+  SESSION_STORE,
+} from './config';
 import setRoutes from './routes';
+
+const httpsProxyAgent = PROXY_URL ? new ProxyAgent(PROXY_URL) : null;
 
 if (APP_INSIGHTS_CONNECTION_STRING) {
   appInsights
@@ -25,6 +33,17 @@ if (APP_INSIGHTS_CONNECTION_STRING) {
     .setSendLiveMetrics(false)
     .setDistributedTracingMode(appInsights.DistributedTracingModes.AI)
     .start();
+}
+
+if (httpsProxyAgent && process.env.NODE_ENV === 'production') {
+  // NOTES:
+  //
+  // - `defaultClient` property on `appInsights` doesn't exist
+  // until `.start` is called
+  //
+  // - in development on our laptop (as opposed to a server)
+  // we don't need to go through a proxy.
+  appInsights.defaultClient.config.httpsAgent = httpsProxyAgent;
 }
 
 const app = express();

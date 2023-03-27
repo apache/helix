@@ -21,8 +21,6 @@ package org.apache.helix.metaclient.recipes.lock;
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
 
-import java.lang.management.LockInfo;
-
 public interface LockClientInterface {
   /**
    * Acquires a lock by creating a node at entry key and lockinfo info.

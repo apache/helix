@@ -25,7 +25,7 @@ import java.lang.management.LockInfo;
 
 public interface LockClientInterface {
   /**
-   * Acquires a lock by creating a node at entry key and lockinfo info/
+   * Acquires a lock by creating a node at entry key and lockinfo info.
    * Will fail and return False if path and lockinfo is invalid.
    * @param key key to identify the entry
    * @param info Metadata of the lock

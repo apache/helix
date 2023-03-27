@@ -48,10 +48,15 @@ public interface LockClientInterface {
    */
   boolean releaseLock(String key);
 
-  /**\
+  /**
    * Obtains the metadata of a lock (the LockInfo).
    * @param key key to identify the entry
    * @return LockInfo object of the node at key. If key doesn't exist, raise exception.
    */
   LockInfo retrieveLock(String key);
+
+  /**
+   * Closes the underlying client.
+   */
+  void close();
 }

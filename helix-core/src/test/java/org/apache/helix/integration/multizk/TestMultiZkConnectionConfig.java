@@ -264,7 +264,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
-    String clusterName = "CLUSTER_11";
+    String clusterName = "CLUSTER_1";
     String participantName = "HelixManager";
     InstanceConfig instanceConfig = new InstanceConfig(participantName);
     _zkHelixAdmin.addInstance(clusterName, instanceConfig);

@@ -148,6 +148,7 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
+  /*
   @Override
   @Test(dependsOnMethods = "testCreateParticipants")
   public void testZKHelixManager() throws Exception {
@@ -158,9 +159,11 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
 
     System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
+  @Test(dependsOnMethods = "testZKHelixManager")
+  */
 
   @Override
-  @Test(dependsOnMethods = "testZKHelixManager")
+  @Test(dependsOnMethods = "testCreateParticipants")
   public void testZKHelixManagerCloudConfig() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
@@ -170,7 +173,8 @@ public class TestMultiZkHelixJavaApis extends TestMultiZkConnectionConfig {
     System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test(dependsOnMethods = "testZKHelixManager")
+  // @Test(dependsOnMethods = "testZKHelixManager")
+  @Test(dependsOnMethods = "testCreateParticipants")
   public void testZkUtil() {
     String methodName = TestHelper.getTestMethodName();
     System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));

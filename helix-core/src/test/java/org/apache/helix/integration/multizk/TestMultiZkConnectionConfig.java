@@ -258,16 +258,13 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
   /**
    * Test creation of HelixManager and makes sure it connects correctly.
-   * TODO: createClient is failing with: 
-   *  ERROR org.apache.helix.manager.zk.ZKHelixManager [] - fail to createClient. retry 1
-   * org.apache.helix.HelixException: Cluster structure is not set up for cluster: CLUSTER_1
    */
-  @Test(dependsOnMethods = "testCreateParticipants", enabled = false)
+  @Test(dependsOnMethods = "testCreateParticipants")
   public void testZKHelixManager() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
-    String clusterName = "CLUSTER_1";
+    String clusterName = "CLUSTER_11";
     String participantName = "HelixManager";
     InstanceConfig instanceConfig = new InstanceConfig(participantName);
     _zkHelixAdmin.addInstance(clusterName, instanceConfig);
@@ -329,12 +326,12 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   /**
    * Test creation of HelixManager and makes sure it connects correctly.
    */
-  @Test(dependsOnMethods = "testZKHelixManager", enabled = false)
+  @Test(dependsOnMethods = "testZKHelixManager")
   public void testZKHelixManagerCloudConfig() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
-    String clusterName = "CLUSTER_1";
+    String clusterName = "CLUSTER_11";
     String participantName = "HelixManager";
     InstanceConfig instanceConfig = new InstanceConfig(participantName);
     _zkHelixAdmin.addInstance(clusterName, instanceConfig);

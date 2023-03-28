@@ -23,8 +23,7 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 
 public interface LockClientInterface {
   /**
-   * Acquires a lock by creating a node at entry key and lockinfo info.
-   * Will fail and return False if path and lockinfo is invalid.
+   * Acquires a lock at key.
    * @param key key to identify the entry
    * @param info Metadata of the lock
    * @param mode EntryMode identifying if the entry will be deleted upon client disconnect
@@ -36,12 +35,12 @@ public interface LockClientInterface {
    * Renews lock for a TTL Node.
    * Will fail if key is an invalid path or isn't of type TTL.
    * @param key key to identify the entry
-   * @return True if the lock was renews. False if failed to renew (catches exception).
+   * @return True if the lock was renewed. False if failed to renew (catches exception).
    */
   boolean renewTTLLock(String key);
 
   /**
-   * Releases the lock by deleted the node at entry key.
+   * Releases the lock.
    * Will fail if key is an invalid path.
    * @param key key to identify the entry
    * @return True if the lock was released. False if failed to release (catches exception).
@@ -51,12 +50,7 @@ public interface LockClientInterface {
   /**
    * Obtains the metadata of a lock (the LockInfo).
    * @param key key to identify the entry
-   * @return LockInfo object of the node at key. If key doesn't exist, raise exception.
+   * @return LockInfo object of the node at key. If fails to retrieve, return null.
    */
   LockInfo retrieveLock(String key);
-
-  /**
-   * Closes the underlying client.
-   */
-  void close();
 }

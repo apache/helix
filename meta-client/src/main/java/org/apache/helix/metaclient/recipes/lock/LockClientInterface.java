@@ -27,7 +27,7 @@ public interface LockClientInterface {
    * @param key key to identify the entry
    * @param info Metadata of the lock
    * @param mode EntryMode identifying if the entry will be deleted upon client disconnect
-   * @return True if the lock is acquired. False if failed to acquire (catches exception).
+   * @return True if the lock is acquired. Raises exception if fails.
    */
   boolean acquireLock(String key, LockInfo info, MetaClientInterface.EntryMode mode);
 
@@ -35,7 +35,7 @@ public interface LockClientInterface {
    * Renews lock for a TTL Node.
    * Will fail if key is an invalid path or isn't of type TTL.
    * @param key key to identify the entry
-   * @return True if the lock was renewed. False if failed to renew (catches exception).
+   * @return True if the lock was renewed. Raises exception if fails.
    */
   boolean renewTTLLock(String key);
 
@@ -43,7 +43,8 @@ public interface LockClientInterface {
    * Releases the lock.
    * Will fail if key is an invalid path.
    * @param key key to identify the entry
-   * @return True if the lock was released. False if failed to release (catches exception).
+   * @return True if the lock was released or the lock had already been released.
+   * Raises exception if fails.
    */
   boolean releaseLock(String key);
 
@@ -51,6 +52,7 @@ public interface LockClientInterface {
    * Obtains the metadata of a lock (the LockInfo).
    * @param key key to identify the entry
    * @return LockInfo object of the node at key. If fails to retrieve, return null.
+   * If other error, will raise exception.
    */
   LockInfo retrieveLock(String key);
 }

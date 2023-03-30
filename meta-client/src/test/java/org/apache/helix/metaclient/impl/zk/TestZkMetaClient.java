@@ -348,7 +348,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       zkMetaClient.create(basePath + "/child_2", "test-data");
       //Thread.sleep(500);
       zkMetaClient.create(basePath + "/child_3", "test-data");
-      Assert.assertTrue(countDownLatch.await(10000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
     }
   }
 

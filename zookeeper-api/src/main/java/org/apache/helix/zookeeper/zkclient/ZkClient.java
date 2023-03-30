@@ -59,6 +59,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy;
+import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
@@ -1254,6 +1255,13 @@ public class ZkClient implements Watcher {
     if (LOG.isDebugEnabled()) {
       LOG.debug("zkclient {}, Received event: {} ", _uid, event);
     }
+    System.out.println("-----------------------");
+    for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+      System.out.println(ste + "\n");
+    }
+    System.out.println("-----------------------");
+
+    System.out.println("event: " + event.getPath());
     _zookeeperEventThread = Thread.currentThread();
 
     boolean stateChanged = event.getPath() == null;
@@ -1836,6 +1844,7 @@ public class ZkClient implements Watcher {
         _eventThread.send(new ZkEventThread.ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
+            /*
             if (!pathStatRecord.pathChecked()) {
               Stat stat = null;
               if (!pathExists || !hasListeners(path)) {
@@ -1855,7 +1864,8 @@ public class ZkClient implements Watcher {
                 LOG.warn("zkclient {} Get children under path: {} failed.", _uid, path, e);
                 // Continue trigger the change handler
               }
-            }
+            }*/
+            List<String> children = getChildren(path);
             listener.handleChildChange(path, children, eventType);
           }
         });
@@ -2464,7 +2474,9 @@ public class ZkClient implements Watcher {
           exists(path, true);
         }
         try {
-          return getChildren(path, true);
+          Watcher w = new Pwatcher();
+          getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT);
+          return getChildren(path, false);
         } catch (ZkNoNodeException e) {
           // ignore, the "exists" watch will listen for the parent node to appear
           LOG.info("zkclient{} watchForChilds path not existing:{} skipWatchingNodeNoteExist: {}",
@@ -2904,6 +2916,15 @@ public class ZkClient implements Watcher {
     if (serializerSize > WRITE_SIZE_LIMIT) {
       throw new IllegalStateException("ZNRecord serializer write size limit " + serializerSize
           + " is greater than ZkClient size limit " + WRITE_SIZE_LIMIT);
+    }
+  }
+
+  class Pwatcher implements Watcher {
+
+    @Override
+    public void process(WatchedEvent watchedEvent) {
+      System.out.println("Pwatcher path: " + watchedEvent.getPath());
+      System.out.println("Pwatcher type: " + watchedEvent.getType());
     }
   }
 }

@@ -259,6 +259,12 @@ public class ZkConnection implements IZkConnection {
     _zk.addWatch(basePath, watcher, mode);
   }
 
+  @Override
+  public void removeWatches(String path, Watcher watcher, Watcher.WatcherType watcherType)
+      throws InterruptedException, KeeperException {
+    _zk.removeWatches(path, watcher, watcherType, true);
+  }
+
   private Method doLookUpGetChildrenMethod() {
     if (!GETCHILDREN_PAGINATION_DISABLED) {
       try {

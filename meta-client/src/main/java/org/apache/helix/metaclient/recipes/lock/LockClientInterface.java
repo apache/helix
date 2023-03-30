@@ -27,6 +27,7 @@ public interface LockClientInterface {
    * @param key key to identify the entry
    * @param info Metadata of the lock
    * @param mode EntryMode identifying if the entry will be deleted upon client disconnect
+   *             (Persistent, Ephemeral, or TTL)
    * @return True if the lock is acquired. Raises exception if fails.
    */
   boolean acquireLock(String key, LockInfo info, MetaClientInterface.EntryMode mode);

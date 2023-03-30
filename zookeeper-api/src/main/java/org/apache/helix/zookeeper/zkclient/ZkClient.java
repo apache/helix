@@ -2423,20 +2423,23 @@ public class ZkClient implements Watcher {
 
   private boolean watchForData(final String path, boolean skipWatchingNonExistNode) {
     try {
-      if (skipWatchingNonExistNode) {
-        if (_usePersistWatcher && exists(path)) {
-          Watcher w = new Pwatcher();
-          getConnection().addWatch(path, w, AddWatchMode.PERSISTENT);
-          getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT);
-        } else {
+      if (_usePersistWatcher) {
+        return retryUntilConnected(new Callable<>() {
+          @Override
+          public Boolean call() throws Exception {
+            if (!skipWatchingNonExistNode || exists(path)) {
+              Watcher w = new Pwatcher();
+              getConnection().addWatch(path, w, AddWatchMode.PERSISTENT);
+              getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT);
+              return true;
+            }
+            return false;
+          }
+        });
+      } else {
+        if (skipWatchingNonExistNode) {
           retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper()
               .getData(path, true, new Stat())));
-        }
-      } else {
-        if (_usePersistWatcher) {
-          Watcher w = new Pwatcher();
-          getConnection().addWatch(path, w, AddWatchMode.PERSISTENT);
-          getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT);
         } else {
           retryUntilConnected(
               () -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
@@ -2446,10 +2449,6 @@ public class ZkClient implements Watcher {
       // Do nothing, this is what we want as this is not going to leak watch in ZooKeeepr server.
       LOG.info("zkclient {}, watchForData path not existing: {} ", _uid, path);
       return false;
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } catch (KeeperException e) {
-      e.printStackTrace();
     }
     return true;
   }

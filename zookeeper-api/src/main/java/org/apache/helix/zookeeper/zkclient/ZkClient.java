@@ -1261,7 +1261,7 @@ public class ZkClient implements Watcher {
     }
     System.out.println("-----------------------");
 
-    System.out.println("event: " + event.getPath());
+    System.out.println("process event: " + event.getPath());
     _zookeeperEventThread = Thread.currentThread();
 
     boolean stateChanged = event.getPath() == null;
@@ -2475,6 +2475,7 @@ public class ZkClient implements Watcher {
         }
         try {
           Watcher w = new Pwatcher();
+          getConnection().addWatch(path, w, AddWatchMode.PERSISTENT);
           getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT);
           return getChildren(path, false);
         } catch (ZkNoNodeException e) {

@@ -60,7 +60,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
   private final Object _syncObject = new Object();
 
-  /*
   @Test
   public void testCreate() {
     final String key = "/TestZkMetaClient_testCreate";
@@ -323,7 +322,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Assert.assertTrue(dataExpected.get());
     }
   }
-*/
+
   @Test
   public void testDirectChildChangeListener() throws Exception {
     final String basePath = "/TestZkMetaClient_testDirectChildChangeListener";
@@ -344,9 +343,9 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       zkMetaClient.create(basePath + "/child_1", "test-data");
       //TODO: the native zkclient failed to provide persistent listener, and event might be lost.
       // Remove Thread.sleep() below when the persistent watcher is supported
-      //Thread.sleep(500);
+      Thread.sleep(500);
       zkMetaClient.create(basePath + "/child_2", "test-data");
-      //Thread.sleep(500);
+      Thread.sleep(500);
       zkMetaClient.create(basePath + "/child_3", "test-data");
       Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
     }

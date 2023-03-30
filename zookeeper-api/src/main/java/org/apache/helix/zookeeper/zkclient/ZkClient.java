@@ -266,7 +266,7 @@ public class ZkClient implements Watcher {
 
     List<String> children = watchForChilds(path, skipWatchingNonExistNode);
     if (children == null && skipWatchingNonExistNode) {
-        unsubscribeChildChanges(path, listener);
+      unsubscribeChildChanges(path, listener);
       LOG.info("zkclient{}, watchForChilds failed to install no-existing watch and add listener. Path: {}", _uid, path);
       return new ChildrenSubscribeResult(children, false);
     }
@@ -290,7 +290,8 @@ public class ZkClient implements Watcher {
     if (!watchInstalled) {
       // Now let us remove this handler.
       unsubscribeDataChanges(path, listener);
-      LOG.info("zkclient {} watchForData failed to install no-existing path and thus add listener. Path: {}", _uid, path);
+      LOG.info("zkclient {} watchForData failed to install no-existing path and thus add listener. Path: {}",
+          _uid, path);
       return false;
     }
 
@@ -1807,7 +1808,6 @@ public class ZkClient implements Watcher {
         _eventThread.send(new ZkEventThread.ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
-
             if (!pathStatRecord.pathChecked()) {
               Stat stat = null;
               if (!pathExists || !hasListeners(path)) {
@@ -2378,11 +2378,9 @@ public class ZkClient implements Watcher {
   private boolean watchForData(final String path, boolean skipWatchingNonExistNode) {
     try {
       if (skipWatchingNonExistNode) {
-        retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper()
-            .getData(path, true, new Stat())));
+        retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().getData(path, true, new Stat())));
       } else {
-        retryUntilConnected(
-            () -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
+        retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
       }
     } catch (ZkNoNodeException e) {
       // Do nothing, this is what we want as this is not going to leak watch in ZooKeeepr server.
@@ -2438,7 +2436,7 @@ public class ZkClient implements Watcher {
           exists(path, true);
         }
         try {
-            return getChildren(path, true);
+          return getChildren(path, true);
         } catch (ZkNoNodeException e) {
           // ignore, the "exists" watch will listen for the parent node to appear
           LOG.info("zkclient{} watchForChilds path not existing:{} skipWatchingNodeNoteExist: {}",

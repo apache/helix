@@ -20,8 +20,10 @@ package org.apache.helix.zookeeper.zkclient;
  */
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +39,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.management.JMException;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -114,7 +118,7 @@ public class ZkClient implements Watcher {
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
-  private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
       new ConcurrentHashMap<>();
   private final Set<IZkStateListener> _stateListener = new CopyOnWriteArraySet<>();
@@ -262,12 +266,14 @@ public class ZkClient implements Watcher {
         monitorInstanceName, monitorRootPathOnly, true);
   }
 
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+  public List<String> subscribeChildChanges(String path, IZkChildListener listener)
+       {
     ChildrenSubscribeResult result = subscribeChildChanges(path, listener, false);
     return result.getChildren();
   }
 
-  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode) {
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode)
+      {
     if (_usePersistWatcher) {
       addPersistListener(path, listener);
     } else {
@@ -1264,13 +1270,6 @@ public class ZkClient implements Watcher {
     if (LOG.isDebugEnabled()) {
       LOG.debug("zkclient {}, Received event: {} ", _uid, event);
     }
-    System.out.println("-----------------------");
-    for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
-      System.out.println(ste + "\n");
-    }
-    System.out.println("-----------------------");
-
-    System.out.println("process event: " + event.getPath());
     _zookeeperEventThread = Thread.currentThread();
 
     boolean stateChanged = event.getPath() == null;
@@ -1356,7 +1355,7 @@ public class ZkClient implements Watcher {
    * are deleted before the last page is fetched. The upstream caller should be able to handle this.
    */
   public List<String> getChildren(String path) {
-    return getChildren(path, hasListeners(path));
+    return getChildren(path, hasListeners(path) && !_usePersistWatcher);
   }
 
   protected List<String> getChildren(final String path, final boolean watch) {
@@ -1856,7 +1855,7 @@ public class ZkClient implements Watcher {
 
             if (!pathStatRecord.pathChecked()) {
               Stat stat = null;
-              if (!_usePersistWatcher || !pathExists || !hasListeners(path)) {
+              if (_usePersistWatcher || !pathExists || !hasListeners(path)) {
                 // will not install listener using exists call
                 stat = getStat(path, false);
               } else {
@@ -2424,12 +2423,10 @@ public class ZkClient implements Watcher {
   private boolean watchForData(final String path, boolean skipWatchingNonExistNode) {
     try {
       if (_usePersistWatcher) {
-        return retryUntilConnected(new Callable<>() {
+        return retryUntilConnected(new Callable<Boolean>() {
           @Override
           public Boolean call() throws Exception {
             if (!skipWatchingNonExistNode || exists(path)) {
-              Watcher w = new Pwatcher();
-              getConnection().addWatch(path, w, AddWatchMode.PERSISTENT);
               getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT);
               return true;
             }
@@ -2438,11 +2435,9 @@ public class ZkClient implements Watcher {
         });
       } else {
         if (skipWatchingNonExistNode) {
-          retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper()
-              .getData(path, true, new Stat())));
+          retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().getData(path, true, new Stat())));
         } else {
-          retryUntilConnected(
-              () -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
+          retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
         }
       }
     } catch (ZkNoNodeException e) {
@@ -2495,14 +2490,12 @@ public class ZkClient implements Watcher {
     return retryUntilConnected(new Callable<List<String>>() {
       @Override
       public List<String> call() throws Exception {
-        if (!skipWatchingNonExistNode) {
+        if (!skipWatchingNonExistNode && !_usePersistWatcher) {
           exists(path, true);
         }
         try {
-          Watcher w = new Pwatcher();
           if (_usePersistWatcher) {
             if (!skipWatchingNonExistNode || exists(path)) {
-              getConnection().addWatch(path, w, AddWatchMode.PERSISTENT);
               getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT);
             }
             return getChildren(path, false);
@@ -3026,12 +3019,4 @@ public class ZkClient implements Watcher {
     _persistListenerMutex.unlock();
   }
 
-  class Pwatcher implements Watcher {
-
-    @Override
-    public void process(WatchedEvent watchedEvent) {
-      System.out.println("Pwatcher path: " + watchedEvent.getPath());
-      System.out.println("Pwatcher type: " + watchedEvent.getType());
-    }
-  }
 }

@@ -2998,6 +2998,10 @@ public class ZkClient implements Watcher {
     if (listeners != null) {
       listeners.remove(listener);
     }
+
+    if ((listeners == null || listeners.isEmpty())) {
+      _childListener.remove(path);
+    }
   }
 
   private void removePersistListener(String path, Object listener) {

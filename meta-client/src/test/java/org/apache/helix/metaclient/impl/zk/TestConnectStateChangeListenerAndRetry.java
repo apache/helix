@@ -90,6 +90,7 @@ public class TestConnectStateChangeListenerAndRetry  {
       Assert.fail("The second connect should throw IllegalStateException");
     } catch (Exception ex) {
       Assert.assertTrue(ex instanceof IllegalStateException);
+      Assert.assertEquals(ex.getMessage(), "ZkClient is not in init state. connect() has already been called.");
     }
     System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectState at " + new Date(System.currentTimeMillis()));
   }
@@ -164,7 +165,6 @@ public class TestConnectStateChangeListenerAndRetry  {
         Assert.assertTrue(ex.getCause() instanceof IllegalStateException);
       }
     }
-    Thread.sleep(AUTO_RECONNECT_WAIT_TIME_EXD*100);
     System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
   }
 

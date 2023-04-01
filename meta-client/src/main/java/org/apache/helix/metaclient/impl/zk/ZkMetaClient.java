@@ -72,7 +72,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   private final long _initConnectionTimeout;
   private final long _reconnectTimeout;
 
-  // After ZkClient become disconnect from ZK server, it keeps retrying connection until connection
+  // After ZkClient gets disconnected from ZK server, it keeps retrying connection until connection
   // is re-established or ZkClient is closed. We need a separate thread to monitor ZkClient
   // reconnect and close ZkClient if it not able to reconnect within user specified timeout.
   private final ScheduledExecutorService _zkClientReconnectMonitor;

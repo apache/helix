@@ -130,7 +130,6 @@ public class ZkMetaClientConfig extends MetaClientConfig {
     @Override
     public ZkMetaClientConfig build() {
       validate();
-
       return new ZkMetaClientConfig(_connectionAddress, _connectionInitTimeoutInMillis,
           _sessionTimeoutInMillis, _metaClientReconnectPolicy, _enableAuth,
           MetaClientConfig.StoreType.ZOOKEEPER, _monitorType, _monitorKey, _monitorInstanceName,

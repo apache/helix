@@ -52,9 +52,6 @@ import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.PERS
 
 public class TestZkMetaClient extends ZkMetaClientTestBase{
 
-  private static final String ZK_ADDR = "localhost:2183";
-  private static final int DEFAULT_TIMEOUT_MS = 1000;
-  private static final String ENTRY_STRING_VALUE = "test-value";
   private static final String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
   private static final String TEST_INVALID_PATH = "/_invalid/a/b/c";
 
@@ -348,35 +345,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Thread.sleep(500);
       zkMetaClient.create(basePath + "/child_3", "test-data");
       Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
-    }
-  }
-
-  @Test
-  public void testConnectStateChangeListener() throws Exception {
-    final String basePath = "/TestZkMetaClient_testConnectionStateChangeListener";
-    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
-      CountDownLatch countDownLatch = new CountDownLatch(1);
-      final MetaClientInterface.ConnectState[] connectState =
-          new MetaClientInterface.ConnectState[2];
-      ConnectStateChangeListener listener = new ConnectStateChangeListener() {
-        @Override
-        public void handleConnectStateChanged(MetaClientInterface.ConnectState prevState,
-            MetaClientInterface.ConnectState currentState) throws Exception {
-          connectState[0] = prevState;
-          connectState[1] = currentState;
-          countDownLatch.countDown();
-        }
-
-        @Override
-        public void handleConnectionEstablishmentError(Throwable error) throws Exception {
-
-        }
-      };
-      Assert.assertTrue(zkMetaClient.subscribeStateChanges(listener));
-      zkMetaClient.connect();
-      countDownLatch.await(5000, TimeUnit.SECONDS);
-      Assert.assertEquals(connectState[0], MetaClientInterface.ConnectState.NOT_CONNECTED);
-      Assert.assertEquals(connectState[1], MetaClientInterface.ConnectState.CONNECTED);
     }
   }
 

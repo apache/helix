@@ -21,6 +21,7 @@ package org.apache.helix.metaclient.policy;
 
 import org.apache.helix.metaclient.policy.MetaClientReconnectPolicy;
 
+import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS;
 
@@ -32,22 +33,25 @@ import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_
  */
 public class ExponentialBackoffReconnectPolicy implements MetaClientReconnectPolicy {
 
-  private final long _maxBackOffInterval;
-  private final long _initBackoffInterval;
+  private final long _autoReconnectTimeout;
 
   @Override
   public RetryPolicyName getPolicyName() {
     return RetryPolicyName.EXP_BACKOFF;
   }
 
+  @Override
+  public long getAutoReconnectTimeout() {
+    return _autoReconnectTimeout;
+  }
+
   public ExponentialBackoffReconnectPolicy() {
-    _initBackoffInterval = DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
-    _maxBackOffInterval = DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS;
+    _autoReconnectTimeout = DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
   }
 
-  public ExponentialBackoffReconnectPolicy(long maxBackOffInterval, long initBackoffInterval) {
-    _maxBackOffInterval = maxBackOffInterval;
-    _initBackoffInterval = initBackoffInterval;
-
+  public ExponentialBackoffReconnectPolicy(long autoReconnectTimeout) {
+    _autoReconnectTimeout = autoReconnectTimeout;
   }
+
+  // TODO: Allow user to pass maxBackOffInterval and initBackoffInterval.
 }

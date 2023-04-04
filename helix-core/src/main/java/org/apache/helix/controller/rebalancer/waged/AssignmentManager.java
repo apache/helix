@@ -29,6 +29,9 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 
 
+/**
+ * A manager class for fetching assignment from metadata store.
+ */
 class AssignmentManager {
   private final LatencyMetric _stateReadLatency;
 

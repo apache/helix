@@ -2615,6 +2615,7 @@ public class ZkClient implements Watcher {
       }
       _eventThread.interrupt();
       _eventThread.join(2000);
+      // TODO: Closing _event thread here will miss final `CLOSE` state change.
       if (isManagingZkConnection()) {
         LOG.info("Closing zkclient uid:{}, zk:{}", _uid, ((ZkConnection) connection).getZookeeper());
         connection.close();

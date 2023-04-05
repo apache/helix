@@ -18,6 +18,8 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
+    - name: Delete frontend-maven-plugin dir
+      run: rm -rf .m2\repository\com\github\eirslett
     - name: Build with Maven
       run: mvn clean install -Dmaven.test.skip.exec=true -DretryFailedDeploymentCount=5
     - name: Run All Tests

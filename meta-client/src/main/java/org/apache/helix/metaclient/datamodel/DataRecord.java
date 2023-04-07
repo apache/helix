@@ -26,8 +26,8 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
  * TODO: Create an interface to decouple DataRecord and have a pluggable record store.
  */
 public class DataRecord extends ZNRecord {
-  public DataRecord(String ZNODE_ID) {
-    super(ZNODE_ID);
+  public DataRecord(String znodeId) {
+    super(znodeId);
   }
 }
 

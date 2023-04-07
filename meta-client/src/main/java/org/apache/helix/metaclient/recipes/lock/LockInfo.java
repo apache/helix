@@ -125,7 +125,8 @@ public class LockInfo {
 
   /**
    * Set the value for LOCK_ID attribute of the lock
-   * @param lockId String representing the lock id
+   * @param lockId Is a unique identifier representing the lock.
+   *               It is created by the lockClient and a new one is created for each time the lock is acquired.
    */
   public void setLockId(String lockId) {
     _record.setSimpleField(LockInfoAttribute.LOCK_ID.name(), lockId == null ? DEFAULT_LOCK_ID_TEXT : lockId);
@@ -133,7 +134,9 @@ public class LockInfo {
 
   /**
    * Get the value for OWNER_ID attribute of the lock
-   * @param ownerId String representing the owner id
+   * @param ownerId Represents the initiator of the lock, created by the client.
+   *                A service can have multiple ownerId's as long as acquire and release are called
+   *                by the same owner.
    */
   public void setOwnerId(String ownerId) {
     _record.setSimpleField(LockInfoAttribute.OWNER_ID.name(), ownerId == null ? DEFAULT_OWNER_ID_TEXT : ownerId);
@@ -141,7 +144,7 @@ public class LockInfo {
 
   /**
    * Get the value for CLIENT_ID attribute of the lock
-   * @param clientId String representing the client id
+   * @param clientId Unique identifier that represents who will get the lock (the client).
    */
   public void setClientId(String clientId) {
     _record.setSimpleField(LockInfoAttribute.CLIENT_ID.name(), clientId == null ? DEFAULT_CLIENT_ID_TEXT : clientId);

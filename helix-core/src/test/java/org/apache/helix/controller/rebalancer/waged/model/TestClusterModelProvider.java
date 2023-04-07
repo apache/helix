@@ -19,6 +19,8 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -37,6 +40,8 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
+import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -47,6 +52,7 @@ import static org.mockito.Mockito.when;
 
 public class TestClusterModelProvider extends AbstractTestClusterModel {
   Set<String> _instances;
+  Map<String, ResourceConfig> _resourceConfigMap = new HashMap<>();
 
   @BeforeClass
   public void initialize() {
@@ -92,6 +98,211 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     }
 
     return testCache;
+  }
+
+  @Test
+  public void testGenerateClusterModelForDelayedRebalanceOverwrites() throws IOException {
+    ResourceControllerDataProvider testCache = setupClusterDataCache();
+    String instance1 = _testInstanceId;
+    String offlineInstance = _testInstanceId + "1";
+    String instance2 = _testInstanceId + "2";
+    Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
+    liveInstanceMap.put(instance1, createMockLiveInstance(instance1));
+    liveInstanceMap.put(instance2, createMockLiveInstance(instance2));
+    Set<String> activeInstances = new HashSet<>();
+    activeInstances.add(instance1);
+    activeInstances.add(instance2);
+    when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
+
+    // test 1, one partition under minActiveReplica
+    Map<String, Map<String, Map<String, String>>> input = ImmutableMap.of(
+        _resourceNames.get(0),
+        ImmutableMap.of(
+            _partitionNames.get(0), ImmutableMap.of("MASTER", instance1),
+            _partitionNames.get(1), ImmutableMap.of("OFFLINE", offlineInstance)), // Partition2-MASTER
+        _resourceNames.get(1),
+        ImmutableMap.of(
+            _partitionNames.get(2), ImmutableMap.of("MASTER", instance1),
+            _partitionNames.get(3), ImmutableMap.of("SLAVE", instance1))
+    );
+    Map<String, Set<AssignableReplica>> replicaMap = new HashMap<>(); // to populate
+    Map<String, ResourceAssignment> currentAssignment = new HashMap<>(); // to populate
+    prepareData(input, replicaMap, currentAssignment, testCache, 1);
+
+    Map<String, Set<AssignableReplica>> allocatedReplicas = new HashMap<>();
+    Set<AssignableReplica> toBeAssignedReplicas =
+        DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+            currentAssignment, allocatedReplicas);
+
+    Assert.assertEquals(toBeAssignedReplicas.size(), 1);
+    Assert.assertTrue(toBeAssignedReplicas.stream().map(AssignableReplica::toString).collect(Collectors.toSet())
+        .contains("Resource1-Partition2-MASTER"));
+    AssignableReplica replica = toBeAssignedReplicas.iterator().next();
+    Assert.assertEquals(replica.getReplicaState(), "MASTER");
+    Assert.assertEquals(replica.getPartitionName(), "Partition2");
+
+    Assert.assertEquals(allocatedReplicas.size(), 2);
+    Assert.assertEquals(allocatedReplicas.get(offlineInstance).size(), 1);
+    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 3);
+    Assert.assertFalse(allocatedReplicas.containsKey(instance2));
+
+    // test 2, no additional replica to be assigned
+    testCache = setupClusterDataCache();
+    when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
+    input = ImmutableMap.of(
+        _resourceNames.get(0),
+        ImmutableMap.of(
+            _partitionNames.get(0), ImmutableMap.of("MASTER", instance1),
+            _partitionNames.get(1), ImmutableMap.of("SLAVE", instance1)),
+        _resourceNames.get(1),
+        ImmutableMap.of(
+            _partitionNames.get(2), ImmutableMap.of("MASTER", instance1),
+            _partitionNames.get(3), ImmutableMap.of("SLAVE", instance1))
+    );
+    replicaMap = new HashMap<>(); // to populate
+    currentAssignment = new HashMap<>(); // to populate
+    prepareData(input, replicaMap, currentAssignment, testCache, 1);
+    allocatedReplicas = new HashMap<>();
+    toBeAssignedReplicas =
+        DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+            currentAssignment, allocatedReplicas);
+    Assert.assertTrue(toBeAssignedReplicas.isEmpty());
+    Assert.assertEquals(allocatedReplicas.size(), 1);
+    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 4);
+
+    // test 3, minActiveReplica==2, two partitions falling short
+    testCache = setupClusterDataCache();
+    when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
+    input = ImmutableMap.of(
+        _resourceNames.get(0),
+        ImmutableMap.of(
+            _partitionNames.get(0), ImmutableMap.of("MASTER", instance1, "SLAVE", instance2),
+            _partitionNames.get(1), ImmutableMap.of("MASTER", instance1, "OFFLINE", offlineInstance)), // Partition2-SLAVE
+        _resourceNames.get(1),
+        ImmutableMap.of(
+            _partitionNames.get(2), ImmutableMap.of("MASTER", instance1, "SLAVE", instance2),
+            _partitionNames.get(3), ImmutableMap.of("SLAVE", instance1, "OFFLINE", offlineInstance)) // Partition4-MASTER
+    );
+    replicaMap = new HashMap<>(); // to populate
+    currentAssignment = new HashMap<>(); // to populate
+    prepareData(input, replicaMap, currentAssignment, testCache, 2);
+    allocatedReplicas = new HashMap<>();
+    toBeAssignedReplicas =
+        DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+            currentAssignment, allocatedReplicas);
+    Assert.assertEquals(toBeAssignedReplicas.size(), 2);
+    Assert.assertEquals(toBeAssignedReplicas.stream().map(AssignableReplica::toString).collect(Collectors.toSet()),
+        ImmutableSet.of("Resource1-Partition2-SLAVE", "Resource2-Partition4-MASTER"));
+    Assert.assertEquals(allocatedReplicas.size(), 3);
+    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 4);
+    Assert.assertEquals(allocatedReplicas.get(instance2).size(), 2);
+    Assert.assertEquals(allocatedReplicas.get(offlineInstance).size(), 2);
+  }
+
+  /**
+   * Prepare mock objects with given input. This methods prepare replicaMap and populate testCache with currentState.
+   *
+   * @param input <resource, <partition, <state, instance> > >
+   * @param replicaMap The data map to prepare, a set of AssignableReplica by resource name.
+   * @param currentAssignment The data map to prepare, resourceAssignment by resource name
+   * @param testCache The mock object to prepare
+   */
+  private void prepareData(Map<String, Map<String, Map<String, String>>> input,
+      Map<String, Set<AssignableReplica>> replicaMap,
+      Map<String, ResourceAssignment> currentAssignment,
+      ResourceControllerDataProvider testCache,
+      int minActiveReplica) {
+
+    // Set up mock idealstate
+    Map<String, IdealState> isMap = new HashMap<>();
+    for (String resource : _resourceNames) {
+      ResourceConfig resourceConfig = new ResourceConfig.Builder(resource)
+          .setMinActiveReplica(minActiveReplica)
+          .setNumReplica(3)
+          .build();
+      _resourceConfigMap.put(resource, resourceConfig);
+      IdealState is = new IdealState(resource);
+      is.setNumPartitions(_partitionNames.size());
+      is.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+      is.setStateModelDefRef("MasterSlave");
+      is.setReplicas("3");
+      is.setMinActiveReplicas(minActiveReplica);
+      is.setRebalancerClassName(WagedRebalancer.class.getName());
+      _partitionNames.forEach(partition -> is.setPreferenceList(partition, Collections.emptyList()));
+      isMap.put(resource, is);
+    }
+    when(testCache.getIdealState(anyString())).thenAnswer(
+        (Answer<IdealState>) invocationOnMock -> isMap.get(invocationOnMock.getArguments()[0]));
+    when(testCache.getResourceConfig(anyString())).thenAnswer(
+        (Answer<ResourceConfig>) invocationOnMock -> _resourceConfigMap.get(invocationOnMock.getArguments()[0]));
+
+
+    // <instance, <resource, CurrentState>>
+    Map<String, Map<String, CurrentState>> currentStateByInstanceByResource = new HashMap<>();
+    Map<String, Map<String, Map<String, String>>> stateByInstanceByResourceByPartition = new HashMap<>();
+
+    for (String resource : input.keySet()) {
+      Set<AssignableReplica> replicas = new HashSet<>();
+      replicaMap.put(resource, replicas);
+      ResourceConfig resourceConfig = _resourceConfigMap.get(resource);
+      for (String partition : input.get(resource).keySet()) {
+        input.get(resource).get(partition).forEach(
+            (state, instance) -> {
+              stateByInstanceByResourceByPartition
+                  .computeIfAbsent(instance, k -> new HashMap<>())
+                  .computeIfAbsent(resource, k -> new HashMap<>())
+                  .put(partition, state);
+              replicas.add(new MockAssignableReplica(resourceConfig, partition, state));
+            });
+      }
+    }
+    for (String instance : stateByInstanceByResourceByPartition.keySet()) {
+      for (String resource : stateByInstanceByResourceByPartition.get(instance).keySet()) {
+        Map<String, String> partitionState = stateByInstanceByResourceByPartition.get(instance).get(resource);
+        CurrentState testCurrentStateResource = mockCurrentStateResource(partitionState);
+        currentStateByInstanceByResource.computeIfAbsent(instance, k -> new HashMap<>()).put(resource, testCurrentStateResource);
+      }
+    }
+
+    for (String instance : currentStateByInstanceByResource.keySet()) {
+      when(testCache.getCurrentState(instance, _sessionId)).thenReturn(currentStateByInstanceByResource.get(instance));
+      when(testCache.getCurrentState(instance, _sessionId, false))
+          .thenReturn(currentStateByInstanceByResource.get(instance));
+    }
+
+    // Mock a baseline assignment based on the current states.
+    for (String resource : _resourceNames) {
+      // <partition, <instance, state>>
+      Map<String, Map<String, String>> assignmentMap = new HashMap<>();
+      for (String instance : _instances) {
+        CurrentState cs = testCache.getCurrentState(instance, _sessionId).get(resource);
+        if (cs != null) {
+          for (Map.Entry<String, String> stateEntry : cs.getPartitionStateMap().entrySet()) {
+            assignmentMap.computeIfAbsent(stateEntry.getKey(), k -> new HashMap<>())
+                .put(instance, stateEntry.getValue());
+          }
+          ResourceAssignment assignment = new ResourceAssignment(resource);
+          assignmentMap.keySet().forEach(partition -> assignment
+              .addReplicaMap(new Partition(partition), assignmentMap.get(partition)));
+          currentAssignment.put(resource, assignment);
+        }
+      }
+    }
+  }
+
+  private CurrentState mockCurrentStateResource(Map<String, String> partitionState) {
+    CurrentState testCurrentStateResource = Mockito.mock(CurrentState.class);
+    when(testCurrentStateResource.getResourceName()).thenReturn(_resourceNames.get(0));
+    when(testCurrentStateResource.getPartitionStateMap()).thenReturn(partitionState);
+    when(testCurrentStateResource.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(testCurrentStateResource.getSessionId()).thenReturn(_sessionId);
+    for (Map.Entry<String, String> entry : partitionState.entrySet()) {
+      when(testCurrentStateResource.getState(entry.getKey())).thenReturn(entry.getValue());
+    }
+    return testCurrentStateResource;
   }
 
   @Test
@@ -372,5 +583,11 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         clusterModel.getAssignableNodes().get(_testInstanceId).getAssignedReplicaCount(), 2);
     // No need to rebalance the replicas that are not in the baseline yet.
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 0);
+  }
+
+  static class MockAssignableReplica extends AssignableReplica {
+    MockAssignableReplica(ResourceConfig resourceConfig, String partition, String replicaState) {
+      super(new ClusterConfig("testCluster"), resourceConfig, partition, replicaState, 1);
+    }
   }
 }

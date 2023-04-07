@@ -53,7 +53,28 @@ public class ClusterModelProvider {
     // changes.
     GLOBAL_BASELINE,
     // Set the rebalance scope to cover only replicas that are assigned to downed instances.
-    EMERGENCY
+    EMERGENCY,
+    // A temporary overwrites for partition replicas on downed instance but still within the delayed window but missing
+    // minActiveReplicas
+    DELAYED_REBALANCE_OVERWRITES
+  }
+
+  /**
+   * Compute a new Cluster Model with scope limited to partitions with best possible assignment missing minActiveReplicas
+   * because of delayed rebalance setting.
+   * @param dataProvider The controller's data cache
+   * @param resourceMap The full map of the resource by name
+   * @param activeInstances The active instances that will be used in the calculation.
+   * @param bestPossibleAssignment The persisted Best Possible assignment that was generated in the previous rebalance.
+   * @return the ClusterModel
+   */
+  public static ClusterModel generateClusterModelForDelayedRebalanceOverwrites(
+      ResourceControllerDataProvider dataProvider,
+      Map<String, Resource> resourceMap,
+      Set<String> activeInstances,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    return generateClusterModel(dataProvider, resourceMap, activeInstances, Collections.emptyMap(),
+        Collections.emptyMap(), bestPossibleAssignment, RebalanceScopeType.DELAYED_REBALANCE_OVERWRITES);
   }
 
   /**
@@ -192,6 +213,11 @@ public class ClusterModelProvider {
       case EMERGENCY:
         toBeAssignedReplicas = findToBeAssignedReplicasOnDownInstances(replicaMap, activeInstances,
             currentAssignment, allocatedReplicas);
+        break;
+      case DELAYED_REBALANCE_OVERWRITES:
+        toBeAssignedReplicas =
+            DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(dataProvider, replicaMap, activeInstances,
+                idealAssignment, allocatedReplicas);
         break;
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);
@@ -474,7 +500,7 @@ public class ClusterModelProvider {
   }
 
   // <partition, <state, instances set>>
-  private static Map<String, Map<String, Set<String>>> getStateInstanceMap(
+  static Map<String, Map<String, Set<String>>> getStateInstanceMap(
       ResourceAssignment assignment) {
     if (assignment == null) {
       return Collections.emptyMap();
@@ -554,6 +580,16 @@ public class ClusterModelProvider {
       }
       return new HashMap.SimpleEntry<>(resourceName, replicas);
     }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+  }
+
+  private static Map<String, Map<String, List<AssignableReplica>>> getAssignableReplicasByResourcePartition(
+      Map<String, Set<AssignableReplica>> replicaMap) {
+    return replicaMap.entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            e -> e.getValue().stream().collect(Collectors.groupingBy(AssignableReplica::getPartitionName)))
+        );
   }
 
   /**

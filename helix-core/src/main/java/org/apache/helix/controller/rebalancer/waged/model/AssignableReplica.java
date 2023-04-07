@@ -34,6 +34,12 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class represents a partition replication that needs to be allocated.
+ *
+ * TODO: This class is violating the contracts of {@link Object#hashCode()}
+ *   If two objects are equal according to the equals(Object) method, then calling the hashCode method on each of the
+ *   two objects must produce the same integer result.
+ *   https://github.com/apache/helix/issues/2299
+ *   This could be a tricky fix because this bug/feature is deeply coupled with the existing code logic
  */
 public class AssignableReplica implements Comparable<AssignableReplica> {
   private static final Logger LOG = LoggerFactory.getLogger(AssignableReplica.class);

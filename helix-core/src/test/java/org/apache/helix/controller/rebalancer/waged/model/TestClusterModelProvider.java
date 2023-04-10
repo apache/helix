@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
@@ -115,7 +116,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
     when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
 
-    // one partition under minActiveReplica
+    // test 1, one partition under minActiveReplica
     Map<String, Map<String, Map<String, String>>> input = ImmutableMap.of(
         _resourceNames.get(0),
         ImmutableMap.of(
@@ -140,6 +141,9 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertEquals(clusterModel.getAssignableNodes().size(), 2);
     Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance1));
     Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance2));
+    Assert.assertEquals(clusterModel.getAssignableNodes().get(instance1).getAssignedReplicas().size(), 2);
+    Assert.assertEquals(clusterModel.getAssignableNodes().get(instance2).getAssignedReplicas().size(), 4);
+
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().get("Resource1").size(), 1);
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().get("Resource1").iterator().next().toString(),
         "Resource1-Partition2-MASTER");
@@ -147,7 +151,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().get("Resource2").iterator().next().toString(),
         "Resource2-Partition4-MASTER");
 
-    // minActiveReplica==2, three partitions falling short
+    // test 2, minActiveReplica==2, three partitions falling short
     testCache = setupClusterDataCache();
     when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
     when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
@@ -173,6 +177,9 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertEquals(clusterModel.getAssignableNodes().size(), 2);
     Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance1));
     Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance2));
+    Assert.assertEquals(clusterModel.getAssignableNodes().get(instance1).getAssignedReplicas().size(), 6);
+    Assert.assertEquals(clusterModel.getAssignableNodes().get(instance2).getAssignedReplicas().size(), 7);
+
     Set<String> replicaSet = clusterModel.getAssignableReplicaMap().get(_resourceNames.get(0))
         .stream()
         .map(AssignableReplica::toString)
@@ -220,7 +227,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
 
     Map<String, Set<AssignableReplica>> allocatedReplicas = new HashMap<>();
     Set<AssignableReplica> toBeAssignedReplicas =
-        DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
             currentAssignment, allocatedReplicas);
 
     Assert.assertEquals(toBeAssignedReplicas.size(), 1);
@@ -229,11 +236,6 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     AssignableReplica replica = toBeAssignedReplicas.iterator().next();
     Assert.assertEquals(replica.getReplicaState(), "MASTER");
     Assert.assertEquals(replica.getPartitionName(), "Partition2");
-
-    Assert.assertEquals(allocatedReplicas.size(), 2);
-    Assert.assertEquals(allocatedReplicas.get(offlineInstance).size(), 1);
-    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 3);
-    Assert.assertFalse(allocatedReplicas.containsKey(instance2));
 
     // test 2, no additional replica to be assigned
     testCache = setupClusterDataCache();
@@ -254,12 +256,9 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     prepareData(input, replicaMap, currentAssignment, testCache, 1);
     allocatedReplicas = new HashMap<>();
     toBeAssignedReplicas =
-        DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
             currentAssignment, allocatedReplicas);
     Assert.assertTrue(toBeAssignedReplicas.isEmpty());
-    Assert.assertEquals(allocatedReplicas.size(), 2);
-    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 2);
-    Assert.assertEquals(allocatedReplicas.get(instance2).size(), 2);
 
     // test 3, minActiveReplica==2, two partitions falling short
     testCache = setupClusterDataCache();
@@ -280,15 +279,11 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     prepareData(input, replicaMap, currentAssignment, testCache, 2);
     allocatedReplicas = new HashMap<>();
     toBeAssignedReplicas =
-        DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
             currentAssignment, allocatedReplicas);
     Assert.assertEquals(toBeAssignedReplicas.size(), 2);
     Assert.assertEquals(toBeAssignedReplicas.stream().map(AssignableReplica::toString).collect(Collectors.toSet()),
         ImmutableSet.of("Resource1-Partition2-SLAVE", "Resource2-Partition4-MASTER"));
-    Assert.assertEquals(allocatedReplicas.size(), 3);
-    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 4);
-    Assert.assertEquals(allocatedReplicas.get(instance2).size(), 2);
-    Assert.assertEquals(allocatedReplicas.get(offlineInstance).size(), 2);
   }
 
   /**

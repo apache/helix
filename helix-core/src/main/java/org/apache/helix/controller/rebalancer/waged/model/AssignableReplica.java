@@ -62,7 +62,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
    * @param replicaState   The state of the replication.
    * @param statePriority  The priority of the replication's state.
    */
-  AssignableReplica(ClusterConfig clusterConfig, ResourceConfig resourceConfig,
+  public AssignableReplica(ClusterConfig clusterConfig, ResourceConfig resourceConfig,
       String partitionName, String replicaState, int statePriority) {
     _partitionName = partitionName;
     _replicaState = replicaState;

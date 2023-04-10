@@ -41,11 +41,11 @@ public class DelayedRebalanceOverwriteUtil {
    * Computes the partition replicas that needs to be brought up since those are falling short on minActiveReplicas
    * while downed instances are within the delayed window.
    * Keep all current assignment with their current allocation
-   * @param clusterData
-   * @param replicaMap
-   * @param activeInstances
-   * @param currentAssignment
-   * @param allocatedReplicas
+   * @param clusterData Cluster data cache.
+   * @param replicaMap A set of assignable replicas by resource name.
+   * @param activeInstances The set of active instances.
+   * @param currentAssignment Current assignment by resource name.
+   * @param allocatedReplicas The map from instance name to assigned replicas, the map is populated in this method.
    * @return The replicas that need to be assigned.
    */
   static Set<AssignableReplica> findToBeAssignedReplicasForMinActiveReplica(
@@ -63,20 +63,16 @@ public class DelayedRebalanceOverwriteUtil {
       // <partition, <state, instances set>>
       Map<String, Map<String, Set<String>>> stateInstanceMap =
           ClusterModelProvider.getStateInstanceMap(currentAssignment.get(resourceName));
+      ResourceAssignment resourceAssignment = currentAssignment.get(resourceName);
+      IdealState currentIdealState = clusterData.getIdealState(resourceName);
+      Map<String, Integer> statePriorityMap =
+          clusterData.getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
       // keep all current assignment and add to allocated replicas
-      for (AssignableReplica replica : replicaMap.get(resourceName)) {
-        String partitionName = replica.getPartitionName();
-        String replicaState = replica.getReplicaState();
-        Set<String> currentAllocations =
-            stateInstanceMap.getOrDefault(partitionName, Collections.emptyMap())
-                .getOrDefault(replicaState, Collections.emptySet());
-        if (currentAllocations.isEmpty()) {
-          continue;
-        }
-        String allocatedInstance = currentAllocations.iterator().next();
-        allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
-      }
-
+      resourceAssignment.getMappedPartitions().forEach(partition ->
+          resourceAssignment.getReplicaMap(partition).forEach((instance, state) ->
+              allocatedReplicas.computeIfAbsent(instance, key -> new HashSet<>())
+                  .add(new AssignableReplica(clusterData.getClusterConfig(), clusterData.getResourceConfig(resourceName),
+                      partition.getPartitionName(), state, statePriorityMap.get(state)))));
       // only proceed for resource requiring delayed rebalance overwrites
       List<PartitionWithReplicaCount> partitions =
           partitionsMissingMinActiveReplicas.getOrDefault(resourceName, Collections.emptyList());
@@ -89,7 +85,7 @@ public class DelayedRebalanceOverwriteUtil {
     return toBeAssignedReplicas;
   }
 
-  static Map<String, List<PartitionWithReplicaCount>> getPartitionsNeedForRebalanceOverwrites(
+  private static Map<String, List<PartitionWithReplicaCount>> getPartitionsNeedForRebalanceOverwrites(
       ResourceControllerDataProvider clusterData,
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     return bestPossibleAssignment.entrySet().parallelStream().collect(

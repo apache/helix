@@ -101,6 +101,94 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
   }
 
   @Test
+  public void testClusterModelForDelayedRebalanceOverwrite() throws IOException {
+    ResourceControllerDataProvider testCache = setupClusterDataCache();
+    String instance1 = _testInstanceId;
+    String offlineInstance = _testInstanceId + "1";
+    String instance2 = _testInstanceId + "2";
+    Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
+    liveInstanceMap.put(instance1, createMockLiveInstance(instance1));
+    liveInstanceMap.put(instance2, createMockLiveInstance(instance2));
+    Set<String> activeInstances = new HashSet<>();
+    activeInstances.add(instance1);
+    activeInstances.add(instance2);
+    when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
+
+    // one partition under minActiveReplica
+    Map<String, Map<String, Map<String, String>>> input = ImmutableMap.of(
+        _resourceNames.get(0),
+        ImmutableMap.of(
+            _partitionNames.get(0), ImmutableMap.of("MASTER", instance1),
+            _partitionNames.get(1), ImmutableMap.of("OFFLINE", offlineInstance), // Partition2-MASTER
+            _partitionNames.get(2), ImmutableMap.of("MASTER", instance2),
+            _partitionNames.get(3), ImmutableMap.of("MASTER", instance2)),
+        _resourceNames.get(1),
+        ImmutableMap.of(
+            _partitionNames.get(0), ImmutableMap.of("MASTER", instance2),
+            _partitionNames.get(1), ImmutableMap.of("MASTER", instance2),
+            _partitionNames.get(2), ImmutableMap.of("MASTER", instance1),
+            _partitionNames.get(3), ImmutableMap.of("OFFLINE", offlineInstance)) // Partition4-MASTER
+    );
+    Map<String, Set<AssignableReplica>> replicaMap = new HashMap<>(); // to populate
+    Map<String, ResourceAssignment> currentAssignment = new HashMap<>(); // to populate
+    prepareData(input, replicaMap, currentAssignment, testCache, 1);
+
+    Map<String, Resource> resourceMap = _resourceNames.stream().collect(Collectors.toMap(resource -> resource, Resource::new));
+    ClusterModel clusterModel = ClusterModelProvider.generateClusterModelForDelayedRebalanceOverwrites(testCache,
+        resourceMap, activeInstances, currentAssignment);
+    Assert.assertEquals(clusterModel.getAssignableNodes().size(), 2);
+    Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance1));
+    Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance2));
+    Assert.assertEquals(clusterModel.getAssignableReplicaMap().get("Resource1").size(), 1);
+    Assert.assertEquals(clusterModel.getAssignableReplicaMap().get("Resource1").iterator().next().toString(),
+        "Resource1-Partition2-MASTER");
+    Assert.assertEquals(clusterModel.getAssignableReplicaMap().get("Resource2").size(), 1);
+    Assert.assertEquals(clusterModel.getAssignableReplicaMap().get("Resource2").iterator().next().toString(),
+        "Resource2-Partition4-MASTER");
+
+    // minActiveReplica==2, three partitions falling short
+    testCache = setupClusterDataCache();
+    when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
+    input = ImmutableMap.of(
+        _resourceNames.get(0),
+        ImmutableMap.of(
+            _partitionNames.get(0), ImmutableMap.of("MASTER", instance1, "SLAVE", instance2),
+            _partitionNames.get(1), ImmutableMap.of("MASTER", instance1, "OFFLINE", offlineInstance), // Partition2-SLAVE
+            _partitionNames.get(2), ImmutableMap.of("OFFLINE", offlineInstance, "SLAVE", instance2), // Partition3-MASTER
+            _partitionNames.get(3), ImmutableMap.of("MASTER", instance1, "SLAVE", instance2)),
+        _resourceNames.get(1),
+        ImmutableMap.of(
+            _partitionNames.get(0), ImmutableMap.of("MASTER", instance1, "SLAVE", instance2),
+            _partitionNames.get(1), ImmutableMap.of("MASTER", instance1, "SLAVE", instance2),
+            _partitionNames.get(2), ImmutableMap.of("MASTER", instance1, "SLAVE", instance2),
+            _partitionNames.get(3), ImmutableMap.of("OFFLINE", offlineInstance, "ERROR", instance2)) // Partition4-MASTER
+    );
+    replicaMap = new HashMap<>(); // to populate
+    currentAssignment = new HashMap<>(); // to populate
+    prepareData(input, replicaMap, currentAssignment, testCache, 2);
+    clusterModel = ClusterModelProvider.generateClusterModelForDelayedRebalanceOverwrites(testCache,
+        resourceMap, activeInstances, currentAssignment);
+    Assert.assertEquals(clusterModel.getAssignableNodes().size(), 2);
+    Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance1));
+    Assert.assertTrue(clusterModel.getAssignableNodes().containsKey(instance2));
+    Set<String> replicaSet = clusterModel.getAssignableReplicaMap().get(_resourceNames.get(0))
+        .stream()
+        .map(AssignableReplica::toString)
+        .collect(Collectors.toSet());
+    Assert.assertEquals(replicaSet.size(), 2);
+    Assert.assertTrue(replicaSet.contains("Resource1-Partition2-SLAVE"));
+    Assert.assertTrue(replicaSet.contains("Resource1-Partition3-MASTER"));
+    replicaSet = clusterModel.getAssignableReplicaMap().get(_resourceNames.get(1))
+        .stream()
+        .map(AssignableReplica::toString)
+        .collect(Collectors.toSet());
+    Assert.assertEquals(replicaSet.size(), 1);
+    Assert.assertTrue(replicaSet.contains("Resource2-Partition4-MASTER"));
+  }
+
+  @Test
   public void testGenerateClusterModelForDelayedRebalanceOverwrites() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     String instance1 = _testInstanceId;
@@ -155,11 +243,11 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         _resourceNames.get(0),
         ImmutableMap.of(
             _partitionNames.get(0), ImmutableMap.of("MASTER", instance1),
-            _partitionNames.get(1), ImmutableMap.of("SLAVE", instance1)),
+            _partitionNames.get(1), ImmutableMap.of("SLAVE", instance2)),
         _resourceNames.get(1),
         ImmutableMap.of(
             _partitionNames.get(2), ImmutableMap.of("MASTER", instance1),
-            _partitionNames.get(3), ImmutableMap.of("SLAVE", instance1))
+            _partitionNames.get(3), ImmutableMap.of("SLAVE", instance2))
     );
     replicaMap = new HashMap<>(); // to populate
     currentAssignment = new HashMap<>(); // to populate
@@ -169,8 +257,9 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
             currentAssignment, allocatedReplicas);
     Assert.assertTrue(toBeAssignedReplicas.isEmpty());
-    Assert.assertEquals(allocatedReplicas.size(), 1);
-    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 4);
+    Assert.assertEquals(allocatedReplicas.size(), 2);
+    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 2);
+    Assert.assertEquals(allocatedReplicas.get(instance2).size(), 2);
 
     // test 3, minActiveReplica==2, two partitions falling short
     testCache = setupClusterDataCache();

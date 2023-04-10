@@ -217,7 +217,7 @@ public class ClusterModelProvider {
       case DELAYED_REBALANCE_OVERWRITES:
         toBeAssignedReplicas =
             DelayedRebalanceOverwriteUtil.findToBeAssignedReplicasForMinActiveReplica(dataProvider, replicaMap, activeInstances,
-                idealAssignment, allocatedReplicas);
+                currentAssignment, allocatedReplicas);
         break;
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);

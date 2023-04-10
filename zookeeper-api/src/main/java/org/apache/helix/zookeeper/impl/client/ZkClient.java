@@ -91,19 +91,19 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
    *                      explicitly before talking to ZK.
    */
   public ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
-      PathBasedZkSerializer zkSerializer,
-      String monitorType, String monitorKey, String monitorInstanceName,
-      boolean monitorRootPathOnly, boolean connectOnInit) {
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      String monitorInstanceName, boolean monitorRootPathOnly, boolean connectOnInit,
+      boolean usePersistWatcher) {
     super(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
-        monitorKey, monitorInstanceName, monitorRootPathOnly, connectOnInit);
+        monitorKey, monitorInstanceName, monitorRootPathOnly, connectOnInit, usePersistWatcher);
   }
 
   public ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer,
       String monitorType, String monitorKey, String monitorInstanceName,
       boolean monitorRootPathOnly) {
-    this(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType, monitorKey,
-        monitorInstanceName, monitorRootPathOnly, true);
+    this(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
+        monitorKey, monitorInstanceName, monitorRootPathOnly, true, false);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
@@ -200,6 +200,7 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
     String _monitorInstanceName = null;
     boolean _monitorRootPathOnly = true;
     boolean _connectOnInit = true;
+    boolean _usePersistWatcher = false;
 
     /**
      * If set true, the client will connect to ZK during initialization.
@@ -278,6 +279,11 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
       return this;
     }
 
+    public Builder setUsePersistWatcher(boolean usePersistWatcher) {
+      this._usePersistWatcher = usePersistWatcher;
+      return this;
+    }
+
     public ZkClient build() {
       if (_connection == null) {
         if (_zkServer == null) {
@@ -293,7 +299,8 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
       }
 
       return new ZkClient(_connection, _connectionTimeout, _operationRetryTimeout, _zkSerializer,
-          _monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly, _connectOnInit);
+          _monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly, _connectOnInit,
+          _usePersistWatcher);
     }
   }
 }

@@ -64,8 +64,7 @@ public interface IZkConnection {
     public List<OpResult> multi(Iterable<Op> ops) throws KeeperException, InterruptedException;
 
     public void addAuthInfo(String scheme, byte[] auth);
-
-    public void addWatch(String basePath, Watcher watcher, AddWatchMode mode) throws KeeperException,
-                                                                                     InterruptedException;
+    public void addWatch(String basePath, Watcher watcher, AddWatchMode mode)
+        throws KeeperException, InterruptedException;
     public void removeWatches(String path, Watcher watcher, Watcher.WatcherType watcherType) throws InterruptedException, KeeperException;
 }

@@ -379,6 +379,11 @@ public class ZkTestHelper {
     HashMap<String, Set<Watcher>> childWatches =
         (HashMap<String, Set<Watcher>>) field2.get(watchManager);
 
+    field2 = getField(watchManager.getClass(), "persistentWatches");
+    field2.setAccessible(true);
+    HashMap<String, Set<Watcher>> persistentWatches =
+        (HashMap<String, Set<Watcher>>) field2.get(watchManager);
+
     lists.put("dataWatches", new ArrayList<>(dataWatches.keySet()));
     lists.put("existWatches", new ArrayList<>(existWatches.keySet()));
     lists.put("childWatches", new ArrayList<>(childWatches.keySet()));

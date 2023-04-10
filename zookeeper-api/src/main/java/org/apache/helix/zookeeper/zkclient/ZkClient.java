@@ -76,6 +76,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * "Native ZkClient": not to be used directly.
  *
@@ -132,6 +133,7 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
+  private boolean _usePersistWatcher;
 
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
@@ -215,7 +217,7 @@ public class ZkClient implements Watcher {
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
-      String monitorInstanceName, boolean monitorRootPathOnly, boolean connectOnInit) {
+      String monitorInstanceName, boolean monitorRootPathOnly, boolean connectOnInit, boolean usePersistWatcher) {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
@@ -244,13 +246,14 @@ public class ZkClient implements Watcher {
     if (connectOnInit) {
       connect(connectionTimeout, this);
     }
+    _usePersistWatcher = usePersistWatcher;
   }
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       String monitorInstanceName, boolean monitorRootPathOnly) {
     this(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType, monitorKey,
-        monitorInstanceName, monitorRootPathOnly, true);
+        monitorInstanceName, monitorRootPathOnly, true, false);
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
@@ -259,14 +262,9 @@ public class ZkClient implements Watcher {
   }
 
   public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode) {
-    synchronized (_childListener) {
-      Set<IZkChildListener> listeners = _childListener.get(path);
-      if (listeners == null) {
-        listeners = new CopyOnWriteArraySet<>();
-        _childListener.put(path, listeners);
+      synchronized (_childListener) {
+        addChildListener(path, listener);
       }
-      listeners.add(listener);
-    }
 
     List<String> children = watchForChilds(path, skipWatchingNonExistNode);
     if (children == null && skipWatchingNonExistNode) {
@@ -279,32 +277,15 @@ public class ZkClient implements Watcher {
   }
 
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
-    synchronized (_childListener) {
-      final Set<IZkChildListener> listeners = _childListener.get(path);
-      if (listeners != null) {
-        listeners.remove(childListener);
-      }
+      synchronized (_childListener) {
+        removeChildListener(path, childListener);
     }
   }
 
   public boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNonExistNode) {
-    Set<IZkDataListenerEntry> listenerEntries;
-    synchronized (_dataListener) {
-      listenerEntries = _dataListener.get(path);
-      if (listenerEntries == null) {
-        listenerEntries = new CopyOnWriteArraySet<>();
-        _dataListener.put(path, listenerEntries);
-      }
 
-      boolean prefetchEnabled = isPrefetchEnabled(listener);
-      IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(listener, prefetchEnabled);
-      listenerEntries.add(listenerEntry);
-      if (prefetchEnabled) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("zkclient {} subscribed data changes for {}, listener {}, prefetch data {}",
-              _uid, path, listener, prefetchEnabled);
-        }
-      }
+      synchronized (_dataListener) {
+        addDataListener(path, listener);
     }
 
     boolean watchInstalled = watchForData(path, skipWatchingNonExistNode);
@@ -355,16 +336,9 @@ public class ZkClient implements Watcher {
   }
 
   public void unsubscribeDataChanges(String path, IZkDataListener dataListener) {
-    synchronized (_dataListener) {
-      final Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
-      if (listeners != null) {
-        IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(dataListener);
-        listeners.remove(listenerEntry);
+      synchronized (_dataListener) {
+        removeDataListener(path, dataListener);
       }
-      if (listeners == null || listeners.isEmpty()) {
-        _dataListener.remove(path);
-      }
-    }
   }
 
   public void subscribeStateChanges(final IZkStateListener listener) {
@@ -2615,6 +2589,7 @@ public class ZkClient implements Watcher {
       }
       _eventThread.interrupt();
       _eventThread.join(2000);
+      // TODO: Closing _event thread here will miss final `CLOSE` state change.
       if (isManagingZkConnection()) {
         LOG.info("Closing zkclient uid:{}, zk:{}", _uid, ((ZkConnection) connection).getZookeeper());
         connection.close();
@@ -2904,6 +2879,52 @@ public class ZkClient implements Watcher {
     if (serializerSize > WRITE_SIZE_LIMIT) {
       throw new IllegalStateException("ZNRecord serializer write size limit " + serializerSize
           + " is greater than ZkClient size limit " + WRITE_SIZE_LIMIT);
+    }
+  }
+
+  private void addDataListener(String path, IZkDataListener listener) {
+    Set<IZkDataListenerEntry> listenerEntries;
+    listenerEntries = _dataListener.get(path);
+    if (listenerEntries == null) {
+      listenerEntries = new CopyOnWriteArraySet<>();
+      _dataListener.put(path, listenerEntries);
+    }
+
+    boolean prefetchEnabled = isPrefetchEnabled(listener);
+    IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(listener, prefetchEnabled);
+    listenerEntries.add(listenerEntry);
+    if (prefetchEnabled) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("zkclient {} subscribed data changes for {}, listener {}, prefetch data {}", _uid,
+            path, listener, prefetchEnabled);
+      }
+    }
+  }
+
+  private void removeDataListener(String path, IZkDataListener dataListener) {
+    final Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
+    if (listeners != null) {
+      IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(dataListener);
+      listeners.remove(listenerEntry);
+    }
+    if (listeners == null || listeners.isEmpty()) {
+      _dataListener.remove(path);
+    }
+  }
+
+  private void addChildListener(String path, IZkChildListener listener) {
+    Set<IZkChildListener> listeners = _childListener.get(path);
+    if (listeners == null) {
+      listeners = new CopyOnWriteArraySet<>();
+      _childListener.put(path, listeners);
+    }
+    listeners.add(listener);
+  }
+
+  private void removeChildListener(String path, IZkChildListener listener) {
+    final Set<IZkChildListener> listeners = _childListener.get(path);
+    if (listeners != null) {
+      listeners.remove(listener);
     }
   }
 }

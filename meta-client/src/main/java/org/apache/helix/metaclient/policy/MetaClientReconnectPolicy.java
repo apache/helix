@@ -30,14 +30,13 @@ import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_
 public interface MetaClientReconnectPolicy {
 
   enum RetryPolicyName {
-    NO_RETRY,
     EXP_BACKOFF,
     LINEAR_BACKOFF
   }
 
   RetryPolicyName getPolicyName();
 
-  default  long getAutoReconnectTimeout() {
+  default long getAutoReconnectTimeout() {
     return DEFAULT_AUTO_RECONNECT_TIMEOUT_MS;
   }
 }

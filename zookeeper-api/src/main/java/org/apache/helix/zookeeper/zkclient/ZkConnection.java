@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
@@ -250,6 +251,18 @@ public class ZkConnection implements IZkConnection {
     LOG.info("Pagination config {}={}, method to be invoked: {}",
         ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED, GETCHILDREN_PAGINATION_DISABLED,
         _getChildrenMethod.getName());
+  }
+
+  @Override
+  public void addWatch(String basePath, Watcher watcher, AddWatchMode mode)
+      throws KeeperException, InterruptedException {
+    _zk.addWatch(basePath, watcher, mode);
+  }
+
+  @Override
+  public void removeWatches(String path, Watcher watcher, Watcher.WatcherType watcherType)
+      throws InterruptedException, KeeperException {
+    _zk.removeWatches(path, watcher, watcherType, true);
   }
 
   private Method doLookUpGetChildrenMethod() {

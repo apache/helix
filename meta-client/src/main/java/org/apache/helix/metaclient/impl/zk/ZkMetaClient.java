@@ -19,9 +19,15 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.metaclient.api.AsyncCallback;
 import org.apache.helix.metaclient.api.ChildChangeListener;
@@ -47,15 +53,18 @@ import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.convertZkEntryModeToMetaClientEntryMode;
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
+
 
 public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(ZkMetaClient.class);
@@ -63,17 +72,28 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   private final long _initConnectionTimeout;
   private final long _reconnectTimeout;
 
+  // After ZkClient gets disconnected from ZK server, it keeps retrying connection until connection
+  // is re-established or ZkClient is closed. We need a separate thread to monitor ZkClient
+  // reconnect and close ZkClient if it not able to reconnect within user specified timeout.
+  private final ScheduledExecutorService _zkClientReconnectMonitor;
+  private ScheduledFuture<?> _reconnectMonitorFuture;
+  private ReconnectStateChangeListener _reconnectStateChangeListener;
+  // Lock all activities related to ZkClient connection
+  private ReentrantLock _zkClientConnectionMutex = new ReentrantLock();
+
+
   public ZkMetaClient(ZkMetaClientConfig config) {
     _initConnectionTimeout = config.getConnectionInitTimeoutInMillis();
     _reconnectTimeout = config.getMetaClientReconnectPolicy().getAutoReconnectTimeout();
     // TODO: Right new ZkClient reconnect using exp backoff with fixed max backoff interval. We should
-    // 1. Allow user to config max backoff interval (next PR)
-    // 2. Allow user to config reconnect policy (future PR)
+    // Allow user to config reconnect policy
     _zkClient = new ZkClient(
         new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
         (int) _initConnectionTimeout, _reconnectTimeout /*use reconnect timeout for retry timeout*/,
         config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
-        config.getMonitorInstanceName(), config.getMonitorRootPathOnly(), false);
+        config.getMonitorInstanceName(), config.getMonitorRootPathOnly(), false, true);
+    _zkClientReconnectMonitor = Executors.newSingleThreadScheduledExecutor();
+    _reconnectStateChangeListener = new ReconnectStateChangeListener();
   }
 
   @Override
@@ -266,18 +286,25 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void connect() {
-    // TODO: throws IllegalStateException when already connected
     try {
+      _zkClientConnectionMutex.lock();
       _zkClient.connect(_initConnectionTimeout, _zkClient);
+      // register _reconnectStateChangeListener as state change listener to react to ZkClient connect
+      // state change event. When ZkClient disconnected from ZK, it still auto reconnect until
+      // ZkClient is closed or connection re-established.
+      // We will need to close ZkClient when user set retry connection timeout.
+      _zkClient.subscribeStateChanges(_reconnectStateChangeListener);
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
+    } finally {
+      _zkClientConnectionMutex.unlock();
     }
   }
 
   @Override
   public void disconnect() {
-    // TODO: This is a temp impl for test only. no proper interrupt handling and error handling.
-    _zkClient.close();
+    cleanUpAndClose(true, true);
+    _zkClientReconnectMonitor.shutdownNow();
   }
 
   @Override
@@ -393,5 +420,81 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public T deserialize(byte[] bytes, String path) {
     return _zkClient.deserialize(bytes, path);
+  }
+
+  /**
+   * A clean up method called when connect state change or MetaClient is closing.
+   * @param cancel If we want to cancel the reconnect monitor thread.
+   * @param close If we want to close ZkClient.
+   */
+  private void cleanUpAndClose(boolean cancel, boolean close) {
+    _zkClientConnectionMutex.lock();
+    try {
+      if (close && !_zkClient.isClosed()) {
+        _zkClient.close();
+        // TODO: need to unsubscribe all persist watcher from ZK
+        // Add this in ZkClient when persist watcher change is in
+        // Also need to manually send CLOSED state change to state
+        // change listener (in change adapter)
+        LOG.info("ZkClient is closed");
+      }
+
+      if (cancel && _reconnectMonitorFuture != null) {
+        _reconnectMonitorFuture.cancel(true);
+        LOG.info("ZkClient reconnect monitor thread is canceled");
+      }
+
+    } finally {
+      _zkClientConnectionMutex.unlock();
+    }
+  }
+
+  private class ReconnectStateChangeListener implements IZkStateListener {
+    // Schedule a monitor to track ZkClient auto reconnect when Disconnected
+    // Cancel the monitor thread when connected.
+    @Override
+    public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
+      if (state == Watcher.Event.KeeperState.Disconnected) {
+        // Expired. start a new event monitoring retry
+        _zkClientConnectionMutex.lockInterruptibly();
+        try {
+          if (_reconnectMonitorFuture == null || _reconnectMonitorFuture.isCancelled()
+              || _reconnectMonitorFuture.isDone()) {
+            _reconnectMonitorFuture = _zkClientReconnectMonitor.schedule(() -> {
+              if (!_zkClient.getConnection().getZookeeperState().isConnected()) {
+                cleanUpAndClose(false, true);
+              }
+            }, _reconnectTimeout, TimeUnit.MILLISECONDS);
+            LOG.info("ZkClient is Disconnected, schedule a reconnect monitor after {}",
+                _reconnectTimeout);
+          }
+        } finally {
+          _zkClientConnectionMutex.unlock();
+        }
+      } else if (state == Watcher.Event.KeeperState.SyncConnected
+          || state == Watcher.Event.KeeperState.ConnectedReadOnly) {
+        cleanUpAndClose(true, false);
+        LOG.info("ZkClient is SyncConnected, reconnect monitor thread is canceled (if any)");
+      }
+    }
+
+    // Cancel the monitor thread when connected.
+    @Override
+    public void handleNewSession(String sessionId) throws Exception {
+      cleanUpAndClose(true, false);
+      LOG.info("New session initiated in ZkClient, reconnect monitor thread is canceled (if any)");
+    }
+
+    // Cancel the monitor thread and close ZkClient when connect error.
+    @Override
+    public void handleSessionEstablishmentError(Throwable error) throws Exception {
+      cleanUpAndClose(true, true);
+      LOG.info("New session initiated in ZkClient, reconnect monitor thread is canceled (if any)");
+    }
+  }
+
+  @VisibleForTesting
+  ZkClient getZkClient() {
+    return _zkClient;
   }
 }

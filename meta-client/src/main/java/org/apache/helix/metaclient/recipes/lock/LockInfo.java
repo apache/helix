@@ -48,7 +48,6 @@ public class LockInfo {
     LOCK_ID,
     OWNER_ID,
     CLIENT_ID,
-    //CLIENT_DATA is a string that represents the serialized object passed in from the user.
     CLIENT_DATA,
     GRANTED_AT,
     LAST_RENEWED_AT,

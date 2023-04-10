@@ -134,6 +134,7 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
+  private boolean _usePersistWatcher;
 
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
@@ -217,7 +218,7 @@ public class ZkClient implements Watcher {
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
-      String monitorInstanceName, boolean monitorRootPathOnly, boolean connectOnInit) {
+      String monitorInstanceName, boolean monitorRootPathOnly, boolean connectOnInit, boolean usePersistWatcher) {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
@@ -246,13 +247,14 @@ public class ZkClient implements Watcher {
     if (connectOnInit) {
       connect(connectionTimeout, this);
     }
+    _usePersistWatcher = usePersistWatcher;
   }
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       String monitorInstanceName, boolean monitorRootPathOnly) {
     this(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType, monitorKey,
-        monitorInstanceName, monitorRootPathOnly, true);
+        monitorInstanceName, monitorRootPathOnly, true, false);
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {

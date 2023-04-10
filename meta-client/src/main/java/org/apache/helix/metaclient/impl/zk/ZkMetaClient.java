@@ -91,7 +91,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
         (int) _initConnectionTimeout, _reconnectTimeout /*use reconnect timeout for retry timeout*/,
         config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
-        config.getMonitorInstanceName(), config.getMonitorRootPathOnly(), false);
+        config.getMonitorInstanceName(), config.getMonitorRootPathOnly(), false, true);
     _zkClientReconnectMonitor = Executors.newSingleThreadScheduledExecutor();
     _reconnectStateChangeListener = new ReconnectStateChangeListener();
   }

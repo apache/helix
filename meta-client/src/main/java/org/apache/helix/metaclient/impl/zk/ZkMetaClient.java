@@ -449,12 +449,62 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     }
   }
 
+  /**
+   * MetaClient uses ZkClient to connect underlying metadata services. ZkClient current do auto
+   * reconnect infinitely. We use monitor thread in ZkMetaClient to monitor reconnect status and
+   * close ZkClient when the client still is in disconnected state when it reach reconnect timeout.
+   *
+   *
+   * case 1: Start the monitor thread when ZkMetaClient gets disconnected even to check connect state
+   *         when timeout reached. If not re-connected when timed out, kill the monitor thread
+   *         and close ZkClient.
+   * [MetaClient thread]        ---------------------------------------------------------------
+   *                              ( When disconnected, schedule a event
+   *                              to check connect state after timeout)
+   * [Reconnect monitor thread]          --------------------------------------
+   *                                   ^                                     |  not reconnected when timed out
+   *                                  /                                      |
+   *                                 | disconnected event                    v
+   * [ZkClient]               -------X---------------------------------------X zkClient.close()
+   * [ZkClient exp back              |         X            X
+   *  -off retry connection]         |--------|--------------|--------------
+   *
+   *
+   * case 2: Start the monitor thread when ZkMetaClient gets disconnected even to check connect state
+   *         when timeout reached. If re-connected before timed out, cancel the delayed monitor thread.
+   *
+   * [MetaClient thread]       ---------------------------------------------------------------
+   *                            (cancel scheduled task when reconnected)
+   * [Reconnect monitor]               ---------------------------------X
+   *                                  ^                                ^
+   *                                 /                                /
+   *                                | disconnected event             |  reconnected event
+   * [ZkClient]                -----X------------------------------------------------------
+   * [ZkClient exp back             |        X                      Y  Reconnected before timed out
+   *  -off retry connection]        |--------| ---------------------|
+   *
+   *
+   * case 3: Start the monitor thread when ZkMetaClient gets disconnected even to check connect state
+   *         when timeout reached. If re-connected errored, kill the monitor thread  and cancel the
+   *         delayed monitor thread.
+   * [MetaClient thread]       ---------------------------------------------------------------
+   *                          (cancel scheduled task and close ZkClient when reconnected error)
+   * [Reconnect monitor]              ----------------------------------X
+   *                                 ^                               ^  |
+   *                                /                           err /   |
+   *                               | disconnected event            |    v close ZkClient
+   * [ZkClient]               -----X-------------------------------X ---X
+   * [ZkClient exp back            |        X                     ^ Reconnect error
+   *  -off retry connection]       |--------| --------------------|
+   *
+   */
+
   private class ReconnectStateChangeListener implements IZkStateListener {
     // Schedule a monitor to track ZkClient auto reconnect when Disconnected
     // Cancel the monitor thread when connected.
     @Override
     public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
-      if (state == Watcher.Event.KeeperState.Disconnected) {
+      if (state == Watcher.Event.KeeperState.Disconnected) {                        // ------case 1
         // Expired. start a new event monitoring retry
         _zkClientConnectionMutex.lockInterruptibly();
         try {
@@ -472,7 +522,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
           _zkClientConnectionMutex.unlock();
         }
       } else if (state == Watcher.Event.KeeperState.SyncConnected
-          || state == Watcher.Event.KeeperState.ConnectedReadOnly) {
+          || state == Watcher.Event.KeeperState.ConnectedReadOnly) {               // ------ case 2
         cleanUpAndClose(true, false);
         LOG.info("ZkClient is SyncConnected, reconnect monitor thread is canceled (if any)");
       }
@@ -480,14 +530,14 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
     // Cancel the monitor thread when connected.
     @Override
-    public void handleNewSession(String sessionId) throws Exception {
+    public void handleNewSession(String sessionId) throws Exception {             // ------ case 2
       cleanUpAndClose(true, false);
       LOG.info("New session initiated in ZkClient, reconnect monitor thread is canceled (if any)");
     }
 
     // Cancel the monitor thread and close ZkClient when connect error.
     @Override
-    public void handleSessionEstablishmentError(Throwable error) throws Exception {
+    public void handleSessionEstablishmentError(Throwable error) throws Exception {    // -- case 3
       cleanUpAndClose(true, true);
       LOG.info("New session initiated in ZkClient, reconnect monitor thread is canceled (if any)");
     }

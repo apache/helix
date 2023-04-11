@@ -34,11 +34,14 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class testZkClientPersistWatcher extends ZkTestBase {
+public class TestZkClientPersistWatcher extends ZkTestBase {
 
   @Test
   void testZkClientDataChange() throws Exception {
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    ZkClient.Builder builder = new ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR)
+        .setMonitorRootPathOnly(false).setUsePersistWatcher(true);
+    ZkClient zkClient = builder.build();
     zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
     int count = 1000;
     final int[] event_count = {0};
@@ -62,15 +65,16 @@ public class testZkClientPersistWatcher extends ZkTestBase {
       zkClient.writeData(path, ("datat"+i), -1);
     }
 
-
     Assert.assertTrue(countDownLatch1.await(15000, TimeUnit.MILLISECONDS));
-    ZkTestHelper.getZkWatch(zkClient);
     zkClient.close();
   }
 
   @Test(dependsOnMethods = "testZkClientDataChange")
   void testZkClientChildChange() throws Exception {
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    ZkClient.Builder builder = new ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR)
+        .setMonitorRootPathOnly(false).setUsePersistWatcher(true);
+    ZkClient zkClient = builder.build();
     zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
     int count = 100;
     final int[] event_count = {0};
@@ -99,7 +103,6 @@ public class testZkClientPersistWatcher extends ZkTestBase {
     for(int i=0; i<count; ++i) {
       zkClient.create(path + "/child" +i , "datat", CreateMode.PERSISTENT);
     }
-    ZkTestHelper.getZkWatch(zkClient);
     Assert.assertTrue(countDownLatch1.await(15000, TimeUnit.MILLISECONDS));
     Assert.assertTrue(countDownLatch2.await(15000, TimeUnit.MILLISECONDS));
     zkClient.close();

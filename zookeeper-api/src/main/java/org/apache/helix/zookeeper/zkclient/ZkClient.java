@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.management.JMException;
 
@@ -107,7 +106,7 @@ public class ZkClient implements Watcher {
   private static AtomicLong UID = new AtomicLong(0);
   public final long _uid;
 
-  // ZNode write size limit in bytes.
+  // ZNode write size limit in bytes:
   // TODO: use ZKConfig#JUTE_MAXBUFFER once bumping up ZK to 3.5.2+
   private static final int WRITE_SIZE_LIMIT =
       Integer.getInteger(ZkSystemPropertyKeys.JUTE_MAXBUFFER, ZNRecord.SIZE_LIMIT);
@@ -139,7 +138,7 @@ public class ZkClient implements Watcher {
   private ZkClientMonitor _monitor;
   private boolean _usePersistWatcher;
 
-  private Lock _persistListenerMutex;
+  private ReentrantLock _persistListenerMutex;
 
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
@@ -407,18 +406,23 @@ public class ZkClient implements Watcher {
 
   public void unsubscribeAll() {
     if (_usePersistWatcher) {
-      _persistListenerMutex.lock();
-      Set<String> paths = new HashSet<>();
-      _childListener.forEach((k, v) -> paths.add(k));
-      _dataListener.forEach((k, v) -> paths.add(k));
-      paths.forEach(p -> {
-        try {
-          getConnection().removeWatches(p, this, WatcherType.Any);
-        } catch (InterruptedException | KeeperException e) {
-          LOG.info("Failed to remove persistent watcher for {} ", p, e);
-        }
-      });
-      _persistListenerMutex.unlock();
+      try {
+        _persistListenerMutex.lockInterruptibly();
+        Set<String> paths = new HashSet<>();
+        _childListener.forEach((k, v) -> paths.add(k));
+        _dataListener.forEach((k, v) -> paths.add(k));
+        paths.forEach(p -> {
+          try {
+            getConnection().removeWatches(p, this, WatcherType.Any);
+          } catch (InterruptedException | KeeperException e) {
+            LOG.info("Failed to remove persistent watcher for {} ", p, e);
+          }
+        });
+      } catch (InterruptedException e) {
+        throw new ZkInterruptedException(e);
+      } finally {
+        _persistListenerMutex.unlock();
+      }
     } else {
     synchronized (_childListener) {
       _childListener.clear();
@@ -2985,13 +2989,18 @@ public class ZkClient implements Watcher {
   }
 
   private void addPersistListener(String path, Object listener) {
-    _persistListenerMutex.lock();
-    if (listener instanceof IZkChildListener) {
-      addChildListener(path, (IZkChildListener) listener);
-    } else if (listener instanceof IZkDataListener) {
-      addDataListener(path, (IZkDataListener) listener);
+    try {
+      _persistListenerMutex.lockInterruptibly();
+      if (listener instanceof IZkChildListener) {
+        addChildListener(path, (IZkChildListener) listener);
+      } else if (listener instanceof IZkDataListener) {
+        addDataListener(path, (IZkDataListener) listener);
+      }
+    } catch (InterruptedException ex) {
+      throw new ZkInterruptedException(ex);
+    } finally {
+      _persistListenerMutex.unlock();
     }
-    _persistListenerMutex.unlock();
   }
 
   private void removeChildListener(String path, IZkChildListener listener) {
@@ -3002,22 +3011,24 @@ public class ZkClient implements Watcher {
   }
 
   private void removePersistListener(String path, Object listener) {
-    _persistListenerMutex.lock();
-    if (listener instanceof IZkChildListener) {
-      removeChildListener(path, (IZkChildListener) listener);
-    } else if (listener instanceof IZkDataListener) {
-      removeDataListener(path, (IZkDataListener) listener);
-    }
-    if (!hasListeners(path)) {
-      // TODO: update hasListeners logic when recursive persist listener is added
-      try {
-        getConnection().removeWatches(path, this, WatcherType.Any);
-      } catch (KeeperException | InterruptedException ex) {
-        throw new ZkException(ex);
+    try {
+      _persistListenerMutex.lockInterruptibly();
+      if (listener instanceof IZkChildListener) {
+        removeChildListener(path, (IZkChildListener) listener);
+      } else if (listener instanceof IZkDataListener) {
+        removeDataListener(path, (IZkDataListener) listener);
       }
+      if (!hasListeners(path)) {
+        // TODO: update hasListeners logic when recursive persist listener is added
+        getConnection().removeWatches(path, this, WatcherType.Any);
+      }
+    } catch (KeeperException.NoWatcherException e) {
+      LOG.warn("Persist watcher is already removed");
+    } catch (KeeperException | InterruptedException ex) {
+      throw new ZkException(ex);
+    } finally {
+      _persistListenerMutex.unlock();
     }
-
-    _persistListenerMutex.unlock();
   }
 
 }

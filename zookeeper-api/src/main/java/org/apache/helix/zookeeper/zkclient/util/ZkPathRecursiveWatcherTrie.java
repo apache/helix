@@ -12,11 +12,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.helix.zookeeper.zkclient.RecursivePersistWatcherListener;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 
 
 /**
- *
+ * ZkPathRecursiveWatcherTrie will be used for a registry for ZK persist recursive watcher.
+ * When persist recursive watcher is registered on path /X, ZK will send out data change for any
+ * data/child changing under the tree structure of /X. The event only include the path of changed
+ * ZNode.
+ * In ZkClient, when ever we get a dataChange event for path /X/Y/Z, we need to track back the path
+ * and notify all registered recursive persist listener and notify them about the node change.
+ * ref: https://zookeeper.apache.org/doc/r3.7.1/zookeeperProgrammers.html#sc_WatchPersistentRecursive
  */
 public class ZkPathRecursiveWatcherTrie {
 
@@ -34,7 +40,7 @@ public class ZkPathRecursiveWatcherTrie {
     final String value;   // Segmented ZNode path at current level
     final Map<String, TrieNode> children; // A map of segmented ZNode path of next level to TrieNode
     TrieNode parent;  // A reference to upper level TrieNode
-    Set<RecursivePersistWatcherListener> recursiveListeners;
+    Set<RecursivePersistListener> recursiveListeners;
     // A list of recursive persist watcher on the current path
 
     /**
@@ -142,7 +148,7 @@ public class ZkPathRecursiveWatcherTrie {
      * @return
      */
     @VisibleForTesting
-    Set<RecursivePersistWatcherListener> getRecursiveListeners() {
+    Set<RecursivePersistListener> getRecursiveListeners() {
       return recursiveListeners;
     }
 
@@ -162,9 +168,10 @@ public class ZkPathRecursiveWatcherTrie {
   /**
    * Add a path to the path trie. All paths are relative to the root node.
    *
-   * @param path the path to add to the trie
+   * @param path the path to add RecursivePersistListener
+   * @param listener the RecursivePersistListener to be added
    */
-  public void addRecursiveListener(final String path, RecursivePersistWatcherListener listener) {
+  public void addRecursiveListener(final String path, RecursivePersistListener listener) {
     Objects.requireNonNull(path, "Path cannot be null");
 
     if (path.length() == 0) {
@@ -192,11 +199,13 @@ public class ZkPathRecursiveWatcherTrie {
   /**
    * Removing a RecursivePersistWatcherListener on a path.
    *
-   * Delete a path from the trie.
+   * Delete a path from the nearest trie node to current node if this is the only listener and there
+   * is no child on the trie node.
    *
-   * @param path the path to be deleted
+   * @param path the of the lister registered
+   * @param listener the RecursivePersistListener to be removed
    */
-  public void removeRecursiveListener(final String path, RecursivePersistWatcherListener listener) {
+  public void removeRecursiveListener(final String path, RecursivePersistListener listener) {
     Objects.requireNonNull(path, "Path cannot be null");
 
     if (path.length() == 0) {

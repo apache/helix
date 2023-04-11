@@ -39,7 +39,7 @@ do
   echo "======================================================================
 Attempt $i $testName
 ======================================================================"
-  mvn test -o -Dtest=$testName -pl=$project
+  mvn -q test -o -Dtest=$testName -pl=$project
   exitcode=$?
   if [ $exitcode -ne 0 ]
   then

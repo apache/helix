@@ -83,7 +83,7 @@ public class TestRawZkClient extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
-    _zkClient.delete(TEST_ROOT);
+    _zkClient.deleteRecursively(TEST_ROOT);
     _zkClient.deleteRecursively("/tmp");
     _zkClient.deleteRecursively("/my_cluster");
     _zkClient.close();

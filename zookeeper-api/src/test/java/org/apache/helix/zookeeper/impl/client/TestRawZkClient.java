@@ -551,7 +551,10 @@ public class TestRawZkClient extends ZkTestBase {
 
     _zkClient.writeData(TEST_PATH, "Test");
     Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
-    Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 1);
+    verifyResult = TestHelper.verify(() -> { return
+      (long) beanServer.getAttribute(name, "DataChangeEventCounter") == 1;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(verifyResult);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 2);
     // Processing of the event might be slightly delayed.

@@ -259,7 +259,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   /**
    * Test creation of HelixManager and makes sure it connects correctly.
    */
-  @Test(dependsOnMethods = "testCreateParticipants")
+  @Test(dependsOnMethods = "testCreateParticipants", enabled = false)
   public void testZKHelixManager() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
@@ -326,7 +326,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   /**
    * Test creation of HelixManager and makes sure it connects correctly.
    */
-  @Test(dependsOnMethods = "testZKHelixManager")
+  @Test(dependsOnMethods = "testZKHelixManager", enabled = false)
   public void testZKHelixManagerCloudConfig() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));

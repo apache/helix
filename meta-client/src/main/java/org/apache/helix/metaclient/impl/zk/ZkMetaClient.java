@@ -450,9 +450,10 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   /**
-   * MetaClient uses ZkClient to connect underlying metadata services. ZkClient current do auto
-   * reconnect infinitely. We use monitor thread in ZkMetaClient to monitor reconnect status and
-   * close ZkClient when the client still is in disconnected state when it reach reconnect timeout.
+   * MetaClient uses Helix ZkClient (@see org.apache.helix.zookeeper.impl.client.ZkClient) to connect
+   * to ZK. Current implementation of ZkClient auto-reconnects infinitely. We use monitor thread
+   * in ZkMetaClient to monitor reconnect status and close ZkClient when the client still is in
+   * disconnected state when it reach reconnect timeout.
    *
    *
    * case 1: Start the monitor thread when ZkMetaClient gets disconnected even to check connect state

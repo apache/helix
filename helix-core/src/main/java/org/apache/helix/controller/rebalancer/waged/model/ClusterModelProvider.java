@@ -602,4 +602,15 @@ public class ClusterModelProvider {
     });
     return faultZoneAssignmentMap;
   }
+
+  // TODO: A place holder, to remove once https://github.com/apache/helix/pull/2444 is merged
+  public static ClusterModel generateClusterModelForDelayedRebalanceOverwrites2(
+      ResourceControllerDataProvider dataProvider,
+      Map<String, Resource> resourceMap,
+      Set<String> activeInstances,
+      Map<String, ResourceAssignment> resourceAssignment) {
+    ClusterContext context = new ClusterContext(Collections.emptySet(), Collections.emptySet(), Collections.emptyMap(),
+        Collections.emptyMap());
+    return new ClusterModel(context, Collections.emptySet(), Collections.emptySet());
+  }
 }

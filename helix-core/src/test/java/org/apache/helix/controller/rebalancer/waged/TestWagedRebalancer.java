@@ -49,6 +49,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
+import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -686,7 +687,12 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Populate best possible assignment
     rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     verify(rebalancer, times(1)).requireRebalanceOverwrite(any(), any());
-    verify(rebalancer, times(0)).applyRebalanceOverwrite(any(), any(), any(), any(), any());
+    Assert.assertEquals(rebalancer.getMetricCollector().getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceOverwriteCounter.name(),
+        CountMetric.class).getValue().longValue(), 0L);
+    Assert.assertEquals(rebalancer.getMetricCollector().getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceOverwriteLatencyGauge.name(),
+        LatencyMetric.class).getLastEmittedMetricValue().longValue(), -1L);
 
     // Set minActiveReplica to 1 so that requireRebalanceOverwrite returns true
     for (String resource : _resourceNames) {
@@ -708,7 +714,12 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     clusterData.setClusterConfig(clusterConfig);
     rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     verify(rebalancer, times(2)).requireRebalanceOverwrite(any(), any());
-    verify(rebalancer, times(1)).applyRebalanceOverwrite(any(), any(), any(), any(), any());
+    Assert.assertEquals(rebalancer.getMetricCollector().getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceOverwriteCounter.name(),
+        CountMetric.class).getValue().longValue(), 1L);
+    Assert.assertTrue(rebalancer.getMetricCollector()
+        .getMetric(WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceOverwriteLatencyGauge.name(),
+            LatencyMetric.class).getLastEmittedMetricValue() > 0L);
   }
 
   @Test(dependsOnMethods = "testRebalance")

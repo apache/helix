@@ -210,6 +210,12 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
     when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
 
+    // test 0, empty input
+    Assert.assertEquals(
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, Collections.emptyMap(), activeInstances,
+            Collections.emptyMap(), new HashMap<>()),
+        Collections.emptySet());
+
     // test 1, one partition under minActiveReplica
     Map<String, Map<String, Map<String, String>>> input = ImmutableMap.of(
         _resourceNames.get(0),

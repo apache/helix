@@ -309,6 +309,9 @@ public class DelayedRebalanceUtil {
 
     Map<String, List<PartitionWithReplicaCount>> partitionsMissingMinActiveReplicas =
         getPartitionsNeedForRebalanceOverwrites(clusterData, currentAssignment);
+    if (partitionsMissingMinActiveReplicas.isEmpty()) {
+      return Collections.emptySet();
+    }
 
     for (String resourceName : replicaMap.keySet()) {
       // <partition, <state, instances set>>

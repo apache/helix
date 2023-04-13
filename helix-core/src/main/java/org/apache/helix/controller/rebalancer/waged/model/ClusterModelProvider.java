@@ -61,10 +61,7 @@ public class ClusterModelProvider {
   }
 
   /**
-   * TODO: On integration with WAGED,
-   *   we need to combine current state with computed assignment based on the cluster, the partitions on delayed
-   *   instances have to be allocated. This should happen after the algorithm computation.
-   *   Also integrate with counter and latency metrics -- qqu
+   * TODO: On integration with WAGED, have to integrate with counter and latency metrics -- qqu
    * Compute a new Cluster Model with scope limited to partitions with best possible assignment missing minActiveReplicas
    * because of delayed rebalance setting.
    * @param dataProvider The controller's data cache

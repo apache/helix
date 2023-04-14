@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer.util;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,7 +49,7 @@ import org.slf4j.LoggerFactory;
 public class DelayedRebalanceUtil {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedRebalanceUtil.class);
 
-  private static RebalanceScheduler REBALANCE_SCHEDULER = new RebalanceScheduler();
+  private static final RebalanceScheduler REBALANCE_SCHEDULER = new RebalanceScheduler();
 
   /**
    * @return true if delay rebalance is configured and enabled in the ClusterConfig configurations.
@@ -292,8 +291,10 @@ public class DelayedRebalanceUtil {
    * Computes the partition replicas that needs to be brought up to satisfy minActiveReplicas while downed instances
    * are within the delayed window.
    * Keep all current assignment with their current allocation.
+   * NOTE: This method also populates allocatedReplicas as it goes through all resources to preserve current allocation.
+   *
    * @param clusterData Cluster data cache.
-   * @param replicaMap A set of assignable replicas by resource name.
+   * @param resources A set all resource names.
    * @param liveEnabledInstances The set of live and enabled instances.
    * @param currentAssignment Current assignment by resource name.
    * @param allocatedReplicas The map from instance name to assigned replicas, the map is populated in this method.
@@ -301,18 +302,15 @@ public class DelayedRebalanceUtil {
    */
   public static Set<AssignableReplica> findToBeAssignedReplicasForMinActiveReplica(
       ResourceControllerDataProvider clusterData,
-      Map<String, Set<AssignableReplica>> replicaMap,
+      Set<String> resources,
       Set<String> liveEnabledInstances,
       Map<String, ResourceAssignment> currentAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
     Map<String, List<String>> partitionsMissingMinActiveReplicas =
         findPartitionsMissingMinActiveReplica(clusterData, currentAssignment);
-    if (partitionsMissingMinActiveReplicas.isEmpty()) {
-      return Collections.emptySet();
-    }
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
 
-    for (String resourceName : replicaMap.keySet()) {
+    for (String resourceName : resources) {
       // <partition, <state, instances set>>
       Map<String, Map<String, Set<String>>> stateInstanceMap =
           ClusterModelProvider.getStateInstanceMap(currentAssignment.get(resourceName));
@@ -337,17 +335,29 @@ public class DelayedRebalanceUtil {
     return toBeAssignedReplicas;
   }
 
+  /**
+   * From the current assignment, find the partitions that are missing minActiveReplica for ALL resources, return as a
+   * map keyed by resource name.
+   * @param clusterData Cluster data cache
+   * @param currentAssignment Current resource assignment
+   * @return <resource name, list<partition name>> that are missing minActiveReplica.
+   */
   private static Map<String, List<String>> findPartitionsMissingMinActiveReplica(
       ResourceControllerDataProvider clusterData,
       Map<String, ResourceAssignment> currentAssignment) {
     return currentAssignment.entrySet()
         .parallelStream()
-        .collect(Collectors.toMap(
-            Map.Entry::getKey,
-            entry -> findPartitionsMissingMinActiveReplica(clusterData, entry.getValue())
-        ));
+        .map(e -> Map.entry(e.getKey(), findPartitionsMissingMinActiveReplica(clusterData, e.getValue())))
+        .filter(e -> !e.getValue().isEmpty())
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
+  /**
+   * From the current assignment, find the partitions that are missing minActiveReplica for SINGLE resource.
+   * @param clusterData Cluster data cache
+   * @param resourceAssignment Current resource assignment
+   * @return A list of partition names
+   */
   private static List<String> findPartitionsMissingMinActiveReplica(
       ResourceControllerDataProvider clusterData,
       ResourceAssignment resourceAssignment) {

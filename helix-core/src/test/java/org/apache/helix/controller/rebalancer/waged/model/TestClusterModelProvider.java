@@ -118,8 +118,8 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
 
     // test 0, empty input
     Assert.assertEquals(
-        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, Collections.emptyMap(), activeInstances,
-            Collections.emptyMap(), new HashMap<>()),
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, Collections.emptySet(),
+            activeInstances, Collections.emptyMap(), new HashMap<>()),
         Collections.emptySet());
 
     // test 1, one partition under minActiveReplica
@@ -139,7 +139,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
 
     Map<String, Set<AssignableReplica>> allocatedReplicas = new HashMap<>();
     Set<AssignableReplica> toBeAssignedReplicas =
-        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap.keySet(), activeInstances,
             currentAssignment, allocatedReplicas);
 
     Assert.assertEquals(toBeAssignedReplicas.size(), 1);
@@ -168,9 +168,11 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     prepareData(input, replicaMap, currentAssignment, testCache, 1);
     allocatedReplicas = new HashMap<>();
     toBeAssignedReplicas =
-        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap.keySet(), activeInstances,
             currentAssignment, allocatedReplicas);
     Assert.assertTrue(toBeAssignedReplicas.isEmpty());
+    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 2);
+    Assert.assertEquals(allocatedReplicas.get(instance2).size(), 2);
 
     // test 3, minActiveReplica==2, two partitions falling short
     testCache = setupClusterDataCache();
@@ -191,11 +193,13 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     prepareData(input, replicaMap, currentAssignment, testCache, 2);
     allocatedReplicas = new HashMap<>();
     toBeAssignedReplicas =
-        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap, activeInstances,
+        DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap.keySet(), activeInstances,
             currentAssignment, allocatedReplicas);
     Assert.assertEquals(toBeAssignedReplicas.size(), 2);
     Assert.assertEquals(toBeAssignedReplicas.stream().map(AssignableReplica::toString).collect(Collectors.toSet()),
         ImmutableSet.of("Resource1-Partition2-SLAVE", "Resource2-Partition4-MASTER"));
+    Assert.assertEquals(allocatedReplicas.get(instance1).size(), 4);
+    Assert.assertEquals(allocatedReplicas.get(instance2).size(), 2);
   }
 
   @Test(dependsOnMethods = "testFindToBeAssignedReplicasForMinActiveReplica")

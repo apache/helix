@@ -36,7 +36,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.PartitionWithReplicaCount;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.InstanceValidationUtil;
@@ -305,8 +305,8 @@ public class DelayedRebalanceUtil {
       Set<String> liveEnabledInstances,
       Map<String, ResourceAssignment> currentAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
-    Map<String, List<PartitionWithReplicaCount>> partitionsMissingMinActiveReplicas =
-        getPartitionsNeedForRebalanceOverwrites(clusterData, currentAssignment);
+    Map<String, List<String>> partitionsMissingMinActiveReplicas =
+        findPartitionsMissingMinActiveReplica(clusterData, currentAssignment);
     if (partitionsMissingMinActiveReplicas.isEmpty()) {
       return Collections.emptySet();
     }
@@ -326,7 +326,7 @@ public class DelayedRebalanceUtil {
                   .add(new AssignableReplica(clusterData.getClusterConfig(), clusterData.getResourceConfig(resourceName),
                       partition.getPartitionName(), state, statePriorityMap.get(state)))));
       // only proceed for resource requiring delayed rebalance overwrites
-      List<PartitionWithReplicaCount> partitions =
+      List<String> partitions =
           partitionsMissingMinActiveReplicas.getOrDefault(resourceName, Collections.emptyList());
       if (partitions.isEmpty()) {
         continue;
@@ -337,7 +337,7 @@ public class DelayedRebalanceUtil {
     return toBeAssignedReplicas;
   }
 
-  private static Map<String, List<PartitionWithReplicaCount>> getPartitionsNeedForRebalanceOverwrites(
+  private static Map<String, List<String>> findPartitionsMissingMinActiveReplica(
       ResourceControllerDataProvider clusterData,
       Map<String, ResourceAssignment> currentAssignment) {
     return currentAssignment.entrySet()
@@ -348,7 +348,7 @@ public class DelayedRebalanceUtil {
         ));
   }
 
-  private static List<PartitionWithReplicaCount> findPartitionsMissingMinActiveReplica(
+  private static List<String> findPartitionsMissingMinActiveReplica(
       ResourceControllerDataProvider clusterData,
       ResourceAssignment resourceAssignment) {
     String resourceName = resourceAssignment.getResourceName();
@@ -367,15 +367,25 @@ public class DelayedRebalanceUtil {
               .count();
           return enabledLivePlacementCounter < Math.min(minActiveReplica, numReplica);
         })
-        .map(partition -> new PartitionWithReplicaCount(partition, minActiveReplica, numReplica))
+        .map(Partition::getPartitionName)
+        .distinct()
         .collect(Collectors.toList());
+  }
+
+  private static int getMinActiveReplica(ResourceControllerDataProvider clusterData, String resourceName) {
+    IdealState currentIdealState = clusterData.getIdealState(resourceName);
+    Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+    int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
+    return DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
+        .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),
+            currentIdealState), currentIdealState, numReplica);
   }
 
   /**
    * For the resource in the cluster, find additional AssignableReplica to close the gap on minActiveReplica.
    * @param clusterData Cluster data cache.
    * @param resourceName name of the resource
-   * @param partitions Pre-computed list of partition missing minActiveReplica
+   * @param partitions Pre-computed list of partition names missing minActiveReplica
    * @param stateInstanceMap <partition, <state, instances set>>
    * @param liveEnabledInstances A set of live and enabled instances
    * @return A set of AssignableReplica
@@ -383,19 +393,20 @@ public class DelayedRebalanceUtil {
   private static Set<AssignableReplica> findAssignableReplicaForResource(
       ResourceControllerDataProvider clusterData,
       String resourceName,
-      List<PartitionWithReplicaCount> partitions,
+      List<String> partitions,
       Map<String, Map<String, Set<String>>> stateInstanceMap,
       Set<String> liveEnabledInstances) {
     LOG.info("Computing replicas requiring rebalance overwrite for resource: {}", resourceName);
-    final List<String> priorityOrderedStates = getPriorityOrderedStates(resourceName, clusterData);
+    final List<String> priorityOrderedStates =
+        clusterData.getStateModelDef(clusterData.getIdealState(resourceName).getStateModelDefRef())
+            .getStatesPriorityList();
     final IdealState currentIdealState = clusterData.getIdealState(resourceName);
     final ResourceConfig resourceConfig = clusterData.getResourceConfig(resourceName);
     final Map<String, Integer> statePriorityMap =
         clusterData.getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
     final Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
 
-    for (PartitionWithReplicaCount partitionWithReplicaCount : partitions) {
-      String partitionName = partitionWithReplicaCount.getPartition().getPartitionName();
+    for (String partitionName : partitions) {
       // count current active replicas of the partition
       Map<String, Integer> activeStateReplicaCount = stateInstanceMap.getOrDefault(partitionName, Collections.emptyMap())
           .entrySet()
@@ -403,7 +414,7 @@ public class DelayedRebalanceUtil {
           .collect(Collectors.toMap(Map.Entry::getKey,
               e -> (int) e.getValue().stream().filter(liveEnabledInstances::contains).count()));
       int activeReplicas = activeStateReplicaCount.values().stream().reduce(Integer::sum).orElse(0);
-      int minActiveReplica = partitionWithReplicaCount.getMinActiveReplica();
+      int minActiveReplica = getMinActiveReplica(clusterData, resourceName);
       int replicaGapCount = minActiveReplica - activeReplicas;
       if (replicaGapCount <= 0) {
         // delayed rebalance overwrites isn't required, early stop and move on to next partition
@@ -428,15 +439,5 @@ public class DelayedRebalanceUtil {
     }
     LOG.info("Replicas: {} need to be brought up for rebalance overwrite.", toBeAssignedReplicas);
     return toBeAssignedReplicas;
-  }
-
-  private static List<String> getPriorityOrderedStates(String resourceName, ResourceControllerDataProvider clusterData) {
-    IdealState currentIdealState = clusterData.getIdealState(resourceName);
-    Map<String, Integer> statePriorityMap =
-        clusterData.getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
-
-    List<String> priorityOrderedStates = new ArrayList<>(statePriorityMap.keySet());
-    priorityOrderedStates.sort(Comparator.comparing(a -> statePriorityMap.getOrDefault(a, Integer.MAX_VALUE)));
-    return priorityOrderedStates;
   }
 }

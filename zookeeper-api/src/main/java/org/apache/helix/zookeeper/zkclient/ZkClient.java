@@ -406,8 +406,7 @@ public class ZkClient implements Watcher {
 
   public void unsubscribeAll() {
     if (_usePersistWatcher) {
-      try {
-        _persistListenerMutex.lockInterruptibly();
+      ManipulateListener removeAllListeners = (String, Object) -> {
         Set<String> paths = new HashSet<>();
         _childListener.forEach((k, v) -> paths.add(k));
         _dataListener.forEach((k, v) -> paths.add(k));
@@ -418,11 +417,8 @@ public class ZkClient implements Watcher {
             LOG.info("Failed to remove persistent watcher for {} ", p, e);
           }
         });
-      } catch (InterruptedException e) {
-        throw new ZkInterruptedException(e);
-      } finally {
-        _persistListenerMutex.unlock();
-      }
+      };
+      executeWithInPersistListenerMutex(removeAllListeners, null, null);
     } else {
     synchronized (_childListener) {
       _childListener.clear();
@@ -2988,21 +2984,6 @@ public class ZkClient implements Watcher {
     listeners.add(listener);
   }
 
-  private void addPersistListener(String path, Object listener) {
-    try {
-      _persistListenerMutex.lockInterruptibly();
-      if (listener instanceof IZkChildListener) {
-        addChildListener(path, (IZkChildListener) listener);
-      } else if (listener instanceof IZkDataListener) {
-        addDataListener(path, (IZkDataListener) listener);
-      }
-    } catch (InterruptedException ex) {
-      throw new ZkInterruptedException(ex);
-    } finally {
-      _persistListenerMutex.unlock();
-    }
-  }
-
   private void removeChildListener(String path, IZkChildListener listener) {
     final Set<IZkChildListener> listeners = _childListener.get(path);
     if (listeners != null) {
@@ -3010,18 +2991,47 @@ public class ZkClient implements Watcher {
     }
   }
 
+  interface ManipulateListener<T> {
+    void run(String path, Object listener) throws KeeperException, InterruptedException;
+  }
+
+  private void addPersistListener(String path, Object listener) {
+    ManipulateListener addListeners = (String, Object) -> {
+      if (listener instanceof IZkChildListener) {
+        addChildListener(path, (IZkChildListener) listener);
+      } else if (listener instanceof IZkDataListener) {
+        addDataListener(path, (IZkDataListener) listener);
+      }
+    };
+    executeWithInPersistListenerMutex(addListeners, path, listener);
+  }
+
   private void removePersistListener(String path, Object listener) {
+
+    ManipulateListener removeListeners = (String, Object) -> {
+      try {
+        if (listener instanceof IZkChildListener) {
+          removeChildListener(path, (IZkChildListener) listener);
+        } else if (listener instanceof IZkDataListener) {
+          removeDataListener(path, (IZkDataListener) listener);
+        }
+        if (!hasListeners(path)) {
+          // TODO: update hasListeners logic when recursive persist listener is added
+          getConnection().removeWatches(path, this, WatcherType.Any);
+        }
+      } catch (KeeperException.NoWatcherException e) {
+        LOG.warn("Persist watcher is already removed");
+      }
+    };
+
+    executeWithInPersistListenerMutex(removeListeners, path, listener);
+  }
+
+  private void executeWithInPersistListenerMutex(ManipulateListener runnable, String path,
+      Object listener) {
     try {
       _persistListenerMutex.lockInterruptibly();
-      if (listener instanceof IZkChildListener) {
-        removeChildListener(path, (IZkChildListener) listener);
-      } else if (listener instanceof IZkDataListener) {
-        removeDataListener(path, (IZkDataListener) listener);
-      }
-      if (!hasListeners(path)) {
-        // TODO: update hasListeners logic when recursive persist listener is added
-        getConnection().removeWatches(path, this, WatcherType.Any);
-      }
+      runnable.run(path, listener);
     } catch (KeeperException.NoWatcherException e) {
       LOG.warn("Persist watcher is already removed");
     } catch (KeeperException | InterruptedException ex) {
@@ -3030,5 +3040,4 @@ public class ZkClient implements Watcher {
       _persistListenerMutex.unlock();
     }
   }
-
 }

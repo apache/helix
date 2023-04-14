@@ -554,10 +554,10 @@ public class InstanceMessagesCache {
       }
     }
 
-    toRemoveMessages.entrySet().stream().forEach(entry -> {
-      entry.getValue().stream().forEach(id -> _staleMessageCache.get(entry.getKey()).remove(id));
-      if (_staleMessageCache.get(entry.getKey()).size() == 0) {
-        _staleMessageCache.remove(entry.getKey());
+    toRemoveMessages.forEach((key, value) -> {
+      value.forEach(id -> _staleMessageCache.get(key).remove(id));
+      if (_staleMessageCache.get(key).size() == 0) {
+        _staleMessageCache.remove(key);
       }
     });
   }

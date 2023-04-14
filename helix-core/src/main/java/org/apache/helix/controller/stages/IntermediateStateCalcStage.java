@@ -865,18 +865,17 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       Map<Partition, Map<String, Message>> pendingMessageMap,
       Map<Partition, List<Message>> resourceMessageMap) {
     for (Map.Entry<Partition, Map<String, Message>> entry : pendingMessageMap.entrySet()) {
-      entry.getValue().entrySet().stream().forEach(e -> {
-        if (!e.getValue().getToState().equals(HelixDefinedState.DROPPED.name())) {
-          intermediateStateMap
-              .setState(entry.getKey(), e.getValue().getTgtName(), e.getValue().getToState());
+      entry.getValue().forEach((key, value) -> {
+        if (!value.getToState().equals(HelixDefinedState.DROPPED.name())) {
+          intermediateStateMap.setState(entry.getKey(), value.getTgtName(), value.getToState());
         } else {
-          intermediateStateMap.getStateMap().get(entry.getKey()).remove(e.getValue().getTgtName());
+          intermediateStateMap.getStateMap().get(entry.getKey()).remove(value.getTgtName());
         }
       });
     }
 
     for (Map.Entry<Partition, List<Message>> entry : resourceMessageMap.entrySet()) {
-      entry.getValue().stream().forEach(e -> {
+      entry.getValue().forEach(e -> {
         if (!e.getToState().equals(HelixDefinedState.DROPPED.name())) {
           intermediateStateMap.setState(entry.getKey(), e.getTgtName(), e.getToState());
         } else {

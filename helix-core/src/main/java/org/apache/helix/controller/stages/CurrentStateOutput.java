@@ -453,10 +453,7 @@ public class CurrentStateOutput {
           getCurrentStateMap(resourceName);
       if (!currentStateMap.isEmpty()) {
         ResourceAssignment newResourceAssignment = new ResourceAssignment(resourceName);
-        currentStateMap.entrySet().stream().forEach(currentStateEntry -> {
-          newResourceAssignment.addReplicaMap(currentStateEntry.getKey(),
-              currentStateEntry.getValue());
-        });
+        currentStateMap.forEach(newResourceAssignment::addReplicaMap);
         currentStateAssignment.put(resourceName, newResourceAssignment);
       }
     }

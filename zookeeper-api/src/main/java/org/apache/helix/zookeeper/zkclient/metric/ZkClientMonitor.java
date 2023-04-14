@@ -134,7 +134,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     }
     doRegister(attributeList, MBEAN_DESCRIPTION,
         getObjectName(_monitorType, _monitorKey, _monitorInstanceName));
-    _zkClientPathMonitorMap.values().stream().forEach( monitor -> {
+    _zkClientPathMonitorMap.values().forEach(monitor -> {
       if (monitor != null) {
         try {
           monitor.register();

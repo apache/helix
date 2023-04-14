@@ -91,8 +91,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     // Create a wrapper for each AssignableReplica.
     List<AssignableReplicaWithScore> toBeAssignedReplicas =
         clusterModel.getAssignableReplicaMap().values().stream().flatMap(Collection::stream).map(
-            replica -> new AssignableReplicaWithScore(replica, clusterModel,
-                positiveEstimateClusterRemainCap)).sorted()
+            replica -> new AssignableReplicaWithScore(replica, clusterModel, positiveEstimateClusterRemainCap)).sorted()
             .collect(Collectors.toList());
 
     for (AssignableReplicaWithScore replicaWithScore : toBeAssignedReplicas) {
@@ -101,7 +100,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
               optimalAssignment);
       // stop immediately if any replica cannot find best assignable node
-      if (!maybeBestNode.isPresent() || optimalAssignment.hasAnyFailure()) {
+      if (maybeBestNode.isEmpty() || optimalAssignment.hasAnyFailure()) {
         String errorMessage = String.format(
             "Unable to find any available candidate node for partition %s; Fail reasons: %s",
             replica.getPartitionName(), optimalAssignment.getFailures());
@@ -180,7 +179,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         .collect(Collectors.toList());
   }
 
-  private class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {
+  private static class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {
     private final AssignableReplica _replica;
     private float _score = 0;
     private final boolean _isInBestPossibleAssignment;

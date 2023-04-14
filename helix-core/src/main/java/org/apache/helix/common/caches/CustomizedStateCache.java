@@ -54,8 +54,8 @@ public class CustomizedStateCache extends ParticipantStateCache<CustomizedState>
     for (String instanceName : liveInstanceMap.keySet()) {
       for (String customizedStateType : _aggregationEnabledTypes) {
         accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
-            .stream().forEach(resourceName -> participantStateKeys
-            .add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
+            .forEach(resourceName ->
+                participantStateKeys.add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
       }
     }
     return participantStateKeys;

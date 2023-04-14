@@ -29,10 +29,13 @@ public class ZkPathRecursiveWatcherTrie {
   /** Root node of PathTrie */
   private final TrieNode rootNode;
 
+
+  // A lock to guard a the Trie.
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
-
+  // A read lock is acquired on the whole trie for only read access like finding particular
+  // trie node or longest prefix
   private final Lock readLock = lock.readLock();
-
+  // A write lock is acquired when modifying the trie.
   private final Lock writeLock = lock.writeLock();
 
   static class TrieNode {
@@ -196,56 +199,24 @@ public class ZkPathRecursiveWatcherTrie {
     }
   }
 
-  /**
-   * Removing a RecursivePersistWatcherListener on a path.
-   *
-   * Delete a path from the nearest trie node to current node if this is the only listener and there
-   * is no child on the trie node.
-   *
-   * @param path the of the lister registered
-   * @param listener the RecursivePersistListener to be removed
-   */
-  public void removeRecursiveListener(final String path, RecursivePersistListener listener) {
-    Objects.requireNonNull(path, "Path cannot be null");
-
-    if (path.length() == 0) {
-      throw new IllegalArgumentException("Invalid path: " + path);
-    }
-    final String[] pathComponents = split(path);
-
-    writeLock.lock();
-    try {
-      TrieNode parent = rootNode;
-      for (final String part : pathComponents) {
-        if (parent.getChild(part) == null) {
-          // the path does not exist
-          return;
-        }
-        parent = parent.getChild(part);
-      }
-
-      TrieNode cur = parent;
-      cur.getRecursiveListeners().remove(listener);
-      // if cur is leaf node, remove the node and the path up to root until and parent node
-      // 1. has other child, or has watcher on that path
-      // remove the path if needed
-      while (cur != rootNode && (cur.children.size() == 0
-          && cur.getRecursiveListeners().size() == 0)) {
-        parent = cur.getParent();
-        parent.deleteChild(cur.getValue());
-        cur = parent;
-        // if this is the last listener of the path, remove the node
-      }
-    } finally {
-      writeLock.unlock();
-    }
-  }
 
   // TODO:
   /**
    public Set<RecursivePersistWatcherListener> getAllRecursiveListeners(String path) {
    return null;
-   }*/
+   }
+
+   public void removeRecursiveListener(final String path, RecursivePersistListener listener) {
+
+   }
+
+   private TrieNode getLongestPrefix(String path) {
+
+   }
+
+
+   */
+
 
   /**
    * Clear all nodes in the trie.

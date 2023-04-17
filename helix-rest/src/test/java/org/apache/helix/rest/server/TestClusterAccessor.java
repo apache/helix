@@ -19,7 +19,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,11 +32,11 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.sun.research.ws.wadl.HTTPMethods;
-import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -54,6 +53,7 @@ import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterStatus;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -1400,8 +1400,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     // Set cluster pause mode
     ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
         .withMode(ClusterManagementMode.Type.CLUSTER_FREEZE)
-        .withClusterName(cluster)
-        .build();
+        .withClusterName(cluster).build();
     String payload = OBJECT_MAPPER.writeValueAsString(request);
     post(endpoint, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode());
@@ -1411,12 +1410,15 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(pauseSignal.isClusterPause());
     Assert.assertFalse(pauseSignal.getCancelPendingST());
 
-    // Wait until cluster status is persisted
-    TestHelper.verify(() -> dataAccessor.getBaseDataAccessor()
-            .exists(dataAccessor.keyBuilder().clusterStatus().getPath(), AccessOption.PERSISTENT),
-        TestHelper.WAIT_DURATION);
+    // Wait until cluster status is persisted and equals CLUSTER_FREEZE
+    TestHelper.verify(() -> {
+      ClusterStatus clusterStatus =
+          dataAccessor.getProperty(dataAccessor.keyBuilder().clusterStatus());
+      return clusterStatus != null
+          && clusterStatus.getManagementMode() == ClusterManagementMode.Type.CLUSTER_FREEZE;
+    }, TestHelper.WAIT_DURATION);
 
-    // Verify get cluster status
+    // Verify get cluster status GET request
     String body = get(endpoint, null, Response.Status.OK.getStatusCode(), true);
     Map<String, Object> responseMap = OBJECT_MAPPER.readerFor(Map.class).readValue(body);
     Assert.assertEquals(responseMap.get("mode"), ClusterManagementMode.Type.CLUSTER_FREEZE.name());

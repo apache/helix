@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -53,7 +54,31 @@ public class ClusterModelProvider {
     // changes.
     GLOBAL_BASELINE,
     // Set the rebalance scope to cover only replicas that are assigned to downed instances.
-    EMERGENCY
+    EMERGENCY,
+    // A temporary overwrites for partition replicas on downed instance but still within the delayed window but missing
+    // minActiveReplicas
+    DELAYED_REBALANCE_OVERWRITES
+  }
+
+  /**
+   * TODO: On integration with WAGED, have to integrate with counter and latency metrics -- qqu
+   * Compute a new Cluster Model with scope limited to partitions with best possible assignment missing minActiveReplicas
+   * because of delayed rebalance setting.
+   * @param dataProvider The controller's data cache
+   * @param resourceMap The full map of the resource by name
+   * @param activeInstances The active instances that will be used in the calculation.
+   * @param resourceAssignment The resource assignment state to compute on. This should be the current state assignment;
+   *                           if it's run right after another rebalance calculation, the best possible assignment from
+   *                           previous result can be used.
+   * @return the ClusterModel
+   */
+  public static ClusterModel generateClusterModelForDelayedRebalanceOverwrites(
+      ResourceControllerDataProvider dataProvider,
+      Map<String, Resource> resourceMap,
+      Set<String> activeInstances,
+      Map<String, ResourceAssignment> resourceAssignment) {
+    return generateClusterModel(dataProvider, resourceMap, activeInstances, Collections.emptyMap(),
+        Collections.emptyMap(), resourceAssignment, RebalanceScopeType.DELAYED_REBALANCE_OVERWRITES);
   }
 
   /**
@@ -192,6 +217,11 @@ public class ClusterModelProvider {
       case EMERGENCY:
         toBeAssignedReplicas = findToBeAssignedReplicasOnDownInstances(replicaMap, activeInstances,
             currentAssignment, allocatedReplicas);
+        break;
+      case DELAYED_REBALANCE_OVERWRITES:
+        toBeAssignedReplicas =
+            DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(dataProvider, replicaMap.keySet(),
+                activeInstances, currentAssignment, allocatedReplicas);
         break;
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);
@@ -474,7 +504,7 @@ public class ClusterModelProvider {
   }
 
   // <partition, <state, instances set>>
-  private static Map<String, Map<String, Set<String>>> getStateInstanceMap(
+  public static Map<String, Map<String, Set<String>>> getStateInstanceMap(
       ResourceAssignment assignment) {
     if (assignment == null) {
       return Collections.emptyMap();

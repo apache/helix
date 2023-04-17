@@ -59,8 +59,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -94,7 +94,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       is.setStateModelDefRef("MasterSlave");
       is.setReplicas("3");
       is.setRebalancerClassName(WagedRebalancer.class.getName());
-      _partitionNames.stream()
+      _partitionNames
           .forEach(partition -> is.setPreferenceList(partition, Collections.emptyList()));
       isMap.put(resource, is);
     }
@@ -132,10 +132,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
     // Mocking the change types for triggering a baseline rebalance.
@@ -170,10 +169,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
     // Mocking the change types for triggering a baseline rebalance.
@@ -198,10 +196,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
     // Mocking the change types for triggering a baseline rebalance.
@@ -286,10 +283,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
     // Mocking the change types for triggering a baseline rebalance.
@@ -348,10 +344,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         .setRebalancerClassName(CrushRebalanceStrategy.class.getName());
     // The input resource Map shall contain all the valid resources.
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
     rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
@@ -369,7 +364,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     clusterData.getIdealState(invalidResource).setStateModelDefRef("foobar");
     // The input resource Map shall contain all the valid resources.
     Map<String, Resource> resourceMap = clusterData.getIdealStates().keySet().stream().collect(
-        Collectors.toMap(resourceName -> resourceName, resourceName -> new Resource(resourceName)));
+        Collectors.toMap(resourceName -> resourceName, Resource::new));
     try {
       rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
           clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
@@ -398,7 +393,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     // The input resource Map shall contain all the valid resources.
     Map<String, Resource> resourceMap = clusterData.getIdealStates().keySet().stream().collect(
-        Collectors.toMap(resourceName -> resourceName, resourceName -> new Resource(resourceName)));
+        Collectors.toMap(resourceName -> resourceName, Resource::new));
     try {
       rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
       Assert.fail("Rebalance shall fail.");
@@ -418,10 +413,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
     // Rebalance with normal configuration. So the assignment will be persisted in the metadata store.
@@ -451,7 +445,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Ensure failure has been recorded
     Assert.assertEquals(rebalancer.getMetricCollector().getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
-        CountMetric.class).getValue().longValue(), 1l);
+        CountMetric.class).getValue().longValue(), 1L);
   }
 
   @Test(dependsOnMethods = "testRebalance")
@@ -480,10 +474,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     clusterData.setClusterConfig(clusterConfig);
 
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
 
@@ -729,10 +722,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
           Resource resource = new Resource(entry.getKey());
-          entry.getValue().getPartitionSet().stream()
-              .forEach(partition -> resource.addPartition(partition));
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
           return resource;
         }));
     // Mocking the change types for triggering a baseline rebalance.
@@ -775,7 +767,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       IdealState is = newIdealStates.get(resourceName);
       ResourceAssignment assignment = expectedResult.get(resourceName);
       Assert.assertEquals(is.getPartitionSet(), new HashSet<>(assignment.getMappedPartitions()
-          .stream().map(partition -> partition.getPartitionName()).collect(Collectors.toSet())));
+          .stream().map(Partition::getPartitionName).collect(Collectors.toSet())));
       for (String partitionName : is.getPartitionSet()) {
         Assert.assertEquals(is.getInstanceStateMap(partitionName),
             assignment.getReplicaMap(new Partition(partitionName)));

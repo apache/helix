@@ -407,7 +407,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     LOG.info("Start delayed rebalance overwrites in emergency rebalance.");
     try {
       // use the "real" live and enabled instances for calculation
-      ClusterModel clusterModel = ClusterModelProvider.generateClusterModelForDelayedRebalanceOverwrites2(
+      ClusterModel clusterModel = ClusterModelProvider.generateClusterModelForDelayedRebalanceOverwrites(
           clusterData, resourceMap, enabledLiveInstances, resourceAssignment);
       Map<String, ResourceAssignment> assignment = WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
       // merge with current assignment for partitions assigned on rest of the instances (not immediately live)

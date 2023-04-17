@@ -390,7 +390,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
       for (int i=0; i<200; ++i) {
         zkMetaClient.set(basePath, "data7" + i, -1);
-        System.out.println("adding data");
       }
       Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
 

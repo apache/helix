@@ -406,7 +406,7 @@ public class ZkClient implements Watcher {
 
   public void unsubscribeAll() {
     if (_usePersistWatcher) {
-      ManipulateListener removeAllListeners = (String, Object) -> {
+      ManipulateListener removeAllListeners = () -> {
         Set<String> paths = new HashSet<>();
         _childListener.forEach((k, v) -> paths.add(k));
         _dataListener.forEach((k, v) -> paths.add(k));
@@ -2992,11 +2992,11 @@ public class ZkClient implements Watcher {
   }
 
   interface ManipulateListener<T> {
-    void run(String path, Object listener) throws KeeperException, InterruptedException;
+    void run() throws KeeperException, InterruptedException;
   }
 
   private void addPersistListener(String path, Object listener) {
-    ManipulateListener addListeners = (String, Object) -> {
+    ManipulateListener addListeners = () -> {
       if (listener instanceof IZkChildListener) {
         addChildListener(path, (IZkChildListener) listener);
       } else if (listener instanceof IZkDataListener) {
@@ -3008,7 +3008,7 @@ public class ZkClient implements Watcher {
 
   private void removePersistListener(String path, Object listener) {
 
-    ManipulateListener removeListeners = (String, Object) -> {
+    ManipulateListener removeListeners = () -> {
       try {
         if (listener instanceof IZkChildListener) {
           removeChildListener(path, (IZkChildListener) listener);
@@ -3031,7 +3031,7 @@ public class ZkClient implements Watcher {
       Object listener) {
     try {
       _persistListenerMutex.lockInterruptibly();
-      runnable.run(path, listener);
+      runnable.run();
     } catch (KeeperException.NoWatcherException e) {
       LOG.warn("Persist watcher is already removed");
     } catch (KeeperException | InterruptedException ex) {

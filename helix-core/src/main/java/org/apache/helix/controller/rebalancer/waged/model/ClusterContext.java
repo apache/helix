@@ -84,18 +84,15 @@ public class ClusterContext {
       for (AssignableReplica replica : entry.getValue()) {
         if (replica.isReplicaTopState()) {
           totalTopStateReplicas += 1;
-          replica.getCapacity().entrySet().stream().forEach(capacityEntry -> totalTopStateUsage
-              .compute(capacityEntry.getKey(), (k, v) -> (v == null) ? capacityEntry.getValue()
-                  : (v + capacityEntry.getValue())));
+          replica.getCapacity().forEach(
+              (key, value) -> totalTopStateUsage.compute(key, (k, v) -> (v == null) ? value : (v + value)));
         }
-        replica.getCapacity().entrySet().stream().forEach(capacityEntry -> totalUsage
-            .compute(capacityEntry.getKey(),
-                (k, v) -> (v == null) ? capacityEntry.getValue() : (v + capacityEntry.getValue())));
+        replica.getCapacity().forEach(
+            (key, value) -> totalUsage.compute(key, (k, v) -> (v == null) ? value : (v + value)));
       }
     }
-    nodeSet.stream().forEach(node -> node.getMaxCapacity().entrySet().stream().forEach(
-        capacityEntry -> totalCapacity.compute(capacityEntry.getKey(),
-            (k, v) -> (v == null) ? capacityEntry.getValue() : (v + capacityEntry.getValue()))));
+    nodeSet.forEach(node -> node.getMaxCapacity().forEach(
+        (key, value) -> totalCapacity.compute(key, (k, v) -> (v == null) ? value : (v + value))));
 
     // TODO: these variables correspond to one constraint each, and may become unnecessary if the
     // constraints are not used. A better design is to make them pluggable.

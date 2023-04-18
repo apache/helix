@@ -934,7 +934,7 @@ public class ClusterConfig extends HelixProperty {
     Map<String, String> capacityData = _record.getMapField(capacityPropertyType.name());
     if (capacityData != null) {
       return capacityData.entrySet().stream().collect(
-          Collectors.toMap(entry -> entry.getKey(), entry -> Integer.parseInt(entry.getValue())));
+          Collectors.toMap(Map.Entry::getKey, entry -> Integer.parseInt(entry.getValue())));
     }
     return Collections.emptyMap();
   }
@@ -945,13 +945,12 @@ public class ClusterConfig extends HelixProperty {
       _record.getMapFields().remove(capacityPropertyType.name());
     } else {
       Map<String, String> data = new HashMap<>();
-      capacityDataMap.entrySet().stream().forEach(entry -> {
-        if (entry.getValue() < 0) {
-          throw new IllegalArgumentException(String
-              .format("Default capacity data contains a negative value: %s = %d", entry.getKey(),
-                  entry.getValue()));
+      capacityDataMap.forEach((key, value) -> {
+        if (value < 0) {
+          throw new IllegalArgumentException(
+              String.format("Default capacity data contains a negative value: %s = %d", key, value));
         }
-        data.put(entry.getKey(), Integer.toString(entry.getValue()));
+        data.put(key, Integer.toString(value));
       });
       _record.setMapField(capacityPropertyType.name(), data);
     }
@@ -976,14 +975,12 @@ public class ClusterConfig extends HelixProperty {
             + "GlobalRebalancePreferenceKey.LESS_MOVEMENT must be both specified or not specified");
       }
       Map<String, String> preferenceMap = new HashMap<>();
-      preference.entrySet().stream().forEach(entry -> {
-        if (entry.getValue() > MAX_REBALANCE_PREFERENCE
-            || entry.getValue() < MIN_REBALANCE_PREFERENCE) {
-          throw new IllegalArgumentException(String
-              .format("Invalid global rebalance preference configuration. Key %s, Value %d.",
-                  entry.getKey().name(), entry.getValue()));
+      preference.forEach((key, value) -> {
+        if (value > MAX_REBALANCE_PREFERENCE || value < MIN_REBALANCE_PREFERENCE) {
+          throw new IllegalArgumentException(
+              String.format("Invalid global rebalance preference configuration. Key %s, Value %d.", key.name(), value));
         }
-        preferenceMap.put(entry.getKey().name(), Integer.toString(entry.getValue()));
+        preferenceMap.put(key.name(), Integer.toString(value));
       });
       _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
     }
@@ -1100,7 +1097,7 @@ public class ClusterConfig extends HelixProperty {
   public Map<String, String> getAbnormalStateResolverMap() {
     Map<String, String> resolverMap =
         _record.getMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name());
-    return resolverMap == null ? Collections.EMPTY_MAP : resolverMap;
+    return resolverMap == null ? Collections.emptyMap() : resolverMap;
   }
 
   /**

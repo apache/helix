@@ -36,6 +36,7 @@ import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
@@ -117,7 +118,7 @@ public class ClusterModelProvider {
    * @param baselineAssignment     The persisted Baseline assignment.
    * @param bestPossibleAssignment The persisted Best Possible assignment that was generated in the
    *                               previous rebalance.
-   * @return
+   * @return the new cluster model
    */
   public static ClusterModel generateClusterModelForPartialRebalance(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
@@ -498,8 +499,8 @@ public class ClusterModelProvider {
   private static Map<String, Map<String, Set<String>>> getValidStateInstanceMap(
       ResourceAssignment assignment, Set<String> activeInstances) {
     Map<String, Map<String, Set<String>>> stateInstanceMap = getStateInstanceMap(assignment);
-    stateInstanceMap.values().stream().forEach(stateMap -> stateMap.values().stream()
-        .forEach(instanceSet -> instanceSet.retainAll(activeInstances)));
+    stateInstanceMap.values().forEach(stateMap ->
+        stateMap.values().forEach(instanceSet -> instanceSet.retainAll(activeInstances)));
     return stateInstanceMap;
   }
 
@@ -510,12 +511,10 @@ public class ClusterModelProvider {
       return Collections.emptyMap();
     }
     return assignment.getMappedPartitions().stream()
-        .collect(Collectors.toMap(partition -> partition.getPartitionName(), partition -> {
+        .collect(Collectors.toMap(Partition::getPartitionName, partition -> {
           Map<String, Set<String>> stateInstanceMap = new HashMap<>();
-          assignment.getReplicaMap(partition).entrySet().stream().forEach(
-              stateMapEntry -> stateInstanceMap
-                  .computeIfAbsent(stateMapEntry.getValue(), key -> new HashSet<>())
-                  .add(stateMapEntry.getKey()));
+          assignment.getReplicaMap(partition)
+              .forEach((key1, value) -> stateInstanceMap.computeIfAbsent(value, key -> new HashSet<>()).add(key1));
           return stateInstanceMap;
         }));
   }
@@ -532,7 +531,7 @@ public class ClusterModelProvider {
   private static Set<AssignableNode> getAllAssignableNodes(ClusterConfig clusterConfig,
       Map<String, InstanceConfig> instanceConfigMap, Set<String> activeInstances) {
     return activeInstances.parallelStream()
-        .filter(instance -> instanceConfigMap.containsKey(instance)).map(
+        .filter(instanceConfigMap::containsKey).map(
             instanceName -> new AssignableNode(clusterConfig, instanceConfigMap.get(instanceName),
                 instanceName)).collect(Collectors.toSet());
   }
@@ -549,7 +548,7 @@ public class ClusterModelProvider {
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       Set<AssignableNode> assignableNodes) {
     ClusterConfig clusterConfig = dataProvider.getClusterConfig();
-    int activeFaultZoneCount = assignableNodes.stream().map(node -> node.getFaultZone())
+    int activeFaultZoneCount = assignableNodes.stream().map(AssignableNode::getFaultZone)
         .collect(Collectors.toSet()).size();
     return resourceMap.keySet().parallelStream().map(resourceName -> {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(resourceName);
@@ -582,8 +581,8 @@ public class ClusterModelProvider {
           }
         }
       }
-      return new HashMap.SimpleEntry<>(resourceName, replicas);
-    }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+      return Map.entry(resourceName, replicas);
+    }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   /**
@@ -592,7 +591,7 @@ public class ClusterModelProvider {
   private static Map<String, Map<String, Set<String>>> mapAssignmentToFaultZone(
       Set<AssignableNode> assignableNodes) {
     Map<String, Map<String, Set<String>>> faultZoneAssignmentMap = new HashMap<>();
-    assignableNodes.stream().forEach(node -> {
+    assignableNodes.forEach(node -> {
       for (Map.Entry<String, Set<String>> resourceMap : node.getAssignedPartitionsMap()
           .entrySet()) {
         faultZoneAssignmentMap.computeIfAbsent(node.getFaultZone(), k -> new HashMap<>())

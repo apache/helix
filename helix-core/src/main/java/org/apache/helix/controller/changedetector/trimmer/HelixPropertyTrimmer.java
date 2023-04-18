@@ -107,7 +107,7 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
       }
       switch (fieldType) {
         case SIMPLE_FIELD:
-          fieldKeySet.stream().forEach(fieldKey -> {
+          fieldKeySet.forEach(fieldKey -> {
             if (originalZNRecord.getSimpleFields().containsKey(fieldKey)) {
               trimmedZNRecord.getSimpleFields().putIfAbsent(fieldKey,
                   trimValue ? null : originalZNRecord.getSimpleField(fieldKey));
@@ -115,18 +115,18 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
           });
           break;
         case LIST_FIELD:
-          fieldKeySet.stream().forEach(fieldKey -> {
+          fieldKeySet.forEach(fieldKey -> {
             if (originalZNRecord.getListFields().containsKey(fieldKey)) {
               trimmedZNRecord.getListFields().putIfAbsent(fieldKey,
-                  trimValue ? Collections.EMPTY_LIST : originalZNRecord.getListField(fieldKey));
+                  trimValue ? Collections.emptyList() : originalZNRecord.getListField(fieldKey));
             }
           });
           break;
         case MAP_FIELD:
-          fieldKeySet.stream().forEach(fieldKey -> {
+          fieldKeySet.forEach(fieldKey -> {
             if (originalZNRecord.getMapFields().containsKey(fieldKey)) {
               trimmedZNRecord.getMapFields().putIfAbsent(fieldKey,
-                  trimValue ? Collections.EMPTY_MAP : originalZNRecord.getMapField(fieldKey));
+                  trimValue ? Collections.emptyMap() : originalZNRecord.getMapField(fieldKey));
             }
           });
           break;

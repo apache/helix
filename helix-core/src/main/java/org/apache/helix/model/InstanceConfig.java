@@ -626,13 +626,12 @@ public class InstanceConfig extends HelixProperty {
       _record.getMapFields().remove(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name());
     } else {
       Map<String, String> capacityData = new HashMap<>();
-      capacityDataMap.entrySet().stream().forEach(entry -> {
-        if (entry.getValue() < 0) {
-          throw new IllegalArgumentException(String
-              .format("Capacity Data contains a negative value: %s = %d", entry.getKey(),
-                  entry.getValue()));
+      capacityDataMap.forEach((key, value) -> {
+        if (value < 0) {
+          throw new IllegalArgumentException(
+              String.format("Capacity Data contains a negative value: %s = %d", key, value));
         }
-        capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
+        capacityData.put(key, Integer.toString(value));
       });
       _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityData);
     }

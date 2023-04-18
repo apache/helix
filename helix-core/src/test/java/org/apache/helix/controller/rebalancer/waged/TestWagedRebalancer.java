@@ -713,7 +713,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
             LatencyMetric.class).getLastEmittedMetricValue() > 0L);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testRebalanceOverwriteTrigger")
   public void testRebalanceOverwrite() throws HelixRebalanceException, IOException {
     _metadataStore.reset();
 

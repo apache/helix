@@ -385,7 +385,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
    * @param resourceMap The map of resource to calculate
    * @param activeNodes All active nodes (live nodes plus offline-yet-active nodes) while considering cluster's
    *                    delayed rebalance config
-   * @param resourceAssignment The current resource assignment or the best possible assignment computed from last
+   * @param currentResourceAssignment The current resource assignment or the best possible assignment computed from last
    *                           emergency rebalance.
    * @param algorithm The rebalance algorithm
    * @return The resource assignment with delayed rebalance minActiveReplica
@@ -394,13 +394,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap,
       Set<String> activeNodes,
-      Map<String, ResourceAssignment> resourceAssignment,
+      Map<String, ResourceAssignment> currentResourceAssignment,
       RebalanceAlgorithm algorithm) throws HelixRebalanceException {
     // the "real" live nodes at the time
     final Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
-    if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, resourceAssignment)) {
+    if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment
-      return resourceAssignment;
+      return currentResourceAssignment;
     }
     _rebalanceOverwriteCounter.increment(1L);
     _rebalanceOverwriteLatency.startMeasuringLatency();
@@ -408,25 +408,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     try {
       // use the "real" live and enabled instances for calculation
       ClusterModel clusterModel = ClusterModelProvider.generateClusterModelForDelayedRebalanceOverwrites(
-          clusterData, resourceMap, enabledLiveInstances, resourceAssignment);
+          clusterData, resourceMap, enabledLiveInstances, currentResourceAssignment);
       Map<String, ResourceAssignment> assignment = WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
-      // merge with current assignment for partitions assigned on rest of the instances (not immediately live)
-      resourceAssignment.forEach((resourceName, currentAssignment) -> {
-        for (Partition partition : currentAssignment.getMappedPartitions()) {
-          currentAssignment.getReplicaMap(partition).entrySet().stream()
-              // the existing partitions on the enabledLiveInstances are pre-allocated, only process for the rest
-              .filter(e -> !enabledLiveInstances.contains(e.getKey()))
-              .forEach(e -> {
-                if (assignment.containsKey(resourceName)) {
-                  Map<String, String> toMerge = new HashMap<>(assignment.get(resourceName).getReplicaMap(partition));
-                  toMerge.put(e.getKey(), e.getValue());
-                  assignment.get(resourceName).addReplicaMap(partition, toMerge);
-                } else {
-                  assignment.put(resourceName, currentAssignment);
-                }
-              });
-        }
-      });
+      DelayedRebalanceUtil.mergeAssignments(assignment, currentResourceAssignment, enabledLiveInstances);
       return assignment;
     } catch (HelixRebalanceException e) {
       LOG.error("Failed to compute for delayed rebalance overwrites in cluster {}", clusterData.getClusterName());

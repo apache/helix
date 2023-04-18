@@ -336,6 +336,42 @@ public class DelayedRebalanceUtil {
   }
 
   /**
+   * Merge entries from currentResourceAssignment to newAssignment.
+   * To handle minActiveReplica for delayed rebalance, new assignment is computed based on enabled live instances, but
+   * could miss out current partition allocation still on offline instances (within delayed window).
+   * The merge process is independent for each resource; for each resource-partition, it adds the <instance, state> pair
+   * to newAssignment if it's not there yet; in other word, the entries in newAssignment won't be override.
+   * @param newAssignment newAssignment to merge, this map is getting updated during this method.
+   * @param currentResourceAssignment the current resource assignment
+   * @param enabledLiveInstances the set of enabled live instance
+   */
+  public static void mergeAssignments(Map<String, ResourceAssignment> newAssignment,
+      Map<String, ResourceAssignment> currentResourceAssignment,
+      Set<String> enabledLiveInstances) {
+    // merge with current assignment for partitions assigned on rest of the instances (not immediately live)
+    currentResourceAssignment.entrySet().parallelStream().forEach(entry -> {
+      String resourceName = entry.getKey();
+      ResourceAssignment currentAssignment = entry.getValue();
+      for (Partition partition : currentAssignment.getMappedPartitions()) {
+        currentAssignment.getReplicaMap(partition).entrySet().stream() // <instance, state>
+            // the existing partitions on the enabledLiveInstances are pre-allocated, only process for the rest
+            .filter(e -> !enabledLiveInstances.contains(e.getKey()) ||
+                !newAssignment.containsKey(resourceName) ||
+                !newAssignment.get(resourceName).getReplicaMap(partition).containsKey(e.getKey()))
+            .forEach(e -> {
+              if (newAssignment.containsKey(resourceName)) {
+                Map<String, String> toMerge = new HashMap<>(newAssignment.get(resourceName).getReplicaMap(partition));
+                toMerge.put(e.getKey(), e.getValue());
+                newAssignment.get(resourceName).addReplicaMap(partition, toMerge);
+              } else {
+                newAssignment.put(resourceName, currentAssignment);
+              }
+            });
+      }
+    });
+  }
+
+  /**
    * From the current assignment, find the partitions that are missing minActiveReplica for ALL resources, return as a
    * map keyed by resource name.
    * @param clusterData Cluster data cache

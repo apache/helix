@@ -23,10 +23,7 @@ import java.io.IOException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.helix.HelixRebalanceException;
-import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelTestHelper;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
@@ -119,25 +116,6 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(),
           "The cluster does not have enough item1 capacity for all partitions.  Failure Type: FAILED_TO_CALCULATE");
-    }
-  }
-
-  public static class MockAlgorithm implements RebalanceAlgorithm {
-
-    private final ConstraintBasedAlgorithm _algorithm;
-
-    public MockAlgorithm() {
-      HardConstraint mockHardConstraint = mock(HardConstraint.class);
-      SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
-      when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
-      when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
-      _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
-          ImmutableMap.of(mockSoftConstraint, 1f));
-    }
-
-    @Override
-    public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
-      return _algorithm.calculate(clusterModel);
     }
   }
 }

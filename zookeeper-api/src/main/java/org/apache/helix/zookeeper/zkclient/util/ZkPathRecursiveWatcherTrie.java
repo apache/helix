@@ -48,54 +48,25 @@ public class ZkPathRecursiveWatcherTrie {
   /** Root node of PathTrie */
   private final TrieNode rootNode;
 
-
-  // A lock to guard a the Trie.
-  private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
-  // A read lock is acquired on the whole trie for only read access like finding particular
-  // trie node or longest prefix
-  //private final Lock readLock = lock.readLock();
-  // A write lock is acquired when modifying the trie.
-  private final Lock writeLock = lock.writeLock();
-
   static class TrieNode {
 
     final String value;   // Segmented ZNode path at current level
     final Map<String, TrieNode> children; // A map of segmented ZNode path of next level to TrieNode
-    TrieNode parent;  // A reference to upper level TrieNode
     Set<RecursivePersistListener> recursiveListeners;
     // A list of recursive persist watcher on the current path
 
     /**
      * Create a trie node with parent as parameter.
      *
-     * @param parent the parent of this node
      * @param value the value stored in this node
      */
-    private TrieNode(TrieNode parent, String value) {
+    private TrieNode(String value) {
       this.value = value;
-      this.parent = parent;
       this.children =
-          new HashMap<>(4);  // We keep the same number of init children side as Zk sevrer
+          new HashMap<>(4);  // We keep the same number of init children side as Zk serer
       this.recursiveListeners = new HashSet<>(4);
     }
 
-    /**
-     * Get the parent of this node.
-     *
-     * @return the parent node
-     */
-    TrieNode getParent() {
-      return this.parent;
-    }
-
-    /**
-     * set the parent of this node.
-     *
-     * @param parent the parent to set to
-     */
-    void setParent(TrieNode parent) {
-      this.parent = parent;
-    }
 
     /**
      * The value stored in this node.
@@ -114,24 +85,6 @@ public class ZkPathRecursiveWatcherTrie {
      */
     void addChild(String childName, TrieNode node) {
       this.children.putIfAbsent(childName, node);
-    }
-
-    /**
-     * Delete child from this node.
-     *
-     * @param childName the name of the child to be deleted
-     */
-    void deleteChild(String childName) {
-      this.children.computeIfPresent(childName, (key, childNode) -> {
-
-        // Delete it if it has no children (is a leaf node)
-        if (childNode.isLeafNode()) {
-          childNode.setParent(null);
-          return null;
-        }
-
-        return childNode;
-      });
     }
 
     /**
@@ -156,15 +109,6 @@ public class ZkPathRecursiveWatcherTrie {
     }
 
     /**
-     * Determine if this node is a leaf (has no children).
-     *
-     * @return true if this node is a lead node; otherwise false
-     */
-    boolean isLeafNode() {
-      return children.isEmpty();
-    }
-
-    /**
      * Get the set of RecursivePersistWatcherListener
      * Returns an empty set if no listener is registered on the path
      * @return
@@ -184,7 +128,7 @@ public class ZkPathRecursiveWatcherTrie {
    * Construct a new PathTrie with a root node.
    */
   public ZkPathRecursiveWatcherTrie() {
-    this.rootNode = new TrieNode(null, "/");
+    this.rootNode = new TrieNode( "/");
   }
 
   /**
@@ -201,51 +145,26 @@ public class ZkPathRecursiveWatcherTrie {
     }
     final String[] pathComponents = split(path);
 
-    writeLock.lock();
-    try {
+    synchronized(this) {
       TrieNode parent = rootNode;
       for (final String part : pathComponents) {
         TrieNode child = parent.getChild(part);
         if (child == null) {
-          child = new TrieNode(parent, part);
+          child = new TrieNode(part);
           parent.addChild(part, child);
         }
         parent = child;
       }
       parent.recursiveListeners.add(listener);
-    } finally {
-      writeLock.unlock();
     }
   }
-
-
-  // TODO:
-  /**
-   public Set<RecursivePersistWatcherListener> getAllRecursiveListeners(String path) {
-   return null;
-   }
-
-   public void removeRecursiveListener(final String path, RecursivePersistListener listener) {
-
-   }
-
-   private TrieNode getLongestPrefix(String path) {
-
-   }
-
-
-   */
-
 
   /**
    * Clear all nodes in the trie.
    */
   public void clear() {
-    writeLock.lock();
-    try {
+    synchronized(this) {
       rootNode.getChildren().clear();
-    } finally {
-      writeLock.unlock();
     }
   }
 

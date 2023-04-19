@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
@@ -87,6 +88,11 @@ public class ZkServer {
 
     private void startZooKeeperServer() {
         long startTime = System.currentTimeMillis();
+        /**
+         * Checking if the ZK hostname is present in the list of resolved ips/hostnames for
+         * all network interfaces on a machine is expensive. So, we start the ZK on any local
+         * address and just check if the port specified is free.
+         */
         if (NetworkUtil.isPortFree(_port)) {
             final File dataDir = new File(_dataDir);
             final File dataLogDir = new File(_logDir);

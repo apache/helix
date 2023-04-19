@@ -138,7 +138,7 @@ public class ZkClient implements Watcher {
   private ZkClientMonitor _monitor;
   private boolean _usePersistWatcher;
 
-  private ReentrantLock _persistListenerMutex;
+  private final ReentrantLock _persistListenerMutex;
 
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
@@ -418,7 +418,7 @@ public class ZkClient implements Watcher {
           }
         });
       };
-      executeWithInPersistListenerMutex(removeAllListeners, null, null);
+      executeWithInPersistListenerMutex(removeAllListeners);
     } else {
     synchronized (_childListener) {
       _childListener.clear();
@@ -1354,7 +1354,7 @@ public class ZkClient implements Watcher {
    * are deleted before the last page is fetched. The upstream caller should be able to handle this.
    */
   public List<String> getChildren(String path) {
-    return getChildren(path, (hasListeners(path) && !_usePersistWatcher));
+    return getChildren(path, (!_usePersistWatcher) && hasListeners(path));
   }
 
   protected List<String> getChildren(final String path, final boolean watch) {
@@ -1809,6 +1809,7 @@ public class ZkClient implements Watcher {
               // the exists() useGetData (false) route to check stat. Otherwise, we use getData()
               // to install watch.
               Stat stat = null;
+              // no register one time watcher when _usePersistWatcher is true.
               if (_usePersistWatcher || !pathExists) {
                 stat = getStat(path, false);
               } else {
@@ -1826,7 +1827,7 @@ public class ZkClient implements Watcher {
                 }
                 try {
                   // TODO: the data is redundantly read multiple times when multiple listeners exist
-                  data = readData(path, null, false); ///true);
+                  data = readData(path, null, !_usePersistWatcher);
                 } catch (ZkNoNodeException e) {
                   LOG.warn("zkclient {} Prefetch data for path: {} failed.", _uid, path, e);
                   listener.getDataListener().handleDataDeleted(path);
@@ -2490,6 +2491,8 @@ public class ZkClient implements Watcher {
     return retryUntilConnected(new Callable<List<String>>() {
       @Override
       public List<String> call() throws Exception {
+        // We only register one time watcher without checking in path exists
+        // when _usePersistWatcher is false and skipWatchingNonExistNode is false.
         if (!skipWatchingNonExistNode && !_usePersistWatcher) {
           exists(path, true);
         }
@@ -2991,7 +2994,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  interface ManipulateListener<T> {
+  interface ManipulateListener {
     void run() throws KeeperException, InterruptedException;
   }
 
@@ -3003,7 +3006,7 @@ public class ZkClient implements Watcher {
         addDataListener(path, (IZkDataListener) listener);
       }
     };
-    executeWithInPersistListenerMutex(addListeners, path, listener);
+    executeWithInPersistListenerMutex(addListeners);
   }
 
   private void removePersistListener(String path, Object listener) {
@@ -3024,11 +3027,10 @@ public class ZkClient implements Watcher {
       }
     };
 
-    executeWithInPersistListenerMutex(removeListeners, path, listener);
+    executeWithInPersistListenerMutex(removeListeners);
   }
 
-  private void executeWithInPersistListenerMutex(ManipulateListener runnable, String path,
-      Object listener) {
+  private void executeWithInPersistListenerMutex(ManipulateListener runnable) {
     try {
       _persistListenerMutex.lockInterruptibly();
       runnable.run();

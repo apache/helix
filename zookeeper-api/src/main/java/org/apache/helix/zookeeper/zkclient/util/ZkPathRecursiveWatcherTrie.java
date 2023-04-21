@@ -22,12 +22,11 @@ package org.apache.helix.zookeeper.zkclient.util;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -46,13 +45,13 @@ import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 public class ZkPathRecursiveWatcherTrie {
 
   /** Root node of PathTrie */
-  private final TrieNode rootNode;
+  private final TrieNode _rootNode;
 
   static class TrieNode {
 
-    final String value;   // Segmented ZNode path at current level
-    final Map<String, TrieNode> children; // A map of segmented ZNode path of next level to TrieNode
-    Set<RecursivePersistListener> recursiveListeners;
+    final String _value;   // Segmented ZNode path at current level
+    final Map<String, TrieNode> _children; // A map of segmented ZNode path of next level to TrieNode
+    Set<RecursivePersistListener> _recursiveListeners;
     // A list of recursive persist watcher on the current path
 
     /**
@@ -61,10 +60,10 @@ public class ZkPathRecursiveWatcherTrie {
      * @param value the value stored in this node
      */
     private TrieNode(String value) {
-      this.value = value;
-      this.children =
-          new HashMap<>(4);  // We keep the same number of init children side as Zk serer
-      this.recursiveListeners = new HashSet<>(4);
+      this._value = value;
+      this._children =
+          new HashMap<>(4);  // We keep the same number of init children size as Zk serer
+      this._recursiveListeners = new HashSet<>(4);
     }
 
 
@@ -74,7 +73,7 @@ public class ZkPathRecursiveWatcherTrie {
      * @return the value stored in this node
      */
     public String getValue() {
-      return this.value;
+      return this._value;
     }
 
     /**
@@ -84,7 +83,7 @@ public class ZkPathRecursiveWatcherTrie {
      * @param node the node that is the child
      */
     void addChild(String childName, TrieNode node) {
-      this.children.putIfAbsent(childName, node);
+      this._children.putIfAbsent(childName, node);
     }
 
     /**
@@ -95,7 +94,7 @@ public class ZkPathRecursiveWatcherTrie {
      */
     @VisibleForTesting
     TrieNode getChild(String childName) {
-      return this.children.get(childName);
+      return this._children.get(childName);
     }
 
     /**
@@ -104,8 +103,8 @@ public class ZkPathRecursiveWatcherTrie {
      * @return A collection containing the node's children
      */
     @VisibleForTesting
-    Collection<String> getChildren() {
-      return children.keySet();
+    Map<String, TrieNode> getChildren() {
+      return _children;
     }
 
     /**
@@ -115,12 +114,12 @@ public class ZkPathRecursiveWatcherTrie {
      */
     @VisibleForTesting
     Set<RecursivePersistListener> getRecursiveListeners() {
-      return recursiveListeners;
+      return _recursiveListeners;
     }
 
     @Override
     public String toString() {
-      return "TrieNode [name=" + value + ", children=" + children.keySet() + "]";
+      return "TrieNode [name=" + _value + ", children=" + _children.keySet() + "]";
     }
   }
 
@@ -128,7 +127,7 @@ public class ZkPathRecursiveWatcherTrie {
    * Construct a new PathTrie with a root node.
    */
   public ZkPathRecursiveWatcherTrie() {
-    this.rootNode = new TrieNode( "/");
+    this._rootNode = new TrieNode( "/");
   }
 
   /**
@@ -140,41 +139,35 @@ public class ZkPathRecursiveWatcherTrie {
   public void addRecursiveListener(final String path, RecursivePersistListener listener) {
     Objects.requireNonNull(path, "Path cannot be null");
 
-    if (path.length() == 0) {
+    if (path.isEmpty()) {
       throw new IllegalArgumentException("Invalid path: " + path);
     }
-    final String[] pathComponents = split(path);
+    final List<String>  pathComponents = split(path);
 
     synchronized(this) {
-      TrieNode parent = rootNode;
+      TrieNode parent = _rootNode;
       for (final String part : pathComponents) {
-        TrieNode child = parent.getChild(part);
-        if (child == null) {
-          child = new TrieNode(part);
-          parent.addChild(part, child);
-        }
-        parent = child;
+        // todo: add here
+        parent = parent.getChildren().computeIfAbsent(part, (p)-> new TrieNode(part) );
       }
-      parent.recursiveListeners.add(listener);
+      parent._recursiveListeners.add(listener);
     }
   }
 
   /**
    * Clear all nodes in the trie.
    */
-  public void clear() {
-    synchronized(this) {
-      rootNode.getChildren().clear();
-    }
+  public synchronized void clear() {
+    _rootNode.getChildren().clear();
   }
 
-  private static String[] split(final String path) {
-    return Stream.of(path.split("/")).filter(t -> !t.trim().isEmpty()).toArray(String[]::new);
+  private static List<String> split(final String path) {
+    return Stream.of(path.split("/")).filter(t -> !t.trim().isEmpty()).collect(Collectors.toList());
   }
 
   // only for test
   @VisibleForTesting
   TrieNode getRootNode() {
-    return rootNode;
+    return _rootNode;
   }
 }

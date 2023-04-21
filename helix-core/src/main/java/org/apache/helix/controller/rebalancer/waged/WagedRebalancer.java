@@ -410,8 +410,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       ClusterModel clusterModel = ClusterModelProvider.generateClusterModelForDelayedRebalanceOverwrites(
           clusterData, resourceMap, enabledLiveInstances, currentResourceAssignment);
       Map<String, ResourceAssignment> assignment = WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
-      DelayedRebalanceUtil.mergeAssignments(assignment, currentResourceAssignment, enabledLiveInstances);
-      return assignment;
+      // keep only the resource entries requiring changes for minActiveReplica
+      assignment.keySet().retainAll(clusterModel.getAssignableReplicaMap().keySet());
+      DelayedRebalanceUtil.mergeAssignments(assignment, currentResourceAssignment);
+      return currentResourceAssignment;
     } catch (HelixRebalanceException e) {
       LOG.error("Failed to compute for delayed rebalance overwrites in cluster {}", clusterData.getClusterName());
       throw e;

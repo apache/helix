@@ -22,7 +22,6 @@ package org.apache.helix.zookeeper.zkclient;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,6 +33,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Stream;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
@@ -407,19 +407,18 @@ public class ZkClient implements Watcher {
   public void unsubscribeAll() {
     if (_usePersistWatcher) {
       ManipulateListener removeAllListeners = () -> {
-        Set<String> paths = new HashSet<>();
-        _childListener.forEach((k, v) -> paths.add(k));
-        _dataListener.forEach((k, v) -> paths.add(k));
-        paths.forEach(p -> {
-          try {
-            getConnection().removeWatches(p, this, WatcherType.Any);
-          } catch (InterruptedException | KeeperException e) {
-            LOG.info("Failed to remove persistent watcher for {} ", p, e);
-          }
-        });
+        Stream.concat(_childListener.keySet().stream(), _dataListener.keySet().stream())
+            .forEach(p -> {
+              try {
+                getConnection().removeWatches(p, this, WatcherType.Any);
+              } catch (InterruptedException | KeeperException e) {
+                LOG.error("Failed to remove persistent watcher for {} ", p, e);
+              }
+            });
       };
       executeWithInPersistListenerMutex(removeAllListeners);
-    } else {
+      return;
+    }
     synchronized (_childListener) {
       _childListener.clear();
     }
@@ -428,8 +427,7 @@ public class ZkClient implements Watcher {
     }
     synchronized (_stateListener) {
       _stateListener.clear();
-    }}
-
+    }
   }
 
   // </listeners>

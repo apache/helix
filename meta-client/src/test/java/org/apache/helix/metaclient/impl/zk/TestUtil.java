@@ -42,9 +42,8 @@ public class TestUtil {
       Class superClass = clazz.getSuperclass();
       if (superClass == null) {
         throw e;
-      } else {
-        return getField(superClass, fieldName);
       }
+      return getField(superClass, fieldName);
     }
   }
 

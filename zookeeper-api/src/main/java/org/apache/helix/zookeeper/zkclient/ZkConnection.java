@@ -245,14 +245,6 @@ public class ZkConnection implements IZkConnection {
     _zk.addAuthInfo(scheme, auth);
   }
 
-  private void lookupGetChildrenMethod() {
-    _getChildrenMethod = doLookUpGetChildrenMethod();
-
-    LOG.info("Pagination config {}={}, method to be invoked: {}",
-        ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED, GETCHILDREN_PAGINATION_DISABLED,
-        _getChildrenMethod.getName());
-  }
-
   @Override
   public void addWatch(String basePath, Watcher watcher, AddWatchMode mode)
       throws KeeperException, InterruptedException {
@@ -263,6 +255,14 @@ public class ZkConnection implements IZkConnection {
   public void removeWatches(String path, Watcher watcher, Watcher.WatcherType watcherType)
       throws InterruptedException, KeeperException {
     _zk.removeWatches(path, watcher, watcherType, true);
+  }
+
+  private void lookupGetChildrenMethod() {
+    _getChildrenMethod = doLookUpGetChildrenMethod();
+
+    LOG.info("Pagination config {}={}, method to be invoked: {}",
+        ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED, GETCHILDREN_PAGINATION_DISABLED,
+        _getChildrenMethod.getName());
   }
 
   private Method doLookUpGetChildrenMethod() {

@@ -49,9 +49,11 @@ public class ZkPathRecursiveWatcherTrie {
   static class TrieNode {
 
     final String _value;   // Segmented ZNode path at current level
-    final Map<String, TrieNode> _children; // A map of segmented ZNode path of next level to TrieNode
-    Set<RecursivePersistListener> _recursiveListeners;
+    // A map of segmented ZNode path of next level to TrieNode, We keep the same initial
+    // children size as Zk server
+    final Map<String, TrieNode> _children = new HashMap<>(4);
     // A list of recursive persist watcher on the current path
+    Set<RecursivePersistListener> _recursiveListeners = new HashSet<>(4);
 
     /**
      * Create a trie node with parent as parameter.
@@ -59,12 +61,8 @@ public class ZkPathRecursiveWatcherTrie {
      * @param value the value stored in this node
      */
     private TrieNode(String value) {
-      this._value = value;
-      this._children =
-          new HashMap<>(4);  // We keep the same initial children size as Zk serer
-      this._recursiveListeners = new HashSet<>(4);
+      _value = value;
     }
-
 
     /**
      * The value stored in this node.
@@ -139,14 +137,13 @@ public class ZkPathRecursiveWatcherTrie {
     Objects.requireNonNull(path, "Path cannot be null");
 
     if (path.isEmpty()) {
-      throw new IllegalArgumentException("Invalid path: " + path);
+      throw new IllegalArgumentException("Empty path: " + path);
     }
     final List<String>  pathComponents = split(path);
 
     synchronized(this) {
       TrieNode parent = _rootNode;
       for (final String part : pathComponents) {
-        // todo: add here
         parent = parent.getChildren().computeIfAbsent(part, (p)-> new TrieNode(part) );
       }
       parent._recursiveListeners.add(listener);

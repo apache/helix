@@ -21,8 +21,21 @@ package org.apache.helix.zookeeper.zkclient;
 
 import org.apache.zookeeper.Watcher;
 
-
+/**
+ * An {@link RecursivePersistListener} can be registered at a {@link ZkClient} for listening on all
+ * zk children changes in a tree structure for a given path.
+ *
+ * The listener is a persist listener. No need to resubscribe.
+ *
+ */
 public interface RecursivePersistListener {
+  /**
+   * invoked when there is a node added, removed or node data change in the tree structure of
+   * that RecursivePersistListener subscribed path
+   * @param dataPath The path of ZNode that change happened
+   * @param eventType Event type, including NodeCreated, NodeDataChanged and NodeDeleted
+   * @throws Exception
+   */
   public void handleZNodeChange(String dataPath, Watcher.Event.EventType eventType)
       throws Exception;
 }

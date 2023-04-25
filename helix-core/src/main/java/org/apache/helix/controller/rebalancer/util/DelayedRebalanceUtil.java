@@ -311,17 +311,18 @@ public class DelayedRebalanceUtil {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
 
     for (String resourceName : resources) {
-      // <partition, <state, instances set>>
-      Map<String, Map<String, Set<String>>> stateInstanceMap =
-          ClusterModelProvider.getStateInstanceMap(currentAssignment.get(resourceName));
       ResourceAssignment resourceAssignment = currentAssignment.get(resourceName);
-      String modelDef = clusterData.getIdealState(resourceName).getStateModelDefRef();
+      IdealState idealState = clusterData.getIdealState(resourceName);
+      String modelDef = idealState.getStateModelDefRef();
       Map<String, Integer> statePriorityMap = clusterData.getStateModelDef(modelDef).getStatePriorityMap();
+      ResourceConfig mergedResourceConfig =
+          ResourceConfig.mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName), idealState);
+
       // keep all current assignment and add to allocated replicas
       resourceAssignment.getMappedPartitions().forEach(partition ->
           resourceAssignment.getReplicaMap(partition).forEach((instance, state) ->
               allocatedReplicas.computeIfAbsent(instance, key -> new HashSet<>())
-                  .add(new AssignableReplica(clusterData.getClusterConfig(), clusterData.getResourceConfig(resourceName),
+                  .add(new AssignableReplica(clusterData.getClusterConfig(), mergedResourceConfig,
                       partition.getPartitionName(), state, statePriorityMap.get(state)))));
       // only proceed for resource requiring delayed rebalance overwrites
       List<String> partitions =
@@ -329,10 +330,42 @@ public class DelayedRebalanceUtil {
       if (partitions.isEmpty()) {
         continue;
       }
+      // <partition, <state, instances set>>
+      Map<String, Map<String, Set<String>>> stateInstanceMap =
+          ClusterModelProvider.getStateInstanceMap(resourceAssignment);
       toBeAssignedReplicas.addAll(
           findAssignableReplicaForResource(clusterData, resourceName, partitions, stateInstanceMap, liveEnabledInstances));
     }
     return toBeAssignedReplicas;
+  }
+
+  /**
+   * Merge entries from currentResourceAssignment to newAssignment.
+   * To handle minActiveReplica for delayed rebalance, new assignment is computed based on enabled live instances, but
+   * could miss out current partition allocation still on offline instances (within delayed window).
+   * The merge process is independent for each resource; for each resource-partition, it adds the <instance, state> pair
+   * from newAssignment to currentResourceAssignment
+   * @param newAssignment newAssignment to merge and may override currentResourceAssignment
+   * @param currentResourceAssignment the current resource assignment, this map is getting updated during this method.
+   */
+  public static void mergeAssignments(Map<String, ResourceAssignment> newAssignment,
+      Map<String, ResourceAssignment> currentResourceAssignment) {
+    newAssignment.entrySet().parallelStream().forEach(entry -> {
+      String resourceName = entry.getKey();
+      ResourceAssignment assignment = entry.getValue();
+      if (!currentResourceAssignment.containsKey(resourceName)) {
+        currentResourceAssignment.put(resourceName, assignment);
+      } else {
+        for (Partition partition : assignment.getMappedPartitions()) {
+          Map<String, String> toMerge =
+              new HashMap<>(currentResourceAssignment.get(resourceName).getReplicaMap(partition));
+          assignment.getReplicaMap(partition).forEach((key, value) -> {
+            toMerge.put(key, value);
+            currentResourceAssignment.get(resourceName).addReplicaMap(partition, toMerge);
+          });
+        }
+      }
+    });
   }
 
   /**
@@ -411,7 +444,8 @@ public class DelayedRebalanceUtil {
         clusterData.getStateModelDef(clusterData.getIdealState(resourceName).getStateModelDefRef())
             .getStatesPriorityList();
     final IdealState currentIdealState = clusterData.getIdealState(resourceName);
-    final ResourceConfig resourceConfig = clusterData.getResourceConfig(resourceName);
+    final ResourceConfig resourceConfig = ResourceConfig.mergeIdealStateWithResourceConfig(
+        clusterData.getResourceConfig(resourceName), currentIdealState);
     final Map<String, Integer> statePriorityMap =
         clusterData.getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
     final Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();

@@ -33,7 +33,7 @@ import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 
 
 /**
- * ZkPathRecursiveWatcherTrie will be used for a registry for ZK persist recursive watcher.
+ * ZkPathRecursiveWatcherTrie will be used as a registry of persistent recursive watchers.
  * When persist recursive watcher is registered on path /X, ZK will send out data change for any
  * data/child changing under the tree structure of /X. The event only include the path of changed
  * ZNode.

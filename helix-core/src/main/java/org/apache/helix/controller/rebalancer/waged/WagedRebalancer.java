@@ -417,6 +417,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     } catch (HelixRebalanceException e) {
       LOG.error("Failed to compute for delayed rebalance overwrites in cluster {}", clusterData.getClusterName());
       throw e;
+    } catch (Exception e) {
+      LOG.error("Failed to compute for delayed rebalance overwrites in cluster {}", clusterData.getClusterName());
+      throw new HelixRebalanceException("Failed to compute for delayed rebalance overwrites in cluster "
+          + clusterData.getClusterConfig(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, e);
     } finally {
       _rebalanceOverwriteLatency.endMeasuringLatency();
     }

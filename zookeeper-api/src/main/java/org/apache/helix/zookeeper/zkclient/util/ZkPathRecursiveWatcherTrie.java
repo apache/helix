@@ -19,7 +19,6 @@ package org.apache.helix.zookeeper.zkclient.util;
  * under the License.
  */
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -62,7 +61,7 @@ public class ZkPathRecursiveWatcherTrie {
     private TrieNode(String value) {
       this._value = value;
       this._children =
-          new HashMap<>(4);  // We keep the same number of init children size as Zk serer
+          new HashMap<>(4);  // We keep the same initial children size as Zk serer
       this._recursiveListeners = new HashSet<>(4);
     }
 

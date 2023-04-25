@@ -136,6 +136,10 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
+  // When _usePersistWatcher is true, ZKClient will register itself as persist watcher to Zk Server.
+  // No re-register is needed after change event.
+  // Default value is false, meaning ZKClient will register itself as regular ont time watcher to
+  // Zk Server and will re-register after an data or child change.
   private boolean _usePersistWatcher;
 
   private final ReentrantLock _persistListenerMutex;
@@ -3007,6 +3011,9 @@ public class ZkClient implements Watcher {
     executeWithInPersistListenerMutex(addListeners);
   }
 
+
+  // TODO: Consider create an empty interface and let the two listeners interface extend that
+  // interface for code clean.
   private void removePersistListener(String path, Object listener) {
 
     ManipulateListener removeListeners = () -> {

@@ -71,12 +71,12 @@ public class TestZkPathRecursiveWatcherTrie {
         _recursiveWatcherTrie.getRootNode().getChild("a").getChild("b3").getChild("c").getChild("d")
             .getChild("e").getChild("f").getRecursiveListeners().size(), 2);
 
-   /* _recursiveWatcherTrie.removeRecursiveListener("/a/b3/c/d/e/f", listenerOnf_1); // step [1]
+    _recursiveWatcherTrie.removeRecursiveListener("/a/b3/c/d/e/f", listenerOnf_1); // step [1]
     _recursiveWatcherTrie.removeRecursiveListener("/a/b2", listenerOnb2);          //  step[2]
     //b2 will be removed. node "a" should have 2 children, b and b3.
     Assert.assertEquals(_recursiveWatcherTrie.getRootNode().getChild("a").getChildren().size(), 2);
-    Assert.assertTrue(_recursiveWatcherTrie.getRootNode().getChild("a").getChildren().contains("b3"));
-    Assert.assertTrue(_recursiveWatcherTrie.getRootNode().getChild("a").getChildren().contains("b"));
+    Assert.assertTrue(_recursiveWatcherTrie.getRootNode().getChild("a").getChildren().containsKey("b3"));
+    Assert.assertTrue(_recursiveWatcherTrie.getRootNode().getChild("a").getChildren().containsKey("b"));
     // path "/a/b3/c/d/e/f still exists with end node "f" has one listener
     Assert.assertEquals(
         _recursiveWatcherTrie.getRootNode().getChild("a").getChild("b3").getChild("c").getChild("d")
@@ -90,7 +90,6 @@ public class TestZkPathRecursiveWatcherTrie {
     _recursiveWatcherTrie.removeRecursiveListener("/a/b3/c/d/e/f", listenerOnf_2);
     // b3 should be removed as well as all children nodes of b3
     Assert.assertEquals(_recursiveWatcherTrie.getRootNode().getChild("a").getChildren().size(), 1);
- */
   }
 
   class Test implements RecursivePersistListener {

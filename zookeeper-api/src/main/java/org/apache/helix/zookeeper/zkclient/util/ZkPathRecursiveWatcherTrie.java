@@ -1,5 +1,17 @@
 package org.apache.helix.zookeeper.zkclient.util;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,18 +30,6 @@ package org.apache.helix.zookeeper.zkclient.util;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 
 
 /**
@@ -139,14 +139,85 @@ public class ZkPathRecursiveWatcherTrie {
     if (path.isEmpty()) {
       throw new IllegalArgumentException("Empty path: " + path);
     }
-    final List<String>  pathComponents = split(path);
+    final List<String> pathComponents = split(path);
 
-    synchronized(this) {
+    synchronized (this) {
       TrieNode parent = _rootNode;
       for (final String part : pathComponents) {
-        parent = parent.getChildren().computeIfAbsent(part, (p)-> new TrieNode(part) );
+        parent = parent.getChildren().computeIfAbsent(part, (p) -> new TrieNode(part));
       }
       parent._recursiveListeners.add(listener);
+    }
+  }
+
+  public Set<RecursivePersistListener> getAllRecursiveListeners(String path) {
+    Objects.requireNonNull(path, "Path cannot be null");
+
+    final List<String> pathComponents = split(path);
+    Set<RecursivePersistListener> result = new HashSet<>();
+    synchronized (this) {
+      TrieNode cur = _rootNode;
+      for (final String element : pathComponents) {
+        cur = cur.getChild(element);
+        if (cur == null) {
+          break;
+        }
+        result.addAll(cur.getRecursiveListeners());
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Removing a RecursivePersistWatcherListener on a path.
+   *
+   * Delete a path from the nearest trie node to current node if this is the only listener and there
+   * is no child on the trie node.
+   *
+   * @param path the of the lister registered
+   * @param listener the RecursivePersistListener to be removed
+   */
+  public void removeRecursiveListener(final String path, RecursivePersistListener listener) {
+    Objects.requireNonNull(path, "Path cannot be null");
+
+    if (path.length() == 0) {
+      throw new IllegalArgumentException("Invalid path: " + path);
+    }
+    final List<String> pathComponents = split(path);
+
+    synchronized (this) {
+      TrieNode cur = _rootNode;
+      TrieNode highestNodeForDelete =
+          null; // track the highest node that from that node to leaf node.
+      TrieNode prevDeletable = _rootNode;
+      for (final String part : pathComponents) {
+        cur = cur.getChild(part);
+        if (cur == null) {
+          return;
+        }
+
+        boolean candidateToDelete =
+            (cur.getChildren().size() == 1 && cur.getRecursiveListeners().size() == 0) || (
+                cur.getChildren().size() == 0 && cur.getRecursiveListeners().size() == 1 && cur
+                    .getRecursiveListeners().contains(listener));
+        if (candidateToDelete) {
+          if (highestNodeForDelete == null) {
+            highestNodeForDelete = cur;
+          }
+        } else {
+          prevDeletable = cur;
+          highestNodeForDelete = null;
+        }
+      }
+      if (!cur.getRecursiveListeners().contains(listener)) {
+        return;
+      }
+      cur.getRecursiveListeners().remove(listener);
+
+      if (highestNodeForDelete != null) {
+        prevDeletable.getChildren().remove(highestNodeForDelete.getValue());
+      }
     }
   }
 

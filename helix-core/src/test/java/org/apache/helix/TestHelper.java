@@ -73,11 +73,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
+import static org.awaitility.Awaitility.*;
 
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
   public static final long WAIT_DURATION = 60 * 1000L; // 60 seconds
   public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1500;
+
   /**
    * Returns a unused random port.
    */
@@ -148,9 +150,8 @@ public class TestHelper {
   static public void stopZkServer(ZkServer zkServer) {
     if (zkServer != null) {
       zkServer.shutdown();
-      System.out.println(
-          "Shut down zookeeper at port " + zkServer.getPort() + " in thread " + Thread
-              .currentThread().getName());
+      System.out.println("Shut down zookeeper at port " + zkServer.getPort() + " in thread "
+          + Thread.currentThread().getName());
     }
   }
 
@@ -241,8 +242,8 @@ public class TestHelper {
             return false;
           }
 
-          CurrentState taskCurState =
-              accessor.getProperty(keyBuilder.taskCurrentState(instanceName, sessionId, resourceName));
+          CurrentState taskCurState = accessor.getProperty(
+              keyBuilder.taskCurrentState(instanceName, sessionId, resourceName));
 
           if (taskCurState != null && taskCurState.getRecord().getMapFields().size() != 0) {
             return false;
@@ -269,10 +270,9 @@ public class TestHelper {
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
-    TestHelper
-        .setupCluster(clusterName, zkAddr, startPort, participantNamePrefix, resourceNamePrefix,
-            resourceNb, partitionNb, nodesNb, replica, stateModelDef, RebalanceMode.SEMI_AUTO,
-            doRebalance);
+    TestHelper.setupCluster(clusterName, zkAddr, startPort, participantNamePrefix,
+        resourceNamePrefix, resourceNb, partitionNb, nodesNb, replica, stateModelDef,
+        RebalanceMode.SEMI_AUTO, doRebalance);
   }
 
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
@@ -297,8 +297,7 @@ public class TestHelper {
       for (int i = 0; i < resourceNb; i++) {
         String resourceName = resourceNamePrefix + i;
         setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef,
-            mode.name(),
-            mode == RebalanceMode.FULL_AUTO ? CrushEdRebalanceStrategy.class.getName()
+            mode.name(), mode == RebalanceMode.FULL_AUTO ? CrushEdRebalanceStrategy.class.getName()
                 : RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
         if (doRebalance) {
           setupTool.rebalanceStorageCluster(clusterName, resourceName, replica);
@@ -314,7 +313,8 @@ public class TestHelper {
     dropCluster(clusterName, zkClient, setupTool);
   }
 
-  public static void dropCluster(String clusterName, RealmAwareZkClient zkClient, ClusterSetup setup) {
+  public static void dropCluster(String clusterName, RealmAwareZkClient zkClient,
+      ClusterSetup setup) {
     String namespace = "/" + clusterName;
     if (zkClient.exists(namespace)) {
       try {
@@ -620,8 +620,8 @@ public class TestHelper {
       Map<String, ZNode> cache, Map<String, ZNode> zkMap, boolean needVerifyStat) {
     // equal size
     if (zkMap.size() != cache.size()) {
-      System.err
-          .println("size mismatch: cacheSize: " + cache.size() + ", zkMapSize: " + zkMap.size());
+      System.err.println(
+          "size mismatch: cacheSize: " + cache.size() + ", zkMapSize: " + zkMap.size());
       System.out.println("cache: (" + cache.size() + ")");
       TestHelper.printCache(cache);
 
@@ -803,19 +803,15 @@ public class TestHelper {
   }
 
   public static boolean verify(Verifier verifier, long timeout) throws Exception {
-    long start = System.currentTimeMillis();
-    do {
-      boolean result = verifier.verify();
-      boolean isTimedout = (System.currentTimeMillis() - start) > timeout;
-      if (result || isTimedout) {
-        if (isTimedout && !result) {
-          LOG.error("verifier time out, consider try longer timeout, stack trace{}",
-              Arrays.asList(Thread.currentThread().getStackTrace()));
-        }
-        return result;
-      }
-      Thread.sleep(50);
-    } while (true);
+    try {
+      with().pollInterval(50, TimeUnit.MILLISECONDS).atMost(timeout, TimeUnit.MILLISECONDS).await()
+          .until(verifier::verify);
+      return verifier.verify();
+    } catch (Exception ex) {
+      LOG.error("verifier time out, consider try longer timeout, stack trace{}",
+          Arrays.asList(Thread.currentThread().getStackTrace()));
+      throw ex;
+    }
   }
 
   // debug code

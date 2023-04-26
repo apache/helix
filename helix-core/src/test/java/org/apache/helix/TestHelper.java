@@ -803,15 +803,9 @@ public class TestHelper {
   }
 
   public static boolean verify(Verifier verifier, long timeout) throws Exception {
-    try {
-      with().pollInterval(50, TimeUnit.MILLISECONDS).atMost(timeout, TimeUnit.MILLISECONDS).await()
-          .until(verifier::verify);
-      return verifier.verify();
-    } catch (Exception ex) {
-      LOG.error("verifier time out, consider try longer timeout, stack trace{}",
-          Arrays.asList(Thread.currentThread().getStackTrace()));
-      throw ex;
-    }
+    with().pollInterval(50, TimeUnit.MILLISECONDS).atMost(timeout, TimeUnit.MILLISECONDS).await()
+        .until(verifier::verify);
+    return verifier.verify();
   }
 
   // debug code

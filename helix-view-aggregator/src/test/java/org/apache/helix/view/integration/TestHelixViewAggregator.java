@@ -167,8 +167,8 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     // Wait for refresh and verify
     Predicate<MockViewClusterSpectator> checkForAllChanges =
         hasExternalViewChanges().and(hasInstanceConfigChanges()).and(hasLiveInstanceChanges());
-    TestHelper.verify(() -> checkForAllChanges.test(_monitor),
-        (_viewClusterRefreshPeriodSec + 5) * 1000);
+    int timeout = (_viewClusterRefreshPeriodSec + 5) * 1000;
+    TestHelper.verify(() -> checkForAllChanges.test(_monitor), timeout);
 
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
@@ -191,8 +191,8 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     Predicate<MockViewClusterSpectator> checkForLiveInstanceChanges =
         hasExternalViewChanges().negate().and(hasInstanceConfigChanges().negate())
             .and(hasLiveInstanceChanges());
-    TestHelper.verify(() -> checkForLiveInstanceChanges.test(_monitor),
-        (_viewClusterRefreshPeriodSec + 5) * 1000);
+    int timeout = (_viewClusterRefreshPeriodSec + 5) * 1000;
+    TestHelper.verify(() -> checkForLiveInstanceChanges.test(_monitor), timeout);
     Assert.assertEquals(_monitor.getPropertyNamesFromViewCluster(PropertyType.LIVEINSTANCES).size(),
         0);
     _monitor.reset();
@@ -207,8 +207,8 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
         hasExternalViewChanges().and(hasInstanceConfigChanges().negate())
             .and(hasLiveInstanceChanges().negate());
     // Wait for refresh and verify
-    TestHelper.verify(() -> checkForExternalViewChanges.test(_monitor),
-        (_viewClusterRefreshPeriodSec + 5) * 1000);
+    int timeout = (_viewClusterRefreshPeriodSec + 5) * 1000;
+    TestHelper.verify(() -> checkForExternalViewChanges.test(_monitor), timeout);
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
         _allResources);

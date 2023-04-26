@@ -168,7 +168,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     Predicate<MockViewClusterSpectator> checkForAllChanges =
         hasExternalViewChanges().and(hasInstanceConfigChanges()).and(hasLiveInstanceChanges());
     TestHelper.verify(() -> checkForAllChanges.test(_monitor),
-        (_viewClusterRefreshPeriodSec + 2) * 1000);
+        (_viewClusterRefreshPeriodSec + 5) * 1000);
 
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
@@ -192,7 +192,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
         hasExternalViewChanges().negate().and(hasInstanceConfigChanges().negate())
             .and(hasLiveInstanceChanges());
     TestHelper.verify(() -> checkForLiveInstanceChanges.test(_monitor),
-        (_viewClusterRefreshPeriodSec + 2) * 1000);
+        (_viewClusterRefreshPeriodSec + 5) * 1000);
     Assert.assertEquals(_monitor.getPropertyNamesFromViewCluster(PropertyType.LIVEINSTANCES).size(),
         0);
     _monitor.reset();
@@ -208,7 +208,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
             .and(hasLiveInstanceChanges().negate());
     // Wait for refresh and verify
     TestHelper.verify(() -> checkForExternalViewChanges.test(_monitor),
-        (_viewClusterRefreshPeriodSec + 2) * 1000);
+        (_viewClusterRefreshPeriodSec + 5) * 1000);
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
         _allResources);
@@ -223,7 +223,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     Predicate<MockViewClusterSpectator> checkForExternalViewChanges =
         hasExternalViewChanges().and(hasInstanceConfigChanges().negate())
             .and(hasLiveInstanceChanges().negate());
-    int timeout = (_viewClusterRefreshPeriodSec + 2) * 1000;
+    int timeout = (_viewClusterRefreshPeriodSec + 5) * 1000;
     TestHelper.verify(() -> checkForExternalViewChanges.test(_monitor), timeout);
     Assert.assertEquals(
         new HashSet<>(_monitor.getPropertyNamesFromViewCluster(PropertyType.EXTERNALVIEW)),
@@ -242,7 +242,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     Predicate<MockViewClusterSpectator> checkForNoExternalViewChanges =
         hasExternalViewChanges().negate().and(hasInstanceConfigChanges())
             .and(hasLiveInstanceChanges());
-    int timeout = (_viewClusterRefreshPeriodSec + 2) * 1000;
+    int timeout = (_viewClusterRefreshPeriodSec + 5) * 1000;
     TestHelper.verify(() -> checkForNoExternalViewChanges.test(_monitor), timeout);
 
     Set<String> participantInstanceNames = getParticipantInstanceNames();

@@ -29,6 +29,7 @@ import javax.management.Query;
 import javax.management.QueryExp;
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.LogHelper;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
@@ -42,7 +43,11 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import static org.apache.logging.log4j.Level.ERROR;
+import static org.apache.logging.log4j.Level.INFO;
+
 public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
+  public static final String HELIX_LOGGER_NAME = "org.apache.helix";
   MockParticipantManager[] _participants;
   ClusterDistributedController[] _controllers;
   String _controllerClusterName;
@@ -55,6 +60,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    // enabling info level for helix logs to help with debugging
+    LogHelper.updateLog4jLevel(INFO, HELIX_LOGGER_NAME);
     String className = TestHelper.getTestClassName();
     _clusterNamePrefix = className;
 
@@ -172,6 +179,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     }
 
     System.out.println("END " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
+    // restoring error level for helix logs
+    LogHelper.updateLog4jLevel(ERROR, HELIX_LOGGER_NAME);
   }
 
   private void cleanupControllers() {

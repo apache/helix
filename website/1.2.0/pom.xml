@@ -26,9 +26,9 @@
     <version>1.1.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>1.1.0-docs</artifactId>
+  <artifactId>1.2.0-docs</artifactId>
   <packaging>bundle</packaging>
-  <name>Apache Helix :: Website :: 1.1.0</name>
+  <name>Apache Helix :: Website :: 1.2.0</name>
 
   <licenses>
     <license>

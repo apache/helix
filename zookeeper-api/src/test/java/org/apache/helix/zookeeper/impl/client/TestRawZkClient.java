@@ -913,6 +913,79 @@ public class TestRawZkClient extends ZkTestBase {
     _zkClient.delete(path);
   }
 
+  /*
+   * Test the scenario where we have actually lost connection to ZK but
+   * the internal client connection state assumes that we are still connected.
+   * Once we re-start the ZK, the creation operation will finish.
+   * How this test simulates the steps is:
+   * 1. Shuts down zk server
+   * 2. Starts a creation thread to create an ephemeral node in the original zk session
+   * 3. Creation operation loses connection and keeps retrying
+   * 4. Restarts zk server and Zk session is recovered
+   * 5. zk client reconnects successfully and creates an ephemeral node
+   */
+  @Test(timeOut = 5 * 60 * 1000L)
+  public void testRetryUntilConnectedWithZkCleanupStuck() throws Exception {
+    final String methodName = TestHelper.getTestMethodName();
+
+    final String expectedSessionId = Long.toHexString(_zkClient.getSessionId());
+    final String path = "/" + methodName;
+    final String data = "data";
+
+    Assert.assertFalse(_zkClient.exists(path));
+
+    // Shutdown zk server so zk operations will fail due to disconnection.
+    TestHelper.stopZkServer(_zkServerMap.get(ZK_ADDR));
+
+    // Make sure we mark our internal state as "Connected"
+    _zkClient.setCurrentState(KeeperState.SyncConnected);
+
+    final CountDownLatch countDownLatch = new CountDownLatch(1);
+    final AtomicBoolean running = new AtomicBoolean(true);
+
+    final Thread creationThread = new Thread(() -> {
+      while (running.get()) {
+        // Create ephemeral node in the expected session id.
+        System.out.println("Trying to create ephemeral node...");
+        _zkClient.createEphemeral(path, data, expectedSessionId);
+        System.out.println("Ephemeral node created.");
+        running.set(false);
+      }
+      countDownLatch.countDown();
+    });
+
+    creationThread.start();
+    // Keep creation thread retrying to connect for 10 seconds.
+    System.out.println("Keep creation thread retrying to connect for 10 seconds...");
+    TimeUnit.SECONDS.sleep(10);
+
+    System.out.println("Restarting zk server...");
+    _zkServerMap.get(ZK_ADDR).start();
+
+    // Wait for creating ephemeral node successfully.
+    final boolean creationThreadTerminated = countDownLatch.await(10, TimeUnit.SECONDS);
+    if (!creationThreadTerminated) {
+      running.set(false);
+      creationThread.join(5000L);
+      Assert.fail("Failed to reconnect to zk server and create ephemeral node"
+          + " after zk server is recovered.");
+    }
+
+    Stat stat = new Stat();
+    String nodeData = _zkClient.readData(path, stat, true);
+
+    Assert.assertNotNull(nodeData, "Failed to create ephemeral node: " + path);
+    Assert.assertEquals(nodeData, data, "Data is not correct.");
+    Assert.assertTrue(stat.getEphemeralOwner() != 0L,
+        "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
+    Assert.assertEquals(Long.toHexString(stat.getEphemeralOwner()), expectedSessionId,
+        "Ephemeral node is created by an unexpected session");
+
+    // Delete the node to clean up, otherwise, the ephemeral node would be existed until the session
+    // of its owner expires.
+    _zkClient.delete(path);
+  }
+
   @Test
   public void testWaitForEstablishedSession() {
     ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);

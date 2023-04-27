@@ -1965,6 +1965,7 @@ public class ZkClient implements Watcher {
     if (_monitor != null) {
       _monitor.increaseOutstandingRequestGauge();
     }
+    int retryCount = 1;
     try {
       while (true) {
         // Because ConnectionLossException and SessionExpiredException are caught but not thrown,
@@ -1988,12 +1989,12 @@ public class ZkClient implements Watcher {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Disconnected'
           Thread.yield();
-          waitForRetry();
+          waitForRetry(retryCount++);
         } catch (SessionExpiredException e) {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Expired'
           Thread.yield();
-          waitForRetry();
+          waitForRetry(retryCount++);
         } catch (ZkSessionMismatchedException e) {
           throw e;
         } catch (KeeperException e) {
@@ -2019,8 +2020,21 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void waitForRetry() {
-    waitUntilConnected(_operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS);
+  /**
+   * ZkClient may have lost the connection to the ZK but can be in cleanup 
+   * stage. Let us make sure that we wait even if the connection appears to 
+   * be connected.
+   */
+  private void waitForRetry(int retryCount) {
+    if (waitUntilConnected(_operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS)) {
+      ExponentialBackoffStrategy retryStrategy =
+        new ExponentialBackoffStrategy(_operationRetryTimeoutInMillis, true);
+      try {
+        Thread.sleep(retryStrategy.getNextWaitInterval(retryCount));
+      } catch (InterruptedException ex) {
+        // we don't need to re-throw.
+      }
+    }
   }
 
   public void setCurrentState(KeeperState currentState) {

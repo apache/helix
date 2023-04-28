@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * off.
  */
 class StateTransitionThrottleController {
-  private static Logger logger = LoggerFactory.getLogger(StateTransitionThrottleController.class);
+  private static final Logger logger = LoggerFactory.getLogger(StateTransitionThrottleController.class);
 
   // pending allowed transition counts in the cluster level for recovery and load balance
   Map<StateTransitionThrottleConfig.RebalanceType, Long> _pendingTransitionAllowedInCluster;
@@ -75,23 +75,15 @@ class StateTransitionThrottleController {
         break;
       case RESOURCE:
         for (String resource : resources) {
-          if (!_pendingTransitionAllowedPerResource.containsKey(resource)) {
-            _pendingTransitionAllowedPerResource.put(resource,
-                new HashMap<StateTransitionThrottleConfig.RebalanceType, Long>());
-          }
-          _pendingTransitionAllowedPerResource.get(resource).put(config.getRebalanceType(),
-              config.getMaxPartitionInTransition());
+          _pendingTransitionAllowedPerResource.computeIfAbsent(resource, k -> new HashMap<>())
+              .put(config.getRebalanceType(), config.getMaxPartitionInTransition());
         }
         _throttleEnabled = true;
         break;
       case INSTANCE:
         for (String instance : liveInstances) {
-          if (!_pendingTransitionAllowedPerInstance.containsKey(instance)) {
-            _pendingTransitionAllowedPerInstance.put(instance,
-                new HashMap<StateTransitionThrottleConfig.RebalanceType, Long>());
-          }
-          _pendingTransitionAllowedPerInstance.get(instance).put(config.getRebalanceType(),
-              config.getMaxPartitionInTransition());
+          _pendingTransitionAllowedPerInstance.computeIfAbsent(instance, k -> new HashMap<>())
+              .put(config.getRebalanceType(), config.getMaxPartitionInTransition());
         }
         _throttleEnabled = true;
         break;
@@ -132,18 +124,7 @@ class StateTransitionThrottleController {
    */
   protected boolean shouldThrottleForResource(
       StateTransitionThrottleConfig.RebalanceType rebalanceType, String resourceName) {
-    if (shouldThrottleForCluster(rebalanceType)) {
-      return true;
-    }
-    Long resourceThrottle;
-    if (_pendingTransitionAllowedPerResource.containsKey(resourceName)) {
-      resourceThrottle = _pendingTransitionAllowedPerResource.get(resourceName).get(rebalanceType);
-      if (shouldThrottleForANYType(_pendingTransitionAllowedPerResource.get(resourceName))
-          || (resourceThrottle != null && resourceThrottle <= 0)) {
-        return true;
-      }
-    }
-    return false;
+    return shouldThrottleForGivenMap(rebalanceType, resourceName, _pendingTransitionAllowedPerResource);
   }
 
   /**
@@ -155,16 +136,20 @@ class StateTransitionThrottleController {
    */
   protected boolean shouldThrottleForInstance(
       StateTransitionThrottleConfig.RebalanceType rebalanceType, String instanceName) {
+    return shouldThrottleForGivenMap(rebalanceType, instanceName, _pendingTransitionAllowedPerInstance);
+  }
+
+  private boolean shouldThrottleForGivenMap(StateTransitionThrottleConfig.RebalanceType rebalanceType, String entryName,
+      Map<String, Map<StateTransitionThrottleConfig.RebalanceType, Long>> transitionAllowedPerEntry) {
     if (shouldThrottleForCluster(rebalanceType)) {
       return true;
     }
     Long instanceThrottle;
-    if (_pendingTransitionAllowedPerInstance.containsKey(instanceName)) {
-      instanceThrottle = _pendingTransitionAllowedPerInstance.get(instanceName).get(rebalanceType);
-      if (shouldThrottleForANYType(_pendingTransitionAllowedPerInstance.get(instanceName))
-          || (instanceThrottle != null && instanceThrottle <= 0)) {
-        return true;
-      }
+    if (transitionAllowedPerEntry.containsKey(entryName)) {
+      Map<StateTransitionThrottleConfig.RebalanceType, Long> throttleConfigMap =
+          transitionAllowedPerEntry.get(entryName);
+      instanceThrottle = throttleConfigMap.get(rebalanceType);
+      return (instanceThrottle != null && instanceThrottle <= 0) || shouldThrottleForANYType(throttleConfigMap);
     }
     return false;
   }
@@ -223,11 +208,8 @@ class StateTransitionThrottleController {
   private boolean shouldThrottleForANYType(
       Map<StateTransitionThrottleConfig.RebalanceType, Long> pendingTransitionAllowed) {
     if (pendingTransitionAllowed.containsKey(StateTransitionThrottleConfig.RebalanceType.ANY)) {
-      Long anyTypeThrottle =
-          pendingTransitionAllowed.get(StateTransitionThrottleConfig.RebalanceType.ANY);
-      if (anyTypeThrottle != null && anyTypeThrottle <= 0) {
-        return true;
-      }
+      Long anyTypeThrottle = pendingTransitionAllowed.get(StateTransitionThrottleConfig.RebalanceType.ANY);
+      return anyTypeThrottle != null && anyTypeThrottle <= 0;
     }
     return false;
   }

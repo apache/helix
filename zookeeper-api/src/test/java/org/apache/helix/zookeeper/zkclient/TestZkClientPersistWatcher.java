@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.impl.client;
+package org.apache.helix.zookeeper.zkclient;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,9 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.zookeeper.impl.ZkTestBase;
-import org.apache.helix.zookeeper.impl.ZkTestHelper;
-import org.apache.helix.zookeeper.zkclient.IZkChildListener;
-import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
 import org.apache.zookeeper.CreateMode;
@@ -38,10 +36,11 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
 
   @Test
   void testZkClientDataChange() throws Exception {
-    ZkClient.Builder builder = new ZkClient.Builder();
-    builder.setZkServer(ZkTestBase.ZK_ADDR)
-        .setMonitorRootPathOnly(false).setUsePersistWatcher(true);
-    ZkClient zkClient = builder.build();
+    org.apache.helix.zookeeper.impl.client.ZkClient.Builder builder =
+        new org.apache.helix.zookeeper.impl.client.ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorRootPathOnly(false)
+        .setUsePersistWatcher(true);
+    org.apache.helix.zookeeper.impl.client.ZkClient zkClient = builder.build();
     zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
     int count = 1000;
     final int[] event_count = {0};
@@ -51,7 +50,7 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
       @Override
       public void handleDataChange(String dataPath, Object data) throws Exception {
         countDownLatch1.countDown();
-        event_count[0]++ ;
+        event_count[0]++;
       }
 
       @Override
@@ -71,10 +70,11 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
 
   @Test(dependsOnMethods = "testZkClientDataChange")
   void testZkClientChildChange() throws Exception {
-    ZkClient.Builder builder = new ZkClient.Builder();
-    builder.setZkServer(ZkTestBase.ZK_ADDR)
-        .setMonitorRootPathOnly(false).setUsePersistWatcher(true);
-    ZkClient zkClient = builder.build();
+    org.apache.helix.zookeeper.impl.client.ZkClient.Builder builder =
+        new org.apache.helix.zookeeper.impl.client.ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorRootPathOnly(false)
+        .setUsePersistWatcher(true);
+    org.apache.helix.zookeeper.impl.client.ZkClient zkClient = builder.build();
     zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
     int count = 100;
     final int[] event_count = {0};
@@ -94,18 +94,50 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
       public void handleChildChange(String parentPath, List<String> currentChilds)
           throws Exception {
         countDownLatch2.countDown();
-        event_count[0]++ ;
+        event_count[0]++;
       }
     };
     zkClient.subscribeChildChanges(path, childListener);
     zkClient.subscribeChildChanges(path, childListener2);
     zkClient.create(path, "datat", CreateMode.PERSISTENT);
-    for(int i=0; i<count; ++i) {
-      zkClient.create(path + "/child" +i , "datat", CreateMode.PERSISTENT);
+    for (int i = 0; i < count; ++i) {
+      zkClient.create(path + "/child" + i, "datat", CreateMode.PERSISTENT);
     }
     Assert.assertTrue(countDownLatch1.await(15000, TimeUnit.MILLISECONDS));
     Assert.assertTrue(countDownLatch2.await(15000, TimeUnit.MILLISECONDS));
     zkClient.close();
   }
 
+  @Test
+  void testSubscribeOneTimeChangeWhenUsingPersistWatcher() {
+    org.apache.helix.zookeeper.impl.client.ZkClient.Builder builder =
+        new org.apache.helix.zookeeper.impl.client.ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorRootPathOnly(false)
+        .setUsePersistWatcher(true);
+    ZkClient zkClient = builder.build();
+    zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+
+    String path = "/testSubscribeOneTimeChangeWhenUsingPersistWatcher";
+    zkClient.create(path, "datat", CreateMode.PERSISTENT);
+    try {
+      zkClient.exists(path, true);
+      Assert.fail("Should throw exception when subscribe one time listener");
+    } catch (Exception e) {
+      Assert.assertEquals(e.getClass().getName(), "java.lang.IllegalArgumentException");
+    }
+
+    try {
+      zkClient.readData(path, null,  true);
+      Assert.fail("Should throw exception when subscribe one time listener");
+    } catch (Exception e) {
+      Assert.assertEquals(e.getClass().getName(), "java.lang.IllegalArgumentException");
+    }
+
+    try {
+      zkClient.getChildren(path, true);
+      Assert.fail("Should throw exception when subscribe one time listener");
+    } catch (Exception e) {
+      Assert.assertEquals(e.getClass().getName(), "java.lang.IllegalArgumentException");
+    }
+  }
 }

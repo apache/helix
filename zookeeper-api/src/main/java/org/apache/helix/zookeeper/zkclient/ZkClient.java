@@ -36,6 +36,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 import javax.management.JMException;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
@@ -1359,6 +1360,7 @@ public class ZkClient implements Watcher {
     return getChildren(path, (!_usePersistWatcher) && hasListeners(path));
   }
 
+  @VisibleForTesting
   protected List<String> getChildren(final String path, final boolean watch) {
     // Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
     // is subscribed as persist watcher, resubscribing the same object as onw time watcher will
@@ -1430,6 +1432,7 @@ public class ZkClient implements Watcher {
     return exists(path, hasListeners(path));
   }
 
+  @VisibleForTesting
   protected boolean exists(final String path, final boolean watch) {
     // Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
     // is subscribed as persist watcher, resubscribing the same object as onw time watcher will
@@ -1466,6 +1469,7 @@ public class ZkClient implements Watcher {
     return getStat(path, false);
   }
 
+  @VisibleForTesting
   private Stat getStat(final String path, final boolean watch) {
     // Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
     // is subscribed as persist watcher, resubscribing the same object as onw time watcher will

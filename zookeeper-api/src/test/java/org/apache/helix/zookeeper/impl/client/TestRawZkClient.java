@@ -924,7 +924,7 @@ public class TestRawZkClient extends ZkTestBase {
    * 4. Restarts zk server and Zk session is recovered
    * 5. zk client reconnects successfully and creates an ephemeral node
    */
-  @Test(timeOut = 5 * 60 * 1000L)
+  @Test(timeOut = 5 * 60 * 1000L, dependsOnMethods = "testRetryUntilConnectedAfterConnectionLoss")
   public void testRetryUntilConnectedWithZkCleanupStuck() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 

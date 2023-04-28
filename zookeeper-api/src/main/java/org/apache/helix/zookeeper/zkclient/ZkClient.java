@@ -33,6 +33,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
+
+import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
@@ -2037,6 +2040,7 @@ public class ZkClient implements Watcher {
     }
   }
 
+  @VisibleForTesting
   public void setCurrentState(KeeperState currentState) {
     getEventLock().lock();
     try {

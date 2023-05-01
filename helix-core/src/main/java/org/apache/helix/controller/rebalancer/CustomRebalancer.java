@@ -84,10 +84,8 @@ public class CustomRebalancer extends AbstractRebalancer<ResourceControllerDataP
     }
 
     cache.setCachedResourceAssignment(resource.getResourceName(), partitionMapping);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(String.format("Processing resource: %s", resource.getResourceName()));
-      LOG.debug(String.format("Final Mapping of resource : %s", partitionMapping.toString()));
-    }
+    LOG.debug("Processing resource: {}", resource.getResourceName());
+    LOG.debug("Final Mapping of resource : {}", partitionMapping.toString());
     return partitionMapping;
   }
 

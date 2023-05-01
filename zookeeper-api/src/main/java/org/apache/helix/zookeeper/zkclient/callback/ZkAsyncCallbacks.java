@@ -184,13 +184,13 @@ public class ZkAsyncCallbacks {
     int _rc = KeeperException.Code.APIERROR.intValue();
 
     public void callback(int rc, String path, Object ctx) {
-      if (rc != 0 && LOG.isDebugEnabled()) {
-        LOG.debug(this + ", rc:" + Code.get(rc) + ", path: " + path);
+      if (rc != 0) {
+        LOG.debug(" {}, rc:{}, path {}", this, Code.get(rc), path);
       }
 
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
         ZkAsyncCallMonitorContext monitor = (ZkAsyncCallMonitorContext) ctx;
-        if(rc == 0) {
+        if (rc == 0) {
           monitor.recordAccess(path);
         } else {
           recordFailure(rc, path, monitor);

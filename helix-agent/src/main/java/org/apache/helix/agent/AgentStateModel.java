@@ -148,8 +148,8 @@ public class AgentStateModel extends StateModel {
     // + " output:\n" + externalCmd.getStringOutput());
 
     if (_logger.isDebugEnabled()) {
-      _logger.debug("command: " + cmd + ", exitValue: " + exitValue + " output:\n"
-          + externalCmd.getStringOutput());
+      _logger.debug("command:  {}, exitValue: {} output: {}\n", cmd, exitValue,
+          externalCmd.getStringOutput());
     }
 
     // monitor pid if pidFile exists

@@ -1532,8 +1532,7 @@ public class ZkClient implements Watcher {
       return;
     }
     int retryCount = 0;
-    ExponentialBackoffStrategy retryStrategy =
-        new ExponentialBackoffStrategy(MAX_RECONNECT_INTERVAL_MS, true);
+    long currTime = System.currentTimeMillis();
 
     Exception reconnectException = new ZkException("Shutdown triggered.");
     while (!isClosed()) {
@@ -1545,7 +1544,8 @@ public class ZkClient implements Watcher {
         break;
       } catch (Exception e) {
         reconnectException = e;
-        long waitInterval = retryStrategy.getNextWaitInterval(retryCount++);
+        long waitInterval = ExponentialBackoffStrategy.getWaitInterval(currTime,
+          MAX_RECONNECT_INTERVAL_MS, true, retryCount++);
         LOG.warn("ZkClient {}, reconnect on expiring failed. Will retry after {} ms",
             _uid, waitInterval, e);
         try {

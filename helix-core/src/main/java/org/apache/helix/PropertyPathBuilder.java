@@ -253,61 +253,97 @@ public class PropertyPathBuilder {
   }
 
   public static String idealState(String clusterName) {
-    return String.format("/%s/IDEALSTATES", clusterName);
+    return "/" + clusterName + "/IDEALSTATES";
   }
 
+  // Path = /<cluster>/IDEALSTATES/<resourceName>
   public static String idealState(String clusterName, String resourceName) {
-    return String.format("/%s/IDEALSTATES/%s", clusterName, resourceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/IDEALSTATES/");
+    builder.append(resourceName);
+    return builder.toString();
   }
 
   public static String stateModelDef(String clusterName) {
-    return String.format("/%s/STATEMODELDEFS", clusterName);
+    return "/" + clusterName + "/STATEMODELDEFS";
   }
 
+  // Path = /<cluster>/STATEMODELDEFS/<stateModelName>
   public static String stateModelDef(String clusterName, String stateModelName) {
-    return String.format("/%s/STATEMODELDEFS/%s", clusterName, stateModelName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/STATEMODELDEFS/");
+    builder.append(stateModelName);
+    return builder.toString();
   }
 
   public static String externalView(String clusterName) {
-    return String.format("/%s/EXTERNALVIEW", clusterName);
+    return "/" + clusterName + "/EXTERNALVIEW";
   }
 
+  // Path = /<cluster>/EXTERNALVIEW/<resouceName>
   public static String externalView(String clusterName, String resourceName) {
-    return String.format("/%s/EXTERNALVIEW/%s", clusterName, resourceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/EXTERNALVIEW/");
+    builder.append(resourceName);
+    return builder.toString();
   }
 
   public static String targetExternalView(String clusterName) {
-    return String.format("/%s/TARGETEXTERNALVIEW", clusterName);
+    return "/" + clusterName + "/TARGETEXTERNALVIEW";
   }
 
+  // Path = /<cluster>/TARGETEXTERNALVIEW/<resouceName>
   public static String targetExternalView(String clusterName, String resourceName) {
-    return String.format("/%s/TARGETEXTERNALVIEW/%s", clusterName, resourceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/TARGETEXTERNALVIEW/");
+    builder.append(resourceName);
+    return builder.toString();
   }
 
   public static String customizedView(String clusterName) {
-    return String.format("/%s/CUSTOMIZEDVIEW", clusterName);
+    return "/" + clusterName + "/CUSTOMIZEDVIEW";
   }
 
+  // Path = /<cluster>/CUSTOMIZEDVIEW/<customizedStateName>
   public static String customizedView(String clusterName, String customizedStateName) {
-    return String.format("/%s/CUSTOMIZEDVIEW/%s", clusterName, customizedStateName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/CuSTOMiZEDVIEW/");
+    builder.append(customizedStateName);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/CUSTOMIZEDVIEW/<customizedStateName>/<resourceName>
   public static String customizedView(String clusterName, String customizedStateName,
       String resourceName) {
-    return String
-        .format("/%s/CUSTOMIZEDVIEW/%s/%s", clusterName, customizedStateName, resourceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/CuSTOMiZEDVIEW/");
+    builder.append(customizedStateName);
+    builder.append("/");
+    builder.append(resourceName);
+    return builder.toString();
   }
 
   public static String liveInstance(String clusterName) {
-    return String.format("/%s/LIVEINSTANCES", clusterName);
+    return "/" + clusterName + "/LIVEINSTANCES";
   }
 
+  // Path = /<clusterName>/LIVEINSTANCES/<instanceName>
   public static String liveInstance(String clusterName, String instanceName) {
-    return String.format("/%s/LIVEINSTANCES/%s", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/LIVEINSTANCES/");
+    builder.append(instanceName);
+    return builder.toString();
   }
 
   public static String instance(String clusterName) {
-    return String.format("/%s/INSTANCES", clusterName);
+    return "/" + clusterName + "/INSTANCES";
   }
 
   @Deprecated
@@ -316,133 +352,263 @@ public class PropertyPathBuilder {
     return String.format("/%s/INSTANCES/%s/%s/%s", clusterName, instanceName, type, key);
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>
   public static String instance(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/MESSAGES
   public static String instanceMessage(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s/MESSAGES", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/MESSAGES");
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/MESSAGES/<messageId>
   public static String instanceMessage(String clusterName, String instanceName, String messageId) {
-    return String.format("/%s/INSTANCES/%s/MESSAGES/%s", clusterName, instanceName, messageId);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/MESSAGES/");
+    builder.append(messageId);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/CURRENTSTATES
   public static String instanceCurrentState(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s/CURRENTSTATES", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/CURRENTSTATES");
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/CURRENTSTATES/<session>
   public static String instanceCurrentState(String clusterName, String instanceName,
       String sessionId) {
-    return String.format("/%s/INSTANCES/%s/CURRENTSTATES/%s", clusterName, instanceName, sessionId);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/CURRENTSTATES/");
+    builder.append(sessionId);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/CURRENTSTATES/<session>/<resourceName>
   public static String instanceCurrentState(String clusterName, String instanceName,
       String sessionId, String resourceName) {
-    return String.format("/%s/INSTANCES/%s/CURRENTSTATES/%s/%s", clusterName, instanceName,
-        sessionId, resourceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/CURRENTSTATES/");
+    builder.append(sessionId);
+    builder.append("/");
+    builder.append(resourceName);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/TASKCURRENTSTATES
   public static String instanceTaskCurrentState(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s/TASKCURRENTSTATES", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/TASKCURRENTSTATES");
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/TASKCURRENTSTATES/<session>
   public static String instanceTaskCurrentState(String clusterName, String instanceName,
       String sessionId) {
-    return String
-        .format("/%s/INSTANCES/%s/TASKCURRENTSTATES/%s", clusterName, instanceName, sessionId);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/TASKCURRENTSTATES/");
+    builder.append(sessionId);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/TASKCURRENTSTATES/<session>/<resourceName>
   public static String instanceTaskCurrentState(String clusterName, String instanceName,
       String sessionId, String resourceName) {
-    return String
-        .format("/%s/INSTANCES/%s/TASKCURRENTSTATES/%s/%s", clusterName, instanceName, sessionId,
-            resourceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/TASKCURRENTSTATES/");
+    builder.append(sessionId);
+    builder.append("/");
+    builder.append(resourceName);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/CUSTOMIZEDSTATES/
   public static String instanceCustomizedState(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/CUSTOMIZEDSTATES");
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/CUSTOMIZEDSTATES/<customizedStateName>
   public static String instanceCustomizedState(String clusterName, String instanceName,
       String customizedStateName) {
-    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES/%s", clusterName, instanceName, customizedStateName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/CUSTOMIZEDSTATES/");
+    builder.append(customizedStateName);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/CUSTOMIZEDSTATES/<customizedStateName>/<resourceName>
   public static String instanceCustomizedState(String clusterName, String instanceName,
       String customizedStateName, String resourceName) {
-    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES/%s/%s", clusterName, instanceName,
-        customizedStateName, resourceName);
-  }
-  public static String instanceError(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s/ERRORS", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/CUSTOMIZEDSTATES/");
+    builder.append(customizedStateName);
+    builder.append("/");
+    builder.append(resourceName);
+    return builder.toString();
   }
 
+  // Path = /<cluster>/INSTANCES/<instance>/ERRORS
+  public static String instanceError(String clusterName, String instanceName) {
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/ERRORS");
+    return builder.toString();
+  }
+
+  // Path = /<cluster>/INSTANCES/<instance>/ERRORS/<session>/<resourceName>/<partitionName>
   public static String instanceError(String clusterName, String instanceName, String sessionId,
       String resourceName, String partitionName) {
-    return String.format("/%s/INSTANCES/%s/ERRORS/%s/%s/%s", clusterName, instanceName, sessionId,
-        resourceName, partitionName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/ERRORS/");
+    builder.append(sessionId);
+    builder.append("/");
+    builder.append(resourceName);
+    builder.append("/");
+    builder.append(partitionName);
+    return builder.toString();
   }
 
+  // Path = /<clusterName>/INSTANCES/<instanceName>/HISTORY
   public static String instanceHistory(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s/HISTORY", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/HISTORY");
+    return builder.toString();
   }
 
+  // Path = /<clusterName>/INSTANCES/<instanceName>/STATUSUPDATES
   public static String instanceStatusUpdate(String clusterName, String instanceName) {
-    return String.format("/%s/INSTANCES/%s/STATUSUPDATES", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/INSTANCES/");
+    builder.append(instanceName);
+    builder.append("/STATUSUPDATES");
+    return builder.toString();
   }
 
   public static String propertyStore(String clusterName) {
-    return String.format("/%s/PROPERTYSTORE", clusterName);
+    return "/" + clusterName + "/PROPERTYSTORE";
   }
 
+  // PATH = "/<clusterName>/CONFIGS/CLUSTER/<clusterName>"
   public static String clusterConfig(String clusterName) {
-    return String.format("/%s/CONFIGS/CLUSTER/%s", clusterName, clusterName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/CONFIGS/CLUSTER/");
+    builder.append(clusterName);
+    return builder.toString();
   }
 
   public static String instanceConfig(String clusterName) {
-    return String.format("/%s/CONFIGS/PARTICIPANT", clusterName);
+    return "/" + clusterName + "/CONFIGS/PARTICIPANT";
   }
 
+  // PATH = "/<clusterName>/CONFIGS/PARTICIPANT/<instanceName>"
   public static String instanceConfig(String clusterName, String instanceName) {
-    return String.format("/%s/CONFIGS/PARTICIPANT/%s", clusterName, instanceName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/CONFIGS/PARTICIPANT/");
+    builder.append(instanceName);
+    return builder.toString();
   }
 
   public static String resourceConfig(String clusterName) {
-    return String.format("/%s/CONFIGS/RESOURCE", clusterName);
+    return "/" + clusterName + "/CONFIGS/RESOURCE";
   }
 
   public static String customizedStateConfig(String clusterName) {
-    return String.format("/%s/CONFIGS/CUSTOMIZED_STATE", clusterName);
+    return "/" + clusterName + "/CONFIGS/CUSTOMIZED_STATE";
   }
 
   public static String controller(String clusterName) {
-    return String.format("/%s/CONTROLLER", clusterName);
+    return "/" + clusterName + "/CONTROLLER";
   }
 
   public static String controllerLeader(String clusterName) {
-    return String.format("/%s/CONTROLLER/LEADER", clusterName);
+    return "/" + clusterName + "/CONTROLLER/LEADER";
   }
 
   public static String controllerMessage(String clusterName) {
-    return String.format("/%s/CONTROLLER/MESSAGES", clusterName);
+    return "/" + clusterName + "/CONTROLLER/MESSAGES";
   }
 
+  // PATH = "/<clusterName>/CONTROLLER/MESSAGES/<messageId>"
   public static String controllerMessage(String clusterName, String messageId) {
-    return String.format("/%s/CONTROLLER/MESSAGES/%s", clusterName, messageId);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/CONTROLLER/MESSAGES/");
+    builder.append(messageId);
+    return builder.toString();
   }
 
   public static String controllerStatusUpdate(String clusterName) {
-    return String.format("/%s/CONTROLLER/STATUSUPDATES", clusterName);
+    return "/" + clusterName + "/CONTROLLER/STATUSUPDATES";
   }
 
+  // Path /<clusterName>/CONTROLLER/STATUSUPDATES/<subPath>/<recordName>"
   public static String controllerStatusUpdate(String clusterName, String subPath,
       String recordName) {
-    return String.format("/%s/CONTROLLER/STATUSUPDATES/%s/%s", clusterName, subPath, recordName);
+    StringBuilder builder = new StringBuilder("/");
+    builder.append(clusterName);
+    builder.append("/CONTROLLER/STATUSUPDATES/");
+    builder.append(subPath);
+    builder.append("/");
+    builder.append(recordName);
+    return builder.toString();
   }
 
   public static String controllerError(String clusterName) {
-    return String.format("/%s/CONTROLLER/ERRORS", clusterName);
+    return "/" + clusterName + "/CONTROLLER/ERRORS";
   }
 
   public static String controllerHistory(String clusterName) {
@@ -450,14 +616,15 @@ public class PropertyPathBuilder {
   }
 
   public static String pause(String clusterName) {
-    return String.format("/%s/CONTROLLER/PAUSE", clusterName);
+    return "/" + clusterName + "/CONTROLLER/PAUSE";
   }
 
   public static String maintenance(String clusterName) {
-    return String.format("/%s/CONTROLLER/MAINTENANCE", clusterName);
+    return "/" + clusterName + "/CONTROLLER/MAINTENANCE";
   }
 
+  // PATH = "/<clusterName>/STATUS/CLUSTER/<clusterName>"
   public static String clusterStatus(String clusterName) {
-    return String.format("/%s/STATUS/CLUSTER/%s", clusterName, clusterName);
+    return "/" + clusterName + "/STATUS/CLUSTER/" + clusterName;
   }
 }

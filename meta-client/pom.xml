@@ -29,6 +29,19 @@ under the License.
   <packaging>bundle</packaging>
   <name>Apache Helix :: Meta Client</name>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <organization>
+    <name>Apache Software Foundation</name>
+    <url>http://www.apache.org</url>
+  </organization>
+
   <properties>
     <osgi.import>
       org.apache.commons.cli*,

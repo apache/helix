@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
@@ -83,8 +82,6 @@ public class TestRoutingTableProvider extends ZkTestBase {
   private RoutingTableProvider _routingTableProvider_cs;
   private boolean _listenerTestResult = true;
 
-
-  //private static final AtomicBoolean customizedViewChangeCalled = new AtomicBoolean(false);
 
   class MockRoutingTableChangeListener implements RoutingTableChangeListener {
     boolean routingTableChangeReceived = false;

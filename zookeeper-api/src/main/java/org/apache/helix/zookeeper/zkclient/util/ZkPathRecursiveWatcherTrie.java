@@ -144,7 +144,7 @@ public class ZkPathRecursiveWatcherTrie {
     synchronized (this) {
       TrieNode parent = _rootNode;
       for (final String part : pathComponents) {
-        parent = parent.getChildren().computeIfAbsent(part, (p) -> new TrieNode(part));
+        parent = parent.getChildren().computeIfAbsent(part, TrieNode::new);
       }
       parent._recursiveListeners.add(listener);
     }
@@ -196,10 +196,14 @@ public class ZkPathRecursiveWatcherTrie {
         if (cur == null) {
           return;
         }
+        // Every time when we move down one level of trie node, 3 pointers may be updated.
+        // highestNodeForDelete, prev of highestNodeForDelete and cur TrieNode.
+        // we invalidate `highestNodeForDelete` when cur node is non leaf node but has more than one
+        // children or listener, or it is leaf node and has more than one listener.
 
         boolean candidateToDelete =
-            (cur.getChildren().size() == 1 && cur.getRecursiveListeners().size() == 0) || (
-                cur.getChildren().size() == 0 && cur.getRecursiveListeners().size() == 1 && cur
+            (cur.getChildren().size() == 1 && cur.getRecursiveListeners().isEmpty()) || (
+                cur.getChildren().isEmpty() && cur.getRecursiveListeners().size() == 1 && cur
                     .getRecursiveListeners().contains(listener));
         if (candidateToDelete) {
           if (highestNodeForDelete == null) {

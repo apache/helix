@@ -32,6 +32,7 @@ import org.apache.helix.model.StateModelDefinition;
 
 
 /**
+ * TODO: to be integrated to {@link org.apache.helix.controller.stages.IntermediateStateCalcStage}
  * A stateful throttler that tracks and uses pre-defined instance capacity for state transition throttling.
  * The instance capacity is given by {@link InstanceStateTransitionCapacityProvider} to quantify the headroom for extra
  * state transition on the instance, while resource-partition weights are given by {@link ResourceWeightsDataProvider}.

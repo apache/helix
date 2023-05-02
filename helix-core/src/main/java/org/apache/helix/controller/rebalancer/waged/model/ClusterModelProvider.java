@@ -62,7 +62,6 @@ public class ClusterModelProvider {
   }
 
   /**
-   * TODO: On integration with WAGED, have to integrate with counter and latency metrics -- qqu
    * Compute a new Cluster Model with scope limited to partitions with best possible assignment missing minActiveReplicas
    * because of delayed rebalance setting.
    * @param dataProvider The controller's data cache

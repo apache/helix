@@ -62,10 +62,10 @@ public class TestCapacityBasedThrottler {
     // no capacity change if message is throttled
     Assert.assertEquals(remainingCopy, throttler._instanceRemainingCapacity.get(instance1));
     for (int i = 0; i < 5; i++) {
-      // should allow 4 messages
       Assert.assertTrue(throttler.tryProcessMessage(instance2, message));
     }
     Assert.assertFalse(throttler.tryProcessMessage(instance2, message));
+    // change the message fromState, no throttle applied to non-bootstrapping transitions
     when(message.getFromState()).thenReturn("STANDBY");
     throttler.removeIgnoreKey("DISK");
     for (int i = 0; i < 3; i++) {

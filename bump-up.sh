@@ -74,7 +74,7 @@ echo "bump up: $current_version -> $new_version"
 update_pom_version "pom.xml" $current_version
 
 for module in "metrics-common" "metadata-store-directory-common" "zookeeper-api" "helix-common" "helix-core" \
-              "helix-admin-webapp" "helix-rest" "helix-lock" "helix-view-aggregator" "helix-agent"; do
+              "helix-admin-webapp" "helix-rest" "helix-lock" "helix-view-aggregator" "helix-agent" "meta-client"; do
   update_ivy $module
   update_pom_version $module/pom.xml $current_version
 done

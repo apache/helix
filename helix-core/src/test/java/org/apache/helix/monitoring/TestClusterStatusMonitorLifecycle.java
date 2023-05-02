@@ -37,12 +37,20 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import static org.apache.logging.log4j.Level.ERROR;
+import static org.apache.logging.log4j.Level.INFO;
+
 public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
+  public static final String HELIX_LOGGER_NAME = "org.apache.helix";
   MockParticipantManager[] _participants;
   ClusterDistributedController[] _controllers;
   String _controllerClusterName;
@@ -55,6 +63,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    // enabling info level for helix logs to help with debugging
+    updateLog4jLevel(INFO, HELIX_LOGGER_NAME);
     String className = TestHelper.getTestClassName();
     _clusterNamePrefix = className;
 
@@ -172,12 +182,28 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     }
 
     System.out.println("END " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
+    // restoring error level for helix logs
+    updateLog4jLevel(ERROR, HELIX_LOGGER_NAME);
   }
 
   private void cleanupControllers() {
     for (ClusterDistributedController controller : _controllers) {
       controller.syncStop();
     }
+  }
+
+  /**
+   * Updates the log level for the specified logger.
+   * @param level Log level to update.
+   * @param loggerName Name of the logger for which the level will be updated.
+   */
+  private void updateLog4jLevel(org.apache.logging.log4j.Level level, String loggerName) {
+    LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+    Configuration config = ctx.getConfiguration();
+    LoggerConfig loggerConfig =
+        config.getLoggerConfig(String.valueOf(LogManager.getLogger(loggerName)));
+    loggerConfig.setLevel(level);
+    ctx.updateLoggers();
   }
 
   @Test

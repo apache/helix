@@ -312,7 +312,7 @@ public class PropertyPathBuilder {
   public static String customizedView(String clusterName, String customizedStateName) {
     StringBuilder builder = new StringBuilder("/");
     builder.append(clusterName);
-    builder.append("/CuSTOMiZEDVIEW/");
+    builder.append("/CUSTOMIZEDVIEW/");
     builder.append(customizedStateName);
     return builder.toString();
   }
@@ -322,7 +322,7 @@ public class PropertyPathBuilder {
       String resourceName) {
     StringBuilder builder = new StringBuilder("/");
     builder.append(clusterName);
-    builder.append("/CuSTOMiZEDVIEW/");
+    builder.append("/CUSTOMIZEDVIEW/");
     builder.append(customizedStateName);
     builder.append("/");
     builder.append(resourceName);

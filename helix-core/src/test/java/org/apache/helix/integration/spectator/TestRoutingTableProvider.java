@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.helix.AccessOption;
@@ -82,7 +84,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
   private boolean _listenerTestResult = true;
 
 
-  private static final AtomicBoolean customizedViewChangeCalled = new AtomicBoolean(false);
+  //private static final AtomicBoolean customizedViewChangeCalled = new AtomicBoolean(false);
 
   class MockRoutingTableChangeListener implements RoutingTableChangeListener {
     boolean routingTableChangeReceived = false;
@@ -105,19 +107,6 @@ public class TestRoutingTableProvider extends ZkTestBase {
         _listenerTestResult = true;
       }
       routingTableChangeReceived = true;
-    }
-  }
-
-  class MockRoutingTableProvider extends RoutingTableProvider {
-    MockRoutingTableProvider(HelixManager helixManager, Map<PropertyType, List<String>> sourceDataTypes) {
-      super(helixManager, sourceDataTypes);
-    }
-
-    @Override
-    public void onCustomizedViewChange(List<CustomizedView> customizedViewList,
-        NotificationContext changeContext){
-      customizedViewChangeCalled.getAndSet(true);
-      super.onCustomizedViewChange(customizedViewList, changeContext);
     }
   }
 
@@ -298,21 +287,26 @@ public class TestRoutingTableProvider extends ZkTestBase {
   public void testCustomizedViewCorrectConstructor() throws Exception {
     Map<PropertyType, List<String>> sourceDataTypes = new HashMap<>();
     sourceDataTypes.put(PropertyType.CUSTOMIZEDVIEW, Arrays.asList("typeA"));
-    MockRoutingTableProvider routingTableProvider =
-        new MockRoutingTableProvider(_spectator, sourceDataTypes);
+    CountDownLatch countDownLatch = new CountDownLatch(1);
+    RoutingTableProvider routingTableProvider =
+        new RoutingTableProvider(_spectator, sourceDataTypes) {
+          @Override
+          public void onCustomizedViewChange(List<CustomizedView> customizedViewList,
+              NotificationContext changeContext){
+            countDownLatch.countDown();
+            super.onCustomizedViewChange(customizedViewList, changeContext);
+          }
+        };
 
     CustomizedView customizedView = new CustomizedView(TEST_DB);
     customizedView.setState("p1", "h1", "testState");
 
     // Clear the flag before writing to the Customized View Path
-    customizedViewChangeCalled.getAndSet(false);
     String customizedViewPath = PropertyPathBuilder.customizedView(CLUSTER_NAME, "typeA", TEST_DB);
     _spectator.getHelixDataAccessor().getBaseDataAccessor().set(customizedViewPath,
         customizedView.getRecord(), AccessOption.PERSISTENT);
 
-    boolean onCustomizedViewChangeCalled =
-        TestHelper.verify(() -> customizedViewChangeCalled.get(), WAIT_DURATION);
-    Assert.assertTrue(onCustomizedViewChangeCalled);
+    Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
 
     _spectator.getHelixDataAccessor().getBaseDataAccessor().remove(customizedViewPath,
         AccessOption.PERSISTENT);

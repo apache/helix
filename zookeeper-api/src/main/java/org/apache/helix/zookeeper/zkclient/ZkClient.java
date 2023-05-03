@@ -1969,7 +1969,7 @@ public class ZkClient implements Watcher {
       _monitor.increaseOutstandingRequestGauge();
     }
     int retryCount = 1;
-    ExponentialBackoffStrategy retryStrategy = new ExponentialBackoffStrategy(_operationRetryTimeoutInMillis, true);
+    long currTime = System.currentTimeMillis();
     try {
       while (true) {
         // Because ConnectionLossException and SessionExpiredException are caught but not thrown,
@@ -1993,12 +1993,14 @@ public class ZkClient implements Watcher {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Disconnected'
           Thread.yield();
-          waitForRetry(retryStrategy.getNextWaitInterval(retryCount++));
+          waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
+            _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (SessionExpiredException e) {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Expired'
           Thread.yield();
-          waitForRetry(retryStrategy.getNextWaitInterval(retryCount++));
+          waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
+            _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (ZkSessionMismatchedException e) {
           throw e;
         } catch (KeeperException e) {

@@ -1,6 +1,6 @@
 {
   "name": "helix-front",
-  "version": "1.4.1",
+  "version": "1.6.1",
   "main": "/dist/server/app.js",
   "author": "Vivo Xu <git@vivoxu.com>",
   "contributors": [

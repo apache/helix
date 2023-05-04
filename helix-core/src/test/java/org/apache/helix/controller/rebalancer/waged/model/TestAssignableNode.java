@@ -50,7 +50,6 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     // Test 1 - initialize based on the data cache and check with the expected result
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     List<AssignableReplica> assignments = generateReplicas(testCache);
-    Collections.sort(assignments);
     Set<String> expectedTopStateAssignmentSet1 = new HashSet<>(_partitionNames.subList(0, 1));
     Set<String> expectedTopStateAssignmentSet2 = new HashSet<>(_partitionNames.subList(2, 3));
     Set<String> expectedAssignmentSet1 = new HashSet<>(_partitionNames.subList(0, 2));

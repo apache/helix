@@ -59,6 +59,11 @@
     "vis-data": "^7",
     "vm2": "^3.9.17"
   },
+  "overrides": {
+    "webpack": "^5",
+    "vis-data": "^7",
+    "vm2": "^3.9.17"
+  },
   "peerDependencies": {
     "webpack": "*"
   },

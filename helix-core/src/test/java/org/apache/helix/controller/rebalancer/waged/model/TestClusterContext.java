@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ public class TestClusterContext extends AbstractTestClusterModel {
   public void testNormalUsage() throws IOException {
     // Test 1 - initialize the cluster context based on the data cache.
     ResourceControllerDataProvider testCache = setupClusterDataCache();
-    Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
+    List<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
     ClusterContext context =
         new ClusterContext(assignmentSet, generateNodes(testCache), new HashMap<>(),
@@ -85,7 +86,7 @@ public class TestClusterContext extends AbstractTestClusterModel {
   @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Resource Resource1 already has a replica from partition Partition1 in fault zone testZone")
   public void testDuplicateAssign() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
-    Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
+    List<AssignableReplica> assignmentSet = generateReplicas(testCache);
     ClusterContext context =
         new ClusterContext(assignmentSet, generateNodes(testCache), new HashMap<>(),
             new HashMap<>());

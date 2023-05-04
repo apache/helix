@@ -271,19 +271,21 @@ public abstract class AbstractTestClusterModel {
   /**
    * Generate the replica objects according to the provider information.
    */
-  protected Set<AssignableReplica> generateReplicas(ResourceControllerDataProvider dataProvider) {
+  protected List<AssignableReplica> generateReplicas(ResourceControllerDataProvider dataProvider) {
     // Create assignable replica based on the current state.
     Map<String, CurrentState> currentStatemap =
         dataProvider.getCurrentState(_testInstanceId, _sessionId);
-    Set<AssignableReplica> assignmentSet = new HashSet<>();
+    List<AssignableReplica> assignments = new ArrayList<>();
     for (CurrentState cs : currentStatemap.values()) {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());
       // Construct one AssignableReplica for each partition in the current state.
-      cs.getPartitionStateMap().entrySet().stream().forEach(entry -> assignmentSet
-              .add(new AssignableReplica(dataProvider.getClusterConfig(), resourceConfig,
-                  entry.getKey(), entry.getValue(), entry.getValue().equals("MASTER") ? 1 : 2)));
+      cs.getPartitionStateMap()
+          .forEach((key, value) -> assignments.add(
+              new AssignableReplica(dataProvider.getClusterConfig(), resourceConfig, key, value,
+                  value.equals("MASTER") ? 1 : 2)));
     }
-    return assignmentSet;
+    Collections.sort(assignments);
+    return assignments;
   }
 
   protected Set<AssignableNode> generateNodes(ResourceControllerDataProvider testCache) {

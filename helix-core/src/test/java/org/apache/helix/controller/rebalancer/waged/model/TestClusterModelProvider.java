@@ -22,9 +22,11 @@ package org.apache.helix.controller.rebalancer.waged.model;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,7 +49,7 @@ import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class TestClusterModelProvider extends AbstractTestClusterModel {
@@ -111,7 +113,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertEquals(
         DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, Collections.emptySet(),
             activeInstances, Collections.emptyMap(), new HashMap<>()),
-        Collections.emptySet());
+        Collections.emptyList());
 
     // test 1, one partition under minActiveReplica
     Map<String, Map<String, Map<String, String>>> input = ImmutableMap.of(
@@ -124,12 +126,12 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
             _partitionNames.get(2), ImmutableMap.of("MASTER", instance1),
             _partitionNames.get(3), ImmutableMap.of("SLAVE", instance1))
     );
-    Map<String, Set<AssignableReplica>> replicaMap = new HashMap<>(); // to populate
+    Map<String, List<AssignableReplica>> replicaMap = new HashMap<>(); // to populate
     Map<String, ResourceAssignment> currentAssignment = new HashMap<>(); // to populate
     prepareData(input, replicaMap, currentAssignment, testCache, 1);
 
-    Map<String, Set<AssignableReplica>> allocatedReplicas = new HashMap<>();
-    Set<AssignableReplica> toBeAssignedReplicas =
+    Map<String, List<AssignableReplica>> allocatedReplicas = new HashMap<>();
+    List<AssignableReplica> toBeAssignedReplicas =
         DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(testCache, replicaMap.keySet(), activeInstances,
             currentAssignment, allocatedReplicas);
 
@@ -223,7 +225,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
             _partitionNames.get(2), ImmutableMap.of("MASTER", instance1),
             _partitionNames.get(3), ImmutableMap.of("OFFLINE", offlineInstance)) // Partition4-MASTER
     );
-    Map<String, Set<AssignableReplica>> replicaMap = new HashMap<>(); // to populate
+    Map<String, List<AssignableReplica>> replicaMap = new HashMap<>(); // to populate
     Map<String, ResourceAssignment> currentAssignment = new HashMap<>(); // to populate
     prepareData(input, replicaMap, currentAssignment, testCache, 1);
 
@@ -296,7 +298,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
    * @param testCache The mock object to prepare
    */
   private void prepareData(Map<String, Map<String, Map<String, String>>> input,
-      Map<String, Set<AssignableReplica>> replicaMap,
+      Map<String, List<AssignableReplica>> replicaMap,
       Map<String, ResourceAssignment> currentAssignment,
       ResourceControllerDataProvider testCache,
       int minActiveReplica) {
@@ -330,7 +332,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Map<String, Map<String, Map<String, String>>> stateByInstanceByResourceByPartition = new HashMap<>();
 
     for (String resource : input.keySet()) {
-      Set<AssignableReplica> replicas = new HashSet<>();
+      List<AssignableReplica> replicas = new ArrayList<>();
       replicaMap.put(resource, replicas);
       ResourceConfig resourceConfig = _resourceConfigMap.get(resource);
       for (String partition : input.get(resource).keySet()) {

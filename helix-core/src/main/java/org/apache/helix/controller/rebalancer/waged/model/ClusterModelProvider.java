@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -193,13 +194,13 @@ public class ClusterModelProvider {
 
     // Generate replica objects for all the resource partitions.
     // <resource, replica set>
-    Map<String, Set<AssignableReplica>> replicaMap =
+    Map<String, List<AssignableReplica>> replicaMap =
         getAllAssignableReplicas(dataProvider, resourceMap, assignableNodes);
 
     // Check if the replicas need to be reassigned.
-    Map<String, Set<AssignableReplica>> allocatedReplicas =
+    Map<String, List<AssignableReplica>> allocatedReplicas =
         new HashMap<>(); // <instanceName, replica set>
-    Set<AssignableReplica> toBeAssignedReplicas;
+    List<AssignableReplica> toBeAssignedReplicas;
     switch (scopeType) {
       case GLOBAL_BASELINE:
         toBeAssignedReplicas = findToBeAssignedReplicasByClusterChanges(replicaMap, activeInstances,
@@ -230,11 +231,11 @@ public class ClusterModelProvider {
 
     // Update the allocated replicas to the assignable nodes.
     assignableNodes.parallelStream().forEach(node -> node.assignInitBatch(
-        allocatedReplicas.getOrDefault(node.getInstanceName(), Collections.emptySet())));
+        allocatedReplicas.getOrDefault(node.getInstanceName(), Collections.emptyList())));
 
     // Construct and initialize cluster context.
     ClusterContext context = new ClusterContext(
-        replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()),
+        replicaMap.values().stream().flatMap(List::stream).collect(Collectors.toList()),
         assignableNodes, idealAssignment, currentAssignment);
     // Initial the cluster context with the allocated assignments.
     context.setAssignmentForFaultZoneMap(mapAssignmentToFaultZone(assignableNodes));
@@ -244,7 +245,7 @@ public class ClusterModelProvider {
 
   // Filter the replicas map so only the replicas that have been allocated in the existing
   // assignmentMap remain in the map.
-  private static void retainExistingReplicas(Map<String, Set<AssignableReplica>> replicaMap,
+  private static void retainExistingReplicas(Map<String, List<AssignableReplica>> replicaMap,
       Map<String, ResourceAssignment> assignmentMap) {
     replicaMap.entrySet().parallelStream().forEach(replicaSetEntry -> {
       // <partition, <state, instances set>>
@@ -287,12 +288,12 @@ public class ClusterModelProvider {
    * @param allocatedReplicas      A map of <Instance -> replicas> to return the allocated replicas grouped by the target instance name.
    * @return The replicas that need to be reassigned.
    */
-  private static Set<AssignableReplica> findToBeAssignedReplicasByComparingWithIdealAssignment(
-      Map<String, Set<AssignableReplica>> replicaMap, Set<String> activeInstances,
+  private static List<AssignableReplica> findToBeAssignedReplicasByComparingWithIdealAssignment(
+      Map<String, List<AssignableReplica>> replicaMap, Set<String> activeInstances,
       Map<String, ResourceAssignment> idealAssignment,
       Map<String, ResourceAssignment> currentAssignment,
-      Map<String, Set<AssignableReplica>> allocatedReplicas) {
-    Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+      Map<String, List<AssignableReplica>> allocatedReplicas) {
+    List<AssignableReplica> toBeAssignedReplicas = new ArrayList<>();
     // check each resource to identify the allocated replicas and to-be-assigned replicas.
     for (String resourceName : replicaMap.keySet()) {
       // <partition, <state, instances set>>
@@ -318,7 +319,7 @@ public class ClusterModelProvider {
           // 1. If the partition is allocated at the same location in both ideal and current
           // assignments, there is no need to reassign it.
           String allocatedInstance = commonAllocations.get(0);
-          allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
+          allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new ArrayList<>()).add(replica);
           // Remove the instance from the record to prevent this instance from being processed twice.
           idealAllocations.remove(allocatedInstance);
           currentAllocations.remove(allocatedInstance);
@@ -349,7 +350,7 @@ public class ClusterModelProvider {
           // In either case, the solution is to keep the current assignment. So put this replica
           // with the allocated instance into the allocatedReplicas map.
           String allocatedInstance = currentAllocations.iterator().next();
-          allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
+          allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new ArrayList<>()).add(replica);
           // Remove the instance from the record to prevent the same location being processed again.
           currentAllocations.remove(allocatedInstance);
         } else {
@@ -381,12 +382,12 @@ public class ClusterModelProvider {
    * @param allocatedReplicas      Return the allocated replicas grouped by the target instance name.
    * @return The replicas that need to be reassigned.
    */
-  private static Set<AssignableReplica> findToBeAssignedReplicasByClusterChanges(
-      Map<String, Set<AssignableReplica>> replicaMap, Set<String> activeInstances,
+  private static List<AssignableReplica> findToBeAssignedReplicasByClusterChanges(
+      Map<String, List<AssignableReplica>> replicaMap, Set<String> activeInstances,
       Set<String> liveInstances, Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
       Map<String, ResourceAssignment> currentAssignment,
-      Map<String, Set<AssignableReplica>> allocatedReplicas) {
-    Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+      Map<String, List<AssignableReplica>> allocatedReplicas) {
+    List<AssignableReplica> toBeAssignedReplicas = new ArrayList<>();
 
     // A newly connected node = A new LiveInstance znode (or session Id updated) & the
     // corresponding instance is live.
@@ -403,13 +404,12 @@ public class ClusterModelProvider {
       // 1. If the cluster topology has been modified, need to reassign all replicas.
       // 2. If any node was newly connected, need to rebalance all replicas for the evenness of
       // distribution.
-      toBeAssignedReplicas
-          .addAll(replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
+      replicaMap.values().stream().flatMap(List::stream).forEach(toBeAssignedReplicas::add);
     } else {
       // check each resource to identify the allocated replicas and to-be-assigned replicas.
-      for (Map.Entry<String, Set<AssignableReplica>> replicaMapEntry : replicaMap.entrySet()) {
+      for (Map.Entry<String, List<AssignableReplica>> replicaMapEntry : replicaMap.entrySet()) {
         String resourceName = replicaMapEntry.getKey();
-        Set<AssignableReplica> replicas = replicaMapEntry.getValue();
+        List<AssignableReplica> replicas = replicaMapEntry.getValue();
         // 1. if the resource config/idealstate is changed, need to reassign.
         // 2. if the resource does not appear in the current assignment, need to reassign.
         if (clusterChanges
@@ -441,7 +441,7 @@ public class ClusterModelProvider {
               iter.remove();
               // the current assignment for this replica is valid,
               // add to the allocated replica list.
-              allocatedReplicas.computeIfAbsent(instanceName, key -> new HashSet<>()).add(replica);
+              allocatedReplicas.computeIfAbsent(instanceName, key -> new ArrayList<>()).add(replica);
             }
           }
         }
@@ -459,12 +459,12 @@ public class ClusterModelProvider {
    * @param allocatedReplicas      A map of <Instance -> replicas> to return the allocated replicas grouped by the target instance name.
    * @return The replicas that need to be reassigned.
    */
-  private static Set<AssignableReplica> findToBeAssignedReplicasOnDownInstances(
-      Map<String, Set<AssignableReplica>> replicaMap, Set<String> activeInstances,
+  private static List<AssignableReplica> findToBeAssignedReplicasOnDownInstances(
+      Map<String, List<AssignableReplica>> replicaMap, Set<String> activeInstances,
       Map<String, ResourceAssignment> currentAssignment,
-      Map<String, Set<AssignableReplica>> allocatedReplicas) {
+      Map<String, List<AssignableReplica>> allocatedReplicas) {
     // For any replica that are assigned to non-active instances (down instances), add them.
-    Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+    List<AssignableReplica> toBeAssignedReplicas = new ArrayList<>();
     for (String resourceName : replicaMap.keySet()) {
       Map<String, Map<String, Set<String>>> stateInstanceMap = getStateInstanceMap(currentAssignment.get(resourceName));
 
@@ -477,7 +477,7 @@ public class ClusterModelProvider {
         if (!currentAllocations.isEmpty()) {
           String allocatedInstance = currentAllocations.iterator().next();
           if (activeInstances.contains(allocatedInstance)) {
-            allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
+            allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new ArrayList<>()).add(replica);
           }
           else {
             toBeAssignedReplicas.add(replica);
@@ -544,7 +544,7 @@ public class ClusterModelProvider {
    * @param assignableNodes All the active assignable nodes.
    * @return A map of assignable replica set, <ResourceName, replica set>.
    */
-  private static Map<String, Set<AssignableReplica>> getAllAssignableReplicas(
+  private static Map<String, List<AssignableReplica>> getAllAssignableReplicas(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       Set<AssignableNode> assignableNodes) {
     ClusterConfig clusterConfig = dataProvider.getClusterConfig();
@@ -571,7 +571,7 @@ public class ClusterModelProvider {
           def.getStateCountMap(activeFaultZoneCount, is.getReplicaCount(assignableNodes.size()));
       ResourceConfig mergedResourceConfig =
           ResourceConfig.mergeIdealStateWithResourceConfig(resourceConfig, is);
-      Set<AssignableReplica> replicas = new HashSet<>();
+      List<AssignableReplica> replicas = new ArrayList<>();
       for (String partition : is.getPartitionSet()) {
         for (Map.Entry<String, Integer> entry : stateCountMap.entrySet()) {
           String state = entry.getKey();

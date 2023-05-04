@@ -300,15 +300,15 @@ public class DelayedRebalanceUtil {
    * @param allocatedReplicas The map from instance name to assigned replicas, the map is populated in this method.
    * @return The replicas that need to be assigned.
    */
-  public static Set<AssignableReplica> findToBeAssignedReplicasForMinActiveReplica(
+  public static List<AssignableReplica> findToBeAssignedReplicasForMinActiveReplica(
       ResourceControllerDataProvider clusterData,
       Set<String> resources,
       Set<String> liveEnabledInstances,
       Map<String, ResourceAssignment> currentAssignment,
-      Map<String, Set<AssignableReplica>> allocatedReplicas) {
+      Map<String, List<AssignableReplica>> allocatedReplicas) {
     Map<String, List<String>> partitionsMissingMinActiveReplicas =
         findPartitionsMissingMinActiveReplica(clusterData, currentAssignment);
-    Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+    List<AssignableReplica> toBeAssignedReplicas = new ArrayList<>();
 
     for (String resourceName : resources) {
       ResourceAssignment resourceAssignment = currentAssignment.get(resourceName);
@@ -321,7 +321,7 @@ public class DelayedRebalanceUtil {
       // keep all current assignment and add to allocated replicas
       resourceAssignment.getMappedPartitions().forEach(partition ->
           resourceAssignment.getReplicaMap(partition).forEach((instance, state) ->
-              allocatedReplicas.computeIfAbsent(instance, key -> new HashSet<>())
+              allocatedReplicas.computeIfAbsent(instance, key -> new ArrayList<>())
                   .add(new AssignableReplica(clusterData.getClusterConfig(), mergedResourceConfig,
                       partition.getPartitionName(), state, statePriorityMap.get(state)))));
       // only proceed for resource requiring delayed rebalance overwrites
@@ -433,7 +433,7 @@ public class DelayedRebalanceUtil {
    * @param liveEnabledInstances A set of live and enabled instances
    * @return A set of AssignableReplica
    */
-  private static Set<AssignableReplica> findAssignableReplicaForResource(
+  private static List<AssignableReplica> findAssignableReplicaForResource(
       ResourceControllerDataProvider clusterData,
       String resourceName,
       List<String> partitions,
@@ -448,7 +448,7 @@ public class DelayedRebalanceUtil {
         clusterData.getResourceConfig(resourceName), currentIdealState);
     final Map<String, Integer> statePriorityMap =
         clusterData.getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
-    final Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+    final List<AssignableReplica> toBeAssignedReplicas = new ArrayList<>();
 
     for (String partitionName : partitions) {
       // count current active replicas of the partition

@@ -20,30 +20,18 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.HelixException;
+import java.util.Objects;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class represents a partition replication that needs to be allocated.
- *
- * TODO: This class is violating the contracts of {@link Object#hashCode()}
- *   If two objects are equal according to the equals(Object) method, then calling the hashCode method on each of the
- *   two objects must produce the same integer result.
- *   https://github.com/apache/helix/issues/2299
- *   This could be a tricky fix because this bug/feature is deeply coupled with the existing code logic
  */
 public class AssignableReplica implements Comparable<AssignableReplica> {
-  private static final Logger LOG = LoggerFactory.getLogger(AssignableReplica.class);
-
   private final String _replicaKey;
   private final String _partitionName;
   private final String _resourceName;
@@ -139,6 +127,11 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     } else {
       return false;
     }
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(_resourceName, _partitionName, _replicaState);
   }
 
   public static String generateReplicaKey(String resourceName, String partitionName, String state) {

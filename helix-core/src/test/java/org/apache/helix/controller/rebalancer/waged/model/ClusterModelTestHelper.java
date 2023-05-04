@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,7 +39,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
   public ClusterModel getDefaultClusterModel() throws IOException {
     initialize();
     ResourceControllerDataProvider testCache = setupClusterDataCache();
-    Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
+    List<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
     ClusterContext context =
@@ -64,7 +65,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
     instanceConfigMap.put(TEST_INSTANCE_ID_1, testInstanceConfig1);
     instanceConfigMap.put(TEST_INSTANCE_ID_2, testInstanceConfig2);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
-    Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
+    List<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
     ClusterContext context =

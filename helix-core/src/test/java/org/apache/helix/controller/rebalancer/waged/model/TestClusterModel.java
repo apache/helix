@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
@@ -39,7 +40,7 @@ public class TestClusterModel extends AbstractTestClusterModel {
   public void testNormalUsage() throws IOException {
     // Test 1 - initialize the cluster model based on the data cache.
     ResourceControllerDataProvider testCache = setupClusterDataCache();
-    Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
+    List<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
     ClusterContext context =

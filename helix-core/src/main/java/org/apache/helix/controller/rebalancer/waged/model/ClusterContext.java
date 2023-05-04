@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,7 +64,7 @@ public class ClusterContext {
    * @param replicaSet All the partition replicas that are managed by the rebalancer
    * @param nodeSet All the active nodes that are managed by the rebalancer
    */
-  ClusterContext(Set<AssignableReplica> replicaSet, Set<AssignableNode> nodeSet,
+  ClusterContext(Collection<AssignableReplica> replicaSet, Set<AssignableNode> nodeSet,
       Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
     int instanceCount = nodeSet.size();
     int totalReplicas = 0;

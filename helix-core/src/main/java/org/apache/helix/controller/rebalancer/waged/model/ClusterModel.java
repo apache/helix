@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,7 +33,7 @@ import org.apache.helix.HelixException;
 public class ClusterModel {
   private final ClusterContext _clusterContext;
   // Map to track all the assignable replications. <Resource Name, Set<Replicas>>
-  private final Map<String, Set<AssignableReplica>> _assignableReplicaMap;
+  private final Map<String, List<AssignableReplica>> _assignableReplicaMap;
   // The index to find the replication information with a certain state. <Resource, <Key(resource_partition_state), Replica>>
   // Note that the identical replicas are deduped in the index.
   private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
@@ -44,13 +45,13 @@ public class ClusterModel {
    *                               Note that the replicas in this list shall not be included while initializing the context and assignable nodes.
    * @param assignableNodes        The active instances.
    */
-  ClusterModel(ClusterContext clusterContext, Set<AssignableReplica> assignableReplicas,
+  ClusterModel(ClusterContext clusterContext, List<AssignableReplica> assignableReplicas,
       Set<AssignableNode> assignableNodes) {
     _clusterContext = clusterContext;
 
     // Save all the to be assigned replication
     _assignableReplicaMap = assignableReplicas.stream()
-        .collect(Collectors.groupingBy(AssignableReplica::getResourceName, Collectors.toSet()));
+        .collect(Collectors.groupingBy(AssignableReplica::getResourceName, Collectors.toList()));
 
     // Index all the replicas to be assigned. Dedup the replica if two instances have the same resource/partition/state
     _assignableReplicaIndex = assignableReplicas.stream().collect(Collectors
@@ -70,7 +71,7 @@ public class ClusterModel {
     return _assignableNodeMap;
   }
 
-  public Map<String, Set<AssignableReplica>> getAssignableReplicaMap() {
+  public Map<String, List<AssignableReplica>> getAssignableReplicaMap() {
     return _assignableReplicaMap;
   }
 

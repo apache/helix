@@ -19,13 +19,9 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.HelixException;
-import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
+import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -68,7 +64,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     _replicaState = replicaState;
     _statePriority = statePriority;
     _resourceName = resourceConfig.getResourceName();
-    _capacityUsage = fetchCapacityUsage(partitionName, resourceConfig, clusterConfig);
+    _capacityUsage = WagedRebalanceUtil.fetchCapacityUsage(partitionName, resourceConfig, clusterConfig);
     _resourceInstanceGroupTag = resourceConfig.getInstanceGroupTag();
     _resourceMaxPartitionsPerInstance = resourceConfig.getMaxPartitionsPerInstance();
     _replicaKey = generateReplicaKey(_resourceName, _partitionName,_replicaState);
@@ -143,25 +139,5 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
 
   public static String generateReplicaKey(String resourceName, String partitionName, String state) {
     return String.format("%s-%s-%s", resourceName, partitionName, state);
-  }
-
-  /**
-   * Parse the resource config for the partition weight.
-   */
-  private Map<String, Integer> fetchCapacityUsage(String partitionName,
-      ResourceConfig resourceConfig, ClusterConfig clusterConfig) {
-    Map<String, Map<String, Integer>> capacityMap;
-    try {
-      capacityMap = resourceConfig.getPartitionCapacityMap();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(
-          "Invalid partition capacity configuration of resource: " + resourceConfig
-              .getResourceName(), ex);
-    }
-    Map<String, Integer> partitionCapacity = WagedValidationUtil
-        .validateAndGetPartitionCapacity(partitionName, resourceConfig, capacityMap, clusterConfig);
-    // Remove the non-required capacity items.
-    partitionCapacity.keySet().retainAll(clusterConfig.getInstanceCapacityKeys());
-    return partitionCapacity;
   }
 }

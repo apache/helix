@@ -85,8 +85,7 @@ public class WagedValidationUtil {
     if (!partitionCapacity.keySet().containsAll(requiredCapacityKeys)) {
       throw new HelixException(String.format(
           "The required capacity keys: %s are not fully configured in the resource: %s, partition: %s, weight map: %s.",
-          requiredCapacityKeys.toString(), resourceConfig.getResourceName(), partitionName,
-          partitionCapacity.toString()));
+          requiredCapacityKeys, resourceConfig.getResourceName(), partitionName, partitionCapacity));
     }
     return partitionCapacity;
   }

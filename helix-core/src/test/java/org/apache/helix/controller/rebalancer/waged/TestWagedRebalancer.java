@@ -854,4 +854,15 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       }
     }
   }
+
+  @Test
+  public void testResourceWeightProvider() throws IOException {
+    ResourceControllerDataProvider testCache = setupClusterDataCache();
+    WagedResourceWeightsProvider dataProvider = new WagedResourceWeightsProvider(testCache);
+    Map<String, Integer> weights1 = Map.of("item1", 3, "item2", 6, "item3", 0);
+    Assert.assertEquals(dataProvider.getPartitionWeights("Resource1", "Partition1"), weights1);
+    Assert.assertEquals(dataProvider.getPartitionWeights("Resource1", "Partition2"), weights1);
+    Map<String, Integer> weights2 = Map.of("item1", 5, "item2", 10, "item3", 0);
+    Assert.assertEquals(dataProvider.getPartitionWeights("Resource2", "Partition2"), weights2);
+  }
 }

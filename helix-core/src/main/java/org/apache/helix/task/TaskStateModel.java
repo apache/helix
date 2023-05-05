@@ -83,8 +83,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeStoppedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(
-        "Invalid state transition. There is no running task for partition " + taskPartition);
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     _taskRunner.cancel();
@@ -100,8 +100,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeCompletedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(
-          "Invalid state transition. There is no running task for partition " + taskPartition);
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -120,8 +120,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTimedOutFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(
-          "Invalid state transition. There is no running task for partition " + taskPartition);
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -140,8 +140,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTaskErrorFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(
-          "Invalid state transition. There is no running task for partition " + taskPartition);
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -160,8 +160,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTaskAbortedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(
-          "Invalid state transition. There is no running task for partition " + taskPartition);
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     _taskRunner.cancel();
@@ -236,8 +236,8 @@ public class TaskStateModel extends StateModel {
   public void onBecomeInitFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(
-        "Invalid state transition. There is no running task for partition " + taskPartition);
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     _taskRunner.cancel();
@@ -315,7 +315,8 @@ public class TaskStateModel extends StateModel {
     // Create a task instance with this command
     if (command == null || _taskFactoryRegistry == null
         || !_taskFactoryRegistry.containsKey(command)) {
-      throw new IllegalStateException("No callback implemented(or not registered) for task " + command);
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);

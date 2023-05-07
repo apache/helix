@@ -123,8 +123,11 @@ public class TestZkConnectionLost extends TaskTestBase {
     Thread testThread = new Thread("Testing HelixManager disconnect") {
       @Override
       public void run() {
-        controllerManager.disconnect();
-        disconnected.set(true);
+        try {
+          controllerManager.disconnect();
+        } finally {
+          disconnected.set(true);
+        }
       }
     };
     try {

@@ -303,7 +303,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _spectator.getHelixDataAccessor().getBaseDataAccessor().set(customizedViewPath,
         customizedView.getRecord(), AccessOption.PERSISTENT);
 
-    Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+    Assert.assertTrue(countDownLatch.await(WAIT_DURATION, TimeUnit.MILLISECONDS));
 
     _spectator.getHelixDataAccessor().getBaseDataAccessor().remove(customizedViewPath,
         AccessOption.PERSISTENT);

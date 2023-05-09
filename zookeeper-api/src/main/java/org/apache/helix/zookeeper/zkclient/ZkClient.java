@@ -301,10 +301,8 @@ public class ZkClient implements Watcher {
       IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(listener, prefetchEnabled);
       listenerEntries.add(listenerEntry);
       if (prefetchEnabled) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("zkclient {} subscribed data changes for {}, listener {}, prefetch data {}",
-              _uid, path, listener, prefetchEnabled);
-        }
+        LOG.debug("zkclient {} subscribed data changes for {}, listener {}, prefetch data {}",
+            _uid, path, listener, prefetchEnabled);
       }
     }
 
@@ -317,9 +315,7 @@ public class ZkClient implements Watcher {
       return false;
     }
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("zkclient {}, Subscribed data changes for {}", _uid, path);
-    }
+    LOG.debug("zkclient {}, Subscribed data changes for {}", _uid, path);
     return true;
   }
 
@@ -1252,9 +1248,8 @@ public class ZkClient implements Watcher {
   @Override
   public void process(WatchedEvent event) {
     long notificationTime = System.currentTimeMillis();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("zkclient {}, Received event: {} ", _uid, event);
-    }
+    LOG.debug("zkclient {}, Received event: {} ", _uid, event);
+
     _zookeeperEventThread = Thread.currentThread();
 
     boolean stateChanged = event.getPath() == null;
@@ -1272,10 +1267,8 @@ public class ZkClient implements Watcher {
     try {
       // We might have to install child change event listener if a new node was created
       if (getShutdownTrigger()) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("zkclient {} ignoring event {}|{} since shutdown triggered",
-              _uid, event.getType(), event.getPath());
-        }
+        LOG.debug("zkclient {} ignoring event {}|{} since shutdown triggered",
+            _uid, event.getType(), event.getPath());
         return;
       }
       if (stateChanged) {
@@ -1309,9 +1302,7 @@ public class ZkClient implements Watcher {
       // update state change counter.
       recordStateChange(stateChanged, dataChanged, sessionExpired);
 
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("zkclient {} Leaving process event", _uid);
-      }
+      LOG.debug("zkclient {} Leaving process event", _uid);
     }
   }
 
@@ -1806,9 +1797,7 @@ public class ZkClient implements Watcher {
             } else {
               Object data = null;
               if (listener.isPrefetchData()) {
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("zkclient {} Prefetch data for path: {}", _uid, path);
-                }
+                LOG.debug("zkclient {} Prefetch data for path: {}", _uid, path);
                 try {
                   // TODO: the data is redundantly read multiple times when multiple listeners exist
                   data = readData(path, null, true);
@@ -1867,9 +1856,7 @@ public class ZkClient implements Watcher {
   public boolean waitUntilExists(String path, TimeUnit timeUnit, long time)
       throws ZkInterruptedException {
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Waiting until znode {} becomes available.", _uid, path);
-    }
+    LOG.debug("Waiting until znode {} becomes available.", _uid, path);
     if (exists(path)) {
       return true;
     }
@@ -2027,8 +2014,8 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * ZkClient may have lost the connection to the ZK but can be in cleanup 
-   * stage. Let us make sure that we wait even if the connection appears to 
+   * ZkClient may have lost the connection to the ZK but can be in cleanup
+   * stage. Let us make sure that we wait even if the connection appears to
    * be connected.
    */
   private void waitForRetry(long maxSleep) {

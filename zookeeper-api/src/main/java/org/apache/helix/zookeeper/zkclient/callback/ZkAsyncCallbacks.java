@@ -184,7 +184,7 @@ public class ZkAsyncCallbacks {
     int _rc = KeeperException.Code.APIERROR.intValue();
 
     public void callback(int rc, String path, Object ctx) {
-      if (rc != 0 && LOG.isDebugEnabled()) {
+      if (rc != 0) {
         LOG.debug(this + ", rc:" + Code.get(rc) + ", path: " + path);
       }
 

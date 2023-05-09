@@ -1856,7 +1856,7 @@ public class ZkClient implements Watcher {
   public boolean waitUntilExists(String path, TimeUnit timeUnit, long time)
       throws ZkInterruptedException {
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
-    LOG.debug("Waiting until znode {} becomes available.", _uid, path);
+    LOG.debug("Waiting until znode {} {} becomes available.", _uid, path);
     if (exists(path)) {
       return true;
     }

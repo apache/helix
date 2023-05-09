@@ -74,7 +74,7 @@ public class ZkCacheEventThread extends Thread {
         } catch (Throwable e) {
           LOG.error("Error handling event {} ", zkEvent, e);
         }
-          LOG.debug("Delivering event # {} done", eventId);
+        LOG.debug("Delivering event # {} done", eventId);
       }
     } catch (InterruptedException e) {
       LOG.info("Terminate ZkClient event thread.");

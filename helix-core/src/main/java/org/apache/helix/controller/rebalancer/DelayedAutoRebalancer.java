@@ -60,7 +60,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     IdealState cachedIdealState = getCachedIdealState(resourceName, clusterData);
     if (cachedIdealState != null) {
-        LOG.debug("Use cached IdealState for {}", resourceName);
+      LOG.debug("Use cached IdealState for {}", resourceName);
       return cachedIdealState;
     }
 
@@ -179,14 +179,14 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     finalMapping.getListFields().putAll(userDefinedPreferenceList);
 
-      LOG.debug("currentMapping: {}", currentMapping);
-      LOG.debug("stateCountMap: {}", stateCountMap);
-      LOG.debug("liveEnabledNodes: {}", liveEnabledNodes);
-      LOG.debug("activeNodes: {}", activeNodes);
-      LOG.debug("allNodes: {}", allNodes);
-      LOG.debug("maxPartition: {}", maxPartition);
-      LOG.debug("newIdealMapping: {}", newIdealMapping);
-      LOG.debug("finalMapping: {}", finalMapping);
+    LOG.debug("currentMapping: {}", currentMapping);
+    LOG.debug("stateCountMap: {}", stateCountMap);
+    LOG.debug("liveEnabledNodes: {}", liveEnabledNodes);
+    LOG.debug("activeNodes: {}", activeNodes);
+    LOG.debug("allNodes: {}", allNodes);
+    LOG.debug("maxPartition: {}", maxPartition);
+    LOG.debug("newIdealMapping: {}", newIdealMapping);
+    LOG.debug("finalMapping: {}", finalMapping);
 
     IdealState idealState = generateNewIdealState(resourceName, currentIdealState, finalMapping);
     clusterData.setCachedIdealMapping(resourceName, idealState.getRecord());

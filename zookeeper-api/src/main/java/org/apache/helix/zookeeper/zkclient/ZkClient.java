@@ -1360,13 +1360,7 @@ public class ZkClient implements Watcher {
   }
 
   protected List<String> getChildren(final String path, final boolean watch) {
-    // Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
-    // is subscribed as persist watcher, resubscribing the same object as onw time watcher will
-    // over write the persist watcher causing missing following event.
-    if (_usePersistWatcher && watch) {
-      throw new IllegalArgumentException(
-          "Can not subscribe one time watcher when ZkClient is using PersistWatcher");
-    }
+    validateNativeZkWatcherType(watch);
     long startT = System.currentTimeMillis();
 
     try {
@@ -1431,13 +1425,7 @@ public class ZkClient implements Watcher {
   }
 
   protected boolean exists(final String path, final boolean watch) {
-    // Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
-    // is subscribed as persist watcher, resubscribing the same object as onw time watcher will
-    // over write the persist watcher causing missing following event.
-    if (_usePersistWatcher && watch) {
-      throw new IllegalArgumentException(
-          "Can not subscribe one time watcher when ZkClient is using PersistWatcher");
-    }
+    validateNativeZkWatcherType(watch);
     long startT = System.currentTimeMillis();
     try {
       boolean exists = retryUntilConnected(new Callable<Boolean>() {
@@ -1467,13 +1455,7 @@ public class ZkClient implements Watcher {
   }
 
   private Stat getStat(final String path, final boolean watch) {
-    // Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
-    // is subscribed as persist watcher, resubscribing the same object as onw time watcher will
-    // over write the persist watcher causing missing following event.
-    if (_usePersistWatcher && watch) {
-      throw new IllegalArgumentException(
-          "Can not subscribe one time watcher when ZkClient is using PersistWatcher");
-    }
+    validateNativeZkWatcherType(watch);
     long startT = System.currentTimeMillis();
     final Stat stat;
     try {
@@ -2173,13 +2155,7 @@ public class ZkClient implements Watcher {
 
   @SuppressWarnings("unchecked")
   public <T extends Object> T readData(final String path, final Stat stat, final boolean watch) {
-    // Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
-    // is subscribed as persist watcher, resubscribing the same object as onw time watcher will
-    // over write the persist watcher causing missing following event.
-    if (_usePersistWatcher && watch) {
-      throw new IllegalArgumentException(
-          "Can not subscribe one time watcher when ZkClient is using PersistWatcher");
-    }
+    validateNativeZkWatcherType(watch);
     long startT = System.currentTimeMillis();
     byte[] data = null;
     try {
@@ -3073,6 +3049,18 @@ public class ZkClient implements Watcher {
       throw new ZkException(ex);
     } finally {
       _persistListenerMutex.unlock();
+    }
+  }
+
+  /*
+    Throws exception when try to subscribe watch when using _usePersistWatcher. When ZkClient
+    is subscribed as persist watcher, resubscribing the same object as onw time watcher will
+    over write the persist watcher causing missing following event.
+   */
+  private void validateNativeZkWatcherType(boolean watch) {
+    if (_usePersistWatcher && watch) {
+      throw new IllegalArgumentException(
+          "Can not subscribe one time watcher when ZkClient is using PersistWatcher");
     }
   }
 }

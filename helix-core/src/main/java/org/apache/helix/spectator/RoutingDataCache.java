@@ -130,9 +130,9 @@ class RoutingDataCache extends BasicClusterDataCache {
         }
         _propertyDataChangedMap.put(HelixConstants.ChangeType.CUSTOMIZED_VIEW, false);
       }
-      break;
-        default:
-          break;
+        break;
+      default:
+        break;
       }
     }
     long endTime = System.currentTimeMillis();
@@ -141,10 +141,12 @@ class RoutingDataCache extends BasicClusterDataCache {
 
     LOG.debug("CurrentStates: {}", _currentStateCache);
     LOG.debug("TargetExternalViews: {}", _targetExternalViewCache.getExternalViewMap());
-    for (String customizedStateType : _sourceDataTypeMap
-        .getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
-      LOG.debug("CustomizedViews customizedStateType: {} {}", customizedStateType,
-          _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
+    if (LOG.isDebugEnabled()) {
+      for (String customizedStateType : _sourceDataTypeMap
+          .getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
+        LOG.debug("CustomizedViews customizedStateType: {} {}", customizedStateType,
+            _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
+      }
     }
   }
 

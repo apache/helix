@@ -19,15 +19,20 @@ package org.apache.helix.metaclient.datamodel;
  * under the License.
  */
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * The DataRecord object is a wrapper around ZNRecord.
  * TODO: Create an interface to decouple DataRecord and have a pluggable record store.
  */
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class DataRecord extends ZNRecord {
   public DataRecord(String znodeId) {
     super(znodeId);
   }
-}
 
+  public DataRecord(ZNRecord record) {
+    super(record);
+  }
+}

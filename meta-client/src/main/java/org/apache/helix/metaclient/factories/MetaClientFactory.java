@@ -21,6 +21,9 @@ package org.apache.helix.metaclient.factories;
 
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +35,12 @@ public class MetaClientFactory {
   private static final Logger LOG = LoggerFactory.getLogger(MetaClientFactory.class);
 
   public MetaClientInterface getMetaClient(MetaClientConfig config) {
+    if (config.getStoreType() == MetaClientConfig.StoreType.ZOOKEEPER) {
+      ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
+          setConnectionAddress(config.getConnectionAddress())
+          .build();
+      return new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
+    }
     return null;
   }
 }

@@ -19,12 +19,12 @@ package org.apache.helix.spectator;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -139,13 +139,13 @@ class RoutingDataCache extends BasicClusterDataCache {
     LOG.info("END: RoutingDataCache.refresh() for cluster " + _clusterName + ", took " + (endTime
         - startTime) + " ms");
 
+    LOG.debug("CurrentStates: {}", _currentStateCache);
+    LOG.debug("TargetExternalViews: {}", _targetExternalViewCache.getExternalViewMap());
     if (LOG.isDebugEnabled()) {
-      LOG.debug("CurrentStates: " + _currentStateCache);
-      LOG.debug("TargetExternalViews: " + _targetExternalViewCache.getExternalViewMap());
-      for (String customizedStateType : _sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW,
-          Collections.emptyList())) {
-        LOG.debug("CustomizedViews customizedStateType: " + customizedStateType + " "
-            + _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
+      for (String customizedStateType : _sourceDataTypeMap
+          .getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
+        LOG.debug("CustomizedViews customizedStateType: {} {}", customizedStateType,
+            _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
       }
     }
   }

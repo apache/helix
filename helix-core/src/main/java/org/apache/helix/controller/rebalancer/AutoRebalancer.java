@@ -129,14 +129,12 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
     ZNRecord newMapping = _rebalanceStrategy
         .computePartitionAssignment(allNodes, liveNodes, currentMapping, clusterData);
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("currentMapping: " + currentMapping);
-      LOG.debug("stateCountMap: " + stateCountMap);
-      LOG.debug("liveNodes: " + liveNodes);
-      LOG.debug("allNodes: " + allNodes);
-      LOG.debug("maxPartition: " + maxPartition);
-      LOG.debug("newMapping: " + newMapping);
-    }
+    LOG.debug("currentMapping: {}", currentMapping);
+    LOG.debug("stateCountMap: {}", stateCountMap);
+    LOG.debug("liveNodes: {}", liveNodes);
+    LOG.debug("allNodes: {}", allNodes);
+    LOG.debug("maxPartition: {}", maxPartition);
+    LOG.debug("newMapping: {}", newMapping);
 
     IdealState newIdealState = new IdealState(resourceName);
     newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());

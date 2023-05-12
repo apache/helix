@@ -492,10 +492,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private List<String> subscribeChildChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
-      if (logger.isDebugEnabled()) {
         logger.debug("CallbackHandler {}, {} subscribes child-change. path: {} , listener: {}",
             _uid, _manager.getInstanceName(), path, _listener );
-      }
       // In the lifecycle of CallbackHandler, INIT is the first stage of registration of watch.
       // For some usage case such as current state, the path can be created later. Thus we would
       // install watch anyway event the path is not yet created.
@@ -530,10 +528,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private void subscribeDataChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
-      if (logger.isDebugEnabled()) {
         logger.debug("CallbackHandler {}, {} subscribe data-change. path: {}, listener: {}",
             _uid, _manager.getInstanceName(), path, _listener);
-      }
       boolean subStatus = _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
       logger.debug("CallbackHandler {} subscribe data path {} result {}", _uid, path, subStatus);
       if (!subStatus) {
@@ -664,9 +660,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleDataChange(String dataPath, Object data) {
-    if (logger.isDebugEnabled()) {
       logger.debug("Data change callbackhandler {}: paths changed: {}", _uid, dataPath);
-    }
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -687,9 +681,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleDataDeleted(String dataPath) {
-    if (logger.isDebugEnabled()) {
       logger.debug("Data change callbackhandler {}: path deleted: {}", _uid, dataPath);
-    }
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -714,10 +706,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) {
-    if (logger.isDebugEnabled()) {
       logger.debug("Data change callback: child changed, path: {} , current child count: {}",
           parentPath, currentChilds == null ? 0 : currentChilds.size());
-    }
 
     try {
       updateNotificationTime(System.nanoTime());

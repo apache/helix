@@ -135,11 +135,9 @@ public class BasicClusterDataCache implements ControlContextProvider {
         "END: BasicClusterDataCache.refresh() for cluster " + _clusterName + ", took " + (endTime
             - startTime) + " ms");
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("LiveInstances: {}", _liveInstancePropertyCache.getPropertyMap());
-      LOG.debug("ExternalViews: {}", _externalViewCache.getExternalViewMap().keySet());
-      LOG.debug("InstanceConfigs: {}", _instanceConfigPropertyCache.getPropertyMap());
-    }
+    LOG.debug("LiveInstances: {}", _liveInstancePropertyCache.getPropertyMap());
+    LOG.debug("ExternalViews: {}", _externalViewCache.getExternalViewMap().keySet());
+    LOG.debug("InstanceConfigs: {}", _instanceConfigPropertyCache.getPropertyMap());
   }
 
   /**

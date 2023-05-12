@@ -177,12 +177,8 @@ public class RebalanceUtil {
 
   public static void scheduleOnDemandPipeline(String clusterName, long delay,
       boolean shouldRefreshCache) {
-    if (clusterName == null) {
-      LOG.error("Failed to issue a pipeline run. ClusterName is null.");
-      return;
-    }
-    if (delay < 0L) {
-      LOG.error("Failed to issue a pipeline run. Delay is invalid.");
+    if (clusterName == null || delay < 0L) {
+      LOG.warn("Invalid input: [clusterName: {}, delay: {}], skip the pipeline issuing.", clusterName, delay);
       return;
     }
     GenericHelixController leaderController =

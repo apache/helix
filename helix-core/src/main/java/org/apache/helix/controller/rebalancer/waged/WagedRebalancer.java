@@ -312,13 +312,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         computeBestPossibleAssignment(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
     Map<String, IdealState> newIdealStates = convertResourceAssignment(clusterData, newBestPossibleAssignment);
 
-    // The additional rebalance overwrite is required since the calculated mapping may contain
-    // some delayed rebalanced assignments.
-    if (!activeNodes.equals(clusterData.getEnabledLiveInstances()) && requireRebalanceOverwrite(clusterData,
-        newBestPossibleAssignment)) {
-      applyRebalanceOverwrite(newIdealStates, clusterData, resourceMap,
-          _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet()), algorithm);
-    }
     // Replace the assignment if user-defined preference list is configured.
     // Note the user-defined list is intentionally applied to the final mapping after calculation.
     // This is to avoid persisting it into the assignment store, which impacts the long term
@@ -339,10 +332,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     // Perform global rebalance for a new baseline assignment
     _globalRebalanceRunner.globalRebalance(clusterData, resourceMap, currentStateOutput, algorithm);
     // Perform emergency rebalance for a new best possible assignment
-    Map<String, ResourceAssignment> newAssignment =
-        emergencyRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
-
-    return newAssignment;
+    return emergencyRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
   }
 
   /**
@@ -383,6 +373,69 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     return FAILURE_TYPES_TO_PROPAGATE;
   }
 
+  /**
+   * Some partition may fail to meet minActiveReplica due to delayed rebalance, because some instances are offline yet
+   * active. In this case, additional replicas have to be brought up -- until either the instance gets back, or timeout,
+   * at which we have a more permanent resolution.
+   * The term "overwrite" is inherited from historical approach, however, it's no longer technically an overwrite.
+   * It's a formal rebalance process that goes through the algorithm and all constraints.
+   * @param clusterData Cluster data cache
+   * @param resourceMap The map of resource to calculate
+   * @param activeNodes All active nodes (live nodes plus offline-yet-active nodes) while considering cluster's
+   *                    delayed rebalance config
+   * @param currentResourceAssignment The current resource assignment or the best possible assignment computed from last
+   *                           emergency rebalance.
+   * @param algorithm The rebalance algorithm
+   * @return The resource assignment with delayed rebalance minActiveReplica
+   */
+  private Map<String, ResourceAssignment> handleDelayedRebalanceMinActiveReplica(
+      ResourceControllerDataProvider clusterData,
+      Map<String, Resource> resourceMap,
+      Set<String> activeNodes,
+      Map<String, ResourceAssignment> currentResourceAssignment,
+      RebalanceAlgorithm algorithm) throws HelixRebalanceException {
+    // the "real" live nodes at the time
+    final Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+    if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
+      // no need for additional process, return the current resource assignment
+      return currentResourceAssignment;
+    }
+    _rebalanceOverwriteCounter.increment(1L);
+    _rebalanceOverwriteLatency.startMeasuringLatency();
+    LOG.info("Start delayed rebalance overwrites in emergency rebalance.");
+    try {
+      // use the "real" live and enabled instances for calculation
+      ClusterModel clusterModel = ClusterModelProvider.generateClusterModelForDelayedRebalanceOverwrites(
+          clusterData, resourceMap, enabledLiveInstances, currentResourceAssignment);
+      Map<String, ResourceAssignment> assignment = WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
+      // keep only the resource entries requiring changes for minActiveReplica
+      assignment.keySet().retainAll(clusterModel.getAssignableReplicaMap().keySet());
+      DelayedRebalanceUtil.mergeAssignments(assignment, currentResourceAssignment);
+      return currentResourceAssignment;
+    } catch (HelixRebalanceException e) {
+      LOG.error("Failed to compute for delayed rebalance overwrites in cluster {}", clusterData.getClusterName());
+      throw e;
+    } catch (Exception e) {
+      LOG.error("Failed to compute for delayed rebalance overwrites in cluster {}", clusterData.getClusterName());
+      throw new HelixRebalanceException("Failed to compute for delayed rebalance overwrites in cluster "
+          + clusterData.getClusterConfig(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, e);
+    } finally {
+      _rebalanceOverwriteLatency.endMeasuringLatency();
+    }
+  }
+
+  /**
+   * Emergency rebalance is scheduled to quickly handle urgent cases like reassigning partitions from inactive nodes
+   * and addressing for partitions failing to meet minActiveReplicas.
+   * The scope of the computation here should be limited to handling urgency only and shouldn't be blocking.
+   * @param clusterData Cluster data cache
+   * @param resourceMap resource map
+   * @param activeNodes All active nodes (live nodes plus offline-yet-active nodes) while considering cluster's
+   *                    delayed rebalance config
+   * @param currentStateOutput Current state output from pipeline
+   * @param algorithm The rebalance algorithm
+   * @return The new resource assignment
+   */
   protected Map<String, ResourceAssignment> emergencyRebalance(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       Set<String> activeNodes, final CurrentStateOutput currentStateOutput,
@@ -430,6 +483,17 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
     // Step 3: persist result to metadata store
     persistBestPossibleAssignment(newAssignment);
+
+    // Step 4: handle delayed rebalance minActiveReplica
+    // Note this result is one step branching from the main calculation and SHOULD NOT be persisted -- it is temporary,
+    // and only apply during the delayed window of those offline yet active nodes, a definitive resolution will happen
+    // once the node comes back of remain offline after the delayed window.
+    Map<String, ResourceAssignment> assignmentWithDelayedRebalanceAdjust = newAssignment;
+    if (_partialRebalanceRunner.isAsyncPartialRebalanceEnabled()) {
+      assignmentWithDelayedRebalanceAdjust =
+          handleDelayedRebalanceMinActiveReplica(clusterData, resourceMap, activeNodes, newAssignment, algorithm);
+    }
+
     _emergencyRebalanceLatency.endMeasuringLatency();
     LOG.info("Finish emergency rebalance");
 
@@ -438,9 +502,12 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       newAssignment = _assignmentManager.getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
           resourceMap.keySet());
       persistBestPossibleAssignment(newAssignment);
+      // delayed rebalance handling result is temporary, shouldn't be persisted
+      assignmentWithDelayedRebalanceAdjust =
+          handleDelayedRebalanceMinActiveReplica(clusterData, resourceMap, activeNodes, newAssignment, algorithm);
     }
 
-    return newAssignment;
+    return assignmentWithDelayedRebalanceAdjust;
   }
 
   // Generate the preference lists from the state mapping based on state priority.
@@ -561,65 +628,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     }));
 
     return !allMinActiveReplicaMet.get();
-  }
-
-  /**
-   * Update the rebalanced ideal states according to the real active nodes.
-   * Since the rebalancing might be done with the delayed logic, the rebalanced ideal states
-   * might include inactive nodes.
-   * This overwrite will adjust the final mapping, so as to ensure the result is completely valid.
-   * @param idealStateMap the calculated ideal states.
-   * @param clusterData the cluster data cache.
-   * @param resourceMap the rebalanaced resource map.
-   * @param baseline the baseline assignment.
-   * @param algorithm the rebalance algorithm.
-   */
-  protected void applyRebalanceOverwrite(Map<String, IdealState> idealStateMap,
-      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      Map<String, ResourceAssignment> baseline, RebalanceAlgorithm algorithm)
-      throws HelixRebalanceException {
-    _rebalanceOverwriteCounter.increment(1L);
-    _rebalanceOverwriteLatency.startMeasuringLatency();
-
-    ClusterModel clusterModel;
-    try {
-      // Note this calculation uses the baseline as the best possible assignment input here.
-      // This is for minimizing unnecessary partition movement.
-      clusterModel = ClusterModelProvider
-          .generateClusterModelFromExistingAssignment(clusterData, resourceMap, baseline);
-    } catch (Exception ex) {
-      throw new HelixRebalanceException(
-          "Failed to generate cluster model for delayed rebalance overwrite.",
-          HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
-    }
-    Map<String, IdealState> activeIdealStates =
-        convertResourceAssignment(clusterData, WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm));
-    for (String resourceName : idealStateMap.keySet()) {
-      // The new calculated ideal state before overwrite
-      IdealState newIdealState = idealStateMap.get(resourceName);
-      if (!activeIdealStates.containsKey(resourceName)) {
-        throw new HelixRebalanceException(
-            "Failed to calculate the complete partition assignment with all active nodes. Cannot find the resource assignment for "
-                + resourceName, HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-      }
-      // The ideal state that is calculated based on the real alive/enabled instances list
-      IdealState newActiveIdealState = activeIdealStates.get(resourceName);
-      // The current ideal state that exists in the IdealState znode
-      IdealState currentIdealState = clusterData.getIdealState(resourceName);
-      Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
-      int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
-      int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
-          .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),
-              currentIdealState), currentIdealState, numReplica);
-      Map<String, List<String>> finalPreferenceLists =
-          DelayedRebalanceUtil.getFinalDelayedMapping(newActiveIdealState.getPreferenceLists(),
-              newIdealState.getPreferenceLists(), enabledLiveInstances,
-              Math.min(minActiveReplica, numReplica));
-
-      newIdealState.setPreferenceLists(finalPreferenceLists);
-
-      _rebalanceOverwriteLatency.endMeasuringLatency();
-    }
   }
 
   private void applyUserDefinedPreferenceList(ResourceConfig resourceConfig,

@@ -111,9 +111,7 @@ public class HelixGroupCommit<T> {
                   continue;
                 }
                 merged = ent._updater.update(merged);
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("After merging processed entry. path: " + mergedKey + ", value: " + merged);
-                }
+                LOG.debug("After merging processed entry. path: {}, value: {}", mergedKey, merged);
               }
 
               // iterate over queue._pending for newly coming requests
@@ -125,9 +123,7 @@ public class HelixGroupCommit<T> {
                 }
                 processed.add(ent);
                 merged = ent._updater.update(merged);
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("After merging pending entry. path: " + mergedKey + ", value: " + merged);
-                }
+                LOG.debug("After merging processed entry. path: {}, value: {}", mergedKey, merged);
 
                 it.remove();
               }

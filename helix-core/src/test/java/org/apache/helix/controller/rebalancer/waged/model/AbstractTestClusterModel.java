@@ -40,7 +40,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeClass;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractTestClusterModel {
@@ -52,6 +52,7 @@ public abstract class AbstractTestClusterModel {
   protected Map<String, List<String>> _disabledPartitionsMap;
   protected List<String> _testInstanceTags;
   protected String _testFaultZoneId;
+  protected Set<String> _instances;
 
   @BeforeClass
   public void initialize() {
@@ -75,6 +76,8 @@ public abstract class AbstractTestClusterModel {
     _testInstanceTags = new ArrayList<>();
     _testInstanceTags.add("TestTag");
     _testFaultZoneId = "testZone";
+    _instances = new HashSet<>();
+    _instances.add(_testInstanceId);
   }
 
   protected InstanceConfig createMockInstanceConfig(String instanceId) {

@@ -33,6 +33,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
+
+import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
@@ -1532,8 +1535,7 @@ public class ZkClient implements Watcher {
       return;
     }
     int retryCount = 0;
-    ExponentialBackoffStrategy retryStrategy =
-        new ExponentialBackoffStrategy(MAX_RECONNECT_INTERVAL_MS, true);
+    long currTime = System.currentTimeMillis();
 
     Exception reconnectException = new ZkException("Shutdown triggered.");
     while (!isClosed()) {
@@ -1545,7 +1547,8 @@ public class ZkClient implements Watcher {
         break;
       } catch (Exception e) {
         reconnectException = e;
-        long waitInterval = retryStrategy.getNextWaitInterval(retryCount++);
+        long waitInterval = ExponentialBackoffStrategy.getWaitInterval(currTime,
+          MAX_RECONNECT_INTERVAL_MS, true, retryCount++);
         LOG.warn("ZkClient {}, reconnect on expiring failed. Will retry after {} ms",
             _uid, waitInterval, e);
         try {
@@ -1965,6 +1968,8 @@ public class ZkClient implements Watcher {
     if (_monitor != null) {
       _monitor.increaseOutstandingRequestGauge();
     }
+    int retryCount = 1;
+    long currTime = System.currentTimeMillis();
     try {
       while (true) {
         // Because ConnectionLossException and SessionExpiredException are caught but not thrown,
@@ -1988,12 +1993,14 @@ public class ZkClient implements Watcher {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Disconnected'
           Thread.yield();
-          waitForRetry();
+          waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
+            _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (SessionExpiredException e) {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Expired'
           Thread.yield();
-          waitForRetry();
+          waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
+            _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (ZkSessionMismatchedException e) {
           throw e;
         } catch (KeeperException e) {
@@ -2019,10 +2026,22 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void waitForRetry() {
-    waitUntilConnected(_operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS);
+  /**
+   * ZkClient may have lost the connection to the ZK but can be in cleanup 
+   * stage. Let us make sure that we wait even if the connection appears to 
+   * be connected.
+   */
+  private void waitForRetry(long maxSleep) {
+    if (waitUntilConnected(_operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS)) {
+      try {
+        Thread.sleep(maxSleep);
+      } catch (InterruptedException ex) {
+        // we don't need to re-throw.
+      }
+    }
   }
 
+  @VisibleForTesting
   public void setCurrentState(KeeperState currentState) {
     getEventLock().lock();
     try {

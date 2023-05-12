@@ -45,22 +45,13 @@ import org.apache.helix.model.ResourceConfig;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class TestClusterModelProvider extends AbstractTestClusterModel {
-  Set<String> _instances;
   Map<String, ResourceConfig> _resourceConfigMap = new HashMap<>();
-
-  @BeforeClass
-  public void initialize() {
-    super.initialize();
-    _instances = new HashSet<>();
-    _instances.add(_testInstanceId);
-  }
 
   @Override
   protected ResourceControllerDataProvider setupClusterDataCache() throws IOException {

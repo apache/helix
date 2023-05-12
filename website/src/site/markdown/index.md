@@ -77,9 +77,9 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 Apache Helix has a new release:
 
-* [1.0.4](./1.0.4-docs/index.html) - A release containing major feature of cross zookeeper view aggregation support
+* [1.2.0](./1.2.0-docs/index.html) - A release containing major feature of WAGED improvement and Java 11 bump up
 
-    [\[Quick Start\]](./1.0.4-docs/Quickstart.html) [\[Release Notes\]](./1.0.4-docs/releasenotes/release-1.0.4.html)
+    [\[Quick Start\]](./1.2.0-docs/Quickstart.html) [\[Release Notes\]](./1.2.0-docs/releasenotes/release-1.2.0.html)
 
 * [0.9.9](./0.9.9-docs/index.html) - A release with several critical bug fixing for 0.9 series release
 
@@ -87,7 +87,7 @@ Apache Helix has a new release:
 
 ### Download
 
-<a href="./1.0.4-docs/download.html" class="btn btn-primary btn-small">1.0.4</a>
+<a href="./1.2.0-docs/download.html" class="btn btn-primary btn-small">1.2.0</a>
 
 <a href="./0.9.9-docs/download.html" class="btn btn-primary btn-small">0.9.9</a>
 
@@ -97,17 +97,19 @@ Apache Helix has a new release:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>1.0.4</version>
+  <version>1.2.0</version>
 </dependency>
 ```
 
 ### Building
 
-Requirements: JDK 1.8+, Maven 3.6.0+
+Requirements: JDK 1.8+, Maven 3.6.0+ for 1.1.0 and below
+
+Requirements: JDK 11, Maven 3.6.0+ for 1.2.0+
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/helix.git
+git clone https://github.com/apache/helix.git
 cd helix
-git checkout helix-1.0.4
+git checkout helix-1.2.0
 mvn install package -DskipTests
 ```

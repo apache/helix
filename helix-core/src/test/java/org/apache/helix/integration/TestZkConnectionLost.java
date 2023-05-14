@@ -132,7 +132,7 @@ public class TestZkConnectionLost extends TaskTestBase {
     };
     try {
       testThread.start();
-      testThread.join(10000);
+      testThread.join();
       Assert.assertTrue(disconnected.get());
       Assert.assertFalse(controllerManager.isConnected());
     } finally {

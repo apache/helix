@@ -832,7 +832,7 @@ public class TestRawZkClient extends ZkTestBase {
       final boolean creationThreadTerminated = countDownLatch.await(10L, TimeUnit.SECONDS);
       if (!creationThreadTerminated) {
         running.set(false);
-        creationThread.join(5000L);
+        creationThread.join();
         Assert.fail("Failed to receive a ConnectionLossException after zookeeper has shutdown.");
       }
     } finally {
@@ -893,7 +893,7 @@ public class TestRawZkClient extends ZkTestBase {
     final boolean creationThreadTerminated = countDownLatch.await(10, TimeUnit.SECONDS);
     if (!creationThreadTerminated) {
       running.set(false);
-      creationThread.join(5000L);
+      creationThread.join();
       Assert.fail("Failed to reconnect to zk server and create ephemeral node"
           + " after zk server is recovered.");
     }
@@ -966,7 +966,7 @@ public class TestRawZkClient extends ZkTestBase {
     final boolean creationThreadTerminated = countDownLatch.await(10, TimeUnit.SECONDS);
     if (!creationThreadTerminated) {
       running.set(false);
-      creationThread.join(5000L);
+      creationThread.join();
       Assert.fail("Failed to reconnect to zk server and create ephemeral node"
           + " after zk server is recovered.");
     }

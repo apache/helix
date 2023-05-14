@@ -1968,7 +1968,7 @@ public class ZkClient implements Watcher {
     if (_monitor != null) {
       _monitor.increaseOutstandingRequestGauge();
     }
-    int retryCount = 1;
+    int retryCount = 0;
     long currTime = System.currentTimeMillis();
     try {
       while (true) {

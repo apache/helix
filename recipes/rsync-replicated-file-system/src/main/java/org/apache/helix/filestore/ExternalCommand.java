@@ -343,9 +343,7 @@ public class ExternalCommand {
     else
       cmd.waitFor(timeout);
 
-    if (LOG.isDebugEnabled())
-      LOG.debug(cmd.getStringOutput());
-
+    LOG.debug(cmd.getStringOutput());
     return cmd;
   }
 }

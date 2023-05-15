@@ -92,7 +92,7 @@ public class ZkEventThread extends Thread {
       while (!isInterrupted()) {
         ZkEvent zkEvent = _events.take();
         int eventId = _eventId.incrementAndGet();
-          LOG.debug("Delivering event # {} {}", eventId, zkEvent);
+        LOG.debug("Delivering event id:{} event: {}", eventId, zkEvent);
         try {
           zkEvent.run();
           _totalEventCountHandled ++;
@@ -103,7 +103,7 @@ public class ZkEventThread extends Thread {
         } catch (Throwable e) {
           LOG.error("Error handling event " + zkEvent, e);
         }
-        LOG.debug("Delivering event # {} done", eventId);
+        LOG.debug("Delivering event id: {} done", eventId);
       }
     } catch (InterruptedException e) {
       LOG.info("Terminate ZkClient event thread.");
@@ -114,9 +114,7 @@ public class ZkEventThread extends Thread {
 
   public void send(ZkEvent event) {
     if (!isInterrupted()) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("New event: " + event);
-      }
+      LOG.debug("New event: " + event);
       _events.add(event);
       _totalEventCount ++;
     }

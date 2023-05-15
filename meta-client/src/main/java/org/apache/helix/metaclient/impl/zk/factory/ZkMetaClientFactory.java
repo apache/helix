@@ -27,7 +27,7 @@ import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 public class ZkMetaClientFactory extends MetaClientFactory {
   @Override
   public MetaClientInterface getMetaClient(MetaClientConfig config) {
-    if (config.getStoreType() == MetaClientConfig.StoreType.ZOOKEEPER
+    if (config.getStoreType().equals(MetaClientConfig.StoreType.ZOOKEEPER)
         && config instanceof ZkMetaClientConfig) {
       return new ZkMetaClient((ZkMetaClientConfig) config);
     }

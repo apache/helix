@@ -62,7 +62,7 @@ public class LockClientTest extends ZkMetaClientTestBase {
 
     lockClient.releaseLock(key);
     Assert.assertNull(lockClient.retrieveLock(key));
-    Assert.assertTrue(lockClient.releaseLock(TEST_INVALID_PATH));
+    lockClient.releaseLock(TEST_INVALID_PATH);
   }
 
   @Test

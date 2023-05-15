@@ -37,7 +37,7 @@ public class LockClient implements LockClientInterface, AutoCloseable {
   private final MetaClientInterface<LockInfo> _metaClient;
 
   public LockClient(MetaClientConfig config) {
-    if (config.getStoreType() == MetaClientConfig.StoreType.ZOOKEEPER) {
+    if (config.getStoreType().equals(MetaClientConfig.StoreType.ZOOKEEPER)) {
       ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
           setConnectionAddress(config.getConnectionAddress())
           // Currently only support ZNRecordSerializer. TODO: make this configurable
@@ -56,25 +56,22 @@ public class LockClient implements LockClientInterface, AutoCloseable {
   }
 
   @Override
-  public boolean acquireLock(String key, LockInfo lockInfo, MetaClientInterface.EntryMode mode) {
+  public void acquireLock(String key, LockInfo lockInfo, MetaClientInterface.EntryMode mode) {
     _metaClient.create(key, lockInfo, mode);
-    return true;
   }
 
   @Override
-  public boolean acquireLockWithTTL(String key, LockInfo lockInfo, long ttl) {
+  public void acquireLockWithTTL(String key, LockInfo lockInfo, long ttl) {
     _metaClient.createWithTTL(key, lockInfo, ttl);
-    return true;
   }
 
   @Override
-  public boolean renewTTLLock(String key) {
+  public void renewTTLLock(String key) {
     _metaClient.renewTTLNode(key);
-    return true;
   }
 
   @Override
-  public boolean releaseLock(String key) {
+  public void releaseLock(String key) {
     MetaClientInterface.Stat stat = _metaClient.exists(key);
     if (stat != null) {
       int version = stat.getVersion();
@@ -86,7 +83,6 @@ public class LockClient implements LockClientInterface, AutoCloseable {
         throw new MetaClientException("Failed to release lock for key: " + key);
       }
     }
-    return true;
   }
 
   @Override

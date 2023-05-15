@@ -32,12 +32,13 @@ import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
 
 public class LockClient implements LockClientInterface, AutoCloseable {
   private final MetaClientInterface<LockInfo> _metaClient;
 
   public LockClient(MetaClientConfig config) {
-    if (!config.getStoreType().equals(MetaClientConfig.StoreType.ZOOKEEPER)) {
+    if (!MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
       throw new MetaClientException("Unsupported store type: " + config.getStoreType());
     }
     ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().

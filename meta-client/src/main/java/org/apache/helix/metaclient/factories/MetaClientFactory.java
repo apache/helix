@@ -35,7 +35,10 @@ public class MetaClientFactory {
   private static final Logger LOG = LoggerFactory.getLogger(MetaClientFactory.class);
 
   public MetaClientInterface getMetaClient(MetaClientConfig config) {
-    if (config.getStoreType().equals(MetaClientConfig.StoreType.ZOOKEEPER)) {
+    if (config == null) {
+      throw new IllegalArgumentException("MetaClientConfig cannot be null.");
+    }
+    if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
       ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
           setConnectionAddress(config.getConnectionAddress())
           .setMetaClientReconnectPolicy(config.getMetaClientReconnectPolicy())

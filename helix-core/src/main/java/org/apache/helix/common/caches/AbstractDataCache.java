@@ -96,10 +96,9 @@ public abstract class AbstractDataCache<T extends HelixProperty> {
       }
     }
 
-    LogUtil.logInfo(LOG, genEventInfo(), String.format("%s properties refreshed from ZK.", reloadKeys.size()));
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("refreshed keys: " + reloadKeys);
-    }
+    LogUtil.logInfo(LOG, genEventInfo(),
+        String.format("%s properties refreshed from ZK.", reloadKeys.size()));
+    LOG.debug("refreshed keys: {}", reloadKeys);
 
     return refreshedPropertyMap;
   }

@@ -185,12 +185,12 @@ public class ZkAsyncCallbacks {
 
     public void callback(int rc, String path, Object ctx) {
       if (rc != 0) {
-        LOG.debug(this + ", rc:" + Code.get(rc) + ", path: " + path);
+        LOG.debug(" {}, rc:{}, path {}", this, Code.get(rc), path);
       }
 
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
         ZkAsyncCallMonitorContext monitor = (ZkAsyncCallMonitorContext) ctx;
-        if(rc == 0) {
+        if (rc == 0) {
           monitor.recordAccess(path);
         } else {
           recordFailure(rc, path, monitor);

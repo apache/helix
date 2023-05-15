@@ -26,8 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.stream.Collectors;
+
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
@@ -269,20 +269,13 @@ public class DelayedRebalanceUtil {
 
     if (nextRebalanceTime == Long.MAX_VALUE) {
       long startTime = REBALANCE_SCHEDULER.removeScheduledRebalance(resourceName);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(String
-            .format("Remove exist rebalance timer for resource %s at %d\n", resourceName,
-                startTime));
-      }
+      LOG.debug("Remove exist rebalance timer for resource {} at {}", resourceName, startTime);
     } else {
       long currentScheduledTime = REBALANCE_SCHEDULER.getRebalanceTime(resourceName);
       if (currentScheduledTime < 0 || currentScheduledTime > nextRebalanceTime) {
         REBALANCE_SCHEDULER.scheduleRebalance(manager, resourceName, nextRebalanceTime);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(String
-              .format("Set next rebalance time for resource %s at time %d\n", resourceName,
-                  nextRebalanceTime));
-        }
+        LOG.debug("Set next rebalance time for resource {} at time {}", resourceName,
+            nextRebalanceTime);
       }
     }
   }

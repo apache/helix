@@ -793,13 +793,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public void connect() throws Exception {
-    LOG.info("ClusterManager.connect()");
     if (isConnected()) {
       LOG.warn("Cluster manager: " + _instanceName + " for cluster: " + _clusterName
           + " already connected. skip connect");
       return;
     }
 
+    LOG.info("Connecting cluster manager: " + _instanceName + " of instance type: " + _instanceType
+        + " for cluster: " + _clusterName);
     switch (_instanceType) {
     case CONTROLLER:
     case CONTROLLER_PARTICIPANT:

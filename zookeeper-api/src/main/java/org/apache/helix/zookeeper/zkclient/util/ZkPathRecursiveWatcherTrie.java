@@ -1,17 +1,5 @@
 package org.apache.helix.zookeeper.zkclient.util;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -31,6 +19,17 @@ import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 
 /**
  * ZkPathRecursiveWatcherTrie will be used as a registry of persistent recursive watchers.

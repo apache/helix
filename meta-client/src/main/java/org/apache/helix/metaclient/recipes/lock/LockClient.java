@@ -25,19 +25,26 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
-import org.apache.helix.metaclient.factories.MetaClientFactory;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
 
 public class LockClient implements LockClientInterface, AutoCloseable {
   private final MetaClientInterface<LockInfo> _metaClient;
+  //NEW_METACLIENT is used to indicate whether the metaClient is created by the LockClient or not.
+  private static Boolean NEW_METACLIENT = false;
+  private static final Logger LOG = LoggerFactory.getLogger(LockClient.class);
 
   public LockClient(MetaClientConfig config) {
+    if (config == null) {
+      throw new IllegalArgumentException("MetaClientConfig cannot be null.");
+    }
+    LOG.info("Creating MetaClient for LockClient");
     if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
       ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
           setConnectionAddress(config.getConnectionAddress())
@@ -46,13 +53,18 @@ public class LockClient implements LockClientInterface, AutoCloseable {
           .build();
       _metaClient = new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
       _metaClient.connect();
+      NEW_METACLIENT = true;
     } else {
       throw new MetaClientException("Unsupported store type: " + config.getStoreType());
     }
   }
 
   public LockClient(MetaClientInterface<LockInfo> client) {
+    if (client == null) {
+      throw new IllegalArgumentException("MetaClient cannot be null.");
+    }
     _metaClient = client;
+    LOG.info("Connecting to existing MetaClient for LockClient");
     _metaClient.connect();
   }
 
@@ -101,6 +113,11 @@ public class LockClient implements LockClientInterface, AutoCloseable {
 
   @Override
   public void close() {
+    if (NEW_METACLIENT) {
+      LOG.info("Closing created MetaClient for LockClient");
+    } else {
+      LOG.warn("Closing existing MetaClient");
+    }
     _metaClient.disconnect();
   }
 }

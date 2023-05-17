@@ -136,6 +136,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
   @AfterClass
   public void afterClass() throws Exception {
     System.out.println("Cleaning up...");
+    cleanupControllers();
     for (MockParticipantManager participant : _participants) {
       if (participant != null) {
         participant.syncStop();

@@ -38,16 +38,17 @@ public class LockClient implements LockClientInterface, AutoCloseable {
   private final MetaClientInterface<LockInfo> _metaClient;
 
   public LockClient(MetaClientConfig config) {
-    if (!MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
+    if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
+      ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
+          setConnectionAddress(config.getConnectionAddress())
+          // Currently only support ZNRecordSerializer. TODO: make this configurable
+          .setZkSerializer((new ZNRecordSerializer()))
+          .build();
+      _metaClient = new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
+      _metaClient.connect();
+    } else {
       throw new MetaClientException("Unsupported store type: " + config.getStoreType());
     }
-    ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
-        setConnectionAddress(config.getConnectionAddress())
-        // Currently only support ZNRecordSerializer. TODO: make this configurable
-        .setZkSerializer((new ZNRecordSerializer()))
-        .build();
-    _metaClient = new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
-    _metaClient.connect();
   }
 
   public LockClient(MetaClientInterface<LockInfo> client) {
@@ -94,10 +95,7 @@ public class LockClient implements LockClientInterface, AutoCloseable {
     //Create a new DataRecord from underlying record
     DataRecord dataRecord = new DataRecord(_metaClient.get(key));
     //Create a new LockInfo from DataRecord
-    LockInfo lockInfo = new LockInfo(dataRecord);
-    //Synchronize the lockInfo with the stat
-    lockInfo.setGrantedAt(stat.getCreationTime());
-    lockInfo.setLastRenewedAt(stat.getModifiedTime());
+    LockInfo lockInfo = new LockInfo(dataRecord, stat);
     return lockInfo;
   }
 

@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.recipes.lock;
  */
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 
 
@@ -81,6 +82,18 @@ public class LockInfo extends DataRecord {
       setLockInfoFields(lockId,ownerId, clientId, clientData, grantTime,
           lastRenewalTime, timeout);
     }
+  }
+
+  /**
+   * Initialize a LockInfo with a DataRecord and a Stat, set all info fields to default data
+   * @param dataRecord The dataRecord contains lock node data that used to initialize the LockInfo
+   * @param stat The stat of the lock node
+   */
+  public LockInfo(DataRecord dataRecord, MetaClientInterface.Stat stat) {
+    this(dataRecord);
+    //Synchronize the lockInfo with the stat
+    setGrantedAt(stat.getCreationTime());
+    setLastRenewedAt(stat.getModifiedTime());
   }
 
   /**

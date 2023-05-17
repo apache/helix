@@ -22,6 +22,9 @@ package org.apache.helix.metaclient.recipes.leaderelection;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 
 
+/**
+ * This is the data represent leader election info of a leader election path.
+ */
 public class LeaderInfo {
 
   private String  _leaderElectionGroupName;
@@ -35,7 +38,7 @@ public class LeaderInfo {
 
   public enum LeaderAttribute {
     LEADER_NAME,
-    PARTICIPANTS_LIST
+    PARTICIPANTS
   }
 
 

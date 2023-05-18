@@ -28,6 +28,8 @@ import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -105,6 +107,47 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
     }
     Assert.assertTrue(countDownLatch1.await(15000, TimeUnit.MILLISECONDS));
     Assert.assertTrue(countDownLatch2.await(15000, TimeUnit.MILLISECONDS));
+    zkClient.close();
+  }
+
+  @Test(dependsOnMethods = "testZkClientChildChange")
+  void testZkClientPersistRecursiveChange() throws Exception {
+    org.apache.helix.zookeeper.impl.client.ZkClient.Builder builder =
+        new org.apache.helix.zookeeper.impl.client.ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorRootPathOnly(false)
+        .setUsePersistWatcher(false);
+    org.apache.helix.zookeeper.impl.client.ZkClient zkClient = builder.build();
+    zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+    int count = 100;
+    final int[] event_count = {0};
+    final int[] event_count2 = {0};
+    CountDownLatch countDownLatch1 = new CountDownLatch(count);
+    CountDownLatch countDownLatch2 = new CountDownLatch(count/2);
+    String path = "/base/testZkClientChildChange";
+    RecursivePersistListener rcListener = new RecursivePersistListener() {
+      @Override
+      public void handleZNodeChange(String dataPath, Watcher.Event.EventType eventType)
+          throws Exception {
+        countDownLatch1.countDown();
+        event_count[0]++ ;
+        System.out.println("rcListener count " + event_count[0]);
+      }
+    };
+    IZkChildListener childListener2 = new IZkChildListener() {
+      @Override
+      public void handleChildChange(String parentPath, List<String> currentChilds)
+          throws Exception {
+        countDownLatch2.countDown();
+        event_count2[0]++;
+        System.out.println("childListener2 count " + event_count2[0]);
+      }
+    };
+    try {
+      zkClient.subscribePersistRecursiveWatcher(path, rcListener);
+    } catch (KeeperException.UnimplementedException e) {
+      e.printStackTrace();
+    }
+
     zkClient.close();
   }
 

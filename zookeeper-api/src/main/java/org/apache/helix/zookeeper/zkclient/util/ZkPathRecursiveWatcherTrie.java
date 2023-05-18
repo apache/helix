@@ -31,7 +31,6 @@ import java.util.stream.Stream;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 
-
 /**
  * ZkPathRecursiveWatcherTrie will be used as a registry of persistent recursive watchers.
  * When persist recursive watcher is registered on path /X, ZK will send out data change for any
@@ -139,14 +138,89 @@ public class ZkPathRecursiveWatcherTrie {
     if (path.isEmpty()) {
       throw new IllegalArgumentException("Empty path: " + path);
     }
-    final List<String>  pathComponents = split(path);
+    final List<String> pathComponents = split(path);
 
-    synchronized(this) {
+    synchronized (this) {
       TrieNode parent = _rootNode;
       for (final String part : pathComponents) {
-        parent = parent.getChildren().computeIfAbsent(part, (p)-> new TrieNode(part) );
+        parent = parent.getChildren().computeIfAbsent(part, TrieNode::new);
       }
       parent._recursiveListeners.add(listener);
+    }
+  }
+
+  public Set<RecursivePersistListener> getAllRecursiveListeners(String path) {
+    Objects.requireNonNull(path, "Path cannot be null");
+
+    final List<String> pathComponents = split(path);
+    Set<RecursivePersistListener> result = new HashSet<>();
+    synchronized (this) {
+      TrieNode cur = _rootNode;
+      for (final String element : pathComponents) {
+        cur = cur.getChild(element);
+        if (cur == null) {
+          break;
+        }
+        result.addAll(cur.getRecursiveListeners());
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Removing a RecursivePersistWatcherListener on a path.
+   *
+   * Delete a path from the nearest trie node to current node if this is the only listener and there
+   * is no child on the trie node.
+   *
+   * @param path the of the lister registered
+   * @param listener the RecursivePersistListener to be removed
+   */
+  public void removeRecursiveListener(final String path, RecursivePersistListener listener) {
+    Objects.requireNonNull(path, "Path cannot be null");
+
+    if (path.length() == 0) {
+      throw new IllegalArgumentException("Invalid path: " + path);
+    }
+    final List<String> pathComponents = split(path);
+
+    synchronized (this) {
+      TrieNode cur = _rootNode;
+      TrieNode highestNodeForDelete =
+          null; // track the highest node that from that node to leaf node.
+      TrieNode prevDeletable = _rootNode;
+      for (final String part : pathComponents) {
+        cur = cur.getChild(part);
+        if (cur == null) {
+          return;
+        }
+        // Every time when we move down one level of trie node, 3 pointers may be updated.
+        // highestNodeForDelete, prev of highestNodeForDelete and cur TrieNode.
+        // we invalidate `highestNodeForDelete` when cur node is non leaf node but has more than one
+        // children or listener, or it is leaf node and has more than one listener.
+
+        boolean candidateToDelete =
+            (cur.getChildren().size() == 1 && cur.getRecursiveListeners().isEmpty()) || (
+                cur.getChildren().isEmpty() && cur.getRecursiveListeners().size() == 1 && cur
+                    .getRecursiveListeners().contains(listener));
+        if (candidateToDelete) {
+          if (highestNodeForDelete == null) {
+            highestNodeForDelete = cur;
+          }
+        } else {
+          prevDeletable = cur;
+          highestNodeForDelete = null;
+        }
+      }
+      if (!cur.getRecursiveListeners().contains(listener)) {
+        return;
+      }
+      cur.getRecursiveListeners().remove(listener);
+
+      if (highestNodeForDelete != null) {
+        prevDeletable.getChildren().remove(highestNodeForDelete.getValue());
+      }
     }
   }
 

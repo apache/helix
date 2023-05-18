@@ -460,4 +460,9 @@ public class CurrentStateOutput {
 
     return currentStateAssignment;
   }
+
+
+  public Map<String, Map<Partition, Map<String, Message>>> getPendingMessages() {
+    return _pendingMessageMap;
+  }
 }

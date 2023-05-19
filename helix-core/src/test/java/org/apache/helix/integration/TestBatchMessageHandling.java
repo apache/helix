@@ -93,20 +93,25 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Thread.sleep(2000L);
 
-    int numOfOnlines = 0;
-    int numOfErrors = 0;
-    ExternalView externalView =
-        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
-    for (String partition : externalView.getPartitionSet()) {
-      if (externalView.getStateMap(partition).values().contains("ONLINE")) {
-        numOfOnlines++;
+    result = TestHelper.verify(() -> {
+      int numOfOnlines = 0;
+      int numOfErrors = 0;
+      ExternalView externalView =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
+      for (String partition : externalView.getPartitionSet()) {
+        if (externalView.getStateMap(partition).values().contains("ONLINE")) {
+          numOfOnlines++;
+        }
+        if (externalView.getStateMap(partition).values().contains("ERROR")) {
+          numOfErrors++;
+        }
       }
-      if (externalView.getStateMap(partition).values().contains("ERROR")) {
-        numOfErrors++;
-      }
-    }
-    Assert.assertEquals(numOfErrors, 4);
-    Assert.assertEquals(numOfOnlines, 6);
+      if (numOfErrors == 4 && numOfOnlines == 6) {
+        return true;
+      } 
+      return false;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
   }
 
   public static class TestOnlineOfflineStateModelFactory

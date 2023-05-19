@@ -62,7 +62,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
    * This is required as non-WAGED partitions will be placed on same instance and we don't know their actual capacity.
    * This will generate default values of 0 for all the capacity keys.
    */
-  public Map<String, Integer> createDefaultParticipantWeight() {
+  private Map<String, Integer> createDefaultParticipantWeight() {
     // copy the value of first Instance capacity.
     Map<String, Integer> partCapacity = new HashMap<>(_perInstance.values().iterator().next());
 
@@ -124,40 +124,36 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
    * @param instanceName - instance name to query
    * @return Map<String, Integer> - capacity pair for all defined attributes for the instance.
    */
+  @Override
   public Map<String, Integer> getInstanceAvailableCapacity(String instanceName) {
     return _perInstance.get(instanceName);
   }
 
+  @Override
   public boolean isInstanceCapacityAvailable(String instance, Map<String, Integer> partitionCapacity) {
     Map<String, Integer> instanceCapacity = _perInstance.get(instance);
     for (String key : instanceCapacity.keySet()) {
-      if (partitionCapacity.containsKey(key)) {
-        Integer partCapacity = partitionCapacity.get(key);
-        if (partCapacity != 0 && instanceCapacity.get(key) < partCapacity) {
-          return false;
-        }
+      Integer partCapacity = partitionCapacity.getOrDefault(key, 0);
+      if (partCapacity != 0 && instanceCapacity.get(key) < partCapacity) {
+        return false;
       }
     }
     return true;
   }
 
+  @Override
   public boolean reduceAvailableInstanceCapacity(String instance, Map<String, Integer> partitionCapacity) {
     Map<String, Integer> instanceCapacity = _perInstance.get(instance);
-    boolean modified = false;
     for (String key : instanceCapacity.keySet()) {
       if (partitionCapacity.containsKey(key)) {
-        Integer partCapacity = partitionCapacity.get(key);
+        Integer partCapacity = partitionCapacity.getOrDefault(key, 0);
         if (partCapacity != 0 && instanceCapacity.get(key) < partCapacity) {
           return false;
         }
         if (partCapacity != 0) {
           instanceCapacity.put(key, instanceCapacity.get(key) - partCapacity);
-          modified = true;
         }
       }
-    }
-    if (modified) {
-      _perInstance.put(instance, instanceCapacity);
     }
     return true;
   }

@@ -36,6 +36,11 @@ import org.apache.helix.metaclient.factories.MetaClientConfig;
  * LeaderElection client maintains an active leader, by monitoring liveness of current leader and
  * re-elect if needed and user no need to call elect or re-elect explicitly.
  * This LeaderElection client will notify registered listeners for any leadership change.
+ *
+ * One client is created per each participant(host). One participant can join multiple leader
+ * election groups using the same client.
+ * When the client is used by a leader election service, one client is created for each participant.
+ *
  */
 public class LeaderElectionClient {
 
@@ -47,7 +52,7 @@ public class LeaderElectionClient {
    *
    * @param metaClientConfig The config used to create an metaclient.
    */
-  public LeaderElectionClient(MetaClientConfig metaClientConfig) {
+  public LeaderElectionClient(MetaClientConfig metaClientConfig, String participant) {
 
   }
 
@@ -58,14 +63,14 @@ public class LeaderElectionClient {
    *
    * @param metaClient metaClient object to be used.
    */
-  public LeaderElectionClient(MetaClientInterface metaClient) {
+  public LeaderElectionClient(MetaClientInterface metaClient, String participant) {
 
   }
 
   /**
    * Returns true if current participant is the current leadership.
    */
-  public boolean isLeader(String leaderPath, String participant) {
+  public boolean isLeader(String leaderPath) {
     return false;
   }
 
@@ -74,10 +79,9 @@ public class LeaderElectionClient {
    * The Leader Election client maintains and elect an active leader from the participant pool.
    *
    * @param leaderPath The path for leader election.
-   * @param participant The participant name to join pool.
    * @return boolean indicating if the operation is succeeded.
    */
-  public boolean joinLeaderElectionParticipantPool(String leaderPath, String participant) {
+  public boolean joinLeaderElectionParticipantPool(String leaderPath) {
     return false;
   }
 
@@ -86,12 +90,10 @@ public class LeaderElectionClient {
    * The Leader Election client maintains and elect an active leader from the participant pool.
    *
    * @param leaderPath The path for leader election.
-   * @param participant The participant name to join pool.
    * @param userInfo Any additional information to associate with this participant.
    * @return boolean indicating if the operation is succeeded.
    */
-  public boolean joinLeaderElectionParticipantPool(String leaderPath, String participant,
-      Object userInfo) {
+  public boolean joinLeaderElectionParticipantPool(String leaderPath, Object userInfo) {
     return false;
   }
 
@@ -104,12 +106,11 @@ public class LeaderElectionClient {
    * Throws exception if the participant is not in the pool.
    *
    * @param leaderPath The path for leader election.
-   * @param participant The participant name to exit pool
    * @return boolean indicating if the operation is succeeded.
    *
    * @throws RuntimeException If the participant did not join participant pool via this client. // TODO: define exp type
    */
-  public boolean exitLeaderElectionParticipantPool(String leaderPath, String participant) {
+  public boolean exitLeaderElectionParticipantPool(String leaderPath) {
     return false;
   }
 
@@ -117,12 +118,11 @@ public class LeaderElectionClient {
    * Releases leadership for participant.
    *
    * @param leaderPath The path for leader election.
-   * @param participant The participant to release leadership.
    *
    * @throws RuntimeException if the leadership is not owned by this participant, or if the
    *                          participant did not join participant pool via this client. // TODO: define exp type
    */
-  public void relinquishLeader(String leaderPath, String participant) {
+  public void relinquishLeader(String leaderPath) {
   }
 
   /**

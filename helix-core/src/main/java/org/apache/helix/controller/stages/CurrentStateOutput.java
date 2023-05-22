@@ -463,6 +463,6 @@ public class CurrentStateOutput {
 
 
   public Map<String, Map<Partition, Map<String, Message>>> getPendingMessages() {
-    return _pendingMessageMap;
+    return Collections.unmodifiableMap(_pendingMessageMap);
   }
 }

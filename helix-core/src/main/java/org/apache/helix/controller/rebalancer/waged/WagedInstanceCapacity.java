@@ -41,18 +41,18 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
   private static final Logger LOG = LoggerFactory.getLogger(WagedInstanceCapacity.class);
 
   // Available Capacity per Instance
-  private Map<String, Map<String, Integer>> _perInstance;
-  private ResourceControllerDataProvider _cache;
+  private final Map<String, Map<String, Integer>> _instanceCapacityMap;
+  private final ResourceControllerDataProvider _cache;
 
   public WagedInstanceCapacity(ResourceControllerDataProvider clusterData) {
     _cache = clusterData;
-    _perInstance = new HashMap<>();
+    _instanceCapacityMap = new HashMap<>();
 
     ClusterConfig clusterConfig = _cache.getClusterConfig();
     for (InstanceConfig instanceConfig : _cache.getInstanceConfigMap().values()) {
       Map<String, Integer> instanceCapacity =
         WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
-      _perInstance.put(instanceConfig.getInstanceName(), instanceCapacity);
+      _instanceCapacityMap.put(instanceConfig.getInstanceName(), instanceCapacity);
     }
   }
 
@@ -64,11 +64,11 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
    */
   private Map<String, Integer> createDefaultParticipantWeight() {
     // copy the value of first Instance capacity.
-    Map<String, Integer> partCapacity = new HashMap<>(_perInstance.values().iterator().next());
+    Map<String, Integer> partCapacity = new HashMap<>(_instanceCapacityMap.values().iterator().next());
 
-    // reset the value of all capacity to 0.
+    // Set the value of all capacity to -1.
     for (String key : partCapacity.keySet()) {
-      partCapacity.put(key, 0);
+      partCapacity.put(key, -1);
     }
     return partCapacity;
   }
@@ -79,7 +79,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
    */
   public void processPendingMessages(CurrentStateOutput currentState) {
     Map<String, Map<Partition, Map<String, Message>>> pendingMsgs = currentState.getPendingMessages();
-    
+
     for (String resource : pendingMsgs.keySet()) {
       Map<Partition, Map<String, Message>> partitionMsgs = pendingMsgs.get(resource);
 
@@ -126,14 +126,14 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
    */
   @Override
   public Map<String, Integer> getInstanceAvailableCapacity(String instanceName) {
-    return _perInstance.get(instanceName);
+    return _instanceCapacityMap.get(instanceName);
   }
 
   @Override
   public boolean isInstanceCapacityAvailable(String instance, Map<String, Integer> partitionCapacity) {
-    Map<String, Integer> instanceCapacity = _perInstance.get(instance);
+    Map<String, Integer> instanceCapacity = _instanceCapacityMap.get(instance);
     for (String key : instanceCapacity.keySet()) {
-      Integer partCapacity = partitionCapacity.getOrDefault(key, 0);
+      int partCapacity = partitionCapacity.getOrDefault(key, 0);
       if (partCapacity != 0 && instanceCapacity.get(key) < partCapacity) {
         return false;
       }
@@ -143,10 +143,10 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
 
   @Override
   public boolean reduceAvailableInstanceCapacity(String instance, Map<String, Integer> partitionCapacity) {
-    Map<String, Integer> instanceCapacity = _perInstance.get(instance);
+    Map<String, Integer> instanceCapacity = _instanceCapacityMap.get(instance);
     for (String key : instanceCapacity.keySet()) {
       if (partitionCapacity.containsKey(key)) {
-        Integer partCapacity = partitionCapacity.getOrDefault(key, 0);
+        int partCapacity = partitionCapacity.getOrDefault(key, 0);
         if (partCapacity != 0 && instanceCapacity.get(key) < partCapacity) {
           return false;
         }

@@ -494,6 +494,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         || callbackType == NotificationContext.Type.CALLBACK) {
         logger.debug("CallbackHandler {}, {} subscribes child-change. path: {} , listener: {}",
             _uid, _manager.getInstanceName(), path, _listener );
+
       // In the lifecycle of CallbackHandler, INIT is the first stage of registration of watch.
       // For some usage case such as current state, the path can be created later. Thus we would
       // install watch anyway event the path is not yet created.
@@ -506,9 +507,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           _zkClient.subscribeChildChanges(path, this, callbackType != Type.INIT);
       logger.debug("CallbackHandler {} subscribe data path {} result {}", _uid, path,
           childrenSubscribeResult.isInstalled());
+
       if (!childrenSubscribeResult.isInstalled()) {
         logger.info("CallbackHandler {} subscribe data path {} failed!", _uid, path);
       }
+
       // getChildren() might be null: when path doesn't exist.
       return childrenSubscribeResult.getChildren();
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
@@ -528,7 +531,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private void subscribeDataChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
-        logger.debug("CallbackHandler {}, {} subscribe data-change. path: {}, listener: {}",
+
+      logger.debug("CallbackHandler {}, {} subscribe data-change. path: {}, listener: {}",
             _uid, _manager.getInstanceName(), path, _listener);
       boolean subStatus = _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
       logger.debug("CallbackHandler {} subscribe data path {} result {}", _uid, path, subStatus);
@@ -545,6 +549,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   private void subscribeForChanges(NotificationContext.Type callbackType, String path,
       boolean watchChild) {
+
     logger.info("CallbackHandler {} subscribing changes listener to path: {}, callback type: {}, "
             + "event types: {}, listener: {}, watchChild: {}",
         _uid, path, callbackType, _eventTypes, _listener, watchChild);
@@ -660,7 +665,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleDataChange(String dataPath, Object data) {
-      logger.debug("Data change callbackhandler {}: paths changed: {}", _uid, dataPath);
+    logger.debug("Data change callbackhandler {}: paths changed: {}", _uid, dataPath);
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -681,7 +686,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleDataDeleted(String dataPath) {
-      logger.debug("Data change callbackhandler {}: path deleted: {}", _uid, dataPath);
+    logger.debug("Data change callbackhandler {}: path deleted: {}", _uid, dataPath);
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -706,7 +711,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) {
-      logger.debug("Data change callback: child changed, path: {} , current child count: {}",
+    logger.debug("Data change callback: child changed, path: {} , current child count: {}",
           parentPath, currentChilds == null ? 0 : currentChilds.size());
 
     try {
@@ -747,7 +752,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     reset(true);
   }
 
-  void reset(boolean isShutdown) {
+  public void reset(boolean isShutdown) {
     logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", _uid, isShutdown);
     try {
       _ready = false;
@@ -766,8 +771,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       changeContext.setChangeType(_changeType);
       invoke(changeContext);
     } catch (Exception e) {
-      String msg = "Exception while resetting the listener:" + _listener;
-      ZKExceptionHandler.getInstance().handle(msg, e);
+      ZKExceptionHandler.getInstance().handle("Exception while resetting the listener:" + _listener, e);
     }
   }
 
@@ -788,9 +792,23 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   public String getContent() {
-    return "CallbackHandler{" + "_watchChild=" + _watchChild + ", _preFetchEnabled="
-        + _preFetchEnabled + ", _batchModeEnabled=" + _batchModeEnabled + ", _path='" + _path + '\''
-        + ", _listener=" + _listener + ", _changeType=" + _changeType + ", _manager=" + _manager
-        + ", _zkClient=" + _zkClient + '}';
+    StringBuilder sb = new StringBuilder("iCallbackHandler{_watchChild=");
+    sb.append(_watchChild);
+    sb.append(", _preFetchEnabled=");
+    sb.append(_preFetchEnabled);
+    sb.append(", _batchModeEnabled=");
+    sb.append(_batchModeEnabled);
+    sb.append(", _path='");
+    sb.append(_path);
+    sb.append("', _listener=");
+    sb.append(_listener);
+    sb.append(", _changeType=");
+    sb.append(_changeType);
+    sb.append(", _manager=");
+    sb.append(_manager);
+    sb.append(", _zkClient=");
+    sb.append(_zkClient);
+    sb.append("}");
+    return sb.toString();
   }
 }

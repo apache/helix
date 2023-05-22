@@ -27,27 +27,31 @@ public interface LockClientInterface {
    * @param key key to identify the entry
    * @param info Metadata of the lock
    * @param mode EntryMode identifying if the entry will be deleted upon client disconnect
-   *             (Persistent, Ephemeral, or TTL)
-   * @return True if the lock is acquired. Raises exception if fails.
+   *             (Persistent, Ephemeral, or Container)
    */
-  boolean acquireLock(String key, LockInfo info, MetaClientInterface.EntryMode mode);
+  void acquireLock(String key, LockInfo info, MetaClientInterface.EntryMode mode);
+
+  /**
+   * Acquires a lock at key with a TTL. The lock will be deleted after the TTL.
+   * @param key key to identify the entry
+   * @param info Metadata of the lock
+   * @param ttl Time to live in milliseconds
+   */
+  void acquireLockWithTTL(String key, LockInfo info, long ttl);
 
   /**
    * Renews lock for a TTL Node.
    * Will fail if key is an invalid path or isn't of type TTL.
    * @param key key to identify the entry
-   * @return True if the lock was renewed. Raises exception if fails.
    */
-  boolean renewTTLLock(String key);
+  void renewTTLLock(String key);
 
   /**
    * Releases the lock.
    * Will fail if key is an invalid path.
    * @param key key to identify the entry
-   * @return True if the lock was released or the lock had already been released.
-   * Raises exception if fails.
    */
-  boolean releaseLock(String key);
+  void releaseLock(String key);
 
   /**
    * Obtains the metadata of a lock (the LockInfo).

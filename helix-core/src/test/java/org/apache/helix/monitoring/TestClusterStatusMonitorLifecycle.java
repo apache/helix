@@ -37,20 +37,12 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.apache.logging.log4j.Level.ERROR;
-import static org.apache.logging.log4j.Level.INFO;
-
 public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
-  public static final String HELIX_LOGGER_NAME = "org.apache.helix";
   MockParticipantManager[] _participants;
   ClusterDistributedController[] _controllers;
   String _controllerClusterName;
@@ -63,8 +55,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    // enabling info level for helix logs to help with debugging
-    updateLog4jLevel(INFO, HELIX_LOGGER_NAME);
     String className = TestHelper.getTestClassName();
     _clusterNamePrefix = className;
 
@@ -101,7 +91,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
         "LeaderStandby", true); // do rebalance
 
     // start distributed cluster controllers
-    _controllers = new ClusterDistributedController[n + n];
+    _controllers = new ClusterDistributedController[n];
     for (int i = 0; i < n; i++) {
       _controllers[i] =
           new ClusterDistributedController(ZK_ADDR, _controllerClusterName, "controller_" + i);
@@ -129,24 +119,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
         new BestPossibleExternalViewVerifier.Builder(_firstClusterName).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
-    Assert.assertTrue(firstClusterVerifier.verifyByPolling(), "first cluster NOT in ideal state");
-
-    // add more controllers to controller cluster
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    for (int i = 0; i < n; i++) {
-      String controller = "controller_" + (n + i);
-      setupTool.addInstanceToCluster(_controllerClusterName, controller);
-    }
-    setupTool.rebalanceStorageCluster(_controllerClusterName, _clusterNamePrefix + "0", 6);
-    for (int i = n; i < 2 * n; i++) {
-      _controllers[i] =
-          new ClusterDistributedController(ZK_ADDR, _controllerClusterName, "controller_" + i);
-      _controllers[i].syncStart();
-    }
-
-    // verify controller cluster
-    Assert.assertTrue(controllerClusterVerifier.verifyByPolling(),
-        "Controller cluster NOT in ideal state");
 
     // verify first cluster
     Assert.assertTrue(firstClusterVerifier.verifyByPolling(), "first cluster NOT in ideal state");
@@ -164,17 +136,12 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
   @AfterClass
   public void afterClass() throws Exception {
     System.out.println("Cleaning up...");
-    for (int i = 0; i < 2 * n; i++) {
-      if (_controllers[i] != null) {
-        _controllers[i].syncStop();
-      }
-    }
+    cleanupControllers();
     for (MockParticipantManager participant : _participants) {
       if (participant != null) {
         participant.syncStop();
       }
     }
-    cleanupControllers();
     deleteCluster(_controllerClusterName);
 
     for (String cluster : _clusters) {
@@ -182,28 +149,29 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     }
 
     System.out.println("END " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
-    // restoring error level for helix logs
-    updateLog4jLevel(ERROR, HELIX_LOGGER_NAME);
-  }
-
-  private void cleanupControllers() {
-    for (ClusterDistributedController controller : _controllers) {
-      controller.syncStop();
-    }
   }
 
   /**
-   * Updates the log level for the specified logger.
-   * @param level Log level to update.
-   * @param loggerName Name of the logger for which the level will be updated.
+   * Disconnects all the controllers one by one.
+   * NOTE: Invoking this method multiple times won't disconnect the controllers multiple times.
    */
-  private void updateLog4jLevel(org.apache.logging.log4j.Level level, String loggerName) {
-    LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
-    Configuration config = ctx.getConfiguration();
-    LoggerConfig loggerConfig =
-        config.getLoggerConfig(String.valueOf(LogManager.getLogger(loggerName)));
-    loggerConfig.setLevel(level);
-    ctx.updateLoggers();
+  private void cleanupControllers() {
+    for (int i = 0; i < n; i++) {
+      ClusterDistributedController controller = _controllers[i];
+      if (controller != null) {
+        ZkHelixClusterVerifier controllerClusterVerifier =
+            new BestPossibleExternalViewVerifier.Builder(controller.getClusterName()).setZkClient(
+                    _gZkClient).setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+                .build();
+        Assert.assertTrue(controllerClusterVerifier.verifyByPolling(),
+            "Controller cluster NOT in ideal state");
+        System.out.println(String.format("Disconnecting controller %s from cluster %s at %s",
+            controller.getInstanceName(), controller.getClusterName(),
+            new Date(System.currentTimeMillis())));
+        controller.syncStop();
+        _controllers[i] = null;
+      }
+    }
   }
 
   @Test

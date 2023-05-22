@@ -114,6 +114,8 @@ public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyS
   public void reset() {
     synchronized (_controllerOpt) {
       if (_controllerOpt.isPresent()) {
+        logger.info("Disconnecting controller: " + _controllerOpt.get().getInstanceName() + " for "
+            + _controllerOpt.get().getClusterName());
         _controllerOpt.get().disconnect();
         _controllerOpt = Optional.empty();
       }

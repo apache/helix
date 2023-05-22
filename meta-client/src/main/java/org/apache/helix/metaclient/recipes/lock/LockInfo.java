@@ -19,16 +19,16 @@ package org.apache.helix.metaclient.recipes.lock;
  * under the License.
  */
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 
 
 /**
  * This structure represents a Lock node information, implemented using DataRecord
  */
-public class LockInfo {
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+public class LockInfo extends DataRecord {
 
   // Default values for each attribute if there are no current values set by user
   public static final String DEFAULT_LOCK_ID_TEXT = "";
@@ -37,9 +37,9 @@ public class LockInfo {
   public static final String DEFAULT_CLIENT_DATA = "";
   public static final long DEFAULT_GRANTED_AT_LONG = -1L;
   public static final long DEFAULT_LAST_RENEWED_AT_LONG = -1L;
-  public static final Duration DEFAULT_TIMEOUT_DURATION = Duration.ofMillis(-1L);
-  private static final String ZNODE_ID = "LOCK";
-  private final DataRecord _record;
+  public static final long DEFAULT_TIMEOUT_DURATION = -1L;
+  private static final String DEFAULT_LOCK_INFO = "lockInfo.";
+  private DataRecord _dataRecord;
 
   /**
    * The keys to lock information
@@ -57,14 +57,15 @@ public class LockInfo {
   /**
    * Initialize a default LockInfo instance
    */
-  private LockInfo() {
-    _record = new DataRecord(ZNODE_ID);
+  public LockInfo() {
+    super(DEFAULT_LOCK_INFO);
+    _dataRecord = new DataRecord(DEFAULT_LOCK_INFO);
     setLockInfoFields(DEFAULT_LOCK_ID_TEXT, DEFAULT_OWNER_ID_TEXT, DEFAULT_CLIENT_ID_TEXT, DEFAULT_CLIENT_DATA, DEFAULT_GRANTED_AT_LONG,
         DEFAULT_LAST_RENEWED_AT_LONG, DEFAULT_TIMEOUT_DURATION);
   }
 
   /**
-   * Initialize a LockInfo with a ZNRecord, set all info fields to default data
+   * Initialize a LockInfo with a DataRecord, set all info fields to default data
    * @param dataRecord The dataRecord contains lock node data that used to initialize the LockInfo
    */
   public LockInfo(DataRecord dataRecord) {
@@ -77,11 +78,22 @@ public class LockInfo {
       long grantTime = dataRecord.getLongField(LockInfoAttribute.GRANTED_AT.name(), DEFAULT_GRANTED_AT_LONG);
       long lastRenewalTime =
           dataRecord.getLongField(LockInfoAttribute.LAST_RENEWED_AT.name(), DEFAULT_LAST_RENEWED_AT_LONG);
-      long timeout = dataRecord.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_DURATION.toMillis());
-      Duration duration = Duration.of(timeout, ChronoUnit.MILLIS);
+      long timeout = dataRecord.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_DURATION);
       setLockInfoFields(lockId,ownerId, clientId, clientData, grantTime,
-          lastRenewalTime, duration);
+          lastRenewalTime, timeout);
     }
+  }
+
+  /**
+   * Initialize a LockInfo with a DataRecord and a Stat, set all info fields to default data
+   * @param dataRecord The dataRecord contains lock node data that used to initialize the LockInfo
+   * @param stat The stat of the lock node
+   */
+  public LockInfo(DataRecord dataRecord, MetaClientInterface.Stat stat) {
+    this(dataRecord);
+    //Synchronize the lockInfo with the stat
+    setGrantedAt(stat.getCreationTime());
+    setLastRenewedAt(stat.getModifiedTime());
   }
 
   /**
@@ -95,7 +107,7 @@ public class LockInfo {
    * @param timeout value of TIMEOUT attribute
    */
   public LockInfo(String lockId, String ownerId, String clientId,
-                  String clientData, long grantTime, long lastRenewalTime, Duration timeout) {
+                  String clientData, long grantTime, long lastRenewalTime, long timeout) {
     this();
     setLockInfoFields(lockId, ownerId, clientId, clientData, grantTime, lastRenewalTime, timeout);
   }
@@ -112,7 +124,7 @@ public class LockInfo {
    * @param timeout value of TIMEOUT attribute
    */
   private void setLockInfoFields(String lockId, String ownerId, String clientId, String clientData, long grantTime, long lastRenewalTime,
-                                 Duration timeout) {
+                                 long timeout) {
     setLockId(lockId);
     setOwnerId(ownerId);
     setClientId(clientId);
@@ -128,7 +140,7 @@ public class LockInfo {
    *               It is created by the lockClient and a new one is created for each time the lock is acquired.
    */
   public void setLockId(String lockId) {
-    _record.setSimpleField(LockInfoAttribute.LOCK_ID.name(), lockId == null ? DEFAULT_LOCK_ID_TEXT : lockId);
+    _dataRecord.setSimpleField(LockInfoAttribute.LOCK_ID.name(), lockId == null ? DEFAULT_LOCK_ID_TEXT : lockId);
   }
 
   /**
@@ -138,7 +150,7 @@ public class LockInfo {
    *                by the same owner.
    */
   public void setOwnerId(String ownerId) {
-    _record.setSimpleField(LockInfoAttribute.OWNER_ID.name(), ownerId == null ? DEFAULT_OWNER_ID_TEXT : ownerId);
+    _dataRecord.setSimpleField(LockInfoAttribute.OWNER_ID.name(), ownerId == null ? DEFAULT_OWNER_ID_TEXT : ownerId);
   }
 
   /**
@@ -146,7 +158,7 @@ public class LockInfo {
    * @param clientId Unique identifier that represents who will get the lock (the client).
    */
   public void setClientId(String clientId) {
-    _record.setSimpleField(LockInfoAttribute.CLIENT_ID.name(), clientId == null ? DEFAULT_CLIENT_ID_TEXT : clientId);
+    _dataRecord.setSimpleField(LockInfoAttribute.CLIENT_ID.name(), clientId == null ? DEFAULT_CLIENT_ID_TEXT : clientId);
   }
 
   /**
@@ -154,7 +166,7 @@ public class LockInfo {
    * @param clientData String representing the serialized data object
    */
   public void setClientData(String clientData) {
-    _record.setSimpleField(LockInfoAttribute.CLIENT_DATA.name(), clientData == null ? DEFAULT_CLIENT_DATA : clientData);
+    _dataRecord.setSimpleField(LockInfoAttribute.CLIENT_DATA.name(), clientData == null ? DEFAULT_CLIENT_DATA : clientData);
   }
 
   /**
@@ -162,7 +174,7 @@ public class LockInfo {
    * @param grantTime Long representing the time at which the lock was granted
    */
   public void setGrantedAt(Long grantTime) {
-    _record.setLongField(LockInfoAttribute.GRANTED_AT.name(), grantTime);
+    _dataRecord.setLongField(LockInfoAttribute.GRANTED_AT.name(), grantTime);
   }
 
   /**
@@ -170,16 +182,16 @@ public class LockInfo {
    * @param lastRenewalTime Long representing the time at which the lock was last renewed
    */
   public void setLastRenewedAt(Long lastRenewalTime) {
-    _record.setLongField(LockInfoAttribute.LAST_RENEWED_AT.name(), lastRenewalTime);
+    _dataRecord.setLongField(LockInfoAttribute.LAST_RENEWED_AT.name(), lastRenewalTime);
   }
 
   /**
    * Get the value for TIMEOUT attribute of the lock
-   * @param timeout Duration object representing the duration of a lock.
+   * @param timeout Long representing the duration of a lock in milliseconds.
    */
-  public void setTimeout(Duration timeout) {
+  public void setTimeout(long timeout) {
     // Always store the timeout value in milliseconds for the sake of simplicity
-    _record.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout.toMillis());
+    _dataRecord.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout);
   }
 
   /**
@@ -187,7 +199,7 @@ public class LockInfo {
    * @return the owner id of the lock, {@link #DEFAULT_OWNER_ID_TEXT} if there is no owner id set
    */
   public String getOwnerId() {
-    return _record.getStringField(LockInfoAttribute.OWNER_ID.name(), DEFAULT_OWNER_ID_TEXT);
+    return _dataRecord.getStringField(LockInfoAttribute.OWNER_ID.name(), DEFAULT_OWNER_ID_TEXT);
   }
 
   /**
@@ -195,7 +207,7 @@ public class LockInfo {
    * @return the client id of the lock, {@link #DEFAULT_CLIENT_ID_TEXT} if there is no client id set
    */
   public String getClientId() {
-    return _record.getStringField(LockInfoAttribute.CLIENT_ID.name(), DEFAULT_CLIENT_ID_TEXT);
+    return _dataRecord.getStringField(LockInfoAttribute.CLIENT_ID.name(), DEFAULT_CLIENT_ID_TEXT);
   }
 
   /**
@@ -203,7 +215,7 @@ public class LockInfo {
    * @return the id of the lock, {@link #DEFAULT_LOCK_ID_TEXT} if there is no lock id set
    */
   public String getLockId() {
-    return _record.getStringField(LockInfoAttribute.LOCK_ID.name(), DEFAULT_LOCK_ID_TEXT);
+    return _dataRecord.getStringField(LockInfoAttribute.LOCK_ID.name(), DEFAULT_LOCK_ID_TEXT);
   }
 
   /**
@@ -212,7 +224,7 @@ public class LockInfo {
    * if there is no client data set.
    */
   public String getClientData() {
-    return _record.getStringField(LockInfoAttribute.CLIENT_DATA.name(), DEFAULT_CLIENT_DATA);
+    return _dataRecord.getStringField(LockInfoAttribute.CLIENT_DATA.name(), DEFAULT_CLIENT_DATA);
   }
 
   /**
@@ -221,7 +233,7 @@ public class LockInfo {
    * if there is no grant time set
    */
   public Long getGrantedAt() {
-    return _record.getLongField(LockInfoAttribute.GRANTED_AT.name(), DEFAULT_GRANTED_AT_LONG);
+    return _dataRecord.getLongField(LockInfoAttribute.GRANTED_AT.name(), DEFAULT_GRANTED_AT_LONG);
   }
 
   /**
@@ -230,24 +242,15 @@ public class LockInfo {
    * if there is no renewal time set
    */
   public Long getLastRenewedAt() {
-    return _record
-        .getLongField(LockInfoAttribute.LAST_RENEWED_AT.name(), DEFAULT_LAST_RENEWED_AT_LONG);
+    return _dataRecord.getLongField(LockInfoAttribute.LAST_RENEWED_AT.name(), DEFAULT_LAST_RENEWED_AT_LONG);
   }
 
   /**
    * Get the value for TIMEOUT attribute of the lock
    * @return the expiring time of the lock, {@link #DEFAULT_TIMEOUT_DURATION} if there is no timeout set
    */
-  public Duration getTimeout() {
-    long timeout = _record.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_DURATION.toMillis());
-    return Duration.of(timeout, ChronoUnit.MILLIS);
+  public long getTimeout() {
+    return _dataRecord.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_DURATION);
   }
 
-  /**
-   * Get the underlying DataRecord in a LockInfo
-   * @return lock information contained in a DataRecord
-   */
-  public DataRecord getRecord() {
-    return _record;
-  }
 }

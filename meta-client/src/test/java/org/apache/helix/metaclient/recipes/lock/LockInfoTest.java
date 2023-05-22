@@ -33,7 +33,7 @@ public class LockInfoTest {
   private static final String LOCK_ID = "794c8a4c-c14b-4c23-b83f-4e1147fc6978";
   private static final long GRANT_TIME = System.currentTimeMillis();
   private static final long LAST_RENEWAL_TIME = System.currentTimeMillis();
-  private static final Duration TIMEOUT = Duration.ofMillis(100000);
+  private static final long TIMEOUT = 100000;
 
   public static final String DEFAULT_LOCK_ID_TEXT = "";
   public static final String DEFAULT_OWNER_ID_TEXT = "";
@@ -41,7 +41,7 @@ public class LockInfoTest {
   public static final String DEFAULT_CLIENT_DATA = "";
   public static final long DEFAULT_GRANTED_AT_LONG = -1L;
   public static final long DEFAULT_LAST_RENEWED_AT_LONG = -1L;
-  public static final Duration DEFAULT_TIMEOUT_DURATION = Duration.ofMillis(-1L);
+  public static final long DEFAULT_TIMEOUT_DURATION = -1L;
 
   @Test
   public void testLockInfo() {

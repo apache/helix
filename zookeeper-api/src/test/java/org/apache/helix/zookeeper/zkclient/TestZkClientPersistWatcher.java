@@ -22,6 +22,7 @@ package org.apache.helix.zookeeper.zkclient;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
@@ -119,8 +120,8 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
     org.apache.helix.zookeeper.impl.client.ZkClient zkClient = builder.build();
     zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
     int count = 100;
-    final int[] event_count = {0};
-    final int[] event_count2 = {0};
+    final AtomicInteger[] event_count = {new AtomicInteger(0)};
+    final AtomicInteger[] event_count2 = {new AtomicInteger(0)};
     CountDownLatch countDownLatch1 = new CountDownLatch(count);
     CountDownLatch countDownLatch2 = new CountDownLatch(count/2);
     String path = "/base/testZkClientChildChange";
@@ -129,7 +130,7 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
       public void handleZNodeChange(String dataPath, Watcher.Event.EventType eventType)
           throws Exception {
         countDownLatch1.countDown();
-        event_count[0]++ ;
+        event_count[0].incrementAndGet() ;
         System.out.println("rcListener count " + event_count[0]);
       }
     };
@@ -138,7 +139,7 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
       public void handleChildChange(String parentPath, List<String> currentChilds)
           throws Exception {
         countDownLatch2.countDown();
-        event_count2[0]++;
+        event_count2[0].incrementAndGet();
         System.out.println("childListener2 count " + event_count2[0]);
       }
     };

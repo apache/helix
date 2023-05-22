@@ -332,12 +332,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return true;
   }
 
+  // TODO: add impl and remove UnimplementedException
   @Override
   public boolean subscribeChildChanges(String key, ChildChangeListener listener, boolean skipWatchingNonExistNode) {
     try {
       _zkClient.subscribePersistRecursiveWatcher(key, new ChildListenerAdapter(listener));
     } catch (KeeperException.UnimplementedException e) {
-      e.printStackTrace();
+      LOG.error(e.getLocalizedMessage());
     }
     return false;
   }
@@ -352,11 +353,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     _zkClient.unsubscribeChildChanges(key, new DirectChildListenerAdapter(listener));
   }
 
+  // TODO: add impl and remove UnimplementedException
   @Override
   public void unsubscribeChildChanges(String key, ChildChangeListener listener) {
     try{
-    _zkClient.unsubscribePersistRecursiveWatcher(key, new ChildListenerAdapter(listener));} catch (KeeperException.UnimplementedException e) {
-      e.printStackTrace();
+    _zkClient.unsubscribePersistRecursiveWatcher(key, new ChildListenerAdapter(listener));
+    } catch (KeeperException.UnimplementedException e) {
+      LOG.error(e.getLocalizedMessage());
     }
   }
 

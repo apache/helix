@@ -296,6 +296,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>qqu</id>
+      <name>Qi (Quincy) Qu</name>
+      <email>qqu@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>+8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>

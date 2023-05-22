@@ -792,7 +792,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   public String getContent() {
-    StringBuilder sb = new StringBuilder("iCallbackHandler{_watchChild=");
+    StringBuilder sb = new StringBuilder("CallbackHandler{_watchChild=");
     sb.append(_watchChild);
     sb.append(", _preFetchEnabled=");
     sb.append(_preFetchEnabled);

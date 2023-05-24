@@ -36,6 +36,7 @@ import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -71,9 +72,10 @@ public class TestDistributedControllerManager extends ZkTestBase {
           new MockMSModelFactory());
       distributedControllers[i].connect();
     }
+    BestPossibleExternalViewVerifier verifier = new BestPossibleExternalViewVerifier
+        .Builder(clusterName).setZkAddress(ZK_ADDR).build();
 
-    boolean result = ClusterStateVerifier
-        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    boolean result = verifier.verifyByZkCallback();
     Assert.assertTrue(result);
 
     // disconnect first distributed-controller, and verify second takes leadership
@@ -81,8 +83,7 @@ public class TestDistributedControllerManager extends ZkTestBase {
 
     // verify leader changes to localhost_12919
     Thread.sleep(100);
-    result = ClusterStateVerifier
-        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    result = verifier.verifyByZkCallback();
     Assert.assertTrue(result);
 
     ZKHelixDataAccessor accessor =
@@ -120,8 +121,9 @@ public class TestDistributedControllerManager extends ZkTestBase {
     LOG.debug("Expired distributedController: " + expireController.getInstanceName()
         + ", oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
 
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    BestPossibleExternalViewVerifier verifier = new BestPossibleExternalViewVerifier
+        .Builder(clusterName).setZkAddress(ZK_ADDR).build();
+    boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result);
 
     // verify leader changes to localhost_12919
@@ -172,9 +174,9 @@ public class TestDistributedControllerManager extends ZkTestBase {
           new MockMSModelFactory());
       distributedControllers[i].connect();
     }
-
-    boolean result = ClusterStateVerifier
-        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    BestPossibleExternalViewVerifier verifier = new BestPossibleExternalViewVerifier
+        .Builder(clusterName).setZkAddress(ZK_ADDR).build();
+    boolean result = verifier.verifyByZkCallback();
     Assert.assertTrue(result);
 
     // expire localhost_12918

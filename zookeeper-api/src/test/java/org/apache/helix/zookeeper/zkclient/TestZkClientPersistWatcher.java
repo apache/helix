@@ -143,12 +143,7 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
         System.out.println("childListener2 count " + event_count2[0]);
       }
     };
-    try {
-      zkClient.subscribePersistRecursiveWatcher(path, rcListener);
-    } catch (KeeperException.UnimplementedException e) {
-      e.printStackTrace();
-    }
-
+    zkClient.subscribePersistRecursiveListener(path, rcListener);
     zkClient.close();
   }
 

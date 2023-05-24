@@ -225,6 +225,30 @@ public class ZkPathRecursiveWatcherTrie {
   }
 
   /**
+   *
+   * @param path
+   * @return
+   */
+  public Boolean hasListenerOnPath(String path) {
+    Objects.requireNonNull(path, "Path cannot be null");
+
+    final List<String> pathComponents = split(path);
+    Set<RecursivePersistListener> result = new HashSet<>();
+    TrieNode cur;
+    synchronized (this) {
+      cur = _rootNode;
+      for (final String element : pathComponents) {
+        cur = cur.getChild(element);
+        if (cur == null) {
+          break;
+        }
+
+      }
+    }
+    return cur!=null && !cur.getRecursiveListeners().isEmpty();
+  }
+
+  /**
    * Clear all nodes in the trie.
    */
   public synchronized void clear() {

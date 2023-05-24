@@ -62,6 +62,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy;
+import org.apache.helix.zookeeper.zkclient.util.ZkPathRecursiveWatcherTrie;
 import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -117,6 +118,8 @@ public class ZkClient implements Watcher {
   private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
       new ConcurrentHashMap<>();
+  private final ZkPathRecursiveWatcherTrie _zkPathRecursiveWatcherTrie =
+      new ZkPathRecursiveWatcherTrie();
   private final Set<IZkStateListener> _stateListener = new CopyOnWriteArraySet<>();
   private KeeperState _currentState;
   private final ZkLock _zkEventLock = new ZkLock();
@@ -326,14 +329,31 @@ public class ZkClient implements Watcher {
     return true;
   }
 
-   /**
-    * Subscribe the path and the listener will handle data events of the path
-    * WARNING: if the path is created after deletion, users need to re-subscribe the path
-    * @param path The zookeeper path
-    * @param listener Instance of {@link IZkDataListener}
-    */
+  /**
+   * Subscribe the path and the listener will handle data events of the path
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   */
   public void subscribeDataChanges(String path, IZkDataListener listener) {
     subscribeDataChanges(path, listener, false);
+  }
+
+  /**
+   * Subscribe RecursivePersistListener for a particular path. User can only subscribe when
+   * `_usePersistWatcher` is set to true and there is no pre-existing watcher on the path.
+   */
+  // TODO: Add impl and remove exception
+  public boolean subscribePersistRecursiveWatcher(String path,
+      RecursivePersistListener recursivePersistListener)
+      throws KeeperException.UnimplementedException {
+    throw new KeeperException.UnimplementedException();
+  }
+
+  public boolean unsubscribePersistRecursiveWatcher(String path,
+      RecursivePersistListener recursivePersistListener)
+      throws KeeperException.UnimplementedException {
+    throw new KeeperException.UnimplementedException();
   }
 
   private boolean isPrefetchEnabled(IZkDataListener dataListener) {

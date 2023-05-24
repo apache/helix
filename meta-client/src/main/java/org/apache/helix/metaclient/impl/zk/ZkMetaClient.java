@@ -19,7 +19,6 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,6 +40,7 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.impl.zk.adapter.ChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.StateChangeListenerAdapter;
@@ -332,8 +332,14 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return true;
   }
 
+  // TODO: add impl and remove UnimplementedException
   @Override
   public boolean subscribeChildChanges(String key, ChildChangeListener listener, boolean skipWatchingNonExistNode) {
+    try {
+      _zkClient.subscribePersistRecursiveWatcher(key, new ChildListenerAdapter(listener));
+    } catch (KeeperException.UnimplementedException e) {
+      LOG.error(e.getLocalizedMessage());
+    }
     return false;
   }
 
@@ -347,9 +353,14 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     _zkClient.unsubscribeChildChanges(key, new DirectChildListenerAdapter(listener));
   }
 
+  // TODO: add impl and remove UnimplementedException
   @Override
   public void unsubscribeChildChanges(String key, ChildChangeListener listener) {
-
+    try{
+    _zkClient.unsubscribePersistRecursiveWatcher(key, new ChildListenerAdapter(listener));
+    } catch (KeeperException.UnimplementedException e) {
+      LOG.error(e.getLocalizedMessage());
+    }
   }
 
   @Override

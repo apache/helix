@@ -25,11 +25,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.JMException;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
@@ -45,7 +44,6 @@ import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * Factory class for {@link TaskStateModel}.
@@ -193,6 +191,6 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
         "Obtained target thread pool size: {} from cluster {} for instance {}. Creating thread pool.",
         targetThreadPoolSize, manager.getClusterName(), manager.getInstanceName());
     return Executors.newScheduledThreadPool(targetThreadPoolSize,
-        new BasicThreadFactory.Builder().namingPattern("TaskStateModelFactory-task_thread-%d").build());
+            new ThreadFactoryBuilder().setNameFormat("TaskStateModelFactory-task_thread-%d").build());
   }
 }

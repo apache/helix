@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.JMException;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
@@ -191,13 +192,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     LOG.info(
         "Obtained target thread pool size: {} from cluster {} for instance {}. Creating thread pool.",
         targetThreadPoolSize, manager.getClusterName(), manager.getInstanceName());
-    return Executors.newScheduledThreadPool(targetThreadPoolSize, new ThreadFactory() {
-      private AtomicInteger threadId = new AtomicInteger(0);
-
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
-      }
-    });
+    return Executors.newScheduledThreadPool(targetThreadPoolSize,
+        new BasicThreadFactory.Builder().namingPattern("TaskStateModelFactory-task_thread-%d").build());
   }
 }

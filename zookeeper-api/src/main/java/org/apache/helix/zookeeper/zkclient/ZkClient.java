@@ -345,9 +345,13 @@ public class ZkClient implements Watcher {
    */
   public void subscribePersistRecursiveListener(String path,
       RecursivePersistListener recursivePersistListener) {
+    if (!_usePersistWatcher) {
+      throw new UnsupportedOperationException(
+          "Can not subscribe PersistRecursiveWatcher. Persist listener is not enabled.");
+    }
 
     ManipulateListener addListener = () -> {
-      if (!_usePersistWatcher || hasChildOrDataListeners(path)) {
+      if (hasChildOrDataListeners(path)) {
         throw new UnsupportedOperationException(
             "Can not subscribe PersistRecursiveWatcher. There is an existing listener on " + path);
       }
@@ -359,6 +363,11 @@ public class ZkClient implements Watcher {
 
   public void unsubscribePersistRecursiveListener(String path,
       RecursivePersistListener recursivePersistListener) {
+    if (!_usePersistWatcher) {
+      throw new UnsupportedOperationException(
+          "Can not subscribe PersistRecursiveWatcher. Persist listener is not enabled.");
+    }
+
     // unsubscribe from ZK if this is the only recursive persist listener on this path.
     ManipulateListener removeListeners = () -> {
       _zkPathRecursiveWatcherTrie.removeRecursiveListener(path, recursivePersistListener);
@@ -3076,7 +3085,7 @@ public class ZkClient implements Watcher {
     ManipulateListener addListeners = () -> {
       if (_zkPathRecursiveWatcherTrie.hasListenerOnPath(path)) {
         throw new UnsupportedOperationException(
-            "Can not subscribe PersistListener when there is an recursive listener on path:"
+            "Can not subscribe PersistListener when there is an recursive listener on path: "
                 + path);
       }
       if (listener instanceof IZkChildListener) {
@@ -3101,8 +3110,9 @@ public class ZkClient implements Watcher {
         } else if (listener instanceof IZkDataListener) {
           removeDataListener(path, (IZkDataListener) listener);
         }
-        if (!hasChildOrDataListeners(
-            path)) { // && _zkPathRecursiveWatcherTrie.hasListenerOnPath(path)) {
+        if (!hasChildOrDataListeners(path)) {
+          // This will also remove persist recursive watcher on ZK. However, there should not be an
+          // persist recursive watcher installed in the first place.
           getConnection().removeWatches(path, this, WatcherType.Any);
         }
       } catch (KeeperException.NoWatcherException e) {

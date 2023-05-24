@@ -82,8 +82,9 @@ public class TestDistributedControllerManager extends ZkTestBase {
     distributedControllers[0].disconnect();
 
     // verify leader changes to localhost_12919
-    Thread.sleep(100);
-    result = verifier.verifyByZkCallback();
+    result = TestHelper.verify(() -> {
+      return verifier.verifyByZkCallback();
+    }, 100);
     Assert.assertTrue(result);
 
     ZKHelixDataAccessor accessor =

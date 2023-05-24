@@ -116,34 +116,60 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
     org.apache.helix.zookeeper.impl.client.ZkClient.Builder builder =
         new org.apache.helix.zookeeper.impl.client.ZkClient.Builder();
     builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorRootPathOnly(false)
-        .setUsePersistWatcher(false);
+        .setUsePersistWatcher(true);
     org.apache.helix.zookeeper.impl.client.ZkClient zkClient = builder.build();
     zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
     int count = 100;
     final AtomicInteger[] event_count = {new AtomicInteger(0)};
     final AtomicInteger[] event_count2 = {new AtomicInteger(0)};
-    CountDownLatch countDownLatch1 = new CountDownLatch(count);
-    CountDownLatch countDownLatch2 = new CountDownLatch(count/2);
-    String path = "/base/testZkClientChildChange";
+    CountDownLatch countDownLatch1 = new CountDownLatch(count*4);
+    CountDownLatch countDownLatch2 = new CountDownLatch(count);
+    String path = "/testZkClientPersistRecursiveChange";
     RecursivePersistListener rcListener = new RecursivePersistListener() {
       @Override
       public void handleZNodeChange(String dataPath, Watcher.Event.EventType eventType)
           throws Exception {
         countDownLatch1.countDown();
         event_count[0].incrementAndGet() ;
-        System.out.println("rcListener count " + event_count[0]);
       }
     };
+    zkClient.create(path, "datat", CreateMode.PERSISTENT);
+    zkClient.subscribePersistRecursiveListener(path, rcListener);
+    for (int i=0; i<count; ++i) {
+      zkClient.writeData(path, "data7" + i, -1);
+      zkClient.create(path+"/c1_" +i , "datat", CreateMode.PERSISTENT);
+      zkClient.create(path+"/c1_" +i + "/c2", "datat", CreateMode.PERSISTENT);
+      zkClient.delete(path+"/c1_" +i + "/c2");
+    }
+    Assert.assertTrue(countDownLatch1.await(50000000, TimeUnit.MILLISECONDS));
+
+    // subscribe a persist child watch, it should throw exception
     IZkChildListener childListener2 = new IZkChildListener() {
       @Override
       public void handleChildChange(String parentPath, List<String> currentChilds)
           throws Exception {
         countDownLatch2.countDown();
         event_count2[0].incrementAndGet();
-        System.out.println("childListener2 count " + event_count2[0]);
       }
     };
-    zkClient.subscribePersistRecursiveListener(path, rcListener);
+    try {
+      zkClient.subscribeChildChanges(path, childListener2, false);
+    } catch ( Exception ex) {
+      Assert.assertEquals(ex.getClass().getName(), "java.lang.UnsupportedOperationException");
+    }
+
+    // unsubscribe recursive persist watcher, and subscribe persist watcher should success.
+    zkClient.unsubscribePersistRecursiveListener(path, rcListener);
+    zkClient.subscribeChildChanges(path, childListener2, false);
+    // we should only get 100 event since only 100 direct child change.
+    for (int i=0; i<count; ++i) {
+      zkClient.writeData(path, "data7" + i, -1);
+      zkClient.create(path+"/c2_" +i , "datat", CreateMode.PERSISTENT);
+      zkClient.create(path+"/c2_" +i + "/c3", "datat", CreateMode.PERSISTENT);
+      zkClient.delete(path+"/c2_" +i + "/c3");
+    }
+    Assert.assertTrue(countDownLatch2.await(50000000, TimeUnit.MILLISECONDS));
+
     zkClient.close();
   }
 

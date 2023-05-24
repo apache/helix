@@ -164,7 +164,6 @@ public class ZkPathRecursiveWatcherTrie {
         result.addAll(cur.getRecursiveListeners());
       }
     }
-
     return result;
   }
 

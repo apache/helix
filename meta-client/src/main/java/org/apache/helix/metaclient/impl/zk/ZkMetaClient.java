@@ -56,6 +56,7 @@ import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -332,13 +333,17 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return true;
   }
 
-  // TODO: add impl and remove UnimplementedException
   @Override
   public boolean subscribeChildChanges(String key, ChildChangeListener listener, boolean skipWatchingNonExistNode) {
     if (skipWatchingNonExistNode && exists(key) == null) {
       return false;
     }
-    _zkClient.subscribePersistRecursiveListener(key, new ChildListenerAdapter(listener));
+    try {
+      _zkClient.subscribePersistRecursiveListener(key, new ChildListenerAdapter(listener));
+    } catch (ZkException ex) {
+      LOG.error("Failed to subscribe ChildChanges for path: " + key, ex);
+      return false;
+    }
     return true;
   }
 

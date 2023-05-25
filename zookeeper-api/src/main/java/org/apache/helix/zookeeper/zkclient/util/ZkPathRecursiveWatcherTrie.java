@@ -224,7 +224,7 @@ public class ZkPathRecursiveWatcherTrie {
   }
 
   /**
-   *
+   * Return if there is listener on a particular path
    * @param path
    * @return
    */
@@ -232,7 +232,6 @@ public class ZkPathRecursiveWatcherTrie {
     Objects.requireNonNull(path, "Path cannot be null");
 
     final List<String> pathComponents = split(path);
-    Set<RecursivePersistListener> result = new HashSet<>();
     TrieNode cur;
     synchronized (this) {
       cur = _rootNode;
@@ -241,7 +240,6 @@ public class ZkPathRecursiveWatcherTrie {
         if (cur == null) {
           break;
         }
-
       }
     }
     return cur!=null && !cur.getRecursiveListeners().isEmpty();

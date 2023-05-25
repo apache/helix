@@ -355,9 +355,15 @@ public class ZkClient implements Watcher {
         throw new UnsupportedOperationException(
             "Can not subscribe PersistRecursiveWatcher. There is an existing listener on " + path);
       }
+      // subscribe a PERSISTENT_RECURSIVE listener on path. It throws exception if not successful
+      retryUntilConnected(() -> {
+        getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT_RECURSIVE);
+        return null;
+      });
+
       _zkPathRecursiveWatcherTrie.addRecursiveListener(path, recursivePersistListener);
-      getConnection().addWatch(path, ZkClient.this, AddWatchMode.PERSISTENT_RECURSIVE);
     };
+
     executeWithInPersistListenerMutex(addListener);
   }
 

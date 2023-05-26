@@ -174,13 +174,9 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // wait zkEventThread update zkCache
     // verify wtCache
-    for (int i = 0; i < 20; i++) {
-      // TestHelper.printCache(accessor._zkCache);
-      ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
-      if (ret) 
-        break;
-      Thread.sleep(100);
-    }
+    ret = TestHelper.verify(() -> {
+      return TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+      }, 30 * 100);
 
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 

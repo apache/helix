@@ -19,12 +19,15 @@ package org.apache.helix.controller.rebalancer.util;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Map;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,5 +52,25 @@ public class WagedRebalanceUtil {
     LOG.info("Finish calculating an assignment with algorithm {}. Took: {} ms.",
         algorithm.getClass().getSimpleName(), System.currentTimeMillis() - startTime);
     return newAssignment;
+  }
+
+  /**
+   * Parse the resource config for the partition weight.
+   */
+  public static Map<String, Integer> fetchCapacityUsage(String partitionName,
+      ResourceConfig resourceConfig, ClusterConfig clusterConfig) {
+    Map<String, Map<String, Integer>> capacityMap;
+    try {
+      capacityMap = resourceConfig.getPartitionCapacityMap();
+    } catch (IOException ex) {
+      throw new IllegalArgumentException(
+          "Invalid partition capacity configuration of resource: " + resourceConfig
+              .getResourceName(), ex);
+    }
+    Map<String, Integer> partitionCapacity = WagedValidationUtil
+        .validateAndGetPartitionCapacity(partitionName, resourceConfig, capacityMap, clusterConfig);
+    // Remove the non-required capacity items.
+    partitionCapacity.keySet().retainAll(clusterConfig.getInstanceCapacityKeys());
+    return partitionCapacity;
   }
 }

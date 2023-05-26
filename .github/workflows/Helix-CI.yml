@@ -21,7 +21,7 @@ jobs:
     - name: Build with Maven
       run: mvn clean install -Dmaven.test.skip.exec=true -DretryFailedDeploymentCount=5
     - name: Run All Tests
-      run: mvn -q -fae -Dsurefire.rerunFailingTestsCount=5 test
+      run: mvn -q -fae test
     - name: Upload to Codecov
       run: bash <(curl -s https://codecov.io/bash)
       if: ${{ github.repository == 'apache/helix' && github.event_name == 'push' && (success() || failure()) }}

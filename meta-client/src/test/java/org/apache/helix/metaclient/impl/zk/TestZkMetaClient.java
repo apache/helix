@@ -56,6 +56,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
   private static final String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
   private static final String TEST_INVALID_PATH = "/_invalid/a/b/c";
+  private static final int DEFAULT_LISTENER_WAIT_TIMEOUT = 5000;
 
   private final Object _syncObject = new Object();
 
@@ -317,7 +318,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
         }
       }
       zkMetaClient.set(basePath + "_1", testData, -1);
-      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(DEFAULT_LISTENER_WAIT_TIMEOUT, TimeUnit.MILLISECONDS));
       Assert.assertTrue(dataExpected.get());
     }
   }
@@ -348,7 +349,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Assert.assertEquals(watchers.get("persistentWatches").get(0), basePath);
       Assert.assertEquals(watchers.get("childWatches").size(), 0);
       Assert.assertEquals(watchers.get("dataWatches").size(), 0);
-      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(DEFAULT_LISTENER_WAIT_TIMEOUT, TimeUnit.MILLISECONDS));
 
       zkMetaClient.unsubscribeDirectChildChange(basePath, listener);
       // verify that no listener is registered on any path
@@ -390,7 +391,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       for (int i=0; i<200; ++i) {
         zkMetaClient.set(basePath, "data7" + i, -1);
       }
-      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(DEFAULT_LISTENER_WAIT_TIMEOUT, TimeUnit.MILLISECONDS));
 
 
       zkMetaClient.unsubscribeDataChange(basePath, listener);
@@ -431,8 +432,9 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       };
       try {
         zkMetaClient.subscribeDataChange(basePath, dummyDataListener, false);
-      } catch ( Exception ex) {
-        Assert.assertEquals(ex.getClass().getName(), "java.lang.UnsupportedOperationException");
+        Assert.fail("subscribeDataChange should throw exception");
+      } catch (UnsupportedOperationException ex) {
+        // we are expecting a UnsupportedOperationException, continue with test.
       }
 
       DirectChildChangeListener dummyCldListener = new DirectChildChangeListener() {
@@ -461,7 +463,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
         zkMetaClient.create(basePath+"/c1_" +i + "/c2", "datat");
         zkMetaClient.delete(basePath+"/c1_" +i + "/c2");
       }
-      Assert.assertTrue(countDownLatch.await(50000000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
 
       zkMetaClient.unsubscribeChildChanges(basePath, listener);
       // verify that no listener is registered on any path

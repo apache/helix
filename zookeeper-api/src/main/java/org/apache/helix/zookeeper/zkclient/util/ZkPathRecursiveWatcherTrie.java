@@ -228,7 +228,7 @@ public class ZkPathRecursiveWatcherTrie {
    * @param path
    * @return
    */
-  public Boolean hasListenerOnPath(String path) {
+  public boolean hasListenerOnPath(String path) {
     Objects.requireNonNull(path, "Path cannot be null");
 
     final List<String> pathComponents = split(path);

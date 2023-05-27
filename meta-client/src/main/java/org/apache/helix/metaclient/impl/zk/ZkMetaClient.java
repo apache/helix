@@ -338,12 +338,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     if (skipWatchingNonExistNode && exists(key) == null) {
       return false;
     }
-    try {
-      _zkClient.subscribePersistRecursiveListener(key, new ChildListenerAdapter(listener));
-    } catch (ZkException ex) {
-      LOG.error("Failed to subscribe ChildChanges for path: " + key, ex);
-      return false;
-    }
+    _zkClient.subscribePersistRecursiveListener(key, new ChildListenerAdapter(listener));
     return true;
   }
 

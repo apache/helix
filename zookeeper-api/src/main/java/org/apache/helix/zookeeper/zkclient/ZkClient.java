@@ -386,7 +386,7 @@ public class ZkClient implements Watcher {
         // listener as of now.
         getConnection().removeWatches(path, this, WatcherType.Any);
       } catch (KeeperException.NoWatcherException e) {
-        LOG.warn("Persist watcher is already removed");
+        LOG.warn("Persist watcher is already removed on path: {}", path);
       }
     };
     executeWithInPersistListenerMutex(removeListeners);

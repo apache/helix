@@ -316,6 +316,71 @@
       "Duration": 0,
       "HelixLatency": 0,
       "IsGraceful": false
+    },
+    {
+      "InitialCurrentStates": {
+        "localhost_0": {
+          "CurrentState": "MASTER",
+          "PreviousState": "SLAVE",
+          "StartTime": 10000,
+          "EndTime": 11000
+        },
+        "localhost_1": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": 8000,
+          "EndTime": 10000
+        },
+        "localhost_2": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": 8000,
+          "EndTime": 10000
+        }
+      },
+      "MissingTopStates": {
+        "localhost_0": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "MASTER",
+          "StartTime": 15000,
+          "EndTime": 18000
+        },
+        "localhost_1": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": 8000,
+          "EndTime": 10000
+        },
+        "localhost_2": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": 8000,
+          "EndTime": 10000
+        }
+      },
+      "HandoffCurrentStates": {
+        "localhost_0": {
+          "CurrentState": "MASTER",
+          "PreviousState": "SLAVE",
+          "StartTime": 20000,
+          "EndTime": 21000
+        },
+        "localhost_1": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": 8000,
+          "EndTime": 10000
+        },
+        "localhost_2": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": 8000,
+          "EndTime": 10000
+        }
+      },
+      "Duration": 0,
+      "HelixLatency": 0,
+      "IsGraceful": false
     }
   ],
   "fast": [

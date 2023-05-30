@@ -865,4 +865,40 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Map<String, Integer> weights2 = Map.of("item1", 5, "item2", 10, "item3", 0);
     Assert.assertEquals(dataProvider.getPartitionWeights("Resource2", "Partition2"), weights2);
   }
+
+  @Test
+  public void testInstanceCapacityProvider() throws IOException, HelixRebalanceException {
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
+
+    // Generate the input for the rebalancer.
+    ResourceControllerDataProvider clusterData = setupClusterDataCache();
+
+    // force create a fake offlineInstance that's in delay window
+    Set<String> instances = new HashSet<>(_instances);
+    when(clusterData.getAllInstances()).thenReturn(instances);
+    when(clusterData.getEnabledInstances()).thenReturn(instances);
+    when(clusterData.getEnabledLiveInstances()).thenReturn(instances);
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
+    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+
+    Map<String, IdealState> isMap = new HashMap<>();
+    for (String resource : _resourceNames) {
+      IdealState idealState = clusterData.getIdealState(resource);
+      idealState.setMinActiveReplicas(2);
+      isMap.put(resource, idealState);
+    }
+    Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
+          Resource resource = new Resource(entry.getKey());
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
+          return resource;
+        }));
+    WagedInstanceCapacity provider = new WagedInstanceCapacity(clusterData);
+   
+    Map<String, Integer> weights1 = Map.of("item1", 20, "item2", 40, "item3", 30);
+    Map<String, Integer> capacity = provider.getInstanceAvailableCapacity("testInstanceId");
+    Assert.assertEquals(provider.getInstanceAvailableCapacity("testInstanceId"), weights1);
+    Assert.assertEquals(provider.getInstanceAvailableCapacity("testInstanceId1"), weights1);
+    Assert.assertEquals(provider.getInstanceAvailableCapacity("testInstanceId2"), weights1);
+  }
 }

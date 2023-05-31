@@ -242,7 +242,7 @@ public class ZkPathRecursiveWatcherTrie {
         }
       }
     }
-    return cur!=null && !cur.getRecursiveListeners().isEmpty();
+    return cur != null && !cur.getRecursiveListeners().isEmpty();
   }
 
   /**

@@ -122,6 +122,8 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
     int count = 100;
     final AtomicInteger[] event_count = {new AtomicInteger(0)};
     final AtomicInteger[] event_count2 = {new AtomicInteger(0)};
+    // for each iteration, we will edit a node, create a child, create a grand child, and
+    // delete child. Expect 4 event per iteration. -> total event should be count*4
     CountDownLatch countDownLatch1 = new CountDownLatch(count*4);
     CountDownLatch countDownLatch2 = new CountDownLatch(count);
     String path = "/testZkClientPersistRecursiveChange";

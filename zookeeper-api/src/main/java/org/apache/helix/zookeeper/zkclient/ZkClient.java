@@ -1849,7 +1849,7 @@ public class ZkClient implements Watcher {
       if (_usePersistWatcher) {
         Set<RecursivePersistListener> recListeners =
             _zkPathRecursiveWatcherTrie.getAllRecursiveListeners(path);
-        if (recListeners != null && !recListeners.isEmpty()) {
+        if (!recListeners.isEmpty()) {
           for (final RecursivePersistListener listener : recListeners) {
             _eventThread.send(
                 new ZkEventThread.ZkEvent("Data of " + path + " changed sent to " + listener) {

@@ -27,6 +27,12 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 public class DistributedSemaphore {
+  private final MetaClientInterface<DataRecord> _metaClient;
+  private final String _path;
+  private static final String INITIAL_CAPACITY_NAME = "INITIAL_CAPACITY";
+  private static final String REMAINING_CAPACITY_NAME = "REMAINING_CAPACITY";
+  private static final long DEFAULT_REMAINING_CAPACITY = -1;
+  private static final Logger LOG = LoggerFactory.getLogger(DistributedSemaphore.class);
 
   /**
    * Create a distributed semaphore client with the given configuration.
@@ -66,7 +72,13 @@ public class DistributedSemaphore {
    * @return a permit
    */
   public Permit acquire() {
-    throw new NotImplementedException("Not implemented yet.");
+    if (getRemainingCapacity() > 0) {
+      int count = 1;
+      updateAcquirePermit(count);
+      return retrievePermit(_path);
+    } else {
+      throw new MetaClientException("No sufficient permits available");
+    }
   }
 
 

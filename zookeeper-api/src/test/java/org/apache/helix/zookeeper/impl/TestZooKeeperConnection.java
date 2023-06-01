@@ -53,10 +53,11 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.writeData(path, ("datat"+i).getBytes(), -1);
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
+    System.out.println("testPersistWatcher: rafter register one time listener, original listener received event count: " + get_count[0]);
+    // total number of event is 400. We will miss event now
     Assert.assertTrue(TestHelper.verify(() -> {
-          return (get_count[0].get() == 202);
-        }, TestHelper.WAIT_DURATION));
-    System.out.println("testPersistWatcher received event count: " + get_count[0]);
+      return (get_count[0].get() >= 202 & get_count[0].get() < 400);
+    }, TestHelper.WAIT_DURATION));
     zkClient.close();
   }
 
@@ -87,10 +88,11 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.writeData(path, ("datat"+i).getBytes(), -1);
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
+    System.out.println("testRecursivePersistWatcherWithOneTimeWatcher: after register one time listener, original listener received event count: " + get_count[0]);
+    // total number of event is 500. We will miss event now
     Assert.assertTrue(TestHelper.verify(() -> {
-      return (get_count[0].get()== 302);
+      return (get_count[0].get() >= 302 && get_count[0].get() < 500);
     }, TestHelper.WAIT_DURATION));
-    System.out.println("testPersistWatcher received event count: " + get_count[0]);
     zkClient.close();
   }
 

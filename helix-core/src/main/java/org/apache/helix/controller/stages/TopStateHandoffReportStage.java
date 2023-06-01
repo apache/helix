@@ -211,14 +211,11 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       reportTopStateComesBack(cache, currentStateOutput.getCurrentStateMap(resourceName, partition),
           resourceName, partition, clusterStatusMonitor, durationThreshold,
           stateModelDef.getTopState());
-    } else if (lastTopStateInstance != null && !lastTopStateInstance
-        .equals(currentTopStateInstance)) {
+    } else if (lastTopStateInstance != null) {
       // With no missing top state record, but top state instance changed,
       // we observed an entire top state handoff process
       reportSingleTopStateHandoff(cache, lastTopStateInstance, currentTopStateInstance,
           resourceName, partition, clusterStatusMonitor, lastPipelineFinishTimestamp);
-    } else if (lastTopStateInstance != null && lastTopStateInstance.equals(currentTopStateInstance)) {
-      reportSameInstanceTopStateHandoff(cache, currentTopStateInstance, resourceName, partition, clusterStatusMonitor, lastPipelineFinishTimestamp);
     } else {
       // else, there is not top state change, or top state first came up, do nothing
       LogUtil.logDebug(LOG, _eventId, String.format(
@@ -244,10 +241,6 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       String curTopStateInstance, String resourceName, Partition partition,
       ClusterStatusMonitor clusterStatusMonitor, long lastPipelineFinishTimestamp) {
 
-    if (curTopStateInstance.equals(lastTopStateInstance)) {
-      return;
-    }
-
     // Current state output generation logic guarantees that current top state instance
     // must be a live instance
     String curTopStateSession = cache.getLiveInstances().get(curTopStateInstance).getEphemeralOwner();
@@ -262,7 +255,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     long fromTopStateUserLatency = DEFAULT_HANDOFF_USER_LATENCY;
 
     // Make sure last top state instance has not bounced during cluster data cache refresh
-    if (cache.getLiveInstances().containsKey(lastTopStateInstance)) {
+    if (!curTopStateInstance.equals(lastTopStateInstance) && cache.getLiveInstances().containsKey(lastTopStateInstance)) {
       String lastTopStateSession =
           cache.getLiveInstances().get(lastTopStateInstance).getEphemeralOwner();
       // We need this null check as there are test cases creating incomplete current state
@@ -511,55 +504,5 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     LogUtil.logInfo(LOG, _eventId, String.format(
         "Missing top state duration is %s/%s (helix latency / end to end latency) for partition %s. Graceful: %s",
         helixLatency, totalDuration, partitionName, isGraceful));
-  }
-
-
-  /**
-   * This function is similar to reportSingleTopStateHandoff, except the
-   * top-state was recovered on the same instance. 
-   *
-   * @param cache ResourceControllerDataProvider
-   * @param curTopStateInstance Name of current top state instance we refreshed from ZK
-   * @param resourceName resource name
-   * @param partition partition object
-   * @param clusterStatusMonitor cluster state monitor object
-   * @param lastPipelineFinishTimestamp last pipeline run finish timestamp
-   */
-  private void reportSameInstanceTopStateHandoff(ResourceControllerDataProvider cache,
-      String curTopStateInstance, String resourceName, Partition partition,
-      ClusterStatusMonitor clusterStatusMonitor, long lastPipelineFinishTimestamp) {
-    if (clusterStatusMonitor == null) {
-      LogUtil.logWarn(LOG, _eventId, "ClusterStatusMonitor is null, Can not report metrics");
-      return;
-    }
-
-    // Current state output generation logic guarantees that current top state instance
-    // must be a live instance
-    String curTopStateSession = cache.getLiveInstances().get(curTopStateInstance).getEphemeralOwner();
-    long endTime =
-        cache.getCurrentState(curTopStateInstance, curTopStateSession).get(resourceName)
-            .getEndTime(partition.getPartitionName());
-    long toTopStateuserLatency =
-        endTime - cache.getCurrentState(curTopStateInstance, curTopStateSession).get(resourceName)
-            .getStartTime(partition.getPartitionName());
-
-    long startTime = lastPipelineFinishTimestamp;
-    long fromTopStateUserLatency = DEFAULT_HANDOFF_USER_LATENCY;
-
-    if (startTime > endTime) {
-      // Top state handoff finished before end of last pipeline run, and instance contains
-      // previous top state is no longer alive, so our best guess did not work, ignore the
-      // data point for now.
-      LogUtil.logWarn(LOG, _eventId, String
-          .format("Cannot confirm top state missing start time. %s:%s->%s. Likely it was very fast",
-              partition.getPartitionName(), curTopStateInstance, curTopStateInstance));
-      return;
-    }
-
-    long duration = endTime - startTime;
-    long helixLatency = duration - fromTopStateUserLatency - toTopStateuserLatency;
-    logMissingTopStateInfo(duration, helixLatency, true, partition.getPartitionName());
-    clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName,
-      duration, helixLatency, true, true);
   }
 }

@@ -39,7 +39,7 @@ public class ChildListenerAdapter implements RecursivePersistListener {
   private static ChildChangeListener.ChangeType convertType(Watcher.Event.EventType eventType) {
     switch (eventType) {
       case NodeCreated: return ChildChangeListener.ChangeType.ENTRY_CREATED;
-      case NodeChildrenChanged: return ChildChangeListener.ChangeType.ENTRY_DATA_CHANGE;
+      case NodeDataChanged: return ChildChangeListener.ChangeType.ENTRY_DATA_CHANGE;
       case NodeDeleted: return ChildChangeListener.ChangeType.ENTRY_DELETED;
       default: throw new IllegalArgumentException("EventType " + eventType + " is not supported.");
     }

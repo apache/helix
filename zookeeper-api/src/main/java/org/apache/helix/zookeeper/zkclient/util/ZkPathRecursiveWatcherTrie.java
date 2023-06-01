@@ -164,7 +164,6 @@ public class ZkPathRecursiveWatcherTrie {
         result.addAll(cur.getRecursiveListeners());
       }
     }
-
     return result;
   }
 
@@ -222,6 +221,28 @@ public class ZkPathRecursiveWatcherTrie {
         prevDeletable.getChildren().remove(highestNodeForDelete.getValue());
       }
     }
+  }
+
+  /**
+   * Return if there is listener on a particular path
+   * @param path
+   * @return
+   */
+  public boolean hasListenerOnPath(String path) {
+    Objects.requireNonNull(path, "Path cannot be null");
+
+    final List<String> pathComponents = split(path);
+    TrieNode cur;
+    synchronized (this) {
+      cur = _rootNode;
+      for (final String element : pathComponents) {
+        cur = cur.getChild(element);
+        if (cur == null) {
+          break;
+        }
+      }
+    }
+    return cur != null && !cur.getRecursiveListeners().isEmpty();
   }
 
   /**

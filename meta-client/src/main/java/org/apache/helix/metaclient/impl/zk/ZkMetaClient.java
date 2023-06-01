@@ -56,6 +56,7 @@ import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -332,15 +333,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return true;
   }
 
-  // TODO: add impl and remove UnimplementedException
   @Override
   public boolean subscribeChildChanges(String key, ChildChangeListener listener, boolean skipWatchingNonExistNode) {
-    try {
-      _zkClient.subscribePersistRecursiveWatcher(key, new ChildListenerAdapter(listener));
-    } catch (KeeperException.UnimplementedException e) {
-      LOG.error(e.getLocalizedMessage());
+    if (skipWatchingNonExistNode && exists(key) == null) {
+      return false;
     }
-    return false;
+    _zkClient.subscribePersistRecursiveListener(key, new ChildListenerAdapter(listener));
+    return true;
   }
 
   @Override
@@ -356,11 +355,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   // TODO: add impl and remove UnimplementedException
   @Override
   public void unsubscribeChildChanges(String key, ChildChangeListener listener) {
-    try{
-    _zkClient.unsubscribePersistRecursiveWatcher(key, new ChildListenerAdapter(listener));
-    } catch (KeeperException.UnimplementedException e) {
-      LOG.error(e.getLocalizedMessage());
-    }
+    _zkClient.unsubscribePersistRecursiveListener(key, new ChildListenerAdapter(listener));
   }
 
   @Override

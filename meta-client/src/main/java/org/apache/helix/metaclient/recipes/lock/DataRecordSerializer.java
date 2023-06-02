@@ -26,7 +26,6 @@ import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 public class DataRecordSerializer extends ZNRecordSerializer {
   @Override
   public Object deserialize(byte[] bytes) {
-    Object o = super.deserialize(bytes);
-    return new DataRecord((ZNRecord) o);
+    return new DataRecord((ZNRecord) super.deserialize(bytes));
   }
 }

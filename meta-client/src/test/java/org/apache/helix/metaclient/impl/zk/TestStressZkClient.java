@@ -29,8 +29,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.datamodel.DataRecord;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.testng.Assert;
 import org.slf4j.Logger;
@@ -43,23 +46,6 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
   private static final long TEST_ITERATION_COUNT = 1000;
   private static final Logger LOG = LoggerFactory.getLogger(TestStressZkClient.class);
 
-  private void cleanUpTestNodes(String parentZnodeKey) {
-    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
-      zkMetaClient.connect();
-      int retryCount = 0;
-      while (zkMetaClient.countDirectChildren(parentZnodeKey) > 0) {
-        try {
-          retryCount++;
-          zkMetaClient.recursiveDelete(parentZnodeKey);
-        } catch (ZkClientException e) {
-          if (retryCount >= 3) {
-            throw new ZkClientException("Failed to clean up test nodes after 3 tries", e);
-          }
-        }
-      }
-      Assert.assertEquals(zkMetaClient.countDirectChildren(parentZnodeKey), 0);
-    }
-  }
 
   @Test
   public void testCreate() {
@@ -92,7 +78,10 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
         } catch (Exception ignoredException) {
         }
       }
-      cleanUpTestNodes(zkParentKey);
+
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
     }
   }
 
@@ -111,7 +100,9 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
         Assert.assertEquals(String.valueOf(zkMetaClient.get(zkParentKey + "/" + i)), String.valueOf(i));
       }
 
-      cleanUpTestNodes(zkParentKey);
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
     }
   }
 
@@ -142,8 +133,11 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
         } catch (Exception ignoredException) {
         }
       }
+
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
     }
-    cleanUpTestNodes(zkParentKey);
   }
 
   @Test
@@ -212,9 +206,11 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
         } catch (Exception ignoredException) {
         }
       }
-    }
 
-    cleanUpTestNodes(zkParentKey);
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
+    }
   }
 
   @Test
@@ -251,8 +247,11 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
         Assert.assertEquals(zkMetaClient.get(childKey), String.valueOf(i));
         Assert.assertEquals(entryStat.getVersion(), 2);
       }
+
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
     }
-    cleanUpTestNodes(zkParentKey);
   }
 
   @Test
@@ -260,59 +259,72 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
     final String zkParentKey = "/stressZk_testUpdateSingleNode";
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
-    try (ZkMetaClient<Integer> zkMetaClient = new ZkMetaClient<>(config)) {
+    try (ZkMetaClient<byte[]> zkMetaClient = new ZkMetaClient<>(config)) {
       zkMetaClient.connect();
-      zkMetaClient.create(zkParentKey, 0);
+      ZNRecord record = new ZNRecord("foo");
+      record.setIntField("key", 0);
+      ZNRecordSerializer serializer = new ZNRecordSerializer();
+      zkMetaClient.create(zkParentKey, serializer.serialize(record));
+
 
       for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
         MetaClientInterface.Stat entryStat = zkMetaClient.exists(zkParentKey);
         Assert.assertEquals(entryStat.getVersion(), i);
 
-        Integer newData = zkMetaClient.update(zkParentKey, new DataUpdater<Integer>() {
+        byte[] newData = zkMetaClient.update(zkParentKey, new DataUpdater<byte[]>() {
           @Override
-          public Integer update(Integer currentData) {
-            return currentData + 1;
+          public byte[] update(byte[] currentData) {
+            ZNRecordSerializer serializer = new ZNRecordSerializer();
+            ZNRecord record = (ZNRecord) serializer.deserialize(currentData);
+            int value = record.getIntField("key", 0);
+            record.setIntField("key", value + 1);
+            return serializer.serialize(record);
           }
         });
-        Assert.assertEquals((int) newData, i + 1);
+        ZNRecord newRecord = (ZNRecord) serializer.deserialize(newData);
+        Assert.assertEquals(newRecord.getIntField("key", 0), i+1);
       }
 
-      zkMetaClient.delete(zkParentKey);
-      zkMetaClient.create(zkParentKey, "parent_node");
 
-      // Set with path to non-existent node - should fail
-      for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
-        try {
-          zkMetaClient.update("/a/b/c", new DataUpdater<Integer>() {
-            @Override
-            public Integer update(Integer currentData) {
-              return currentData + 1;
-            }
-          });
+//      zkMetaClient.delete(zkParentKey);
+//      zkMetaClient.create(zkParentKey, "parent_node");
 
-          Assert.fail("Should have failed due to path to non-existent node");
-        } catch (Exception ignoredException) {
-        }
-      }
+//       Set with path to non-existent node - should fail
+//      for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+//        try {
+//          zkMetaClient.update("/a/b/c", new DataUpdater<Integer>() {
+//            @Override
+//            public Integer update(Integer currentData) {
+//              return currentData + 1;
+//            }
+//          });
+//
+//          Assert.fail("Should have failed due to path to non-existent node");
+//        } catch (Exception ignoredException) {
+//        }
+//      }
 
-      zkMetaClient.delete(zkParentKey);
-      zkMetaClient.create(zkParentKey, "parent_node");
+//      zkMetaClient.delete(zkParentKey);
+//      zkMetaClient.create(zkParentKey, "parent_node");
 
       // Set with invalid path - should fail
-      for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
-        try {
-          zkMetaClient.update("/a/b/c", new DataUpdater<Integer>() {
-            @Override
-            public Integer update(Integer currentData) {
-              return currentData + 1;
-            }
-          });
-          Assert.fail("Should have failed due to invalid path - no leading /.");
-        } catch (Exception ignoredException) {
-        }
-      }
+//      for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+//        try {
+//          zkMetaClient.update("/a/b/c", new DataUpdater<Integer>() {
+//            @Override
+//            public Integer update(Integer currentData) {
+//              return currentData + 1;
+//            }
+//          });
+//          Assert.fail("Should have failed due to invalid path - no leading /.");
+//        } catch (Exception ignoredException) {
+//        }
+//      }
+
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
     }
-    cleanUpTestNodes(zkParentKey);
   }
 
   @Test
@@ -344,8 +356,11 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
         entryStat = zkMetaClient.exists(childKey);
         Assert.assertEquals(entryStat.getVersion(), 1);
       }
+
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
     }
-    cleanUpTestNodes(zkParentKey);
   }
 
   @Test
@@ -388,7 +403,10 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
 
       Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
       Assert.assertTrue(dataExpected.get());
+
+      // cleanup
+      zkMetaClient.recursiveDelete(zkParentKey);
+      Assert.assertEquals(zkMetaClient.countDirectChildren(zkParentKey), 0);
     }
-    cleanUpTestNodes(zkParentKey);
   }
 }

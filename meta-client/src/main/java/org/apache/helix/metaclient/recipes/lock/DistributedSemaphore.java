@@ -30,6 +30,7 @@ public class DistributedSemaphore {
 
   /**
    * Create a distributed semaphore client with the given configuration.
+   * @param config configuration of the client
    */
   public DistributedSemaphore(MetaClientConfig config) {
     throw new NotImplementedException("Not implemented yet.");
@@ -37,6 +38,8 @@ public class DistributedSemaphore {
 
   /**
    * Connect to an existing distributed semaphore client.
+   * @param client client to connect to
+   * @param path path of the semaphore
    */
   public DistributedSemaphore(MetaClientInterface<DataRecord> client, String path) {
     throw new NotImplementedException("Not implemented yet.");

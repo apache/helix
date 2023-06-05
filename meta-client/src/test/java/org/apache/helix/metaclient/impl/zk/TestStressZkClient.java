@@ -48,7 +48,7 @@ import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.*;
 public class TestStressZkClient extends ZkMetaClientTestBase {
 
   private ZkMetaClient<String> _zkMetaClient;
-  private static final long TEST_ITERATION_COUNT = 10;
+  private static final long TEST_ITERATION_COUNT = 500;
 
   @BeforeTest
   private void setUp() {

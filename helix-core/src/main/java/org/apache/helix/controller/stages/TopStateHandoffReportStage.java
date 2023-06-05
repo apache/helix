@@ -67,10 +67,9 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     // TODO: remove this if-else after splitting controller
     if (cache instanceof WorkflowControllerDataProvider) {
       throw new StageException("TopStateHandoffReportStage can only be used in resource pipeline");
-    } else {
-      updateTopStateStatus((ResourceControllerDataProvider) cache, clusterStatusMonitor,
-          resourceMap, currentStateOutput, lastPipelineFinishTimestamp);
-    }
+    } 
+    updateTopStateStatus((ResourceControllerDataProvider) cache, clusterStatusMonitor,
+        resourceMap, currentStateOutput, lastPipelineFinishTimestamp);
   }
 
   private void updateTopStateStatus(ResourceControllerDataProvider cache,
@@ -212,8 +211,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       reportTopStateComesBack(cache, currentStateOutput.getCurrentStateMap(resourceName, partition),
           resourceName, partition, clusterStatusMonitor, durationThreshold,
           stateModelDef.getTopState());
-    } else if (lastTopStateInstance != null && !lastTopStateInstance
-        .equals(currentTopStateInstance)) {
+    } else if (lastTopStateInstance != null) {
       // With no missing top state record, but top state instance changed,
       // we observed an entire top state handoff process
       reportSingleTopStateHandoff(cache, lastTopStateInstance, currentTopStateInstance,
@@ -242,9 +240,6 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
   private void reportSingleTopStateHandoff(ResourceControllerDataProvider cache, String lastTopStateInstance,
       String curTopStateInstance, String resourceName, Partition partition,
       ClusterStatusMonitor clusterStatusMonitor, long lastPipelineFinishTimestamp) {
-    if (curTopStateInstance.equals(lastTopStateInstance)) {
-      return;
-    }
 
     // Current state output generation logic guarantees that current top state instance
     // must be a live instance
@@ -260,7 +255,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     long fromTopStateUserLatency = DEFAULT_HANDOFF_USER_LATENCY;
 
     // Make sure last top state instance has not bounced during cluster data cache refresh
-    if (cache.getLiveInstances().containsKey(lastTopStateInstance)) {
+    if (!curTopStateInstance.equals(lastTopStateInstance) && cache.getLiveInstances().containsKey(lastTopStateInstance)) {
       String lastTopStateSession =
           cache.getLiveInstances().get(lastTopStateInstance).getEphemeralOwner();
       // We need this null check as there are test cases creating incomplete current state

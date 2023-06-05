@@ -228,6 +228,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     //       missingTopStatePartitionsThresholdGuage will be set to 1.
     //   2. localhost_0 looses top-state at 15000 and it's NEVER recovered. In this scenario as well both failed counter
     //      as well as missingTopStatePartitionsThresholdGuage should be set to 1.
+    //   3. localhost_0 looses top-state at 15000 and recovers at 18000.
     ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
     clusterConfig.setMissTopStateDurationThreshold(5000L);
     setClusterConfig(clusterConfig);

@@ -29,23 +29,33 @@ import java.util.concurrent.TimeUnit;
 public class DistributedSemaphore {
 
   /**
-   * Create a distributed semaphore client and creates a semaphore at the indicated path with the given capacity.
+   * Create a distributed semaphore client with the given configuration.
    */
-  public DistributedSemaphore(MetaClientConfig config, String path, int capacity) {
+  public DistributedSemaphore(MetaClientConfig config) {
     throw new NotImplementedException("Not implemented yet.");
   }
 
   /**
-   * Create a distributed semaphore client. Connects to an existing semaphore at given path.
-   */
-  public DistributedSemaphore(MetaClientConfig config, String path) {
-    throw new NotImplementedException("Not implemented yet.");
-  }
-
-  /**
-   * Connect to an existing distributed semaphore client and semaphore at the indicated path.
+   * Connect to an existing distributed semaphore client.
    */
   public DistributedSemaphore(MetaClientInterface<DataRecord> client, String path) {
+    throw new NotImplementedException("Not implemented yet.");
+  }
+
+  /**
+   * Create a distributed semaphore with the given path and capacity.
+   * @param path path of the semaphore
+   * @param capacity capacity of the semaphore
+   */
+  public void createSemaphore(String path, int capacity) {
+    throw new NotImplementedException("Not implemented yet.");
+  }
+
+  /**
+   * Connect to an existing distributed semaphore.
+   * @param path path of the semaphore
+   */
+  public void connectSemaphore(String path) {
     throw new NotImplementedException("Not implemented yet.");
   }
 
@@ -96,7 +106,7 @@ public class DistributedSemaphore {
   }
 
   /**
-   * Return a permit. If the permit is already returned, it will be ignored and throw a log info.
+   * Return a permit. If the permit is already returned, log and return void.
    */
   public void returnPermit(Permit permit) {
     throw new NotImplementedException("Not implemented yet.");
@@ -104,7 +114,7 @@ public class DistributedSemaphore {
 
   /**
    * Return a collection of permits. If a permit in that collection is already returned,
-   * it will be ignored and throw a log info.
+   * log and return void.
    */
   public void returnAllPermits(Collection<Permit> permits) {
     throw new NotImplementedException("Not implemented yet.");

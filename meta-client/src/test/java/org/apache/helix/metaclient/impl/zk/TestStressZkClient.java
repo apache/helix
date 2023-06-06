@@ -422,6 +422,19 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
       Assert.assertTrue(opsResultDelete.get(i) instanceof OpResult.DeleteResult);
     }
 
+    // Transaction Create
+    List<Op> ops_error = new ArrayList<>();
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      ops_error.add(Op.create("/_invalid/a/b/c" + "/" + i, new byte[0], PERSISTENT));
+    }
+    try {
+      _zkMetaClient.transactionOP(ops_error);
+      Assert.fail("Should fail");
+    } catch (Exception e) {
+      // OK
+    }
+
+
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);

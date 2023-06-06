@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.stages.BaseStageTest;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -86,8 +87,9 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
         }
       }
     }
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     Map<String, String> bestPossibleMap = rebalancer
-        .computeBestPossibleStateForPartition(liveInstances, stateModelDef, instancePreferenceList,
+        .computeBestPossibleStateForPartition(cache, liveInstances, stateModelDef, instancePreferenceList,
             currentStateOutput, Collections.emptySet(), is, new ClusterConfig("TestCluster"),
             partition, MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER);
     Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap,

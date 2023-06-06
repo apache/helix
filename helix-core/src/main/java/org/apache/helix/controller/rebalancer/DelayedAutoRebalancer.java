@@ -35,6 +35,7 @@ import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -259,7 +260,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition =
-          computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList,
+          computeBestPossibleStateForPartition(cache, liveNodes, stateModelDef, preferenceList,
               currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
               partition, cache.getAbnormalStateResolver(stateModelDefName));
 
@@ -275,19 +276,22 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
   }
 
   @Override
-  protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
-      StateModelDefinition stateModelDef, List<String> preferenceList,
+  protected Map<String, String> computeBestPossibleStateForPartition(ResourceControllerDataProvider cache,
+      Set<String> liveInstances, StateModelDefinition stateModelDef, List<String> preferenceList,
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
       IdealState idealState, ClusterConfig clusterConfig, Partition partition,
       MonitoredAbnormalResolver monitoredResolver) {
+
     Optional<Map<String, String>> optionalOverwrittenStates =
         computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
             idealState, partition, monitoredResolver);
     if (optionalOverwrittenStates.isPresent()) {
       return optionalOverwrittenStates.get();
     }
+
     Map<String, String> currentStateMap = new HashMap<>(
         currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
+
     // Instances not in preference list but still have active replica, retain to avoid zero replica during movement
     List<String> currentInstances = new ArrayList<>(currentStateMap.keySet());
     Collections.sort(currentInstances);
@@ -333,6 +337,21 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       int subListSize = numReplicas + numExtraReplicas - currentInstances.size();
       combinedPreferenceList.addAll(instanceToAdd
           .subList(0, Math.min(subListSize, instanceToAdd.size())));
+    }
+
+    // Check if the resource is WAGED based resource, if yes, we need to check if the instanceToAdd the capacity to place the partition.
+    if (WagedValidationUtil.isWagedEnabled(idealState) && combinedPreferenceList.size() > 0) {
+      for (String instance : combinedPreferenceList) {
+        if (cache.checkInstanceCapacity(instance, idealState, partition)) {
+          LOG.warn(String.format(
+              "Instance %s does not have enough capacity to place partition %s, will not be added to the preference list.",
+              instance, partition));
+          System.out.println(String.format(
+              "Instance %s does not have enough capacity to place partition %s, will not be added to the preference list.",
+              instance, partition));
+          //combinedPreferenceList.remove(instance);
+        }
+      }
     }
 
     // Make all initial state instance not in preference list to be dropped.

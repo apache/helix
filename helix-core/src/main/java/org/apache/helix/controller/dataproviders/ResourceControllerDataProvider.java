@@ -37,12 +37,15 @@ import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
+import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
+import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -50,7 +53,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Data provider for resource controller.
- *
  * This class will be moved to helix-resource-controller module in the future
  */
 public class ResourceControllerDataProvider extends BaseControllerDataProvider {
@@ -67,18 +69,19 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   // maintain a cache of bestPossible assignment across pipeline runs
   // TODO: this is only for customRebalancer, remove it and merge it with _idealMappingCache.
-  private Map<String, ResourceAssignment> _resourceAssignmentCache;
+  private final Map<String, ResourceAssignment> _resourceAssignmentCache;
 
   // maintain a cache of idealmapping (preference list) for full-auto resource across pipeline runs
-  private Map<String, ZNRecord> _idealMappingCache;
+  private final Map<String, ZNRecord> _idealMappingCache;
 
   // records for top state handoff
-  private Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap;
-  private Map<String, Map<String, String>> _lastTopStateLocationMap;
+  private final Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap;
+  private final Map<String, Map<String, String>> _lastTopStateLocationMap;
 
   // Maintain a set of all ChangeTypes for change detection
-  private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
+  private final Set<HelixConstants.ChangeType> _refreshedChangeTypes;
   private Set<String> _aggregationEnabledTypes = new HashSet<>();
+
 
   // CrushEd strategy needs to have a stable partition list input. So this cached list persist the
   // previous seen partition lists. If the members in a list are not modified, the old list will be
@@ -88,6 +91,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // TODO: dependency. Note that this will change the cluster partition assignment and potentially
   // TODO: cause shuffling. So it is not backward compatible.
   private final Map<String, List<String>> _stablePartitionListCache = new HashMap<>();
+
+  private WagedInstanceCapacity _instanceCapacity;
+  private WagedResourceWeightsProvider _resourceWeight;
 
   public ResourceControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -474,5 +480,27 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
         _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
       }
     }
+  }
+
+  public void setInstanceCapacity(WagedInstanceCapacity capacity) {
+    _instanceCapacity = capacity;
+  }
+
+  public WagedInstanceCapacity getInstanceCapacity() {
+    return _instanceCapacity;
+  }
+
+  public void setResourceWeightsProvider(WagedResourceWeightsProvider provider) {
+    _resourceWeight = provider;
+  }
+
+  public WagedResourceWeightsProvider getResourceWeightsProvider() {
+    return _resourceWeight;
+  }
+
+  public boolean checkInstanceCapacity(String instance, IdealState idealState, Partition partition) {
+    Map<String, Integer> partitionCapacity = _resourceWeight.getPartitionWeights(idealState.getResourceName(),
+                                                               partition.getPartitionName());
+    return _instanceCapacity.isInstanceCapacityAvailable(instance, partitionCapacity);
   }
 }

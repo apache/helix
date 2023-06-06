@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -49,8 +50,9 @@ public class TestAbstractRebalancer {
       currentStateOutput
           .setCurrentState("test", partition, instance, currentStateMap.get(instance));
     }
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     Map<String, String> bestPossibleMap = rebalancer
-        .computeBestPossibleStateForPartition(new HashSet<>(liveInstances),
+        .computeBestPossibleStateForPartition(cache, new HashSet<>(liveInstances),
             BuiltInStateModelDefinitions.valueOf(stateModelName).getStateModelDefinition(),
             preferenceList, currentStateOutput, new HashSet<>(disabledInstancesForPartition),
             new IdealState("test"), new ClusterConfig("TestCluster"), partition,

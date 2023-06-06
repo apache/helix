@@ -31,7 +31,7 @@ import java.util.Map;
 public interface InstanceCapacityDataProvider {
 
  /**
-   * Get the instance remaining capacity. 
+   * Get the instance remaining capacity.
    * Capacity and weight both are represented as Key-Value.
    * Returns the capacity map of available head room for the instance.
    * @param instanceName - instance name to query
@@ -42,18 +42,10 @@ public interface InstanceCapacityDataProvider {
   /**
    * Check if partition can be placed on the instance.
    *
-   * @param instanceName - instance name 
+   * @param instanceName - instance name
    * @param partitionCapacity - Partition capacity expresed in capacity map.
    * @return boolean - True if the partition can be placed, False otherwise
    */
   public boolean isInstanceCapacityAvailable(String instanceName, Map<String, Integer> partitionCapacity);
 
-  /**
-   * Reduce the available capacity by specified Partition Capacity Map.
-   *
-   * @param instanceName - instance name 
-   * @param partitionCapacity - Partition capacity expresed in capacity map.
-   * @returns boolean - True if successfully updated partition capacity, false otherwise.
-   */
-  public boolean reduceAvailableInstanceCapacity(String instanceName, Map<String, Integer> partitionCapacity);
 }

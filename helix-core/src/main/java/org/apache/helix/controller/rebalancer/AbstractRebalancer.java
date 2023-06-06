@@ -106,7 +106,8 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       List<String> preferenceList = getPreferenceList(partition, idealState,
           Collections.unmodifiableSet(cache.getLiveInstances().keySet()));
       Map<String, String> bestStateForPartition =
-          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef,
+          computeBestPossibleStateForPartition(new ResourceControllerDataProvider(),
+              cache.getLiveInstances().keySet(), stateModelDef,
               preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
               cache.getClusterConfig(), partition,
               cache.getAbnormalStateResolver(stateModelDefName));
@@ -199,8 +200,8 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * @param monitoredResolver
    * @return
    */
-  protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
-      StateModelDefinition stateModelDef, List<String> preferenceList,
+  protected Map<String, String> computeBestPossibleStateForPartition(ResourceControllerDataProvider cache,
+      Set<String> liveInstances, StateModelDefinition stateModelDef, List<String> preferenceList,
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
       IdealState idealState, ClusterConfig clusterConfig, Partition partition,
       MonitoredAbnormalResolver monitoredResolver) {

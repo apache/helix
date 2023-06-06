@@ -101,6 +101,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private RebalanceAlgorithm _rebalanceAlgorithm;
   private Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> _preference = NOT_CONFIGURED_PREFERENCE;
 
+  private WagedInstanceCapacity _instanceCapacity;
+  private WagedResourceWeightsProvider _resourceWeight;
+
+
   private static AssignmentMetadataStore constructAssignmentStore(String metadataStoreAddrs,
       String clusterName) {
     if (metadataStoreAddrs != null && clusterName != null) {
@@ -154,6 +158,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator, HelixManager manager,
       MetricCollector metricCollector, boolean isAsyncGlobalRebalanceEnabled,
       boolean isAsyncPartialRebalanceEnabled) {
+
     if (assignmentMetadataStore == null) {
       LOG.warn("Assignment Metadata Store is not configured properly."
           + " The rebalancer will not access the assignment store during the rebalance.");
@@ -238,8 +243,20 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   public Map<String, IdealState> computeNewIdealStates(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
+
     LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
     validateInput(clusterData, resourceMap);
+
+    // Let us first create the global instance capacity and resource weight.
+    _instanceCapacity = new WagedInstanceCapacity(clusterData);
+    _resourceWeight = new WagedResourceWeightsProvider(clusterData);
+
+    // reduce the current assigned partitions capacity from instance.
+    _instanceCapacity.process(resourceMap, currentStateOutput, _resourceWeight);
+   
+    // update the cache, so that we have uniform view.
+    clusterData.setInstanceCapacity(_instanceCapacity);
+    clusterData.setResourceWeightsProvider(_resourceWeight);
 
     Map<String, IdealState> newIdealStates;
     try {

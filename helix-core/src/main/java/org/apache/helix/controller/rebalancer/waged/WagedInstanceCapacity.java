@@ -20,7 +20,9 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -30,6 +32,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.controller.dataproviders.InstanceCapacityDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -43,40 +46,27 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
   // Available Capacity per Instance
   private final Map<String, Map<String, Integer>> _instanceCapacityMap;
   private final ResourceControllerDataProvider _cache;
+  private final Map<String, Map<String, List<String>>> _instancePartitions;
+
 
   public WagedInstanceCapacity(ResourceControllerDataProvider clusterData) {
     _cache = clusterData;
     _instanceCapacityMap = new HashMap<>();
+    _instancePartitions = new HashMap<>();
 
     ClusterConfig clusterConfig = _cache.getClusterConfig();
     for (InstanceConfig instanceConfig : _cache.getInstanceConfigMap().values()) {
       Map<String, Integer> instanceCapacity =
         WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
       _instanceCapacityMap.put(instanceConfig.getInstanceName(), instanceCapacity);
+      _instancePartitions.put(instanceConfig.getInstanceName(), new HashMap<>());
     }
-  }
-
-  /**
-   * Create Default Capacity Map.
-   * This is a utility method to create a default capacity map matching instance capacity map for participants.
-   * This is required as non-WAGED partitions will be placed on same instance and we don't know their actual capacity.
-   * This will generate default values of 0 for all the capacity keys.
-   */
-  private Map<String, Integer> createDefaultParticipantWeight() {
-    // copy the value of first Instance capacity.
-    Map<String, Integer> partCapacity = new HashMap<>(_instanceCapacityMap.values().iterator().next());
-
-    // Set the value of all capacity to -1.
-    for (String key : partCapacity.keySet()) {
-      partCapacity.put(key, -1);
-    }
-    return partCapacity;
   }
 
   /**
    * Process the pending messages based on the Current states
    * @param currentState - Current state of the resources.
-   */
+
   public void processPendingMessages(CurrentStateOutput currentState) {
     Map<String, Map<Partition, Map<String, Message>>> pendingMsgs = currentState.getPendingMessages();
 
@@ -98,24 +88,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
       }
     }
   }
-
-  /**
-   * Get the partition capacity given Resource and Partition name.
    */
-  private Map<String, Integer> getPartitionCapacity(String resource, String partition) {
-    ClusterConfig clusterConfig = _cache.getClusterConfig();
-    ResourceConfig resourceConfig = _cache.getResourceConfig(resource);
-
-
-    // Parse the entire capacityMap from ResourceConfig
-    Map<String, Map<String, Integer>> capacityMap;
-    try {
-      capacityMap = resourceConfig.getPartitionCapacityMap();
-    } catch (IOException ex) {
-      return createDefaultParticipantWeight();
-    }
-    return WagedValidationUtil.validateAndGetPartitionCapacity(partition, resourceConfig, capacityMap, clusterConfig);
-  }
 
   /**
    * Get the instance remaining capacity.
@@ -141,8 +114,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     return true;
   }
 
-  @Override
-  public boolean reduceAvailableInstanceCapacity(String instance, Map<String, Integer> partitionCapacity) {
+  private boolean reduceAvailableInstanceCapacity(String instance, Map<String, Integer> partitionCapacity) {
     Map<String, Integer> instanceCapacity = _instanceCapacityMap.get(instance);
     for (String key : instanceCapacity.keySet()) {
       if (partitionCapacity.containsKey(key)) {
@@ -156,5 +128,37 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
       }
     }
     return true;
+  }
+
+  public void process(Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput,
+      WagedResourceWeightsProvider weightProvider) {
+    // For all resources, get the partition weight and add it to the instance capacity.
+
+    for (String resourceName : resourceMap.keySet()) {
+      Resource resource = resourceMap.get(resourceName);
+      for (Partition partition : resource.getPartitions()) {
+        String partitionName = partition.getPartitionName();
+        Map<String, Integer> partitionCapacity = weightProvider.getPartitionWeights(resourceName, partitionName);
+        for (String instance : currentStateOutput.getCurrentStateMap(resourceName).get(partitionName).keySet()) {
+          Map<String, Integer> instanceCapacity = getInstanceAvailableCapacity(instance);
+          if (instanceCapacity == null) {
+            LOG.error("Instance Capacity not found for instance: " + instance);
+            continue;
+          }
+
+          // This should not happen as we always have instance capacity for all instances.
+          Map<String, List<String>> resourcePartitions = _instancePartitions.get(instance);
+          if (resourcePartitions == null) {
+            LOG.error("Instance Partitions not found for instance: " + instance);
+            continue;
+          }
+
+          // Add resource/partition mapping to instances.
+          reduceAvailableInstanceCapacity(instance, partitionCapacity);
+          List<String> partitions = resourcePartitions.getOrDefault(resourceName, new ArrayList<>());
+          partitions.add(partitionName);
+        }
+      }
+    }
   }
 }

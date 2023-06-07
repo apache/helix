@@ -19,27 +19,18 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.helix.metaclient.api.DataChangeListener;
-import org.apache.helix.metaclient.api.DataUpdater;
-import org.apache.helix.metaclient.api.MetaClientInterface;
+
+import org.apache.helix.metaclient.api.*;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.recipes.lock.DataRecordSerializer;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.apache.helix.zookeeper.exception.ZkClientException;
-import org.junit.Before;
 import org.testng.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -109,6 +100,29 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
       Assert.assertEquals(String.valueOf(_zkMetaClient.get(zkParentKey + "/" + i)), String.valueOf(i));
     }
 
+    // cleanup
+    _zkMetaClient.recursiveDelete(zkParentKey);
+    Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+  }
+
+  @Test
+  public void testCreateAndRenewTTL() {
+    final String zkParentKey = "/stressZk_testCreateAndRenewTTL";
+    _zkMetaClient.create(zkParentKey, ENTRY_STRING_VALUE);
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      _zkMetaClient.createWithTTL(zkParentKey + i, ENTRY_STRING_VALUE, 10000);
+    }
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      Assert.assertNotNull(_zkMetaClient.exists(zkParentKey));
+    }
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      _zkMetaClient.renewTTLNode(zkParentKey + i);
+    }
+    MetaClientInterface.Stat stat;
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      stat = _zkMetaClient.exists(zkParentKey + i);
+      Assert.assertNotSame(stat.getCreationTime(), stat.getModifiedTime());
+    }
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
@@ -369,4 +383,60 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
   }
+
+  @Test
+  public void testTransactionOps() {
+    String zkParentKey = "/stressZk_testTransactionOp";
+    _zkMetaClient.create(zkParentKey, "parent_node");
+
+    // Transaction Create
+    List<Op> ops = new ArrayList<>();
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      ops.add(Op.create(zkParentKey + "/" + i, new byte[0], PERSISTENT));
+    }
+    List<OpResult> opResults = _zkMetaClient.transactionOP(ops);
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      Assert.assertTrue(opResults.get(i) instanceof OpResult.CreateResult);
+    }
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      Assert.assertNotNull(_zkMetaClient.exists(zkParentKey + "/" + i));
+    }
+
+    // Transaction Set
+    List<Op> ops_set = new ArrayList<>();
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      ops_set.add(Op.set(zkParentKey + "/" + i, new byte[0], -1));
+    }
+    List<OpResult> opsResultSet = _zkMetaClient.transactionOP(ops_set);
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      Assert.assertTrue(opsResultSet.get(i) instanceof OpResult.SetDataResult);
+    }
+
+    // Transaction Delete
+    List<Op> ops_delete = new ArrayList<>();
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      ops_delete.add(Op.delete(zkParentKey + "/" + i, -1));
+    }
+    List<OpResult> opsResultDelete = _zkMetaClient.transactionOP(ops_delete);
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      Assert.assertTrue(opsResultDelete.get(i) instanceof OpResult.DeleteResult);
+    }
+
+    // Transaction Create
+    List<Op> ops_error = new ArrayList<>();
+    for (int i = 0; i < TEST_ITERATION_COUNT; i++) {
+      ops_error.add(Op.create("/_invalid/a/b/c" + "/" + i, new byte[0], PERSISTENT));
+    }
+    try {
+      _zkMetaClient.transactionOP(ops_error);
+      Assert.fail("Should fail");
+    } catch (Exception e) {
+      // OK
+    }
+
+
+    // cleanup
+    _zkMetaClient.recursiveDelete(zkParentKey);
+    Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+    }
 }

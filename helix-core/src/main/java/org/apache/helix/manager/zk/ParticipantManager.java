@@ -242,13 +242,17 @@ public class ParticipantManager {
         _helixManagerProperty.getHelixCloudProperty().getCloudInfoProcessorName();
     try {
       // fetch cloud instance information for the instance
-      String cloudInstanceInformationProcessorClassName = CLOUD_PROCESSOR_PATH_PREFIX
-          + _helixManagerProperty.getHelixCloudProperty().getCloudProvider().toLowerCase() + "."
-          + cloudInstanceInformationProcessorName;
+      String cloudInstanceInformationProcessorClassName =
+          // If the class name is already fully qualified, use it directly.
+          cloudInstanceInformationProcessorName.contains(".")
+              ? cloudInstanceInformationProcessorName
+              : CLOUD_PROCESSOR_PATH_PREFIX + _helixManagerProperty.getHelixCloudProperty()
+                  .getCloudProvider().toLowerCase() + "." + cloudInstanceInformationProcessorName;
       Class processorClass = Class.forName(cloudInstanceInformationProcessorClassName);
       Constructor constructor = processorClass.getConstructor(HelixCloudProperty.class);
-      CloudInstanceInformationProcessor processor = (CloudInstanceInformationProcessor) constructor
-          .newInstance(_helixManagerProperty.getHelixCloudProperty());
+      CloudInstanceInformationProcessor processor =
+          (CloudInstanceInformationProcessor) constructor.newInstance(
+              _helixManagerProperty.getHelixCloudProperty());
       List<String> responses = processor.fetchCloudInstanceInformation();
 
       // parse cloud instance information for the participant

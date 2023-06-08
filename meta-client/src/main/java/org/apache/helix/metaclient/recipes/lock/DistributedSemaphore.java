@@ -41,7 +41,7 @@ public class DistributedSemaphore {
    * @param client client to connect to
    * @param path path of the semaphore
    */
-  public DistributedSemaphore(MetaClientInterface<DataRecord> client, String path) {
+  public DistributedSemaphore(MetaClientInterface<DataRecord> client) {
     throw new NotImplementedException("Not implemented yet.");
   }
 

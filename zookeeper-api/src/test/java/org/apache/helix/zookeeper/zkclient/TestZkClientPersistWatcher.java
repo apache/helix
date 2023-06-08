@@ -22,12 +22,15 @@ package org.apache.helix.zookeeper.zkclient;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -105,6 +108,70 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
     }
     Assert.assertTrue(countDownLatch1.await(15000, TimeUnit.MILLISECONDS));
     Assert.assertTrue(countDownLatch2.await(15000, TimeUnit.MILLISECONDS));
+    zkClient.close();
+  }
+
+  @Test(dependsOnMethods = "testZkClientChildChange")
+  void testZkClientPersistRecursiveChange() throws Exception {
+    org.apache.helix.zookeeper.impl.client.ZkClient.Builder builder =
+        new org.apache.helix.zookeeper.impl.client.ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorRootPathOnly(false)
+        .setUsePersistWatcher(true);
+    org.apache.helix.zookeeper.impl.client.ZkClient zkClient = builder.build();
+    zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+    int count = 100;
+    final AtomicInteger[] event_count = {new AtomicInteger(0)};
+    final AtomicInteger[] event_count2 = {new AtomicInteger(0)};
+    // for each iteration, we will edit a node, create a child, create a grand child, and
+    // delete child. Expect 4 event per iteration. -> total event should be count*4
+    CountDownLatch countDownLatch1 = new CountDownLatch(count*4);
+    CountDownLatch countDownLatch2 = new CountDownLatch(count);
+    String path = "/testZkClientPersistRecursiveChange";
+    RecursivePersistListener rcListener = new RecursivePersistListener() {
+      @Override
+      public void handleZNodeChange(String dataPath, Watcher.Event.EventType eventType)
+          throws Exception {
+        countDownLatch1.countDown();
+        event_count[0].incrementAndGet() ;
+      }
+    };
+    zkClient.create(path, "datat", CreateMode.PERSISTENT);
+    zkClient.subscribePersistRecursiveListener(path, rcListener);
+    for (int i=0; i<count; ++i) {
+      zkClient.writeData(path, "data7" + i, -1);
+      zkClient.create(path+"/c1_" +i , "datat", CreateMode.PERSISTENT);
+      zkClient.create(path+"/c1_" +i + "/c2", "datat", CreateMode.PERSISTENT);
+      zkClient.delete(path+"/c1_" +i + "/c2");
+    }
+    Assert.assertTrue(countDownLatch1.await(50000000, TimeUnit.MILLISECONDS));
+
+    // subscribe a persist child watch, it should throw exception
+    IZkChildListener childListener2 = new IZkChildListener() {
+      @Override
+      public void handleChildChange(String parentPath, List<String> currentChilds)
+          throws Exception {
+        countDownLatch2.countDown();
+        event_count2[0].incrementAndGet();
+      }
+    };
+    try {
+      zkClient.subscribeChildChanges(path, childListener2, false);
+    } catch ( Exception ex) {
+      Assert.assertEquals(ex.getClass().getName(), "java.lang.UnsupportedOperationException");
+    }
+
+    // unsubscribe recursive persist watcher, and subscribe persist watcher should success.
+    zkClient.unsubscribePersistRecursiveListener(path, rcListener);
+    zkClient.subscribeChildChanges(path, childListener2, false);
+    // we should only get 100 event since only 100 direct child change.
+    for (int i=0; i<count; ++i) {
+      zkClient.writeData(path, "data7" + i, -1);
+      zkClient.create(path+"/c2_" +i , "datat", CreateMode.PERSISTENT);
+      zkClient.create(path+"/c2_" +i + "/c3", "datat", CreateMode.PERSISTENT);
+      zkClient.delete(path+"/c2_" +i + "/c3");
+    }
+    Assert.assertTrue(countDownLatch2.await(50000000, TimeUnit.MILLISECONDS));
+
     zkClient.close();
   }
 

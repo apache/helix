@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
@@ -55,6 +56,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
   private static final String TRANSACTION_TEST_PARENT_PATH = "/transactionOpTestPath";
   private static final String TEST_INVALID_PATH = "/_invalid/a/b/c";
+  private static final int DEFAULT_LISTENER_WAIT_TIMEOUT = 5000;
 
   private final Object _syncObject = new Object();
 
@@ -316,7 +318,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
         }
       }
       zkMetaClient.set(basePath + "_1", testData, -1);
-      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(DEFAULT_LISTENER_WAIT_TIMEOUT, TimeUnit.MILLISECONDS));
       Assert.assertTrue(dataExpected.get());
     }
   }
@@ -347,7 +349,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Assert.assertEquals(watchers.get("persistentWatches").get(0), basePath);
       Assert.assertEquals(watchers.get("childWatches").size(), 0);
       Assert.assertEquals(watchers.get("dataWatches").size(), 0);
-      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(DEFAULT_LISTENER_WAIT_TIMEOUT, TimeUnit.MILLISECONDS));
 
       zkMetaClient.unsubscribeDirectChildChange(basePath, listener);
       // verify that no listener is registered on any path
@@ -362,7 +364,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
   public void testDataChangeListener() throws Exception {
     final String basePath = "/TestZkMetaClient_testDataChangeListener";
     final int count = 200;
-    final int[] get_count = {0};
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
       CountDownLatch countDownLatch = new CountDownLatch(count);
@@ -372,7 +373,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
         public void handleDataChange(String key, Object data, ChangeType changeType)
             throws Exception {
           if(changeType == ENTRY_UPDATE) {
-            get_count[0]++;
             countDownLatch.countDown();
           }
         }
@@ -391,13 +391,84 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       for (int i=0; i<200; ++i) {
         zkMetaClient.set(basePath, "data7" + i, -1);
       }
-      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(countDownLatch.await(DEFAULT_LISTENER_WAIT_TIMEOUT, TimeUnit.MILLISECONDS));
 
 
       zkMetaClient.unsubscribeDataChange(basePath, listener);
       // verify that no listener is registered on any path
       watchers = TestUtil.getZkWatch(zkMetaClient.getZkClient());
+      Assert.assertEquals(watchers.get("persistentWatches").size(), 0);
+      Assert.assertEquals(watchers.get("childWatches").size(), 0);
+      Assert.assertEquals(watchers.get("dataWatches").size(), 0);
+
+    }
+  }
+
+  @Test
+  public void testChildChangeListener() throws Exception {
+    final String basePath = "/TestZkMetaClient_testChildChangeListener";
+    final int count = 100;
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      CountDownLatch countDownLatch = new CountDownLatch(count*4);
+      ChildChangeListener listener = new ChildChangeListener() {
+
+        @Override
+        public void handleChildChange(String changedPath, ChangeType changeType) throws Exception {
+          countDownLatch.countDown();
+
+        }
+      };
+      zkMetaClient.create(basePath, "");
+      Assert.assertTrue(
+          zkMetaClient.subscribeChildChanges(basePath, listener, false)
+      );
+
+      DataChangeListener dummyDataListener = new DataChangeListener() {
+        @Override
+        public void handleDataChange(String key, Object data, ChangeType changeType)
+            throws Exception {
+        }
+      };
+      try {
+        zkMetaClient.subscribeDataChange(basePath, dummyDataListener, false);
+        Assert.fail("subscribeDataChange should throw exception");
+      } catch (UnsupportedOperationException ex) {
+        // we are expecting a UnsupportedOperationException, continue with test.
+      }
+
+      DirectChildChangeListener dummyCldListener = new DirectChildChangeListener() {
+        @Override
+        public void handleDirectChildChange(String key) throws Exception {
+
+        }
+      };
+      try {
+        zkMetaClient.subscribeDirectChildChange(basePath, dummyCldListener, false);
+      } catch ( Exception ex) {
+        Assert.assertEquals(ex.getClass().getName(), "java.lang.UnsupportedOperationException");
+      }
+
+      // Verify no one time watcher is registered. Only one persist listener is registered.
+      Map<String, List<String>> watchers = TestUtil.getZkWatch(zkMetaClient.getZkClient());
+      Assert.assertEquals(watchers.get("persistentRecursiveWatches").size(), 1);
+      Assert.assertEquals(watchers.get("persistentRecursiveWatches").get(0), basePath);
+      Assert.assertEquals(watchers.get("persistentWatches").size(), 0);
+      Assert.assertEquals(watchers.get("childWatches").size(), 0);
+      Assert.assertEquals(watchers.get("dataWatches").size(), 0);
+
+      for (int i=0; i<count; ++i) {
+        zkMetaClient.set(basePath, "data7" + i, -1);
+        zkMetaClient.create(basePath+"/c1_" +i , "datat");
+        zkMetaClient.create(basePath+"/c1_" +i + "/c2", "datat");
+        zkMetaClient.delete(basePath+"/c1_" +i + "/c2");
+      }
+      Assert.assertTrue(countDownLatch.await(5000, TimeUnit.MILLISECONDS));
+
+      zkMetaClient.unsubscribeChildChanges(basePath, listener);
+      // verify that no listener is registered on any path
       watchers = TestUtil.getZkWatch(zkMetaClient.getZkClient());
+      Assert.assertEquals(watchers.get("persistentRecursiveWatches").size(), 0);
       Assert.assertEquals(watchers.get("persistentWatches").size(), 0);
       Assert.assertEquals(watchers.get("childWatches").size(), 0);
       Assert.assertEquals(watchers.get("dataWatches").size(), 0);

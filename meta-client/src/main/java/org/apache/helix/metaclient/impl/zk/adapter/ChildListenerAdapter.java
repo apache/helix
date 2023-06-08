@@ -22,35 +22,24 @@ package org.apache.helix.metaclient.impl.zk.adapter;
 import java.util.List;
 import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 import org.apache.zookeeper.Watcher;
 
 
 /**
  * A adapter class to transform {@link ChildChangeListener} to {@link IZkChildListener}.
  */
-public class ChildListenerAdapter implements IZkChildListener {
+public class ChildListenerAdapter implements RecursivePersistListener {
   private final ChildChangeListener _listener;
 
   public ChildListenerAdapter(ChildChangeListener listener) {
     _listener = listener;
   }
 
-  @Override
-  public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
-    throw new UnsupportedOperationException("handleChildChange(String parentPath, List<String> currentChilds) "
-        + "is not supported");
-  }
-
-  @Override
-  public void handleChildChange(String parentPath, List<String> currentChilds, Watcher.Event.EventType eventType)
-      throws Exception {
-    _listener.handleChildChange(parentPath, convertType(eventType));
-  }
-
   private static ChildChangeListener.ChangeType convertType(Watcher.Event.EventType eventType) {
     switch (eventType) {
       case NodeCreated: return ChildChangeListener.ChangeType.ENTRY_CREATED;
-      case NodeChildrenChanged: return ChildChangeListener.ChangeType.ENTRY_DATA_CHANGE;
+      case NodeDataChanged: return ChildChangeListener.ChangeType.ENTRY_DATA_CHANGE;
       case NodeDeleted: return ChildChangeListener.ChangeType.ENTRY_DELETED;
       default: throw new IllegalArgumentException("EventType " + eventType + " is not supported.");
     }
@@ -71,5 +60,11 @@ public class ChildListenerAdapter implements IZkChildListener {
   @Override
   public int hashCode() {
     return _listener.hashCode();
+  }
+
+  @Override
+  public void handleZNodeChange(String dataPath, Watcher.Event.EventType eventType)
+      throws Exception {
+    _listener.handleChildChange(dataPath, convertType(eventType));
   }
 }

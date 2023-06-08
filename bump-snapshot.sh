@@ -44,6 +44,7 @@ mv metadata-store-directory-common/metadata-store-directory-common-$version-SNAP
 mv metrics-common/metrics-common-$version-SNAPSHOT.ivy metrics-common/metrics-common-$new_version-SNAPSHOT.ivy
 mv zookeeper-api/zookeeper-api-$version-SNAPSHOT.ivy zookeeper-api/zookeeper-api-$new_version-SNAPSHOT.ivy
 mv helix-view-aggregator/helix-view-aggregator-$version-SNAPSHOT.ivy helix-view-aggregator/helix-view-aggregator-$new_version-SNAPSHOT.ivy
+mv meta-client/meta-client-$version-SNAPSHOT.ivy meta-client/meta-client-$new_version-SNAPSHOT.ivy
 
 
 find . -type f -name '*.ivy' -exec sed -i "s/$version/$new_version/g" {} \;

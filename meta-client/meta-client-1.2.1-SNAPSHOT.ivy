@@ -20,7 +20,7 @@ under the License.
 <ivy-module version="1.0">
 	<info organisation="org.apache.helix"
 		module="meta-client"
-		revision="1.0.5-SNAPSHOT"
+		revision="1.2.1-SNAPSHOT"
 		status="integration"
 		publication="20200114115923"
 	/>

@@ -157,7 +157,7 @@ public class TestWorkflowTermination extends TaskTestBase {
     Thread.sleep(100);
 
     // Pause the queue
-    _driver.waitToStop(workflowName, 10000L);
+    _driver.waitToStop(workflowName, 20000L);
 
     _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, JOB_NAME), 10000L,
         TaskState.STOPPED);

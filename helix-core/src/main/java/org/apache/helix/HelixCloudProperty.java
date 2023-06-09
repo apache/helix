@@ -128,8 +128,8 @@ public class HelixCloudProperty {
           setCloudInfoSources(cloudConfig.getCloudInfoSources());
           setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
           // Although it is unlikely that cloudInfoProcessorPackageName is null, when using the CUSTOMIZED
-          // if cloudInfoProcessorPackageName is null, we will look for the processor class in helix
-          // cloud package to preserves the backwards compatibility.
+          // cloud provider, we will look for the processor class in helix cloud package to preserves the
+          // backwards compatibility.
           setCloudInfoProcessorFullyQualifiedClassName(
               cloudConfig.getCloudInfoProcessorPackageName() != null ?
                   cloudConfig.getCloudInfoProcessorPackageName() + "."

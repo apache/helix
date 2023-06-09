@@ -75,8 +75,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ParticipantManager {
   private static Logger LOG = LoggerFactory.getLogger(ParticipantManager.class);
-  private static final String CLOUD_PROCESSOR_PATH_PREFIX = "org.apache.helix.cloud.";
-
   final RealmAwareZkClient _zkclient;
   final HelixManager _manager;
   final PropertyKey.Builder _keyBuilder;
@@ -238,17 +236,10 @@ public class ParticipantManager {
   }
 
   private CloudInstanceInformation getCloudInstanceInformation() {
-    String cloudInstanceInformationProcessorName =
-        _helixManagerProperty.getHelixCloudProperty().getCloudInfoProcessorName();
     try {
-      // fetch cloud instance information for the instance
-      String cloudInstanceInformationProcessorClassName =
-          // If the class name is already fully qualified, use it directly.
-          cloudInstanceInformationProcessorName.contains(".")
-              ? cloudInstanceInformationProcessorName
-              : CLOUD_PROCESSOR_PATH_PREFIX + _helixManagerProperty.getHelixCloudProperty()
-                  .getCloudProvider().toLowerCase() + "." + cloudInstanceInformationProcessorName;
-      Class processorClass = Class.forName(cloudInstanceInformationProcessorClassName);
+      // fetch and parse cloud instance information for the instance
+      Class processorClass = Class.forName(_helixManagerProperty.getHelixCloudProperty()
+          .getCloudInfoProcessorFullyQualifiedClassName());
       Constructor constructor = processorClass.getConstructor(HelixCloudProperty.class);
       CloudInstanceInformationProcessor processor =
           (CloudInstanceInformationProcessor) constructor.newInstance(
@@ -261,9 +252,9 @@ public class ParticipantManager {
       return cloudInstanceInformation;
     } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException
         | IllegalAccessException | InvocationTargetException ex) {
-      throw new HelixException(
-          "Failed to create a new instance for the class: " + cloudInstanceInformationProcessorName,
-          ex);
+      throw new HelixException("Failed to create a new instance for the class: "
+          + _helixManagerProperty.getHelixCloudProperty()
+          .getCloudInfoProcessorFullyQualifiedClassName(), ex);
     }
   }
 

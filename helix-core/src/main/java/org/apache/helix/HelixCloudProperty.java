@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 public class HelixCloudProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
   private static final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
+  private static final String CLOUD_PROCESSOR_PATH_PREFIX = "org.apache.helix.cloud.";
   private static final String CLOUD_INFO_SOURCE = "cloud_info_source";
   private static final String CLOUD_INFO_PROCESSOR_NAME = "cloud_info_processor_name";
   private static final String CLOUD_MAX_RETRY = "cloud_max_retry";
@@ -58,7 +59,12 @@ public class HelixCloudProperty {
   private List<String> _cloudInfoSources;
 
   // The name of the function that will fetch and parse cloud instance information.
+  @Deprecated
   private String _cloudInfoProcessorName;
+
+  // The fully qualified class name for the class which contains implementation to fetch
+  // and parse cloud instance information.
+  private String _cloudInfoProcessorFullyQualifiedClassName;
 
   // Http max retry times when querying the cloud instance information from cloud environment.
   private int _cloudMaxRetry;
@@ -93,6 +99,7 @@ public class HelixCloudProperty {
     String cloudProviderStr = cloudConfig.getCloudProvider();
     setCloudProvider(cloudProviderStr);
     if (cloudProviderStr != null) {
+      String cloudInfoProcessorName = null;
       switch (CloudProvider.valueOf(cloudProviderStr)) {
         case AZURE:
           Properties azureProperties = new Properties();
@@ -108,6 +115,7 @@ public class HelixCloudProperty {
           LOG.info("Successfully loaded Helix Azure cloud properties: {}", azureProperties);
           setCloudInfoSources(
               Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
+          cloudInfoProcessorName = azureProperties.getProperty(CLOUD_INFO_PROCESSOR_NAME);
           setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSOR_NAME));
           setCloudMaxRetry(Integer.valueOf(azureProperties.getProperty(CLOUD_MAX_RETRY)));
           setCloudConnectionTimeout(
@@ -116,11 +124,27 @@ public class HelixCloudProperty {
           break;
         case CUSTOMIZED:
           setCloudInfoSources(cloudConfig.getCloudInfoSources());
+          cloudInfoProcessorName = cloudConfig.getCloudInfoProcessorName();
           setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
           break;
         default:
           throw new HelixException(
               String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
+      }
+
+      if (cloudInfoProcessorName != null) {
+        // If the cloud provider is not customized or a fully qualified class name isn't provided,
+        // use the default cloud processor path prefix and cloudProviderStr to construct the fully
+        // qualified class name. Otherwise, use the provided cloudInfoProcessorName directly. (Most common
+        // case if CUSTOMIZED cloud provider is used.
+        setCloudInfoProcessorFullyQualifiedClassName(
+            CloudProvider.valueOf(cloudProviderStr) != CloudProvider.CUSTOMIZED
+                || !cloudInfoProcessorName.contains(".") ? CLOUD_PROCESSOR_PATH_PREFIX
+                + cloudProviderStr.toLowerCase() + "." + cloudInfoProcessorName
+                : cloudInfoProcessorName);
+      } else {
+        throw new HelixException(String.format("No cloudInfoProcessorName is provided for: %s",
+            cloudConfig.getCloudProvider()));
       }
     }
   }
@@ -141,8 +165,17 @@ public class HelixCloudProperty {
     return _cloudInfoSources;
   }
 
+  @Deprecated
   public String getCloudInfoProcessorName() {
     return _cloudInfoProcessorName;
+  }
+
+  /**
+   * Get the fully qualified class name for the class which contains implementation to fetch
+   * and parse cloud instance information.
+   */
+  public String getCloudInfoProcessorFullyQualifiedClassName() {
+    return _cloudInfoProcessorFullyQualifiedClassName;
   }
 
   public int getCloudMaxRetry() {
@@ -185,8 +218,18 @@ public class HelixCloudProperty {
     _cloudInfoSources = sources;
   }
 
+  @Deprecated
   public void setCloudInfoProcessorName(String cloudInfoProcessorName) {
     _cloudInfoProcessorName = cloudInfoProcessorName;
+  }
+
+  /**
+   * Set the fully qualified class name of the cloud info processor.
+   * @param cloudInfoProcessorFullyQualifiedClassName
+   */
+  public void setCloudInfoProcessorFullyQualifiedClassName(
+      String cloudInfoProcessorFullyQualifiedClassName) {
+    _cloudInfoProcessorFullyQualifiedClassName = cloudInfoProcessorFullyQualifiedClassName;
   }
 
   public void setCloudMaxRetry(int cloudMaxRetry) {

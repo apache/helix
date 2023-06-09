@@ -150,8 +150,8 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     // Create CloudConfig object for CUSTOM cloud provider.
     CloudConfig cloudConfig =
         new CloudConfig.Builder().setCloudEnabled(true).setCloudProvider(CloudProvider.CUSTOMIZED)
-            .setCloudInfoProcessorName(
-                "org.apache.helix.integration.paticipant.CustomCloudInstanceInformationProcessor")
+            .setCloudInfoProcessorPackageName("org.apache.helix.integration.paticipant")
+            .setCloudInfoProcessorName("CustomCloudInstanceInformationProcessor")
             .setCloudInfoSources(Collections.singletonList("https://cloud.com")).build();
 
     // Update CloudConfig to Zookeeper.

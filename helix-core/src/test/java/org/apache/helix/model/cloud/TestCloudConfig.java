@@ -20,16 +20,17 @@ package org.apache.helix.model.cloud;
  */
 
 import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CloudConfig;
-import org.apache.helix.cloud.constants.CloudProvider;
-import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -139,6 +140,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
     builder.addCloudInfoSource("TestURL0");
     builder.addCloudInfoSource("TestURL1");
     builder.setCloudInfoProcessorName("TestProcessor");
+    builder.setCloudInfoProcessorPackageName("org.apache.foo.bar");
 
     // Check builder getter methods
     Assert.assertTrue(builder.getCloudEnabled());
@@ -167,6 +169,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
     Assert.assertEquals(listUrlFromZk.get(0), "TestURL0");
     Assert.assertEquals(listUrlFromZk.get(1), "TestURL1");
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor");
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorPackageName(), "org.apache.foo.bar");
   }
 
   @Test(dependsOnMethods = "testCloudConfigBuilder")

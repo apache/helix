@@ -31,12 +31,13 @@ public class TestHelixCloudProperty {
   @Test
   public void testHelixCloudPropertyAzure() {
     CloudConfig azureCloudConfig =
-        new CloudConfig("cluster_foo", true, CloudProvider.AZURE, "azure1",
-            Collections.singletonList("foo"), "foo");
+        new CloudConfig.Builder().setCloudEnabled(true).setCloudID("AzureTestId1")
+            .setCloudProvider(CloudProvider.AZURE).build();
+
     HelixCloudProperty azureCloudProperty = new HelixCloudProperty(azureCloudConfig);
 
     Assert.assertTrue(azureCloudProperty.getCloudEnabled());
-    Assert.assertEquals(azureCloudProperty.getCloudId(), "azure1");
+    Assert.assertEquals(azureCloudProperty.getCloudId(), "AzureTestId1");
     Assert.assertEquals(azureCloudProperty.getCloudProvider(), CloudProvider.AZURE.name());
     Assert.assertEquals(azureCloudProperty.getCloudInfoSources(), Collections.singletonList(
         "http://169.254.169.254/metadata/instance?api-version=2019-06-04"));
@@ -50,30 +51,31 @@ public class TestHelixCloudProperty {
   @Test
   public void testHelixCloudPropertyCustomizedFullyQualified() {
     CloudConfig customCloudConfig =
-        new CloudConfig("cluster_foo", true, CloudProvider.CUSTOMIZED, "custom1",
-            Collections.singletonList("https://custom-cloud.com"),
-            "com.linkedin.cloudinfo.CustomCloudInstanceInfoProcessor");
+        new CloudConfig.Builder().setCloudEnabled(true).setCloudProvider(CloudProvider.CUSTOMIZED)
+            .setCloudInfoProcessorPackageName("org.apache.foo.bar")
+            .setCloudInfoProcessorName("CustomCloudInstanceInfoProcessor")
+            .setCloudInfoSources(Collections.singletonList("https://custom-cloud.com")).build();
+
     HelixCloudProperty customCloudProperty = new HelixCloudProperty(customCloudConfig);
 
     Assert.assertTrue(customCloudProperty.getCloudEnabled());
-    Assert.assertEquals(customCloudProperty.getCloudId(), "custom1");
     Assert.assertEquals(customCloudProperty.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
     Assert.assertEquals(customCloudProperty.getCloudInfoSources(),
         Collections.singletonList("https://custom-cloud.com"));
     Assert.assertEquals(customCloudProperty.getCloudInfoProcessorFullyQualifiedClassName(),
-        "com.linkedin.cloudinfo.CustomCloudInstanceInfoProcessor");
+        "org.apache.foo.bar.CustomCloudInstanceInfoProcessor");
   }
 
   @Test
-  public void testHelixCloudPropertyClassName() {
+  public void testHelixCloudPropertyClassNameOnly() {
     CloudConfig customCloudConfig =
-        new CloudConfig("cluster_foo", true, CloudProvider.CUSTOMIZED, "custom1",
-            Collections.singletonList("https://custom-cloud.com"),
-            "CustomCloudInstanceInfoProcessor");
+        new CloudConfig.Builder().setCloudEnabled(true).setCloudProvider(CloudProvider.CUSTOMIZED)
+            .setCloudInfoProcessorName("CustomCloudInstanceInfoProcessor")
+            .setCloudInfoSources(Collections.singletonList("https://custom-cloud.com")).build();
+
     HelixCloudProperty customCloudProperty = new HelixCloudProperty(customCloudConfig);
 
     Assert.assertTrue(customCloudProperty.getCloudEnabled());
-    Assert.assertEquals(customCloudProperty.getCloudId(), "custom1");
     Assert.assertEquals(customCloudProperty.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
     Assert.assertEquals(customCloudProperty.getCloudInfoSources(),
         Collections.singletonList("https://custom-cloud.com"));

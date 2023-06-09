@@ -48,8 +48,9 @@ public class CloudConfig extends HelixProperty {
     // If user uses Helix supported default provider, the below entries will not be shown in
     // CloudConfig.
     CLOUD_INFO_SOURCE, // the source for retrieving the cloud information.
-    CLOUD_INFO_PROCESSOR_NAME // the name of the function that processes the fetching and parsing of
-                              // cloud information.
+    CLOUD_INFO_PROCESSOR_NAME, // the name of the function that processes the fetching and parsing of
+    // cloud information.
+    CLOUD_INFO_PROCESSOR_PACKAGE_NAME // the package name of for the CLOUD_INFO_PROCESSOR_NAME Class
   }
 
   /* Default values */
@@ -152,13 +153,21 @@ public class CloudConfig extends HelixProperty {
   }
 
   /**
+   * Get the CLOUD_INFO_PROCESSOR_PACKAGE_NAME field. This could be null
+   * if the user is using a supported cloud provider.
+   * @return CLOUD_INFO_PROCESSOR_PACKAGE_NAME field.
+   */
+  public String getCloudInfoProcessorPackageName() {
+    return _record.getSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_PACKAGE_NAME.name());
+  }
+
+  /**
    * Get the CLOUD_PROVIDER field.
    * @return CLOUD_PROVIDER field.
    */
   public String getCloudProvider() {
     return _record.getSimpleField(CloudConfigProperty.CLOUD_PROVIDER.name());
   }
-
 
   public static class Builder {
     private ZNRecord _record;
@@ -224,6 +233,18 @@ public class CloudConfig extends HelixProperty {
     public Builder setCloudInfoProcessorName(String cloudInfoProcessorName) {
       _record.setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name(),
           cloudInfoProcessorName);
+      return this;
+    }
+
+    /**
+     * Set the CLOUD_INFO_PROCESSOR_PACKAGE_NAME field. This is primarily used when the user
+     * is using a customized cloud provider.
+     * @param cloudInfoProcessorPackageName
+     * @return Builder
+     */
+    public Builder setCloudInfoProcessorPackageName(String cloudInfoProcessorPackageName) {
+      _record.setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_PACKAGE_NAME.name(),
+          cloudInfoProcessorPackageName);
       return this;
     }
 

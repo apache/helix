@@ -39,7 +39,6 @@ public class DistributedSemaphore {
   /**
    * Connect to an existing distributed semaphore client.
    * @param client client to connect to
-   * @param path path of the semaphore
    */
   public DistributedSemaphore(MetaClientInterface<DataRecord> client) {
     throw new NotImplementedException("Not implemented yet.");

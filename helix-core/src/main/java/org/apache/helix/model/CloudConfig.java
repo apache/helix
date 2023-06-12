@@ -50,7 +50,7 @@ public class CloudConfig extends HelixProperty {
     CLOUD_INFO_SOURCE, // the source for retrieving the cloud information.
     CLOUD_INFO_PROCESSOR_NAME, // the name of the function that processes the fetching and parsing of
     // cloud information.
-    CLOUD_INFO_PROCESSOR_PACKAGE_NAME // the package name of for the CLOUD_INFO_PROCESSOR_NAME Class
+    CLOUD_INFO_PROCESSOR_PACKAGE // the package of for the CLOUD_INFO_PROCESSOR_NAME Class
   }
 
   /* Default values */
@@ -153,12 +153,12 @@ public class CloudConfig extends HelixProperty {
   }
 
   /**
-   * Get the CLOUD_INFO_PROCESSOR_PACKAGE_NAME field. This could be null
+   * Get the CLOUD_INFO_PROCESSOR_PACKAGE field. This could be null
    * if the user is using a supported cloud provider.
-   * @return CLOUD_INFO_PROCESSOR_PACKAGE_NAME field.
+   * @return CLOUD_INFO_PROCESSOR_PACKAGE field.
    */
-  public String getCloudInfoProcessorPackageName() {
-    return _record.getSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_PACKAGE_NAME.name());
+  public String getCloudInfoProcessorPackage() {
+    return _record.getSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_PACKAGE.name());
   }
 
   /**
@@ -237,14 +237,14 @@ public class CloudConfig extends HelixProperty {
     }
 
     /**
-     * Set the CLOUD_INFO_PROCESSOR_PACKAGE_NAME field. This is primarily used when the user
+     * Set the CLOUD_INFO_PROCESSOR_PACKAGE field. This is primarily used when the user
      * is using a customized cloud provider.
-     * @param cloudInfoProcessorPackageName
+     * @param cloudInfoProcessorPackage
      * @return Builder
      */
-    public Builder setCloudInfoProcessorPackageName(String cloudInfoProcessorPackageName) {
-      _record.setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_PACKAGE_NAME.name(),
-          cloudInfoProcessorPackageName);
+    public Builder setCloudInfoProcessorPackageName(String cloudInfoProcessorPackage) {
+      _record.setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_PACKAGE.name(),
+          cloudInfoProcessorPackage);
       return this;
     }
 

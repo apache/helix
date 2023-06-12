@@ -169,7 +169,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
     Assert.assertEquals(listUrlFromZk.get(0), "TestURL0");
     Assert.assertEquals(listUrlFromZk.get(1), "TestURL1");
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor");
-    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorPackageName(), "org.apache.foo.bar");
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorPackage(), "org.apache.foo.bar");
   }
 
   @Test(dependsOnMethods = "testCloudConfigBuilder")

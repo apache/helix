@@ -44,6 +44,10 @@ public class TestHelixCloudProperty {
     Assert.assertEquals(azureCloudProperty.getCloudMaxRetry(), 5);
     Assert.assertEquals(azureCloudProperty.getCloudConnectionTimeout(), 5000);
     Assert.assertEquals(azureCloudProperty.getCloudRequestTimeout(), 5000);
+    Assert.assertEquals(azureCloudProperty.getCloudInfoProcessorPackage(),
+        "org.apache.helix.cloud.azure");
+    Assert.assertEquals(azureCloudProperty.getCloudInfoProcessorName(),
+        "AzureCloudInstanceInformationProcessor");
     Assert.assertEquals(azureCloudProperty.getCloudInfoProcessorFullyQualifiedClassName(),
         "org.apache.helix.cloud.azure.AzureCloudInstanceInformationProcessor");
   }
@@ -62,6 +66,9 @@ public class TestHelixCloudProperty {
     Assert.assertEquals(customCloudProperty.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
     Assert.assertEquals(customCloudProperty.getCloudInfoSources(),
         Collections.singletonList("https://custom-cloud.com"));
+    Assert.assertEquals(customCloudProperty.getCloudInfoProcessorPackage(), "org.apache.foo.bar");
+    Assert.assertEquals(customCloudProperty.getCloudInfoProcessorName(),
+        "CustomCloudInstanceInfoProcessor");
     Assert.assertEquals(customCloudProperty.getCloudInfoProcessorFullyQualifiedClassName(),
         "org.apache.foo.bar.CustomCloudInstanceInfoProcessor");
   }
@@ -79,6 +86,10 @@ public class TestHelixCloudProperty {
     Assert.assertEquals(customCloudProperty.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
     Assert.assertEquals(customCloudProperty.getCloudInfoSources(),
         Collections.singletonList("https://custom-cloud.com"));
+    Assert.assertEquals(customCloudProperty.getCloudInfoProcessorPackage(),
+        "org.apache.helix.cloud.customized");
+    Assert.assertEquals(customCloudProperty.getCloudInfoProcessorName(),
+        "CustomCloudInstanceInfoProcessor");
     Assert.assertEquals(customCloudProperty.getCloudInfoProcessorFullyQualifiedClassName(),
         "org.apache.helix.cloud.customized.CustomCloudInstanceInfoProcessor");
   }

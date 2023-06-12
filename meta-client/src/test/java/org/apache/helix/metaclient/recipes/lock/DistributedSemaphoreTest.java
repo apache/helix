@@ -28,19 +28,21 @@ import java.util.Collection;
 
 public class DistributedSemaphoreTest extends ZkMetaClientTestBase {
 
-  public DistributedSemaphore createSemaphoreClient(String path, int capacity) {
+  public DistributedSemaphore createSemaphoreClientAndSemaphore(String path, int capacity) {
 
     MetaClientConfig.StoreType storeType = MetaClientConfig.StoreType.ZOOKEEPER;
     MetaClientConfig config = new MetaClientConfig.MetaClientConfigBuilder<>().setConnectionAddress(ZK_ADDR)
         .setStoreType(storeType).build();
-    return new DistributedSemaphore(config, path, capacity);
+    DistributedSemaphore client = new DistributedSemaphore(config);
+    client.createSemaphore(path, capacity);
+    return client;
   }
 
   @Test
   public void testAcquirePermit() {
     final String key = "/TestSemaphore_testAcquirePermit";
     int capacity = 5;
-    DistributedSemaphore semaphoreClient = createSemaphoreClient(key, capacity);
+    DistributedSemaphore semaphoreClient = createSemaphoreClientAndSemaphore(key, capacity);
     Assert.assertEquals(semaphoreClient.getRemainingCapacity(), capacity);
 
     Permit permit = semaphoreClient.acquire();
@@ -52,25 +54,20 @@ public class DistributedSemaphoreTest extends ZkMetaClientTestBase {
     final String key = "/TestSemaphore_testAcquireMultiplePermits";
     int capacity = 5;
     int count = 4;
-    DistributedSemaphore semaphoreClient = createSemaphoreClient(key, capacity);
+    DistributedSemaphore semaphoreClient = createSemaphoreClientAndSemaphore(key, capacity);
     Assert.assertEquals(semaphoreClient.getRemainingCapacity(), capacity);
 
     Collection<Permit> permits = semaphoreClient.acquire(count);
     Assert.assertEquals(semaphoreClient.getRemainingCapacity(), capacity - 4);
     Assert.assertEquals(permits.size(), count);
-    try {
-      semaphoreClient.acquire(count);
-      Assert.fail("Should not be able to acquire more permits than available.");
-    } catch (Exception e) {
-      // expected
-    }
+    Assert.assertNull(semaphoreClient.acquire(count));
   }
 
   @Test
   public void testReturnPermit() {
     final String key = "/TestSemaphore_testReturnPermit";
     int capacity = 5;
-    DistributedSemaphore semaphoreClient = createSemaphoreClient(key, capacity);
+    DistributedSemaphore semaphoreClient = createSemaphoreClientAndSemaphore(key, capacity);
     Assert.assertEquals(semaphoreClient.getRemainingCapacity(), capacity);
 
     Permit permit = semaphoreClient.acquire();
@@ -89,7 +86,7 @@ public class DistributedSemaphoreTest extends ZkMetaClientTestBase {
     final String key = "/TestSemaphore_testReturnMultiplePermits";
     int capacity = 5;
     int count = 4;
-    DistributedSemaphore semaphoreClient = createSemaphoreClient(key, capacity);
+    DistributedSemaphore semaphoreClient = createSemaphoreClientAndSemaphore(key, capacity);
     Assert.assertEquals(semaphoreClient.getRemainingCapacity(), capacity);
 
     Collection<Permit> permits = semaphoreClient.acquire(count);

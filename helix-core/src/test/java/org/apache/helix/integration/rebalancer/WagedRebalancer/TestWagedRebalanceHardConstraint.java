@@ -81,7 +81,7 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
   private final Set<String> _allDBs = new HashSet<>();
   private final int _replica = 3;
   private final Map<String, IdealState> _prevIdealState = new HashMap<>();
-  private static final Logger LOG = LoggerFactory.getLogger("kd");
+  private static final Logger LOG = LoggerFactory.getLogger("TestWagedRebalanceHardConstraint");
 
   private static final String[] _testModels = {
     BuiltInStateModelDefinitions.OnlineOffline.name(),
@@ -164,7 +164,7 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       _prevIdealState.put(db, is);
     }
-    
+
     validateIdealState(true, null);
     printCurrentState();
 
@@ -184,7 +184,7 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
     printCurrentState();
 
 
-    // Update the weight for one of the resource. 
+    // Update the weight for one of the resource.
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     String db = "Test-WagedDB-0";
     ResourceConfig resourceConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().resourceConfig(db));

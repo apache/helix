@@ -203,7 +203,12 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     HelixTaskExecutor helixExecutor = svc.getExecutor();
     ThreadPoolExecutor executor = (ThreadPoolExecutor) (helixExecutor._batchMessageExecutorService);
     Assert.assertNotNull(executor);
-    Assert.assertTrue(executor.getPoolSize() >= numberOfDbs);
+
+    // This ASSERT invariant is not true.
+    // _batchMessageExecutorService is created as newCachedThreadPool().
+    // which will re-use existing threads if they are available. 
+    // So there is no gurantee that new threads will be created for each new database
+    // Assert.assertTrue(executor.getPoolSize() >= numberOfDbs);
 
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)

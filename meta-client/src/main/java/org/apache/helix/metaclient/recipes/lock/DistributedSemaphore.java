@@ -116,13 +116,13 @@ public class DistributedSemaphore {
    * Acquire a permit. If no permit is available, log error and return null.
    * @return a permit
    */
-  public synchronized Permit acquire() {
-    if (getRemainingCapacity() > 0) {
-      int count = 1;
+  public Permit acquire() {
+    int count = 1;
+    try {
       updateAcquirePermit(count);
       return retrievePermit(_path);
-    } else {
-      LOG.warn("No permit available.");
+    } catch (MetaClientException e) {
+      LOG.error("Failed to acquire permit.", e);
       return null;
     }
   }
@@ -133,18 +133,17 @@ public class DistributedSemaphore {
    * @param count number of permits to acquire
    * @return a collection of permits
    */
-  public synchronized Collection<Permit> acquire(int count) {
-    if (getRemainingCapacity() < count) {
-      LOG.warn("No sufficient permits available. Attempt to acquire {} permits, but only {} permits available", count,
-          getRemainingCapacity());
-      return null;
-    } else {
+  public Collection<Permit> acquire(int count) {
+    try {
       updateAcquirePermit(count);
       Collection<Permit> permits = new ArrayList<>();
       for (int i = 0; i < count; i++) {
         permits.add(retrievePermit(_path));
       }
       return permits;
+    } catch (MetaClientException e) {
+      LOG.error("Failed to acquire permits.", e);
+      return null;
     }
   }
 
@@ -156,7 +155,7 @@ public class DistributedSemaphore {
    * @param unit time unit
    * @return a collection of permits
    */
-  public synchronized Collection<Permit> acquire(int count, long timeout, TimeUnit unit) {
+  public Collection<Permit> acquire(int count, long timeout, TimeUnit unit) {
     throw new NotImplementedException("Not implemented yet.");
   }
 
@@ -182,7 +181,7 @@ public class DistributedSemaphore {
   /**
    * Return a permit. If the permit is already returned, log and return void.
    */
-  public synchronized void returnPermit(Permit permit) {
+  public void returnPermit(Permit permit) {
     if (permit.isReleased()) {
       LOG.info("The permit has already been released");
     } else {
@@ -217,7 +216,12 @@ public class DistributedSemaphore {
    */
   private void updateAcquirePermit(int count) {
     _metaClient.update(_path, record -> {
-      record.setLongField(REMAINING_CAPACITY_NAME, getRemainingCapacity() - count);
+      long permitsAvailable = record.getLongField(REMAINING_CAPACITY_NAME, DEFAULT_REMAINING_CAPACITY);
+      if (permitsAvailable < count) {
+        throw new MetaClientException("No sufficient permits available. Attempt to acquire " + count + " permits, but only "
+            + permitsAvailable + " permits available");
+      }
+      record.setLongField(REMAINING_CAPACITY_NAME, permitsAvailable - count);
       return record;
     });
   }
@@ -227,7 +231,8 @@ public class DistributedSemaphore {
    */
   private void updateReturnPermit() {
     _metaClient.update(_path, record -> {
-      record.setLongField(REMAINING_CAPACITY_NAME, getRemainingCapacity() + 1);
+      long permitsAvailable = record.getLongField(REMAINING_CAPACITY_NAME, DEFAULT_REMAINING_CAPACITY);
+      record.setLongField(REMAINING_CAPACITY_NAME, permitsAvailable + 1);
       return record;
     });
   }

@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 public class HelixCloudProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
   private static final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
+  private static final String DEFAULT_CLOUD_PROCESSOR_PACKAGE_PREFIX = "org.apache.helix.cloud.";
   private static final String CLOUD_INFO_SOURCE = "cloud_info_source";
   private static final String CLOUD_INFO_PROCESSOR_NAME = "cloud_info_processor_name";
   private static final String CLOUD_MAX_RETRY = "cloud_max_retry";
@@ -60,6 +61,10 @@ public class HelixCloudProperty {
   // The name of the function that will fetch and parse cloud instance information.
   private String _cloudInfoProcessorName;
 
+  // The package for the class which contains implementation to fetch
+  // and parse cloud instance information.
+  private String _cloudInfoProcessorPackage;
+
   // Http max retry times when querying the cloud instance information from cloud environment.
   private int _cloudMaxRetry;
 
@@ -70,7 +75,7 @@ public class HelixCloudProperty {
   private long _cloudRequestTimeout;
 
   // Other customized properties that may be used.
-  private Properties _customizedCloudProperties = new Properties();
+  private final Properties _customizedCloudProperties = new Properties();
 
   private boolean _isCloudEventCallbackEnabled;
 
@@ -93,6 +98,7 @@ public class HelixCloudProperty {
     String cloudProviderStr = cloudConfig.getCloudProvider();
     setCloudProvider(cloudProviderStr);
     if (cloudProviderStr != null) {
+      String cloudInfoProcessorName = null;
       switch (CloudProvider.valueOf(cloudProviderStr)) {
         case AZURE:
           Properties azureProperties = new Properties();
@@ -108,6 +114,8 @@ public class HelixCloudProperty {
           LOG.info("Successfully loaded Helix Azure cloud properties: {}", azureProperties);
           setCloudInfoSources(
               Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
+          setCloudInfoProcessorPackage(
+              DEFAULT_CLOUD_PROCESSOR_PACKAGE_PREFIX + cloudProviderStr.toLowerCase());
           setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSOR_NAME));
           setCloudMaxRetry(Integer.valueOf(azureProperties.getProperty(CLOUD_MAX_RETRY)));
           setCloudConnectionTimeout(
@@ -116,6 +124,12 @@ public class HelixCloudProperty {
           break;
         case CUSTOMIZED:
           setCloudInfoSources(cloudConfig.getCloudInfoSources());
+          // Although it is unlikely that cloudInfoProcessorPackage is null, when using the CUSTOMIZED
+          // cloud provider, we will set the processor package to helix cloud package to preserves the
+          // backwards compatibility.
+          setCloudInfoProcessorPackage(cloudConfig.getCloudInfoProcessorPackage() != null
+              ? cloudConfig.getCloudInfoProcessorPackage()
+              : DEFAULT_CLOUD_PROCESSOR_PACKAGE_PREFIX + cloudProviderStr.toLowerCase());
           setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
           break;
         default:
@@ -141,8 +155,25 @@ public class HelixCloudProperty {
     return _cloudInfoSources;
   }
 
+  /**
+   * Get the package containing the CloudInfoProcessor class.
+   * @return A package.
+   */
+  public String getCloudInfoProcessorPackage() {
+    return _cloudInfoProcessorPackage;
+  }
+
   public String getCloudInfoProcessorName() {
     return _cloudInfoProcessorName;
+  }
+
+  /**
+   * Get the fully qualified class name for the class which contains implementation to fetch
+   * and parse cloud instance information.
+   * @return A fully qualified class name.
+   */
+  public String getCloudInfoProcessorFullyQualifiedClassName() {
+    return _cloudInfoProcessorPackage + "." + _cloudInfoProcessorName;
   }
 
   public int getCloudMaxRetry() {
@@ -183,6 +214,14 @@ public class HelixCloudProperty {
 
   public void setCloudInfoSources(List<String> sources) {
     _cloudInfoSources = sources;
+  }
+
+  /**
+   * Set the package containing the class name of the cloud info processor.
+   * @param cloudInfoProcessorPackage
+   */
+  private void setCloudInfoProcessorPackage(String cloudInfoProcessorPackage) {
+    _cloudInfoProcessorPackage = cloudInfoProcessorPackage;
   }
 
   public void setCloudInfoProcessorName(String cloudInfoProcessorName) {

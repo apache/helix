@@ -1,5 +1,7 @@
 package org.apache.helix.integration.paticipant;
 
+import java.util.Collections;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -12,8 +14,10 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -91,8 +95,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     HelixManager manager = _participants[0];
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, db3, 60, "OnlineOffline",
-        RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, db3, 60, "OnlineOffline", RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db3, 1);
     String instance3 = "localhost_279700";
 
@@ -120,8 +123,53 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
         return true;
       }, 2000));
     } catch (HelixException e) {
-      Assert.assertNull(manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance3)));
+      Assert.assertNull(manager.getHelixDataAccessor()
+          .getProperty(accessor.keyBuilder().liveInstance(instance3)));
     }
+
+    autoParticipant.syncStop();
+  }
+
+  /**
+   * Test auto registration with customized cloud info processor specified with fully qualified
+   * class name.
+   * @throws Exception
+   */
+  @Test
+  public void testAutoRegistrationCustomizedFullyQualifiedInfoProcessorPath() throws Exception {
+    HelixManager manager = _participants[0];
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    String instance4 = "localhost_279707";
+
+    // Enable cluster auto join.
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER).forCluster(
+            CLUSTER_NAME).build();
+    manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
+
+    // Create CloudConfig object for CUSTOM cloud provider.
+    CloudConfig cloudConfig =
+        new CloudConfig.Builder().setCloudEnabled(true).setCloudProvider(CloudProvider.CUSTOMIZED)
+            .setCloudInfoProcessorPackageName("org.apache.helix.integration.paticipant")
+            .setCloudInfoProcessorName("CustomCloudInstanceInformationProcessor")
+            .setCloudInfoSources(Collections.singletonList("https://cloud.com")).build();
+
+    // Update CloudConfig to Zookeeper.
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.cloudConfig(), cloudConfig);
+
+    // Create and start a new participant.
+    MockParticipantManager autoParticipant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance4);
+    autoParticipant.syncStart();
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      // Check that live instance is added and instance config is populated with correct domain.
+      return null != manager.getHelixDataAccessor()
+          .getProperty(accessor.keyBuilder().liveInstance(instance4)) && manager.getConfigAccessor()
+          .getInstanceConfig(CLUSTER_NAME, instance4).getDomainAsString()
+          .equals("rack=A:123, host=" + instance4);
+    }, 2000));
 
     autoParticipant.syncStop();
   }

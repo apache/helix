@@ -80,21 +80,19 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
   List<String> _nodes = new ArrayList<>();
   private final Set<String> _allDBs = new HashSet<>();
   private final int _replica = 3;
-  private final Map<String, IdealState> _prevIdealState = new HashMap<>();
-  private static final Logger LOG = LoggerFactory.getLogger("TestWagedRebalanceHardConstraint");
 
-  private static final String[] _testModels = {
-    BuiltInStateModelDefinitions.OnlineOffline.name(),
-    BuiltInStateModelDefinitions.MasterSlave.name(),
-    BuiltInStateModelDefinitions.LeaderStandby.name()
-  };
+  private final String  _testCapacityKey = "TestCapacityKey";
+  private final Map<String, IdealState> _prevIdealState = new HashMap<>();
+
+  private final Map<String,List<String>> _instanceUsage = new HashMap<>();
+  private static final Logger LOG = LoggerFactory.getLogger("TestWagedRebalanceHardConstraint");
 
   @BeforeClass
   public void beforeClass() throws Exception {
     LOG.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
-
+    // create 6 node cluster
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
@@ -115,6 +113,7 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
+    // This is same as TestWagedRebalance
     // It's a hacky way to workaround the package restriction. Note that we still want to hide the
     // AssignmentMetadataStore constructor to prevent unexpected update to the assignment records.
     _assignmentMetadataStore =
@@ -136,20 +135,23 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     ClusterConfig clusterConfig =
         dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
-    String testCapacityKey = "TestCapacityKey";
-    clusterConfig.setInstanceCapacityKeys(Collections.singletonList(testCapacityKey));
-    clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(testCapacityKey, 100));
-    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(testCapacityKey, 6));
+
+    clusterConfig.setInstanceCapacityKeys(Collections.singletonList(_testCapacityKey));
+    clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(_testCapacityKey, 100));
+    // Calculation is: 6 nodes, total capacity 600
+    // 3 resources * 10 partitions each with 3 replica = 90.
+    // Total capacity is 600, so each partition should be 6 units.
+    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(_testCapacityKey, 6));
     dataAccessor.setProperty(dataAccessor.keyBuilder().clusterConfig(), clusterConfig);
   }
 
   @Test
   public void testInitialPlacement() {
-    int i = 0;
-    for (String stateModel : _testModels) {
-      String db = "Test-WagedDB-" + i++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-          _replica);
+    // Create 3 resources with 10 partitions each.
+    for (int i = 0; i < 3; i++) {
+      String db = "Test-WagedDB-" + i;
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, BuiltInStateModelDefinitions.MasterSlave.name(),
+          PARTITIONS, _replica, _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -165,9 +167,6 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
       _prevIdealState.put(db, is);
     }
 
-    validateIdealState(true, null);
-    printCurrentState();
-
     // Let us add one more instance
     String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + NUM_NODE);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
@@ -180,9 +179,7 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
     Thread.currentThread().sleep(2000);
 
     LOG.info("After adding the new instance");
-    validateIdealState(true, null);
-    printCurrentState();
-
+    validateIdealState(false);
 
     // Update the weight for one of the resource.
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
@@ -191,7 +188,7 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
     if (resourceConfig == null) {
       resourceConfig = new ResourceConfig(db);
     }
-    Map<String, Integer> capacityDataMap = ImmutableMap.of("TestCapacityKey", 10);
+    Map<String, Integer> capacityDataMap = ImmutableMap.of(_testCapacityKey, 10);
     resourceConfig.setPartitionCapacityMap(
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap));
     dataAccessor.setProperty(dataAccessor.keyBuilder().resourceConfig(db), resourceConfig);
@@ -201,7 +198,7 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
 
     LOG.info("After changing resource partition weight");
     validate();
-    validateIdealState(false, db);
+    validateIdealState(true);
     printCurrentState();
   }
 
@@ -229,14 +226,8 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
     } finally {
       _clusterVerifier.close();
     }
-    for (String db : _allDBs) {
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateIsolation(is, ev);
-    }
   }
+
   private void printCurrentState() {
     List<String> instances =
         _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
@@ -254,33 +245,58 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
       }
     }
   }
-  private void validateIdealState(boolean forAll, String onlyResource) {
+  private void validateIdealState(boolean afterWeightChange) {
+    // Calculate the instance to partition mapping based on previous and new ideal state.
+    // We will take the union of the two.
+    // For example: if prevIdealState for instance_0 has partition_0, partition_1
+    // and newIdealState for instance_0 has partition_1, partition_2, then the final
+    // mapping for instance_0 will be partition_0, partition_1, partition_2.
+
+    Map<String, Set<String>> instanceToPartitionMap = new HashMap<>();
     for (String db : _allDBs) {
-      IdealState is =
-            _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState newIdealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       IdealState prevIdealState = _prevIdealState.get(db);
-      if (forAll && prevIdealState != null) {
-        Assert.assertNotSame(is.getRecord().getMapFields(), prevIdealState.getRecord().getMapFields());
-      } else if (prevIdealState != null && onlyResource.equals(db)) {
-        Assert.assertNotSame(is.getRecord().getMapFields(), prevIdealState.getRecord().getMapFields());
-      }
-      LOG.info("IdealState for resource: " + db);
-      for (String partition : is.getPartitionSet()) {
-          Map<String, String> assignmentMap = is.getRecord().getMapField(partition);
-          LOG.info("\tFor partition: " + partition);
-          for (String instance : assignmentMap.keySet()) {
-            LOG.info("\t\tinstance: " + instance);
+
+      for (String partition : newIdealState.getPartitionSet()) {
+        Map<String, String> assignmentMap = newIdealState.getRecord().getMapField(partition);
+        for (String instance : assignmentMap.keySet()) {
+          if (!instanceToPartitionMap.containsKey(instance)) {
+            instanceToPartitionMap.put(instance, new HashSet<>());
           }
+          instanceToPartitionMap.get(instance).add(partition);
+        }
       }
-      _prevIdealState.put(db, is);
+      if (prevIdealState != null) {
+        for (String partition : prevIdealState.getPartitionSet()) {
+          Map<String, String> assignmentMap = prevIdealState.getRecord().getMapField(partition);
+          for (String instance : assignmentMap.keySet()) {
+            if (!instanceToPartitionMap.containsKey(instance)) {
+              instanceToPartitionMap.put(instance, new HashSet<>());
+            }
+            instanceToPartitionMap.get(instance).add(partition);
+          }
+        }
+      }
+      _prevIdealState.put(db, newIdealState);
     }
-  }
-  private void validateIsolation(IdealState is, ExternalView ev) {
-    for (String partition : is.getPartitionSet()) {
-      Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
-      Set<String> instancesInEV = assignmentMap.keySet();
-      Assert.assertEquals(instancesInEV.size(), _replica);
+    for (String instance : instanceToPartitionMap.keySet()) {
+      int usedInstanceCapacity = 0;
+      for (String partition : instanceToPartitionMap.get(instance)) {
+        LOG.info("\tPartition: " + partition);
+        if (partition.startsWith("Test-WagedDB-0")) {
+          if (afterWeightChange) {
+            usedInstanceCapacity += 10;
+          } else {
+            usedInstanceCapacity += 6;
+          }
+        } else {
+          usedInstanceCapacity += 6;
+        }
+      }
+      LOG.info("\tIntance: " + instance + " used capacity: " + usedInstanceCapacity);
+      
+      Assert.assertTrue(usedInstanceCapacity <= 100);
     }
   }
 }
-

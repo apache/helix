@@ -117,9 +117,8 @@ public class DistributedSemaphore {
    * @return a permit
    */
   public Permit acquire() {
-    int count = 1;
     try {
-      updateAcquirePermit(count);
+      updateAcquirePermit(1);
       return retrievePermit(_path);
     } catch (MetaClientException e) {
       LOG.error("Failed to acquire permit.", e);

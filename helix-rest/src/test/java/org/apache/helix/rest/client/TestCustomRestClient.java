@@ -161,7 +161,6 @@ public class TestCustomRestClient {
     if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
       JsonNode json = customRestClient.getJsonObject(response);
 
-      Assert.assertEquals(response.getStatusLine().getStatusCode(), HttpStatus.SC_OK);
       Assert.assertEquals(json.get("headers").get("Accept").asText(), "application/json");
       Assert.assertEquals(json.get("data").asText(), "{}");
     }

@@ -225,6 +225,14 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Assert.assertEquals(touple.right.getVersion(), 1);
       zkMetaClient.delete(key);
 
+      // test non exist key
+      try{
+        zkMetaClient.getDataAndStat(key);
+      } catch (MetaClientException ex){
+        Assert.assertEquals(ex.getClass().getName(),
+            "org.apache.helix.metaclient.exception.MetaClientNoNodeException");
+      }
+
     }
   }
 

@@ -181,9 +181,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public ImmutablePair<T, Stat> getDataAndStat(final String key) {
-    org.apache.zookeeper.data.Stat zkStat = new org.apache.zookeeper.data.Stat();
-    T data = _zkClient.readData(key, zkStat);
-    return ImmutablePair.of(data, ZkMetaClientUtil.convertZkStatToStat(zkStat));
+    try {
+      org.apache.zookeeper.data.Stat zkStat = new org.apache.zookeeper.data.Stat();
+      T data = _zkClient.readData(key, zkStat);
+      return ImmutablePair.of(data, ZkMetaClientUtil.convertZkStatToStat(zkStat));
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override

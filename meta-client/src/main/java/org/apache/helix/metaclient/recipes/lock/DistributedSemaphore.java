@@ -49,6 +49,7 @@ public class DistributedSemaphore {
     if (config == null) {
       throw new MetaClientException("Configuration cannot be null");
     }
+    LOG.info("Creating DistributedSemaphore Client");
     if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
       ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder()
           .setConnectionAddress(config.getConnectionAddress())
@@ -70,8 +71,13 @@ public class DistributedSemaphore {
     if (client == null) {
       throw new MetaClientException("Client cannot be null");
     }
+    LOG.info("Connecting to existing DistributedSemaphore Client");
     _metaClient = client;
-    _metaClient.connect();
+    try {
+      _metaClient.connect();
+    } catch (IllegalStateException e) {
+      // Ignore as it either has already been connected or already been closed.
+    }
   }
 
   /**

@@ -186,6 +186,15 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     return rebalanceStrategy;
   }
 
+  protected Map<String, String> computeBestPossibleStateForPartition(T cache,
+      StateModelDefinition stateModelDef, List<String> preferenceList,
+      CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
+      IdealState idealState, Partition partition) {
+    return computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef,
+        preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
+        cache.getClusterConfig(), partition, cache.getAbnormalStateResolver(stateModelDef.getId()));
+  }
+
   /**
    * Compute best state for partition in AUTO ideal state mode.
    * @param liveInstances
@@ -328,8 +337,10 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * This method also makes sure corner cases like disabled or ERROR instances are correctly handled.
    * {@param currentStateMap} must be non-null.
    */
-  protected Map<String, String> computeBestPossibleMap(List<String> preferenceList, StateModelDefinition stateModelDef,
-      Map<String, String> currentStateMap, Set<String> liveInstances, Set<String> disabledInstancesForPartition) {
+  protected Map<String, String> computeBestPossibleMap(List<String> preferenceList,
+      StateModelDefinition stateModelDef, Map<String, String> currentStateMap,
+      Set<String> liveInstances, Set<String> disabledInstancesForPartition) {
+
     Map<String, String> bestPossibleStateMap = new HashMap<>();
 
     // (1) Instances that have current state but not in preference list, drop, no matter it's disabled or not.

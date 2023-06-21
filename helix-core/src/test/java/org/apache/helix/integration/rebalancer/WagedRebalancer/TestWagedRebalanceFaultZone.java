@@ -265,7 +265,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
         newNodes.add(newNode);
         newNodeReplicaCount.put(newNodeName, 0);
       }
-      Thread.sleep(300);
+      Thread.sleep(500);
 
       validate(_replica);
 

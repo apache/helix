@@ -54,6 +54,7 @@ import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.internal.matchers.Any;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.testng.Assert;
@@ -139,6 +140,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
 
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
+
     Map<String, IdealState> newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     Map<String, ResourceAssignment> algorithmResult = _algorithm.getRebalanceResult();
@@ -176,6 +179,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
 
+    // Mocking instance capacity / quota
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
     // Test with partial resources listed in the resourceMap input.
     // Remove the first resource from the input. Note it still exists in the cluster data cache.
     _metadataStore.reset();
@@ -202,6 +207,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Mocking the change types for triggering a baseline rebalance.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+
+    // Mocking instance capacity / quota
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
 
     // Test with current state exists, so the rebalancer should calculate for the intermediate state
     // Create current state based on the cluster data cache.
@@ -289,6 +297,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Mocking the change types for triggering a baseline rebalance.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+
+    // Mocking instance capacity / quota
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
 
     // Mock a current state
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
@@ -463,6 +474,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Cluster config change will trigger baseline to be recalculated.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+
+    // mock the instance capacity/quota
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
+
     // Update the config so the cluster config will be marked as changed.
     ClusterConfig clusterConfig = clusterData.getClusterConfig();
     Map<String, Integer> defaultCapacityMap =
@@ -555,6 +570,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     clusterData = setupClusterDataCache(); // Note this mock data cache won't report any change.
     // Even with no change, since the previous assignment is empty, the rebalancer will still
     // calculate the assignment for both resources.
+
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
     newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     newAlgorithmResult = _algorithm.getRebalanceResult();
@@ -810,6 +827,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Mocking the change types for triggering a baseline rebalance.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+
+    // Mock the instance capacity/usage check.
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
+
     Map<String, IdealState> newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     Map<String, ResourceAssignment> algorithmResult = _algorithm.getRebalanceResult();
@@ -820,6 +841,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Try to trigger a new rebalancer, since nothing has been changed. There will be no rebalance.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
+
     Assert.assertEquals(
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput()),
         newIdealStates);
@@ -833,6 +856,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Try to trigger a new rebalancer, since nothing has been changed. There will be no rebalance.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    when(clusterData.checkAndReduceInstanceCapacity(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(Boolean.TRUE);
+
     newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     algorithmResult = _algorithm.getRebalanceResult();
@@ -894,7 +919,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
           return resource;
         }));
     WagedInstanceCapacity provider = new WagedInstanceCapacity(clusterData);
-   
+
     Map<String, Integer> weights1 = Map.of("item1", 20, "item2", 40, "item3", 30);
     Map<String, Integer> capacity = provider.getInstanceAvailableCapacity("testInstanceId");
     Assert.assertEquals(provider.getInstanceAvailableCapacity("testInstanceId"), weights1);

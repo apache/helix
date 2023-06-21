@@ -27,9 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CustomizedStateCache;
@@ -37,20 +39,27 @@ import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
+import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
+import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Data provider for resource controller.
- *
+ * Data provider for resource controller.*
  * This class will be moved to helix-resource-controller module in the future
  */
 public class ResourceControllerDataProvider extends BaseControllerDataProvider {
@@ -88,6 +97,11 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // TODO: dependency. Note that this will change the cluster partition assignment and potentially
   // TODO: cause shuffling. So it is not backward compatible.
   private final Map<String, List<String>> _stablePartitionListCache = new HashMap<>();
+
+  // Waged - requires instance capacity data provider and resource weight provider.
+  private WagedInstanceCapacity _wagedInstanceCapacity;
+  private WagedResourceWeightsProvider _wagedResourceWeightsProvider;
+
 
   public ResourceControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -474,5 +488,84 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
         _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
       }
     }
+  }
+
+  // Setup Instance capacity and Resource Weight Provider for WAGED
+  public void setupWagedDataProvider(WagedInstanceCapacity capacityProvider, WagedResourceWeightsProvider resourceWeightProvider) {
+    // Waged - requires instance capacity data provider and resource weight provider.
+    _wagedInstanceCapacity = capacityProvider;
+    _wagedResourceWeightsProvider = resourceWeightProvider;
+  }
+
+  // Get Instance capacity provider for WAGED
+  public WagedInstanceCapacity getWagedInstanceCapacity() {
+    return _wagedInstanceCapacity;
+  }
+
+  // Get Resource weight provider for WAGED
+  public WagedResourceWeightsProvider getWagedResourceWeightsProvider() {
+    return _wagedResourceWeightsProvider;
+  }
+
+  /**
+   * Process the pending messages based on the Current states
+   * @param currentState - Current state of the resources.
+   */
+  public void processPendingMessages(CurrentStateOutput currentState, Map<String, Resource> resourceMap) {
+    Map<String, Map<Partition, Map<String, Message>>> pendingMsgs = currentState.getPendingMessages();
+
+    // Resources which are WAGED enabled
+    Map<String, Resource> wagedRebalancedResourceMap = resourceMap.entrySet().stream()
+        .filter(resourceEntry ->
+            WagedValidationUtil.isWagedEnabled(getIdealState(resourceEntry.getKey())))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    for (Map.Entry<String, Resource> resEntry : wagedRebalancedResourceMap.entrySet()) {
+      String resName = resEntry.getKey();
+      Resource resource = resEntry.getValue();
+      Map<Partition, Map<String, Message>> partitionMsgs = pendingMsgs.get(resName);
+      if (partitionMsgs == null) {
+        continue;
+      }
+      StateModelDefinition stateModelDef = getStateModelDef(resource.getStateModelDefRef());
+      for (Partition partition : partitionMsgs.keySet()) {
+        Map<String, Message> msgs = partitionMsgs.get(partition);
+        for (Map.Entry<String, Message> entry : msgs.entrySet()) {
+          Message msg = entry.getValue();
+          String instance = entry.getKey();
+          Map<String, Integer> statePriorityMap = stateModelDef.getStatePriorityMap();
+
+          if ((statePriorityMap.containsKey(msg.getFromState())
+              && statePriorityMap.containsKey(msg.getToState())
+              && statePriorityMap.get(msg.getFromState()) < statePriorityMap.get(msg.getToState())
+              && msg.getToState().equals(stateModelDef.getInitialState())) || msg.getToState().equals(HelixDefinedState.DROPPED)) {
+            Map<String, Integer> partitionCapacity = _wagedResourceWeightsProvider
+                  .getPartitionWeights(resName, partition.getPartitionName());
+
+            if (_wagedInstanceCapacity.reduceAvailableInstanceCapacity(instance, partitionCapacity,
+                  resName, partition.getPartitionName())) {
+                logger.warn("Reducing capacity in processMsg: instance: " + instance + " partition: " + partition + " reduced");
+            }
+          }
+        }
+      }
+    }
+  }
+  public boolean checkInstanceCapacity(String instance, IdealState idealState, Partition partition) {
+    Map<String, Integer> partitionCapacity = _wagedResourceWeightsProvider.getPartitionWeights(idealState.getResourceName(),
+        partition.getPartitionName());
+    return _wagedInstanceCapacity.isInstanceCapacityAvailable(instance, partitionCapacity);
+  }
+
+  public boolean checkAndReduceInstanceCapacity(String instance, IdealState idealState,
+      Partition partition) {
+    // if partition has already been assigned to this instance, then no need to reduce the capacity.
+    if (_wagedInstanceCapacity.isPartitionAssigned(instance, idealState.getResourceName(), partition.getPartitionName())) {
+      return true;
+    }
+    Map<String, Integer> partitionCapacity = _wagedResourceWeightsProvider.getPartitionWeights(idealState.getResourceName(),
+        partition.getPartitionName());
+    return _wagedInstanceCapacity.reduceAvailableInstanceCapacity(instance, partitionCapacity, idealState.getResourceName(),
+        partition.getPartitionName());
   }
 }

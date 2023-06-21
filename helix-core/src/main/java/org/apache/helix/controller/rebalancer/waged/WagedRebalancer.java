@@ -101,6 +101,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private RebalanceAlgorithm _rebalanceAlgorithm;
   private Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> _preference = NOT_CONFIGURED_PREFERENCE;
 
+  private WagedInstanceCapacity _instanceCapacity;
+  private WagedResourceWeightsProvider _resourceWeightsProvider;
+
   private static AssignmentMetadataStore constructAssignmentStore(String metadataStoreAddrs,
       String clusterName) {
     if (metadataStoreAddrs != null && clusterName != null) {
@@ -239,7 +242,15 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
     LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
+
     validateInput(clusterData, resourceMap);
+    // Initialize WagedInstanceCapacity and WagedResourceCapacity
+    _instanceCapacity = new WagedInstanceCapacity(clusterData);
+    _resourceWeightsProvider = new WagedResourceWeightsProvider(clusterData);
+
+    // Setup the data providers for Resource Data providers
+    clusterData.setupWagedDataProvider(_instanceCapacity, _resourceWeightsProvider);
+    clusterData.processPendingMessages(currentStateOutput, resourceMap);
 
     Map<String, IdealState> newIdealStates;
     try {
@@ -270,6 +281,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       }
     }
 
+    // Construct the new best possible states according to the current state and target assignment.
+    // Note that the new ideal state might be an intermediate state between the current state and
+    // the target assignment.
     // Construct the new best possible states according to the current state and target assignment.
     // Note that the new ideal state might be an intermediate state between the current state and
     // the target assignment.

@@ -75,6 +75,7 @@ public class DistributedSemaphore {
     _metaClient = client;
     try {
       _metaClient.connect();
+      // TODO: Differentiate exception catch between already connected and already closed.
     } catch (IllegalStateException e) {
       // Ignore as it either has already been connected or already been closed.
     }

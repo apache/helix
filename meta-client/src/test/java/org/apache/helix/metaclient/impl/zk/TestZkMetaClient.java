@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.DataUpdater;
 import org.apache.helix.metaclient.api.MetaClientInterface;
@@ -205,6 +206,33 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Assert.assertEquals(entryStat.getVersion(), 2);
       Assert.assertEquals((int) newData, (int) initValue + 2);
       zkMetaClient.delete(key);
+    }
+  }
+
+  @Test
+  public void testGetDataAndStat() {
+    final String key = "/TestZkMetaClient_testGetDataAndStat";
+    ZkMetaClientConfig config =
+        new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
+    try (ZkMetaClient<Integer> zkMetaClient = new ZkMetaClient<>(config)) {
+      zkMetaClient.connect();
+      int initValue = 3;
+      zkMetaClient.create(key, initValue);
+      MetaClientInterface.Stat entryStat = zkMetaClient.exists(key);
+      Assert.assertEquals(entryStat.getVersion(), 0);
+      zkMetaClient.set(key, initValue+1, -1);
+      ImmutablePair<Integer, MetaClientInterface.Stat> touple = zkMetaClient.getDataAndStat(key);
+      Assert.assertEquals(touple.right.getVersion(), 1);
+      zkMetaClient.delete(key);
+
+      // test non exist key
+      try{
+        zkMetaClient.getDataAndStat(key);
+      } catch (MetaClientException ex){
+        Assert.assertEquals(ex.getClass().getName(),
+            "org.apache.helix.metaclient.exception.MetaClientNoNodeException");
+      }
+
     }
   }
 

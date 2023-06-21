@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.helix.metaclient.api.AsyncCallback;
 import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
@@ -166,8 +167,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       if (zkStats == null) {
         return null;
       }
-      return new Stat(convertZkEntryModeToMetaClientEntryMode(zkStats.getEphemeralOwner()),
-          zkStats.getVersion(), zkStats.getCtime(), zkStats.getMtime(), -1);
+      return ZkMetaClientUtil.convertZkStatToStat(zkStats);
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
     }
@@ -176,6 +176,18 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public T get(String key) {
     return _zkClient.readData(key, true);
+  }
+
+
+  @Override
+  public ImmutablePair<T, Stat> getDataAndStat(final String key) {
+    try {
+      org.apache.zookeeper.data.Stat zkStat = new org.apache.zookeeper.data.Stat();
+      T data = _zkClient.readData(key, zkStat);
+      return ImmutablePair.of(data, ZkMetaClientUtil.convertZkStatToStat(zkStat));
+    } catch (ZkException e) {
+      throw translateZkExceptionToMetaclientException(e);
+    }
   }
 
   @Override

@@ -23,7 +23,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.helix.metaclient.exception.MetaClientInterruptException;
+import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientTimeoutException;
 
 
@@ -195,11 +197,18 @@ public interface MetaClientInterface<T> {
 
   /**
    * Fetch the data for a given key.
-   * TODO: define exception type when key does not exist
    * @param key key to identify the entry
-   * @return Return data of the entry
+   * @return Return data of the entry. Return null if data does not exists.
    */
   T get(final String key);
+
+  /**
+   * Fetch the data and stat for a given key.
+   * @param key key to identify the entry
+   * @return Return an ImmutablePair of data and stat for the entry.
+   * @throws MetaClientNoNodeException if no such entry
+   */
+  ImmutablePair<T, Stat> getDataAndStat(final String key);
 
   /**
    * API for transaction. The list of operation will be executed as an atomic operation.

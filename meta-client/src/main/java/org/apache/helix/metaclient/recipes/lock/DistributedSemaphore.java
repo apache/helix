@@ -96,12 +96,12 @@ public class DistributedSemaphore {
     if (_metaClient.exists(path) != null) {
       throw new MetaClientException("Semaphore already exists");
     }
-    _path = path;
     if (_metaClient.exists(path) == null) {
       DataRecord dataRecord = new DataRecord(path);
       dataRecord.setLongField(INITIAL_CAPACITY_NAME, capacity);
       dataRecord.setLongField(REMAINING_CAPACITY_NAME, capacity);
       _metaClient.create(path, dataRecord);
+      _path = path;
     }
   }
 

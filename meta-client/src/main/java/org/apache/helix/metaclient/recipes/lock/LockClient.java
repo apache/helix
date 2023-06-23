@@ -64,8 +64,12 @@ public class LockClient implements LockClientInterface, AutoCloseable {
       throw new IllegalArgumentException("MetaClient cannot be null.");
     }
     _metaClient = client;
-    LOG.info("Connecting to existing MetaClient for LockClient");
-    _metaClient.connect();
+    try {
+      LOG.info("Connecting to existing MetaClient for LockClient");
+      _metaClient.connect();
+    } catch (IllegalStateException e) {
+      // Ignore as it either has already been connected or already been closed.
+    }
   }
 
   @Override

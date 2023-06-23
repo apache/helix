@@ -22,18 +22,45 @@ package org.apache.helix.metaclient.recipes.lock;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.datamodel.DataRecord;
+import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 public class DistributedSemaphore {
+  private final MetaClientInterface<DataRecord> _metaClient;
+  private String _path;
+  private static final String INITIAL_CAPACITY_NAME = "INITIAL_CAPACITY";
+  private static final String REMAINING_CAPACITY_NAME = "REMAINING_CAPACITY";
+  private static final long DEFAULT_REMAINING_CAPACITY = -1;
+  private static final Logger LOG = LoggerFactory.getLogger(DistributedSemaphore.class);
 
   /**
    * Create a distributed semaphore client with the given configuration.
    * @param config configuration of the client
    */
   public DistributedSemaphore(MetaClientConfig config) {
-    throw new NotImplementedException("Not implemented yet.");
+    if (config == null) {
+      throw new MetaClientException("Configuration cannot be null");
+    }
+    LOG.info("Creating DistributedSemaphore Client");
+    if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
+      ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder()
+          .setConnectionAddress(config.getConnectionAddress())
+          .setZkSerializer(new DataRecordSerializer()) // Currently only support ZNRecordSerializer.
+          // Setting DataRecordSerializer as DataRecord extends ZNRecord.
+          .build();
+      _metaClient = new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
+      _metaClient.connect();
+    } else {
+      throw new MetaClientException("Unsupported store type: " + config.getStoreType());
+    }
   }
 
   /**
@@ -41,7 +68,17 @@ public class DistributedSemaphore {
    * @param client client to connect to
    */
   public DistributedSemaphore(MetaClientInterface<DataRecord> client) {
-    throw new NotImplementedException("Not implemented yet.");
+    if (client == null) {
+      throw new MetaClientException("Client cannot be null");
+    }
+    LOG.info("Connecting to existing DistributedSemaphore Client");
+    _metaClient = client;
+    try {
+      _metaClient.connect();
+      // TODO: Differentiate exception catch between already connected and already closed.
+    } catch (IllegalStateException e) {
+      // Ignore as it either has already been connected or already been closed.
+    }
   }
 
   /**
@@ -50,7 +87,22 @@ public class DistributedSemaphore {
    * @param capacity capacity of the semaphore
    */
   public void createSemaphore(String path, int capacity) {
-    throw new NotImplementedException("Not implemented yet.");
+    if (capacity <= 0) {
+      throw new MetaClientException("Capacity must be positive");
+    }
+    if (path == null || path.isEmpty()) {
+      throw new MetaClientException("Invalid path to create semaphore");
+    }
+    if (_metaClient.exists(path) != null) {
+      throw new MetaClientException("Semaphore already exists");
+    }
+    if (_metaClient.exists(path) == null) {
+      DataRecord dataRecord = new DataRecord(path);
+      dataRecord.setLongField(INITIAL_CAPACITY_NAME, capacity);
+      dataRecord.setLongField(REMAINING_CAPACITY_NAME, capacity);
+      _metaClient.create(path, dataRecord);
+      _path = path;
+    }
   }
 
   /**
@@ -58,7 +110,13 @@ public class DistributedSemaphore {
    * @param path path of the semaphore
    */
   public void connectSemaphore(String path) {
-    throw new NotImplementedException("Not implemented yet.");
+    if (path == null || path.isEmpty()) {
+      throw new MetaClientException("Invalid path to connect semaphore");
+    }
+    if (_metaClient.exists(path) == null) {
+      throw new MetaClientException("Semaphore does not exist");
+    }
+    _path = path;
   }
 
   /**
@@ -66,7 +124,13 @@ public class DistributedSemaphore {
    * @return a permit
    */
   public Permit acquire() {
-    throw new NotImplementedException("Not implemented yet.");
+    try {
+      updateAcquirePermit(1);
+      return retrievePermit(_path);
+    } catch (MetaClientException e) {
+      LOG.error("Failed to acquire permit.", e);
+      return null;
+    }
   }
 
 
@@ -76,7 +140,17 @@ public class DistributedSemaphore {
    * @return a collection of permits
    */
   public Collection<Permit> acquire(int count) {
-    throw new NotImplementedException("Not implemented yet.");
+    try {
+      updateAcquirePermit(count);
+      Collection<Permit> permits = new ArrayList<>();
+      for (int i = 0; i < count; i++) {
+        permits.add(retrievePermit(_path));
+      }
+      return permits;
+    } catch (MetaClientException e) {
+      LOG.error("Failed to acquire permits.", e);
+      return null;
+    }
   }
 
   /**
@@ -96,7 +170,7 @@ public class DistributedSemaphore {
    * @return remaining capacity
    */
   public long getRemainingCapacity() {
-    throw new NotImplementedException("Not implemented yet.");
+    return getSemaphore().getLongField(REMAINING_CAPACITY_NAME, DEFAULT_REMAINING_CAPACITY);
   }
 
   /**
@@ -104,14 +178,22 @@ public class DistributedSemaphore {
    * @return semaphore data record
    */
   private DataRecord getSemaphore() {
-    throw new NotImplementedException("Not implemented yet.");
+    if (_metaClient.exists(_path) == null) {
+      throw new MetaClientException("Semaphore does not exist at path: " + _path + ". Please create it first.");
+    }
+    return new DataRecord(_metaClient.get(_path));
   }
 
   /**
    * Return a permit. If the permit is already returned, log and return void.
    */
   public void returnPermit(Permit permit) {
-    throw new NotImplementedException("Not implemented yet.");
+    if (permit.isReleased()) {
+      LOG.info("The permit has already been released");
+    } else {
+      updateReturnPermit();
+      permit.releasePermit();
+    }
   }
 
   /**
@@ -119,7 +201,9 @@ public class DistributedSemaphore {
    * log and return void.
    */
   public void returnAllPermits(Collection<Permit> permits) {
-    throw new NotImplementedException("Not implemented yet.");
+    for (Permit permit : permits) {
+      returnPermit(permit);
+    }
   }
 
   /**
@@ -128,7 +212,8 @@ public class DistributedSemaphore {
    * @return a permit
    */
   private Permit retrievePermit(String path) {
-    throw new NotImplementedException("Not implemented yet.");
+    MetaClientInterface.Stat stat = _metaClient.exists(path);
+    return new Permit(getSemaphore(), stat);
   }
 
   /**
@@ -136,13 +221,25 @@ public class DistributedSemaphore {
    * @param count number of permits to acquire
    */
   private void updateAcquirePermit(int count) {
-    throw new NotImplementedException("Not implemented yet.");
+    _metaClient.update(_path, record -> {
+      long permitsAvailable = record.getLongField(REMAINING_CAPACITY_NAME, DEFAULT_REMAINING_CAPACITY);
+      if (permitsAvailable < count) {
+        throw new MetaClientException("No sufficient permits available. Attempt to acquire " + count + " permits, but only "
+            + permitsAvailable + " permits available");
+      }
+      record.setLongField(REMAINING_CAPACITY_NAME, permitsAvailable - count);
+      return record;
+    });
   }
 
   /**
    * Update the remaining capacity of the semaphore after returning a permit.
    */
   private void updateReturnPermit() {
-    throw new NotImplementedException("Not implemented yet.");
+    _metaClient.update(_path, record -> {
+      long permitsAvailable = record.getLongField(REMAINING_CAPACITY_NAME, DEFAULT_REMAINING_CAPACITY);
+      record.setLongField(REMAINING_CAPACITY_NAME, permitsAvailable + 1);
+      return record;
+    });
   }
 }

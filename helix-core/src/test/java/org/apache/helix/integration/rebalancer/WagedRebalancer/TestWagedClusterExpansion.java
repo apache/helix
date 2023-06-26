@@ -258,7 +258,6 @@ public class TestWagedClusterExpansion extends ZkTestBase {
     // if pipeline is run, then external view would be persisted.
     waitForPipeline(100, 3000);
 
-
     LOG.info("After adding the new instance");
     validateIdealState(false /* afterWeightChange */);
 
@@ -284,15 +283,19 @@ public class TestWagedClusterExpansion extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    if (_controller != null && _controller.isConnected()) {
-      _controller.syncStop();
-    }
-    for (MockParticipantManager p : _participants) {
-      if (p != null && p.isConnected()) {
-        p.syncStop();
+    try {
+      if (_controller != null && _controller.isConnected()) {
+        _controller.syncStop();
       }
+      for (MockParticipantManager p : _participants) {
+        if (p != null && p.isConnected()) {
+          p.syncStop();
+        }
+      }
+      deleteCluster(CLUSTER_NAME);
+    } catch (Exception e) {
+      LOG.info("After class throwing exception, {}", e);
     }
-    deleteCluster(CLUSTER_NAME);
   }
 
   private void waitForPipeline(long stepSleep, long maxTimeout) {
@@ -328,21 +331,22 @@ public class TestWagedClusterExpansion extends ZkTestBase {
 
   private void validateIdealState(boolean afterWeightChange) {
     // Calculate the instance to partition mapping based on previous and new ideal state.
-    // We will take the union of the two.
-    // For example: if prevIdealState for instance_0 has partition_0, partition_1
-    // and newIdealState for instance_0 has partition_1, partition_2, then the final
-    // mapping for instance_0 will be partition_0, partition_1, partition_2.
-
+   
     Map<String, Set<String>> instanceToPartitionMap = new HashMap<>();
 
     for (String db : _allDBs) {
       IdealState newIdealState =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      IdealState prevIdealState = _prevIdealState.get(db);
-      updateInstanceToPartitionMap(instanceToPartitionMap, newIdealState, prevIdealState);
-      _prevIdealState.put(db, newIdealState);
+      for (String partition : newIdealState.getPartitionSet()) {
+        Map<String, String> assignmentMap = newIdealState.getRecord().getMapField(partition);
+        for (String instance : assignmentMap.keySet()) {
+          if (!instanceToPartitionMap.containsKey(instance)) {
+            instanceToPartitionMap.put(instance, new HashSet<>());
+          }
+          instanceToPartitionMap.get(instance).add(partition);
+        }
+      }
     }
-
     // Now, let us validate the instance to partition mapping.
     for (String instance : instanceToPartitionMap.keySet()) {
       int usedInstanceCapacity = 0;

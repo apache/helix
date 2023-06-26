@@ -241,6 +241,15 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
     validateInput(clusterData, resourceMap);
 
+    // Create Instance Capacity and Weight Providers
+    synchronized (this) {
+      WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(clusterData);
+      WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(clusterData);
+
+      // Process the currentState and update the available instance capacity.
+      capacityProvider.process(clusterData, currentStateOutput, resourceMap, weightProvider);
+      clusterData.setWagedCapacityProviders(capacityProvider, weightProvider);
+    }
     Map<String, IdealState> newIdealStates;
     try {
       // Calculate the target assignment based on the current cluster status.

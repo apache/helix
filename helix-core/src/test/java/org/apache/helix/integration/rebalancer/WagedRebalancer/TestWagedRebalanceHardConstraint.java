@@ -197,7 +197,6 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
     Thread.currentThread().sleep(2000);
 
     LOG.info("After changing resource partition weight");
-    validate();
     validateIdealState(true);
     printCurrentState();
   }

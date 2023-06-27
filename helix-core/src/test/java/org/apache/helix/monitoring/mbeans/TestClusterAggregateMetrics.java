@@ -206,7 +206,11 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     Assert.assertTrue(verifier.verifyByPolling());
 
     expectedMetricValues.put(WITHOUT_TOPSTATE_COUNT, 0L);
-    Assert.assertTrue(verifyMetrics(expectedMetricValues));
+
+    result = TestHelper.verify(() -> {
+      return verifyMetrics(expectedMetricValues);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
 
     // Drop the resource and check that all metrics are zero.
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);

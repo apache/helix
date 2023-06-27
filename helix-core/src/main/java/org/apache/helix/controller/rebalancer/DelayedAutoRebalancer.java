@@ -494,9 +494,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     combinedPreferenceList.addAll(currentInstances);
     combinedPreferenceList.sort(new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
 
-    // if preference list is not empty, and we do have new intanceToAdd, we should check if it has capacity to hold the partition.
-    // if (!isPreferenceListEmpty && combinedPreferenceList.size() > numReplicas && instanceToAdd.size() > 0) {
-      if (!isPreferenceListEmpty && instanceToAdd.size() > 0) {
+    // if preference list is not empty, and we do have new intanceToAdd, we 
+    // should check if it has capacity to hold the partition.
+    if (!isPreferenceListEmpty && instanceToAdd.size() > 0) {
       // check instanceToAdd instance appears in combinedPreferenceList
       for (String instance : instanceToAdd) {
         if (combinedPreferenceList.contains(instance)) {

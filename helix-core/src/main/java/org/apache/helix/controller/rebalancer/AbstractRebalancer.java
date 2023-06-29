@@ -106,13 +106,24 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       List<String> preferenceList = getPreferenceList(partition, idealState,
           Collections.unmodifiableSet(cache.getLiveInstances().keySet()));
       Map<String, String> bestStateForPartition =
-          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef,
-              preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
-              cache.getClusterConfig(), partition,
-              cache.getAbnormalStateResolver(stateModelDefName));
+          computeBestPossibleStateForPartition(cache, stateModelDef, preferenceList,
+              currentStateOutput, disabledInstancesForPartition, idealState,
+              partition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
+  }
+
+  protected Map<String, String> computeBestPossibleStateForPartition(T cache,
+      StateModelDefinition stateModelDef, List<String> preferenceList,
+      CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
+      IdealState idealState, Partition partition) {
+
+    String stateModelDefName = idealState.getStateModelDefRef();
+    return computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef,
+        preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
+        cache.getClusterConfig(), partition,
+        cache.getAbnormalStateResolver(stateModelDefName));
   }
 
   /**

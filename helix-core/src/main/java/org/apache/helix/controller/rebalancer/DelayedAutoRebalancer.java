@@ -242,8 +242,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
 
-    boolean isWagedResource = WagedValidationUtil.isWagedEnabled(idealState);
-
     Set<String> allNodes = cache.getEnabledInstances();
     Set<String> liveNodes = cache.getLiveInstances().keySet();
 
@@ -257,23 +255,17 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
+
     for (Partition partition : resource.getPartitions()) {
       Set<String> disabledInstancesForPartition =
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition;
 
-      if (isWagedResource) {
-        bestStateForPartition =
+      bestStateForPartition =
           computeBestPossibleStateForPartition(cache, stateModelDef, preferenceList,
-              currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
-              partition, cache.getAbnormalStateResolver(stateModelDefName));
-      } else {
-        bestStateForPartition =
-            computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList,
-                currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
-                partition, cache.getAbnormalStateResolver(stateModelDefName));
-      }
+              currentStateOutput, disabledInstancesForPartition, idealState,
+              partition);
 
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
@@ -286,73 +278,39 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     return partitionMapping;
   }
 
+
   @Override
   protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
       StateModelDefinition stateModelDef, List<String> preferenceList,
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
       IdealState idealState, ClusterConfig clusterConfig, Partition partition,
       MonitoredAbnormalResolver monitoredResolver) {
-    Optional<Map<String, String>> optionalOverwrittenStates =
-        computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
-            idealState, partition, monitoredResolver);
-    if (optionalOverwrittenStates.isPresent()) {
-      return optionalOverwrittenStates.get();
-    }
-    Map<String, String> currentStateMap = new HashMap<>(
-        currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
-    // Instances not in preference list but still have active replica, retain to avoid zero replica during movement
-    List<String> currentInstances = new ArrayList<>(currentStateMap.keySet());
-    Collections.sort(currentInstances);
-    Map<String, String> pendingStates =
-        new HashMap<>(currentStateOutput.getPendingStateMap(idealState.getResourceName(), partition));
-    for (String instance : pendingStates.keySet()) {
-      if (!currentStateMap.containsKey(instance)) {
-        currentStateMap.put(instance, stateModelDef.getInitialState());
-        currentInstances.add(instance);
-      }
+
+    // validate if anything has changed.
+    Map<String, String> overrideExists = optionalOverwriteStateExist(stateModelDef, preferenceList,
+        currentStateOutput, idealState, partition, monitoredResolver);
+
+    if (overrideExists != null) {
+      return overrideExists;
     }
 
-    Set<String> instancesToDrop = new HashSet<>();
-    Iterator<String> it = currentInstances.iterator();
-    while (it.hasNext()) {
-      String instance = it.next();
-      String state = currentStateMap.get(instance);
-      if (state == null) {
-        it.remove();
-        instancesToDrop.add(instance); // These instances should be set to DROPPED after we get bestPossibleStateMap;
-      }
-    }
-
-    // Sort the instancesToMove by their current partition state.
-    // Reason: because the states are assigned to instances in the order appeared in preferenceList, if we have
-    // [node1:Slave, node2:Master], we want to keep it that way, instead of assigning Master to node1.
-
+    // We can have empty list.
     if (preferenceList == null) {
       preferenceList = Collections.emptyList();
     }
-
-    int numExtraReplicas = getNumExtraReplicas(clusterConfig);
-
-    // TODO : Keep the behavior consistent with existing state count, change back to read from idealstate
-    // replicas
     int numReplicas = preferenceList.size();
-    List<String> instanceToAdd = new ArrayList<>(preferenceList);
-    instanceToAdd.removeAll(currentInstances);
+
+    Map<String, String> currentStateMap = new HashMap<>(
+        currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
+
     List<String> combinedPreferenceList = new ArrayList<>();
+    Set<String> instancesToDrop = new HashSet<>();
+    List<String> instanceToAdd = new ArrayList<>(preferenceList);
 
-    if (currentInstances.size() <= numReplicas
-        && numReplicas + numExtraReplicas - currentInstances.size() > 0) {
-      int subListSize = numReplicas + numExtraReplicas - currentInstances.size();
-      combinedPreferenceList.addAll(instanceToAdd
-          .subList(0, Math.min(subListSize, instanceToAdd.size())));
-    }
-
-    // Make all initial state instance not in preference list to be dropped.
-    Map<String, String> currentMapWithPreferenceList = new HashMap<>(currentStateMap);
-    currentMapWithPreferenceList.keySet().retainAll(preferenceList);
-
-    combinedPreferenceList.addAll(currentInstances);
-    combinedPreferenceList.sort(new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
+    Map<String, String> currentMapWithPreferenceList =
+      createStateMapWithPreferenceList(currentStateOutput, idealState, clusterConfig,
+        partition, stateModelDef, preferenceList, instancesToDrop,
+        instanceToAdd, currentStateMap, combinedPreferenceList);
 
     // Assign states to instances with the combined preference list.
     Map<String, String> bestPossibleStateMap =
@@ -363,27 +321,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.name());
     }
 
-    // If the load-balance finishes (all replica are migrated to new instances),
-    // we should drop all partitions from previous assigned instances.
-    if (!currentMapWithPreferenceList.values().contains(HelixDefinedState.ERROR.name())
-        && bestPossibleStateMap.size() > numReplicas && readyToDrop(currentStateMap,
-        bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
-      for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
-        String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
-        bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
-      }
-    }
-
-    // Adding ERROR replica mapping to best possible
-    // ERROR assignment should be mutual excluded from DROPPED assignment because
-    // once there is an ERROR replica in the mapping, bestPossibleStateMap.size() > numReplicas prevents
-    // code entering the DROPPING stage.
-    for (String instance : combinedPreferenceList) {
-      if (currentStateMap.containsKey(instance) && currentStateMap.get(instance)
-          .equals(HelixDefinedState.ERROR.name())) {
-        bestPossibleStateMap.put(instance, HelixDefinedState.ERROR.name());
-      }
-    }
+    processBestPossibleState(bestPossibleStateMap, currentMapWithPreferenceList, currentStateMap,
+        preferenceList, combinedPreferenceList, numReplicas);
 
     return bestPossibleStateMap;
   }
@@ -421,82 +360,43 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     return numExtraReplicas;
   }
 
-
-  private Map<String, String> computeBestPossibleStateForPartition(ResourceControllerDataProvider cache,
+  @Override
+  protected Map<String, String> computeBestPossibleStateForPartition(ResourceControllerDataProvider cache,
       StateModelDefinition stateModelDef, List<String> preferenceList,
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
-      IdealState idealState, ClusterConfig clusterConfig, Partition partition,
-      MonitoredAbnormalResolver monitoredResolver) {
+      IdealState idealState, Partition partition) {
 
-    Optional<Map<String, String>> optionalOverwrittenStates =
-        computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
-            idealState, partition, monitoredResolver);
-    if (optionalOverwrittenStates.isPresent()) {
-      return optionalOverwrittenStates.get();
+    // Check for any abnormal/override updates.
+    String stateModelDefName = idealState.getStateModelDefRef();
+    Map<String, String> overrideExists = optionalOverwriteStateExist(stateModelDef, preferenceList,
+        currentStateOutput, idealState, partition, cache.getAbnormalStateResolver(stateModelDefName));
+    if (overrideExists != null) {
+      return overrideExists;
     }
 
-    Map<String, String> currentStateMap = new HashMap<>(
-        currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
-    // Instances not in preference list but still have active replica, retain to avoid zero replica during movement
-    List<String> currentInstances = new ArrayList<>(currentStateMap.keySet());
-    Collections.sort(currentInstances);
-    Map<String, String> pendingStates =
-        new HashMap<>(currentStateOutput.getPendingStateMap(idealState.getResourceName(), partition));
-    for (String instance : pendingStates.keySet()) {
-      if (!currentStateMap.containsKey(instance)) {
-        currentStateMap.put(instance, stateModelDef.getInitialState());
-        currentInstances.add(instance);
-      }
-    }
-
-    Set<String> instancesToDrop = new HashSet<>();
-    Iterator<String> it = currentInstances.iterator();
-    while (it.hasNext()) {
-      String instance = it.next();
-      String state = currentStateMap.get(instance);
-      if (state == null) {
-        it.remove();
-        instancesToDrop.add(instance); // These instances should be set to DROPPED after we get bestPossibleStateMap;
-      }
-    }
-
-    // Sort the instancesToMove by their current partition state.
-    // Reason: because the states are assigned to instances in the order appeared in preferenceList, if we have
-    // [node1:Slave, node2:Master], we want to keep it that way, instead of assigning Master to node1.
-
+    // We can have empty list.
     if (preferenceList == null) {
       preferenceList = Collections.emptyList();
     }
 
     boolean isPreferenceListEmpty = preferenceList.isEmpty();
 
-    int numExtraReplicas = getNumExtraReplicas(clusterConfig);
-
-    // TODO : Keep the behavior consistent with existing state count, change back to read from idealstate
-    // replicas
     int numReplicas = preferenceList.size();
-    List<String> instanceToAdd = new ArrayList<>(preferenceList);
-    instanceToAdd.removeAll(currentInstances);
-
+    Map<String, String> currentStateMap = new HashMap<>(
+        currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
     List<String> combinedPreferenceList = new ArrayList<>();
+    List<String> instanceToAdd = new ArrayList<>(preferenceList);
+    Set<String> instancesToDrop = new HashSet<>();
 
-    if (currentInstances.size() <= numReplicas
-        && numReplicas + numExtraReplicas - currentInstances.size() > 0) {
-      int subListSize = numReplicas + numExtraReplicas - currentInstances.size();
-      combinedPreferenceList.addAll(instanceToAdd
-          .subList(0, Math.min(subListSize, instanceToAdd.size())));
-    }
+    Map<String, String> currentMapWithPreferenceList =
+      createStateMapWithPreferenceList(currentStateOutput, idealState,
+        cache.getClusterConfig(), partition, stateModelDef, preferenceList, instancesToDrop,
+        instanceToAdd, currentStateMap, combinedPreferenceList);
 
-    // Make all initial state instance not in preference list to be dropped.
-    Map<String, String> currentMapWithPreferenceList = new HashMap<>(currentStateMap);
-    currentMapWithPreferenceList.keySet().retainAll(preferenceList);
-
-    combinedPreferenceList.addAll(currentInstances);
-    combinedPreferenceList.sort(new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
-
-    // if preference list is not empty, and we do have new intanceToAdd, we 
+    // if preference list is not empty, and we do have new intanceToAdd, we
     // should check if it has capacity to hold the partition.
-    if (!isPreferenceListEmpty && instanceToAdd.size() > 0) {
+    boolean isWaged = WagedValidationUtil.isWagedEnabled(idealState);
+    if (!isWaged && !isPreferenceListEmpty && instanceToAdd.size() > 0) {
       // check instanceToAdd instance appears in combinedPreferenceList
       for (String instance : instanceToAdd) {
         if (combinedPreferenceList.contains(instance)) {
@@ -512,6 +412,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         }
       }
     }
+
     // Assign states to instances with the combined preference list.
     Map<String, String> bestPossibleStateMap =
         computeBestPossibleMap(combinedPreferenceList, stateModelDef, currentStateMap,
@@ -521,9 +422,90 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.name());
     }
 
+    processBestPossibleState(bestPossibleStateMap, currentMapWithPreferenceList, currentStateMap,
+        preferenceList, combinedPreferenceList, numReplicas);
+
+    return bestPossibleStateMap;
+  }
+
+  private Map<String, String> optionalOverwriteStateExist(StateModelDefinition stateModelDef,
+      List<String> preferenceList, CurrentStateOutput currentStateOutput, IdealState idealState,
+      Partition partition, MonitoredAbnormalResolver abnormalStateResolver) {
+
+    Optional<Map<String, String>> optionalOverwrittenStates =
+        computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
+            idealState, partition, abnormalStateResolver);
+    if (optionalOverwrittenStates.isPresent()) {
+      return optionalOverwrittenStates.get();
+    }
+    return null;
+  }
+
+
+  private Map<String, String> createStateMapWithPreferenceList(
+      CurrentStateOutput currentStateOutput, IdealState idealState,
+      ClusterConfig clusterConfig, Partition partition, StateModelDefinition stateModelDef,
+      List<String> preferenceList, Set<String> instancesToDrop, List<String> instanceToAdd,
+      Map<String, String> currentStateMap, List<String> combinedPreferenceList) {
+
+    // Instances not in preference list but still have active replica,
+    // retain to avoid zero replica during movement
+    List<String> currentInstances = new ArrayList<>(currentStateMap.keySet());
+    Collections.sort(currentInstances);
+
+    Map<String, String> pendingStates =
+        new HashMap<>(currentStateOutput.getPendingStateMap(idealState.getResourceName(), partition));
+
+    for (String instance : pendingStates.keySet()) {
+      if (!currentStateMap.containsKey(instance)) {
+        currentStateMap.put(instance, stateModelDef.getInitialState());
+        currentInstances.add(instance);
+      }
+    }
+
+    Iterator<String> it = currentInstances.iterator();
+    while (it.hasNext()) {
+      String instance = it.next();
+      String state = currentStateMap.get(instance);
+      if (state == null) {
+        it.remove();
+        // These instances should be set to DROPPED after we get bestPossibleStateMap;
+        instancesToDrop.add(instance);
+      }
+    }
+
+    // Sort the instancesToMove by their current partition state.
+    // Reason: because the states are assigned to instances in the order appeared in preferenceList, if we have
+    // [node1:Slave, node2:Master], we want to keep it that way, instead of assigning Master to node1.
+    int numExtraReplicas = getNumExtraReplicas(clusterConfig);
+    int numReplicas = preferenceList.size();
+    instanceToAdd.removeAll(currentInstances);
+
+    if (currentInstances.size() <= numReplicas
+        && numReplicas + numExtraReplicas - currentInstances.size() > 0) {
+      int subListSize = numReplicas + numExtraReplicas - currentInstances.size();
+      combinedPreferenceList.addAll(instanceToAdd
+          .subList(0, Math.min(subListSize, instanceToAdd.size())));
+    }
+
+    // Make all initial state instance not in preference list to be dropped.
+    Map<String, String> currentMapWithPreferenceList = new HashMap<>(currentStateMap);
+    currentMapWithPreferenceList.keySet().retainAll(preferenceList);
+
+    combinedPreferenceList.addAll(currentInstances);
+    combinedPreferenceList.sort(new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
+    return currentMapWithPreferenceList;
+  }
+
+
+  // Clean up the dropped/error related states.
+  private void processBestPossibleState(Map<String, String> bestPossibleStateMap,
+      Map<String, String> currentMapWithPreferenceList, Map<String, String> currentStateMap,
+      List<String> preferenceList, List<String> combinedPreferenceList, int numReplicas) {
+
     // If the load-balance finishes (all replica are migrated to new instances),
     // we should drop all partitions from previous assigned instances.
-    if (!currentMapWithPreferenceList.values().contains(HelixDefinedState.ERROR.name())
+    if (!currentMapWithPreferenceList.containsValue(HelixDefinedState.ERROR.name())
         && bestPossibleStateMap.size() > numReplicas && readyToDrop(currentStateMap,
         bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
       for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
@@ -542,7 +524,5 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         bestPossibleStateMap.put(instance, HelixDefinedState.ERROR.name());
       }
     }
-
-    return bestPossibleStateMap;
   }
 }

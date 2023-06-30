@@ -34,11 +34,13 @@ import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientInterruptException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientTimeoutException;
+import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
@@ -235,6 +237,8 @@ public class ZkMetaClientUtil {
       return new MetaClientTimeoutException(e);
     } else if (e instanceof ZkInterruptedException) {
       return new MetaClientInterruptException(e);
+    } else if (e instanceof ZkNodeExistsException) {
+      return new MetaClientNodeExistsException(e);
     }
     return new MetaClientException(e);
   }

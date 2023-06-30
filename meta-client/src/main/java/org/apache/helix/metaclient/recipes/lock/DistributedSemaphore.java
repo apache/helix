@@ -26,6 +26,7 @@ import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
+import org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,9 +76,12 @@ public class DistributedSemaphore {
     _metaClient = client;
     try {
       _metaClient.connect();
-      // TODO: Differentiate exception catch between already connected and already closed.
     } catch (IllegalStateException e) {
-      // Ignore as it either has already been connected or already been closed.
+      if (e.getMessage().contains("connect() has already been called")) {
+        LOG.info("Client already connected");
+      } else {
+        throw e;
+      }
     }
   }
 

@@ -65,10 +65,13 @@ public class LockClient implements LockClientInterface, AutoCloseable {
     }
     _metaClient = client;
     try {
-      LOG.info("Connecting to existing MetaClient for LockClient");
       _metaClient.connect();
     } catch (IllegalStateException e) {
-      // Ignore as it either has already been connected or already been closed.
+      if (e.getMessage().contains("connect() has already been called")) {
+        LOG.info("Client already connected");
+      } else {
+        throw e;
+      }
     }
   }
 

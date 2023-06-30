@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
+package org.apache.helix.metaclient.puppy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

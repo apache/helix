@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
+package org.apache.helix.metaclient.puppy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -30,8 +30,8 @@ public abstract class AbstractPuppy implements Runnable {
 
   protected MetaClientInterface<String> metaclient;
   protected PuppySpec puppySpec;
-  protected HashMap<String, Integer> eventChangeCounterMap;
-  protected int unhandledErrorCounter;
+  public HashMap<String, Integer> eventChangeCounterMap;
+  public int unhandledErrorCounter;
 
   public AbstractPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     this.metaclient = metaclient;

@@ -1,4 +1,4 @@
-package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
+package org.apache.helix.metaclient.puppy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,14 +19,15 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
  * under the License.
  */
 
-import org.testng.Assert;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This class is used to manage the lifecycle of a set of puppies.
+ */
 public class PuppyManager {
   private List<AbstractPuppy> puppies;
   private ExecutorService executorService;
@@ -54,7 +55,6 @@ public class PuppyManager {
     } catch (InterruptedException e) {
       // Ignore
     }
-
 
     stop();
   }

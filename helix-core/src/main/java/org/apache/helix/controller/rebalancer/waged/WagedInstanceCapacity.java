@@ -71,8 +71,8 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
 
   public void process(ResourceControllerDataProvider cache, CurrentStateOutput currentStateOutput,
       Map<String, Resource> resourceMap, WagedResourceWeightsProvider weightProvider) {
-    processPendingMessages(cache, currentStateOutput, resourceMap, weightProvider);
     processCurrentState(cache, currentStateOutput, resourceMap, weightProvider);
+    processPendingMessages(cache, currentStateOutput, resourceMap, weightProvider);
   }
 
   /**

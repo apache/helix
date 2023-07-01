@@ -482,12 +482,24 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     }
   }
 
+  /**
+   * Set the WAGED algorithm specific instance capacity provider and resource weight provider.
+   * @param capacityProvider - the capacity provider for instances
+   * @param resourceWeightProvider - the resource weight provider for partitions
+   */
   public void setWagedCapacityProviders(WagedInstanceCapacity capacityProvider, WagedResourceWeightsProvider resourceWeightProvider) {
     // WAGED specific capacity / weight provider
     _wagedInstanceCapacity = capacityProvider;
     _wagedPartitionWeightProvider = resourceWeightProvider;
   }
 
+  /**
+   * Check and reduce the capacity of an instance for a resource partition
+   * @param instance - the instance to check
+   * @param resourceName - the resource name
+   * @param partition - the partition name
+   * @return true if the capacity is reduced, false otherwise
+   */
   public boolean checkAndReduceCapacity(String instance, String resourceName, String partition) {
     if (_wagedPartitionWeightProvider == null || _wagedInstanceCapacity == null) {
       return true;

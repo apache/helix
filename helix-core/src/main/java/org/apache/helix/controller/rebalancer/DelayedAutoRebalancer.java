@@ -372,6 +372,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
             LOG.info("Instance: {} has no capacity to hold resource: {}, partition: {}, removing "
                 + "it from combinedPreferenceList.", instance, idealState.getResourceName(),
                 partition.getPartitionName());
+            System.out.println("KKD: Removing instance: " + instance);
             combinedPreferenceList.remove(instance);
           }
         }

@@ -55,16 +55,23 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     _instanceCapacityMap = new HashMap<>();
     _allocatedPartitionsMap = new HashMap<>();
     ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    if (clusterConfig == null) {
+      LOG.error("Cluster config is null, cannot initialize instance capacity map.");
+      return;
+    }
     for (InstanceConfig instanceConfig : clusterData.getInstanceConfigMap().values()) {
       Map<String, Integer> instanceCapacity = WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
       _instanceCapacityMap.put(instanceConfig.getInstanceName(), instanceCapacity);
-
       _allocatedPartitionsMap.put(instanceConfig.getInstanceName(), new HashMap<>());
     }
   }
 
   // Helper methods.
   private boolean isPartitionInAllocatedMap(String instance, String resource, String partition) {
+    if (!_allocatedPartitionsMap.containsKey(instance)) {
+      _allocatedPartitionsMap.put(instance, new HashMap<>());
+      return false;
+    }
     return _allocatedPartitionsMap.get(instance).containsKey(resource)
         && _allocatedPartitionsMap.get(instance).get(resource).contains(partition);
   }
@@ -86,6 +93,12 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     for (Map.Entry<String, Resource> resourceEntry : resourceMap.entrySet()) {
       String resName = resourceEntry.getKey();
       Resource resource = resourceEntry.getValue();
+
+      // if Resource is WAGED managed, then we need to manage the capacity.
+      if (!WagedValidationUtil.isWagedEnabled(cache.getIdealState(resName))) {
+        continue;
+      }
+
       // list of partitions in the resource
       Collection<Partition> partitions = resource.getPartitions();
       // State model definition for the resource
@@ -100,7 +113,11 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
         String partitionName = partition.getPartitionName();
         // Get Partition Weight
         Map<String, Integer> partCapacity = weightProvider.getPartitionWeights(resName, partitionName);
-
+        if (partCapacity == null || partCapacity.isEmpty()) {
+          LOG.info("Partition: " + partitionName + " in resource: " + resName
+              + " has no weight specified. Skipping it.");
+          continue;
+        }
         // Get the pending messages for the partition
         Map<String, Message> pendingMessages = currentState.getPendingMessageMap(resName, partition);
         if (pendingMessages != null && !pendingMessages.isEmpty()) {
@@ -129,6 +146,12 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     for (Map.Entry<String, Resource> entry : resourceMap.entrySet()) {
       String resName = entry.getKey();
       Resource resource = entry.getValue();
+
+      // if Resource is WAGED managed, then we need to manage the capacity.
+      if (!WagedValidationUtil.isWagedEnabled(cache.getIdealState(resName))) {
+        continue;
+      }
+
       // list of partitions in the resource
       Collection<Partition> partitions = resource.getPartitions();
 

@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.util;
  */
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -61,7 +62,11 @@ public class WagedRebalanceUtil {
       ResourceConfig resourceConfig, ClusterConfig clusterConfig) {
     Map<String, Map<String, Integer>> capacityMap;
     try {
-      capacityMap = resourceConfig.getPartitionCapacityMap();
+      if (resourceConfig != null) {
+        capacityMap = resourceConfig.getPartitionCapacityMap();
+      } else {
+        capacityMap = new HashMap<>();
+        }
     } catch (IOException ex) {
       throw new IllegalArgumentException(
           "Invalid partition capacity configuration of resource: " + resourceConfig

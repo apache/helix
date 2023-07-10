@@ -327,7 +327,11 @@ public class TestWagedClusterExpansion extends ZkTestBase {
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       for (String partition : newIdealState.getPartitionSet()) {
         Map<String, String> assignmentMap = newIdealState.getRecord().getMapField(partition);
+        List<String> preferenceList = newIdealState.getRecord().getListField(partition);
         for (String instance : assignmentMap.keySet()) {
+          if (!preferenceList.contains(instance)) {
+            LOG.error("Instance: " + instance + " is not in preference list for partition: " + partition);
+          }
           if (!instanceToPartitionMap.containsKey(instance)) {
             instanceToPartitionMap.put(instance, new HashSet<>());
           }

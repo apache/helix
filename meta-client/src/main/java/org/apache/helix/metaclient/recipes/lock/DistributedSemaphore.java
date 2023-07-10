@@ -74,14 +74,13 @@ public class DistributedSemaphore {
     }
     LOG.info("Connecting to existing DistributedSemaphore Client");
     _metaClient = client;
+    if (_metaClient.isClosed()) {
+      throw new IllegalStateException("Client already closed!");
+    }
     try {
       _metaClient.connect();
     } catch (IllegalStateException e) {
-      if (e.getMessage().contains("connect() has already been called")) {
-        LOG.info("Client already connected");
-      } else {
-        throw e;
-      }
+      // Already connected.
     }
   }
 

@@ -67,7 +67,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     // TODO: remove this if-else after splitting controller
     if (cache instanceof WorkflowControllerDataProvider) {
       throw new StageException("TopStateHandoffReportStage can only be used in resource pipeline");
-    } 
+    }
     updateTopStateStatus((ResourceControllerDataProvider) cache, clusterStatusMonitor,
         resourceMap, currentStateOutput, lastPipelineFinishTimestamp);
   }
@@ -317,12 +317,18 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     String partitionName = partition.getPartitionName();
     MissingTopStateRecord record = missingTopStateMap.get(resourceName).get(partitionName);
     long startTime = record.getStartTimeStamp();
-    if (startTime > 0 && System.currentTimeMillis() - startTime > durationThreshold && !record
-        .isFailed()) {
+    long missingDuration = System.currentTimeMillis() - startTime;
+    if (startTime > 0 && missingDuration > durationThreshold && !record.isFailed()) {
       record.setFailed();
       missingTopStateMap.get(resourceName).put(partitionName, record);
+      // Since top state handoff has not completed yet we can't log helix top state latency but can log since how long
+      // top state is missing.
+      LogUtil.logInfo(LOG, _eventId, String.format(
+          "Missing top state for partition %s beyond %s time. Graceful: %s",
+          partitionName, missingDuration, false));
       if (clusterStatusMonitor != null) {
-        clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L, false, false);
+        clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L,
+            false, false);
       }
     }
   }
@@ -469,16 +475,17 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       }
     }
 
+    long duration = handOffEndTime - handOffStartTime;
+    long helixLatency = duration - fromTopStateUserLatency - toTopStateUserLatency;
+    // It is possible that during controller leader switch, we lost previous master information
+    // and use current time to approximate missing top state start time. If we see the actual
+    // user latency is larger than the duration we estimated, we use user latency to start with
+    duration = Math.max(duration, helixLatency);
+    boolean isGraceful = record.isGracefulHandoff();
+    logMissingTopStateInfo(duration, helixLatency, isGraceful, partition.getPartitionName());
+    // TODO: Following threshold check can be removed and stats can be reported even if hand-off took more than
+    //  threshold.
     if (handOffStartTime > 0 && handOffEndTime - handOffStartTime <= threshold) {
-      long duration = handOffEndTime - handOffStartTime;
-      long helixLatency = duration - fromTopStateUserLatency - toTopStateUserLatency;
-      // It is possible that during controller leader switch, we lost previous master information
-      // and use current time to approximate missing top state start time. If we see the actual
-      // user latency is larger than the duration we estimated, we use user latency to start with
-      duration = Math.max(duration, helixLatency);
-      boolean isGraceful = record.isGracefulHandoff();
-      logMissingTopStateInfo(duration, helixLatency, isGraceful, partition.getPartitionName());
-
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor
             .updateMissingTopStateDurationStats(resourceName, duration, helixLatency, isGraceful,

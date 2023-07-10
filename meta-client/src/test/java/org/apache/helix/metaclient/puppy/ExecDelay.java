@@ -25,38 +25,39 @@ import java.util.Random;
  * ExecDelay class definition
  */
 public class ExecDelay {
-  private final long duration;
-  private final float jitter;
+  private final long _duration;
+  private final float _jitter;
 
-  private final long delayBase;
-  private final long delayRange;
+  private final long _delayBase;
+  private final long _delayRange;
+  private Random _random;
 
   public ExecDelay(long duration, float jitter) {
     if (jitter < 0 || jitter > 1 || duration < 0) {
       throw new IllegalArgumentException(
-          String.format("Invalid jitter (%s) or duration (%s)", jitter, duration));
+          String.format("Invalid _jitter (%s) or _duration (%s)", jitter, duration));
     }
-    this.duration = duration;
-    this.jitter = jitter;
-    this.delayRange = Math.round(this.duration * this.jitter * 2);
-    this.delayBase = this.duration - this.delayRange / 2;
+    this._duration = duration;
+    this._jitter = jitter;
+    this._delayRange = Math.round(this._duration * this._jitter * 2);
+    this._delayBase = this._duration - this._delayRange / 2;
   }
 
   /**
-   * Calculate the next delay based on the configured duration and jitter.
+   * Calculate the next delay based on the configured _duration and _jitter.
    * @return The next delay in milliseconds.
    */
   public long getNextDelay() {
-    Random random = new Random();
-    long randomDelay = this.delayBase + random.nextLong() % this.delayRange;
+    _random = new Random();
+    long randomDelay = this._delayBase + _random.nextLong() % this._delayRange;
     return Math.max(randomDelay, 0);
   }
 
   public long getDuration() {
-    return duration;
+    return _duration;
   }
 
   public float getJitter() {
-    return jitter;
+    return _jitter;
   }
 }

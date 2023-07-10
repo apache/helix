@@ -28,15 +28,15 @@ import java.util.HashMap;
  */
 public abstract class AbstractPuppy implements Runnable {
 
-  protected MetaClientInterface<String> metaclient;
-  protected PuppySpec puppySpec;
-  public HashMap<String, Integer> eventChangeCounterMap;
-  public int unhandledErrorCounter;
+  protected MetaClientInterface<String> _metaclient;
+  protected PuppySpec _puppySpec;
+  public HashMap<String, Integer> _eventChangeCounterMap;
+  public int _unhandledErrorCounter;
 
   public AbstractPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
-    this.metaclient = metaclient;
-    this.puppySpec = puppySpec;
-    this.eventChangeCounterMap = new HashMap<>();
+    this._metaclient = metaclient;
+    this._puppySpec = puppySpec;
+    this._eventChangeCounterMap = new HashMap<>();
   }
 
   /**
@@ -56,23 +56,18 @@ public abstract class AbstractPuppy implements Runnable {
   public void run() {
     try {
       while (true) {
-        if (puppySpec.getMode() == PuppyMode.OneOff) {
-          try {
-            bark();
-          } catch (Exception e) {
-            unhandledErrorCounter++;
-            e.printStackTrace();
-          }
+        try {
+          bark();
+        } catch (Exception e) {
+          _unhandledErrorCounter++;
+          e.printStackTrace();
+        }
+
+        if (_puppySpec.getMode() == PuppyMode.OneOff) {
           cleanup();
           break;
         } else {
-          try {
-            bark();
-          } catch (Exception e) {
-            unhandledErrorCounter++;
-            e.printStackTrace();
-          }
-          Thread.sleep(puppySpec.getExecDelay().getNextDelay());
+          Thread.sleep(_puppySpec.getExecDelay().getNextDelay());
         }
       }
     } catch (Exception e) {

@@ -26,32 +26,31 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This class is used to manage the lifecycle of a set of puppies.
+ * This class is used to manage the lifecycle of a set of _puppies.
  */
 public class PuppyManager {
-  private List<AbstractPuppy> puppies;
-  private ExecutorService executorService;
+  private final List<AbstractPuppy> _puppies;
+  private final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
   public PuppyManager() {
-    puppies = new ArrayList<>();
-    executorService = Executors.newCachedThreadPool();
+    _puppies = new ArrayList<>();
   }
 
   public void addPuppy(AbstractPuppy puppy) {
-    puppies.add(puppy);
+    _puppies.add(puppy);
   }
 
   public List<AbstractPuppy> getPuppies() {
-    return puppies;
+    return _puppies;
   }
 
   public void start(long timeoutInSeconds) {
-    for (AbstractPuppy puppy : puppies) {
-      executorService.submit(puppy);
+    for (AbstractPuppy puppy : _puppies) {
+      EXECUTOR_SERVICE.submit(puppy);
     }
 
     try {
-      executorService.awaitTermination(timeoutInSeconds, TimeUnit.SECONDS);
+      EXECUTOR_SERVICE.awaitTermination(timeoutInSeconds, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
       // Ignore
     }
@@ -60,7 +59,7 @@ public class PuppyManager {
   }
 
   public void stop() {
-    executorService.shutdownNow();
+    EXECUTOR_SERVICE.shutdownNow();
   }
 }
 

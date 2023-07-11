@@ -19,14 +19,11 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nullable;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
@@ -36,10 +33,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.controller.dataproviders.InstanceCapacityDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
-import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +62,9 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
   }
 
   // Helper methods.
-  private boolean isPartitionInAllocatedMap(String instance, String resource, String partition) {
+  // TODO: Currently, we don't allow double-accounting. But there may be
+  // future scenarios, where we may want to allow. 
+  private boolean hasPartitionChargedForCapacity(String instance, String resource, String partition) {
     if (!_allocatedPartitionsMap.containsKey(instance)) {
       _allocatedPartitionsMap.put(instance, new HashMap<>());
       return false;
@@ -123,7 +120,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
         if (pendingMessages != null && !pendingMessages.isEmpty()) {
           for (Map.Entry<String, Message> entry :  pendingMessages.entrySet()) {
             String instance = entry.getKey();
-            if (isPartitionInAllocatedMap(instance, resName, partitionName)) {
+            if (hasPartitionChargedForCapacity(instance, resName, partitionName)) {
               continue;
             }
             Message msg = entry.getValue();
@@ -173,7 +170,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
   /**
    * Get the instance remaining capacity.
    * Capacity and weight both are represented as Key-Value.
-   * Returns the capacity map of available head room for the instance.
+   * Returns the capacity map of available headroom for the instance.
    * @param instanceName - instance name to query
    * @return Map<String, Integer> - capacity pair for all defined attributes for the instance.
    */
@@ -198,7 +195,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
   public synchronized boolean checkAndReduceInstanceCapacity(String instance, String resName,
       String partitionName, Map<String, Integer> partitionCapacity) {
 
-    if (isPartitionInAllocatedMap(instance, resName, partitionName)) {
+    if (hasPartitionChargedForCapacity(instance, resName, partitionName)) {
       return true;
     }
 

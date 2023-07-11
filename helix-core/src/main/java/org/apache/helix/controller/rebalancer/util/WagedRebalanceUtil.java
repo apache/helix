@@ -62,11 +62,7 @@ public class WagedRebalanceUtil {
       ResourceConfig resourceConfig, ClusterConfig clusterConfig) {
     Map<String, Map<String, Integer>> capacityMap;
     try {
-      if (resourceConfig != null) {
-        capacityMap = resourceConfig.getPartitionCapacityMap();
-      } else {
-        capacityMap = new HashMap<>();
-        }
+      capacityMap = resourceConfig == null ? new HashMap<>() : resourceConfig.getPartitionCapacityMap();
     } catch (IOException ex) {
       throw new IllegalArgumentException(
           "Invalid partition capacity configuration of resource: " + resourceConfig

@@ -20,7 +20,6 @@ package org.apache.helix.metaclient.puppy;
  */
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
-
 import java.util.HashMap;
 
 /**
@@ -31,7 +30,7 @@ public abstract class AbstractPuppy implements Runnable {
   protected MetaClientInterface<String> _metaclient;
   protected PuppySpec _puppySpec;
   public HashMap<String, Integer> _eventChangeCounterMap;
-  public int _unhandledErrorCounter;
+  protected int _unhandledErrorCounter;
 
   public AbstractPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     this._metaclient = metaclient;
@@ -59,21 +58,38 @@ public abstract class AbstractPuppy implements Runnable {
         try {
           bark();
         } catch (Exception e) {
-          _unhandledErrorCounter++;
+          incrementUnhandledErrorCounter();
           e.printStackTrace();
         }
 
-        if (_puppySpec.getMode() == PuppyMode.OneOff) {
+        if (getPuppySpec().getMode() == PuppyMode.OneOff) {
           cleanup();
           break;
         } else {
-          Thread.sleep(_puppySpec.getExecDelay().getNextDelay());
+          try {
+            Thread.sleep(getPuppySpec().getExecDelay().getNextDelay());
+          } catch (InterruptedException e) {
+            // Handle interruption if necessary
+          }
         }
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
+
+  public PuppySpec getPuppySpec() {
+    return _puppySpec;
+  }
+
+  public int getUnhandledErrorCounter() {
+    return _unhandledErrorCounter;
+  }
+
+  private void incrementUnhandledErrorCounter() {
+    _unhandledErrorCounter++;
+  }
 }
+
 
 

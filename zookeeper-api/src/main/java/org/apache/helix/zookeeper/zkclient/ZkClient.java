@@ -2232,7 +2232,7 @@ public class ZkClient implements Watcher {
 
   @SuppressWarnings("unchecked")
   public <T extends Object> T readData(String path, Stat stat) {
-    return (T) readData(path, stat, hasChildOrDataListeners(path));
+    return (T) readData(path, stat, (!_usePersistWatcher) && hasChildOrDataListeners(path));
   }
 
   @SuppressWarnings("unchecked")

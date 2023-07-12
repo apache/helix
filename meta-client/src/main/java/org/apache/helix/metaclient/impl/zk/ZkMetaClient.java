@@ -421,6 +421,11 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
+  public boolean isClosed() {
+    return _zkClient.isClosed();
+  }
+
+  @Override
   public List<OpResult> transactionOP(Iterable<Op> ops) {
     // Convert list of MetaClient Ops to Zk Ops
     List<org.apache.zookeeper.Op> zkOps = ZkMetaClientUtil.metaClientOpsToZkOps(ops);

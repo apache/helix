@@ -430,6 +430,12 @@ public interface MetaClientInterface<T> {
   void disconnect();
 
   /**
+   * Check whether client is closed
+   * @return true if client is closed, false otherwise
+   */
+   boolean isClosed();
+
+  /**
    * @return client current connection state with metadata service.
    */
   ConnectState getClientConnectionState();

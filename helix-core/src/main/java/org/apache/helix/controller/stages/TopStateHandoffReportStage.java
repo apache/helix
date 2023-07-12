@@ -67,7 +67,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     // TODO: remove this if-else after splitting controller
     if (cache instanceof WorkflowControllerDataProvider) {
       throw new StageException("TopStateHandoffReportStage can only be used in resource pipeline");
-    } 
+    }
     updateTopStateStatus((ResourceControllerDataProvider) cache, clusterStatusMonitor,
         resourceMap, currentStateOutput, lastPipelineFinishTimestamp);
   }
@@ -317,12 +317,18 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     String partitionName = partition.getPartitionName();
     MissingTopStateRecord record = missingTopStateMap.get(resourceName).get(partitionName);
     long startTime = record.getStartTimeStamp();
-    if (startTime > 0 && System.currentTimeMillis() - startTime > durationThreshold && !record
-        .isFailed()) {
+    long missingDuration = System.currentTimeMillis() - startTime;
+    if (startTime > 0 && missingDuration > durationThreshold && !record.isFailed()) {
       record.setFailed();
       missingTopStateMap.get(resourceName).put(partitionName, record);
+      // Since top state handoff has not completed yet we can't log helix top state latency but can log since how long
+      // top state is missing.
+      LogUtil.logInfo(LOG, _eventId, String.format(
+          "Missing top state for partition %s beyond %s time. Graceful: %s",
+          partitionName, missingDuration, false));
       if (clusterStatusMonitor != null) {
-        clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L, false, false);
+        clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L,
+            false, false);
       }
     }
   }

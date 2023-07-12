@@ -35,6 +35,8 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
+import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
+import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -110,6 +112,13 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           currentStateOutput);
       reportResourcePartitionCapacityMetrics(dataProvider.getAsyncTasksThreadPool(),
           clusterStatusMonitor, dataProvider.getResourceConfigMap().values());
+
+      WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(dataProvider);
+      WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(dataProvider);
+
+      // Process the currentState and update the available instance capacity.
+      capacityProvider.process(dataProvider, currentStateOutput, resourceMap, weightProvider);
+      dataProvider.setWagedCapacityProviders(capacityProvider, weightProvider);
     }
   }
 

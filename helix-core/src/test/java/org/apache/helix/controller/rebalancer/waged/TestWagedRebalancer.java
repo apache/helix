@@ -139,6 +139,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
 
+    when(clusterData.checkAndReduceCapacity(Mockito.any(), Mockito.any(),
+        Mockito.any())).thenReturn(true);
+
     Map<String, IdealState> newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     Map<String, ResourceAssignment> algorithmResult = _algorithm.getRebalanceResult();
@@ -894,7 +897,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
           return resource;
         }));
     WagedInstanceCapacity provider = new WagedInstanceCapacity(clusterData);
-   
+
     Map<String, Integer> weights1 = Map.of("item1", 20, "item2", 40, "item3", 30);
     Map<String, Integer> capacity = provider.getInstanceAvailableCapacity("testInstanceId");
     Assert.assertEquals(provider.getInstanceAvailableCapacity("testInstanceId"), weights1);

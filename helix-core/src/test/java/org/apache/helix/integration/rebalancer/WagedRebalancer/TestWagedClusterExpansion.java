@@ -30,7 +30,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.TestHelper;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -39,14 +39,15 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
+import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.participant.statemachine.StateModelInfo;
+import org.apache.helix.participant.statemachine.Transition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -65,13 +66,13 @@ import org.testng.annotations.Test;
  * cluster and increasing the weight for some resource and checking if
  * intermediate state satisfies the need or not.
  */
-public class TestWagedRebalanceHardConstraint extends ZkTestBase {
+public class TestWagedClusterExpansion extends ZkTestBase {
   protected final int NUM_NODE = 6;
   protected static final int START_PORT = 13000;
   protected static final int PARTITIONS = 10;
 
-  protected final String CLASS_NAME = getShortClassName();
-  protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
+  protected static final String CLASS_NAME = TestWagedClusterExpansion.class.getSimpleName();
+  protected static final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
   protected AssignmentMetadataStore _assignmentMetadataStore;
 
@@ -80,12 +81,85 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
   List<String> _nodes = new ArrayList<>();
   private final Set<String> _allDBs = new HashSet<>();
   private final int _replica = 3;
-
+  private final int INSTANCE_CAPACITY = 100;
+  private final int DEFAULT_PARTITION_CAPACITY = 6;
+  private final int INCREASED_PARTITION_CAPACITY = 10;
+  private final int DEFAULT_DELAY = 500; // 0.5 second
   private final String  _testCapacityKey = "TestCapacityKey";
+  private final String  _resourceChanged = "Test-WagedDB-0";
   private final Map<String, IdealState> _prevIdealState = new HashMap<>();
 
-  private final Map<String,List<String>> _instanceUsage = new HashMap<>();
-  private static final Logger LOG = LoggerFactory.getLogger("TestWagedRebalanceHardConstraint");
+  private static final Logger LOG = LoggerFactory.getLogger(CLASS_NAME);
+
+
+  // mock delay master-slave state model
+  @StateModelInfo(initialState = "OFFLINE", states = {
+      "MASTER", "SLAVE", "ERROR"
+  })
+  public static class WagedMasterSlaveModel extends StateModel {
+    private static final Logger LOG = LoggerFactory.getLogger(WagedMasterSlaveModel.class);
+    private final long _delay;
+
+    public WagedMasterSlaveModel(long delay) {
+      _delay = delay;
+    }
+
+    @Transition(to = "SLAVE", from = "OFFLINE")
+    public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
+      LOG.info("Become SLAVE from OFFLINE");
+    }
+
+    @Transition(to = "MASTER", from = "SLAVE")
+    public void onBecomeMasterFromSlave(Message message, NotificationContext context)
+        throws InterruptedException {
+      LOG.info("Become MASTER from SLAVE");
+    }
+
+    @Transition(to = "SLAVE", from = "MASTER")
+    public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
+      LOG.info("Become Slave from Master");
+    }
+
+    @Transition(to = "OFFLINE", from = "SLAVE")
+    public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
+      if (_delay > 0) {
+        try {
+          Thread.currentThread().sleep(_delay);
+        } catch (InterruptedException e) {
+          // ignore
+        }
+       }
+      LOG.info("Become OFFLINE from SLAVE");
+    }
+
+    @Transition(to = "DROPPED", from = "OFFLINE")
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
+      if (_delay > 0) {
+        try {
+          Thread.currentThread().sleep(_delay);
+        } catch (InterruptedException e) {
+          // ignore
+        }
+      }
+      LOG.info("Become DROPPED FROM OFFLINE");
+    }
+  }
+
+  public class WagedDelayMSStateModelFactory extends StateModelFactory<WagedMasterSlaveModel> {
+    private long _delay;
+
+    @Override
+    public WagedMasterSlaveModel createNewStateModel(String resourceName,
+        String partitionKey) {
+      WagedMasterSlaveModel model = new WagedMasterSlaveModel(_delay);
+      return model;
+    }
+
+    public WagedDelayMSStateModelFactory setDelay(long delay) {
+      _delay = delay;
+      return this;
+    }
+  }
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -98,13 +172,8 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       _nodes.add(storageNodeName);
     }
-
-    // start dummy participants
-    for (String node : _nodes) {
-      MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, node);
-      participant.syncStart();
-      _participants.add(participant);
-    }
+    // ST downward message will get delayed by 5sec.
+    startParticipants(DEFAULT_DELAY);
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -113,9 +182,6 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
-    // This is same as TestWagedRebalance
-    // It's a hacky way to workaround the package restriction. Note that we still want to hide the
-    // AssignmentMetadataStore constructor to prevent unexpected update to the assignment records.
     _assignmentMetadataStore =
         new AssignmentMetadataStore(new ZkBucketDataAccessor(ZK_ADDR), CLUSTER_NAME) {
           public Map<String, ResourceAssignment> getBaseline() {
@@ -137,16 +203,10 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
         dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
 
     clusterConfig.setInstanceCapacityKeys(Collections.singletonList(_testCapacityKey));
-    clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(_testCapacityKey, 100));
-    // Calculation is: 6 nodes, total capacity 600
-    // 3 resources * 10 partitions each with 3 replica = 90.
-    // Total capacity is 600, so each partition should be 6 units.
-    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(_testCapacityKey, 6));
+    clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(_testCapacityKey, INSTANCE_CAPACITY));
+    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(_testCapacityKey, DEFAULT_PARTITION_CAPACITY));
     dataAccessor.setProperty(dataAccessor.keyBuilder().clusterConfig(), clusterConfig);
-  }
 
-  @Test
-  public void testInitialPlacement() {
     // Create 3 resources with 10 partitions each.
     for (int i = 0; i < 3; i++) {
       String db = "Test-WagedDB-" + i;
@@ -155,10 +215,24 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    validate();
   }
 
-  @Test(dependsOnMethods = { "testInitialPlacement"})
+  private void startParticipants(int delay) {
+    // start dummy participants
+    for (String node : _nodes) {
+      MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, node);
+      StateMachineEngine stateMach = participant.getStateMachineEngine();
+      TestWagedClusterExpansion.WagedDelayMSStateModelFactory delayFactory =
+          new TestWagedClusterExpansion.WagedDelayMSStateModelFactory().setDelay(delay);
+      stateMach.registerStateModelFactory("MasterSlave", delayFactory);
+      participant.syncStart();
+      _participants.add(participant);
+    }
+  }
+
+  // This test case, first adds a new instance which will cause STs.
+  // Next, it will try to increase the default weight for one resource.
+  @Test
   public void testIncreaseResourcePartitionWeight() throws Exception {
     // For this test, let us record our initial prevIdealState.
     for (String db : _allDBs) {
@@ -171,131 +245,117 @@ public class TestWagedRebalanceHardConstraint extends ZkTestBase {
     String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + NUM_NODE);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     _nodes.add(storageNodeName);
+
+    // Start the participant.
     MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, storageNodeName);
+    StateMachineEngine stateMach = participant.getStateMachineEngine();
+    TestWagedClusterExpansion.WagedDelayMSStateModelFactory delayFactory =
+        new TestWagedClusterExpansion.WagedDelayMSStateModelFactory().setDelay(DEFAULT_DELAY);
+    stateMach.registerStateModelFactory("MasterSlave", delayFactory);
     participant.syncStart();
     _participants.add(participant);
 
-    // This is to make sure we have run the pipeline.
-    Thread.currentThread().sleep(2000);
+    // Check modified time for external view of the first resource.
+    // if pipeline is run, then external view would be persisted.
+    waitForPipeline(100, 3000);
 
     LOG.info("After adding the new instance");
-    validateIdealState(false);
+    validateIdealState(false /* afterWeightChange */);
 
     // Update the weight for one of the resource.
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    String db = "Test-WagedDB-0";
+    String db = _resourceChanged;
     ResourceConfig resourceConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().resourceConfig(db));
     if (resourceConfig == null) {
       resourceConfig = new ResourceConfig(db);
     }
-    Map<String, Integer> capacityDataMap = ImmutableMap.of(_testCapacityKey, 10);
+    Map<String, Integer> capacityDataMap = ImmutableMap.of(_testCapacityKey, INCREASED_PARTITION_CAPACITY);
     resourceConfig.setPartitionCapacityMap(
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap));
     dataAccessor.setProperty(dataAccessor.keyBuilder().resourceConfig(db), resourceConfig);
 
     // Make sure pipeline is run.
-    Thread.currentThread().sleep(2000);
+    waitForPipeline(100, 10000); // 10 sec. max timeout.
 
     LOG.info("After changing resource partition weight");
-    validateIdealState(true);
-    printCurrentState();
+    validateIdealState(true /* afterWeightChange */);
+    waitForPipeline(100, 3000); // this is for ZK to sync up.
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    if (_controller != null && _controller.isConnected()) {
-      _controller.syncStop();
-    }
-    for (MockParticipantManager p : _participants) {
-      if (p != null && p.isConnected()) {
-        p.syncStop();
-      }
-    }
-    deleteCluster(CLUSTER_NAME);
-  }
-
-  private void validate() {
-    HelixClusterVerifier _clusterVerifier =
-        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setDeactivatedNodeAwareness(true).setResources(_allDBs)
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-            .build();
     try {
-      Assert.assertTrue(_clusterVerifier.verify(5000));
-    } finally {
-      _clusterVerifier.close();
+      if (_controller != null && _controller.isConnected()) {
+        _controller.syncStop();
+      }
+      for (MockParticipantManager p : _participants) {
+        if (p != null && p.isConnected()) {
+          p.syncStop();
+        }
+      }
+      deleteCluster(CLUSTER_NAME);
+    } catch (Exception e) {
+      LOG.info("After class throwing exception, {}", e);
     }
   }
 
-  private void printCurrentState() {
-    List<String> instances =
-        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
-    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-
-    for (String instance : instances) {
-      LiveInstance liveInstance =
-          dataAccessor.getProperty(dataAccessor.keyBuilder().liveInstance(instance));
-      String sessionId = liveInstance.getEphemeralOwner();
-      List<CurrentState> currentStates = dataAccessor.getChildValues(dataAccessor.keyBuilder().currentStates(instance, sessionId),
-          true);
-      LOG.info("\n\nCurrentState for instance: " + instance);
-      for (CurrentState currentState : currentStates) {
-          LOG.info("\t" + currentState.getRecord().getMapFields().keySet().toString());
+  private void waitForPipeline(long stepSleep, long maxTimeout) {
+    // Check modified time for external view of the first resource.
+    // if pipeline is run, then external view would be persisted.
+    long startTime = System.currentTimeMillis();
+    while (System.currentTimeMillis() - startTime < maxTimeout) {
+      String db = _allDBs.iterator().next();
+      long modifiedTime = _gSetupTool.getClusterManagementTool().
+          getResourceExternalView(CLUSTER_NAME, db).getRecord().getModifiedTime();
+      if (modifiedTime - startTime > maxTimeout) {
+        break;
+      }
+      try {
+        Thread.currentThread().sleep(stepSleep);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
       }
     }
   }
+
   private void validateIdealState(boolean afterWeightChange) {
     // Calculate the instance to partition mapping based on previous and new ideal state.
-    // We will take the union of the two.
-    // For example: if prevIdealState for instance_0 has partition_0, partition_1
-    // and newIdealState for instance_0 has partition_1, partition_2, then the final
-    // mapping for instance_0 will be partition_0, partition_1, partition_2.
 
     Map<String, Set<String>> instanceToPartitionMap = new HashMap<>();
     for (String db : _allDBs) {
       IdealState newIdealState =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      IdealState prevIdealState = _prevIdealState.get(db);
-
       for (String partition : newIdealState.getPartitionSet()) {
         Map<String, String> assignmentMap = newIdealState.getRecord().getMapField(partition);
+        List<String> preferenceList = newIdealState.getRecord().getListField(partition);
         for (String instance : assignmentMap.keySet()) {
+          if (!preferenceList.contains(instance)) {
+            LOG.error("Instance: " + instance + " is not in preference list for partition: " + partition);
+          }
           if (!instanceToPartitionMap.containsKey(instance)) {
             instanceToPartitionMap.put(instance, new HashSet<>());
           }
           instanceToPartitionMap.get(instance).add(partition);
         }
       }
-      if (prevIdealState != null) {
-        for (String partition : prevIdealState.getPartitionSet()) {
-          Map<String, String> assignmentMap = prevIdealState.getRecord().getMapField(partition);
-          for (String instance : assignmentMap.keySet()) {
-            if (!instanceToPartitionMap.containsKey(instance)) {
-              instanceToPartitionMap.put(instance, new HashSet<>());
-            }
-            instanceToPartitionMap.get(instance).add(partition);
-          }
-        }
-      }
-      _prevIdealState.put(db, newIdealState);
     }
+    // Now, let us validate the instance to partition mapping.
     for (String instance : instanceToPartitionMap.keySet()) {
       int usedInstanceCapacity = 0;
       for (String partition : instanceToPartitionMap.get(instance)) {
         LOG.info("\tPartition: " + partition);
-        if (partition.startsWith("Test-WagedDB-0")) {
-          if (afterWeightChange) {
-            usedInstanceCapacity += 10;
-          } else {
-            usedInstanceCapacity += 6;
-          }
+        if (afterWeightChange && partition.startsWith(_resourceChanged)) {
+            usedInstanceCapacity += INCREASED_PARTITION_CAPACITY;
         } else {
-          usedInstanceCapacity += 6;
+          usedInstanceCapacity += DEFAULT_PARTITION_CAPACITY;
         }
       }
-      LOG.info("\tIntance: " + instance + " used capacity: " + usedInstanceCapacity);
+      LOG.error("\tInstance: " + instance + " used capacity: " + usedInstanceCapacity);
       // For now, this has to be disabled as this test case is negative scenario.
-      // Assert.assertTrue(usedInstanceCapacity <= 100);
+      if (usedInstanceCapacity > INSTANCE_CAPACITY) {
+        LOG.error(instanceToPartitionMap.get(instance).toString());
+      }
+      Assert.assertTrue(usedInstanceCapacity <= INSTANCE_CAPACITY);
     }
   }
 }

@@ -37,6 +37,8 @@ import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
+import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
+import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
@@ -88,6 +90,10 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // TODO: dependency. Note that this will change the cluster partition assignment and potentially
   // TODO: cause shuffling. So it is not backward compatible.
   private final Map<String, List<String>> _stablePartitionListCache = new HashMap<>();
+
+  // WAGED specific capacity / weight provider
+  WagedInstanceCapacity _wagedInstanceCapacity;
+  WagedResourceWeightsProvider _wagedPartitionWeightProvider;
 
   public ResourceControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -474,5 +480,37 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
         _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
       }
     }
+  }
+
+  /**
+   * Set the WAGED algorithm specific instance capacity provider and resource weight provider.
+   * @param capacityProvider - the capacity provider for instances
+   * @param resourceWeightProvider - the resource weight provider for partitions
+   */
+  public void setWagedCapacityProviders(WagedInstanceCapacity capacityProvider, WagedResourceWeightsProvider resourceWeightProvider) {
+    // WAGED specific capacity / weight provider
+    _wagedInstanceCapacity = capacityProvider;
+    _wagedPartitionWeightProvider = resourceWeightProvider;
+  }
+
+  /**
+   * Check and reduce the capacity of an instance for a resource partition
+   * @param instance - the instance to check
+   * @param resourceName - the resource name
+   * @param partition - the partition name
+   * @return true if the capacity is reduced, false otherwise
+   */
+  public boolean checkAndReduceCapacity(String instance, String resourceName, String partition) {
+    if (_wagedPartitionWeightProvider == null || _wagedInstanceCapacity == null) {
+      return true;
+    }
+    Map<String, Integer> partitionWeightMap =
+          _wagedPartitionWeightProvider.getPartitionWeights(resourceName, partition);
+    if (partitionWeightMap == null || partitionWeightMap.isEmpty()) {
+      return true;
+    }
+
+    return _wagedInstanceCapacity.checkAndReduceInstanceCapacity(instance, resourceName, partition,
+        partitionWeightMap);
   }
 }

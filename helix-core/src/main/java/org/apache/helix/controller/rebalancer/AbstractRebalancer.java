@@ -74,9 +74,8 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
   }
 
   @Override
-  public abstract IdealState computeNewIdealState(
-      String resourceName, IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-      T clusterData);
+  public abstract IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+      CurrentStateOutput currentStateOutput, T clusterData);
 
   /**
    * Compute the best state for all partitions.
@@ -91,9 +90,8 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * @return
    */
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(
-      T cache, IdealState idealState, Resource resource,
-      CurrentStateOutput currentStateOutput) {
+  public ResourceAssignment computeBestPossiblePartitionState(T cache, IdealState idealState,
+      Resource resource, CurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
@@ -109,7 +107,7 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
           computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef,
               preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
               cache.getClusterConfig(), partition,
-              cache.getAbnormalStateResolver(stateModelDefName));
+              cache.getAbnormalStateResolver(stateModelDefName), cache);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
@@ -155,18 +153,16 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     return map;
   }
 
-  protected RebalanceStrategy<T> getRebalanceStrategy(
-      String rebalanceStrategyName, List<String> partitions, String resourceName,
+  protected RebalanceStrategy<T> getRebalanceStrategy(String rebalanceStrategyName, List<String> partitions, String resourceName,
       LinkedHashMap<String, Integer> stateCountMap, int maxPartition) {
     RebalanceStrategy rebalanceStrategy;
-    if (rebalanceStrategyName == null || rebalanceStrategyName
-        .equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {
+    if (rebalanceStrategyName == null || rebalanceStrategyName.equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {
       rebalanceStrategy =
           new AutoRebalanceStrategy(resourceName, partitions, stateCountMap, maxPartition);
     } else {
       try {
-        rebalanceStrategy = RebalanceStrategy.class
-            .cast(HelixUtil.loadClass(getClass(), rebalanceStrategyName).newInstance());
+        rebalanceStrategy = RebalanceStrategy.class.cast(
+            HelixUtil.loadClass(getClass(), rebalanceStrategyName).newInstance());
         rebalanceStrategy.init(resourceName, partitions, stateCountMap, maxPartition);
       } catch (ClassNotFoundException ex) {
         throw new HelixException(
@@ -204,9 +200,35 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
       IdealState idealState, ClusterConfig clusterConfig, Partition partition,
       MonitoredAbnormalResolver monitoredResolver) {
+    return computeBestPossibleStateForPartition(liveInstances, stateModelDef, preferenceList,
+        currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig, partition,
+        monitoredResolver, null);
+  }
+
+  /**
+   * Compute best state for partition in AUTO ideal state mode.
+   * @param liveInstances
+   * @param stateModelDef
+   * @param preferenceList
+   * @param currentStateOutput instance->state for each partition
+   * @param disabledInstancesForPartition
+   * @param idealState
+   * @param clusterConfig
+   * @param partition
+   * @param monitoredResolver
+   * @param cache
+   * @return
+   */
+  protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
+      StateModelDefinition stateModelDef, List<String> preferenceList,
+      CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
+      IdealState idealState, ClusterConfig clusterConfig, Partition partition,
+      MonitoredAbnormalResolver monitoredResolver, T cache) {
+
     Optional<Map<String, String>> optionalOverwrittenStates =
         computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
             idealState, partition, monitoredResolver);
+
     if (optionalOverwrittenStates.isPresent()) {
       return optionalOverwrittenStates.get();
     }

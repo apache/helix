@@ -175,7 +175,8 @@ public class LeaderElectionClient implements AutoCloseable {
   public void exitLeaderElectionParticipantPool(String leaderPath) {
     _metaClient.unsubscribeDataChange(leaderPath + "/LEADER", _reElectListener);
     // TODO: remove from pool folder
-    relinquishLeader(leaderPath);
+    relinquishLeaderHelper(leaderPath, true);
+
 
   }
 
@@ -188,10 +189,26 @@ public class LeaderElectionClient implements AutoCloseable {
    *                          participant did not join participant pool via this client. // TODO: define exp type
    */
   public void relinquishLeader(String leaderPath) {
+    relinquishLeaderHelper(leaderPath, false);
+  }
+
+  /**
+   * relinquishLeaderHelper and LeaderElectionParticipantPool if configured
+   * @param leaderPath
+   * @param exitLeaderElectionParticipantPool
+   */
+  private void relinquishLeaderHelper(String leaderPath, Boolean exitLeaderElectionParticipantPool) {
     String key = leaderPath + "/LEADER";
     // if current client is in the group
     if (leaderGroups.contains(key)) {
-      leaderGroups.remove(key);
+      // remove leader path from leaderGroups after check if exiting the pool.
+      // to prevent a race condition in In Zk implementation:
+      // If there are delays in ZkClient event queue, it is possible the leader election client received leader
+      // deleted event after unsubscribeDataChange. We will need to remove it from in memory `leaderGroups` map before
+      // deleting ZNode. So that handler in ReElectListener won't recreate the leader node.
+      if (exitLeaderElectionParticipantPool) {
+        leaderGroups.remove(leaderPath + "/LEADER");
+      }
       // check if current participant is the leader
       // read data and stats, check, and multi check + delete
       ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);

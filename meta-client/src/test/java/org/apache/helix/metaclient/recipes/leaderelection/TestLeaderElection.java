@@ -9,11 +9,8 @@ import org.testng.annotations.Test;
 
 public class TestLeaderElection extends ZkMetaClientTestBase {
 
-  public static final long WAIT_DURATION = 6 * 1000L;
-
   private static final String PARTICIPANT_NAME1 = "participant_1";
   private static final String PARTICIPANT_NAME2 = "participant_2";
-
   private static final String LEADER_PATH = "/LEADER_ELECTION_GROUP_1";
 
   public LeaderElectionClient createLeaderElectionClient(String participantName) {
@@ -34,7 +31,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     // First client joining the leader election group should be current leader
     Assert.assertTrue(TestUtil.verify(() -> {
       return (clt1.getLeader(LEADER_PATH) != null);
-    }, WAIT_DURATION));
+    }, TestUtil.WAIT_DURATION));
     Assert.assertNotNull(clt1.getLeader(LEADER_PATH));
     Assert.assertEquals(clt1.getLeader(LEADER_PATH), clt2.getLeader(LEADER_PATH));
     Assert.assertEquals(clt1.getLeader(LEADER_PATH), PARTICIPANT_NAME1);
@@ -43,25 +40,25 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt1.exitLeaderElectionParticipantPool(LEADER_PATH);
     Assert.assertTrue(TestUtil.verify(() -> {
       return (clt1.getLeader(LEADER_PATH) != null);
-    }, WAIT_DURATION));
+    }, TestUtil.WAIT_DURATION));
     Assert.assertTrue(TestUtil.verify(() -> {
       return (clt1.getLeader(LEADER_PATH).equals(PARTICIPANT_NAME2));
-    }, WAIT_DURATION));
+    }, TestUtil.WAIT_DURATION));
 
     // client1 join and client2 leave. client 1 should be leader.
     clt1.joinLeaderElectionParticipantPool(LEADER_PATH);
     clt2.exitLeaderElectionParticipantPool(LEADER_PATH);
     Assert.assertTrue(TestUtil.verify(() -> {
       return (clt1.getLeader(LEADER_PATH) != null);
-    }, WAIT_DURATION));
+    }, TestUtil.WAIT_DURATION));
     Assert.assertTrue(TestUtil.verify(() -> {
       return (clt1.getLeader(LEADER_PATH).equals(PARTICIPANT_NAME1));
-    }, WAIT_DURATION));
+    }, TestUtil.WAIT_DURATION));
     Assert.assertTrue(clt1.isLeader(LEADER_PATH));
     Assert.assertFalse(clt2.isLeader(LEADER_PATH));
 
     clt1.close();
-    clt1.close();
+    clt2.close();
   }
 
 }

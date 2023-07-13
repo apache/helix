@@ -140,22 +140,33 @@ public class LeaderElectionClient implements AutoCloseable {
     _metaClient.subscribeDataChange(leaderPath + "/LEADER", _reElectListener, false);
     LeaderInfo leaderInfo = new LeaderInfo("/LEADER");
     leaderInfo.setLeaderName(_participant);
+
     try {
-      try {
-        _metaClient.create(leaderPath + "/LEADER", leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
-      } catch (MetaClientNodeExistsException ex) {
-        LOG.info("Already a leader");
-      } catch (MetaClientNoNodeException ex) {
-        try {
-          _metaClient.create(leaderPath, null);
-        } catch (MetaClientNodeExistsException ignored) {
-        }
-        _metaClient.create(leaderPath + "/LEADER", leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
-      }
+      // try to create leader entry, assuming leader election group node is already there
+      _metaClient.create(leaderPath + "/LEADER", leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
+    } catch (MetaClientNodeExistsException ex) {
+      LOG.info("Already a leader");
     } catch (MetaClientNoNodeException ex) {
-      throw new ConcurrentModificationException(
-          "Other client trying to modify the leader election group at the same time, please retry.", ex);
+      try {
+        // try to create leader path root entry
+        _metaClient.create(leaderPath, null);
+      } catch (MetaClientNodeExistsException ignored) {
+        // root entry created by other client, ignore
+      } catch (MetaClientNoNodeException e) {
+        // Parent entry missed in root path.
+        throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
+      }
+      try {
+        // try to create leader node again.
+        _metaClient.create(leaderPath + "/LEADER", leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
+      } catch (MetaClientNoNodeException e) {
+        // Leader group root entry is gone after we checked at outer catch block.
+        // Meaning other client removed the group. Throw ConcurrentModificationException.
+        throw new ConcurrentModificationException(
+            "Other client trying to modify the leader election group at the same time, please retry.", ex);
+      }
     }
+
     leaderGroups.add(leaderPath + "/LEADER");
   }
 
@@ -170,14 +181,12 @@ public class LeaderElectionClient implements AutoCloseable {
    * @param leaderPath The path for leader election.
    * @throws RuntimeException if the operation is not succeeded.
    *
-   * @throws RuntimeException If the participant did not join participant pool via this client. // TODO: define exp type
+   * @throws RuntimeException If the participant did not join participant pool via this client.
    */
   public void exitLeaderElectionParticipantPool(String leaderPath) {
     _metaClient.unsubscribeDataChange(leaderPath + "/LEADER", _reElectListener);
     // TODO: remove from pool folder
     relinquishLeaderHelper(leaderPath, true);
-
-
   }
 
   /**
@@ -186,7 +195,7 @@ public class LeaderElectionClient implements AutoCloseable {
    * @param leaderPath The path for leader election.
    *
    * @throws RuntimeException if the leadership is not owned by this participant, or if the
-   *                          participant did not join participant pool via this client. // TODO: define exp type
+   *                          participant did not join participant pool via this client.
    */
   public void relinquishLeader(String leaderPath) {
     relinquishLeaderHelper(leaderPath, false);
@@ -213,15 +222,16 @@ public class LeaderElectionClient implements AutoCloseable {
       // read data and stats, check, and multi check + delete
       ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
       if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
-        List<Op> ops = Arrays.asList(Op.check(key, tup.right.getVersion()), Op.delete(key, -1));
-
+        int expectedVersion = tup.right.getVersion();
+        List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
         //Execute transactional support on operations
         List<OpResult> opResults = _metaClient.transactionOP(ops);
         if (opResults.get(0).getType() == ERRORRESULT) {
           if (isLeader(leaderPath)) {
-            throw new ConcurrentModificationException("Cuncurrent operation, please retry");
+            // Participant re-elected as leader.
+            throw new ConcurrentModificationException("Concurrent operation, please retry");
           } else {
-            LOG.info("someone is already leader");
+            LOG.info("Someone else is already leader");
           }
         }
       }
@@ -304,21 +314,20 @@ public class LeaderElectionClient implements AutoCloseable {
     @Override
     public void handleDataChange(String key, Object data, ChangeType changeType) throws Exception {
       if (changeType == ChangeType.ENTRY_CREATED) {
-        System.out.println(("new leader {} for leader election group {}" + ((LeaderInfo) data).getLeaderName() ));
+        System.out.println(("new leader {} for leader election group {}" + ((LeaderInfo) data).getLeaderName()));
         LOG.info("new leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
       } else if (changeType == ChangeType.ENTRY_DELETED) {
-        System.out.println("leader gone ");
         if (leaderGroups.contains(key)) {
-        LeaderInfo lf = new LeaderInfo("LEADER");
-        lf.setLeaderName(_participant);
-        try {
-          _metaClient.create(key, lf, MetaClientInterface.EntryMode.EPHEMERAL);
-        } catch (MetaClientNodeExistsException ex) {
-          LOG.info("Already a leader");
-        }}
+          LeaderInfo lf = new LeaderInfo("LEADER");
+          lf.setLeaderName(_participant);
+          try {
+            _metaClient.create(key, lf, MetaClientInterface.EntryMode.EPHEMERAL);
+          } catch (MetaClientNodeExistsException ex) {
+            LOG.info("Already a leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
+          }
+        }
       }
     }
   }
-
 }
 

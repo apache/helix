@@ -504,6 +504,28 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
     }
   }
 
+  @Test
+  public void testChangeListener() throws Exception {
+    final String basePath = "/TestZkMetaClient_ChangeListener";
+    final int count = 100;
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      DataChangeListener listener = new DataChangeListener() {
+
+        @Override
+        public void handleDataChange(String key, Object data, ChangeType changeType)
+            throws Exception {
+        }
+      };
+      zkMetaClient.subscribeDataChange(basePath, listener, false);
+      zkMetaClient.create(basePath, "");
+      zkMetaClient.get(basePath);
+      zkMetaClient.exists(basePath);
+      zkMetaClient.getDataAndStat(basePath);
+      zkMetaClient.getDirectChildrenKeys(basePath);
+    }
+  }
+
   /**
    * Transactional op calls zk.multi() with a set of ops (operations)
    * and the return values are converted into metaclient opResults.

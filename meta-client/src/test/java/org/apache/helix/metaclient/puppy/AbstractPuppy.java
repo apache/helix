@@ -33,9 +33,9 @@ public abstract class AbstractPuppy implements Runnable {
   protected int _unhandledErrorCounter;
 
   public AbstractPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
-    this._metaclient = metaclient;
-    this._puppySpec = puppySpec;
-    this._eventChangeCounterMap = new HashMap<>();
+    _metaclient = metaclient;
+    _puppySpec = puppySpec;
+    _eventChangeCounterMap = new HashMap<>();
   }
 
   /**

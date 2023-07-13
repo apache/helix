@@ -23,6 +23,6 @@ package org.apache.helix.metaclient.puppy;
  * Enum for Puppy mode (OneOff or Repeat)
  */
 public enum PuppyMode {
-  OneOff,
-  Repeat
+  ONE_OFF,
+  REPEAT
 }

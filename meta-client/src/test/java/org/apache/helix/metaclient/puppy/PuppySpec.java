@@ -23,31 +23,31 @@ package org.apache.helix.metaclient.puppy;
  * PuppySpec class definition
  */
 public class PuppySpec {
-  private final PuppyMode mode;
-  private final float errorRate;
-  private final ExecDelay execDelay;
-  private final int numberDiffPaths;
+  private final PuppyMode _mode;
+  private final float _errorRate;
+  private final ExecDelay _execDelay;
+  private final int _numberDiffPaths;
 
   public PuppySpec(PuppyMode mode, float errorRate, ExecDelay execDelay, int numberDiffPaths) {
-    this.mode = mode;
-    this.errorRate = errorRate;
-    this.execDelay = execDelay;
-    this.numberDiffPaths = numberDiffPaths;
+    _mode = mode;
+    _errorRate = errorRate;
+    _execDelay = execDelay;
+    _numberDiffPaths = numberDiffPaths;
   }
 
   public PuppyMode getMode() {
-    return mode;
+    return _mode;
   }
 
   public float getErrorRate() {
-    return errorRate;
+    return _errorRate;
   }
 
   public ExecDelay getExecDelay() {
-    return execDelay;
+    return _execDelay;
   }
 
   public int getNumberDiffPaths() {
-    return numberDiffPaths;
+    return _numberDiffPaths;
   }
 }

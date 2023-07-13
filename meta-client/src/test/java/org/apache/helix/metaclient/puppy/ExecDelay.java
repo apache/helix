@@ -37,11 +37,11 @@ public class ExecDelay {
       throw new IllegalArgumentException(
           String.format("Invalid _jitter (%s) or _duration (%s)", jitter, duration));
     }
-    this._duration = duration;
-    this._jitter = jitter;
-    this._delayRange = Math.round(this._duration * this._jitter * 2);
-    this._delayBase = this._duration - this._delayRange / 2;
-    this._random = new Random();
+    _duration = duration;
+    _jitter = jitter;
+    _delayRange = Math.round(_duration * _jitter * 2);
+    _delayBase = _duration - _delayRange / 2;
+    _random = new Random();
   }
 
   /**
@@ -49,7 +49,7 @@ public class ExecDelay {
    * @return The next delay in milliseconds.
    */
   public long getNextDelay() {
-    long randomDelay = this._delayBase + _random.nextLong() % this._delayRange;
+    long randomDelay = _delayBase + _random.nextLong() % _delayRange;
     return Math.max(randomDelay, 0);
   }
 

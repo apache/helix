@@ -62,7 +62,7 @@ public abstract class AbstractPuppy implements Runnable {
           e.printStackTrace();
         }
 
-        if (getPuppySpec().getMode() == PuppyMode.OneOff) {
+        if (getPuppySpec().getMode() == PuppyMode.ONE_OFF) {
           cleanup();
           break;
         } else {

@@ -29,11 +29,10 @@ import java.util.concurrent.TimeUnit;
  * This class is used to manage the lifecycle of a set of _puppies.
  */
 public class PuppyManager {
-  private final List<AbstractPuppy> _puppies;
+  private final List<AbstractPuppy> _puppies = new ArrayList<>();
   private final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
   public PuppyManager() {
-    _puppies = new ArrayList<>();
   }
 
   public void addPuppy(AbstractPuppy puppy) {

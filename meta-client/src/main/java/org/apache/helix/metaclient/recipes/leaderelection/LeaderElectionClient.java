@@ -19,10 +19,27 @@ package org.apache.helix.metaclient.recipes.leaderelection;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.List;
 
+import java.util.Set;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.api.Op;
+import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.exception.MetaClientException;
+import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.apache.helix.metaclient.api.OpResult.Type.*;
 
 
 /**
@@ -42,7 +59,15 @@ import org.apache.helix.metaclient.factories.MetaClientConfig;
  * When the client is used by a leader election service, one client is created for each participant.
  *
  */
-public class LeaderElectionClient {
+public class LeaderElectionClient implements AutoCloseable {
+
+  private final MetaClientInterface<LeaderInfo> _metaClient;
+  private final String _participant;
+  private static final Logger LOG = LoggerFactory.getLogger(LeaderElectionClient.class);
+
+  // A list of leader election group that this client joins.
+  private Set<String> leaderGroups = new HashSet<>();
+  ReElectListener _reElectListener = new ReElectListener();
 
   /**
    * Construct a LeaderElectionClient using a user passed in leaderElectionConfig. It creates a MetaClient
@@ -53,25 +78,37 @@ public class LeaderElectionClient {
    * @param metaClientConfig The config used to create an metaclient.
    */
   public LeaderElectionClient(MetaClientConfig metaClientConfig, String participant) {
-
+    this._participant = participant;
+    if (metaClientConfig == null) {
+      throw new IllegalArgumentException("MetaClientConfig cannot be null.");
+    }
+    LOG.info("Creating MetaClient for LockClient");
+    if (MetaClientConfig.StoreType.ZOOKEEPER.equals(metaClientConfig.getStoreType())) {
+      ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(
+          metaClientConfig.getConnectionAddress()).setZkSerializer((new LeaderInfoSerializer())).build();
+      _metaClient = new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
+      _metaClient.connect();
+    } else {
+      throw new MetaClientException("Unsupported store type: " + metaClientConfig.getStoreType());
+    }
   }
 
   /**
    * Construct a LeaderElectionClient using a user passed in MetaClient object
-   * When MetaClient is auto closed be cause of being disconnected and auto retry connection timed out, user
+   * When MetaClient is auto closed because of being disconnected and auto retry connection timed out, user
    * will need to create a new MetaClient and a new LeaderElectionClient instance.
    *
    * @param metaClient metaClient object to be used.
    */
-  public LeaderElectionClient(MetaClientInterface metaClient, String participant) {
-
+  public LeaderElectionClient(MetaClientInterface<LeaderInfo> metaClient, String participant) {
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   /**
    * Returns true if current participant is the current leadership.
    */
   public boolean isLeader(String leaderPath) {
-    return false;
+    return getLeader(leaderPath).equalsIgnoreCase(_participant);
   }
 
   /**
@@ -79,10 +116,11 @@ public class LeaderElectionClient {
    * The Leader Election client maintains and elect an active leader from the participant pool.
    *
    * @param leaderPath The path for leader election.
-   * @return boolean indicating if the operation is succeeded.
+   * @throws RuntimeException if the operation is not succeeded.
    */
-  public boolean joinLeaderElectionParticipantPool(String leaderPath) {
-    return false;
+  public void joinLeaderElectionParticipantPool(String leaderPath) {
+    // TODO: create participant entry
+    subscribeAndTryCreateLeaderEntry(leaderPath);
   }
 
   /**
@@ -91,10 +129,34 @@ public class LeaderElectionClient {
    *
    * @param leaderPath The path for leader election.
    * @param userInfo Any additional information to associate with this participant.
-   * @return boolean indicating if the operation is succeeded.
+   * @throws RuntimeException if the operation is not succeeded.
    */
-  public boolean joinLeaderElectionParticipantPool(String leaderPath, Object userInfo) {
-    return false;
+  public void joinLeaderElectionParticipantPool(String leaderPath, LeaderInfo userInfo) {
+    // TODO: create participant entry with info
+    subscribeAndTryCreateLeaderEntry(leaderPath);
+  }
+
+  private void subscribeAndTryCreateLeaderEntry(String leaderPath) {
+    _metaClient.subscribeDataChange(leaderPath + "/LEADER", _reElectListener, false);
+    LeaderInfo leaderInfo = new LeaderInfo("/LEADER");
+    leaderInfo.setLeaderName(_participant);
+    try {
+      try {
+        _metaClient.create(leaderPath + "/LEADER", leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
+      } catch (MetaClientNodeExistsException ex) {
+        LOG.info("Already a leader");
+      } catch (MetaClientNoNodeException ex) {
+        try {
+          _metaClient.create(leaderPath, null);
+        } catch (MetaClientNodeExistsException ignored) {
+        }
+        _metaClient.create(leaderPath + "/LEADER", leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
+      }
+    } catch (MetaClientNoNodeException ex) {
+      throw new ConcurrentModificationException(
+          "Other client trying to modify the leader election group at the same time, please retry.", ex);
+    }
+    leaderGroups.add(leaderPath + "/LEADER");
   }
 
   /**
@@ -106,16 +168,19 @@ public class LeaderElectionClient {
    * Throws exception if the participant is not in the pool.
    *
    * @param leaderPath The path for leader election.
-   * @return boolean indicating if the operation is succeeded.
+   * @throws RuntimeException if the operation is not succeeded.
    *
    * @throws RuntimeException If the participant did not join participant pool via this client. // TODO: define exp type
    */
-  public boolean exitLeaderElectionParticipantPool(String leaderPath) {
-    return false;
+  public void exitLeaderElectionParticipantPool(String leaderPath) {
+    _metaClient.unsubscribeDataChange(leaderPath + "/LEADER", _reElectListener);
+    // TODO: remove from pool folder
+    relinquishLeader(leaderPath);
+
   }
 
   /**
-   * Releases leadership for participant.
+   * Releases leadership for participant. Still stays in the participant pool.
    *
    * @param leaderPath The path for leader election.
    *
@@ -123,6 +188,29 @@ public class LeaderElectionClient {
    *                          participant did not join participant pool via this client. // TODO: define exp type
    */
   public void relinquishLeader(String leaderPath) {
+    String key = leaderPath + "/LEADER";
+    // if current client is in the group
+    if (leaderGroups.contains(key)) {
+      leaderGroups.remove(key);
+      // check if current participant is the leader
+      // read data and stats, check, and multi check + delete
+      ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
+      if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
+        List<Op> ops = Arrays.asList(Op.check(key, tup.right.getVersion()), Op.delete(key, -1));
+
+        //Execute transactional support on operations
+        List<OpResult> opResults = _metaClient.transactionOP(ops);
+        if (opResults.get(0).getType() == ERRORRESULT) {
+          if (isLeader(leaderPath)) {
+            throw new ConcurrentModificationException("Cuncurrent operation, please retry");
+          } else {
+            LOG.info("someone is already leader");
+          }
+        }
+      }
+    } else {
+      throw new MetaClientException("Participant is not in the leader election group");
+    }
   }
 
   /**
@@ -133,6 +221,11 @@ public class LeaderElectionClient {
    * @throws RuntimeException when leader path does not exist. // TODO: define exp type
    */
   public String getLeader(String leaderPath) {
+    LeaderInfo leaderInfo = _metaClient.get(leaderPath + "/LEADER");
+    return leaderInfo == null ? null : leaderInfo.getLeaderName();
+  }
+
+  public LeaderInfo getParticipantInfo(String leaderPath) {
     return null;
   }
 
@@ -158,14 +251,14 @@ public class LeaderElectionClient {
    * get's auto-deleted after TTL or session timeout) or a new leader comes up, it notifies all
    * participants who have been listening on entryChange event.
    *
-   * An listener will still be installed if the path does not exists yet.
+   * A listener will still be installed if the path does not exist yet.
    *
    * @param leaderPath The path for leader election that listener is interested for change.
    * @param listener An implementation of LeaderElectionListenerInterface
-   * @return an boolean value indicating if registration is success.
+   * @return A boolean value indicating if registration is success.
    */
-  public boolean subscribeLeadershipChanges(String leaderPath,
-      LeaderElectionListenerInterface listener) {
+  public boolean subscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
+    //TODO: add converter class for LeaderElectionListenerInterface
     return false;
   }
 
@@ -173,8 +266,42 @@ public class LeaderElectionClient {
    * @param leaderPath The path for leader election that listener is no longer interested for change.
    * @param listener An implementation of LeaderElectionListenerInterface
    */
-  public void unsubscribeLeadershipChanges(String leaderPath,
-      LeaderElectionListenerInterface listener) {
+  public void unsubscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
   }
+
+  @Override
+  public void close() throws Exception {
+
+    // exit all previous joined leader election groups
+    for (String leaderGroup : leaderGroups) {
+      String leaderGroupPathName = leaderGroup.substring(0, leaderGroup.length() - 7 /*remove '/LEADER' */);
+      exitLeaderElectionParticipantPool(leaderGroupPathName);
+    }
+
+    // TODO: if last participant, remove folder
+    _metaClient.disconnect();
+  }
+
+  class ReElectListener implements DataChangeListener {
+
+    @Override
+    public void handleDataChange(String key, Object data, ChangeType changeType) throws Exception {
+      if (changeType == ChangeType.ENTRY_CREATED) {
+        System.out.println(("new leader {} for leader election group {}" + ((LeaderInfo) data).getLeaderName() ));
+        LOG.info("new leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
+      } else if (changeType == ChangeType.ENTRY_DELETED) {
+        System.out.println("leader gone ");
+        if (leaderGroups.contains(key)) {
+        LeaderInfo lf = new LeaderInfo("LEADER");
+        lf.setLeaderName(_participant);
+        try {
+          _metaClient.create(key, lf, MetaClientInterface.EntryMode.EPHEMERAL);
+        } catch (MetaClientNodeExistsException ex) {
+          LOG.info("Already a leader");
+        }}
+      }
+    }
+  }
+
 }
 

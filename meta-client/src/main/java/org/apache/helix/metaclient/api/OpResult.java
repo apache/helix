@@ -26,7 +26,7 @@ import java.util.List;
  */
 public class OpResult {
 
-  enum Type {
+  public enum Type {
     ERRORRESULT,
     GETDATARESULT,
     GETCHILDRENRESULT,

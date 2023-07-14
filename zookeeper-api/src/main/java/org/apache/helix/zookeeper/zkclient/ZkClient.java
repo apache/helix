@@ -2269,7 +2269,7 @@ public class ZkClient implements Watcher {
       boolean returnNullIfPathNotExists) {
     T data = null;
     try {
-      data = readData(path, stat, false);
+      data = readData(path, stat);
     } catch (ZkNoNodeException e) {
       if (!returnNullIfPathNotExists) {
         throw e;

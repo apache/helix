@@ -102,6 +102,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       create(key, data, EntryMode.PERSISTENT);
     } catch (ZkException e) {
       throw ZkMetaClientUtil.translateZkExceptionToMetaclientException(e);
+    } catch (Exception e) {
+      throw new MetaClientException(e);
     }
   }
 

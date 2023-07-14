@@ -20,42 +20,48 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
  */
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.puppy.AbstractPuppy;
+import org.apache.helix.metaclient.puppy.PuppySpec;
 
 import java.util.Objects;
 import java.util.Random;
 
 public class GetPuppy extends AbstractPuppy {
+
+  private Random random;
+
   public GetPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
+    random = new Random();
   }
 
   @Override
   protected void bark() {
-    int random = new Random().nextInt(puppySpec.getNumberDiffPaths());
+    int randomNumber = random.nextInt(_puppySpec.getNumberDiffPaths());
     if (shouldIntroduceError()) {
       try {
-        metaclient.get("invalid");
-        unhandledErrorCounter++;
+        _metaclient.get("invalid");
+        _unhandledErrorCounter++;
       } catch (IllegalArgumentException e) {
         System.out.println(Thread.currentThread().getName() + " intentionally tried to read an invalid path.");
       }
     } else {
-      System.out.println(Thread.currentThread().getName() + " is attempting to read node: " + random);
-      String nodeValue = metaclient.get("/test/" + random);
+      System.out.println(Thread.currentThread().getName() + " is attempting to read node: " + randomNumber);
+      String nodeValue = _metaclient.get("/test/" + randomNumber);
       if (Objects.equals(nodeValue, null)) {
-        System.out.println(Thread.currentThread().getName() + " failed to read node " + random + ", it does not exist");
+        System.out.println(Thread.currentThread().getName() + " failed to read node " + randomNumber + ", it does not exist");
       } else {
-        System.out.println(Thread.currentThread().getName() + " successfully read node " + random + " at time: " + System.currentTimeMillis());
+        System.out.println(Thread.currentThread().getName() + " successfully read node " + randomNumber + " at time: " + System.currentTimeMillis());
       }
     }
   }
 
   @Override
   protected void cleanup() {
-    metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete("/test");
   }
 
   private boolean shouldIntroduceError() {
-    return new Random().nextFloat() < puppySpec.getErrorRate();
+    return random.nextFloat() < _puppySpec.getErrorRate();
   }
 }

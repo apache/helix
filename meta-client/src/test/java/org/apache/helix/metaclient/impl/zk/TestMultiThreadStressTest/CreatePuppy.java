@@ -21,23 +21,29 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
+import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
+import org.apache.helix.metaclient.puppy.AbstractPuppy;
+import org.apache.helix.metaclient.puppy.PuppySpec;
 
 import java.util.Random;
 
 public class CreatePuppy extends AbstractPuppy {
 
+  private final Random _random;
+
   public CreatePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
+    _random = new Random();
   }
 
   @Override
   protected void bark() {
     // Implement the chaos logic for creating nodes
-    int random = new Random().nextInt(puppySpec.getNumberDiffPaths());
+    int randomNumber = _random.nextInt(_puppySpec.getNumberDiffPaths());
     if (shouldIntroduceError()) {
       try {
         // Simulate an error by creating an invalid path
-        metaclient.create("invalid", "test");
+        _metaclient.create("invalid", "test");
       } catch (MetaClientException e) { // Catch invalid exception
         System.out.println(Thread.currentThread().getName() + " tried to create an invalid path.");
         // Expected exception
@@ -45,13 +51,13 @@ public class CreatePuppy extends AbstractPuppy {
     } else {
       // Normal behavior - create a new node
       try {
-        System.out.println(Thread.currentThread().getName() + " is attempting to create node: " + random);
-        metaclient.create("/test/" + random,"test");
-        System.out.println(Thread.currentThread().getName() + " successfully created node " + random + " at time: " + System.currentTimeMillis());
-        eventChangeCounterMap.put(String.valueOf(random), eventChangeCounterMap.getOrDefault(String.valueOf(random), 0) + 1);
-      } catch (MetaClientException e) { // TODO: Catch more specific
+        System.out.println(Thread.currentThread().getName() + " is attempting to create node: " + randomNumber);
+        _metaclient.create("/test/" + randomNumber,"test");
+        System.out.println(Thread.currentThread().getName() + " successfully created node " + randomNumber + " at time: " + System.currentTimeMillis());
+        _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
+      } catch (MetaClientException e) {
         // Expected exception
-        System.out.println(Thread.currentThread().getName() + " failed to create node " + random + ", it already exists");
+        System.out.println(Thread.currentThread().getName() + " failed to create node " + randomNumber + ", it already exists");
       }
     }
   }
@@ -59,14 +65,14 @@ public class CreatePuppy extends AbstractPuppy {
   @Override
   protected void cleanup() {
     // Implement the recovery logic by deleting the created documents
-    metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete("/test");
   }
 
   private boolean shouldIntroduceError() {
-    Random random = new Random();
-    float randomValue = random.nextFloat();
-    return randomValue < puppySpec.getErrorRate();
+    float randomValue = _random.nextFloat();
+    return randomValue < _puppySpec.getErrorRate();
   }
 }
+
 
 

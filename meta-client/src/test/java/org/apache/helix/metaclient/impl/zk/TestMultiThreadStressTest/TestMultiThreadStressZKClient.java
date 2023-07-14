@@ -22,6 +22,11 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
 import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClientTestBase;
+import org.apache.helix.metaclient.puppy.ExecDelay;
+import org.apache.helix.metaclient.puppy.PuppyManager;
+import org.apache.helix.metaclient.puppy.PuppyMode;
+import org.apache.helix.metaclient.puppy.PuppySpec;
+import org.apache.helix.metaclient.puppy.AbstractPuppy;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -45,7 +50,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testCreatePuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new org.apache.helix.metaclient.puppy.PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     CreatePuppy createPuppy2 = new CreatePuppy(_zkMetaClient, puppySpec);
     CreatePuppy createPuppy3 = new CreatePuppy(_zkMetaClient, puppySpec);
@@ -64,13 +69,14 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
   public void testDeletePuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
 
@@ -87,13 +93,14 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
   public void testGetPuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
 
@@ -110,13 +117,14 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
   public void testSetPuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     SetPuppy setPuppy = new SetPuppy(_zkMetaClient, puppySpec);
 
@@ -133,13 +141,14 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
   public void testUpdatePuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     UpdatePuppy updatePuppy = new UpdatePuppy(_zkMetaClient, puppySpec);
 
@@ -156,13 +165,14 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
   public void testCrudPuppies() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
@@ -185,6 +195,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -195,7 +206,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
 
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
 
     PuppyManager puppyManager = new PuppyManager();
@@ -211,6 +222,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
     _zkMetaClient.unsubscribeChildChanges(zkParentKey, childChangeListener);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -222,7 +234,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
 
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
@@ -246,13 +258,15 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
     _zkMetaClient.unsubscribeChildChanges(zkParentKey, childChangeListener);
+    _zkMetaClient.delete(zkParentKey);
   }
+
 
   @Test
   public void testChildListenerPuppy() {
     _zkMetaClient.create(zkParentKey, "test");
     // Setting num diff paths to 3 until we find a better way of scaling listeners.
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.Repeat, 0.2f, new ExecDelay(5000, 0.1f), 3);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 3);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
@@ -287,15 +301,13 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
 
     puppyManager.start(timeoutInSeconds);
 
-    // Setting globalChangeCounter to null. Each child listener has its own counter.
-    // Check is done in the test method.
     assertNoExceptions(puppyManager, null);
 
     // Add all event changes from all puppies and compare with child change listener
     // Inner merged by path
     Map<String, Integer> mergedEventChangeCounterMap = new HashMap<>();
     for (AbstractPuppy puppy : puppyManager.getPuppies()) {
-      puppy.eventChangeCounterMap.forEach((key, value) -> {
+      puppy._eventChangeCounterMap.forEach((key, value) -> {
         if (mergedEventChangeCounterMap.containsKey(key)) {
           mergedEventChangeCounterMap.put(key, mergedEventChangeCounterMap.get(key) + value);
         } else {
@@ -318,6 +330,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     _zkMetaClient.unsubscribeChildChanges("/test/0", childChangeListener0);
     _zkMetaClient.unsubscribeChildChanges("/test/1", childChangeListener1);
     _zkMetaClient.unsubscribeChildChanges("/test/2", childChangeListener2);
+    _zkMetaClient.delete(zkParentKey);
   }
 
   private void assertNoExceptions(PuppyManager puppyManager, AtomicInteger globalChangeCounter) {
@@ -327,13 +340,13 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // Add all change counters and compare with event change listener
     for (AbstractPuppy puppy : puppyManager.getPuppies()) {
       AtomicInteger totalHandledErrors = new AtomicInteger();
-      puppy.eventChangeCounterMap.forEach((key, value) -> {
+      puppy._eventChangeCounterMap.forEach((key, value) -> {
         totalHandledErrors.addAndGet(value);
       });
 
       System.out.println("Change counter: " + totalHandledErrors + " for " + puppy.getClass());
-      System.out.println("Error counter: " + puppy.unhandledErrorCounter + " for " + puppy.getClass());
-      totalUnhandledErrors += puppy.unhandledErrorCounter;
+      System.out.println("Error counter: " + puppy._unhandledErrorCounter + " for " + puppy.getClass());
+      totalUnhandledErrors += puppy._unhandledErrorCounter;
       totalEventChanges += totalHandledErrors.get();
     }
 

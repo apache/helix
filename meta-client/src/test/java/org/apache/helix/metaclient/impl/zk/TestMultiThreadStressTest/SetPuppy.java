@@ -21,46 +21,50 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.puppy.AbstractPuppy;
+import org.apache.helix.metaclient.puppy.PuppySpec;
 
 import java.util.Random;
 
 public class SetPuppy extends AbstractPuppy {
 
+  private Random _random;
+
   public SetPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
+    _random = new Random();
   }
 
   @Override
   protected void bark() {
-    int random = new Random().nextInt(puppySpec.getNumberDiffPaths());
+    int randomNumber = _random.nextInt(_puppySpec.getNumberDiffPaths());
     if (shouldIntroduceError()) {
       try {
-        metaclient.set("invalid", "test", -1);
+        _metaclient.set("invalid", "test", -1);
       } catch (IllegalArgumentException e) {
         System.out.println(Thread.currentThread().getName() + " intentionally called set on an invalid path.");
       }
     } else {
       try {
-        System.out.println(Thread.currentThread().getName() + " is attempting to set node: " + random);
-        metaclient.set("/test/" + random, "test", -1);
-        eventChangeCounterMap.put(String.valueOf(random), eventChangeCounterMap.getOrDefault(String.valueOf(random), 0) + 1);
+        System.out.println(Thread.currentThread().getName() + " is attempting to set node: " + randomNumber);
+        _metaclient.set("/test/" + randomNumber, "test", -1);
+        _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
         System.out.println(
-            Thread.currentThread().getName() + " successfully set node " + random + " at time: "
+            Thread.currentThread().getName() + " successfully set node " + randomNumber + " at time: "
                 + System.currentTimeMillis());
       } catch (MetaClientNoNodeException e) {
-        System.out.println(Thread.currentThread().getName() + " failed to set node " + random + ", it does not exist");
+        System.out.println(Thread.currentThread().getName() + " failed to set node " + randomNumber + ", it does not exist");
       }
     }
   }
 
   @Override
   protected void cleanup() {
-    metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete("/test");
   }
 
   private boolean shouldIntroduceError() {
-    Random random = new Random();
-    float randomValue = random.nextFloat();
-    return randomValue < puppySpec.getErrorRate();
+    float randomValue = _random.nextFloat();
+    return randomValue < _puppySpec.getErrorRate();
   }
 }

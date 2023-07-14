@@ -21,33 +21,38 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.puppy.AbstractPuppy;
+import org.apache.helix.metaclient.puppy.PuppySpec;
 
 import java.util.Random;
 
 public class UpdatePuppy extends AbstractPuppy {
 
+  private final Random _random;
+
   public UpdatePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
+    _random = new Random();
   }
 
   @Override
   protected void bark() throws Exception {
-    int random = new Random().nextInt(puppySpec.getNumberDiffPaths());
+    int randomNumber = _random.nextInt(_puppySpec.getNumberDiffPaths());
     if (shouldIntroduceError()) {
       try {
-        metaclient.update("invalid", (data) -> "foo");
+        _metaclient.update("invalid", (data) -> "foo");
       } catch (IllegalArgumentException e) {
         System.out.println(Thread.currentThread().getName() + " intentionally tried to update an invalid path.");
       }
     } else {
       try {
-        System.out.println(Thread.currentThread().getName() + " is attempting to udpate node: " + random);
-        metaclient.update("/test/" + random, (data) -> "foo");
-        eventChangeCounterMap.put(String.valueOf(random), eventChangeCounterMap.getOrDefault(String.valueOf(random), 0) + 1);
-        System.out.println(Thread.currentThread().getName() + " successfully updated node " + random + " at time: "
-                    + System.currentTimeMillis());
+        System.out.println(Thread.currentThread().getName() + " is attempting to update node: " + randomNumber);
+        _metaclient.update("/test/" + randomNumber, (data) -> "foo");
+        _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
+        System.out.println(Thread.currentThread().getName() + " successfully updated node " + randomNumber + " at time: "
+            + System.currentTimeMillis());
       } catch (MetaClientNoNodeException e) {
-        System.out.println(Thread.currentThread().getName() + " failed to update node " + random + ", it does not exist");
+        System.out.println(Thread.currentThread().getName() + " failed to update node " + randomNumber + ", it does not exist");
       } catch (IllegalArgumentException e) {
         if (!e.getMessage().equals("Can not subscribe one time watcher when ZkClient is using PersistWatcher")) {
           throw e;
@@ -55,14 +60,14 @@ public class UpdatePuppy extends AbstractPuppy {
       }
     }
   }
+
   @Override
   protected void cleanup() {
-    metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete("/test");
   }
 
   private boolean shouldIntroduceError() {
-    Random random = new Random();
-    float randomValue = random.nextFloat();
-    return randomValue < puppySpec.getErrorRate();
+    float randomValue = _random.nextFloat();
+    return randomValue < _puppySpec.getErrorRate();
   }
 }

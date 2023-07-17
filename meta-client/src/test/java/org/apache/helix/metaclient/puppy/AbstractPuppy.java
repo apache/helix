@@ -32,6 +32,7 @@ public abstract class AbstractPuppy implements Runnable {
   public final HashMap<String, Integer> _eventChangeCounterMap;
   public int _unhandledErrorCounter;
 
+
   public AbstractPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     _metaclient = metaclient;
     _puppySpec = puppySpec;
@@ -69,6 +70,7 @@ public abstract class AbstractPuppy implements Runnable {
           try {
             Thread.sleep(getPuppySpec().getExecDelay().getNextDelay());
           } catch (InterruptedException e) {
+            cleanup();
             break;
             // Handle interruption if necessary
           }

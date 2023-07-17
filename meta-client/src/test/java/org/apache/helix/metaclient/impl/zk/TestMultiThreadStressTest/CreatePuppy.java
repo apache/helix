@@ -29,6 +29,7 @@ import java.util.Random;
 public class CreatePuppy extends AbstractPuppy {
 
   private final Random _random;
+  private final String _parentPath = "/test";
 
   public CreatePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
@@ -51,7 +52,7 @@ public class CreatePuppy extends AbstractPuppy {
       // Normal behavior - create a new node
       try {
         System.out.println(Thread.currentThread().getName() + " is attempting to create node: " + randomNumber);
-        _metaclient.create("/test/" + randomNumber,"test");
+        _metaclient.create(_parentPath + "/" + randomNumber,"test");
         System.out.println(Thread.currentThread().getName() + " successfully created node " + randomNumber + " at time: " + System.currentTimeMillis());
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
       } catch (MetaClientNodeExistsException e) {
@@ -64,7 +65,7 @@ public class CreatePuppy extends AbstractPuppy {
   @Override
   protected void cleanup() {
     // Implement the recovery logic by deleting the created documents
-    _metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete(_parentPath);
   }
 
   private boolean shouldIntroduceError() {

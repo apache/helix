@@ -28,7 +28,8 @@ import java.util.Random;
 
 public class GetPuppy extends AbstractPuppy {
 
-  private Random _random;
+  private final Random _random;
+  private final String _parentPath = "/test";
 
   public GetPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
@@ -47,7 +48,7 @@ public class GetPuppy extends AbstractPuppy {
       }
     } else {
       System.out.println(Thread.currentThread().getName() + " is attempting to read node: " + randomNumber);
-      String nodeValue = _metaclient.get("/test/" + randomNumber);
+      String nodeValue = _metaclient.get(_parentPath + "/" + randomNumber);
       if (Objects.equals(nodeValue, null)) {
         System.out.println(Thread.currentThread().getName() + " failed to read node " + randomNumber + ", it does not exist");
       } else {
@@ -58,7 +59,7 @@ public class GetPuppy extends AbstractPuppy {
 
   @Override
   protected void cleanup() {
-    _metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete(_parentPath);
   }
 
   private boolean shouldIntroduceError() {

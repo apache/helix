@@ -28,6 +28,7 @@ import java.util.Random;
 public class DeletePuppy extends AbstractPuppy {
 
   private final Random _random;
+  private final String _parentPath = "/test";
 
   public DeletePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
@@ -46,7 +47,7 @@ public class DeletePuppy extends AbstractPuppy {
       }
     } else {
       System.out.println(Thread.currentThread().getName() + " is attempting to delete node: " + randomNumber);
-      if (_metaclient.delete("/test/" + randomNumber)) {
+      if (_metaclient.delete(_parentPath + "/" + randomNumber)) {
         System.out.println(Thread.currentThread().getName() + " successfully deleted node " + randomNumber + " at time: " + System.currentTimeMillis());
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
       } else {
@@ -57,7 +58,7 @@ public class DeletePuppy extends AbstractPuppy {
 
   @Override
   protected void cleanup() {
-    _metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete(_parentPath);
   }
 
   private boolean shouldIntroduceError() {

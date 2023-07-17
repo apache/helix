@@ -29,6 +29,7 @@ import java.util.Random;
 public class UpdatePuppy extends AbstractPuppy {
 
   private final Random _random;
+  private final String _parentPath = "/test";
 
   public UpdatePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
@@ -47,7 +48,7 @@ public class UpdatePuppy extends AbstractPuppy {
     } else {
       try {
         System.out.println(Thread.currentThread().getName() + " is attempting to update node: " + randomNumber);
-        _metaclient.update("/test/" + randomNumber, (data) -> "foo");
+        _metaclient.update(_parentPath + "/" + randomNumber, (data) -> "foo");
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
         System.out.println(Thread.currentThread().getName() + " successfully updated node " + randomNumber + " at time: "
             + System.currentTimeMillis());
@@ -63,7 +64,7 @@ public class UpdatePuppy extends AbstractPuppy {
 
   @Override
   protected void cleanup() {
-    _metaclient.recursiveDelete("/test");
+    _metaclient.recursiveDelete(_parentPath);
   }
 
   private boolean shouldIntroduceError() {

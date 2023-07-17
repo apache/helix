@@ -28,16 +28,16 @@ import java.util.Random;
 
 public class GetPuppy extends AbstractPuppy {
 
-  private Random random;
+  private Random _random;
 
   public GetPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);
-    random = new Random();
+    _random = new Random();
   }
 
   @Override
   protected void bark() {
-    int randomNumber = random.nextInt(_puppySpec.getNumberDiffPaths());
+    int randomNumber = _random.nextInt(_puppySpec.getNumberDiffPaths());
     if (shouldIntroduceError()) {
       try {
         _metaclient.get("invalid");
@@ -62,6 +62,6 @@ public class GetPuppy extends AbstractPuppy {
   }
 
   private boolean shouldIntroduceError() {
-    return random.nextFloat() < _puppySpec.getErrorRate();
+    return _random.nextFloat() < _puppySpec.getErrorRate();
   }
 }

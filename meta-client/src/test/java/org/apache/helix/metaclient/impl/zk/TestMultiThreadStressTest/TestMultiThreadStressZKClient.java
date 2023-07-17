@@ -69,7 +69,6 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
-    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -93,7 +92,6 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
-    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -117,7 +115,6 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
-    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -141,7 +138,6 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
-    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -165,7 +161,6 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
-    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -195,14 +190,17 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
-    _zkMetaClient.delete(zkParentKey);
   }
+
 
   @Test
   public void testBasicParentListenerPuppy() {
     _zkMetaClient.create(zkParentKey, "test");
     AtomicInteger globalChildChangeCounter = new AtomicInteger();
-    ChildChangeListener childChangeListener = (changedPath, changeType) -> globalChildChangeCounter.addAndGet(1);
+    ChildChangeListener childChangeListener = (changedPath, changeType) -> {
+      globalChildChangeCounter.addAndGet(1);
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + globalChildChangeCounter.get());
+    };
 
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
 
@@ -212,17 +210,16 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     PuppyManager puppyManager = new PuppyManager();
     puppyManager.addPuppy(createPuppy);
 
-    long timeoutInSeconds = 10; // Set the desired timeout duration
+    long timeoutInSeconds = 20; // Set the desired timeout duration
 
     puppyManager.start(timeoutInSeconds);
 
     assertNoExceptions(puppyManager, globalChildChangeCounter);
 
     // cleanup
+    _zkMetaClient.unsubscribeChildChanges(zkParentKey, childChangeListener);
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
-    _zkMetaClient.unsubscribeChildChanges(zkParentKey, childChangeListener);
-    _zkMetaClient.delete(zkParentKey);
   }
 
   @Test
@@ -230,7 +227,11 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     _zkMetaClient.create(zkParentKey, "test");
     // Global counter for all child changes
     AtomicInteger globalChildChangeCounter = new AtomicInteger();
-    ChildChangeListener childChangeListener = (changedPath, changeType) -> globalChildChangeCounter.addAndGet(1);
+    ChildChangeListener childChangeListener = (changedPath, changeType) -> {
+      globalChildChangeCounter.addAndGet(1);
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + globalChildChangeCounter.get());
+    };
+
 
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
 
@@ -283,18 +284,24 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     // Create a child listener for each child defined in number diff paths in puppyspec.
     // TODO: Make this a parameter for a loop.
     AtomicInteger childChangeCounter0 = new AtomicInteger();
-    ChildChangeListener childChangeListener0 = (changedPath, changeType) ->
-        childChangeCounter0.addAndGet(1);
+    ChildChangeListener childChangeListener0 = (changedPath, changeType) -> {
+      childChangeCounter0.addAndGet(1);
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + childChangeCounter0.get());
+    };
     _zkMetaClient.subscribeChildChanges("/test/0", childChangeListener0, false);
 
     AtomicInteger childChangeCounter1 = new AtomicInteger();
-    ChildChangeListener childChangeListener1 = (changedPath, changeType) ->
-        childChangeCounter1.addAndGet(1);
+    ChildChangeListener childChangeListener1 = (changedPath, changeType) -> {
+      childChangeCounter1.addAndGet(1);
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + childChangeCounter1.get());
+    };
     _zkMetaClient.subscribeChildChanges("/test/1", childChangeListener1, false);
 
     AtomicInteger childChangeCounter2 = new AtomicInteger();
-    ChildChangeListener childChangeListener2 = (changedPath, changeType) ->
-        childChangeCounter2.addAndGet(1);
+    ChildChangeListener childChangeListener2 = (changedPath, changeType) -> {
+      childChangeCounter2.addAndGet(1);
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + childChangeCounter2.get());
+    };
     _zkMetaClient.subscribeChildChanges("/test/2", childChangeListener2, false);
 
     long timeoutInSeconds = 60; // Set the desired timeout duration
@@ -325,12 +332,11 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     Assert.assertEquals(childChangeCounter2.get(), mergedEventChangeCounterMap.getOrDefault("2", 0).intValue());
 
     // cleanup
-    _zkMetaClient.recursiveDelete(zkParentKey);
-    Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
     _zkMetaClient.unsubscribeChildChanges("/test/0", childChangeListener0);
     _zkMetaClient.unsubscribeChildChanges("/test/1", childChangeListener1);
     _zkMetaClient.unsubscribeChildChanges("/test/2", childChangeListener2);
-    _zkMetaClient.delete(zkParentKey);
+    _zkMetaClient.recursiveDelete(zkParentKey);
+    Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
   }
 
   private void assertNoExceptions(PuppyManager puppyManager, AtomicInteger globalChangeCounter) {

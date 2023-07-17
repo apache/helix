@@ -28,7 +28,7 @@ import java.util.Random;
 
 public class SetPuppy extends AbstractPuppy {
 
-  private Random _random;
+  private final Random _random;
 
   public SetPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
     super(metaclient, puppySpec);

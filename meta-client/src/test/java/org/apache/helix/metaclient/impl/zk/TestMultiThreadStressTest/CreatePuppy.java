@@ -20,7 +20,6 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
  */
 
 import org.apache.helix.metaclient.api.MetaClientInterface;
-import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.puppy.AbstractPuppy;
 import org.apache.helix.metaclient.puppy.PuppySpec;
@@ -44,7 +43,7 @@ public class CreatePuppy extends AbstractPuppy {
       try {
         // Simulate an error by creating an invalid path
         _metaclient.create("invalid", "test");
-      } catch (MetaClientException e) { // Catch invalid exception
+      } catch (IllegalArgumentException e) { // Catch invalid exception
         System.out.println(Thread.currentThread().getName() + " tried to create an invalid path.");
         // Expected exception
       }
@@ -55,7 +54,7 @@ public class CreatePuppy extends AbstractPuppy {
         _metaclient.create("/test/" + randomNumber,"test");
         System.out.println(Thread.currentThread().getName() + " successfully created node " + randomNumber + " at time: " + System.currentTimeMillis());
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
-      } catch (MetaClientException e) {
+      } catch (MetaClientNodeExistsException e) {
         // Expected exception
         System.out.println(Thread.currentThread().getName() + " failed to create node " + randomNumber + ", it already exists");
       }

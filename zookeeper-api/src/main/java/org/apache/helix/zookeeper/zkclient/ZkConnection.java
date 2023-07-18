@@ -260,6 +260,7 @@ public class ZkConnection implements IZkConnection {
   private void lookupGetChildrenMethod() {
     _getChildrenMethod = doLookUpGetChildrenMethod();
 
+    System.out.println(" ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED " + GETCHILDREN_PAGINATION_DISABLED);
     LOG.info("Pagination config {}={}, method to be invoked: {}",
         ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED, GETCHILDREN_PAGINATION_DISABLED,
         _getChildrenMethod.getName());

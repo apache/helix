@@ -66,9 +66,9 @@ public class LeaderElectionClient implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(LeaderElectionClient.class);
 
   // A list of leader election group that this client joins.
-  private Set<String> leaderGroups = new HashSet<>();
+  private Set<String> _leaderGroups = new HashSet<>();
 
-  private static String LEADER_ENTRY_KEY = "/LEADER";
+  private final static String LEADER_ENTRY_KEY = "/LEADER";
   ReElectListener _reElectListener = new ReElectListener();
 
   /**
@@ -80,7 +80,7 @@ public class LeaderElectionClient implements AutoCloseable {
    * @param metaClientConfig The config used to create an metaclient.
    */
   public LeaderElectionClient(MetaClientConfig metaClientConfig, String participant) {
-    this._participant = participant;
+    _participant = participant;
     if (metaClientConfig == null) {
       throw new IllegalArgumentException("MetaClientConfig cannot be null.");
     }
@@ -147,7 +147,7 @@ public class LeaderElectionClient implements AutoCloseable {
       // try to create leader entry, assuming leader election group node is already there
       _metaClient.create(leaderPath + LEADER_ENTRY_KEY, leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
     } catch (MetaClientNodeExistsException ex) {
-      LOG.info("Already a leader for group {}" , leaderPath);
+      LOG.info("Already a leader for group {}", leaderPath);
     } catch (MetaClientNoNodeException ex) {
       try {
         // try to create leader path root entry
@@ -170,7 +170,7 @@ public class LeaderElectionClient implements AutoCloseable {
       }
     }
 
-    leaderGroups.add(leaderPath + LEADER_ENTRY_KEY);
+    _leaderGroups.add(leaderPath + LEADER_ENTRY_KEY);
   }
 
   /**
@@ -212,34 +212,33 @@ public class LeaderElectionClient implements AutoCloseable {
   private void relinquishLeaderHelper(String leaderPath, Boolean exitLeaderElectionParticipantPool) {
     String key = leaderPath + LEADER_ENTRY_KEY;
     // if current client is in the group
-    if (leaderGroups.contains(key)) {
-      // remove leader path from leaderGroups after check if exiting the pool.
-      // to prevent a race condition in In Zk implementation:
-      // If there are delays in ZkClient event queue, it is possible the leader election client received leader
-      // deleted event after unsubscribeDataChange. We will need to remove it from in memory `leaderGroups` map before
-      // deleting ZNode. So that handler in ReElectListener won't recreate the leader node.
-      if (exitLeaderElectionParticipantPool) {
-        leaderGroups.remove(leaderPath + LEADER_ENTRY_KEY);
-      }
-      // check if current participant is the leader
-      // read data and stats, check, and multi check + delete
-      ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
-      if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
-        int expectedVersion = tup.right.getVersion();
-        List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
-        //Execute transactional support on operations
-        List<OpResult> opResults = _metaClient.transactionOP(ops);
-        if (opResults.get(0).getType() == ERRORRESULT) {
-          if (isLeader(leaderPath)) {
-            // Participant re-elected as leader.
-            throw new ConcurrentModificationException("Concurrent operation, please retry");
-          } else {
-            LOG.info("Someone else is already leader");
-          }
+    if (!_leaderGroups.contains(key)) {
+      throw new MetaClientException("Participant is not in the leader election group");
+    }
+    // remove leader path from leaderGroups after check if exiting the pool.
+    // to prevent a race condition in In Zk implementation:
+    // If there are delays in ZkClient event queue, it is possible the leader election client received leader
+    // deleted event after unsubscribeDataChange. We will need to remove it from in memory `leaderGroups` map before
+    // deleting ZNode. So that handler in ReElectListener won't recreate the leader node.
+    if (exitLeaderElectionParticipantPool) {
+      _leaderGroups.remove(leaderPath + LEADER_ENTRY_KEY);
+    }
+    // check if current participant is the leader
+    // read data and stats, check, and multi check + delete
+    ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
+    if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
+      int expectedVersion = tup.right.getVersion();
+      List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
+      //Execute transactional support on operations
+      List<OpResult> opResults = _metaClient.transactionOP(ops);
+      if (opResults.get(0).getType() == ERRORRESULT) {
+        if (isLeader(leaderPath)) {
+          // Participant re-elected as leader.
+          throw new ConcurrentModificationException("Concurrent operation, please retry");
+        } else {
+          LOG.info("Someone else is already leader");
         }
       }
-    } else {
-      throw new MetaClientException("Participant is not in the leader election group");
     }
   }
 
@@ -256,6 +255,7 @@ public class LeaderElectionClient implements AutoCloseable {
   }
 
   public LeaderInfo getParticipantInfo(String leaderPath) {
+    // TODO: add getParticipantInfo impl
     return null;
   }
 
@@ -303,8 +303,9 @@ public class LeaderElectionClient implements AutoCloseable {
   public void close() throws Exception {
 
     // exit all previous joined leader election groups
-    for (String leaderGroup : leaderGroups) {
-      String leaderGroupPathName = leaderGroup.substring(0, leaderGroup.length() - LEADER_ENTRY_KEY.length() /*remove '/LEADER' */);
+    for (String leaderGroup : _leaderGroups) {
+      String leaderGroupPathName =
+          leaderGroup.substring(0, leaderGroup.length() - LEADER_ENTRY_KEY.length() /*remove '/LEADER' */);
       exitLeaderElectionParticipantPool(leaderGroupPathName);
     }
 
@@ -319,7 +320,7 @@ public class LeaderElectionClient implements AutoCloseable {
       if (changeType == ChangeType.ENTRY_CREATED) {
         LOG.info("new leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
       } else if (changeType == ChangeType.ENTRY_DELETED) {
-        if (leaderGroups.contains(key)) {
+        if (_leaderGroups.contains(key)) {
           LeaderInfo lf = new LeaderInfo("LEADER");
           lf.setLeaderName(_participant);
           try {

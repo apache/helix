@@ -386,4 +386,8 @@ public class DummyClusterManager implements HelixManager {
   protected void setSessionId(String sessionId) {
     _sessionId = sessionId;
   }
+
+  @Override
+  public void deleteCustomizedStateRootForInstance(String instance) {
+  }
 }

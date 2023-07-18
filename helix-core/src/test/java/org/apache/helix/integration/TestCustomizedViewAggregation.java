@@ -22,6 +22,7 @@ package org.apache.helix.integration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +36,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
@@ -42,11 +44,14 @@ import org.apache.helix.customizedstate.CustomizedStateProvider;
 import org.apache.helix.customizedstate.CustomizedStateProviderFactory;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.spectator.RoutingTableSnapshot;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -70,12 +75,16 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   private static Set<String> _routingTableProviderDataSources;
   private String INSTANCE_0;
   private String INSTANCE_1;
+
   private final String RESOURCE_0 = "TestDB0";
   private final String RESOURCE_1 = "TestDB1";
   private final String PARTITION_00 = "TestDB0_0";
   private final String PARTITION_01 = "TestDB0_1";
   private final String PARTITION_10 = "TestDB1_0";
   private final String PARTITION_11 = "TestDB1_1";
+
+  private final String CLUSTER_NAME = TestHelper.getTestClassName();
+
   private MockParticipantManager[] _participants;
   private ClusterControllerManager _controller;
   // Customized state values used for test, TYPE_A_0 - TYPE_A_2 are values for Customized state TypeA, etc.
@@ -91,12 +100,11 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   public void beforeClass() throws Exception {
     super.beforeClass();
 
-    String clusterName = TestHelper.getTestClassName();
     int n = 2;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + CLUSTER_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(CLUSTER_NAME, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         2, // resources
@@ -106,7 +114,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     _controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "controller_0");
     _controller.syncStart();
 
     // start participants
@@ -114,7 +122,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      _participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
     }
 
@@ -122,11 +130,11 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     INSTANCE_1 = _participants[1].getInstanceName();
 
     _manager = HelixManagerFactory
-        .getZKHelixManager(clusterName, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+        .getZKHelixManager(CLUSTER_NAME, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
     _spectator = HelixManagerFactory
-        .getZKHelixManager(clusterName, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
+        .getZKHelixManager(CLUSTER_NAME, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator.connect();
 
     // Initialize customized state provider
@@ -476,4 +484,69 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         CurrentStateValues.TYPE_A_0);
     validateAggregationSnapshot();
   }
+
+  protected void deleteLiveInstance(String clusterName, String instanceName) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    ZKHelixDataAccessor dataAccessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    dataAccessor.removeProperty(keyBuilder.liveInstance(instanceName));
+  }
+
+  private void validateDeleteInstance() throws Exception {
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() {
+        Map<String, Map<String, RoutingTableSnapshot>> routingTableSnapshots =
+            _routingTableProvider.getRoutingTableSnapshots();
+
+        // Get customized view snapshot
+        Map<String, RoutingTableSnapshot> fullCustomizedViewSnapshot =
+            routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name());
+
+        if (fullCustomizedViewSnapshot.isEmpty() && !_routingTableProviderDataSources.isEmpty()) {
+          return false;
+        }
+
+        for (String customizedStateType : fullCustomizedViewSnapshot.keySet()) {
+          if (!_routingTableProviderDataSources.contains(customizedStateType)) {
+            return false;
+          }
+
+          // Get per customized state type snapshot
+          RoutingTableSnapshot customizedViewSnapshot =
+              fullCustomizedViewSnapshot.get(customizedStateType);
+
+          // local per customized state type map
+          Map<String, Map<String, Map<String, String>>> localSnapshot =
+              _localCustomizedView.getOrDefault(customizedStateType, Maps.newHashMap());
+
+          for (String resourceName : localSnapshot.keySet()) {
+            Map<String, Map<String, String>> perResourceMap = localSnapshot.get(resourceName);
+            for (String partitionName : perResourceMap.keySet()) {
+              Map<String, String> perPartitionMap = perResourceMap.get(partitionName);
+              if (perPartitionMap.containsValue(INSTANCE_0)) {
+                return false;
+              }
+            }
+          }
+        }
+        return true;
+      }
+    }, TestHelper.WAIT_DURATION);
+
+    Assert.assertTrue(result);
+  }
+
+  @Test (dependsOnMethods = "testCustomizedViewAggregation")
+  public void testDeleteInstanceCustomizedStateAggregation() throws Exception {
+    // Delete the instance 0 and see that the customized state for that instance is deleted.
+    deleteLiveInstance(CLUSTER_NAME, INSTANCE_0);
+    validateDeleteInstance();
+  }
+
+
+
 }

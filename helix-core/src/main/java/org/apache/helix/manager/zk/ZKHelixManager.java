@@ -746,6 +746,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
+  @Override
+  public void deleteCustomizedStateRootForInstance(String instance) {
+    String path = PropertyPathBuilder.instanceCustomizedState(_clusterName, instance);
+    if (_zkclient.exists(path)) {
+      _zkclient.deleteRecursively(path);
+    }
+  }
+
   void createClient() throws Exception {
     final RealmAwareZkClient newClient = createSingleRealmZkClient();
 

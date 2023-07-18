@@ -84,6 +84,8 @@ public interface HelixManager {
   String ALLOW_PARTICIPANT_AUTO_JOIN =
       ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN;
 
+  void deleteCustomizedStateRootForInstance(String instance);
+
   /**
    * Start participating in the cluster operations. All listeners will be
    * initialized and will be notified for every cluster state change This method

@@ -383,4 +383,7 @@ public class MockManager implements HelixManager {
     return 0L;
   }
 
+  @Override
+  public void deleteCustomizedStateRootForInstance(String instance) {};
+
 }

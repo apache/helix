@@ -46,6 +46,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
@@ -99,6 +100,7 @@ import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.controller.stages.task.TaskMessageDispatchStage;
 import org.apache.helix.controller.stages.task.TaskPersistDataStage;
 import org.apache.helix.controller.stages.task.TaskSchedulingStage;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedState;
@@ -1391,6 +1393,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
             manager.removeListener(keyBuilder.messages(instance), this);
             // remove customized state root listener for disconnected instances
             manager.removeListener(keyBuilder.customizedStatesRoot(instance), this);
+            // delete the customized state root path for disconnected instances
+            manager.deleteCustomizedStateRootForInstance(instance);
           }
         }
       }

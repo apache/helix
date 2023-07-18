@@ -387,4 +387,7 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
   public ParticipantHealthReportCollector getHealthReportCollector() {
     return null;
   }
+
+  @Override
+  public void deleteCustomizedStateRootForInstance(String instance) {};
 }

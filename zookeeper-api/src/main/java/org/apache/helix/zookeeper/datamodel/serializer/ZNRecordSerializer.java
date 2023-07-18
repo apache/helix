@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 public class ZNRecordSerializer implements ZkSerializer {
   private static final Logger LOG = LoggerFactory.getLogger(ZNRecordSerializer.class);
 
-  private static ObjectMapper mapper = new ObjectMapper()
+  protected static ObjectMapper mapper = new ObjectMapper()
       // TODO: remove it after upgrading ZNRecord's annotations to Jackson 2
       .setAnnotationIntrospector(new CodehausJacksonIntrospector());
 

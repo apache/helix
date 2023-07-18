@@ -19,26 +19,48 @@ package org.apache.helix.metaclient.recipes.leaderelection;
  * under the License.
  */
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 
 
 /**
  * This is the data represent leader election info of a leader election path.
  */
-public class LeaderInfo {
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+public class LeaderInfo extends DataRecord {
 
-  private String  _leaderElectionGroupName;
-  private final DataRecord _record;
-
-
-  public LeaderInfo( String leaderElectionGroupName) {
-    _leaderElectionGroupName = leaderElectionGroupName;
-    _record = new DataRecord(_leaderElectionGroupName);
+  public LeaderInfo(DataRecord dataRecord) {
+    super(dataRecord);
   }
+
+  @JsonCreator
+  public LeaderInfo(@JsonProperty("id") String id) {
+    super(id);
+  }
+
+  public LeaderInfo(LeaderInfo info, String id) {
+    super(info, id);
+  }
+
 
   public enum LeaderAttribute {
     LEADER_NAME,
     PARTICIPANTS
+  }
+
+@JsonIgnore(true)
+public String getLeaderName() {
+    return getSimpleField("LEADER_NAME");
+  }
+
+  @JsonIgnore(true)
+  public void setLeaderName(String id) {
+     setSimpleField("LEADER_NAME", id);
   }
 
 

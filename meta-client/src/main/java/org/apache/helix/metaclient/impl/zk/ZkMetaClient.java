@@ -83,17 +83,15 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   // Lock all activities related to ZkClient connection
   private ReentrantLock _zkClientConnectionMutex = new ReentrantLock();
 
-
   public ZkMetaClient(ZkMetaClientConfig config) {
     _initConnectionTimeout = config.getConnectionInitTimeoutInMillis();
     _reconnectTimeout = config.getMetaClientReconnectPolicy().getAutoReconnectTimeout();
     // TODO: Right new ZkClient reconnect using exp backoff with fixed max backoff interval. We should
     // Allow user to config reconnect policy
-    _zkClient = new ZkClient(
-        new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
+    _zkClient = new ZkClient(new ZkConnection(config.getConnectionAddress(), (int) config.getSessionTimeoutInMillis()),
         (int) _initConnectionTimeout, _reconnectTimeout /*use reconnect timeout for retry timeout*/,
-        config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(),
-        config.getMonitorInstanceName(), config.getMonitorRootPathOnly(), false, true);
+        config.getZkSerializer(), config.getMonitorType(), config.getMonitorKey(), config.getMonitorInstanceName(),
+        config.getMonitorRootPathOnly(), false, true);
     _zkClientReconnectMonitor = Executors.newSingleThreadScheduledExecutor();
     _reconnectStateChangeListener = new ReconnectStateChangeListener();
   }
@@ -102,6 +100,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   public void create(String key, Object data) {
     try {
       create(key, data, EntryMode.PERSISTENT);
+    } catch (ZkException e) {
+      throw ZkMetaClientUtil.translateZkExceptionToMetaclientException(e);
     } catch (Exception e) {
       throw new MetaClientException(e);
     }
@@ -110,16 +110,18 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   @Override
   public void create(String key, Object data, MetaClientInterface.EntryMode mode) {
 
-    try{
+    try {
       _zkClient.create(key, data, ZkMetaClientUtil.convertMetaClientMode(mode));
-    } catch (ZkException | KeeperException e) {
+    } catch (ZkException e) {
+      throw ZkMetaClientUtil.translateZkExceptionToMetaclientException(e);
+    } catch (KeeperException e) {
       throw new MetaClientException(e);
     }
   }
 
   @Override
   public void createWithTTL(String key, T data, long ttl) {
-    try{
+    try {
       _zkClient.createPersistentWithTTL(key, data, ttl);
     } catch (ZkException e) {
       throw translateZkExceptionToMetaclientException(e);
@@ -178,7 +180,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return _zkClient.readData(key, true);
   }
 
-
   @Override
   public ImmutablePair<T, Stat> getDataAndStat(final String key) {
     try {
@@ -231,8 +232,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   // corresponding callbacks for each operation are invoked in order.
   @Override
   public void setAsyncExecPoolSize(int poolSize) {
-    throw new UnsupportedOperationException(
-        "All async calls are executed in a single thread to maintain sequence.");
+    throw new UnsupportedOperationException("All async calls are executed in a single thread to maintain sequence.");
   }
 
   @Override
@@ -243,8 +243,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     } catch (ZkException | KeeperException e) {
       throw new MetaClientException(e);
     }
-    _zkClient.asyncCreate(key, data, entryMode,
-          new ZkMetaClientCreateCallbackHandler(cb));
+    _zkClient.asyncCreate(key, data, entryMode, new ZkMetaClientCreateCallbackHandler(cb));
   }
 
   @Override
@@ -258,14 +257,12 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void asyncGet(String key, AsyncCallback.DataCallback cb) {
-    _zkClient.asyncGetData(key,
-        new ZkMetaClientGetCallbackHandler(cb));
+    _zkClient.asyncGetData(key, new ZkMetaClientGetCallbackHandler(cb));
   }
 
   @Override
   public void asyncCountChildren(String key, AsyncCallback.DataCallback cb) {
-    throw new NotImplementedException(
-        "Currently asyncCountChildren is not supported in ZkMetaClient.");
+    throw new NotImplementedException("Currently asyncCountChildren is not supported in ZkMetaClient.");
     /*
      * TODO:  Only Helix has potential using this API as of now. (ZkBaseDataAccessor.getChildren())
      *  Will move impl from ZkBaseDataAccessor to here when retiring ZkBaseDataAccessor.
@@ -275,8 +272,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void asyncExist(String key, AsyncCallback.StatCallback cb) {
-    _zkClient.asyncExists(key,
-        new ZkMetaClientExistCallbackHandler(cb));
+    _zkClient.asyncExists(key, new ZkMetaClientExistCallbackHandler(cb));
   }
 
   public void asyncDelete(String key, AsyncCallback.VoidCallback cb) {
@@ -285,16 +281,14 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void asyncTransaction(Iterable<Op> ops, AsyncCallback.TransactionCallback cb) {
-    throw new NotImplementedException(
-        "Currently asyncTransaction is not supported in ZkMetaClient.");
+    throw new NotImplementedException("Currently asyncTransaction is not supported in ZkMetaClient.");
 
-     //TODO: There is no active use case for Async transaction.
+    //TODO: There is no active use case for Async transaction.
   }
 
   @Override
   public void asyncSet(String key, T data, int version, AsyncCallback.StatCallback cb) {
-    _zkClient.asyncSetData(key, data, version,
-        new ZkMetaClientSetCallbackHandler(cb));
+    _zkClient.asyncSetData(key, data, version, new ZkMetaClientSetCallbackHandler(cb));
   }
 
   @Override
@@ -332,8 +326,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public DirectChildSubscribeResult subscribeDirectChildChange(String key,
-      DirectChildChangeListener listener, boolean skipWatchingNonExistNode) {
+  public DirectChildSubscribeResult subscribeDirectChildChange(String key, DirectChildChangeListener listener,
+      boolean skipWatchingNonExistNode) {
     ChildrenSubscribeResult result =
         _zkClient.subscribeChildChanges(key, new DirectChildListenerAdapter(listener), skipWatchingNonExistNode);
     return new DirectChildSubscribeResult(result.getChildren(), result.isInstalled());
@@ -466,7 +460,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         _reconnectMonitorFuture.cancel(true);
         LOG.info("ZkClient reconnect monitor thread is canceled");
       }
-
     } finally {
       _zkClientConnectionMutex.unlock();
     }
@@ -539,8 +532,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
                 cleanUpAndClose(false, true);
               }
             }, _reconnectTimeout, TimeUnit.MILLISECONDS);
-            LOG.info("ZkClient is Disconnected, schedule a reconnect monitor after {}",
-                _reconnectTimeout);
+            LOG.info("ZkClient is Disconnected, schedule a reconnect monitor after {}", _reconnectTimeout);
           }
         } finally {
           _zkClientConnectionMutex.unlock();

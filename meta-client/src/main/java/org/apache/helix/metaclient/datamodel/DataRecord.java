@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.datamodel;
  */
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.apache.helix.metaclient.recipes.leaderelection.LeaderInfo;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
@@ -34,5 +35,9 @@ public class DataRecord extends ZNRecord {
 
   public DataRecord(ZNRecord record) {
     super(record);
+  }
+
+  public DataRecord(DataRecord record, String id) {
+    super(record, id);
   }
 }

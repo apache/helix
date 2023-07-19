@@ -69,6 +69,8 @@ public class LeaderElectionClient implements AutoCloseable {
   private Set<String> _leaderGroups = new HashSet<>();
 
   private final static String LEADER_ENTRY_KEY = "/LEADER";
+  private final static String PARTICIPANTS_ENTRY_KEY = "/PARTICIPANTS";
+  private final static String PARTICIPANTS_ENTRY_PARENT = "/PARTICIPANTS/";
   ReElectListener _reElectListener = new ReElectListener();
 
   /**
@@ -123,6 +125,7 @@ public class LeaderElectionClient implements AutoCloseable {
   public void joinLeaderElectionParticipantPool(String leaderPath) {
     // TODO: create participant entry
     subscribeAndTryCreateLeaderEntry(leaderPath);
+    createParticipantInfo(leaderPath, new LeaderInfo(_participant));
   }
 
   /**
@@ -136,27 +139,65 @@ public class LeaderElectionClient implements AutoCloseable {
   public void joinLeaderElectionParticipantPool(String leaderPath, LeaderInfo userInfo) {
     // TODO: create participant entry with info
     subscribeAndTryCreateLeaderEntry(leaderPath);
+
+    LeaderInfo participantInfo = new LeaderInfo(userInfo);
+    createParticipantInfo(leaderPath, participantInfo);
+  }
+
+  private void createParticipantInfo(String leaderPath, LeaderInfo participantInfo) {
+
+    try {
+      LOG.info("{} joining leader group {}.", _participant, leaderPath);
+      // try to create leader entry, assuming leader election group node is already there
+      _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
+          MetaClientInterface.EntryMode.EPHEMERAL);
+    } catch (MetaClientNodeExistsException ex) {
+      LOG.info("Already joined pool {}.", leaderPath);
+      return;
+    } catch (MetaClientNoNodeException ex) {
+      try {
+        // try to create leader path root entry
+        LOG.info("{} Creating leader group directory{}.", _participant, leaderPath);
+        _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
+      } catch (MetaClientNodeExistsException ignored) {
+        // root entry created by other client, ignore
+      } catch (MetaClientNoNodeException e) {
+        // Parent entry missed in root path.
+        throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
+      }
+      try {
+        // try to create leader node again.
+        _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
+            MetaClientInterface.EntryMode.EPHEMERAL);
+      } catch (MetaClientNoNodeException e) {
+        // Leader group root entry is gone after we checked at outer catch block.
+        // Meaning other client removed the group. Throw ConcurrentModificationException.
+        throw new ConcurrentModificationException(
+            "Other client trying to modify the leader election group at the same time, please retry.", ex);
+      }
+    }
   }
 
   private void subscribeAndTryCreateLeaderEntry(String leaderPath) {
     _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, _reElectListener, false);
-    LeaderInfo leaderInfo = new LeaderInfo(LEADER_ENTRY_KEY);
+    LeaderInfo leaderInfo = new LeaderInfo("LEADER");
     leaderInfo.setLeaderName(_participant);
 
     try {
+      LOG.info("{} joining leader group {}.", _participant, leaderPath);
       // try to create leader entry, assuming leader election group node is already there
       _metaClient.create(leaderPath + LEADER_ENTRY_KEY, leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
     } catch (MetaClientNodeExistsException ex) {
-      LOG.info("Already a leader for group {}", leaderPath);
+      LOG.info("Already a leader in leader group {}.", leaderPath);
     } catch (MetaClientNoNodeException ex) {
       try {
         // try to create leader path root entry
+        LOG.info("{} Creating leader group directory{}.", _participant, leaderPath);
         _metaClient.create(leaderPath, null);
       } catch (MetaClientNodeExistsException ignored) {
         // root entry created by other client, ignore
       } catch (MetaClientNoNodeException e) {
-        // Parent entry of user provided leader election group path missing.
-        // (e.g. `/a/b` not created in user specified leader election group path /a/b/c/LeaderGroup)
+        // Parent entry missed in root path.
         throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
       }
       try {
@@ -222,6 +263,7 @@ public class LeaderElectionClient implements AutoCloseable {
     // deleting ZNode. So that handler in ReElectListener won't recreate the leader node.
     if (exitLeaderElectionParticipantPool) {
       _leaderGroups.remove(leaderPath + LEADER_ENTRY_KEY);
+      _metaClient.delete(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant);
     }
     // check if current participant is the leader
     // read data and stats, check, and multi check + delete
@@ -250,13 +292,23 @@ public class LeaderElectionClient implements AutoCloseable {
    * @throws RuntimeException when leader path does not exist. // TODO: define exp type
    */
   public String getLeader(String leaderPath) {
+
     LeaderInfo leaderInfo = _metaClient.get(leaderPath + LEADER_ENTRY_KEY);
     return leaderInfo == null ? null : leaderInfo.getLeaderName();
   }
 
-  public LeaderInfo getParticipantInfo(String leaderPath) {
-    // TODO: add getParticipantInfo impl
-    return null;
+  public LeaderInfo getParticipantInfo(String leaderPath, String participant) {
+    try {
+      return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT+ participant, false);
+    } catch (MetaClientNodeExistsException ex) {
+      throw new MetaClientException(
+          "leader election group not valid or " + participant + " is not in participant pool for leader election group "
+              + leaderPath);
+    }
+  }
+
+  public MetaClientInterface.Stat getLeaderEntryStat(String leaderPath) {
+    return _metaClient.exists(leaderPath + LEADER_ENTRY_KEY);
   }
 
   /**
@@ -271,7 +323,11 @@ public class LeaderElectionClient implements AutoCloseable {
    * @throws RuntimeException when leader path does not exist. // TODO: define exp type
    */
   public List<String> getParticipants(String leaderPath) {
-    return null;
+    try {
+      return _metaClient.getDirectChildrenKeys(leaderPath + PARTICIPANTS_ENTRY_KEY);
+    } catch (MetaClientNoNodeException ex) {
+      throw new MetaClientException("No leader election group create for path " + leaderPath, ex);
+    }
   }
 
   /**
@@ -304,8 +360,7 @@ public class LeaderElectionClient implements AutoCloseable {
 
     // exit all previous joined leader election groups
     for (String leaderGroup : _leaderGroups) {
-      String leaderGroupPathName =
-          leaderGroup.substring(0, leaderGroup.length() - LEADER_ENTRY_KEY.length() /*remove '/LEADER' */);
+      String leaderGroupPathName = leaderGroup.substring(0, leaderGroup.length() - 7 /*remove '/LEADER' */);
       exitLeaderElectionParticipantPool(leaderGroupPathName);
     }
 
@@ -318,19 +373,19 @@ public class LeaderElectionClient implements AutoCloseable {
     @Override
     public void handleDataChange(String key, Object data, ChangeType changeType) throws Exception {
       if (changeType == ChangeType.ENTRY_CREATED) {
-        LOG.info("new leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
+        //LOG.info("new leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
       } else if (changeType == ChangeType.ENTRY_DELETED) {
         if (_leaderGroups.contains(key)) {
           LeaderInfo lf = new LeaderInfo("LEADER");
           lf.setLeaderName(_participant);
           try {
+            LOG.info("Leader gone for group {}, {} try to reelect.", key, _participant);
             _metaClient.create(key, lf, MetaClientInterface.EntryMode.EPHEMERAL);
           } catch (MetaClientNodeExistsException ex) {
-            LOG.info("Already a leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
+            LOG.info("Already a leader for leader election group {}.", key);
           }
         }
       }
     }
   }
 }
-

@@ -1,6 +1,7 @@
 package org.apache.helix.metaclient.recipes.leaderelection;
 
 import org.apache.helix.metaclient.TestUtil;
+import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClientTestBase;
 import org.testng.Assert;
@@ -59,6 +60,45 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
 
     clt1.close();
     clt2.close();
+  }
+
+  @Test
+  public void testElectionPoolMembership() throws Exception {
+    String leaderPath = LEADER_PATH + "/testElectionPoolMembership";
+    LeaderInfo participantInfo = new LeaderInfo(PARTICIPANT_NAME1);
+    participantInfo.setSimpleField("Key1", "value1");
+    LeaderInfo participantInfo2 = new LeaderInfo(PARTICIPANT_NAME2);
+    participantInfo2.setSimpleField("Key2", "value2");
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2) ;
+
+    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
+    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
+
+    Assert.assertTrue(TestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, TestUtil.WAIT_DURATION));
+    Assert.assertNotNull(clt1.getLeaderEntryStat(leaderPath));
+    Assert.assertNotNull(clt1.getLeader(leaderPath));
+    Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
+    Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+
+    // clt1 gone
+    clt1.relinquishLeader(leaderPath);
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
+
+    try {
+      clt2.getParticipantInfo(LEADER_PATH, PARTICIPANT_NAME2);
+      Assert.fail("no reach");
+    } catch (MetaClientNoNodeException ex) {
+      // expected
+      Assert.assertEquals(ex.getClass().getName(),
+          "org.apache.helix.metaclient.exception.MetaClientNoNodeException");
+
+    }
   }
 
 }

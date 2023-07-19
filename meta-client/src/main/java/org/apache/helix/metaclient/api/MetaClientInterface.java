@@ -203,6 +203,14 @@ public interface MetaClientInterface<T> {
   T get(final String key);
 
   /**
+   * Fetch the data for a given key.
+   * @param key key to identify the entry
+   * @param returnNullIfPathNotExists throws MetaClientNoNodeException if no node when set to false;
+   * @return Return data of the entry.
+   */
+  T get(String key, boolean returnNullIfPathNotExists);
+
+  /**
    * Fetch the data and stat for a given key.
    * @param key key to identify the entry
    * @return Return an ImmutablePair of data and stat for the entry.

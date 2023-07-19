@@ -45,19 +45,19 @@ public class CreatePuppy extends AbstractPuppy {
         // Simulate an error by creating an invalid path
         _metaclient.create("invalid", "test");
       } catch (IllegalArgumentException e) { // Catch invalid exception
-        System.out.println(Thread.currentThread().getName() + " tried to create an invalid path.");
+        System.out.println(Thread.currentThread().getName() + " tried to create an invalid path." + " at time: " + System.currentTimeMillis());
         // Expected exception
       }
     } else {
       // Normal behavior - create a new node
       try {
-        System.out.println(Thread.currentThread().getName() + " is attempting to create node: " + randomNumber);
+        System.out.println(Thread.currentThread().getName() + " is attempting to create node: " + randomNumber + " at time: " + System.currentTimeMillis());
         _metaclient.create(_parentPath + "/" + randomNumber,"test");
         System.out.println(Thread.currentThread().getName() + " successfully created node " + randomNumber + " at time: " + System.currentTimeMillis());
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
       } catch (MetaClientNodeExistsException e) {
         // Expected exception
-        System.out.println(Thread.currentThread().getName() + " failed to create node " + randomNumber + ", it already exists");
+        System.out.println(Thread.currentThread().getName() + " failed to create node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it already exists");
       }
     }
   }

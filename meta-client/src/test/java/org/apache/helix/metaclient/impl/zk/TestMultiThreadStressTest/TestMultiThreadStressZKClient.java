@@ -40,6 +40,8 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   private ZkMetaClient<String> _zkMetaClient;
   private final String zkParentKey = "/test";
 
+  private final long TIMEOUT = 60; // The desired timeout duration of tests in seconds
+
   @BeforeTest
   private void setUp() {
     this._zkMetaClient = createZkMetaClient();
@@ -60,9 +62,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     puppyManager.addPuppy(createPuppy2);
     puppyManager.addPuppy(createPuppy3);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, null);
 
@@ -83,9 +83,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     puppyManager.addPuppy(createPuppy);
     puppyManager.addPuppy(deletePuppy);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, null);
 
@@ -106,9 +104,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     puppyManager.addPuppy(createPuppy);
     puppyManager.addPuppy(getPuppy);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, null);
 
@@ -129,9 +125,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     puppyManager.addPuppy(createPuppy);
     puppyManager.addPuppy(setPuppy);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, null);
 
@@ -152,9 +146,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     puppyManager.addPuppy(createPuppy);
     puppyManager.addPuppy(updatePuppy);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, null);
 
@@ -181,9 +173,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     puppyManager.addPuppy(setPuppy);
     puppyManager.addPuppy(updatePuppy);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, null);
 
@@ -210,9 +200,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     PuppyManager puppyManager = new PuppyManager();
     puppyManager.addPuppy(createPuppy);
 
-    long timeoutInSeconds = 20; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, globalChildChangeCounter);
 
@@ -249,9 +237,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     puppyManager.addPuppy(setPuppy);
     puppyManager.addPuppy(updatePuppy);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, globalChildChangeCounter);
 
@@ -304,9 +290,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     };
     _zkMetaClient.subscribeChildChanges("/test/2", childChangeListener2, false);
 
-    long timeoutInSeconds = 60; // Set the desired timeout duration
-
-    puppyManager.start(timeoutInSeconds);
+    puppyManager.start(TIMEOUT);
 
     assertNoExceptions(puppyManager, null);
 

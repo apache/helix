@@ -44,13 +44,13 @@ public class GetPuppy extends AbstractPuppy {
         _metaclient.get("invalid");
         _unhandledErrorCounter++;
       } catch (IllegalArgumentException e) {
-        System.out.println(Thread.currentThread().getName() + " intentionally tried to read an invalid path.");
+        System.out.println(Thread.currentThread().getName() + " intentionally tried to read an invalid path" + " at time: " + System.currentTimeMillis());
       }
     } else {
-      System.out.println(Thread.currentThread().getName() + " is attempting to read node: " + randomNumber);
+      System.out.println(Thread.currentThread().getName() + " is attempting to read node: " + randomNumber + " at time: " + System.currentTimeMillis());
       String nodeValue = _metaclient.get(_parentPath + "/" + randomNumber);
       if (Objects.equals(nodeValue, null)) {
-        System.out.println(Thread.currentThread().getName() + " failed to read node " + randomNumber + ", it does not exist");
+        System.out.println(Thread.currentThread().getName() + " failed to read node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it does not exist");
       } else {
         System.out.println(Thread.currentThread().getName() + " successfully read node " + randomNumber + " at time: " + System.currentTimeMillis());
       }

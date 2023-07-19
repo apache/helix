@@ -43,17 +43,17 @@ public class UpdatePuppy extends AbstractPuppy {
       try {
         _metaclient.update("invalid", (data) -> "foo");
       } catch (IllegalArgumentException e) {
-        System.out.println(Thread.currentThread().getName() + " intentionally tried to update an invalid path.");
+        System.out.println(Thread.currentThread().getName() + " intentionally tried to update an invalid path" + " at time: " + System.currentTimeMillis());
       }
     } else {
       try {
-        System.out.println(Thread.currentThread().getName() + " is attempting to update node: " + randomNumber);
+        System.out.println(Thread.currentThread().getName() + " is attempting to update node: " + randomNumber + " at time: " + System.currentTimeMillis());
         _metaclient.update(_parentPath + "/" + randomNumber, (data) -> "foo");
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
         System.out.println(Thread.currentThread().getName() + " successfully updated node " + randomNumber + " at time: "
             + System.currentTimeMillis());
       } catch (MetaClientNoNodeException e) {
-        System.out.println(Thread.currentThread().getName() + " failed to update node " + randomNumber + ", it does not exist");
+        System.out.println(Thread.currentThread().getName() + " failed to update node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it does not exist");
       } catch (IllegalArgumentException e) {
         if (!e.getMessage().equals("Can not subscribe one time watcher when ZkClient is using PersistWatcher")) {
           throw e;

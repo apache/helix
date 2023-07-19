@@ -43,15 +43,15 @@ public class DeletePuppy extends AbstractPuppy {
         _metaclient.delete("invalid");
         _unhandledErrorCounter++;
       } catch (IllegalArgumentException e) {
-        System.out.println(Thread.currentThread().getName() + " intentionally deleted an invalid path.");
+        System.out.println(Thread.currentThread().getName() + " intentionally deleted an invalid path" + " at time: " + System.currentTimeMillis() );
       }
     } else {
-      System.out.println(Thread.currentThread().getName() + " is attempting to delete node: " + randomNumber);
+      System.out.println(Thread.currentThread().getName() + " is attempting to delete node: " + randomNumber + " at time: " + System.currentTimeMillis());
       if (_metaclient.delete(_parentPath + "/" + randomNumber)) {
         System.out.println(Thread.currentThread().getName() + " successfully deleted node " + randomNumber + " at time: " + System.currentTimeMillis());
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
       } else {
-        System.out.println(Thread.currentThread().getName() + " failed to delete node " + randomNumber + ", it does not exist");
+        System.out.println(Thread.currentThread().getName() + " failed to delete node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it does not exist");
       }
     }
   }

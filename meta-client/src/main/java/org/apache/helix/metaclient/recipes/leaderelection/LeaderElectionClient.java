@@ -147,8 +147,7 @@ public class LeaderElectionClient implements AutoCloseable {
   private void createParticipantInfo(String leaderPath, LeaderInfo participantInfo) {
 
     try {
-      LOG.info("{} joining leader group {}.", _participant, leaderPath);
-      // try to create leader entry, assuming leader election group node is already there
+      // try to create participant info entry, assuming leader election group node is already there
       _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
           MetaClientInterface.EntryMode.EPHEMERAL);
     } catch (MetaClientNodeExistsException ex) {
@@ -156,21 +155,20 @@ public class LeaderElectionClient implements AutoCloseable {
       return;
     } catch (MetaClientNoNodeException ex) {
       try {
-        // try to create leader path root entry
-        LOG.info("{} Creating leader group directory{}.", _participant, leaderPath);
-        _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
-      } catch (MetaClientNodeExistsException ignored) {
-        // root entry created by other client, ignore
-      } catch (MetaClientNoNodeException e) {
-        // Parent entry missed in root path.
-        throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
-      }
-      try {
-        // try to create leader node again.
+        try {
+          // try to create participants root entry. This function is called after
+          // `subscribeAndTryCreateLeaderEntry`, so leader election root node should have already been created.
+          LOG.info("{} Creating leader group directory {}.", _participant, leaderPath);
+          _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
+        } catch (MetaClientNodeExistsException ignored) {
+          // participants' root entry created by other client, ignore
+        }
+        // try to participant info node again.
         _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
             MetaClientInterface.EntryMode.EPHEMERAL);
       } catch (MetaClientNoNodeException e) {
-        // Leader group root entry is gone after we checked at outer catch block.
+        // catch exception in previous 2 create()
+        // Leader group root entry or participant parent entry is gone after we checked or created.
         // Meaning other client removed the group. Throw ConcurrentModificationException.
         throw new ConcurrentModificationException(
             "Other client trying to modify the leader election group at the same time, please retry.", ex);
@@ -299,7 +297,7 @@ public class LeaderElectionClient implements AutoCloseable {
 
   public LeaderInfo getParticipantInfo(String leaderPath, String participant) {
     try {
-      return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT+ participant, false);
+      return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT + participant, false);
     } catch (MetaClientNodeExistsException ex) {
       throw new MetaClientException(
           "leader election group not valid or " + participant + " is not in participant pool for leader election group "
@@ -360,7 +358,8 @@ public class LeaderElectionClient implements AutoCloseable {
 
     // exit all previous joined leader election groups
     for (String leaderGroup : _leaderGroups) {
-      String leaderGroupPathName = leaderGroup.substring(0, leaderGroup.length() - 7 /*remove '/LEADER' */);
+      String leaderGroupPathName =
+          leaderGroup.substring(0, leaderGroup.length() - LEADER_ENTRY_KEY.length() /*remove '/LEADER' */);
       exitLeaderElectionParticipantPool(leaderGroupPathName);
     }
 
@@ -373,7 +372,7 @@ public class LeaderElectionClient implements AutoCloseable {
     @Override
     public void handleDataChange(String key, Object data, ChangeType changeType) throws Exception {
       if (changeType == ChangeType.ENTRY_CREATED) {
-        //LOG.info("new leader {} for leader election group {}.", ((LeaderInfo) data).getLeaderName(), key);
+        LOG.info("new leader for leader election group {}.",  key);
       } else if (changeType == ChangeType.ENTRY_DELETED) {
         if (_leaderGroups.contains(key)) {
           LeaderInfo lf = new LeaderInfo("LEADER");

@@ -73,6 +73,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2) ;
 
     clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
+    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo); // no op
     clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
 
     Assert.assertTrue(TestUtil.verify(() -> {
@@ -97,7 +98,6 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
       // expected
       Assert.assertEquals(ex.getClass().getName(),
           "org.apache.helix.metaclient.exception.MetaClientNoNodeException");
-
     }
   }
 

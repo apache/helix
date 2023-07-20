@@ -101,9 +101,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     try {
       create(key, data, EntryMode.PERSISTENT);
     } catch (ZkException e) {
-      throw ZkMetaClientUtil.translateZkExceptionToMetaclientException(e);
-    } catch (Exception e) {
-      throw new MetaClientException(e);
+      throw translateZkExceptionToMetaclientException(e);
     }
   }
 
@@ -113,7 +111,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     try {
       _zkClient.create(key, data, ZkMetaClientUtil.convertMetaClientMode(mode));
     } catch (ZkException e) {
-      throw ZkMetaClientUtil.translateZkExceptionToMetaclientException(e);
+      throw translateZkExceptionToMetaclientException(e);
     } catch (KeeperException e) {
       throw new MetaClientException(e);
     }

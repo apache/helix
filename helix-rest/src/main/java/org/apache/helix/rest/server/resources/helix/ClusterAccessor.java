@@ -769,8 +769,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     if (inMaintenanceMode) {
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-      PropertyKey maintenanceKey = dataAccessor.keyBuilder().maintenance();
-      MaintenanceSignal maintenanceSignal = dataAccessor.getProperty(maintenanceKey);
+      MaintenanceSignal maintenanceSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().maintenance());
 
       Map<String, String> maintenanceInfo = (maintenanceSignal != null) ?
           maintenanceSignal.getRecord().getSimpleFields() : new HashMap<>();

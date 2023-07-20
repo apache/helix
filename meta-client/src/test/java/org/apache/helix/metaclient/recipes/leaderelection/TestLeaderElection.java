@@ -1,5 +1,6 @@
 package org.apache.helix.metaclient.recipes.leaderelection;
 
+import java.util.ConcurrentModificationException;
 import org.apache.helix.metaclient.TestUtil;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
@@ -73,8 +74,14 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2) ;
 
     clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
-    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo); // no op
-    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
+    try {
+      clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo); // no op
+    } catch (ConcurrentModificationException ex) {
+        // expected
+        Assert.assertEquals(ex.getClass().getName(),
+            "java.util.ConcurrentModificationException");
+      }
+      clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
 
     Assert.assertTrue(TestUtil.verify(() -> {
       return (clt1.getLeader(leaderPath) != null);

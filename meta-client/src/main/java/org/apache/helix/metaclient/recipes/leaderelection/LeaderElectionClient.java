@@ -21,11 +21,14 @@ package org.apache.helix.metaclient.recipes.leaderelection;
 
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
@@ -36,6 +39,7 @@ import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
+import org.checkerframework.checker.units.qual.C;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,10 +72,13 @@ public class LeaderElectionClient implements AutoCloseable {
   // A list of leader election group that this client joins.
   private Set<String> _leaderGroups = new HashSet<>();
 
+  private Map<String, LeaderInfo> _participantInfos = new HashMap<>();
+
   private final static String LEADER_ENTRY_KEY = "/LEADER";
   private final static String PARTICIPANTS_ENTRY_KEY = "/PARTICIPANTS";
   private final static String PARTICIPANTS_ENTRY_PARENT = "/PARTICIPANTS/";
   ReElectListener _reElectListener = new ReElectListener();
+  ConnectStateListener _connectStateListener = new ConnectStateListener();
 
   /**
    * Construct a LeaderElectionClient using a user passed in leaderElectionConfig. It creates a MetaClient
@@ -92,6 +99,7 @@ public class LeaderElectionClient implements AutoCloseable {
           metaClientConfig.getConnectionAddress()).setZkSerializer((new LeaderInfoSerializer())).build();
       _metaClient = new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
       _metaClient.connect();
+      _metaClient.subscribeStateChanges(_connectStateListener);
     } else {
       throw new MetaClientException("Unsupported store type: " + metaClientConfig.getStoreType());
     }
@@ -145,34 +153,24 @@ public class LeaderElectionClient implements AutoCloseable {
   }
 
   private void createParticipantInfo(String leaderPath, LeaderInfo participantInfo) {
+    _participantInfos.put(leaderPath, participantInfo);
 
+    if (_metaClient.exists(leaderPath + PARTICIPANTS_ENTRY_KEY) == null) {
+      LOG.info("{} Creating leader group directory {}.", _participant, leaderPath);
+      _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
+    }
     try {
       // try to create participant info entry, assuming leader election group node is already there
       _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
           MetaClientInterface.EntryMode.EPHEMERAL);
     } catch (MetaClientNodeExistsException ex) {
-      LOG.info("Already joined pool {}.", leaderPath);
-      return;
+      throw new ConcurrentModificationException(
+          "Already joined leader election group. ", ex);
     } catch (MetaClientNoNodeException ex) {
-      try {
-        try {
-          // try to create participants root entry. This function is called after
-          // `subscribeAndTryCreateLeaderEntry`, so leader election root node should have already been created.
-          LOG.info("{} Creating leader group directory {}.", _participant, leaderPath);
-          _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
-        } catch (MetaClientNodeExistsException ignored) {
-          // participants' root entry created by other client, ignore
-        }
-        // try to participant info node again.
-        _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
-            MetaClientInterface.EntryMode.EPHEMERAL);
-      } catch (MetaClientNoNodeException e) {
-        // catch exception in previous 2 create()
         // Leader group root entry or participant parent entry is gone after we checked or created.
         // Meaning other client removed the group. Throw ConcurrentModificationException.
         throw new ConcurrentModificationException(
             "Other client trying to modify the leader election group at the same time, please retry.", ex);
-      }
     }
   }
 
@@ -356,6 +354,8 @@ public class LeaderElectionClient implements AutoCloseable {
   @Override
   public void close() throws Exception {
 
+    _metaClient.unsubscribeConnectStateChanges(_connectStateListener);
+
     // exit all previous joined leader election groups
     for (String leaderGroup : _leaderGroups) {
       String leaderGroupPathName =
@@ -372,7 +372,7 @@ public class LeaderElectionClient implements AutoCloseable {
     @Override
     public void handleDataChange(String key, Object data, ChangeType changeType) throws Exception {
       if (changeType == ChangeType.ENTRY_CREATED) {
-        LOG.info("new leader for leader election group {}.",  key);
+        LOG.info("new leader for leader election group {}.", key);
       } else if (changeType == ChangeType.ENTRY_DELETED) {
         if (_leaderGroups.contains(key)) {
           LeaderInfo lf = new LeaderInfo("LEADER");
@@ -385,6 +385,26 @@ public class LeaderElectionClient implements AutoCloseable {
           }
         }
       }
+    }
+  }
+
+  class ConnectStateListener implements ConnectStateChangeListener {
+
+    @Override
+    public void handleConnectStateChanged(MetaClientInterface.ConnectState prevState,
+        MetaClientInterface.ConnectState currentState) throws Exception {
+      if (prevState == MetaClientInterface.ConnectState.EXPIRED
+          && currentState == MetaClientInterface.ConnectState.CONNECTED) {
+        for (String leaderPath : _participantInfos.keySet()) {
+          _metaClient.create(leaderPath + LEADER_ENTRY_KEY, _participantInfos.get(leaderPath),
+              MetaClientInterface.EntryMode.EPHEMERAL);
+        }
+      }
+    }
+
+    @Override
+    public void handleConnectionEstablishmentError(Throwable error) throws Exception {
+
     }
   }
 }

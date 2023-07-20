@@ -45,7 +45,7 @@ public class CreatePuppy extends AbstractPuppy {
         // Simulate an error by creating an invalid path
         _metaclient.create("invalid", "test");
       } catch (IllegalArgumentException e) { // Catch invalid exception
-        System.out.println(Thread.currentThread().getName() + " tried to create an invalid path." + " at time: " + System.currentTimeMillis());
+        System.out.println(Thread.currentThread().getName() + " tried to create an invalid path" + " at time: " + System.currentTimeMillis());
         // Expected exception
       }
     } else {

@@ -37,9 +37,9 @@ import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
-import org.checkerframework.checker.units.qual.C;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -293,14 +293,14 @@ public class LeaderElectionClient implements AutoCloseable {
     return leaderInfo == null ? null : leaderInfo.getLeaderName();
   }
 
+  /**
+   * Get current leader.
+   *
+   * @param leaderPath The path for leader election.
+   * @return Returns a LeaderInfo entry. Return null if participant is not in the pool.
+   * */
   public LeaderInfo getParticipantInfo(String leaderPath, String participant) {
-    try {
       return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT + participant, false);
-    } catch (MetaClientNodeExistsException ex) {
-      throw new MetaClientException(
-          "leader election group not valid or " + participant + " is not in participant pool for leader election group "
-              + leaderPath);
-    }
   }
 
   public MetaClientInterface.Stat getLeaderEntryStat(String leaderPath) {
@@ -396,7 +396,7 @@ public class LeaderElectionClient implements AutoCloseable {
       if (prevState == MetaClientInterface.ConnectState.EXPIRED
           && currentState == MetaClientInterface.ConnectState.CONNECTED) {
         for (String leaderPath : _participantInfos.keySet()) {
-          _metaClient.create(leaderPath + LEADER_ENTRY_KEY, _participantInfos.get(leaderPath),
+          _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, _participantInfos.get(leaderPath),
               MetaClientInterface.EntryMode.EPHEMERAL);
         }
       }
@@ -407,4 +407,8 @@ public class LeaderElectionClient implements AutoCloseable {
 
     }
   }
+  public MetaClientInterface getMetaClient() {
+    return  _metaClient;
+  }
+
 }

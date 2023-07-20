@@ -4,7 +4,9 @@ import java.util.ConcurrentModificationException;
 import org.apache.helix.metaclient.TestUtil;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClientTestBase;
+import org.apache.helix.zookeeper.impl.ZkTestHelper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

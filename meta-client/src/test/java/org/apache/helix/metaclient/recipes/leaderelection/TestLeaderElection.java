@@ -100,14 +100,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt1.exitLeaderElectionParticipantPool(leaderPath);
     clt2.exitLeaderElectionParticipantPool(leaderPath);
 
-    try {
-      clt2.getParticipantInfo(LEADER_PATH, PARTICIPANT_NAME2);
-      Assert.fail("no reach");
-    } catch (MetaClientNoNodeException ex) {
-      // expected
-      Assert.assertEquals(ex.getClass().getName(),
-          "org.apache.helix.metaclient.exception.MetaClientNoNodeException");
-    }
-  }
+    Assert.assertNull(clt2.getParticipantInfo(LEADER_PATH, PARTICIPANT_NAME2));
 
+}
 }

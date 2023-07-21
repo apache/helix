@@ -131,7 +131,6 @@ public class LeaderElectionClient implements AutoCloseable {
    * @throws RuntimeException if the operation is not succeeded.
    */
   public void joinLeaderElectionParticipantPool(String leaderPath) {
-    // TODO: create participant entry
     subscribeAndTryCreateLeaderEntry(leaderPath);
     createParticipantInfo(leaderPath, new LeaderInfo(_participant));
   }
@@ -145,7 +144,6 @@ public class LeaderElectionClient implements AutoCloseable {
    * @throws RuntimeException if the operation is not succeeded.
    */
   public void joinLeaderElectionParticipantPool(String leaderPath, LeaderInfo userInfo) {
-    // TODO: create participant entry with info
     subscribeAndTryCreateLeaderEntry(leaderPath);
 
     LeaderInfo participantInfo = new LeaderInfo(userInfo);
@@ -157,7 +155,11 @@ public class LeaderElectionClient implements AutoCloseable {
 
     if (_metaClient.exists(leaderPath + PARTICIPANTS_ENTRY_KEY) == null) {
       LOG.info("{} Creating leader group directory {}.", _participant, leaderPath);
-      _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
+      try {
+        _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
+      } catch (MetaClientNodeExistsException ignore) {
+
+      }
     }
     try {
       // try to create participant info entry, assuming leader election group node is already there
@@ -176,35 +178,29 @@ public class LeaderElectionClient implements AutoCloseable {
 
   private void subscribeAndTryCreateLeaderEntry(String leaderPath) {
     _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, _reElectListener, false);
-    LeaderInfo leaderInfo = new LeaderInfo("LEADER");
+    LeaderInfo leaderInfo = new LeaderInfo(LEADER_ENTRY_KEY);
     leaderInfo.setLeaderName(_participant);
 
+    // check and create leader election group root node if no exist
+    if (_metaClient.exists(leaderPath) == null) {
+      LOG.info("{} Creating leader group directory {}.", _participant, leaderPath);
+      try{
+        _metaClient.create(leaderPath, null);
+      } catch (MetaClientNoNodeException e) {
+        // Parent entry missed in root path.
+        throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
+      }
+      catch (MetaClientNodeExistsException ignore) {
+      }
+    }
+
+    // create actual leader node
     try {
       LOG.info("{} joining leader group {}.", _participant, leaderPath);
       // try to create leader entry, assuming leader election group node is already there
       _metaClient.create(leaderPath + LEADER_ENTRY_KEY, leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
     } catch (MetaClientNodeExistsException ex) {
       LOG.info("Already a leader in leader group {}.", leaderPath);
-    } catch (MetaClientNoNodeException ex) {
-      try {
-        // try to create leader path root entry
-        LOG.info("{} Creating leader group directory{}.", _participant, leaderPath);
-        _metaClient.create(leaderPath, null);
-      } catch (MetaClientNodeExistsException ignored) {
-        // root entry created by other client, ignore
-      } catch (MetaClientNoNodeException e) {
-        // Parent entry missed in root path.
-        throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
-      }
-      try {
-        // try to create leader node again.
-        _metaClient.create(leaderPath + LEADER_ENTRY_KEY, leaderInfo, MetaClientInterface.EntryMode.EPHEMERAL);
-      } catch (MetaClientNoNodeException e) {
-        // Leader group root entry is gone after we checked at outer catch block.
-        // Meaning other client removed the group. Throw ConcurrentModificationException.
-        throw new ConcurrentModificationException(
-            "Other client trying to modify the leader election group at the same time, please retry.", ex);
-      }
     }
 
     _leaderGroups.add(leaderPath + LEADER_ENTRY_KEY);
@@ -300,7 +296,7 @@ public class LeaderElectionClient implements AutoCloseable {
    * @return Returns a LeaderInfo entry. Return null if participant is not in the pool.
    * */
   public LeaderInfo getParticipantInfo(String leaderPath, String participant) {
-      return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT + participant, false);
+      return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT + participant);
   }
 
   public MetaClientInterface.Stat getLeaderEntryStat(String leaderPath) {

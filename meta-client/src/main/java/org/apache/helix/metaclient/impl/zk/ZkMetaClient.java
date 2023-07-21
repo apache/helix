@@ -178,14 +178,6 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     return _zkClient.readData(key, true);
   }
 
-  public T get(String key, boolean returnNullIfPathNotExists) {
-    try {
-      return _zkClient.readData(key, returnNullIfPathNotExists);
-    } catch (ZkException ex) {
-      throw translateZkExceptionToMetaclientException(ex);
-    }
-  }
-
   @Override
   public ImmutablePair<T, Stat> getDataAndStat(final String key) {
     try {

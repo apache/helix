@@ -523,6 +523,33 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testEnableDisableMaintenanceMode")
+  public void testEmptyMaintenanceSignal() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+
+    // Create empty maintenance znode
+    ZNRecord record = new ZNRecord("test_maintenance_node");
+    ZKUtil.createOrUpdate(_gZkClient, "/"+cluster+"/CONTROLLER/MAINTENANCE", record, true, true);
+
+    // Verify maintenance mode enabled
+    Assert.assertTrue(isMaintenanceModeEnabled(cluster));
+    get("clusters/" + cluster + "/controller/maintenanceSignal", null,
+        Response.Status.OK.getStatusCode(), true);
+
+
+    // Disable maintenance mode
+    post("clusters/" + cluster, ImmutableMap.of("command", "disableMaintenanceMode"),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+
+    // Verify no longer in maintenance mode
+    Assert.assertFalse(isMaintenanceModeEnabled(cluster));
+    get("clusters/" + cluster + "/controller/maintenanceSignal", null,
+        Response.Status.NOT_FOUND.getStatusCode(), false);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+
+  }
+
+  @Test(dependsOnMethods = "testEmptyMaintenanceSignal")
   public void testGetControllerLeadershipHistory() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();

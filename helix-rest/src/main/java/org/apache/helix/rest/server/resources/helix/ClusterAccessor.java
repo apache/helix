@@ -765,12 +765,16 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/controller/maintenanceSignal")
   public Response getClusterMaintenanceSignal(@PathParam("clusterId") String clusterId) {
-    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    MaintenanceSignal maintenanceSignal =
-        dataAccessor.getProperty(dataAccessor.keyBuilder().maintenance());
-    if (maintenanceSignal != null) {
-      Map<String, String> maintenanceInfo = maintenanceSignal.getRecord().getSimpleFields();
+    boolean inMaintenanceMode = getHelixAdmin().isInMaintenanceMode(clusterId);
+
+    if (inMaintenanceMode) {
+      HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+      MaintenanceSignal maintenanceSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().maintenance());
+
+      Map<String, String> maintenanceInfo = (maintenanceSignal != null) ?
+          maintenanceSignal.getRecord().getSimpleFields() : new HashMap<>();
       maintenanceInfo.put(ClusterProperties.clusterName.name(), clusterId);
+
       return JSONRepresentation(maintenanceInfo);
     }
     return notFound(String.format("Cluster %s is not in maintenance mode!", clusterId));

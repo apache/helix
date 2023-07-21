@@ -1,6 +1,6 @@
 package org.apache.helix.metaclient;
 
-public class TestUtil {
+public class MetaClientTestUtil {
   public static final long WAIT_DURATION = 60 * 1000L;
   public interface Verifier {
     boolean verify()

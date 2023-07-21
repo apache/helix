@@ -35,8 +35,11 @@ import java.util.TreeMap;
 import org.apache.helix.HelixException;
 import org.apache.helix.task.beans.JobBean;
 import org.apache.helix.task.beans.WorkflowBean;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.inspector.TagInspector;
+import org.yaml.snakeyaml.nodes.Tag;
 
 /**
  * Houses a job dag and config set to fully describe a job workflow
@@ -137,7 +140,15 @@ public class Workflow {
    * Helper function to parse workflow from a generic {@link Reader}
    */
   private static Workflow parse(Reader reader) throws Exception {
-    Yaml yaml = new Yaml(new Constructor(WorkflowBean.class));
+    LoaderOptions options = new LoaderOptions();
+    TagInspector tagInspector = new TagInspector() {
+      @Override
+      public boolean isGlobalTagAllowed(Tag tag) {
+        return false;
+      }
+    };
+    options.setTagInspector(tagInspector);
+    Yaml yaml = new Yaml(new Constructor(WorkflowBean.class, options));
     WorkflowBean wf = (WorkflowBean) yaml.load(reader);
     Builder workflowBuilder = new Builder(wf.name);
 

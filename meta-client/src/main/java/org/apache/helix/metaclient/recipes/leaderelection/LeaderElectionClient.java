@@ -153,26 +153,30 @@ public class LeaderElectionClient implements AutoCloseable {
   private void createParticipantInfo(String leaderPath, LeaderInfo participantInfo) {
     _participantInfos.put(leaderPath, participantInfo);
 
-    if (_metaClient.exists(leaderPath + PARTICIPANTS_ENTRY_KEY) == null) {
-      LOG.info("{} Creating leader group directory {}.", _participant, leaderPath);
-      try {
-        _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_KEY, null);
-      } catch (MetaClientNodeExistsException ignore) {
+    createPathIfNotExists(leaderPath + PARTICIPANTS_ENTRY_KEY);
 
-      }
-    }
     try {
       // try to create participant info entry, assuming leader election group node is already there
       _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
           MetaClientInterface.EntryMode.EPHEMERAL);
     } catch (MetaClientNodeExistsException ex) {
-      throw new ConcurrentModificationException(
-          "Already joined leader election group. ", ex);
+      throw new ConcurrentModificationException("Already joined leader election group. ", ex);
     } catch (MetaClientNoNodeException ex) {
-        // Leader group root entry or participant parent entry is gone after we checked or created.
-        // Meaning other client removed the group. Throw ConcurrentModificationException.
-        throw new ConcurrentModificationException(
-            "Other client trying to modify the leader election group at the same time, please retry.", ex);
+      // Leader group root entry or participant parent entry is gone after we checked or created.
+      // Meaning other client removed the group. Throw ConcurrentModificationException.
+      throw new ConcurrentModificationException(
+          "Other client trying to modify the leader election group at the same time, please retry.", ex);
+    }
+  }
+
+  private void createPathIfNotExists(String path) {
+    if (_metaClient.exists(path) == null) {
+      LOG.info("{} Creating leader group directory {}.", _participant, path);
+      try {
+        _metaClient.create(path, null);
+      } catch (MetaClientNodeExistsException ignore) {
+        LOG.info("Leader election group root path already created: path {}.", path);
+      }
     }
   }
 
@@ -181,17 +185,11 @@ public class LeaderElectionClient implements AutoCloseable {
     LeaderInfo leaderInfo = new LeaderInfo(LEADER_ENTRY_KEY);
     leaderInfo.setLeaderName(_participant);
 
-    // check and create leader election group root node if no exist
-    if (_metaClient.exists(leaderPath) == null) {
-      LOG.info("{} Creating leader group directory {}.", _participant, leaderPath);
-      try{
-        _metaClient.create(leaderPath, null);
-      } catch (MetaClientNoNodeException e) {
-        // Parent entry missed in root path.
-        throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
-      }
-      catch (MetaClientNodeExistsException ignore) {
-      }
+    try {
+      createPathIfNotExists(leaderPath);
+    } catch (MetaClientNoNodeException e) {
+      // Parent entry missed in root path.
+      throw new MetaClientException("Parent entry in leaderGroup path" + leaderPath + " does not exist.");
     }
 
     // create actual leader node
@@ -296,7 +294,7 @@ public class LeaderElectionClient implements AutoCloseable {
    * @return Returns a LeaderInfo entry. Return null if participant is not in the pool.
    * */
   public LeaderInfo getParticipantInfo(String leaderPath, String participant) {
-      return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT + participant);
+    return _metaClient.get(leaderPath + PARTICIPANTS_ENTRY_PARENT + participant);
   }
 
   public MetaClientInterface.Stat getLeaderEntryStat(String leaderPath) {
@@ -403,8 +401,8 @@ public class LeaderElectionClient implements AutoCloseable {
 
     }
   }
-  public MetaClientInterface getMetaClient() {
-    return  _metaClient;
-  }
 
+  public MetaClientInterface getMetaClient() {
+    return _metaClient;
+  }
 }

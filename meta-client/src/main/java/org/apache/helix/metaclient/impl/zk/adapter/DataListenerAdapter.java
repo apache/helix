@@ -21,6 +21,7 @@ package org.apache.helix.metaclient.impl.zk.adapter;
 
 import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.annotation.PreFetchChangedData;
 import org.apache.zookeeper.Watcher;
 
 

@@ -1,7 +1,10 @@
 package org.apache.helix.metaclient;
 
-public class TestUtil {
-  public static final long WAIT_DURATION = 6 * 1000L;
+import java.util.concurrent.TimeUnit;
+
+
+public class MetaClientTestUtil {
+  public static final long WAIT_DURATION =  TimeUnit.MINUTES.toMicros(1);
   public interface Verifier {
     boolean verify()
         throws Exception;

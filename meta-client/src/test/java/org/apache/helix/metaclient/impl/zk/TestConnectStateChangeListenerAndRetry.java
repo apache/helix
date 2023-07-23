@@ -162,7 +162,8 @@ public class TestConnectStateChangeListenerAndRetry  {
         zkMetaClient.create("/key", "value");
         Assert.fail("Create call after close should throw IllegalStateException");
       } catch (Exception ex) {
-        Assert.assertTrue(ex.getCause() instanceof IllegalStateException);
+        System.out.println("ex " + ex);
+        Assert.assertTrue(ex instanceof IllegalStateException);
       }
     }
     System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));

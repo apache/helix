@@ -24,9 +24,16 @@ package org.apache.helix.metaclient.recipes.leaderelection;
  * leader node is deleted.
  */
 public interface LeaderElectionListenerInterface {
+  enum ChangeType {
+    LEADER_ACQUIRED,
+    LEADER_LOST
+  }
+
   // When new leader is elected:
-  //                             noLeader (null)                  ->    has leader (new leader name)
-  // When existing leader not leader anymore:
-  //                             has Leader (prevleader name)     ->    no leader (null)
-  public void onLeadershipChange(String leaderPath, String prevLeader, String curLeader);
+  //                          ChangeType == NEW_LEADER_ELECTED, curLeader is the new leader name
+  // When no leader anymore:
+  //                         ChangeType == LEADER_GONE, curLeader is an empty string
+  // In ZK implementation, since notification does not include changed data and metaclient fetches
+  // the entry when event comes, it is possible that
+  public void onLeadershipChange(String leaderPath, ChangeType type,  String curLeader);
 }

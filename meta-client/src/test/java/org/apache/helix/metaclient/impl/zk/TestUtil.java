@@ -25,11 +25,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.testng.Assert;
 
 
 public class TestUtil {
@@ -93,4 +99,66 @@ public class TestUtil {
 
     return lists;
   }
+
+  public static void expireSession(ZkMetaClient client)
+      throws Exception {
+    final CountDownLatch waitNewSession = new CountDownLatch(1);
+    final ZkClient zkClient = client.getZkClient();
+
+    IZkStateListener listener = new IZkStateListener() {
+      @Override
+      public void handleStateChanged(Watcher.Event.KeeperState state)
+          throws Exception {
+      }
+
+      @Override
+      public void handleNewSession(final String sessionId)
+          throws Exception {
+        // make sure zkclient is connected again
+        zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+
+        waitNewSession.countDown();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable var1)
+          throws Exception {
+      }
+    };
+
+    zkClient.subscribeStateChanges(listener);
+
+    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
+    ZooKeeper curZookeeper = connection.getZookeeper();
+    String oldSessionId = Long.toHexString(curZookeeper.getSessionId());
+
+    Watcher watcher = new Watcher() {
+      @Override
+      public void process(WatchedEvent event) {
+      }
+    };
+
+    final ZooKeeper dupZookeeper =
+        new ZooKeeper(connection.getServers(), curZookeeper.getSessionTimeout(), watcher,
+            curZookeeper.getSessionId(), curZookeeper.getSessionPasswd());
+    // wait until connected, then close
+    while (dupZookeeper.getState() != ZooKeeper.States.CONNECTED) {
+      Thread.sleep(10);
+    }
+    Assert.assertEquals(dupZookeeper.getState(), ZooKeeper.States.CONNECTED,
+        "Fail to connect to zk using current session info");
+    dupZookeeper.close();
+
+    // make sure session expiry really happens
+    waitNewSession.await();
+    zkClient.unsubscribeStateChanges(listener);
+
+    connection = (ZkConnection) zkClient.getConnection();
+    curZookeeper = connection.getZookeeper();
+
+    String newSessionId = Long.toHexString(curZookeeper.getSessionId());
+    Assert.assertFalse(newSessionId.equals(oldSessionId),
+        "Fail to expire current session, zk: " + curZookeeper);
+  }
+
 }

@@ -334,7 +334,8 @@ public class LeaderElectionClient implements AutoCloseable {
    * @return A boolean value indicating if registration is success.
    */
   public boolean subscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
-    //TODO: add converter class for LeaderElectionListenerInterface
+    _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, new LeaderElectionListenerInterfaceAdapter(listener),
+        false);
     return false;
   }
 
@@ -343,6 +344,7 @@ public class LeaderElectionClient implements AutoCloseable {
    * @param listener An implementation of LeaderElectionListenerInterface
    */
   public void unsubscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
+    _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY, new LeaderElectionListenerInterfaceAdapter(listener));
   }
 
   @Override

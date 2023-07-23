@@ -2,6 +2,8 @@ package org.apache.helix.metaclient.recipes.leaderelection;
 
 import java.util.ConcurrentModificationException;
 import org.apache.helix.metaclient.MetaClientTestUtil;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClientTestBase;
@@ -26,12 +28,14 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
 
   @Test
   public void testAcquireLeadership() throws Exception {
+    String leaderPath = LEADER_PATH + "testAcquireLeadership";
+
     // create 2 clients representing 2 participants
     LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
 
-    clt1.joinLeaderElectionParticipantPool(LEADER_PATH);
-    clt2.joinLeaderElectionParticipantPool(LEADER_PATH);
+    clt1.joinLeaderElectionParticipantPool(leaderPath);
+    clt2.joinLeaderElectionParticipantPool(leaderPath);
     // First client joining the leader election group should be current leader
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
       return (clt1.getLeader(LEADER_PATH) != null);
@@ -139,4 +143,131 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
     Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
   }
+  @Test (dependsOnMethods = "testAcquireLeadership")
+  public void testLeadershipListener() throws Exception {
+    String leaderPath = LEADER_PATH + "testLeadershipListener";
+    // create 2 clients representing 2 participants
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
+    LeaderElectionClient clt3 = createLeaderElectionClient(PARTICIPANT_NAME2);
+
+    final int count = 10;
+    final int[] numNewLeaderEvent = {0};
+    final int[] numLeaderGoneEvent = {0};
+    CountDownLatch countDownLatchNewLeader = new CountDownLatch(count*2);
+    CountDownLatch countDownLatchLeaderGone = new CountDownLatch(count*2);
+
+     LeaderElectionListenerInterface listener = new LeaderElectionListenerInterface() {
+
+       @Override
+       public void onLeadershipChange(String leaderPath, ChangeType type, String curLeader) {
+         if (type == ChangeType.LEADER_LOST) {
+           countDownLatchLeaderGone.countDown();
+           Assert.assertEquals(curLeader.length(), 0);
+           numLeaderGoneEvent[0]++;
+         } else if (type == ChangeType.LEADER_ACQUIRED) {
+           countDownLatchNewLeader.countDown();
+           numNewLeaderEvent[0]++;
+           Assert.assertTrue(curLeader.length()!=0);
+         } else {
+           Assert.fail();
+         }
+       }
+     };
+
+    clt3.subscribeLeadershipChanges(leaderPath, listener);
+
+    // each iteration will be participant_1 is new leader, leader gone, participant_2 is new leader, leader gone
+    for (int i=0; i<count; ++i) {
+      joinPoolTestHelper(leaderPath, clt1, clt2);
+      Thread.sleep(1000);
+    }
+
+    Assert.assertTrue(countDownLatchNewLeader.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
+    Assert.assertTrue(countDownLatchLeaderGone.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
+    Assert.assertEquals(numLeaderGoneEvent[0], count*2);
+    Assert.assertEquals(numNewLeaderEvent[0], count*2);
+
+    clt3.unsubscribeLeadershipChanges(leaderPath, listener);
+
+    // listener shouldn't receive any event after unsubscribe
+    joinPoolTestHelper(leaderPath, clt1, clt2);
+    Assert.assertEquals(numLeaderGoneEvent[0], count*2);
+    Assert.assertEquals(numNewLeaderEvent[0], count*2);
+
+    clt1.close();
+    clt2.close();
+    clt3.close();
+  }
+
+  private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2) throws Exception {
+    clt1.joinLeaderElectionParticipantPool(leaderPath);
+    clt2.joinLeaderElectionParticipantPool(leaderPath);
+
+    Thread.sleep(2000);
+
+    // clt1 gone
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath).equals(PARTICIPANT_NAME2));
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
+
+  }
+
+  @Test (dependsOnMethods = "testLeadershipListener")
+  public void testRelinquishLeadership() throws Exception {
+    String leaderPath = LEADER_PATH + "testRelinquishLeadership";
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
+    LeaderElectionClient clt3 = createLeaderElectionClient(PARTICIPANT_NAME2);
+
+
+    final int count = 1;
+    CountDownLatch countDownLatchNewLeader = new CountDownLatch(count);
+    CountDownLatch countDownLatchLeaderGone = new CountDownLatch(count);
+
+    LeaderElectionListenerInterface listener = new LeaderElectionListenerInterface() {
+
+      @Override
+      public void onLeadershipChange(String leaderPath, ChangeType type, String curLeader) {
+        if (type == ChangeType.LEADER_LOST) {
+          countDownLatchLeaderGone.countDown();
+          Assert.assertEquals(curLeader.length(), 0);
+        } else if (type == ChangeType.LEADER_ACQUIRED) {
+          countDownLatchNewLeader.countDown();
+          Assert.assertTrue(curLeader.length()!=0);
+        } else {
+          Assert.fail();
+        }
+      }
+    };
+
+    clt1.joinLeaderElectionParticipantPool(leaderPath);
+    clt2.joinLeaderElectionParticipantPool(leaderPath);
+    clt3.subscribeLeadershipChanges(leaderPath, listener);
+    // clt1 gone
+    clt1.relinquishLeader(leaderPath);
+
+    // participant 1 should have gone, and a leader gone event is sent
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    Assert.assertTrue(countDownLatchLeaderGone.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
+
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath).equals(PARTICIPANT_NAME2));
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
+  }
+
 }

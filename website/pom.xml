@@ -46,7 +46,6 @@
 
   <modules>
     <module>0.9.9</module>
-    <module>1.1.0</module>
     <module>1.2.0</module>
     <module>1.3.0</module>
   </modules>

@@ -19,6 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
@@ -67,12 +68,19 @@ public class RESTConfig extends HelixProperty {
    */
   public String getBaseUrl(String instance) {
     String baseUrl = get(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL);
+
     // pre-assumption of the url, must be format of "http://*/path", the wildcard is replaceable by
     // the instance vip
-    assert baseUrl.contains("*");
-    // pre-assumption of the instance name, must be format of <instanceVip>_<port>
-    assert instance.contains("_");
-    String instanceVip = instance.substring(0, instance.indexOf('_'));
+    if (baseUrl == null || !baseUrl.contains("*")) {
+      throw new HelixException("Invalid CUSTOMIZED_HEALTH_URL in REST config: " + baseUrl);
+    }
+
+    String instanceVip = instance;
+    // instance name format could be <instanceVip>_<port> so we need to extract the instance vip
+    if (instance.contains("_")) {
+      instanceVip = instance.substring(0, instance.indexOf('_'));
+    }
+
     return baseUrl.replace("*", instanceVip);
   }
 }

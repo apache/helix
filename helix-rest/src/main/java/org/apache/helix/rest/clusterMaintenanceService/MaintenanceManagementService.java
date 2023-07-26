@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -538,8 +537,11 @@ public class MaintenanceManagementService {
           // will be checked in the next round
           instancesForNextCheck.add(instance);
         }
-      } catch (InterruptedException | ExecutionException e) {
-        LOG.error("Failed to get StoppableChecks in parallel. Instance: {}", instance, e);
+      } catch (Exception e) {
+        String errorMessage =
+            String.format("Failed to get StoppableChecks in parallel. Instance: %s", instance);
+        LOG.error(errorMessage, e);
+        throw new HelixException(errorMessage);
       }
     }
 

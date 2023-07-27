@@ -66,9 +66,11 @@ public abstract class AbstractPuppy implements Runnable {
           e.printStackTrace();
         }
       }
-      cleanup();
     } catch (Exception e) {
       e.printStackTrace();
+    }
+    finally {
+      cleanup();
     }
   }
 

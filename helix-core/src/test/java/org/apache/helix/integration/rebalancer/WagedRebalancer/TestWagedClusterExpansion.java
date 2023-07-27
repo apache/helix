@@ -155,7 +155,7 @@ public class TestWagedClusterExpansion extends ZkTestBase {
     }
   }
 
-  public class WagedDelayMSStateModelFactory extends StateModelFactory<WagedMasterSlaveModel> {
+  public static class WagedDelayMSStateModelFactory extends StateModelFactory<WagedMasterSlaveModel> {
     private long _delay;
 
     @Override

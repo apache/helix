@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixDefinedState;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
@@ -76,66 +75,53 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
   public void process(ResourceControllerDataProvider cache, CurrentStateOutput currentStateOutput,
       Map<String, Resource> resourceMap, WagedResourceWeightsProvider weightProvider) {
     processCurrentState(cache, currentStateOutput, resourceMap, weightProvider);
-    processPendingMessages(cache, currentStateOutput, resourceMap, weightProvider);
+    processPendingMessages(cache, resourceMap, weightProvider);
   }
 
-  /**
-   * Process the pending messages based on the Current states
-   * @param currentState - Current state of the resources.
-   */
   public void processPendingMessages(ResourceControllerDataProvider cache,
-      CurrentStateOutput currentState, Map<String, Resource> resourceMap,
-      WagedResourceWeightsProvider weightProvider) {
+      Map<String, Resource> resourceMap, WagedResourceWeightsProvider weightProvider) {
+    // Get list of live instances from the cache.
+    Set<String> liveInstances = cache.getEnabledLiveInstances();
+    // Get all the messages from the cache
+    Map<String, Collection<Message>> messages = cache.getAllInstancesMessages();
 
-    for (Map.Entry<String, Resource> resourceEntry : resourceMap.entrySet()) {
-      String resName = resourceEntry.getKey();
-      Resource resource = resourceEntry.getValue();
-
-      // if Resource is WAGED managed, then we need to manage the capacity.
-      if (!WagedValidationUtil.isWagedEnabled(cache.getIdealState(resName))) {
+    for (String instance : liveInstances) {
+      Collection<Message> msgs = messages.get(instance);
+      if (msgs == null || msgs.isEmpty()) {
         continue;
       }
+      for (Message msg : msgs) {
+        if (msg.getMsgType().equals(Message.MessageType.STATE_TRANSITION.name())) {
+          String resName = msg.getResourceName();
+          // if Resource is not in resourceMap or is not WAGED, then we can skip.
+          if (!resourceMap.containsKey(resName) ||
+              !WagedValidationUtil.isWagedEnabled(cache.getIdealState(resName))) {
+            continue;
+          }
+          Resource resource = resourceMap.get(resName);
+          StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
+          Map<String, Integer> statePriorityMap = stateModelDef.getStatePriorityMap();
 
-      // list of partitions in the resource
-      Collection<Partition> partitions = resource.getPartitions();
-      // State model definition for the resource
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
-      if (stateModelDef == null) {
-        LOG.warn("State Model Definition for resource: " + resName + " is null");
-        continue;
-      }
-      Map<String, Integer> statePriorityMap = stateModelDef.getStatePriorityMap();
-
-      for (Partition partition : partitions) {
-        String partitionName = partition.getPartitionName();
-        // Get Partition Weight
-        Map<String, Integer> partCapacity = weightProvider.getPartitionWeights(resName, partitionName);
-        if (partCapacity == null || partCapacity.isEmpty()) {
-          LOG.info("Partition: " + partitionName + " in resource: " + resName
-              + " has no weight specified. Skipping it.");
-          continue;
-        }
-        // Get the pending messages for the partition
-        Map<String, Message> pendingMessages = currentState.getPendingMessageMap(resName, partition);
-        if (pendingMessages != null && !pendingMessages.isEmpty()) {
-          for (Map.Entry<String, Message> entry :  pendingMessages.entrySet()) {
-            String instance = entry.getKey();
-            if (hasPartitionChargedForCapacity(instance, resName, partitionName)) {
-              continue;
-            }
-            Message msg = entry.getValue();
-            // If boot-strapping message is pending, we should deduct the capacity.
-            if (statePriorityMap.get(msg.getFromState()) < statePriorityMap.get(msg.getToState())
-                && msg.getFromState().equals(stateModelDef.getInitialState())) {
-              LOG.info("For bootstrappiing - deducting capacity for instance: " + instance
-                  + " for resource: " + resName + " for partition: " + partitionName);
-              checkAndReduceInstanceCapacity(instance, resName, partitionName, partCapacity);
-            }
+          String partitionName = msg.getPartitionName();
+          // Get Partition Weight
+          Map<String, Integer> partCapacity = weightProvider.getPartitionWeights(resName, partitionName);
+          if (partCapacity == null || partCapacity.isEmpty()) {
+            LOG.info("Partition: " + partitionName + " in resource: " + resName
+                + " has no weight specified. Skipping it.");
+            continue;
+          }
+          // If bootstrapping message is pending, we should deduct the capacity.
+          if (statePriorityMap.get(msg.getFromState()) > statePriorityMap.get(msg.getToState())
+              && msg.getFromState().equals(stateModelDef.getInitialState())) {
+            LOG.info("For bootstrapping - deducting capacity for instance: " + instance
+                + " for resource: " + resName + " for partition: " + partitionName);
+            checkAndReduceInstanceCapacity(instance, resName, partitionName, partCapacity);
           }
         }
       }
     }
   }
+
 
   private void processCurrentState(ResourceControllerDataProvider cache,
       CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap,

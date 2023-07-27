@@ -40,6 +40,7 @@ import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
@@ -84,6 +85,8 @@ public class TestWagedClusterExpansion extends ZkTestBase {
   private final int INSTANCE_CAPACITY = 100;
   private final int DEFAULT_PARTITION_CAPACITY = 6;
   private final int INCREASED_PARTITION_CAPACITY = 10;
+
+  private final int REDUCED_INSTANCE_CAPACITY = 98;
   private final int DEFAULT_DELAY = 500; // 0.5 second
   private final String  _testCapacityKey = "TestCapacityKey";
   private final String  _resourceChanged = "Test-WagedDB-0";
@@ -106,6 +109,13 @@ public class TestWagedClusterExpansion extends ZkTestBase {
 
     @Transition(to = "SLAVE", from = "OFFLINE")
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
+      if (_delay > 0) {
+        try {
+          Thread.currentThread().sleep(_delay);
+        } catch (InterruptedException e) {
+          // ignore
+        }
+      }
       LOG.info("Become SLAVE from OFFLINE");
     }
 
@@ -145,7 +155,7 @@ public class TestWagedClusterExpansion extends ZkTestBase {
     }
   }
 
-  public class WagedDelayMSStateModelFactory extends StateModelFactory<WagedMasterSlaveModel> {
+  public static class WagedDelayMSStateModelFactory extends StateModelFactory<WagedMasterSlaveModel> {
     private long _delay;
 
     @Override
@@ -279,6 +289,31 @@ public class TestWagedClusterExpansion extends ZkTestBase {
 
     LOG.info("After changing resource partition weight");
     validateIdealState(true /* afterWeightChange */);
+    waitForPipeline(100, 3000); // this is for ZK to sync up.
+  }
+
+  // This test case reduces the capacity of one of the instance.
+  @Test (dependsOnMethods = "testIncreaseResourcePartitionWeight")
+  public void testReduceInstanceCapacity() throws Exception {
+
+    // Reduce capacity for one of the instance
+    String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + NUM_NODE);
+
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    String db = _resourceChanged;
+    InstanceConfig config = dataAccessor.getProperty(dataAccessor.keyBuilder().instanceConfig(storageNodeName));
+    if (config == null) {
+      config = new InstanceConfig(storageNodeName);
+    }
+    Map<String, Integer> capacityDataMap = ImmutableMap.of(_testCapacityKey, REDUCED_INSTANCE_CAPACITY);
+    config.setInstanceCapacityMap(capacityDataMap);
+    dataAccessor.setProperty(dataAccessor.keyBuilder().instanceConfig(storageNodeName), config);
+
+    // Make sure pipeline is run.
+    waitForPipeline(100, 10000); // 10 sec. max timeout.
+
+    LOG.info("After changing instance capacity");
+    validateIdealState(true);
     waitForPipeline(100, 3000); // this is for ZK to sync up.
   }
 

@@ -28,6 +28,13 @@ import org.testng.annotations.Test;
 public class LockClientTest extends ZkMetaClientTestBase {
 
   private static final String TEST_INVALID_PATH = "/_invalid/a/b/c";
+  private static final String OWNER_ID = "urn:li:principal:UNKNOWN";
+  private static final String CLIENT_ID = "test_client_id";
+  private static final String CLIENT_DATA = "client_data";
+  private static final String LOCK_ID = "794c8a4c-c14b-4c23-b83f-4e1147fc6978";
+  private static final long GRANT_TIME = System.currentTimeMillis();
+  private static final long LAST_RENEWAL_TIME = System.currentTimeMillis();
+  private static final long TIMEOUT = 100000;
 
   public LockClient createLockClient() {
 
@@ -37,11 +44,23 @@ public class LockClientTest extends ZkMetaClientTestBase {
     return new LockClient(config);
   }
 
+  private LockInfo createLockInfo() {
+    LockInfo lockInfo = new LockInfo();
+    lockInfo.setOwnerId(OWNER_ID);
+    lockInfo.setClientId(CLIENT_ID);
+    lockInfo.setClientData(CLIENT_DATA);
+    lockInfo.setLockId(LOCK_ID);
+    lockInfo.setGrantedAt(GRANT_TIME);
+    lockInfo.setLastRenewedAt(LAST_RENEWAL_TIME);
+    lockInfo.setTimeout(TIMEOUT);
+    return lockInfo;
+  }
+
   @Test
   public void testAcquireLock() {
     final String key = "/TestLockClient_testAcquireLock";
     LockClient lockClient = createLockClient();
-    LockInfo lockInfo = new LockInfo();
+    LockInfo lockInfo = createLockInfo();
     lockClient.acquireLock(key, lockInfo, MetaClientInterface.EntryMode.PERSISTENT);
     Assert.assertNotNull(lockClient.retrieveLock(key));
     try {
@@ -56,7 +75,7 @@ public class LockClientTest extends ZkMetaClientTestBase {
   public void testReleaseLock() {
     final String key = "/TestLockClient_testReleaseLock";
     LockClient lockClient = createLockClient();
-    LockInfo lockInfo = new LockInfo();
+    LockInfo lockInfo = createLockInfo();
     lockClient.acquireLock(key, lockInfo, MetaClientInterface.EntryMode.PERSISTENT);
     Assert.assertNotNull(lockClient.retrieveLock(key));
 
@@ -69,7 +88,7 @@ public class LockClientTest extends ZkMetaClientTestBase {
   public void testAcquireTTLLock() {
     final String key = "/TestLockClient_testAcquireTTLLock";
     LockClient lockClient = createLockClient();
-    LockInfo lockInfo = new LockInfo();
+    LockInfo lockInfo = createLockInfo();
     lockClient.acquireLockWithTTL(key, lockInfo, 1L);
     Assert.assertNotNull(lockClient.retrieveLock(key));
     try {
@@ -84,9 +103,14 @@ public class LockClientTest extends ZkMetaClientTestBase {
   public void testRetrieveLock() {
     final String key = "/TestLockClient_testRetrieveLock";
     LockClient lockClient = createLockClient();
-    LockInfo lockInfo = new LockInfo();
+    LockInfo lockInfo = createLockInfo();
     lockClient.acquireLock(key, lockInfo, MetaClientInterface.EntryMode.PERSISTENT);
     Assert.assertNotNull(lockClient.retrieveLock(key));
+    Assert.assertEquals(lockClient.retrieveLock(key).getOwnerId(), OWNER_ID);
+    Assert.assertEquals(lockClient.retrieveLock(key).getClientId(), CLIENT_ID);
+    Assert.assertEquals(lockClient.retrieveLock(key).getClientData(), CLIENT_DATA);
+    Assert.assertEquals(lockClient.retrieveLock(key).getLockId(), LOCK_ID);
+    Assert.assertEquals(lockClient.retrieveLock(key).getTimeout(), TIMEOUT);
     Assert.assertNull(lockClient.retrieveLock(TEST_INVALID_PATH));
   }
 
@@ -94,12 +118,12 @@ public class LockClientTest extends ZkMetaClientTestBase {
   public void testRenewTTLLock() {
     final String key = "/TestLockClient_testRenewTTLLock";
     LockClient lockClient = createLockClient();
-    LockInfo lockInfo = new LockInfo();
+    LockInfo lockInfo = createLockInfo();
     lockClient.acquireLockWithTTL(key, lockInfo, 1L);
     Assert.assertNotNull(lockClient.retrieveLock(key));
 
     lockClient.renewTTLLock(key);
-    Assert.assertNotSame(lockClient.retrieveLock(key).getGrantedAt(), lockInfo.getLastRenewedAt());
+    Assert.assertNotSame(lockClient.retrieveLock(key).getGrantedAt(), lockClient.retrieveLock(key).getLastRenewedAt());
     try {
       lockClient.renewTTLLock(TEST_INVALID_PATH);
       Assert.fail("Should not be able to renew lock for key: " + key);

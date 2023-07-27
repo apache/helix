@@ -48,8 +48,7 @@ public class LockClient implements LockClientInterface, AutoCloseable {
     if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
       ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
           setConnectionAddress(config.getConnectionAddress())
-          // Currently only support ZNRecordSerializer. TODO: make this configurable
-          .setZkSerializer((new ZNRecordSerializer()))
+          .setZkSerializer((new LockInfoSerializer()))
           .build();
       _metaClient = new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
       _metaClient.connect();
@@ -110,11 +109,7 @@ public class LockClient implements LockClientInterface, AutoCloseable {
     if (stat == null) {
       return null;
     }
-    //Create a new DataRecord from underlying record
-    DataRecord dataRecord = new DataRecord(_metaClient.get(key));
-    //Create a new LockInfo from DataRecord
-    LockInfo lockInfo = new LockInfo(dataRecord, stat);
-    return lockInfo;
+    return new LockInfo(_metaClient.get(key), stat);
   }
 
   @Override

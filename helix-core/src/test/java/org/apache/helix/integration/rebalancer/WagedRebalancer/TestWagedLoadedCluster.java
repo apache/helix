@@ -81,6 +81,8 @@ public class TestWagedLoadedCluster extends ZkTestBase {
 
   private CountDownLatch _completedTest = new CountDownLatch(1);
   private CountDownLatch _weightUpdatedLatch = new CountDownLatch(1); // when 0, weight is updated
+
+  private Thread _verifyThread = null;
   private final Map<String, Integer> _defaultInstanceCapacity =
       ImmutableMap.of("CU", 50, "DISK", 50);
 
@@ -146,23 +148,19 @@ public class TestWagedLoadedCluster extends ZkTestBase {
     }
 
     // Start a thread which will keep validating instance usage using currentState and pending messages.
-    Thread validateInstanceUsageThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        while (_completedTest.getCount() > 0) {
-          try {
-            validateInstanceUsage();
-            Thread.currentThread().sleep(100);
-          } catch (InterruptedException e) {
-            LOG.debug("Exception in validateInstanceUsageThread", e);
-          } catch (Exception e) {
-            LOG.error("Exception in validateInstanceUsageThread", e);
-          }
-
+    _verifyThread = new Thread(() -> {
+      while (_completedTest.getCount() > 0) {
+        try {
+          validateInstanceUsage();
+          Thread.currentThread().sleep(100);
+        } catch (InterruptedException e) {
+          LOG.debug("Exception in validateInstanceUsageThread", e);
+        } catch (Exception e) {
+          LOG.error("Exception in validateInstanceUsageThread", e);
         }
+
       }
     });
-    validateInstanceUsageThread.start();
   }
 
   public boolean validateInstanceUsage() {
@@ -221,7 +219,7 @@ public class TestWagedLoadedCluster extends ZkTestBase {
 
     // Check modified time for external view of the first resource.
     // if pipeline is run, then external view would be persisted.
-    Thread.currentThread().sleep(30000);
+    _verifyThread.start();
     // Update the weight for one of the resource.
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     String db = "Test-WagedDB-0";
@@ -234,8 +232,9 @@ public class TestWagedLoadedCluster extends ZkTestBase {
     dataAccessor.setProperty(dataAccessor.keyBuilder().resourceConfig(db), resourceConfig);
     Thread.currentThread().sleep(100);
     _weightUpdatedLatch.countDown();
-    Thread.currentThread().sleep(60000);
+    Thread.currentThread().sleep(3000);
     _completedTest.countDown();
+    Thread.currentThread().sleep(100);
   }
 
 
@@ -251,27 +250,9 @@ public class TestWagedLoadedCluster extends ZkTestBase {
         }
       }
       deleteCluster(CLUSTER_NAME);
+      //_verifyThread.interrupt();
     } catch (Exception e) {
       LOG.info("After class throwing exception, {}", e);
-    }
-  }
-
-  private void waitForPipeline(long stepSleep, long maxTimeout) {
-    // Check modified time for external view of the first resource.
-    // if pipeline is run, then external view would be persisted.
-    long startTime = System.currentTimeMillis();
-    while (System.currentTimeMillis() - startTime < maxTimeout) {
-      String db = _allDBs.iterator().next();
-      long modifiedTime = _gSetupTool.getClusterManagementTool().
-          getResourceExternalView(CLUSTER_NAME, db).getRecord().getModifiedTime();
-      if (modifiedTime - startTime > maxTimeout) {
-        break;
-      }
-      try {
-        Thread.currentThread().sleep(stepSleep);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
     }
   }
 }

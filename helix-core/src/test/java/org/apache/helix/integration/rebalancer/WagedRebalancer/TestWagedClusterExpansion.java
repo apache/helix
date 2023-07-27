@@ -292,8 +292,7 @@ public class TestWagedClusterExpansion extends ZkTestBase {
     waitForPipeline(100, 3000); // this is for ZK to sync up.
   }
 
-  // This test case, first adds a new instance which will cause STs.
-  // Next, it will try to increase the default weight for one resource.
+  // This test case reduces the capacity of one of the instance.
   @Test (dependsOnMethods = "testIncreaseResourcePartitionWeight")
   public void testReduceInstanceCapacity() throws Exception {
 

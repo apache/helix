@@ -22,10 +22,18 @@ package org.apache.helix.metaclient.recipes.lock;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LockInfoSerializer extends ZNRecordSerializer {
+  private static final Logger LOG = LoggerFactory.getLogger(LockInfoSerializer.class);
   @Override
   public Object deserialize(byte[] bytes) {
-    return new LockInfo(new DataRecord((ZNRecord) super.deserialize(bytes)));
+    try {
+      return new LockInfo(new DataRecord((ZNRecord) super.deserialize(bytes)));
+    } catch (Exception e) {
+      LOG.error("Exception during deserialization of bytes: {}", new String(bytes), e);
+      return null;
+    }
   }
 }

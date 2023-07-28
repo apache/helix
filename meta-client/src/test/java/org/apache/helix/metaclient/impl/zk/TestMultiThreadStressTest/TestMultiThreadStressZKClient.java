@@ -52,8 +52,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testCreatePuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     CreatePuppy createPuppy2 = new CreatePuppy(_zkMetaClient, puppySpec);
     CreatePuppy createPuppy3 = new CreatePuppy(_zkMetaClient, puppySpec);
@@ -76,8 +75,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testDeletePuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
 
@@ -98,8 +96,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testGetPuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
 
@@ -120,8 +117,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testSetPuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     SetPuppy setPuppy = new SetPuppy(_zkMetaClient, puppySpec);
 
@@ -142,8 +138,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testUpdatePuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     UpdatePuppy updatePuppy = new UpdatePuppy(_zkMetaClient, puppySpec);
 
@@ -164,8 +159,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testCrudPuppies() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
@@ -195,14 +189,12 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     AtomicInteger globalChildChangeCounter = new AtomicInteger();
     ChildChangeListener childChangeListener = (changedPath, changeType) -> {
       globalChildChangeCounter.addAndGet(1);
-      System.out.println("-------------- Child change detected: " + changeType
-          + " at path: " + changedPath + ". Number of total changes: " + globalChildChangeCounter.get());
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + ". Number of total changes: " + globalChildChangeCounter.get());
     };
 
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
 
     PuppyManager puppyManager = new PuppyManager();
@@ -225,13 +217,11 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     AtomicInteger globalChildChangeCounter = new AtomicInteger();
     ChildChangeListener childChangeListener = (changedPath, changeType) -> {
       globalChildChangeCounter.addAndGet(1);
-      System.out.println("-------------- Child change detected: " + changeType
-          + " at path: " + changedPath + " number of changes: " + globalChildChangeCounter.get());
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + globalChildChangeCounter.get());
     };
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
 
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
@@ -261,8 +251,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testChildListenerPuppy() {
     _zkMetaClient.create(zkParentKey, "test");
     // Setting num diff paths to 3 until we find a better way of scaling listeners.
-    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f,
-        new ExecDelay(5000, 0.1f), 3);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 3);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     GetPuppy getPuppy = new GetPuppy(_zkMetaClient, puppySpec);
     DeletePuppy deletePuppy = new DeletePuppy(_zkMetaClient, puppySpec);
@@ -281,24 +270,21 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     AtomicInteger childChangeCounter0 = new AtomicInteger();
     ChildChangeListener childChangeListener0 = (changedPath, changeType) -> {
       childChangeCounter0.addAndGet(1);
-      System.out.println("-------------- Child change detected: " + changeType
-          + " at path: " + changedPath + " number of changes: " + childChangeCounter0.get());
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + childChangeCounter0.get());
     };
     _zkMetaClient.subscribeChildChanges("/test/0", childChangeListener0, false);
 
     AtomicInteger childChangeCounter1 = new AtomicInteger();
     ChildChangeListener childChangeListener1 = (changedPath, changeType) -> {
       childChangeCounter1.addAndGet(1);
-      System.out.println("-------------- Child change detected: " + changeType
-          + " at path: " + changedPath + " number of changes: " + childChangeCounter1.get());
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + childChangeCounter1.get());
     };
     _zkMetaClient.subscribeChildChanges("/test/1", childChangeListener1, false);
 
     AtomicInteger childChangeCounter2 = new AtomicInteger();
     ChildChangeListener childChangeListener2 = (changedPath, changeType) -> {
       childChangeCounter2.addAndGet(1);
-      System.out.println("-------------- Child change detected: " + changeType
-          + " at path: " + changedPath + " number of changes: " + childChangeCounter2.get());
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + childChangeCounter2.get());
     };
     _zkMetaClient.subscribeChildChanges("/test/2", childChangeListener2, false);
 
@@ -323,12 +309,9 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     System.out.println("Child change counter 0: " + childChangeCounter0);
     System.out.println("Child change counter 1: " + childChangeCounter1);
     System.out.println("Child change counter 2: " + childChangeCounter2);
-    Assert.assertEquals(childChangeCounter0.get(),
-        mergedEventChangeCounterMap.getOrDefault("0", 0).intValue());
-    Assert.assertEquals(childChangeCounter1.get(),
-        mergedEventChangeCounterMap.getOrDefault("1", 0).intValue());
-    Assert.assertEquals(childChangeCounter2.get(),
-        mergedEventChangeCounterMap.getOrDefault("2", 0).intValue());
+    Assert.assertEquals(childChangeCounter0.get(), mergedEventChangeCounterMap.getOrDefault("0", 0).intValue());
+    Assert.assertEquals(childChangeCounter1.get(), mergedEventChangeCounterMap.getOrDefault("1", 0).intValue());
+    Assert.assertEquals(childChangeCounter2.get(), mergedEventChangeCounterMap.getOrDefault("2", 0).intValue());
 
     // cleanup
     _zkMetaClient.unsubscribeChildChanges("/test/0", childChangeListener0);

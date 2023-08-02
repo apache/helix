@@ -19,7 +19,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
   private static final String PARTICIPANT_NAME2 = "participant_2";
   private static final String LEADER_PATH = "/LEADER_ELECTION_GROUP_1";
 
-  public LeaderElectionClient createLeaderElectionClient(String participantName) {
+  public  static LeaderElectionClient createLeaderElectionClient(String participantName) {
     MetaClientConfig.StoreType storeType = MetaClientConfig.StoreType.ZOOKEEPER;
     MetaClientConfig config =
         new MetaClientConfig.MetaClientConfigBuilder<>().setConnectionAddress(ZK_ADDR).setStoreType(storeType).build();
@@ -28,50 +28,57 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
 
   @Test
   public void testAcquireLeadership() throws Exception {
-    String leaderPath = LEADER_PATH + "testAcquireLeadership";
+    System.out.println("START TestLeaderElection.testAcquireLeadership");
+    String leaderPath = LEADER_PATH + "/testAcquireLeadership";
 
     // create 2 clients representing 2 participants
     LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
 
+    clt1.getMetaClient().create(LEADER_PATH, new LeaderInfo(LEADER_PATH));
+
     clt1.joinLeaderElectionParticipantPool(leaderPath);
     clt2.joinLeaderElectionParticipantPool(leaderPath);
     // First client joining the leader election group should be current leader
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(LEADER_PATH) != null);
+      return (clt1.getLeader(leaderPath) != null);
     }, MetaClientTestUtil.WAIT_DURATION));
-    Assert.assertNotNull(clt1.getLeader(LEADER_PATH));
-    Assert.assertEquals(clt1.getLeader(LEADER_PATH), clt2.getLeader(LEADER_PATH));
-    Assert.assertEquals(clt1.getLeader(LEADER_PATH), PARTICIPANT_NAME1);
+    Assert.assertNotNull(clt1.getLeader(leaderPath));
+    Assert.assertEquals(clt1.getLeader(leaderPath), clt2.getLeader(leaderPath));
+    Assert.assertEquals(clt1.getLeader(leaderPath), PARTICIPANT_NAME1);
+
 
     // client 1 exit leader election group, and client 2 should be current leader.
-    clt1.exitLeaderElectionParticipantPool(LEADER_PATH);
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(LEADER_PATH) != null);
+      return (clt1.getLeader(leaderPath) != null);
     }, MetaClientTestUtil.WAIT_DURATION));
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(LEADER_PATH).equals(PARTICIPANT_NAME2));
+      return (clt1.getLeader(leaderPath).equals(PARTICIPANT_NAME2));
     }, MetaClientTestUtil.WAIT_DURATION));
 
     // client1 join and client2 leave. client 1 should be leader.
-    clt1.joinLeaderElectionParticipantPool(LEADER_PATH);
-    clt2.exitLeaderElectionParticipantPool(LEADER_PATH);
+    clt1.joinLeaderElectionParticipantPool(leaderPath);
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(LEADER_PATH) != null);
+      return (clt1.getLeader(leaderPath) != null);
     }, MetaClientTestUtil.WAIT_DURATION));
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(LEADER_PATH).equals(PARTICIPANT_NAME1));
+      return (clt1.getLeader(leaderPath).equals(PARTICIPANT_NAME1));
     }, MetaClientTestUtil.WAIT_DURATION));
-    Assert.assertTrue(clt1.isLeader(LEADER_PATH));
-    Assert.assertFalse(clt2.isLeader(LEADER_PATH));
+    Assert.assertTrue(clt1.isLeader(leaderPath));
+    Assert.assertFalse(clt2.isLeader(leaderPath));
 
     clt1.close();
     clt2.close();
+    System.out.println("END TestLeaderElection.testAcquireLeadership");
   }
 
   @Test
   public void testElectionPoolMembership() throws Exception {
-    String leaderPath = LEADER_PATH + "/testElectionPoolMembership";
+    System.out.println("START TestLeaderElection.testElectionPoolMembership");
+    String leaderPath = LEADER_PATH + "/_testElectionPoolMembership";
     LeaderInfo participantInfo = new LeaderInfo(PARTICIPANT_NAME1);
     participantInfo.setSimpleField("Key1", "value1");
     LeaderInfo participantInfo2 = new LeaderInfo(PARTICIPANT_NAME2);
@@ -103,12 +110,14 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt1.exitLeaderElectionParticipantPool(leaderPath);
     clt2.exitLeaderElectionParticipantPool(leaderPath);
 
-    Assert.assertNull(clt2.getParticipantInfo(LEADER_PATH, PARTICIPANT_NAME2));
+    Assert.assertNull(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2));
+    System.out.println("END TestLeaderElection.testElectionPoolMembership");
   }
 
   @Test
   public void testSessionExpire() throws Exception {
-    String leaderPath = LEADER_PATH + "/testSessionExpire";
+    System.out.println("START TestLeaderElection.testSessionExpire");
+    String leaderPath = LEADER_PATH + "/_testSessionExpire";
     LeaderInfo participantInfo = new LeaderInfo(PARTICIPANT_NAME1);
     participantInfo.setSimpleField("Key1", "value1");
     LeaderInfo participantInfo2 = new LeaderInfo(PARTICIPANT_NAME2);
@@ -142,10 +151,12 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
     Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
     Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+    System.out.println("END TestLeaderElection.testSessionExpire");
   }
   @Test (dependsOnMethods = "testAcquireLeadership")
   public void testLeadershipListener() throws Exception {
-    String leaderPath = LEADER_PATH + "testLeadershipListener";
+    System.out.println("START TestLeaderElection.testLeadershipListener");
+    String leaderPath = LEADER_PATH + "/testLeadershipListener";
     // create 2 clients representing 2 participants
     LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
@@ -189,7 +200,6 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertEquals(numNewLeaderEvent[0], count*2);
 
     clt3.unsubscribeLeadershipChanges(leaderPath, listener);
-
     // listener shouldn't receive any event after unsubscribe
     joinPoolTestHelper(leaderPath, clt1, clt2);
     Assert.assertEquals(numLeaderGoneEvent[0], count*2);
@@ -198,6 +208,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt1.close();
     clt2.close();
     clt3.close();
+    System.out.println("END TestLeaderElection.testLeadershipListener");
   }
 
   private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2) throws Exception {
@@ -221,7 +232,8 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
 
   @Test (dependsOnMethods = "testLeadershipListener")
   public void testRelinquishLeadership() throws Exception {
-    String leaderPath = LEADER_PATH + "testRelinquishLeadership";
+    System.out.println("START TestLeaderElection.testRelinquishLeadership");
+    String leaderPath = LEADER_PATH + "/testRelinquishLeadership";
     LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
     LeaderElectionClient clt3 = createLeaderElectionClient(PARTICIPANT_NAME2);
@@ -268,6 +280,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     }, MetaClientTestUtil.WAIT_DURATION));
 
     clt2.exitLeaderElectionParticipantPool(leaderPath);
+    System.out.println("END TestLeaderElection.testRelinquishLeadership");
   }
 
 }

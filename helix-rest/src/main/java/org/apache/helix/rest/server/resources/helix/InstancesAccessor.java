@@ -298,10 +298,12 @@ public class InstancesAccessor extends AbstractHelixResource {
   private List<String> getZoneBasedInstances(List<String> instances, List<String> orderedZones,
       Map<String, Set<String>> zoneMapping) {
 
+    // If the orderedZones is not specified, we will order all zones in alphabetical order.
     if (orderedZones == null) {
       orderedZones = new ArrayList<>(zoneMapping.keySet());
+      Collections.sort(orderedZones);
     }
-    Collections.sort(orderedZones);
+
     if (orderedZones.isEmpty()) {
       return orderedZones;
     }

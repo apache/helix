@@ -52,7 +52,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
   public void testCreatePuppy() {
     _zkMetaClient.create(zkParentKey, "test");
 
-    PuppySpec puppySpec = new org.apache.helix.metaclient.puppy.PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
+    PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     CreatePuppy createPuppy = new CreatePuppy(_zkMetaClient, puppySpec);
     CreatePuppy createPuppy2 = new CreatePuppy(_zkMetaClient, puppySpec);
     CreatePuppy createPuppy3 = new CreatePuppy(_zkMetaClient, puppySpec);
@@ -189,7 +189,7 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
     AtomicInteger globalChildChangeCounter = new AtomicInteger();
     ChildChangeListener childChangeListener = (changedPath, changeType) -> {
       globalChildChangeCounter.addAndGet(1);
-      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + globalChildChangeCounter.get());
+      System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + ". Number of total changes: " + globalChildChangeCounter.get());
     };
 
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
@@ -219,8 +219,6 @@ public class TestMultiThreadStressZKClient extends ZkMetaClientTestBase {
       globalChildChangeCounter.addAndGet(1);
       System.out.println("-------------- Child change detected: " + changeType + " at path: " + changedPath + " number of changes: " + globalChildChangeCounter.get());
     };
-
-
     _zkMetaClient.subscribeChildChanges(zkParentKey, childChangeListener, false);
 
     PuppySpec puppySpec = new PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);

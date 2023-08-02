@@ -64,8 +64,7 @@ public class CreatePuppy extends AbstractPuppy {
 
   @Override
   protected void cleanup() {
-    // Implement the recovery logic by deleting the created documents
-    _metaclient.recursiveDelete(_parentPath);
+    // Cleanup logic in test case
   }
 
   private boolean shouldIntroduceError() {

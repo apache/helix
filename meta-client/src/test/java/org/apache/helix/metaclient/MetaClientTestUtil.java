@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 
 public class MetaClientTestUtil {
-  public static final long WAIT_DURATION =  TimeUnit.MINUTES.toMicros(1);
+  public static final long WAIT_DURATION =  TimeUnit.MINUTES.toMillis(1);
   public interface Verifier {
     boolean verify()
         throws Exception;

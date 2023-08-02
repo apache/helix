@@ -494,10 +494,11 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testEnableDisableMaintenanceMode() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
-    String reason = "Test reason";
+    String reasonValue = "Test reason";
+    String reasonJSONString = "{\"reason\":\"" + reasonValue + "\"}";
     // enable maintenance mode
     post("clusters/" + cluster, ImmutableMap.of("command", "enableMaintenanceMode"),
-        Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+        Entity.entity(reasonJSONString, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // verify is in maintenance mode
     Assert.assertTrue(isMaintenanceModeEnabled(cluster));
@@ -506,7 +507,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Map<String, Object> maintenanceSignalMap =
         getMapResponseFromRest("clusters/" + cluster + "/controller/maintenanceSignal");
     Assert.assertEquals(maintenanceSignalMap.get("TRIGGERED_BY"), "USER");
-    Assert.assertEquals(maintenanceSignalMap.get("REASON"), reason);
+    Assert.assertEquals(maintenanceSignalMap.get("REASON"), reasonValue);
     Assert.assertNotNull(maintenanceSignalMap.get("TIMESTAMP"));
     Assert.assertEquals(maintenanceSignalMap.get("clusterName"), cluster);
 

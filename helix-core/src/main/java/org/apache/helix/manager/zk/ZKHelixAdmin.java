@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -629,15 +628,12 @@ public class ZKHelixAdmin implements HelixAdmin {
    * @param triggeringEntity
    */
   private void processMaintenanceMode(String clusterName, final boolean enabled,
-      String reason, final MaintenanceSignal.AutoTriggerReason internalReason,
+      final String reason, final MaintenanceSignal.AutoTriggerReason internalReason,
       final Map<String, String> customFields,
       final MaintenanceSignal.TriggeringEntity triggeringEntity) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
-        triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
-            : "manually", enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
     final long currentTime = System.currentTimeMillis();
     if (!enabled) {
       // Exit maintenance mode
@@ -645,7 +641,11 @@ public class ZKHelixAdmin implements HelixAdmin {
     } else {
       // Enter maintenance mode
       MaintenanceSignal maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);
+      maintenanceSignal.setTimestamp(currentTime);
       maintenanceSignal.setTriggeringEntity(triggeringEntity);
+      if (reason != null) {
+        maintenanceSignal.setReason(reason);
+      }
       switch (triggeringEntity) {
         case CONTROLLER:
           // autoEnable
@@ -661,17 +661,14 @@ public class ZKHelixAdmin implements HelixAdmin {
               if (!simpleFields.containsKey(entry.getKey())) {
                 simpleFields.put(entry.getKey(), entry.getValue());
               }
-              if ("reason".equals(entry.getKey().toLowerCase(Locale.ENGLISH))) {
-                reason = entry.getValue();
-              }
             }
           }
           break;
       }
-      if (reason != null) {
-        maintenanceSignal.setReason(reason);
-      }
-      maintenanceSignal.setTimestamp(currentTime);
+
+      logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
+          triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
+              : "manually", enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
       if (!accessor.createMaintenance(maintenanceSignal)) {
         throw new HelixException("Failed to create maintenance signal!");
       }

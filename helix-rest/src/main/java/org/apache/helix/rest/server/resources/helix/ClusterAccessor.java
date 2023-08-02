@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.DELETE;
@@ -321,8 +322,13 @@ public class ClusterAccessor extends AbstractHelixResource {
           customFieldsMap =
               OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, String>>() {
               });
-          // content is given as a KV mapping. Nullify content
+          // content is given as a KV mapping. Nullify content unless (case-insensitive) reason key present in map
           content = null;
+          for (Map.Entry<String, String> entry : customFieldsMap.entrySet()) {
+            if ("reason".equals(entry.getKey().toLowerCase(Locale.ENGLISH))) {
+              content = entry.getValue();
+            }
+          }
         } catch (Exception e) {
           // NOP
         }

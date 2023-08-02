@@ -61,7 +61,6 @@ public class SetPuppy extends AbstractPuppy {
 
   @Override
   protected void cleanup() {
-    _metaclient.recursiveDelete(_parentPath);
   }
 
   private boolean shouldIntroduceError() {

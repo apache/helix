@@ -634,6 +634,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
+        triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
+            : "manually", enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
     final long currentTime = System.currentTimeMillis();
     if (!enabled) {
       // Exit maintenance mode
@@ -641,11 +644,11 @@ public class ZKHelixAdmin implements HelixAdmin {
     } else {
       // Enter maintenance mode
       MaintenanceSignal maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);
-      maintenanceSignal.setTimestamp(currentTime);
-      maintenanceSignal.setTriggeringEntity(triggeringEntity);
       if (reason != null) {
         maintenanceSignal.setReason(reason);
       }
+      maintenanceSignal.setTimestamp(currentTime);
+      maintenanceSignal.setTriggeringEntity(triggeringEntity);
       switch (triggeringEntity) {
         case CONTROLLER:
           // autoEnable
@@ -665,10 +668,6 @@ public class ZKHelixAdmin implements HelixAdmin {
           }
           break;
       }
-
-      logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
-          triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
-              : "manually", enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
       if (!accessor.createMaintenance(maintenanceSignal)) {
         throw new HelixException("Failed to create maintenance signal!");
       }

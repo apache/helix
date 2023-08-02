@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -628,7 +629,7 @@ public class ZKHelixAdmin implements HelixAdmin {
    * @param triggeringEntity
    */
   private void processMaintenanceMode(String clusterName, final boolean enabled,
-      final String reason, final MaintenanceSignal.AutoTriggerReason internalReason,
+      String reason, final MaintenanceSignal.AutoTriggerReason internalReason,
       final Map<String, String> customFields,
       final MaintenanceSignal.TriggeringEntity triggeringEntity) {
     HelixDataAccessor accessor =
@@ -644,10 +645,6 @@ public class ZKHelixAdmin implements HelixAdmin {
     } else {
       // Enter maintenance mode
       MaintenanceSignal maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);
-      if (reason != null) {
-        maintenanceSignal.setReason(reason);
-      }
-      maintenanceSignal.setTimestamp(currentTime);
       maintenanceSignal.setTriggeringEntity(triggeringEntity);
       switch (triggeringEntity) {
         case CONTROLLER:
@@ -664,10 +661,17 @@ public class ZKHelixAdmin implements HelixAdmin {
               if (!simpleFields.containsKey(entry.getKey())) {
                 simpleFields.put(entry.getKey(), entry.getValue());
               }
+              if ("reason".equals(entry.getKey().toLowerCase(Locale.ENGLISH))) {
+                reason = entry.getValue();
+              }
             }
           }
           break;
       }
+      if (reason != null) {
+        maintenanceSignal.setReason(reason);
+      }
+      maintenanceSignal.setTimestamp(currentTime);
       if (!accessor.createMaintenance(maintenanceSignal)) {
         throw new HelixException("Failed to create maintenance signal!");
       }

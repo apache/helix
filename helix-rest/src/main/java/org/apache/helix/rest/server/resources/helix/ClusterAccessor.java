@@ -325,7 +325,7 @@ public class ClusterAccessor extends AbstractHelixResource {
           // content is given as a KV mapping. Nullify content unless (case-insensitive) reason key present in map
           content = null;
           for (Map.Entry<String, String> entry : customFieldsMap.entrySet()) {
-            if ("reason".equals(entry.getKey().toLowerCase(Locale.ENGLISH))) {
+            if ("reason".equalsIgnoreCase(entry.getKey())) {
               content = entry.getValue();
             }
           }

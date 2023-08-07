@@ -49,6 +49,7 @@ public abstract class ZkMetaClientTestBase {
    */
   @BeforeSuite
   public void prepare() {
+    System.out.println("ZkMetaClientTestBase start ");
     // Enable extended types and create a ZkClient
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // start local zookeeper server
@@ -57,6 +58,7 @@ public abstract class ZkMetaClientTestBase {
 
   @AfterSuite
   public void cleanUp() {
+    System.out.println("ZkMetaClientTestBase shut down");
     _zkServer.shutdown();
   }
 

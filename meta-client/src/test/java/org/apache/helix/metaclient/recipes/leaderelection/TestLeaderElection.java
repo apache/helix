@@ -8,7 +8,10 @@ import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.TestUtil;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClientTestBase;
+import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
+import org.testng.annotations.AfterTest;
 import org.testng.annotations.Test;
 
 import static org.apache.helix.metaclient.impl.zk.TestUtil.*;
@@ -20,11 +23,20 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
   private static final String PARTICIPANT_NAME2 = "participant_2";
   private static final String LEADER_PATH = "/LEADER_ELECTION_GROUP_1";
 
-  public  static LeaderElectionClient createLeaderElectionClient(String participantName) {
+  public static LeaderElectionClient createLeaderElectionClient(String participantName) {
     MetaClientConfig.StoreType storeType = MetaClientConfig.StoreType.ZOOKEEPER;
     MetaClientConfig config =
         new MetaClientConfig.MetaClientConfigBuilder<>().setConnectionAddress(ZK_ADDR).setStoreType(storeType).build();
     return new LeaderElectionClient(config, participantName);
+  }
+
+  @AfterTest
+  public void cleanUp() {
+    ZkMetaClientConfig config = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR)
+        .build();
+    try (ZkMetaClient<ZNRecord> client = new ZkMetaClient<>(config);) {
+      client.recursiveDelete(LEADER_PATH);
+    }
   }
 
   @Test
@@ -47,7 +59,6 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertNotNull(clt1.getLeader(leaderPath));
     Assert.assertEquals(clt1.getLeader(leaderPath), clt2.getLeader(leaderPath));
     Assert.assertEquals(clt1.getLeader(leaderPath), PARTICIPANT_NAME1);
-
 
     // client 1 exit leader election group, and client 2 should be current leader.
     clt1.exitLeaderElectionParticipantPool(leaderPath);
@@ -76,8 +87,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testAcquireLeadership");
   }
 
-
-  @Test (dependsOnMethods = "testAcquireLeadership")
+  @Test(dependsOnMethods = "testAcquireLeadership")
   public void testElectionPoolMembership() throws Exception {
     System.out.println("START TestLeaderElection.testElectionPoolMembership");
     String leaderPath = LEADER_PATH + "/_testElectionPoolMembership";
@@ -116,7 +126,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testElectionPoolMembership");
   }
 
-  @Test (dependsOnMethods = "testElectionPoolMembership")
+  @Test(dependsOnMethods = "testElectionPoolMembership")
   public void testLeadershipListener() throws Exception {
     System.out.println("START TestLeaderElection.testLeadershipListener");
     String leaderPath = LEADER_PATH + "/testLeadershipListener";
@@ -128,45 +138,45 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     final int count = 10;
     final int[] numNewLeaderEvent = {0};
     final int[] numLeaderGoneEvent = {0};
-    CountDownLatch countDownLatchNewLeader = new CountDownLatch(count*2);
-    CountDownLatch countDownLatchLeaderGone = new CountDownLatch(count*2);
+    CountDownLatch countDownLatchNewLeader = new CountDownLatch(count * 2);
+    CountDownLatch countDownLatchLeaderGone = new CountDownLatch(count * 2);
 
-     LeaderElectionListenerInterface listener = new LeaderElectionListenerInterface() {
+    LeaderElectionListenerInterface listener = new LeaderElectionListenerInterface() {
 
-       @Override
-       public void onLeadershipChange(String leaderPath, ChangeType type, String curLeader) {
-         if (type == ChangeType.LEADER_LOST) {
-           countDownLatchLeaderGone.countDown();
-           Assert.assertEquals(curLeader.length(), 0);
-           numLeaderGoneEvent[0]++;
-         } else if (type == ChangeType.LEADER_ACQUIRED) {
-           countDownLatchNewLeader.countDown();
-           numNewLeaderEvent[0]++;
-           Assert.assertTrue(curLeader.length()!=0);
-         } else {
-           Assert.fail();
-         }
-       }
-     };
+      @Override
+      public void onLeadershipChange(String leaderPath, ChangeType type, String curLeader) {
+        if (type == ChangeType.LEADER_LOST) {
+          countDownLatchLeaderGone.countDown();
+          Assert.assertEquals(curLeader.length(), 0);
+          numLeaderGoneEvent[0]++;
+        } else if (type == ChangeType.LEADER_ACQUIRED) {
+          countDownLatchNewLeader.countDown();
+          numNewLeaderEvent[0]++;
+          Assert.assertTrue(curLeader.length() != 0);
+        } else {
+          Assert.fail();
+        }
+      }
+    };
 
     clt3.subscribeLeadershipChanges(leaderPath, listener);
 
     // each iteration will be participant_1 is new leader, leader gone, participant_2 is new leader, leader gone
-    for (int i=0; i<count; ++i) {
+    for (int i = 0; i < count; ++i) {
       joinPoolTestHelper(leaderPath, clt1, clt2);
       Thread.sleep(1000);
     }
 
     Assert.assertTrue(countDownLatchNewLeader.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
     Assert.assertTrue(countDownLatchLeaderGone.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
-    Assert.assertEquals(numLeaderGoneEvent[0], count*2);
-    Assert.assertEquals(numNewLeaderEvent[0], count*2);
+    Assert.assertEquals(numLeaderGoneEvent[0], count * 2);
+    Assert.assertEquals(numNewLeaderEvent[0], count * 2);
 
     clt3.unsubscribeLeadershipChanges(leaderPath, listener);
     // listener shouldn't receive any event after unsubscribe
     joinPoolTestHelper(leaderPath, clt1, clt2);
-    Assert.assertEquals(numLeaderGoneEvent[0], count*2);
-    Assert.assertEquals(numNewLeaderEvent[0], count*2);
+    Assert.assertEquals(numLeaderGoneEvent[0], count * 2);
+    Assert.assertEquals(numNewLeaderEvent[0], count * 2);
 
     clt1.close();
     clt2.close();
@@ -174,15 +184,13 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testLeadershipListener");
   }
 
-
-  @Test (dependsOnMethods = "testLeadershipListener")
+  @Test(dependsOnMethods = "testLeadershipListener")
   public void testRelinquishLeadership() throws Exception {
     System.out.println("START TestLeaderElection.testRelinquishLeadership");
     String leaderPath = LEADER_PATH + "/testRelinquishLeadership";
     LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
     LeaderElectionClient clt3 = createLeaderElectionClient(PARTICIPANT_NAME2);
-
 
     final int count = 1;
     CountDownLatch countDownLatchNewLeader = new CountDownLatch(count);
@@ -197,7 +205,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
           Assert.assertEquals(curLeader.length(), 0);
         } else if (type == ChangeType.LEADER_ACQUIRED) {
           countDownLatchNewLeader.countDown();
-          Assert.assertTrue(curLeader.length()!=0);
+          Assert.assertTrue(curLeader.length() != 0);
         } else {
           Assert.fail();
         }
@@ -228,7 +236,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testRelinquishLeadership");
   }
 
-  @Test (dependsOnMethods = "testAcquireLeadership")
+  @Test(dependsOnMethods = "testAcquireLeadership")
   public void testSessionExpire() throws Exception {
     System.out.println("START TestLeaderElection.testSessionExpire");
     String leaderPath = LEADER_PATH + "/_testSessionExpire";
@@ -268,17 +276,15 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testSessionExpire");
   }
 
-
-  @Test (dependsOnMethods = "testSessionExpire")
+  @Test(dependsOnMethods = "testSessionExpire")
   public void testClientDisconnectAndReconnectBeforeExpire() throws Exception {
     System.out.println("START TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
     String leaderPath = LEADER_PATH + "/testClientDisconnectAndReconnectBeforeExpire";
     LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
     LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
 
-
     final int count = 1;
-    CountDownLatch countDownLatchNewLeader = new CountDownLatch(count+1);
+    CountDownLatch countDownLatchNewLeader = new CountDownLatch(count + 1);
     CountDownLatch countDownLatchLeaderGone = new CountDownLatch(count);
 
     LeaderElectionListenerInterface listener = new LeaderElectionListenerInterface() {
@@ -291,7 +297,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
           System.out.println("gone leader");
         } else if (type == ChangeType.LEADER_ACQUIRED) {
           countDownLatchNewLeader.countDown();
-          Assert.assertTrue(curLeader.length()!=0);
+          Assert.assertTrue(curLeader.length() != 0);
           System.out.println("new  leader");
         } else {
           Assert.fail();
@@ -306,7 +312,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
       return (clt1.getLeader(leaderPath) != null);
     }, MetaClientTestUtil.WAIT_DURATION));
-    int leaderNodeVersion = ((ZkMetaClient) clt1.getMetaClient()).exists(leaderPath +  "/LEADER").getVersion();
+    int leaderNodeVersion = ((ZkMetaClient) clt1.getMetaClient()).exists(leaderPath + "/LEADER").getVersion();
     System.out.println("version " + leaderNodeVersion);
 
     // clt1 disconnected and reconnected before session expire
@@ -315,17 +321,16 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertTrue(countDownLatchNewLeader.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
     Assert.assertTrue(countDownLatchLeaderGone.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
 
-    leaderNodeVersion = ((ZkMetaClient) clt2.getMetaClient()).exists(leaderPath +  "/LEADER").getVersion();
+    leaderNodeVersion = ((ZkMetaClient) clt2.getMetaClient()).exists(leaderPath + "/LEADER").getVersion();
     System.out.println("version " + leaderNodeVersion);
 
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
     System.out.println("END TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
-
-
   }
 
-
-
-  private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2) throws Exception {
+  private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2)
+      throws Exception {
     clt1.joinLeaderElectionParticipantPool(leaderPath);
     clt2.joinLeaderElectionParticipantPool(leaderPath);
 
@@ -341,6 +346,5 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     }, MetaClientTestUtil.WAIT_DURATION));
 
     clt2.exitLeaderElectionParticipantPool(leaderPath);
-
   }
 }

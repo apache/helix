@@ -337,7 +337,7 @@ public class LeaderElectionClient implements AutoCloseable {
   public boolean subscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
     LeaderElectionListenerInterfaceAdapter adapter = new LeaderElectionListenerInterfaceAdapter(leaderPath, listener);
     _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
-        adapter, false);
+        adapter, false /*skipWatchingNonExistNode*/); // we need to subscribe event when path is not there
     _metaClient.subscribeStateChanges(adapter);
     return false;
   }
@@ -347,8 +347,10 @@ public class LeaderElectionClient implements AutoCloseable {
    * @param listener An implementation of LeaderElectionListenerInterface
    */
   public void unsubscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
-    _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
-        new LeaderElectionListenerInterfaceAdapter(leaderPath, listener));
+    LeaderElectionListenerInterfaceAdapter adapter = new LeaderElectionListenerInterfaceAdapter(leaderPath, listener);
+    _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY, adapter
+        );
+    _metaClient.unsubscribeConnectStateChanges(adapter);
   }
 
   @Override
@@ -401,7 +403,6 @@ public class LeaderElectionClient implements AutoCloseable {
         }
       } else if (prevState == MetaClientInterface.ConnectState.DISCONNECTED
           && currentState == MetaClientInterface.ConnectState.CONNECTED) {
-        System.out.println("try touch");
         touchLeaderNode();
       }
     }
@@ -416,16 +417,16 @@ public class LeaderElectionClient implements AutoCloseable {
     for (String leaderPath : _leaderGroups) {
       String key = leaderPath;
       ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
-      System.out.println("tup.left.getLeaderName() :" + tup.left.getLeaderName());
       if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
         int expectedVersion = tup.right.getVersion();
         try {
           _metaClient.set(key, tup.left, expectedVersion);
-          System.out.println("set done");
         } catch (MetaClientNoNodeException ex) {
           LOG.info("leaderPath {} gone when retouch leader node.", key);
         } catch (MetaClientBadVersionException e) {
           LOG.info("New leader for leaderPath {} when retouch leader node.", key);
+        } catch (MetaClientException ex) {
+          LOG.warn("Failed to touch {} when reconnected.", key, ex);
         }
       }
     }

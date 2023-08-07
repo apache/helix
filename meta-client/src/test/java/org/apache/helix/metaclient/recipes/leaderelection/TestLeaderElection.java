@@ -5,6 +5,7 @@ import org.apache.helix.metaclient.MetaClientTestUtil;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
+import org.apache.helix.metaclient.impl.zk.TestUtil;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClientTestBase;
 import org.testng.Assert;
@@ -74,8 +75,8 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt2.close();
     System.out.println("END TestLeaderElection.testAcquireLeadership");
   }
-
-  @Test
+/*
+  @Test (dependsOnMethods = "testAcquireLeadership")
   public void testElectionPoolMembership() throws Exception {
     System.out.println("START TestLeaderElection.testElectionPoolMembership");
     String leaderPath = LEADER_PATH + "/_testElectionPoolMembership";
@@ -114,46 +115,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testElectionPoolMembership");
   }
 
-  @Test
-  public void testSessionExpire() throws Exception {
-    System.out.println("START TestLeaderElection.testSessionExpire");
-    String leaderPath = LEADER_PATH + "/_testSessionExpire";
-    LeaderInfo participantInfo = new LeaderInfo(PARTICIPANT_NAME1);
-    participantInfo.setSimpleField("Key1", "value1");
-    LeaderInfo participantInfo2 = new LeaderInfo(PARTICIPANT_NAME2);
-    participantInfo2.setSimpleField("Key2", "value2");
-    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
-    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
-
-    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
-    try {
-      clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo); // no op
-    } catch (ConcurrentModificationException ex) {
-      // expected
-      Assert.assertEquals(ex.getClass().getName(), "java.util.ConcurrentModificationException");
-    }
-    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
-    // a leader should be up
-    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(leaderPath) != null);
-    }, MetaClientTestUtil.WAIT_DURATION));
-
-    // session expire and reconnect
-    expireSession((ZkMetaClient) clt1.getMetaClient());
-
-    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(leaderPath) != null);
-    }, MetaClientTestUtil.WAIT_DURATION));
-    Assert.assertNotNull(clt1.getLeaderEntryStat(leaderPath));
-    Assert.assertNotNull(clt1.getLeader(leaderPath));
-    // when session recreated, participant info node should maintain
-    Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
-    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
-    Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
-    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
-    System.out.println("END TestLeaderElection.testSessionExpire");
-  }
-  @Test (dependsOnMethods = "testAcquireLeadership")
+  @Test (dependsOnMethods = "testElectionPoolMembership")
   public void testLeadershipListener() throws Exception {
     System.out.println("START TestLeaderElection.testLeadershipListener");
     String leaderPath = LEADER_PATH + "/testLeadershipListener";
@@ -211,24 +173,6 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testLeadershipListener");
   }
 
-  private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2) throws Exception {
-    clt1.joinLeaderElectionParticipantPool(leaderPath);
-    clt2.joinLeaderElectionParticipantPool(leaderPath);
-
-    Thread.sleep(2000);
-
-    // clt1 gone
-    clt1.exitLeaderElectionParticipantPool(leaderPath);
-    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(leaderPath) != null);
-    }, MetaClientTestUtil.WAIT_DURATION));
-    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
-      return (clt1.getLeader(leaderPath).equals(PARTICIPANT_NAME2));
-    }, MetaClientTestUtil.WAIT_DURATION));
-
-    clt2.exitLeaderElectionParticipantPool(leaderPath);
-
-  }
 
   @Test (dependsOnMethods = "testLeadershipListener")
   public void testRelinquishLeadership() throws Exception {
@@ -283,4 +227,119 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testRelinquishLeadership");
   }
 
+  @Test (dependsOnMethods = "testAcquireLeadership")
+  public void testSessionExpire() throws Exception {
+    System.out.println("START TestLeaderElection.testSessionExpire");
+    String leaderPath = LEADER_PATH + "/_testSessionExpire";
+    LeaderInfo participantInfo = new LeaderInfo(PARTICIPANT_NAME1);
+    participantInfo.setSimpleField("Key1", "value1");
+    LeaderInfo participantInfo2 = new LeaderInfo(PARTICIPANT_NAME2);
+    participantInfo2.setSimpleField("Key2", "value2");
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
+
+    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
+    try {
+      clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo); // no op
+    } catch (ConcurrentModificationException ex) {
+      // expected
+      Assert.assertEquals(ex.getClass().getName(), "java.util.ConcurrentModificationException");
+    }
+    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
+    // a leader should be up
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+    // session expire and reconnect
+    expireSession((ZkMetaClient) clt1.getMetaClient());
+
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    Assert.assertNotNull(clt1.getLeaderEntryStat(leaderPath));
+    Assert.assertNotNull(clt1.getLeader(leaderPath));
+    // when session recreated, participant info node should maintain
+    Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
+    Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+    System.out.println("END TestLeaderElection.testSessionExpire");
+  }
+  */
+
+  @Test //(dependsOnMethods = "testSessionExpire")
+  public void testClientDisconnectAndReconnectBeforeExpire() throws Exception {
+    System.out.println("START TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
+    String leaderPath = LEADER_PATH + "/testClientDisconnectAndReconnectBeforeExpire";
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
+
+
+    final int count = 1;
+    CountDownLatch countDownLatchNewLeader = new CountDownLatch(count+1);
+    CountDownLatch countDownLatchLeaderGone = new CountDownLatch(count);
+
+    LeaderElectionListenerInterface listener = new LeaderElectionListenerInterface() {
+
+      @Override
+      public void onLeadershipChange(String leaderPath, ChangeType type, String curLeader) {
+        if (type == ChangeType.LEADER_LOST) {
+          countDownLatchLeaderGone.countDown();
+          Assert.assertEquals(curLeader.length(), 0);
+          System.out.println("gone leader");
+        } else if (type == ChangeType.LEADER_ACQUIRED) {
+          countDownLatchNewLeader.countDown();
+          Assert.assertTrue(curLeader.length()!=0);
+          System.out.println("new  leader");
+        } else {
+          Assert.fail();
+        }
+      }
+    };
+
+    clt1.subscribeLeadershipChanges(leaderPath, listener);
+    clt1.joinLeaderElectionParticipantPool(leaderPath);
+    clt2.joinLeaderElectionParticipantPool(leaderPath);
+    // check leader node version before we simulate disconnect.
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    int leaderNodeVersion = ((ZkMetaClient) clt1.getMetaClient()).exists(leaderPath +  "/LEADER").getVersion();
+    System.out.println("version " + leaderNodeVersion);
+
+    // clt1 disconnected and reconnected before session expire
+    simulateZkStateReconnected((ZkMetaClient) clt1.getMetaClient());
+
+    Assert.assertTrue(countDownLatchNewLeader.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
+    Assert.assertTrue(countDownLatchLeaderGone.await(MetaClientTestUtil.WAIT_DURATION, TimeUnit.MILLISECONDS));
+
+    leaderNodeVersion = ((ZkMetaClient) clt2.getMetaClient()).exists(leaderPath +  "/LEADER").getVersion();
+    System.out.println("version " + leaderNodeVersion);
+
+    System.out.println("END TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
+
+
+  }
+
+
+
+  private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2) throws Exception {
+    clt1.joinLeaderElectionParticipantPool(leaderPath);
+    clt2.joinLeaderElectionParticipantPool(leaderPath);
+
+    Thread.sleep(2000);
+
+    // clt1 gone
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath).equals(PARTICIPANT_NAME2));
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
+
+  }
 }

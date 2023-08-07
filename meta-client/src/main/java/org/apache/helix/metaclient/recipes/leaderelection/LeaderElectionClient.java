@@ -33,6 +33,7 @@ import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.exception.MetaClientBadVersionException;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
@@ -83,7 +84,7 @@ public class LeaderElectionClient implements AutoCloseable {
   /**
    * Construct a LeaderElectionClient using a user passed in leaderElectionConfig. It creates a MetaClient
    * instance underneath.
-   * When MetaClient is auto closed be cause of being disconnected and auto retry connection timed out, A new
+   * When MetaClient is auto closed because of being disconnected and auto retry connection timed out, A new
    * MetaClient instance will be created and keeps retry connection.
    *
    * @param metaClientConfig The config used to create an metaclient.
@@ -334,8 +335,10 @@ public class LeaderElectionClient implements AutoCloseable {
    * @return A boolean value indicating if registration is success.
    */
   public boolean subscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
-    _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, new LeaderElectionListenerInterfaceAdapter(listener),
-        false);
+    LeaderElectionListenerInterfaceAdapter adapter = new LeaderElectionListenerInterfaceAdapter(leaderPath, listener);
+    _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
+        adapter, false);
+    _metaClient.subscribeStateChanges(adapter);
     return false;
   }
 
@@ -344,7 +347,8 @@ public class LeaderElectionClient implements AutoCloseable {
    * @param listener An implementation of LeaderElectionListenerInterface
    */
   public void unsubscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
-    _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY, new LeaderElectionListenerInterfaceAdapter(listener));
+    _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
+        new LeaderElectionListenerInterfaceAdapter(leaderPath, listener));
   }
 
   @Override
@@ -395,12 +399,35 @@ public class LeaderElectionClient implements AutoCloseable {
           _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, _participantInfos.get(leaderPath),
               MetaClientInterface.EntryMode.EPHEMERAL);
         }
+      } else if (prevState == MetaClientInterface.ConnectState.DISCONNECTED
+          && currentState == MetaClientInterface.ConnectState.CONNECTED) {
+        System.out.println("try touch");
+        touchLeaderNode();
       }
     }
 
     @Override
     public void handleConnectionEstablishmentError(Throwable error) throws Exception {
 
+    }
+  }
+
+  private void touchLeaderNode() {
+    for (String leaderPath : _leaderGroups) {
+      String key = leaderPath;
+      ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
+      System.out.println("tup.left.getLeaderName() :" + tup.left.getLeaderName());
+      if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
+        int expectedVersion = tup.right.getVersion();
+        try {
+          _metaClient.set(key, tup.left, expectedVersion);
+          System.out.println("set done");
+        } catch (MetaClientNoNodeException ex) {
+          LOG.info("leaderPath {} gone when retouch leader node.", key);
+        } catch (MetaClientBadVersionException e) {
+          LOG.info("New leader for leaderPath {} when retouch leader node.", key);
+        }
+      }
     }
   }
 

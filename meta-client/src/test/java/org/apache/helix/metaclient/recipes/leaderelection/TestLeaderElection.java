@@ -75,7 +75,8 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt2.close();
     System.out.println("END TestLeaderElection.testAcquireLeadership");
   }
-/*
+
+
   @Test (dependsOnMethods = "testAcquireLeadership")
   public void testElectionPoolMembership() throws Exception {
     System.out.println("START TestLeaderElection.testElectionPoolMembership");
@@ -266,9 +267,9 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
     System.out.println("END TestLeaderElection.testSessionExpire");
   }
-  */
 
-  @Test //(dependsOnMethods = "testSessionExpire")
+
+  @Test (dependsOnMethods = "testSessionExpire")
   public void testClientDisconnectAndReconnectBeforeExpire() throws Exception {
     System.out.println("START TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
     String leaderPath = LEADER_PATH + "/testClientDisconnectAndReconnectBeforeExpire";

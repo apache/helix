@@ -19,6 +19,8 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -27,17 +29,21 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.policy.ExponentialBackoffReconnectPolicy;
+import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
+import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
@@ -69,14 +75,14 @@ public class TestConnectStateChangeListenerAndRetry  {
       zkClient.process(event);
   }
 
-  @BeforeSuite
+  @BeforeTest
   public void prepare() {
     System.out.println("START TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
     // start local zookeeper server
     _zkServer = ZkMetaClientTestBase.startZkServer(ZK_ADDR);
   }
 
-  @AfterSuite
+  @AfterTest
   public void cleanUp() {
     System.out.println("END TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
   }
@@ -162,7 +168,6 @@ public class TestConnectStateChangeListenerAndRetry  {
         zkMetaClient.create("/key", "value");
         Assert.fail("Create call after close should throw IllegalStateException");
       } catch (Exception ex) {
-        System.out.println("ex " + ex);
         Assert.assertTrue(ex instanceof IllegalStateException);
       }
     }

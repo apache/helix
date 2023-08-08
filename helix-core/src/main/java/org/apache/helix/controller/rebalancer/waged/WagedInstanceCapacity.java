@@ -106,7 +106,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
           // Get Partition Weight
           Map<String, Integer> partCapacity = weightProvider.getPartitionWeights(resName, partitionName);
           if (partCapacity == null || partCapacity.isEmpty()) {
-            LOG.info("Partition: " + partitionName + " in resource: " + resName
+            LOG.debug("Partition: " + partitionName + " in resource: " + resName
                 + " has no weight specified. Skipping it.");
             continue;
           }
@@ -184,7 +184,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
       String partitionName, Map<String, Integer> partitionCapacity) {
 
     if (hasPartitionChargedForCapacity(instance, resName, partitionName)) {
-      LOG.info("Instance: " + instance + " for resource: " + resName
+      LOG.debug("Instance: " + instance + " for resource: " + resName
           + " for partition: " + partitionName + " already charged for capacity.");
       return true;
     }

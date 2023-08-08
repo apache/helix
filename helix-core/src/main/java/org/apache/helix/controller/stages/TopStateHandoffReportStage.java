@@ -282,7 +282,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       // Top state handoff finished before end of last pipeline run, and instance contains
       // previous top state is no longer alive, so our best guess did not work, ignore the
       // data point for now.
-      LogUtil.logWarn(LOG, _eventId, String
+      LogUtil.logDebug(LOG, _eventId, String
           .format("Cannot confirm top state missing start time. %s:%s->%s. Likely it was very fast",
               partition.getPartitionName(), lastTopStateInstance, curTopStateInstance));
       return;

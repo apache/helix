@@ -34,7 +34,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
   public void cleanUp() {
     ZkMetaClientConfig config = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR)
         .build();
-    try (ZkMetaClient<ZNRecord> client = new ZkMetaClient<>(config);) {
+    try (ZkMetaClient<ZNRecord> client = new ZkMetaClient<>(config)) {
       client.recursiveDelete(LEADER_PATH);
     }
   }

@@ -152,6 +152,7 @@ public class TestConnectStateChangeListenerAndRetry  {
       } catch (Exception ex) {
         Assert.assertTrue(ex instanceof IllegalStateException);
       }
+      zkMetaClient.unsubscribeConnectStateChanges(listener);
     }
     System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
   }

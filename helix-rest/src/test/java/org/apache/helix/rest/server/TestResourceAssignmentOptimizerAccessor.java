@@ -20,6 +20,7 @@ package org.apache.helix.rest.server;
  */
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +42,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
 
 public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
 
@@ -231,8 +231,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     for (String resource : resources) {
       IdealState idealState =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
-      idealState
-          .setRebalancerClassName("org.apache.helix.controller.rebalancer.waged.WagedRebalancer");
+      idealState.setRebalancerClassName(
+          "org.apache.helix.controller.rebalancer.waged.WagedRebalancer");
       _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
     }
 
@@ -241,9 +241,10 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         + "\"], \"DeactivateInstances\" : [ \"" + toDeactivatedInstance + "\"] }}  ";
     String body = post(urlBase, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode(), true).readEntity(String.class);
-    Map<String, Map<String, Map<String, String>>> resourceAssignments = OBJECT_MAPPER
-        .readValue(body, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
-        });
+    Map<String, Map<String, Map<String, String>>> resourceAssignments =
+        OBJECT_MAPPER.readValue(body,
+            new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
+            });
     Set<String> hostSet = new HashSet<>();
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> hostSet.addAll(vv.keySet())));
     // Assert every partition has 2 replicas. Indicating we ignore the delayed rebalance when
@@ -252,14 +253,47 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     Assert.assertTrue(hostSet.contains(toEnabledInstance));
     Assert.assertFalse(hostSet.contains(toDeactivatedInstance));
 
+    // Test InstanceConfig overrides
+    InstanceConfig toDeactivatedInstanceConfig =
+        _gSetupTool.getClusterManagementTool().getInstanceConfig(cluster, toDeactivatedInstance);
+    InstanceConfig toEnabledInstanceConfig =
+        _gSetupTool.getClusterManagementTool().getInstanceConfig(cluster, toEnabledInstance);
+    // Another way to mark the node as inactive or active.
+    toDeactivatedInstanceConfig.setInstanceEnabled(false);
+    toEnabledInstanceConfig.setInstanceEnabled(true);
+    // Write the current InstanceConfigs record to json string
+    StringWriter sw = new StringWriter();
+    OBJECT_MAPPER.writeValue(sw, toDeactivatedInstanceConfig.getRecord());
+    String toDeactivatedInstanceConfigStr = sw.toString();
+    sw = new StringWriter();
+    OBJECT_MAPPER.writeValue(sw, toEnabledInstanceConfig.getRecord());
+    String toEnabledInstanceConfigStr = sw.toString();
+    String payload1 =
+        "{\"InstanceChange\" : { " + "\"InstanceConfigs\": [" + toDeactivatedInstanceConfigStr + ","
+            + toEnabledInstanceConfigStr + "]}}";
+    String body1 = post(urlBase, null, Entity.entity(payload1, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode(), true).readEntity(String.class);
+    Map<String, Map<String, Map<String, String>>> resourceAssignments1 =
+        OBJECT_MAPPER.readValue(body1,
+            new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
+            });
+    Set<String> hostSet1 = new HashSet<>();
+    resourceAssignments1.forEach((k, v) -> v.forEach((kk, vv) -> hostSet1.addAll(vv.keySet())));
+    // Assert every partition has 2 replicas.
+    resourceAssignments1.forEach(
+        (k, v) -> v.forEach((kk, vv) -> Assert.assertEquals(vv.size(), 2)));
+    Assert.assertTrue(hostSet1.contains(toEnabledInstance));
+    Assert.assertFalse(hostSet1.contains(toDeactivatedInstance));
+
     // Test partitionAssignment host filter
     String payload2 = "{\"Options\" : { \"InstanceFilter\" : [\"" + liveInstances.get(0) + "\" , \""
         + liveInstances.get(1) + "\"] }}  ";
     String body2 = post(urlBase, null, Entity.entity(payload2, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode(), true).readEntity(String.class);
-    Map<String, Map<String, Map<String, String>>> resourceAssignments2 = OBJECT_MAPPER
-        .readValue(body2, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
-        });
+    Map<String, Map<String, Map<String, String>>> resourceAssignments2 =
+        OBJECT_MAPPER.readValue(body2,
+            new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
+            });
     Set<String> hostSet2 = new HashSet<>();
     resourceAssignments2.forEach((k, v) -> v.forEach((kk, vv) -> hostSet2.addAll(vv.keySet())));
     Assert.assertEquals(hostSet2.size(), 2);
@@ -267,8 +301,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     Assert.assertTrue(hostSet2.contains(liveInstances.get(1)));
 
     String payload3 =
-        "{\"Options\" : { \"ResourceFilter\" : [\"" + resources.get(0) + "\" , \"" + resources
-            .get(1) + "\"] }}  ";
+        "{\"Options\" : { \"ResourceFilter\" : [\"" + resources.get(0) + "\" , \"" + resources.get(
+            1) + "\"] }}  ";
     String body3 = post(urlBase, null, Entity.entity(payload3, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode(), true).readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments3 = OBJECT_MAPPER

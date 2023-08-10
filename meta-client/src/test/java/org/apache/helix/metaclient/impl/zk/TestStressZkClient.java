@@ -48,7 +48,8 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
   }
 
   @AfterTest
-  private void tearDown() {
+  @Override
+  public void cleanUp() {
     this._zkMetaClient.close();
   }
 

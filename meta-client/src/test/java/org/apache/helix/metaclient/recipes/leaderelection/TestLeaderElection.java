@@ -31,10 +31,12 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
   }
 
   @AfterTest
+  @Override
   public void cleanUp() {
     ZkMetaClientConfig config = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR)
         .build();
     try (ZkMetaClient<ZNRecord> client = new ZkMetaClient<>(config)) {
+      client.connect();
       client.recursiveDelete(LEADER_PATH);
     }
   }
@@ -123,6 +125,8 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt2.exitLeaderElectionParticipantPool(leaderPath);
 
     Assert.assertNull(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2));
+    clt1.close();
+    clt2.close();
     System.out.println("END TestLeaderElection.testElectionPoolMembership");
   }
 
@@ -233,6 +237,9 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     }, MetaClientTestUtil.WAIT_DURATION));
 
     clt2.exitLeaderElectionParticipantPool(leaderPath);
+    clt1.close();
+    clt2.close();
+    clt3.close();
     System.out.println("END TestLeaderElection.testRelinquishLeadership");
   }
 
@@ -273,6 +280,8 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
     Assert.assertEquals(clt1.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
     Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+    clt1.close();
+    clt2.close();
     System.out.println("END TestLeaderElection.testSessionExpire");
   }
 
@@ -326,6 +335,8 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
 
     clt1.exitLeaderElectionParticipantPool(leaderPath);
     clt2.exitLeaderElectionParticipantPool(leaderPath);
+    clt1.close();
+    clt2.close();
     System.out.println("END TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
   }
 

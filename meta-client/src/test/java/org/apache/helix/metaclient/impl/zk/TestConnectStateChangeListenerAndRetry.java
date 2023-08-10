@@ -52,7 +52,7 @@ import static org.apache.helix.metaclient.impl.zk.TestUtil.*;
 
 
 public class TestConnectStateChangeListenerAndRetry  {
-  protected static final String ZK_ADDR = "localhost:2181";
+  protected static final String ZK_ADDR = "localhost:2184";
   protected static ZkServer _zkServer;
 
 
@@ -62,11 +62,6 @@ public class TestConnectStateChangeListenerAndRetry  {
     System.out.println("START TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
     // start local zookeeper server
     _zkServer = ZkMetaClientTestBase.startZkServer(ZK_ADDR);
-  }
-
-  @AfterTest
-  public void cleanUp() {
-    System.out.println("END TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

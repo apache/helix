@@ -258,6 +258,7 @@ public class LeaderElectionClient implements AutoCloseable {
     }
     // check if current participant is the leader
     // read data and stats, check, and multi check + delete
+    try{
     ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
     if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
       int expectedVersion = tup.right.getVersion();
@@ -272,6 +273,8 @@ public class LeaderElectionClient implements AutoCloseable {
           LOG.info("Someone else is already leader");
         }
       }
+    }} catch (MetaClientNoNodeException ex) {
+      LOG.info("No Leader for participant pool {} when exit the pool", leaderPath);
     }
   }
 

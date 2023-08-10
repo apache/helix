@@ -82,6 +82,11 @@ public class LeaderElectionPuppy extends AbstractPuppy {
       _leaderElectionClient.exitLeaderElectionParticipantPool(_leaderGroup);
     } catch (MetaClientException ignore) {
       // already leave the pool. OK to throw exception.
+    } finally {
+      try {
+        _leaderElectionClient.close();
+      } catch (Exception e) {
+      }
     }
   }
 }

@@ -175,9 +175,10 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
     }
 
     // The success rate really depends on how quick participant act in relationship with controller.
-    // For now, we set 90% threshold.
+    // For now, we set 80% threshold.
     long threshold = Math.round(total * 0.8);
-    Assert.assertTrue( p2pTrigged > Math.round(total * 0.8));
+    Assert.assertTrue( p2pTrigged > Math.round(total * 0.8),
+        "Number of successful p2p transitions is " + p2pTrigged + " and expect " + total);
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessagesInProgress, 0,
         "There are duplicated transition messages sent while participant is handling the state-transition!");
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessages, 0,

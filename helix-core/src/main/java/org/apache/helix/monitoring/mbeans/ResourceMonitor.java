@@ -381,8 +381,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
           _lastResetTime = System.currentTimeMillis();
         }
       } else {
-        // in case of failure, increment the missing top-state gauge and failed top-state counter values.
-        incrementMissingTopStateHandoffGauge();
+        // TODO: Deprecated. use MissingTopStateBeyondThresholdGauge to find out number of partitions with missing top
+        //  state.
+        _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
+        incrementMissingTopStateBeyondThresholdGauge();
       }
       break;
     default:
@@ -483,14 +485,12 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     }
   }
 
-  public void incrementMissingTopStateHandoffGauge() {
-    _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
+  public void incrementMissingTopStateBeyondThresholdGauge() {
     _missingTopStatePartitionsBeyondThresholdGauge.updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() + 1);
     _lastResetTime = System.currentTimeMillis();
   }
 
-  public void decrementMissingTopStateHandoffGauge() {
-    _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() - 1);
+  public void decrementMissingTopStateBeyondThresholdGauge() {
     _missingTopStatePartitionsBeyondThresholdGauge.updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() - 1);
     _lastResetTime = System.currentTimeMillis();
   }

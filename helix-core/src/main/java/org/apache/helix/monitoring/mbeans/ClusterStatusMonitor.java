@@ -583,11 +583,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void decrementMissingTopStateHandoffGauge(String resourceName) {
+  public void decrementMissingTopStateBeyondThresholdGauge(String resourceName) {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
-      resourceMonitor.decrementMissingTopStateHandoffGauge();
+      resourceMonitor.decrementMissingTopStateBeyondThresholdGauge();
     }
   }
 

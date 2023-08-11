@@ -240,8 +240,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   @Test(dataProvider = "failedWithoutRecovery")
   public void testTopStateFailedUnrecoveredHandoff(TestCaseConfig cfg) {
     // Scenario : localhost_0 looses top-state at 15000 and it's NEVER recovered.
-    // In this scenario as well both failed counter as well as missingTopStatePartitionsThresholdGauge
-    // should be set to 1.
+    // In this scenario missingTopStatePartitionsThresholdGauge value should be set to 1.
     ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
     clusterConfig.setMissTopStateDurationThreshold(5000L);
     setClusterConfig(clusterConfig);
@@ -392,7 +391,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     Range<Long> expectedHelixLatency =
         cfg.isGraceful ? Range.closed(cfg.helixLatency, cfg.helixLatency) : DURATION_ZERO;
     runStageAndVerify(cfg.initialCurrentStates, cfg.currentStateWithMissingTopState,
-        cfg.finalCurrentState, null, expectFail ? 0 : 1, 0, 0, expectedDuration, expectedNonGracefulDuration,
+        cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, 0, expectedDuration, expectedNonGracefulDuration,
         expectedDuration, expectedHelixLatency);
   }
 

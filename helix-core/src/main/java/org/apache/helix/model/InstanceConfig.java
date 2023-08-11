@@ -339,6 +339,11 @@ public class InstanceConfig extends HelixProperty {
         state.toString());
   }
 
+  public void resetInstanceOperation() {
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.toString(),
+        "");
+  }
+
   public String getInstanceOperation() {
     return _record.getStringField(InstanceConfigProperty.INSTANCE_OPERATION.name(), "");
   }

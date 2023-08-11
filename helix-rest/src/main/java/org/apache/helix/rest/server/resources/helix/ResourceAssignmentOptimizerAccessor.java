@@ -21,7 +21,6 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,6 +40,7 @@ import com.codahale.metrics.annotation.ResponseMetered;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -73,7 +73,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
 
   private static class InputFields {
     Set<String> activatedInstances = new HashSet<>(); // active = online + enabled.
-    Set<String> deactivatedInstances = new HashSet<>(); // deactive = offline + disabled.
+    Set<String> deactivatedInstances = new HashSet<>(); // deactivate = offline + disabled.
+    Set<String> instanceConfigs = new HashSet<>(); // instance configs to be overriden.
     Set<String> instanceFilter = new HashSet<>();
     Set<String> resourceFilter = new HashSet<>();
     AssignmentFormat returnFormat = AssignmentFormat.IdealStateFormat;
@@ -104,6 +105,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   }
 
   private static class InstanceChangeMap {
+    @JsonProperty("InstanceConfigs")
+    JsonNode instanceConfigs;
     @JsonProperty("ActivateInstances")
     List<String> activateInstances;
     @JsonProperty("DeactivateInstances")
@@ -170,6 +173,9 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
           .ifPresent(inputFields.activatedInstances::addAll);
       Optional.ofNullable(inputJsonContent.instanceChangeMap.deactivateInstances)
           .ifPresent(inputFields.deactivatedInstances::addAll);
+      Optional.ofNullable(inputJsonContent.instanceChangeMap.instanceConfigs).ifPresent(
+          configs -> configs.forEach(
+              instanceConfig -> inputFields.instanceConfigs.add(instanceConfig.toString())));
     }
     if (inputJsonContent.optionsMap != null) {
       Optional.ofNullable(inputJsonContent.optionsMap.resourceFilter)
@@ -203,6 +209,17 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
 
     Map<String, InstanceConfig> instanceConfigMap =
         dataAccessor.getChildValuesMap(dataAccessor.keyBuilder().instanceConfigs(), true);
+
+    // Override instance config with inputFields.instanceConfigs
+    for (String instanceConfig : inputFields.instanceConfigs) {
+      try {
+        InstanceConfig instanceConfigOverride = new InstanceConfig(toZNRecord(instanceConfig));
+        instanceConfigMap.put(instanceConfigOverride.getInstanceName(), instanceConfigOverride);
+      } catch (Exception e) {
+        throw new InvalidParameterException(
+            "instanceConfig: " + instanceConfig + "is not a valid instanceConfig");
+      }
+    }
 
     // Read instance and cluster config.
     // Throw exception if there is no instanceConfig for activatedInstances instance.

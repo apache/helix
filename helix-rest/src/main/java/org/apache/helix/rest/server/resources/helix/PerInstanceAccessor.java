@@ -370,6 +370,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @POST
   public Response updateInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("command") String command,
+      @QueryParam("instanceOperation") InstanceConstants.InstanceOperation state,
       @QueryParam("instanceDisabledType") String disabledType,
       @QueryParam("instanceDisabledReason") String disabledReason, String content) {
     Command cmd;
@@ -414,6 +415,10 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                     OBJECT_MAPPER.getTypeFactory()
                         .constructCollectionType(List.class, String.class)));
         break;
+      case setInstanceOperation:
+        System.out.println("setInstanceOperation");
+         admin.setInstanceOperation(clusterId, instanceName, state);
+         break;
       case addInstanceTag:
         if (!validInstance(node, instanceName)) {
           return badRequest("Instance names are not match!");

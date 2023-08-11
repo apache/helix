@@ -23,8 +23,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -50,8 +51,7 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-
-import static org.apache.helix.manager.zk.ZKHelixAdmin.assembleInstanceBatchedDisabledInfo;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 
 
 public class MockHelixAdmin implements HelixAdmin {
@@ -303,6 +303,33 @@ public class MockHelixAdmin implements HelixAdmin {
 
   @Override
   public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
+
+  }
+
+  @Override
+  public void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation) {
+
+    String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+
+    if (!_baseDataAccessor.exists(path, 0)) {
+      throw new HelixException(
+          "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
+    }
+
+    _baseDataAccessor.update(path, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          throw new HelixException(
+              "Cluster: " + clusterName + ", instance: " + instanceName + ", participant config is null");
+        }
+
+        InstanceConfig config = new InstanceConfig(currentData);
+        config.setInstanceOperation(instanceOperation); // we set instance enab;ed in instance config
+        return config.getRecord();
+      }
+    }, AccessOption.PERSISTENT);
 
   }
 

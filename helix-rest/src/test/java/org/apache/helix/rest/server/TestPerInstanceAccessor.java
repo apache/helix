@@ -486,6 +486,15 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap()
             .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "3")));
+
+    // test set instance state
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    Assert.assertEquals(
+        instanceConfig.getInstanceOperation(), "EVACUATE");
+
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

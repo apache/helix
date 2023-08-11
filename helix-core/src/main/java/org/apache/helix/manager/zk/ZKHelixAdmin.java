@@ -39,6 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -372,6 +373,37 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException("Batch enable/disable is not supported");
     }
     //enableInstance(clusterName, instances, enabled, null, null);
+  }
+
+  @Override
+  // TODO: Name may change in future
+  public void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation) {
+
+
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+
+    if (!baseAccessor.exists(path, 0)) {
+      throw new HelixException(
+          "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
+    }
+
+    baseAccessor.update(path, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          throw new HelixException(
+              "Cluster: " + clusterName + ", instance: " + instanceName + ", participant config is null");
+        }
+
+        InstanceConfig config = new InstanceConfig(currentData);
+        config.setInstanceOperation(instanceOperation); // we set instance enabled in instance config
+        return config.getRecord();
+      }
+    }, AccessOption.PERSISTENT);
+
+
   }
 
   @Override

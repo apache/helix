@@ -330,23 +330,20 @@ public class InstanceConfig extends HelixProperty {
     return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
   }
 
-  public void setInstanceOperation(InstanceConstants.InstanceOperation state) {
-    if (state == InstanceConstants.InstanceOperation.DISABLED || state == InstanceConstants.InstanceOperation.ENABLED) {
-      setInstanceEnabled(state == InstanceConstants.InstanceOperation.ENABLED);
+  public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
+    if (operation == InstanceConstants.InstanceOperation.DISABLE
+        || operation == InstanceConstants.InstanceOperation.ENABLE) {
+      setInstanceEnabled(operation == InstanceConstants.InstanceOperation.ENABLE);
     }
 
     _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.toString(),
-        state.toString());
-  }
-
-  public void resetInstanceOperation() {
-    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.toString(),
-        "");
+        operation.toString());
   }
 
   public String getInstanceOperation() {
     return _record.getStringField(InstanceConfigProperty.INSTANCE_OPERATION.name(), "");
   }
+
   /**
   * Check if this instance is enabled for a given partition
   * This API is deprecated, and will be removed in next major release.

@@ -39,7 +39,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -389,7 +388,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
     }
 
-    baseAccessor.update(path, new DataUpdater<ZNRecord>() {
+   boolean succeeded =  baseAccessor.update(path, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {
@@ -398,12 +397,19 @@ public class ZKHelixAdmin implements HelixAdmin {
         }
 
         InstanceConfig config = new InstanceConfig(currentData);
+        // TODO: also need to check at cluster level when we allow batch enabling/disabling instances
+        if (!config.getInstanceEnabled() && (instanceOperation != InstanceConstants.InstanceOperation.ENABLE )) {
+          throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
+              + ", Can not set instance operation when instance is in disabled state");
+        }
         config.setInstanceOperation(instanceOperation); // we set instance enabled in instance config
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);
 
-
+    if (!succeeded) {
+      throw new HelixException("Failed to update instance operation. Please check if instance is disabled.");
+    }
   }
 
   @Override

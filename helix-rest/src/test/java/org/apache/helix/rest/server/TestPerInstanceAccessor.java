@@ -487,13 +487,30 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
             .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "3")));
 
-    // test set instance state
+    // test set instance operation
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
     Assert.assertEquals(
-        instanceConfig.getInstanceOperation(), "EVACUATE");
-
+        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.EVACUATE.toString());
+    // set operation to be DISABLE
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=DISABLE")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    Assert.assertEquals(
+        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.DISABLE.toString());
+    Assert.assertTrue(!instanceConfig.getInstanceEnabled());
+    // set operation to EVACUATE, expect error
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode())
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    // set back to enable
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=ENABLE")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    Assert.assertEquals(
+        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.ENABLE.toString());
+    Assert.assertTrue(instanceConfig.getInstanceEnabled());
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }

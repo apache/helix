@@ -416,7 +416,6 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                         .constructCollectionType(List.class, String.class)));
         break;
       case setInstanceOperation:
-        System.out.println("setInstanceOperation");
          admin.setInstanceOperation(clusterId, instanceName, state);
          break;
       case addInstanceTag:

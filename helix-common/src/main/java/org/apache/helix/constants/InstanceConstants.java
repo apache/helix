@@ -10,12 +10,10 @@ public class InstanceConstants {
   }
 
   public enum InstanceOperation {
-
     EVACUATE,
     SWAP_IN,
     SWAP_OUT,
-    ENABLED,
-    DISABLED;
-
+    ENABLE,
+    DISABLE;
   }
 }

@@ -96,6 +96,7 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
 
   @Test(description = "Verify a few properties after algorithm object is created")
   public void testAlgorithmConstructor() {
+    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testAlgorithmConstructor");
     CardDealingAdjustmentAlgorithmV2Accessor algorithm =
         new CardDealingAdjustmentAlgorithmV2Accessor(_topology, DEFAULT_REPLICA_COUNT,
             CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS);
@@ -141,6 +142,7 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
       Assert.assertEquals(instanceNodes.size(), NUM_INSTANCES_PER_ZONE);
       Assert.assertEquals(actualInstanceIds, expectedInstanceIds);
     }
+    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testAlgorithmConstructor");
   }
 
   @DataProvider
@@ -190,6 +192,7 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
   @Test(description = "Compute mapping multiple times, the mapping of each time should be same", dataProvider = "stableComputingVerification")
   public void testStableComputeMappingForMultipleTimes(int replica, int repeatTimes, int seed,
       boolean isEvennessPreferred) {
+    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testStableComputeMappingForMultipleTimes");
     CardDealingAdjustmentAlgorithmV2.Mode preference =
         isEvennessPreferred ? CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS
             : CardDealingAdjustmentAlgorithmV2.Mode.MINIMIZE_MOVEMENT;
@@ -226,6 +229,7 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
       lastCalculatedDifference = newDifference;
       repeatTimes -= 1;
     }
+    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testStableComputeMappingForMultipleTimes");
   }
 
   @DataProvider
@@ -247,6 +251,7 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
 
   @Test(description = "Test performance given different replica count", dataProvider = "replicas")
   public void testComputeMappingForDifferentReplicas(int replica) {
+    System.out.println("SATRT TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentReplicas");
     CardDealingAdjustmentAlgorithmV2Accessor algorithm =
         new CardDealingAdjustmentAlgorithmV2Accessor(_topology, replica,
             CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS);
@@ -273,10 +278,13 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
       Assert.fail(String.format("Total movements: %s != expected %s, replica: %s", totalMovements,
           expected.get(replica), replica));
     }
+    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentReplicas");
+
   }
 
   @Test(description = "Test performance given different preference (evenness or less movements)")
   public void testComputeMappingForDifferentPreference() {
+    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentPreference");
     CardDealingAdjustmentAlgorithmV2Accessor algorithm1 =
         new CardDealingAdjustmentAlgorithmV2Accessor(_topology, DEFAULT_REPLICA_COUNT,
             CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS);
@@ -307,10 +315,12 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
     System.out.println(String.format("Total movements: %s, isAllAssigned: %s, preference: %s",
         movement2, isAllAssigned2, CardDealingAdjustmentAlgorithmV2.Mode.MINIMIZE_MOVEMENT));
     Assert.assertTrue(movement1 >= movement2);
+    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentPreference");
   }
 
   @Test
   public void testComputeMappingWhenZeroWeightInstance() {
+    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightInstance");
     when(_topology.getFaultZones()).thenReturn(createFaultZones(new int[][] {
         {
             0, 1
@@ -340,10 +350,12 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
     System.out.println("old mapping" + oldSimpleMapping);
     System.out.println("new mapping" + newSimpleMapping);
     Assert.assertTrue(newSimpleMapping.get(0L).isEmpty());
+    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightInstance");
   }
 
   @Test
   public void testComputeMappingWhenZeroWeightZone() {
+    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightZone");
     when(_topology.getFaultZones()).thenReturn(createFaultZones(new int[][] {
         {
             0
@@ -372,6 +384,7 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
     System.out.println("old mapping" + oldSimpleMapping);
     System.out.println("new mapping" + newSimpleMapping);
     Assert.assertTrue(newSimpleMapping.get(0L).isEmpty());
+    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightZone");
   }
 
   private int getTotalMovements(Map<Long, Set<String>> oldSimpleMapping,

@@ -325,7 +325,7 @@ public class MockHelixAdmin implements HelixAdmin {
         }
 
         InstanceConfig config = new InstanceConfig(currentData);
-        config.setInstanceOperation(instanceOperation); // we set instance enab;ed in instance config
+        config.setInstanceOperation(instanceOperation); // we set instance enabled in instance config
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);

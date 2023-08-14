@@ -379,7 +379,6 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void setInstanceOperation(String clusterName, String instanceName,
       InstanceConstants.InstanceOperation instanceOperation) {
 
-
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
 

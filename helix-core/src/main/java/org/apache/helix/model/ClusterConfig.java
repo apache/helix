@@ -151,7 +151,10 @@ public class ClusterConfig extends HelixProperty {
     HELIX_ENABLED_DISABLE_TIMESTAMP,
     HELIX_DISABLED_REASON,
     // disabled type should be a enum of org.apache.helix.constants.InstanceConstants.InstanceDisabledType
-    HELIX_DISABLED_TYPE
+    HELIX_DISABLED_TYPE,
+
+    // The last time when the on-demand rebalance is triggered.
+    LAST_ON_DEMAND_REBALANCE_TIMESTAMP
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -188,6 +191,7 @@ public class ClusterConfig extends HelixProperty {
   private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
   private static final int OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET = -1;
   private final static int DEFAULT_VIEW_CLUSTER_REFRESH_PERIOD = 30;
+  private final static long LAST_ON_DEMAND_REBALANCE_TIMESTAMP_NOT_SET = -1L;
 
   /**
    * Instantiate for a specific cluster
@@ -1172,5 +1176,23 @@ public class ClusterConfig extends HelixProperty {
           .get(ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.toString());
     }
     return getDisabledInstances().get(instanceName);
+  }
+
+  /**
+   * @return: a unix time that represents the last time the on demand rebalance is triggered on
+   * current cluster. Return -1 if the configuration doesn't have such record yet.
+   */
+  public long getLastOnDemandRebalanceTimestamp() {
+    return _record.getLongField(ClusterConfigProperty.LAST_ON_DEMAND_REBALANCE_TIMESTAMP.name(),
+        LAST_ON_DEMAND_REBALANCE_TIMESTAMP_NOT_SET);
+  }
+
+  /**
+   * Set the last on demand rebalance time to be the given timestamp.
+   * @param rebalanceTimestamp
+   */
+  public void setLastOnDemandRebalanceTimestamp(long rebalanceTimestamp) {
+    _record.setLongField(ClusterConfigProperty.LAST_ON_DEMAND_REBALANCE_TIMESTAMP.name(),
+        rebalanceTimestamp);
   }
 }

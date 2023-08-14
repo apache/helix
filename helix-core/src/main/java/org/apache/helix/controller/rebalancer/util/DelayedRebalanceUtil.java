@@ -135,9 +135,17 @@ public class DelayedRebalanceUtil {
   private static long getInactiveTime(String instance, Set<String> liveInstances, Long offlineTime,
       long delay, InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
     long inactiveTime = Long.MAX_VALUE;
+    long lastOnDemandRebalanceTime = clusterConfig.getLastOnDemandRebalanceTimestamp();
 
-    // check the time instance went offline.
+    // Check if the given instance is offline
     if (!liveInstances.contains(instance)) {
+      // Check if the offline instance is forced to be rebalanced by an on-demand rebalance.
+      // If so, return it as an inactive instance.
+      if (isInstanceForcedToBeRebalancded(offlineTime, delay, lastOnDemandRebalanceTime)) {
+        return -1L;
+      }
+
+      // Check the time instance went offline.
       if (offlineTime != null && offlineTime > 0 && offlineTime + delay < inactiveTime) {
         inactiveTime = offlineTime + delay;
       }
@@ -154,6 +162,13 @@ public class DelayedRebalanceUtil {
           disabledTime = batchDisableTime;
         }
       }
+
+      // Check if the disabled instance is forced to be rebalanced by an on-demand rebalance.
+      // If so, return it as an inactive instance.
+      if (isInstanceForcedToBeRebalancded(disabledTime, delay, lastOnDemandRebalanceTime)) {
+        return -1L;
+      }
+
       if (disabledTime > 0 && disabledTime + delay < inactiveTime) {
         inactiveTime = disabledTime + delay;
       }
@@ -415,6 +430,18 @@ public class DelayedRebalanceUtil {
     return DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
         .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),
             currentIdealState), currentIdealState, numReplica);
+  }
+
+  private static boolean isInstanceForcedToBeRebalancded(Long offlineOrDisabledTime, long delay,
+      long lastOnDemandRebalanceTimestamp) {
+    if (lastOnDemandRebalanceTimestamp == -1 || offlineOrDisabledTime == null
+        || offlineOrDisabledTime <= 0) {
+      return false;
+    }
+    long delayedInactiveTime = offlineOrDisabledTime + delay;
+    return offlineOrDisabledTime < lastOnDemandRebalanceTimestamp
+        && lastOnDemandRebalanceTimestamp < Math.min(delayedInactiveTime,
+        System.currentTimeMillis());
   }
 
   /**

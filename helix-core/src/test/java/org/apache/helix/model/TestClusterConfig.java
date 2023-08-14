@@ -397,6 +397,28 @@ public class TestClusterConfig {
     trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
   }
 
+  @Test
+  public void testGetLastOnDemandRebalanceTimestamp() {
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    Assert.assertEquals(testConfig.getLastOnDemandRebalanceTimestamp(), -1L);
+
+    testConfig.getRecord()
+        .setLongField(ClusterConfig.ClusterConfigProperty.LAST_ON_DEMAND_REBALANCE_TIMESTAMP.name(),
+            10000L);
+    Assert.assertEquals(testConfig.getLastOnDemandRebalanceTimestamp(), 10000L);
+  }
+
+  @Test
+  public void testSetLastOnDemandRebalanceTimestamp() {
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    testConfig.setLastOnDemandRebalanceTimestamp(10000L);
+
+    Assert.assertEquals(testConfig.getRecord()
+        .getLongField(ClusterConfig.ClusterConfigProperty.LAST_ON_DEMAND_REBALANCE_TIMESTAMP.name(),
+            -1), 10000L);
+  }
+
+
   private void trySetInvalidAbnormalStatesResolverMap(ClusterConfig testConfig,
       Map<String, String> resolverMap) {
     try {

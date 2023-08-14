@@ -331,10 +331,7 @@ public class InstanceConfig extends HelixProperty {
   }
 
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
-    if (operation == InstanceConstants.InstanceOperation.DISABLE
-        || operation == InstanceConstants.InstanceOperation.ENABLE) {
-      setInstanceEnabled(operation == InstanceConstants.InstanceOperation.ENABLE);
-    }
+    // TODO: also setInstanceEnabled after sanity check.
 
     _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.toString(),
         operation.toString());

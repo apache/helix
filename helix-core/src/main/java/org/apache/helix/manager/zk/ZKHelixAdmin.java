@@ -387,7 +387,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
     }
 
-   boolean succeeded =  baseAccessor.update(path, new DataUpdater<ZNRecord>() {
+   boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {
@@ -396,12 +396,9 @@ public class ZKHelixAdmin implements HelixAdmin {
         }
 
         InstanceConfig config = new InstanceConfig(currentData);
-        // TODO: also need to check at cluster level when we allow batch enabling/disabling instances
-        if (!config.getInstanceEnabled() && (instanceOperation != InstanceConstants.InstanceOperation.ENABLE )) {
-          throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
-              + ", Can not set instance operation when instance is in disabled state");
-        }
-        config.setInstanceOperation(instanceOperation); // we set instance enabled in instance config
+        // TODO: add sanity check in  config.setInstanceOperation and throw exception when needed.
+        // TODO: Also instance enabled in instance config
+        config.setInstanceOperation(instanceOperation);
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);

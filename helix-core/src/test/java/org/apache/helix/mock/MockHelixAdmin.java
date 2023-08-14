@@ -329,7 +329,6 @@ public class MockHelixAdmin implements HelixAdmin {
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);
-
   }
 
   @Override

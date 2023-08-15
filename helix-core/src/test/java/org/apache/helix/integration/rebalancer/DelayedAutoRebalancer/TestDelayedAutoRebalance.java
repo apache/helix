@@ -242,7 +242,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     validateDelayedMovements(externalViewsBefore);
 
     // trigger an on-demand rebalance and partitions on the offline node should move
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, System.currentTimeMillis());
+    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
@@ -296,7 +296,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       externalViewsBefore.put(db, ev);
     }
 
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, System.currentTimeMillis());
+    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after setting last on-demand timestamp, rebalance should make no change because the delayed
     // rebalance is already executed

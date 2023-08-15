@@ -302,7 +302,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     validateDelayedMovementsOnDisabledNode(externalViewsBefore);
 
     // trigger an on-demand rebalance and partitions on the disabled node should move
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, System.currentTimeMillis());
+    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
@@ -361,7 +361,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       externalViewsBefore.put(db, ev);
     }
 
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, System.currentTimeMillis());
+    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after setting last on-demand timestamp, rebalance should make no change because the delayed
     // rebalance is already executed

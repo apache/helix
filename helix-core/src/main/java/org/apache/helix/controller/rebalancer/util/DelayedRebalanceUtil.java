@@ -141,7 +141,7 @@ public class DelayedRebalanceUtil {
     if (!liveInstances.contains(instance)) {
       // Check if the offline instance is forced to be rebalanced by an on-demand rebalance.
       // If so, return it as an inactive instance.
-      if (isInstanceForcedToBeRebalancded(offlineTime, delay, lastOnDemandRebalanceTime)) {
+      if (isInstanceForcedToBeRebalanced(offlineTime, delay, lastOnDemandRebalanceTime)) {
         return -1L;
       }
 
@@ -165,7 +165,7 @@ public class DelayedRebalanceUtil {
 
       // Check if the disabled instance is forced to be rebalanced by an on-demand rebalance.
       // If so, return it as an inactive instance.
-      if (isInstanceForcedToBeRebalancded(disabledTime, delay, lastOnDemandRebalanceTime)) {
+      if (isInstanceForcedToBeRebalanced(disabledTime, delay, lastOnDemandRebalanceTime)) {
         return -1L;
       }
 
@@ -432,16 +432,37 @@ public class DelayedRebalanceUtil {
             currentIdealState), currentIdealState, numReplica);
   }
 
-  private static boolean isInstanceForcedToBeRebalancded(Long offlineOrDisabledTime, long delay,
-      long lastOnDemandRebalanceTimestamp) {
-    if (lastOnDemandRebalanceTimestamp == -1 || offlineOrDisabledTime == null
-        || offlineOrDisabledTime <= 0) {
+  /**
+   * Given the offline/disabled time, delay, and the last on-demand rebalance time, this method checks
+   * if the node associated with the offline/disabled time is forced to be rebalanced by the on-demand
+   * rebalance. There are several cases:
+   *  1. If either the last on-demand rebalance time or the offline/disabled time is unavailable, then
+   *     the node is not forced to be rebalanced.
+   *  2. If the current time surpasses the delayed offline/disabled time, then the node is not forced
+   *     to be rebalanced.
+   *  3. If the last on-demand rebalance time is before the offline/disabled time, the node is not
+   *     forced to be rebalanced.
+   *  4. If the last on-demand rebalance time is after the delayed offline/disabled time, then the
+   *     node is not forced to be rebalanced.
+   *  5. Otherwise, the offline/disabled node should be forced to rebalance.
+   *
+   * @param offlineOrDisabledTime a unix timestamp indicating the most recent time when a node went
+   *                              offline or was disabled.
+   * @param delay the delay window configuration of the current cluster
+   * @param lastOnDemandRebalanceTime a unix timestamp representing the most recent time when an
+   *                                  on-demand rebalance was triggered.
+   * @return a boolean indicating whether a node is forced to be rebalanced
+   */
+  private static boolean isInstanceForcedToBeRebalanced(Long offlineOrDisabledTime, long delay,
+      long lastOnDemandRebalanceTime) {
+    if (lastOnDemandRebalanceTime == -1 || offlineOrDisabledTime == null
+        || offlineOrDisabledTime <= 0 || System.currentTimeMillis() > (offlineOrDisabledTime
+        + delay)) {
       return false;
     }
-    long delayedInactiveTime = offlineOrDisabledTime + delay;
-    return offlineOrDisabledTime < lastOnDemandRebalanceTimestamp
-        && lastOnDemandRebalanceTimestamp < Math.min(delayedInactiveTime,
-        System.currentTimeMillis());
+
+    return offlineOrDisabledTime < lastOnDemandRebalanceTime && lastOnDemandRebalanceTime < (
+        offlineOrDisabledTime + delay);
   }
 
   /**

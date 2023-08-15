@@ -551,6 +551,12 @@ public interface HelixAdmin {
   void rebalance(String clusterName, String resourceName, int replica);
 
   /**
+   * Rebalance a cluster without respecting the delay
+   * @param clusterName
+   */
+  void onDemandRebalance(String clusterName);
+
+  /**
    * Add ideal state using a json format file
    * @param clusterName
    * @param resourceName

@@ -10,10 +10,10 @@ public class InstanceConstants {
   }
 
   public enum InstanceOperation {
-    EVACUATE,
-    SWAP_IN,
-    SWAP_OUT,
-    ENABLE,
-    DISABLE;
+    EVACUATE, // Node will be removed after a period of time
+    SWAP_IN,  // New node joining for swap operation
+    SWAP_OUT, // Existing Node to be removed for swap operation
+    ENABLE,   // Backward compatible field for HELIX_ENABLED. Set when changing from disabled to enabled.
+    DISABLE   // Backward compatible field for HELIX_ENABLED. Set when changing from enabled to disabled.
   }
 }

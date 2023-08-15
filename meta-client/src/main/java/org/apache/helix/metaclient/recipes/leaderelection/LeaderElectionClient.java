@@ -258,22 +258,23 @@ public class LeaderElectionClient implements AutoCloseable {
     }
     // check if current participant is the leader
     // read data and stats, check, and multi check + delete
-    try{
-    ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
-    if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
-      int expectedVersion = tup.right.getVersion();
-      List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
-      //Execute transactional support on operations
-      List<OpResult> opResults = _metaClient.transactionOP(ops);
-      if (opResults.get(0).getType() == ERRORRESULT) {
-        if (isLeader(leaderPath)) {
-          // Participant re-elected as leader.
-          throw new ConcurrentModificationException("Concurrent operation, please retry");
-        } else {
-          LOG.info("Someone else is already leader");
+    try {
+      ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
+      if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
+        int expectedVersion = tup.right.getVersion();
+        List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
+        //Execute transactional support on operations
+        List<OpResult> opResults = _metaClient.transactionOP(ops);
+        if (opResults.get(0).getType() == ERRORRESULT) {
+          if (isLeader(leaderPath)) {
+            // Participant re-elected as leader.
+            throw new ConcurrentModificationException("Concurrent operation, please retry");
+          } else {
+            LOG.info("Someone else is already leader");
+          }
         }
       }
-    }} catch (MetaClientNoNodeException ex) {
+    } catch (MetaClientNoNodeException ex) {
       LOG.info("No Leader for participant pool {} when exit the pool", leaderPath);
     }
   }

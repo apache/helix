@@ -446,10 +446,10 @@ public class DelayedRebalanceUtil {
    *     node is not forced to be rebalanced.
    *  5. Otherwise, the offline/disabled node should be forced to rebalance.
    *
-   * @param offlineOrDisabledTime a unix timestamp indicating the most recent time when a node went
+   * @param offlineOrDisabledTime A unix timestamp indicating the most recent time when a node went
    *                              offline or was disabled.
-   * @param delay the delay window configuration of the current cluster
-   * @param lastOnDemandRebalanceTime a unix timestamp representing the most recent time when an
+   * @param delay The delay window configuration of the current cluster
+   * @param lastOnDemandRebalanceTime A unix timestamp representing the most recent time when an
    *                                  on-demand rebalance was triggered.
    * @return a boolean indicating whether a node is forced to be rebalanced
    */

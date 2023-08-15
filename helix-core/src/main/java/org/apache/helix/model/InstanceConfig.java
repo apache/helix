@@ -333,8 +333,8 @@ public class InstanceConfig extends HelixProperty {
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
     // TODO: also setInstanceEnabled after sanity check.
 
-    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.toString(),
-        operation.toString());
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name(),
+        operation.name());
   }
 
   public String getInstanceOperation() {

@@ -308,27 +308,6 @@ public class MockHelixAdmin implements HelixAdmin {
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
       InstanceConstants.InstanceOperation instanceOperation) {
-
-    String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
-
-    if (!_baseDataAccessor.exists(path, 0)) {
-      throw new HelixException(
-          "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
-    }
-
-    _baseDataAccessor.update(path, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        if (currentData == null) {
-          throw new HelixException(
-              "Cluster: " + clusterName + ", instance: " + instanceName + ", participant config is null");
-        }
-
-        InstanceConfig config = new InstanceConfig(currentData);
-        config.setInstanceOperation(instanceOperation); // we set instance enabled in instance config
-        return config.getRecord();
-      }
-    }, AccessOption.PERSISTENT);
   }
 
   @Override

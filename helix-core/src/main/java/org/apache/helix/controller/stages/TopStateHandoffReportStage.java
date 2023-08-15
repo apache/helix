@@ -491,6 +491,12 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
                 true);
       }
     }
+
+    // In case of recovery after failure, we should decrement the missingTopStateBeyondThresholdGauge value.
+    if (clusterStatusMonitor != null && record.isFailed()) {
+      clusterStatusMonitor.decrementMissingTopStateBeyondThresholdGauge(resourceName);
+    }
+
     removeFromStatsMap(missingTopStateMap, resourceName, partition);
   }
 

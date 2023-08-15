@@ -121,18 +121,21 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     final List<TestCaseConfig> failed;
     final List<TestCaseConfig> fast;
     final List<TestCaseConfig> succeededNonGraceful;
+    final List<TestCaseConfig> failedWithoutRecovery;
 
     @JsonCreator
     public TestConfig(
         @JsonProperty("succeeded") List<TestCaseConfig> succeededCfg,
         @JsonProperty("failed") List<TestCaseConfig> failedCfg,
         @JsonProperty("fast") List<TestCaseConfig> fastCfg,
-        @JsonProperty("succeededNonGraceful") List<TestCaseConfig> nonGraceful
+        @JsonProperty("succeededNonGraceful") List<TestCaseConfig> nonGraceful,
+        @JsonProperty("failedWithoutRecovery") List<TestCaseConfig> unrecoveredFailedCfg
     ) {
       succeeded = succeededCfg;
       failed = failedCfg;
       fast = fastCfg;
       succeededNonGraceful = nonGraceful;
+      failedWithoutRecovery = unrecoveredFailedCfg;
     }
   }
 
@@ -224,15 +227,35 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   public void testTopStateFailedHandoff(TestCaseConfig cfg) {
     // There are two scenarios here :
     //    1. localhost_0 looses top-state at 15000 and top state is recovered on localhost_1 at 22000. This means that
-    //       hand-off took 7000 which is greater than threshold (5000) hence both failed counter as well
-    //       missingTopStatePartitionsThresholdGuage will be set to 1.
-    //   2. localhost_0 looses top-state at 15000 and it's NEVER recovered. In this scenario as well both failed counter
-    //      as well as missingTopStatePartitionsThresholdGuage should be set to 1.
-    //   3. localhost_0 looses top-state at 15000 and recovers at 18000.
+    //       hand-off took 7000 which is greater than threshold (5000).
+    //    2. localhost_0 looses top-state at 15000 and recovers at 18000.
+    // In both scenarios as recovery has been achieved so both failed counter and missingTopStatePartitionsThresholdGauge
+    // will be set to 0.
     ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
     clusterConfig.setMissTopStateDurationThreshold(5000L);
     setClusterConfig(clusterConfig);
     runTestWithNoInjection(cfg, true);
+  }
+
+  @Test(dataProvider = "failedWithoutRecovery")
+  public void testTopStateFailedUnrecoveredHandoff(TestCaseConfig cfg) {
+    // Scenario : localhost_0 looses top-state at 15000 and it's NEVER recovered.
+    // In this scenario missingTopStatePartitionsThresholdGauge value should be set to 1.
+    ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
+    clusterConfig.setMissTopStateDurationThreshold(5000L);
+    setClusterConfig(clusterConfig);
+
+    preSetup();
+    Range<Long> duration = Range.closed(cfg.duration, cfg.duration);
+    Range<Long> expectedDuration = cfg.isGraceful ? duration : DURATION_ZERO;
+    Range<Long> expectedNonGracefulDuration = cfg.isGraceful ? DURATION_ZERO : duration;
+    Range<Long> expectedHelixLatency = cfg.isGraceful ? Range.closed(cfg.helixLatency, cfg.helixLatency) : DURATION_ZERO;
+
+    runStageAndVerify(cfg.initialCurrentStates, cfg.currentStateWithMissingTopState,
+        cfg.finalCurrentState, null,  0,
+        1, 1,   // No recovered state observed so no change in gauge and counter
+        expectedDuration, expectedNonGracefulDuration,
+        expectedDuration, expectedHelixLatency);
   }
 
   // Test success with no available clue about previous master.
@@ -337,6 +360,11 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     return testCaseConfigListToObjectArray(config.failed);
   }
 
+  @DataProvider(name = "failedWithoutRecovery")
+  public Object[][] failedWithoutRecovery() {
+    return testCaseConfigListToObjectArray(config.failedWithoutRecovery);
+  }
+
   @DataProvider(name = "fastCurrentStateInput")
   public Object[][] fastCurrentState() {
     return testCaseConfigListToObjectArray(config.fast);
@@ -363,7 +391,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     Range<Long> expectedHelixLatency =
         cfg.isGraceful ? Range.closed(cfg.helixLatency, cfg.helixLatency) : DURATION_ZERO;
     runStageAndVerify(cfg.initialCurrentStates, cfg.currentStateWithMissingTopState,
-        cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, expectFail ? 1 : 0, expectedDuration, expectedNonGracefulDuration,
+        cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, 0, expectedDuration, expectedNonGracefulDuration,
         expectedDuration, expectedHelixLatency);
   }
 

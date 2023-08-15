@@ -72,7 +72,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter;
   private SimpleDynamicMetric<Long> _successTopStateHandoffCounter;
 
-  // A new Gauage _missingTopStatePartitionsBeyondThresholdGauge for reporting number of partitions with missing top
+  // A new Gauge _missingTopStatePartitionsBeyondThresholdGauge for reporting number of partitions with missing top
   // state has been added. Reason of deprecating this two metrics is because they are similar and doesn't tell about
   // how many partitions are missing beyond threshold. The average duration of different partitions hands-off would not
   // be helpful and can be used to find that out. Please find more info at https://github.com/apache/helix/pull/2381
@@ -381,12 +381,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
           _lastResetTime = System.currentTimeMillis();
         }
       } else {
-        // TODO: Deprecated. use MissingTopStateBeyondThresholdGuage to find out number of partitions with missing top
+        // TODO: Deprecated. use MissingTopStateBeyondThresholdGauge to find out number of partitions with missing top
         //  state.
         _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
-        _missingTopStatePartitionsBeyondThresholdGauge
-            .updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() + 1);
-        _lastResetTime = System.currentTimeMillis();
+        incrementMissingTopStateBeyondThresholdGauge();
       }
       break;
     default:
@@ -485,6 +483,16 @@ public class ResourceMonitor extends DynamicMBeanProvider {
       _missingTopStatePartitionsBeyondThresholdGauge.updateValue(0L);
       _lastResetTime = System.currentTimeMillis();
     }
+  }
+
+  public void incrementMissingTopStateBeyondThresholdGauge() {
+    _missingTopStatePartitionsBeyondThresholdGauge.updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() + 1);
+    _lastResetTime = System.currentTimeMillis();
+  }
+
+  public void decrementMissingTopStateBeyondThresholdGauge() {
+    _missingTopStatePartitionsBeyondThresholdGauge.updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() - 1);
+    _lastResetTime = System.currentTimeMillis();
   }
 
   private List<DynamicMetric<?, ?>> buildAttributeList() {

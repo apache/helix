@@ -583,6 +583,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  public void decrementMissingTopStateBeyondThresholdGauge(String resourceName) {
+    ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
+
+    if (resourceMonitor != null) {
+      resourceMonitor.decrementMissingTopStateBeyondThresholdGauge();
+    }
+  }
+
   public void updateRebalancerStats(String resourceName, long numPendingRecoveryRebalancePartitions,
       long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
       long numLoadRebalanceThrottledPartitions, boolean rebalanceThrottledByErrorPartitions) {

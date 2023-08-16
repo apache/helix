@@ -61,7 +61,8 @@ public class InstanceConfig extends HelixProperty {
     DELAY_REBALANCE_ENABLED,
     MAX_CONCURRENT_TASK,
     INSTANCE_CAPACITY_MAP,
-    TARGET_TASK_THREAD_POOL_SIZE
+    TARGET_TASK_THREAD_POOL_SIZE,
+    INSTANCE_OPERATION
   }
 
   public static final int WEIGHT_NOT_SET = -1;
@@ -327,6 +328,17 @@ public class InstanceConfig extends HelixProperty {
    */
   public long getInstanceEnabledTime() {
     return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
+  }
+
+  public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
+    // TODO: also setInstanceEnabled after sanity check.
+
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name(),
+        operation.name());
+  }
+
+  public String getInstanceOperation() {
+    return _record.getStringField(InstanceConfigProperty.INSTANCE_OPERATION.name(), "");
   }
 
   /**

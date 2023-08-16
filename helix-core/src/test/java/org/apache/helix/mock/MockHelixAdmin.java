@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -50,8 +50,7 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-
-import static org.apache.helix.manager.zk.ZKHelixAdmin.assembleInstanceBatchedDisabledInfo;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 
 
 public class MockHelixAdmin implements HelixAdmin {
@@ -304,6 +303,11 @@ public class MockHelixAdmin implements HelixAdmin {
   @Override
   public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
 
+  }
+
+  @Override
+  public void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation) {
   }
 
   @Override

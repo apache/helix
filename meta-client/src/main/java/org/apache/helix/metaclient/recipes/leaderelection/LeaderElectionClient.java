@@ -33,6 +33,7 @@ import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.exception.MetaClientBadVersionException;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
@@ -83,7 +84,7 @@ public class LeaderElectionClient implements AutoCloseable {
   /**
    * Construct a LeaderElectionClient using a user passed in leaderElectionConfig. It creates a MetaClient
    * instance underneath.
-   * When MetaClient is auto closed be cause of being disconnected and auto retry connection timed out, A new
+   * When MetaClient is auto closed because of being disconnected and auto retry connection timed out, A new
    * MetaClient instance will be created and keeps retry connection.
    *
    * @param metaClientConfig The config used to create an metaclient.
@@ -257,20 +258,24 @@ public class LeaderElectionClient implements AutoCloseable {
     }
     // check if current participant is the leader
     // read data and stats, check, and multi check + delete
-    ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
-    if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
-      int expectedVersion = tup.right.getVersion();
-      List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
-      //Execute transactional support on operations
-      List<OpResult> opResults = _metaClient.transactionOP(ops);
-      if (opResults.get(0).getType() == ERRORRESULT) {
-        if (isLeader(leaderPath)) {
-          // Participant re-elected as leader.
-          throw new ConcurrentModificationException("Concurrent operation, please retry");
-        } else {
-          LOG.info("Someone else is already leader");
+    try {
+      ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
+      if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
+        int expectedVersion = tup.right.getVersion();
+        List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
+        //Execute transactional support on operations
+        List<OpResult> opResults = _metaClient.transactionOP(ops);
+        if (opResults.get(0).getType() == ERRORRESULT) {
+          if (isLeader(leaderPath)) {
+            // Participant re-elected as leader.
+            throw new ConcurrentModificationException("Concurrent operation, please retry");
+          } else {
+            LOG.info("Someone else is already leader");
+          }
         }
       }
+    } catch (MetaClientNoNodeException ex) {
+      LOG.info("No Leader for participant pool {} when exit the pool", leaderPath);
     }
   }
 
@@ -334,8 +339,10 @@ public class LeaderElectionClient implements AutoCloseable {
    * @return A boolean value indicating if registration is success.
    */
   public boolean subscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
-    _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, new LeaderElectionListenerInterfaceAdapter(listener),
-        false);
+    LeaderElectionListenerInterfaceAdapter adapter = new LeaderElectionListenerInterfaceAdapter(leaderPath, listener);
+    _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
+        adapter, false /*skipWatchingNonExistNode*/); // we need to subscribe event when path is not there
+    _metaClient.subscribeStateChanges(adapter);
     return false;
   }
 
@@ -344,7 +351,10 @@ public class LeaderElectionClient implements AutoCloseable {
    * @param listener An implementation of LeaderElectionListenerInterface
    */
   public void unsubscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
-    _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY, new LeaderElectionListenerInterfaceAdapter(listener));
+    LeaderElectionListenerInterfaceAdapter adapter = new LeaderElectionListenerInterfaceAdapter(leaderPath, listener);
+    _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY, adapter
+        );
+    _metaClient.unsubscribeConnectStateChanges(adapter);
   }
 
   @Override
@@ -395,12 +405,34 @@ public class LeaderElectionClient implements AutoCloseable {
           _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, _participantInfos.get(leaderPath),
               MetaClientInterface.EntryMode.EPHEMERAL);
         }
+      } else if (prevState == MetaClientInterface.ConnectState.DISCONNECTED
+          && currentState == MetaClientInterface.ConnectState.CONNECTED) {
+        touchLeaderNode();
       }
     }
 
     @Override
     public void handleConnectionEstablishmentError(Throwable error) throws Exception {
 
+    }
+  }
+
+  private void touchLeaderNode() {
+    for (String leaderPath : _leaderGroups) {
+      String key = leaderPath;
+      ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
+      if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
+        int expectedVersion = tup.right.getVersion();
+        try {
+          _metaClient.set(key, tup.left, expectedVersion);
+        } catch (MetaClientNoNodeException ex) {
+          LOG.info("leaderPath {} gone when retouch leader node.", key);
+        } catch (MetaClientBadVersionException e) {
+          LOG.info("New leader for leaderPath {} when retouch leader node.", key);
+        } catch (MetaClientException ex) {
+          LOG.warn("Failed to touch {} when reconnected.", key, ex);
+        }
+      }
     }
   }
 

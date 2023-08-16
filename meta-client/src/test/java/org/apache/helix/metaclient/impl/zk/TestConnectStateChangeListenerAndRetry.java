@@ -48,43 +48,20 @@ import org.testng.annotations.Test;
 
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_INIT_EXP_BACKOFF_RETRY_INTERVAL_MS;
 import static org.apache.helix.metaclient.constants.MetaClientConstants.DEFAULT_MAX_EXP_BACKOFF_RETRY_INTERVAL_MS;
+import static org.apache.helix.metaclient.impl.zk.TestUtil.*;
 
 
 public class TestConnectStateChangeListenerAndRetry  {
-  protected static final String ZK_ADDR = "localhost:2181";
+  protected static final String ZK_ADDR = "localhost:2184";
   protected static ZkServer _zkServer;
 
-  private static final long AUTO_RECONNECT_TIMEOUT_MS_FOR_TEST = 3 * 1000;
-  private static final long AUTO_RECONNECT_WAIT_TIME_WITHIN = 1 * 1000;
-  private static final long AUTO_RECONNECT_WAIT_TIME_EXD = 5 * 1000;
 
-  /**
-   * Simulate a zk state change by calling {@link ZkClient#process(WatchedEvent)} directly
-   * This need to be done in a separate thread to simulate ZkClient eventThread.
-   */
-  private static void simulateZkStateReconnected(ZkClient zkClient) throws InterruptedException {
-      WatchedEvent event =
-          new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.Disconnected,
-              null);
-      zkClient.process(event);
-
-      Thread.sleep(AUTO_RECONNECT_WAIT_TIME_WITHIN);
-
-      event = new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.SyncConnected,
-          null);
-      zkClient.process(event);
-  }
 
   @BeforeTest
   public void prepare() {
     System.out.println("START TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
     // start local zookeeper server
     _zkServer = ZkMetaClientTestBase.startZkServer(ZK_ADDR);
-  }
-
-  @AfterTest
-  public void cleanUp() {
-    System.out.println("END TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -115,7 +92,7 @@ public class TestConnectStateChangeListenerAndRetry  {
         @Override
         public void run() {
           try {
-            simulateZkStateReconnected(zkMetaClient.getZkClient());
+            simulateZkStateReconnected(zkMetaClient);
           } catch (InterruptedException e) {
            Assert.fail("Exception in simulateZkStateReconnected", e);
           }
@@ -170,6 +147,7 @@ public class TestConnectStateChangeListenerAndRetry  {
       } catch (Exception ex) {
         Assert.assertTrue(ex instanceof IllegalStateException);
       }
+      zkMetaClient.unsubscribeConnectStateChanges(listener);
     }
     System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
   }

@@ -40,6 +40,10 @@ import org.testng.Assert;
 
 public class TestUtil {
 
+  public static final long AUTO_RECONNECT_TIMEOUT_MS_FOR_TEST = 3 * 1000;
+  public static final long AUTO_RECONNECT_WAIT_TIME_WITHIN = 1 * 1000;
+  public static final long AUTO_RECONNECT_WAIT_TIME_EXD = 5 * 1000;
+
   static java.lang.reflect.Field getField(Class clazz, String fieldName)
       throws NoSuchFieldException {
     try {
@@ -159,6 +163,26 @@ public class TestUtil {
     String newSessionId = Long.toHexString(curZookeeper.getSessionId());
     Assert.assertFalse(newSessionId.equals(oldSessionId),
         "Fail to expire current session, zk: " + curZookeeper);
+  }
+
+
+
+  /**
+   * Simulate a zk state change by calling {@link ZkClient#process(WatchedEvent)} directly
+   * This need to be done in a separate thread to simulate ZkClient eventThread.
+   */
+  public static void simulateZkStateReconnected(ZkMetaClient client) throws InterruptedException {
+    final ZkClient zkClient = client.getZkClient();
+    WatchedEvent event =
+        new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.Disconnected,
+            null);
+    zkClient.process(event);
+
+    Thread.sleep(AUTO_RECONNECT_WAIT_TIME_WITHIN);
+
+    event = new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.SyncConnected,
+        null);
+    zkClient.process(event);
   }
 
 }

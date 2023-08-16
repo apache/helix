@@ -51,11 +51,14 @@ public class TestMultiClientLeaderElection extends ZkMetaClientTestBase {
     _zkMetaClient.create("/Parent/a", "");
   }
   @AfterTest
+  @Override
   public void cleanUp() {
     try {
       _zkMetaClient.recursiveDelete(_leaderElectionGroup);
     } catch (MetaClientException ex) {
       _zkMetaClient.recursiveDelete(_leaderElectionGroup);
+    } finally {
+      _zkMetaClient.close();
     }
   }
 

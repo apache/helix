@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -450,22 +452,17 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
             resourceMap.keySet());
 
     // Step 1: Check for permanent node down
-    AtomicBoolean allNodesActive = new AtomicBoolean(true);
-    currentBestPossibleAssignment.values().parallelStream().forEach((resourceAssignment -> {
-      resourceAssignment.getMappedPartitions().parallelStream().forEach(partition -> {
-        for (String instance : resourceAssignment.getReplicaMap(partition).keySet()) {
-          if (!activeNodes.contains(instance)) {
-            allNodesActive.set(false);
-            break;
-          }
-        }
-      });
-    }));
-
+    boolean allNodesActive = currentBestPossibleAssignment.values().stream()
+        .map(resourceAssignment -> resourceAssignment.getMappedPartitions().stream()
+            .map(resourceAssignment::getReplicaMap)
+            .map(Map::keySet)
+            .flatMap(Collection::stream)
+            .allMatch(activeNodes::contains)) // all replicas in a partition should match active nodes.
+        .allMatch(Boolean::booleanValue);
 
     // Step 2: if there are permanent node downs, calculate for a new one best possible
     Map<String, ResourceAssignment> newAssignment;
-    if (!allNodesActive.get()) {
+    if (!allNodesActive) {
       LOG.info("Emergency rebalance responding to permanent node down.");
       ClusterModel clusterModel;
       try {

@@ -84,7 +84,8 @@ public class AbstractResource {
     enableWagedRebalanceForAllResources,
     purgeOfflineParticipants,
     getInstance,
-    getAllInstances
+    getAllInstances,
+    setInstanceOperation // TODO: Name is just a place holder, may change in future
   }
 
   @Context

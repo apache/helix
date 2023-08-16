@@ -302,6 +302,9 @@ public interface HelixAdmin {
    */
   void enableInstance(String clusterName, List<String> instances, boolean enabled);
 
+  void setInstanceOperation(String clusterName, String instance,
+      InstanceConstants.InstanceOperation instanceOperation);
+
   /**
    * Disable or enable a resource
    * @param clusterName

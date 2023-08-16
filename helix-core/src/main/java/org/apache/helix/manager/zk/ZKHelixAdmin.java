@@ -375,6 +375,40 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  // TODO: Name may change in future
+  public void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation) {
+
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+
+    if (!baseAccessor.exists(path, 0)) {
+      throw new HelixException(
+          "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
+    }
+
+   boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          throw new HelixException(
+              "Cluster: " + clusterName + ", instance: " + instanceName + ", participant config is null");
+        }
+
+        InstanceConfig config = new InstanceConfig(currentData);
+        // TODO: add sanity check in  config.setInstanceOperation and throw exception when needed.
+        // TODO: Also instance enabled in instance config
+        config.setInstanceOperation(instanceOperation);
+        return config.getRecord();
+      }
+    }, AccessOption.PERSISTENT);
+
+    if (!succeeded) {
+      throw new HelixException("Failed to update instance operation. Please check if instance is disabled.");
+    }
+  }
+
+  @Override
   public void enableResource(final String clusterName, final String resourceName,
       final boolean enabled) {
     logger.info("{} resource {} in cluster {}.", enabled ? "Enable" : "Disable", resourceName,

@@ -22,6 +22,7 @@ package org.apache.helix.integration.messaging;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -159,7 +160,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   }
 
   @Test (dependsOnMethods = {"testP2PStateTransitionDisabled"})
-  public void testP2PStateTransitionEnabled() {
+  public void testP2PStateTransitionEnabled() throws Exception {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
     long startTime = System.currentTimeMillis();
     MockHelixTaskExecutor.resetStats();
@@ -167,18 +168,30 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
     for (String ins : _instances) {
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, false);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
-      verifyP2PEnabled(startTime);
+      // Since new host that receives the p2p relay message will record the source host (controller)
+      // of the relay message as the trigger host, the top state transition triggered by the
+      // controller should be equal to the total number of top state transitions.
+      Assert.assertTrue(TestHelper.verify(() -> {
+            total = 0;
+            p2pTriggered = 0;
+            verifyP2PEnabled(startTime);
+            return total == p2pTriggered;
+          }, TestHelper.WAIT_DURATION),
+          "Number of successful p2p transitions when disable instance " + ins + ": " + p2pTriggered
+              + " , expect: " + total);
 
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, true);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
-      verifyP2PEnabled(startTime);
+      Assert.assertTrue(TestHelper.verify(() -> {
+            total = 0;
+            p2pTriggered = 0;
+            verifyP2PEnabled(startTime);
+            return total == p2pTriggered;
+          }, TestHelper.WAIT_DURATION),
+          "Number of successful p2p transitions when enable instance " + ins + ":" + p2pTriggered
+              + " , expect:" + total);
     }
 
-    // The success rate really depends on how quick participant act in relationship with controller.
-    // For now, we set 80% threshold.
-    long threshold = Math.round(total * 0.8);
-    Assert.assertTrue( p2pTrigged > Math.round(total * 0.8),
-        "Number of successful p2p transitions are " + p2pTrigged + " and expect " + total);
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessagesInProgress, 0,
         "There are duplicated transition messages sent while participant is handling the state-transition!");
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessages, 0,
@@ -209,7 +222,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   }
 
   static int total = 0;
-  static int p2pTrigged = 0;
+  static int p2pTriggered = 0;
 
   private void verifyP2PEnabled(long startTime) {
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
@@ -227,7 +240,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
           if (state.equalsIgnoreCase("MASTER") && start > startTime) {
             String triggerHost = currentState.getTriggerHost(partition);
             if (!triggerHost.equals(_controllerName)) {
-              p2pTrigged ++;
+              p2pTriggered ++;
             }
             total ++;
           }

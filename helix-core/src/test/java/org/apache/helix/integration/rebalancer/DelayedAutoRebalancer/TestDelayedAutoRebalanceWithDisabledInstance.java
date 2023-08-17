@@ -25,7 +25,6 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -33,12 +32,11 @@ import org.testng.annotations.Test;
 
 
 public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAutoRebalance {
-  private ConfigAccessor _configAccessor;
-
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
     _configAccessor = new ConfigAccessor(_gZkClient);
+    _testingCondition = DISABLED_NODE;
   }
 
 
@@ -293,58 +291,18 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
   }
 
   @Test(dependsOnMethods = {"testDisableDelayRebalanceInInstance"})
-  @Override
   public void testOnDemandRebalance() throws Exception {
-    enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
-    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
-    // disable one node, no partition should be moved.
-    validateDelayedMovementsOnDisabledNode(externalViewsBefore);
-
-    // trigger an on-demand rebalance and partitions on the disabled node should move
-    validateMovementAfterOnDemandRebalance(externalViewsBefore, null, true, true);
-
-    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
+    super.testOnDemandRebalance();
   }
 
   @Test(dependsOnMethods = {"testOnDemandRebalance"})
-  @Override
   public void testExpiredOnDemandRebalanceTimestamp() throws Exception {
-    enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
-    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
-    // disable one node and make sure no partition movement
-    validateDelayedMovementsOnDisabledNode(externalViewsBefore);
-
-    // trigger an on-demand rebalance and partitions on the disabled node shouldn't move
-    validateMovementAfterOnDemandRebalance(externalViewsBefore, 1L, false, true);
-
-    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
+    super.testExpiredOnDemandRebalanceTimestamp();
   }
 
   @Test(dependsOnMethods = {"testExpiredOnDemandRebalanceTimestamp"})
-  @Override
   public void testOnDemandRebalanceAfterDelayRebalanceHappen() throws Exception {
-    long delay = 4000;
-    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, delay);
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
-
-    // disable one node, no partition should be moved.
-    validateDelayedMovementsOnDisabledNode(externalViewsBefore);
-
-    Thread.sleep(delay);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    // after delay time, it should maintain required number of replicas
-    externalViewsBefore = validatePartitionMovement(externalViewsBefore, true, true);
-
-    // after setting last on-demand timestamp, rebalance should make no change because the delayed
-    // rebalance is already executed
-    validateMovementAfterOnDemandRebalance(externalViewsBefore, null, false, true);
-
-    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
+    super.testOnDemandRebalanceAfterDelayRebalanceHappen();
   }
 
   @BeforeMethod
@@ -358,24 +316,5 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       }
       enableInstance(_participants.get(i).getInstanceName(), true);
     }
-  }
-
-  private void enableInstance(String instance, boolean enabled) {
-    // Disable one node, no partition should be moved.
-    long currentTime = System.currentTimeMillis();
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instance, enabled);
-    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
-    Assert.assertEquals(instanceConfig.getInstanceEnabled(), enabled);
-    Assert.assertTrue(instanceConfig.getInstanceEnabledTime() >= currentTime);
-    Assert.assertTrue(instanceConfig.getInstanceEnabledTime() <= currentTime + 100);
-  }
-
-  private void validateDelayedMovementsOnDisabledNode(Map<String, ExternalView> externalViewsBefore)
-      throws Exception {
-    enableInstance(_participants.get(0).getInstanceName(), false);
-    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    validatePartitionMovement(externalViewsBefore, false, true);
   }
 }

@@ -302,18 +302,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     validateDelayedMovementsOnDisabledNode(externalViewsBefore);
 
     // trigger an on-demand rebalance and partitions on the disabled node should move
-    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
-      // make sure the offline participant has no replicas after on demand rebalance
-      validateNoPartitionOnOfflineInstance(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName());
-    }
+    validateMovementAfterOnDemandRebalance(externalViewsBefore, null, true, true);
 
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
     setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
@@ -329,10 +318,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     validateDelayedMovementsOnDisabledNode(externalViewsBefore);
 
     // trigger an on-demand rebalance and partitions on the disabled node shouldn't move
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, 1);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    validateNoExternalViewChange(externalViewsBefore, _minActiveReplica,true);
+    validateMovementAfterOnDemandRebalance(externalViewsBefore, 1L, false, true);
 
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
     setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
@@ -361,11 +347,9 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       externalViewsBefore.put(db, ev);
     }
 
-    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after setting last on-demand timestamp, rebalance should make no change because the delayed
     // rebalance is already executed
-    validateNoExternalViewChange(externalViewsBefore, _replica,true);
+    validateMovementAfterOnDemandRebalance(externalViewsBefore, null, false, true);
 
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
     setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);

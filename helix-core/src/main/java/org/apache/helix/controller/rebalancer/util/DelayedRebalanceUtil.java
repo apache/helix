@@ -129,8 +129,10 @@ public class DelayedRebalanceUtil {
   }
 
   /**
-   * @return The time when an offline or disabled instance should be treated as inactive.
-   * Return -1 if it is inactive now.
+   * Return the time when an offline or disabled instance should be treated as inactive. Return -1
+   * if it is inactive now or forced to be rebalanced by an on-demand rebalance.
+   *
+   * @return A timestamp that represents the expected inactive time of a node.
    */
   private static long getInactiveTime(String instance, Set<String> liveInstances, Long offlineTime,
       long delay, InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
@@ -435,23 +437,18 @@ public class DelayedRebalanceUtil {
   /**
    * Given the offline/disabled time, delay, and the last on-demand rebalance time, this method checks
    * if the node associated with the offline/disabled time is forced to be rebalanced by the on-demand
-   * rebalance. There are several cases:
+   * rebalance.
    *  1. If either the last on-demand rebalance time or the offline/disabled time is unavailable, then
    *     the node is not forced to be rebalanced.
-   *  2. If the current time surpasses the delayed offline/disabled time, then the node is not forced
-   *     to be rebalanced.
-   *  3. If the last on-demand rebalance time is before the offline/disabled time, the node is not
-   *     forced to be rebalanced.
-   *  4. If the last on-demand rebalance time is after the delayed offline/disabled time, then the
-   *     node is not forced to be rebalanced.
-   *  5. Otherwise, the offline/disabled node should be forced to rebalance.
+   *  2. If the current time doesn't surpass the delayed offline/disabled time and the last on-demand
+   *     rebalance time appears after the offline time, then the node is forced to be rebalanced.
    *
    * @param offlineOrDisabledTime A unix timestamp indicating the most recent time when a node went
    *                              offline or was disabled.
    * @param delay The delay window configuration of the current cluster
    * @param lastOnDemandRebalanceTime A unix timestamp representing the most recent time when an
    *                                  on-demand rebalance was triggered.
-   * @return a boolean indicating whether a node is forced to be rebalanced
+   * @return A boolean indicating whether a node is forced to be rebalanced
    */
   private static boolean isInstanceForcedToBeRebalanced(Long offlineOrDisabledTime, long delay,
       long lastOnDemandRebalanceTime) {
@@ -461,8 +458,7 @@ public class DelayedRebalanceUtil {
       return false;
     }
 
-    return offlineOrDisabledTime < lastOnDemandRebalanceTime && lastOnDemandRebalanceTime < (
-        offlineOrDisabledTime + delay);
+    return offlineOrDisabledTime < lastOnDemandRebalanceTime;
   }
 
   /**

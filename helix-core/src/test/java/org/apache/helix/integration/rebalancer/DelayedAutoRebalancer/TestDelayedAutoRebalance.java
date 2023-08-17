@@ -242,18 +242,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     validateDelayedMovements(externalViewsBefore);
 
     // trigger an on-demand rebalance and partitions on the offline node should move
-    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
-      // make sure the offline participant has no replicas after the on demand rebalance
-      validateNoPartitionOnOfflineInstance(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName());
-    }
+    validateMovementAfterOnDemandRebalance(externalViewsBefore, null,true, false);
 
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
     setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
@@ -269,9 +258,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
     // trigger an on-demand rebalance and partitions on the offline node shouldn't move because the
     // last on-demand timestamp is expired.
-    setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, 1);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    validateNoExternalViewChange(externalViewsBefore, _minActiveReplica,false);
+    validateMovementAfterOnDemandRebalance(externalViewsBefore, 1L, false, false);
 
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
     setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
@@ -296,11 +283,9 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       externalViewsBefore.put(db, ev);
     }
 
-    _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after setting last on-demand timestamp, rebalance should make no change because the delayed
     // rebalance is already executed
-    validateNoExternalViewChange(externalViewsBefore, _replica,false);
+    validateMovementAfterOnDemandRebalance(externalViewsBefore, null,false, false);
 
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
     setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
@@ -347,19 +332,6 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     return externalViews;
   }
 
-  protected void validateNoExternalViewChange(Map<String, ExternalView> externalViewsBefore,
-      int numberOfActiveReplica, boolean isNodeDisabled) {
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, numberOfActiveReplica, NUM_NODE);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), isNodeDisabled);
-    }
-  }
-
   protected void validateNoPartitionMove(IdealState is, ExternalView evBefore, ExternalView evAfter,
       String offlineInstance, boolean disabled) {
 
@@ -390,7 +362,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   }
 
-  protected void validateNoPartitionOnOfflineInstance(IdealState is, ExternalView evBefore,
+  protected void validateNoPartitionOnInstance(IdealState is, ExternalView evBefore,
       ExternalView evAfter, String offlineInstance) {
     for (String partition : is.getPartitionSet()) {
       Map<String, String> assignmentsBefore = evBefore.getRecord().getMapField(partition);
@@ -401,6 +373,34 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       Assert.assertFalse(instancesAfter.contains(offlineInstance), String.format(
           "%s is still on a offline instance after rebalance, before: %s, after: %s, offline instance: %s",
           partition, assignmentsBefore.toString(), assignmentsAfter.toString(), offlineInstance));
+    }
+  }
+
+  protected void validateMovementAfterOnDemandRebalance(
+      Map<String, ExternalView> externalViewsBefore, Long lastOnDemandTime, boolean isPartitionMoved,
+      boolean isDisabled) {
+    if (lastOnDemandTime == null) {
+      _gSetupTool.getClusterManagementTool().onDemandRebalance(CLUSTER_NAME);
+    } else {
+      setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, lastOnDemandTime);
+    }
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    for (String db : _testDBs) {
+      ExternalView ev =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      if (isPartitionMoved) {
+        // make sure the offline participant has no replicas after the on demand rebalance
+        validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
+        validateNoPartitionOnInstance(is, externalViewsBefore.get(db), ev,
+            _participants.get(0).getInstanceName());
+      } else {
+        validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
+        validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
+            _participants.get(0).getInstanceName(), isDisabled);
+      }
     }
   }
 

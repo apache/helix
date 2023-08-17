@@ -274,14 +274,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     Thread.sleep(delay);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after delay time, it should maintain required number of replicas
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
-      externalViewsBefore.put(db, ev);
-    }
+    externalViewsBefore = validatePartitionMovement(externalViewsBefore, true, false);
 
     // after setting last on-demand timestamp, rebalance should make no change because the delayed
     // rebalance is already executed
@@ -362,20 +355,6 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   }
 
-  protected void validateNoPartitionOnInstance(IdealState is, ExternalView evBefore,
-      ExternalView evAfter, String offlineInstance) {
-    for (String partition : is.getPartitionSet()) {
-      Map<String, String> assignmentsBefore = evBefore.getRecord().getMapField(partition);
-      Map<String, String> assignmentsAfter = evAfter.getRecord().getMapField(partition);
-      Set<String> instancesAfter = new HashSet<String>(assignmentsAfter.keySet());
-
-      // the offline instance shouldn't have a partition assignment after rebalance
-      Assert.assertFalse(instancesAfter.contains(offlineInstance), String.format(
-          "%s is still on a offline instance after rebalance, before: %s, after: %s, offline instance: %s",
-          partition, assignmentsBefore.toString(), assignmentsAfter.toString(), offlineInstance));
-    }
-  }
-
   protected void validateMovementAfterOnDemandRebalance(
       Map<String, ExternalView> externalViewsBefore, Long lastOnDemandTime, boolean isPartitionMoved,
       boolean isDisabled) {
@@ -385,14 +364,18 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       setLastOnDemandRebalanceTimeInCluster(_gZkClient, CLUSTER_NAME, lastOnDemandTime);
     }
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    validatePartitionMovement(externalViewsBefore, isPartitionMoved, isDisabled);
+  }
 
+  protected Map<String, ExternalView> validatePartitionMovement(
+      Map<String, ExternalView> externalViewsBefore, boolean isPartitionMoved, boolean isDisabled) {
+    Map<String, ExternalView> externalViewAfter = new HashMap<>();
     for (String db : _testDBs) {
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       if (isPartitionMoved) {
-        // make sure the offline participant has no replicas after the on demand rebalance
         validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
         validateNoPartitionOnInstance(is, externalViewsBefore.get(db), ev,
             _participants.get(0).getInstanceName());
@@ -401,6 +384,22 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
         validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
             _participants.get(0).getInstanceName(), isDisabled);
       }
+      externalViewAfter.put(db, ev);
+    }
+    return externalViewAfter;
+  }
+
+  protected void validateNoPartitionOnInstance(IdealState is, ExternalView evBefore,
+      ExternalView evAfter, String instanceName) {
+    for (String partition : is.getPartitionSet()) {
+      Map<String, String> assignmentsBefore = evBefore.getRecord().getMapField(partition);
+      Map<String, String> assignmentsAfter = evAfter.getRecord().getMapField(partition);
+      Set<String> instancesAfter = new HashSet<String>(assignmentsAfter.keySet());
+
+      // the offline instance shouldn't have a partition assignment after rebalance
+      Assert.assertFalse(instancesAfter.contains(instanceName), String.format(
+          "%s is still on the instance after rebalance, before: %s, after: %s, instance: %s",
+          partition, assignmentsBefore.toString(), assignmentsAfter.toString(), instanceName));
     }
   }
 

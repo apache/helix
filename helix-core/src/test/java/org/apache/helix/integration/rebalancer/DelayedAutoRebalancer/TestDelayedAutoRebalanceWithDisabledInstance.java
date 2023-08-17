@@ -332,20 +332,12 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
 
     // disable one node, no partition should be moved.
-    enableInstance(_participants.get(0).getInstanceName(), false);
     validateDelayedMovementsOnDisabledNode(externalViewsBefore);
 
     Thread.sleep(delay);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after delay time, it should maintain required number of replicas
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
-      externalViewsBefore.put(db, ev);
-    }
+    externalViewsBefore = validatePartitionMovement(externalViewsBefore, true, true);
 
     // after setting last on-demand timestamp, rebalance should make no change because the delayed
     // rebalance is already executed
@@ -384,14 +376,6 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), true);
-    }
+    validatePartitionMovement(externalViewsBefore, false, true);
   }
 }

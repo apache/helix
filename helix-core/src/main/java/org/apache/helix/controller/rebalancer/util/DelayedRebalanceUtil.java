@@ -441,7 +441,7 @@ public class DelayedRebalanceUtil {
    *  1. If either the last on-demand rebalance time or the offline/disabled time is unavailable, then
    *     the node is not forced to be rebalanced.
    *  2. If the current time doesn't surpass the delayed offline/disabled time and the last on-demand
-   *     rebalance time appears after the offline time, then the node is forced to be rebalanced.
+   *     rebalance time is after the offline/disabled time, then the node is forced to be rebalanced.
    *
    * @param offlineOrDisabledTime A unix timestamp indicating the most recent time when a node went
    *                              offline or was disabled.

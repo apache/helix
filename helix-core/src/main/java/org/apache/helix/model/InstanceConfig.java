@@ -265,14 +265,14 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setInstanceEnabled(boolean enabled) {
     // set instance operation only when we need to change InstanceEnabled value.
-    // When enabling an instance where HELIX_ENABLED is false, we update INSTANCE_OPERATION to 'ENABLE'
-    // When disabling and instance where HELIX_ENABLED is false, we overwrite what current operation and
+    // When enabling an instance where current HELIX_ENABLED is false, we update INSTANCE_OPERATION to 'ENABLE'
+    // When disabling and instance where current HELIX_ENABLED is false, we overwrite what current operation and
     // update INSTANCE_OPERATION to 'DISABLE'.
     String instanceOperationKey = InstanceConfigProperty.INSTANCE_OPERATION.toString();
-    if (enabled != getInstanceEnabled() && _record.getSimpleField(instanceOperationKey) != null) {
+    if (enabled != getInstanceEnabled()) {
       _record.setSimpleField(instanceOperationKey,
-          enabled ? InstanceConstants.InstanceOperation.ENABLE.toString()
-              : InstanceConstants.InstanceOperation.DISABLE.toString());
+          enabled ? InstanceConstants.InstanceOperation.ENABLE.name()
+              : InstanceConstants.InstanceOperation.DISABLE.name());
     }
     setInstanceEnabledHelper(enabled);
   }
@@ -345,11 +345,9 @@ public class InstanceConfig extends HelixProperty {
 
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
     if (operation != InstanceConstants.InstanceOperation.DISABLE
-        && operation != InstanceConstants.InstanceOperation.ENABLE) {
-      if (!getInstanceEnabled()) {
-        throw new HelixException(
-            "setting non enable/disable operation (e.g. evacuate, swap) to helix disabled instance is not allowed");
-      }
+        && operation != InstanceConstants.InstanceOperation.ENABLE && !getInstanceEnabled()) {
+      throw new HelixException(
+          "setting non enable/disable operation (e.g. evacuate, swap) to helix disabled instance is not allowed");
     } else {
       setInstanceEnabledHelper(operation == InstanceConstants.InstanceOperation.ENABLE);
     }

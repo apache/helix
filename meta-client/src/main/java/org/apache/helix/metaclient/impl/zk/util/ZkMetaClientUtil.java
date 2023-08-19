@@ -358,4 +358,13 @@ public class ZkMetaClientUtil {
         return MetaClientException.ReturnCode.DB_USER_ERROR;
     }
   }
+
+  public static String getZkParentPath(String path) {
+    if (path.equals("/")) {
+      return null;
+    }
+
+    int idx = path.lastIndexOf('/');
+    return idx == 0 ? "/" : path.substring(0, idx);
+  }
 }

@@ -26,6 +26,8 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.api.DirectChildChangeListener;
 
+import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -93,6 +95,41 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
       zkMetaClient.createWithTTL(key, ENTRY_STRING_VALUE, 1000);
+      Assert.assertNotNull(zkMetaClient.exists(key));
+    }
+  }
+
+  @Test
+  public void testCreateFullPath() {
+    final List<String> nodes = new ArrayList<>(Arrays.asList("Test", "ZkMetaClient", "_fullPath"));
+    StringWriter sw = new StringWriter();
+
+    for (String node : nodes) {
+      sw.write("/");
+      sw.write(node);
+    }
+    final String key = sw.toString();
+    // final String key = "/Test/ZkMetaClient/_fullPath";
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.createFullPath(key, ENTRY_STRING_VALUE, PERSISTENT);
+      Assert.assertNotNull(zkMetaClient.exists(key));
+    }
+  }
+
+  @Test
+  public void testCreateFullPathWithTTL() {
+    final List<String> nodes = new ArrayList<>(Arrays.asList("Test", "ZkMetaClient", "_fullPath"));
+    StringWriter sw = new StringWriter();
+    for (String node : nodes) {
+      sw.write("/");
+      sw.write(node);
+    }
+    final String key = sw.toString();
+
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.createFullPathWithTTL(key, ENTRY_STRING_VALUE, 1000);
       Assert.assertNotNull(zkMetaClient.exists(key));
     }
   }

@@ -41,6 +41,7 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.impl.zk.adapter.ChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
@@ -57,12 +58,14 @@ import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.getZkParentPath;
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
 
 
@@ -113,6 +116,59 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     } catch (KeeperException e) {
       throw new MetaClientException(e);
     }
+  }
+
+  @Override
+  public void createFullPath(String key, Object data, MetaClientInterface.EntryMode mode) {
+
+    boolean retry;
+    do {
+      retry = false;
+      try {
+        create(key, data, mode);
+      } catch (MetaClientNoNodeException e) {
+        retry = true;
+        String parentPath = getZkParentPath(key);
+        try {
+          createFullPath(parentPath, null, mode);
+        } catch (MetaClientNodeExistsException e1) {
+          return;
+        }
+      } catch (MetaClientNodeExistsException e) {
+        LOG.warn("Node already exists. path: " + key);
+        throw e;
+      } catch (MetaClientException e) {
+        LOG.error("Exception while creating path: " + key, e);
+        throw e;
+      }
+    } while (retry);
+  }
+
+  @Override
+  public void createFullPathWithTTL(String key, T data, long ttl) {
+    boolean retry;
+    do {
+      retry = false;
+      try {
+        // create(key, data, mode);
+        createWithTTL(key, data, ttl);
+      } catch (MetaClientNoNodeException e) {
+        retry = true;
+        String parentPath = getZkParentPath(key);
+        try {
+          createFullPathWithTTL(parentPath, data, ttl);
+        } catch (MetaClientNodeExistsException e1) {
+          return;
+        }
+      } catch (MetaClientNodeExistsException e) {
+        LOG.warn("Node already exists. path: " + key);
+        throw e;
+      } catch (MetaClientException e) {
+        LOG.error("Exception while creating path: " + key, e);
+        throw e;
+      }
+    } while (retry);
+
   }
 
   @Override

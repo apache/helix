@@ -19,8 +19,6 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.io.StringWriter;
-import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -137,7 +135,7 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
     final String zkParentKey = "/stressZk_testCreateFullPath";
     _zkMetaClient.create(zkParentKey, ENTRY_STRING_VALUE);
 
-    int count = (int) Math.pow(TEST_ITERATION_COUNT, 1/3);
+    int count = (int) Math.pow(TEST_ITERATION_COUNT, 1/3d);
     for (int i = 0; i < count; i++) {
 
       for (int j = 0; j < count; j++) {
@@ -155,6 +153,7 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
       }
     }
 
+    System.out.println("count is: " + count);
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);

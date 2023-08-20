@@ -19,6 +19,8 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -28,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.metaclient.api.*;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 import org.apache.helix.metaclient.exception.MetaClientException;
+import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.recipes.lock.DataRecordSerializer;
 import org.testng.Assert;
@@ -127,6 +130,35 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+  }
+
+  @Test
+  public void testCreateFullPath() {
+    final String zkParentKey = "/stressZk_testCreateFullPath";
+    _zkMetaClient.create(zkParentKey, ENTRY_STRING_VALUE);
+
+    int count = (int) Math.pow(TEST_ITERATION_COUNT, 1/3);
+    for (int i = 0; i < count; i++) {
+
+      for (int j = 0; j < count; j++) {
+
+        for (int k = 0; k < count; k++) {
+          String key = zkParentKey + "/" + i + "/" + j + "/" + k;
+          _zkMetaClient.createFullPath(key, String.valueOf(k), PERSISTENT);
+          Assert.assertEquals(String.valueOf(k), _zkMetaClient.get(key));
+        }
+      }
+      try {
+        _zkMetaClient.createFullPath(zkParentKey + "/" + i, "should_fail", PERSISTENT);
+        Assert.fail("Should have failed due to node existing");
+      } catch (MetaClientNodeExistsException ignoredException) {
+      }
+    }
+
+    // cleanup
+    _zkMetaClient.recursiveDelete(zkParentKey);
+    Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);
+
   }
 
   @Test

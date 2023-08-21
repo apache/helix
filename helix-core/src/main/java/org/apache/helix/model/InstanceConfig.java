@@ -264,9 +264,22 @@ public class InstanceConfig extends HelixProperty {
    * @param enabled true to enable, false to disable
    */
   public void setInstanceEnabled(boolean enabled) {
+    // set instance operation only when we need to change InstanceEnabled value.
+    // When enabling an instance where current HELIX_ENABLED is false, we update INSTANCE_OPERATION to 'ENABLE'
+    // When disabling and instance where current HELIX_ENABLED is false, we overwrite what current operation and
+    // update INSTANCE_OPERATION to 'DISABLE'.
+    String instanceOperationKey = InstanceConfigProperty.INSTANCE_OPERATION.toString();
+    if (enabled != getInstanceEnabled()) {
+      _record.setSimpleField(instanceOperationKey,
+          enabled ? InstanceConstants.InstanceOperation.ENABLE.name()
+              : InstanceConstants.InstanceOperation.DISABLE.name());
+    }
+    setInstanceEnabledHelper(enabled);
+  }
+
+  private void setInstanceEnabledHelper(boolean enabled) {
     _record.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), enabled);
-    _record.setLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(),
-        System.currentTimeMillis());
+    _record.setLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), System.currentTimeMillis());
     if (enabled) {
       resetInstanceDisabledTypeAndReason();
     }
@@ -331,10 +344,17 @@ public class InstanceConfig extends HelixProperty {
   }
 
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
-    // TODO: also setInstanceEnabled after sanity check.
+    if (operation != InstanceConstants.InstanceOperation.DISABLE
+        && operation != InstanceConstants.InstanceOperation.ENABLE ){
+       if( !getInstanceEnabled()) {
+         throw new HelixException(
+             "setting non enable/disable operation (e.g. evacuate, swap) to helix disabled instance is not allowed");
+       }
+    } else {
+      setInstanceEnabledHelper(operation == InstanceConstants.InstanceOperation.ENABLE);
+    }
 
-    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name(),
-        operation.name());
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.toString(), operation.toString());
   }
 
   public String getInstanceOperation() {
@@ -361,6 +381,7 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Check if this instance is enabled for a given partition
+   *
    * @param partition the partition name to check
    * @return true if the instance is enabled for the partition, false otherwise
    */

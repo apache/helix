@@ -25,7 +25,6 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -35,12 +34,11 @@ import static org.apache.helix.common.TestClusterOperations.*;
 import static org.apache.helix.common.TestClusterValidateOperations.*;
 
 public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAutoRebalance {
-  private ConfigAccessor _configAccessor;
-
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
     _configAccessor = new ConfigAccessor(_gZkClient);
+    _testingCondition = DISABLED_NODE;
   }
 
 
@@ -294,6 +292,21 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     super.testDisableDelayRebalanceInInstance();
   }
 
+  @Test(dependsOnMethods = {"testDisableDelayRebalanceInInstance"})
+  public void testOnDemandRebalance() throws Exception {
+    super.testOnDemandRebalance();
+  }
+
+  @Test(dependsOnMethods = {"testOnDemandRebalance"})
+  public void testExpiredOnDemandRebalanceTimestamp() throws Exception {
+    super.testExpiredOnDemandRebalanceTimestamp();
+  }
+
+  @Test(dependsOnMethods = {"testExpiredOnDemandRebalanceTimestamp"})
+  public void testOnDemandRebalanceAfterDelayRebalanceHappen() throws Exception {
+    super.testOnDemandRebalanceAfterDelayRebalanceHappen();
+  }
+
   @BeforeMethod
   public void beforeTest() {
     // restart any participant that has been disconnected from last test.
@@ -305,15 +318,5 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       }
       enableInstance(_participants.get(i).getInstanceName(), true);
     }
-  }
-
-  private void enableInstance(String instance, boolean enabled) {
-    // Disable one node, no partition should be moved.
-    long currentTime = System.currentTimeMillis();
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instance, enabled);
-    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
-    Assert.assertEquals(instanceConfig.getInstanceEnabled(), enabled);
-    Assert.assertTrue(instanceConfig.getInstanceEnabledTime() >= currentTime);
-    Assert.assertTrue(instanceConfig.getInstanceEnabledTime() <= currentTime + 100);
   }
 }

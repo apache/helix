@@ -98,4 +98,19 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
       throws Exception {
     super.testDisableDelayRebalanceInInstance();
   }
+
+  @Test(dependsOnMethods = {"testDisableDelayRebalanceInInstance"})
+  public void testOnDemandRebalance() throws Exception {
+    super.testOnDemandRebalance();
+  }
+
+  @Test(dependsOnMethods = {"testOnDemandRebalance"})
+  public void testExpiredOnDemandRebalanceTimestamp() throws Exception {
+    super.testExpiredOnDemandRebalanceTimestamp();
+  }
+
+  @Test(dependsOnMethods = {"testExpiredOnDemandRebalanceTimestamp"})
+  public void testOnDemandRebalanceAfterDelayRebalanceHappen() throws Exception {
+    super.testOnDemandRebalanceAfterDelayRebalanceHappen();
+  }
 }

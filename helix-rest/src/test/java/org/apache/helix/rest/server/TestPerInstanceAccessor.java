@@ -497,6 +497,27 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation")
         .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode()).format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    // TODO: enable the following test when we add sanity check.
+    // set operation to be DISABLE
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=DISABLE")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    Assert.assertEquals(
+        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.DISABLE.toString());
+    Assert.assertTrue(!instanceConfig.getInstanceEnabled());
+
+    // set operation to EVACUATE, expect error
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode())
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    // set back to enable
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=ENABLE")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    Assert.assertEquals(
+        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.ENABLE.toString());
+    Assert.assertTrue(instanceConfig.getInstanceEnabled());
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

@@ -1414,6 +1414,26 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  @Test(dependsOnMethods = "testUpdateCustomizedConfig")
+  public void testOnDemandRebalance() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    long currentTime = System.currentTimeMillis();
+    String cluster = "TestCluster_1";
+    new JerseyUriRequestBuilder("clusters/{}?command=onDemandRebalance").format(cluster)
+        .post(this, Entity.entity("{}", MediaType.APPLICATION_JSON_TYPE));
+
+    ClusterConfig config = _configAccessor.getClusterConfig(cluster);
+    long lastOnDemandRebalanceTime = config.getLastOnDemandRebalanceTimestamp();
+    Assert.assertFalse(lastOnDemandRebalanceTime == -1L,
+        "The last on-demand rebalance timestamp is not found.");
+    Assert.assertTrue(lastOnDemandRebalanceTime > currentTime, String.format(
+        "The last on-demand rebalance timestamp {} is stale. Expect a timestamp that is larger than {}.",
+        lastOnDemandRebalanceTime, currentTime));
+    // restore the state
+    config.setLastOnDemandRebalanceTimestamp(-1L);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
   @Test
   public void testClusterFreezeMode() throws Exception {
     String cluster = "TestCluster_0";

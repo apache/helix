@@ -244,6 +244,10 @@ public class ClusterAccessor extends AbstractHelixResource {
     ClusterSetup clusterSetup = getClusterSetup();
     HelixAdmin helixAdmin = getHelixAdmin();
 
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
+    }
+
     switch (command) {
       case activate:
         if (superCluster == null) {
@@ -345,6 +349,15 @@ public class ClusterAccessor extends AbstractHelixResource {
               .purgeOfflineInstances(clusterId, ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET);
         } else {
           helixAdmin.purgeOfflineInstances(clusterId, duration);
+        }
+        break;
+      case onDemandRebalance:
+        try {
+          helixAdmin.onDemandRebalance(clusterId);
+        } catch (Exception ex) {
+          LOG.error(
+              "Cannot start on-demand rebalance for cluster: {}, Exception: {}", clusterId, ex);
+          return serverError(ex);
         }
         break;
       default:

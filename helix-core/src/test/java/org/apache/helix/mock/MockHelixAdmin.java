@@ -448,6 +448,9 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Override
+  public void onDemandRebalance(String clusterName) {}
+
   @Override public void addIdealState(String clusterName, String resourceName,
       String idealStateFile) throws IOException {
 

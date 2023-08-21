@@ -356,6 +356,14 @@ public class ZkTestBase {
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
+  protected void setLastOnDemandRebalanceTimeInCluster(HelixZkClient zkClient,
+      String clusterName, long lastOnDemandTime) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setLastOnDemandRebalanceTimestamp(lastOnDemandTime);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
       String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
     return createResourceWithDelayedRebalance(clusterName, db, stateModel, numPartition, replica,

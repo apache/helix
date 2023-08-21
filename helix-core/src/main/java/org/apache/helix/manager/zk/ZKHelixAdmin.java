@@ -1533,6 +1533,28 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void onDemandRebalance(String clusterName) {
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    String path = PropertyPathBuilder.clusterConfig(clusterName);
+
+    if (!baseAccessor.exists(path, 0)) {
+      throw new HelixException("Cluster " + clusterName + ": cluster config does not exist");
+    }
+
+    baseAccessor.update(path, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          throw new HelixException("Cluster: " + clusterName + ": cluster config is null");
+        }
+        ClusterConfig clusterConfig = new ClusterConfig(currentData);
+        clusterConfig.setLastOnDemandRebalanceTimestamp(System.currentTimeMillis());
+        return clusterConfig.getRecord();
+      }
+    }, AccessOption.PERSISTENT);
+  }
+
+  @Override
   public void rebalance(String clusterName, String resourceName, int replica, String keyPrefix,
       String group) {
     List<String> instanceNames = new LinkedList<String>();

@@ -244,10 +244,6 @@ public class ClusterAccessor extends AbstractHelixResource {
     ClusterSetup clusterSetup = getClusterSetup();
     HelixAdmin helixAdmin = getHelixAdmin();
 
-    if (!doesClusterExist(clusterId)) {
-      return notFound(String.format("Cluster %s does not exist", clusterId));
-    }
-
     switch (command) {
       case activate:
         if (superCluster == null) {

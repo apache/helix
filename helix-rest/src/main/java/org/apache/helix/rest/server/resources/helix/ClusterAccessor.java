@@ -321,8 +321,13 @@ public class ClusterAccessor extends AbstractHelixResource {
           customFieldsMap =
               OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, String>>() {
               });
-          // content is given as a KV mapping. Nullify content
+          // content is given as a KV mapping. Nullify content unless (case-insensitive) reason key present in map
           content = null;
+          for (Map.Entry<String, String> entry : customFieldsMap.entrySet()) {
+            if ("reason".equalsIgnoreCase(entry.getKey())) {
+              content = entry.getValue();
+            }
+          }
         } catch (Exception e) {
           // NOP
         }

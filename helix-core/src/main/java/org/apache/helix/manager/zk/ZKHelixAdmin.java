@@ -396,8 +396,6 @@ public class ZKHelixAdmin implements HelixAdmin {
         }
 
         InstanceConfig config = new InstanceConfig(currentData);
-        // TODO: add sanity check in  config.setInstanceOperation and throw exception when needed.
-        // TODO: Also instance enabled in instance config
         config.setInstanceOperation(instanceOperation);
         return config.getRecord();
       }

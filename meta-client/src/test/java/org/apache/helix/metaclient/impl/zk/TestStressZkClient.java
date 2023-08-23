@@ -131,7 +131,7 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
   }
 
   @Test
-  public void testCreateFullPath() {
+  public void recursiveCreate() {
     final String zkParentKey = "/stressZk_testCreateFullPath";
     _zkMetaClient.create(zkParentKey, ENTRY_STRING_VALUE);
 
@@ -142,12 +142,12 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
 
         for (int k = 0; k < count; k++) {
           String key = zkParentKey + "/" + i + "/" + j + "/" + k;
-          _zkMetaClient.createFullPath(key, String.valueOf(k), PERSISTENT);
+          _zkMetaClient.recursiveCreate(key, String.valueOf(k), PERSISTENT);
           Assert.assertEquals(String.valueOf(k), _zkMetaClient.get(key));
         }
       }
       try {
-        _zkMetaClient.createFullPath(zkParentKey + "/" + i, "should_fail", PERSISTENT);
+        _zkMetaClient.recursiveCreate(zkParentKey + "/" + i, "should_fail", PERSISTENT);
         Assert.fail("Should have failed due to node existing");
       } catch (MetaClientNodeExistsException ignoredException) {
       }

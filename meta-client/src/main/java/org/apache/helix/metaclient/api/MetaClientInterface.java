@@ -157,9 +157,9 @@ public interface MetaClientInterface<T> {
    * hierarchy does not exist, then the parent node will attempt to be created. The entry will not be created if
    * there is an existing entry with the same full key.
    */
-  void createFullPath(final String key, final T Data, final EntryMode mode);
+  void recursiveCreate(final String key, final T Data, final EntryMode mode);
 
-  void createFullPathWithTTL(String key, T data, long ttl);
+  void recursiveCreateWithTTL(String key, T data, long ttl);
 
   /**
    * Create an entry of given EntryMode with given key, data, and expiry time (ttl).

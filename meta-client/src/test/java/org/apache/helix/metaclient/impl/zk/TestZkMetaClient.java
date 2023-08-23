@@ -100,7 +100,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
   }
 
   @Test
-  public void testCreateFullPath() {
+  public void testRecursiveCreate() {
     final List<String> nodes = new ArrayList<>(Arrays.asList("Test", "ZkMetaClient", "_fullPath"));
     StringWriter sw = new StringWriter();
 
@@ -112,13 +112,20 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
     // final String key = "/Test/ZkMetaClient/_fullPath";
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.createFullPath(key, ENTRY_STRING_VALUE, EPHEMERAL);
+      zkMetaClient.recursiveCreate(key, ENTRY_STRING_VALUE, EPHEMERAL);
       Assert.assertNotNull(zkMetaClient.exists(key));
+
+      zkMetaClient.recursiveCreate(key, ENTRY_STRING_VALUE, EPHEMERAL);
+      Assert.fail("Should have failed due to node already created");
+    } catch (MetaClientException e) {
+      Assert.assertEquals(e.getMessage(), "org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException: org.apache.zookeeper.KeeperException$NodeExistsException: KeeperErrorCode = NodeExists for /Test/ZkMetaClient/_fullPath");
+      System.out.println(e.getMessage());
     }
+
   }
 
   @Test
-  public void testCreateFullPathWithTTL() {
+  public void testRecursiveCreateWithTTL() {
     final List<String> nodes = new ArrayList<>(Arrays.asList("Test", "ZkMetaClient", "_fullPath"));
     StringWriter sw = new StringWriter();
     for (String node : nodes) {
@@ -129,7 +136,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.createFullPathWithTTL(key, ENTRY_STRING_VALUE, 1000);
+      zkMetaClient.recursiveCreateWithTTL(key, ENTRY_STRING_VALUE, 1000);
       Assert.assertNotNull(zkMetaClient.exists(key));
     }
   }

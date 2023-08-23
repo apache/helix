@@ -106,7 +106,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void create(String key, Object data, MetaClientInterface.EntryMode mode) {
+  public void create(String key, Object data, EntryMode mode) {
 
     try {
       _zkClient.create(key, data, ZkMetaClientUtil.convertMetaClientMode(mode));
@@ -118,55 +118,35 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void createFullPath(String key, Object data, MetaClientInterface.EntryMode mode) {
+  public void recursiveCreate(String key, T data, EntryMode mode) {
+    recursiveCreateHelper(key, data, mode, -1);
+  }
 
+  @Override
+  public void recursiveCreateWithTTL(String key, T data, long ttl) {
+    recursiveCreateHelper(key, data, EntryMode.TTL, ttl);
+  }
+
+  private void recursiveCreateHelper(String key, T data, EntryMode mode, long ttl) {
     boolean retry;
-    MetaClientInterface.EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
+    EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
         EntryMode.PERSISTENT : mode);
     do {
       retry = false;
       try {
-        create(key, data, mode);
+        if (EntryMode.TTL.equals(mode)) {
+          createWithTTL(key, data, ttl);
+        } else {
+          create(key, data, mode);
+        }
       } catch (MetaClientNoNodeException e) {
         retry = true;
         String parentPath = getZkParentPath(key);
         try {
-          createFullPath(parentPath, null, parentMode);
+          recursiveCreateHelper(parentPath, null, parentMode, ttl);
         } catch (MetaClientNodeExistsException e1) {
           return;
         }
-      } catch (MetaClientNodeExistsException e) {
-        LOG.warn("Node already exists. path: " + key);
-        throw e;
-      } catch (MetaClientException e) {
-        LOG.error("Exception while creating path: " + key, e);
-        throw e;
-      }
-    } while (retry);
-  }
-
-  @Override
-  public void createFullPathWithTTL(String key, T data, long ttl) {
-    boolean retry;
-    do {
-      retry = false;
-      try {
-        // create(key, data, mode);
-        createWithTTL(key, data, ttl);
-      } catch (MetaClientNoNodeException e) {
-        retry = true;
-        String parentPath = getZkParentPath(key);
-        try {
-          createFullPathWithTTL(parentPath, data, ttl);
-        } catch (MetaClientNodeExistsException e1) {
-          return;
-        }
-      } catch (MetaClientNodeExistsException e) {
-        LOG.warn("Node already exists. path: " + key);
-        throw e;
-      } catch (MetaClientException e) {
-        LOG.error("Exception while creating path: " + key, e);
-        throw e;
       }
     } while (retry);
 

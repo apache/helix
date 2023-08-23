@@ -156,7 +156,9 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     expectedMetricValues.put(ERROR_PARTITION_COUNT, 0L);
     expectedMetricValues.put(WITHOUT_TOPSTATE_COUNT, 0L);
     expectedMetricValues.put(IS_EV_MISMATCH_COUNT, 0L);
-    Assert.assertTrue(verifyMetrics(expectedMetricValues));
+    Assert.assertTrue(TestHelper.verify(() -> {
+      return verifyMetrics(expectedMetricValues);
+    }, TestHelper.WAIT_DURATION), "Expected metrics and observed metrics don't align.");
 
     // Disable all Participants (instances)
     _setupTool.getClusterManagementTool()

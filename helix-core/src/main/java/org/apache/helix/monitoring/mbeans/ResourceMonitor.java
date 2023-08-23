@@ -480,7 +480,6 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   public void resetMaxTopStateHandoffGauge() {
     if (_lastResetTime + DEFAULT_RESET_INTERVAL_MS <= System.currentTimeMillis()) {
       _maxSinglePartitionTopStateHandoffDuration.updateValue(0L);
-      _missingTopStatePartitionsBeyondThresholdGauge.updateValue(0L);
       _lastResetTime = System.currentTimeMillis();
     }
   }
@@ -491,7 +490,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   }
 
   public void decrementMissingTopStateBeyondThresholdGauge() {
-    _missingTopStatePartitionsBeyondThresholdGauge.updateValue(_missingTopStatePartitionsBeyondThresholdGauge.getValue() - 1);
+    _missingTopStatePartitionsBeyondThresholdGauge.updateValue(Math.max(0, _missingTopStatePartitionsBeyondThresholdGauge.getValue() - 1));
     _lastResetTime = System.currentTimeMillis();
   }
 

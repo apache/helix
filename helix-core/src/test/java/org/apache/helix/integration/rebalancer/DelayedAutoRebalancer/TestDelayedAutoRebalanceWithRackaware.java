@@ -21,6 +21,7 @@ package org.apache.helix.integration.rebalancer.DelayedAutoRebalancer;
 
 import java.util.Date;
 
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -64,6 +65,8 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
+    _testingCondition = DISABLED_NODE;
+    _configAccessor = new ConfigAccessor(_gZkClient);
   }
 
   @Override
@@ -113,5 +116,19 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
   public void testDisableDelayRebalanceInInstance() throws Exception {
     super.testDisableDelayRebalanceInInstance();
+  }
+
+  @Test(dependsOnMethods = {"testDisableDelayRebalanceInInstance"})
+  public void testOnDemandRebalance() throws Exception {
+    super.testOnDemandRebalance();
+  }
+
+  @Test(dependsOnMethods = {"testOnDemandRebalance"})
+  public void testExpiredOnDemandRebalanceTimestamp() throws Exception {
+    super.testExpiredOnDemandRebalanceTimestamp();
+  }
+  @Test(dependsOnMethods = {"testExpiredOnDemandRebalanceTimestamp"})
+  public void testOnDemandRebalanceAfterDelayRebalanceHappen() throws Exception {
+    super.testOnDemandRebalanceAfterDelayRebalanceHappen();
   }
 }

@@ -100,7 +100,7 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertTrue(getParticipantsInEv(assignment.get(resource)).containsAll(_participantNames));
     }
 
-    // cancel an evacuated instance
+    // evacuated instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.EVACUATE);
@@ -122,7 +122,7 @@ public class TestInstanceOperation extends ZkTestBase {
   @Test(dependsOnMethods = "testEvacuate")
   public void testRevertEvacuation() throws Exception {
 
-    // evacuate an instance
+    // revert an evacuate instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);

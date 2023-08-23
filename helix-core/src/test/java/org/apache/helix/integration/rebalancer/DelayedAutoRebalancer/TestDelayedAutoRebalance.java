@@ -65,7 +65,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   protected int _minActiveReplica = _replica - 1;
   protected ZkHelixClusterVerifier _clusterVerifier;
   protected List<String> _testDBs = new ArrayList<>();
-  protected String _testingCondition;
+  protected String _testingCondition = OFFLINE_NODE;
   protected ConfigAccessor _configAccessor;
 
   @BeforeClass

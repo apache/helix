@@ -121,6 +121,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   public void createFullPath(String key, Object data, MetaClientInterface.EntryMode mode) {
 
     boolean retry;
+    MetaClientInterface.EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
+        EntryMode.PERSISTENT : mode);
     do {
       retry = false;
       try {
@@ -129,7 +131,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         retry = true;
         String parentPath = getZkParentPath(key);
         try {
-          createFullPath(parentPath, null, mode);
+          createFullPath(parentPath, null, parentMode);
         } catch (MetaClientNodeExistsException e1) {
           return;
         }

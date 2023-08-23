@@ -51,6 +51,7 @@ import org.testng.annotations.Test;
 
 import static org.apache.helix.metaclient.api.DataChangeListener.ChangeType.ENTRY_UPDATE;
 import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.CONTAINER;
+import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.EPHEMERAL;
 import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.PERSISTENT;
 
 
@@ -111,7 +112,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
     // final String key = "/Test/ZkMetaClient/_fullPath";
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.createFullPath(key, ENTRY_STRING_VALUE, PERSISTENT);
+      zkMetaClient.createFullPath(key, ENTRY_STRING_VALUE, EPHEMERAL);
       Assert.assertNotNull(zkMetaClient.exists(key));
     }
   }

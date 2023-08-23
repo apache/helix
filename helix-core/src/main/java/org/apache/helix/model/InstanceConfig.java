@@ -345,11 +345,11 @@ public class InstanceConfig extends HelixProperty {
 
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
     if (operation != InstanceConstants.InstanceOperation.DISABLE
-        && operation != InstanceConstants.InstanceOperation.ENABLE ){
-       if( !getInstanceEnabled()) {
-         throw new HelixException(
-             "setting non enable/disable operation (e.g. evacuate, swap) to helix disabled instance is not allowed");
-       }
+        && operation != InstanceConstants.InstanceOperation.ENABLE) {
+      if (!getInstanceEnabled()) {
+        throw new HelixException(
+            "setting non enable/disable operation (e.g. evacuate, swap) to helix disabled instance is not allowed");
+      }
     } else {
       setInstanceEnabledHelper(operation == InstanceConstants.InstanceOperation.ENABLE);
     }
@@ -381,7 +381,6 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Check if this instance is enabled for a given partition
-   *
    * @param partition the partition name to check
    * @return true if the instance is enabled for the partition, false otherwise
    */

@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -82,37 +83,37 @@ public class DelayedRebalanceUtil {
   }
 
   /**
-   * @return all active nodes (live nodes plus offline-yet-active nodes) while considering cluster
-   * delay rebalance configurations.
+   * @return all active nodes (live nodes not marked as evacuate plus offline-yet-active nodes)
+   * while considering cluster delay rebalance configurations.
    */
   public static Set<String> getActiveNodes(Set<String> allNodes, Set<String> liveEnabledNodes,
       Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
     if (!isDelayRebalanceEnabled(clusterConfig)) {
-      return new HashSet<>(liveEnabledNodes);
+      return filterOutEvacuatingInstances(instanceConfigMap, liveEnabledNodes);
     }
     return getActiveNodes(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
         instanceConfigMap, clusterConfig.getRebalanceDelayTime(), clusterConfig);
   }
 
   /**
-   * @return all active nodes (live nodes plus offline-yet-active nodes) while considering cluster
-   * and the resource delay rebalance configurations.
+   * @return all active nodes (live nodes not marked as evacuate plus offline-yet-active nodes)
+   * while considering cluster delay rebalance configurations.
    */
   public static Set<String> getActiveNodes(Set<String> allNodes, IdealState idealState,
       Set<String> liveEnabledNodes, Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
-      return new HashSet<>(liveEnabledNodes);
+      return filterOutEvacuatingInstances(instanceConfigMap, liveEnabledNodes);
     }
     return getActiveNodes(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
         instanceConfigMap, delay, clusterConfig);
   }
 
   private static Set<String> getActiveNodes(Set<String> allNodes, Set<String> liveEnabledNodes,
-      Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
-      Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
-    Set<String> activeNodes = new HashSet<>(liveEnabledNodes);
+      Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes, Map<String, InstanceConfig> instanceConfigMap,
+      long delay, ClusterConfig clusterConfig) {
+    Set<String> activeNodes = filterOutEvacuatingInstances(instanceConfigMap, liveEnabledNodes);
     Set<String> offlineOrDisabledInstances = new HashSet<>(allNodes);
     offlineOrDisabledInstances.removeAll(liveEnabledNodes);
     long currentTime = System.currentTimeMillis();
@@ -126,6 +127,14 @@ public class DelayedRebalanceUtil {
       }
     }
     return activeNodes;
+  }
+
+  private static Set<String> filterOutEvacuatingInstances(Map<String, InstanceConfig> instanceConfigMap,
+      Set<String> nodes) {
+    return  nodes.stream()
+        .filter(instance -> !instanceConfigMap.get(instance).getInstanceOperation().equals(
+            InstanceConstants.InstanceOperation.EVACUATE.name()))
+        .collect(Collectors.toSet());
   }
 
   /**

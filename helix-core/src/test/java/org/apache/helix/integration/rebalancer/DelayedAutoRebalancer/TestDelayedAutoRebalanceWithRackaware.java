@@ -21,7 +21,6 @@ package org.apache.helix.integration.rebalancer.DelayedAutoRebalancer;
 
 import java.util.Date;
 
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -65,8 +64,6 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
-    _testingCondition = DISABLED_NODE;
-    _configAccessor = new ConfigAccessor(_gZkClient);
   }
 
   @Override

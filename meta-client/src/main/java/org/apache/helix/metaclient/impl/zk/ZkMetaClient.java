@@ -129,7 +129,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   private void recursiveCreateHelper(String key, T data, EntryMode mode, long ttl) {
     boolean retry;
-    // Ephemeral nodes cannot have children, so we will creatie PERSISTENT nodes as the parents
+    // Ephemeral nodes cannot have children, so we will create PERSISTENT nodes as the parents
     EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
         EntryMode.PERSISTENT : mode);
 

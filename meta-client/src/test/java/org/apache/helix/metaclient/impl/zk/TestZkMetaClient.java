@@ -106,21 +106,22 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
+      MetaClientInterface.EntryMode mode = EPHEMERAL;
 
       // Should succeed even if one of the parent nodes exists
       String extendedPath = "/A" + path;
       zkMetaClient.create("/A", ENTRY_STRING_VALUE, PERSISTENT);
-      zkMetaClient.recursiveCreate(extendedPath, ENTRY_STRING_VALUE, EPHEMERAL);
+      zkMetaClient.recursiveCreate(extendedPath, ENTRY_STRING_VALUE, mode);
       Assert.assertNotNull(zkMetaClient.exists(extendedPath));
 
       // Should succeed if no parent nodes exist
-      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, EPHEMERAL);
+      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, mode);
       Assert.assertNotNull(zkMetaClient.exists(path));
       Assert.assertEquals(zkMetaClient.getDataAndStat("/Test").getRight().getEntryType(), PERSISTENT);
-      Assert.assertEquals(zkMetaClient.getDataAndStat(path).getRight().getEntryType(), EPHEMERAL);
+      Assert.assertEquals(zkMetaClient.getDataAndStat(path).getRight().getEntryType(), mode);
 
       // Should throw NodeExistsException if child node exists
-      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, EPHEMERAL);
+      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, mode);
       Assert.fail("Should have failed due to node already created");
     } catch (MetaClientException e) {
       Assert.assertEquals(e.getMessage(), "org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException: org.apache.zookeeper.KeeperException$NodeExistsException: KeeperErrorCode = NodeExists for /Test/ZkMetaClient/_fullPath");

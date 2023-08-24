@@ -154,11 +154,17 @@ public interface MetaClientInterface<T> {
 
   /**
    * Create an entry of given EntryMode with given key and data. If any parent node in the node
-   * hierarchy does not exist, then the parent node will attempt to be created. The entry will not be created if
-   * there is an existing entry with the same full key.
+   * hierarchy does not exist, then the parent node will attempt to be created. The entry will not
+   * be created if there is an existing entry with the same full key. Ephemeral nodes cannot have
+   * children, so only the final child in the created path will be ephemeral.
    */
   void recursiveCreate(final String key, final T Data, final EntryMode mode);
 
+  /**
+   * Create a TTL entry with given key, data, and expiry time (ttl). If any parent node in the node
+   * hierarchy does not exist, then the parent node will attempt to be created. The entry will not be created if
+   * there is an existing entry with the same full key.
+   */
   void recursiveCreateWithTTL(String key, T data, long ttl);
 
   /**

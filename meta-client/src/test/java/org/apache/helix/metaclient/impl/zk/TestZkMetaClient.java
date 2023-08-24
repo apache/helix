@@ -101,21 +101,26 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
   @Test
   public void testRecursiveCreate() {
-    final List<String> nodes = new ArrayList<>(Arrays.asList("Test", "ZkMetaClient", "_fullPath"));
-    StringWriter sw = new StringWriter();
+    final String path = "/Test/ZkMetaClient/_fullPath";
 
-    for (String node : nodes) {
-      sw.write("/");
-      sw.write(node);
-    }
-    final String key = sw.toString();
-    // final String key = "/Test/ZkMetaClient/_fullPath";
+
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.recursiveCreate(key, ENTRY_STRING_VALUE, EPHEMERAL);
-      Assert.assertNotNull(zkMetaClient.exists(key));
 
-      zkMetaClient.recursiveCreate(key, ENTRY_STRING_VALUE, EPHEMERAL);
+      // Should succeed even if one of the parent nodes exists
+      String extendedPath = "/A" + path;
+      zkMetaClient.create("/A", ENTRY_STRING_VALUE, PERSISTENT);
+      zkMetaClient.recursiveCreate(extendedPath, ENTRY_STRING_VALUE, EPHEMERAL);
+      Assert.assertNotNull(zkMetaClient.exists(extendedPath));
+
+      // Should succeed if no parent nodes exist
+      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, EPHEMERAL);
+      Assert.assertNotNull(zkMetaClient.exists(path));
+      Assert.assertEquals(zkMetaClient.getDataAndStat("/Test").getRight().getEntryType(), PERSISTENT);
+      Assert.assertEquals(zkMetaClient.getDataAndStat(path).getRight().getEntryType(), EPHEMERAL);
+
+      // Should throw NodeExistsException if child node exists
+      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, EPHEMERAL);
       Assert.fail("Should have failed due to node already created");
     } catch (MetaClientException e) {
       Assert.assertEquals(e.getMessage(), "org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException: org.apache.zookeeper.KeeperException$NodeExistsException: KeeperErrorCode = NodeExists for /Test/ZkMetaClient/_fullPath");
@@ -126,18 +131,12 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
 
   @Test
   public void testRecursiveCreateWithTTL() {
-    final List<String> nodes = new ArrayList<>(Arrays.asList("Test", "ZkMetaClient", "_fullPath"));
-    StringWriter sw = new StringWriter();
-    for (String node : nodes) {
-      sw.write("/");
-      sw.write(node);
-    }
-    final String key = sw.toString();
+    final String path = "/Test/ZkMetaClient/_fullPath/withTTL";
 
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
       zkMetaClient.connect();
-      zkMetaClient.recursiveCreateWithTTL(key, ENTRY_STRING_VALUE, 1000);
-      Assert.assertNotNull(zkMetaClient.exists(key));
+      zkMetaClient.recursiveCreateWithTTL(path, ENTRY_STRING_VALUE, 1000);
+      Assert.assertNotNull(zkMetaClient.exists(path));
     }
   }
 

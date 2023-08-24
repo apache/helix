@@ -129,8 +129,10 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   private void recursiveCreateHelper(String key, T data, EntryMode mode, long ttl) {
     boolean retry;
+    // Ephemeral nodes cannot have children, so we will creatie PERSISTENT nodes as the parents
     EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
         EntryMode.PERSISTENT : mode);
+
     do {
       retry = false;
       try {
@@ -139,14 +141,13 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         } else {
           create(key, data, mode);
         }
+      // If create fails due to parent node not existing, then call recursion on the parent path
+      // and retry create call. We only accept failures due to missing parent node, so do not retry
+      // on other errors.
       } catch (MetaClientNoNodeException e) {
-        retry = true;
         String parentPath = getZkParentPath(key);
-        try {
-          recursiveCreateHelper(parentPath, null, parentMode, ttl);
-        } catch (MetaClientNodeExistsException e1) {
-          return;
-        }
+        recursiveCreateHelper(parentPath, null, parentMode, ttl);
+        retry = true;
       }
     } while (retry);
 

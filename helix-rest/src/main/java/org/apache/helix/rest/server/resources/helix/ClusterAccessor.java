@@ -347,6 +347,15 @@ public class ClusterAccessor extends AbstractHelixResource {
           helixAdmin.purgeOfflineInstances(clusterId, duration);
         }
         break;
+      case onDemandRebalance:
+        try {
+          helixAdmin.onDemandRebalance(clusterId);
+        } catch (Exception ex) {
+          LOG.error(
+              "Cannot start on-demand rebalance for cluster: {}, Exception: {}", clusterId, ex);
+          return serverError(ex);
+        }
+        break;
       default:
         return badRequest("Unsupported command {}." + command);
     }

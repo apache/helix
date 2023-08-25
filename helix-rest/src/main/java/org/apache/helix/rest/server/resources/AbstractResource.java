@@ -85,7 +85,8 @@ public class AbstractResource {
     purgeOfflineParticipants,
     getInstance,
     getAllInstances,
-    setInstanceOperation // TODO: Name is just a place holder, may change in future
+    setInstanceOperation, // TODO: Name is just a place holder, may change in future
+    onDemandRebalance
   }
 
   @Context

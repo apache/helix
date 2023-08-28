@@ -131,8 +131,8 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
   }
 
   @Test
-  public void recursiveCreate() {
-    final String zkParentKey = "/stressZk_testCreateFullPath";
+  public void testRecursiveCreate() {
+    final String zkParentKey = "/stressZk_testRecursiveCreate";
     _zkMetaClient.create(zkParentKey, ENTRY_STRING_VALUE);
 
     int count = (int) Math.pow(TEST_ITERATION_COUNT, 1/3d);

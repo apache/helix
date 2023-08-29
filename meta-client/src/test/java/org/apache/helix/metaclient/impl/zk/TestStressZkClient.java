@@ -153,7 +153,6 @@ public class TestStressZkClient extends ZkMetaClientTestBase {
       }
     }
 
-    System.out.println("count is: " + count);
     // cleanup
     _zkMetaClient.recursiveDelete(zkParentKey);
     Assert.assertEquals(_zkMetaClient.countDirectChildren(zkParentKey), 0);

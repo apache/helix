@@ -5,6 +5,7 @@ import java.util.Collections;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.cloud.constants.CloudProvider;
@@ -16,6 +17,7 @@ import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
@@ -76,12 +78,55 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
       if (null == manager.getHelixDataAccessor()
           .getProperty(accessor.keyBuilder().liveInstance(instance2))) {
         Thread.sleep(100);
-      } else
+      } else {
         break;
+      }
     }
-    Assert.assertNotNull(manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)));
+    Assert.assertNotNull(
+        manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)));
 
     newParticipant.syncStop();
+  }
+
+  /**
+   * Test auto join with a defaultInstanceConfig.
+   * @throws Exception
+   */
+  @Test(dependsOnMethods = "testInstanceAutoJoin")
+  public void testAutoJoinWithDefaultInstanceConfig() throws Exception {
+    HelixManager manager = _participants[0];
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    String instance3 = "localhost_279700";
+
+    // Enable cluster auto join.
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER).forCluster(
+            CLUSTER_NAME).build();
+    manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
+
+    // Create and start a new participant with default instance config.
+    InstanceConfig defaultInstanceConfig = new InstanceConfig(instance3);
+    defaultInstanceConfig.setInstanceEnabled(false);
+    defaultInstanceConfig.setMaxConcurrentTask(100);
+    MockParticipantManager autoParticipant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance3, 10, null,
+            new HelixManagerProperty.Builder().setDefaultInstanceConfig(defaultInstanceConfig)
+                .build());
+    autoParticipant.syncStart();
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      // Check that live instance is added and instance config is populated with correct fields.
+      if (manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance3))
+          == null) {
+        return false;
+      }
+      InstanceConfig composedInstanceConfig =
+          manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance3);
+      return !composedInstanceConfig.getInstanceEnabled()
+          && composedInstanceConfig.getMaxConcurrentTask() == 100;
+    }, 2000));
+
+    autoParticipant.syncStop();
   }
 
   @Test(dependsOnMethods = "testInstanceAutoJoin")
@@ -97,7 +142,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, db3, 60, "OnlineOffline", RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db3, 1);
-    String instance3 = "localhost_279700";
+    String instance4 = "localhost_279701";
 
     ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
 
@@ -107,24 +152,24 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     accessor.setProperty(keyBuilder.cloudConfig(), cloudConfig);
 
     MockParticipantManager autoParticipant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance3);
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance4);
     autoParticipant.syncStart();
 
     // if the test is run in cloud environment, auto registration will succeed and live instance
     // will be added, otherwise, auto registration will fail and instance config will not be
     // populated. An exception will be thrown.
     try {
-      manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance3);
+      manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance4);
       Assert.assertTrue(TestHelper.verify(() -> {
         if (null == manager.getHelixDataAccessor()
-            .getProperty(accessor.keyBuilder().liveInstance(instance3))) {
+            .getProperty(accessor.keyBuilder().liveInstance(instance4))) {
           return false;
         }
         return true;
       }, 2000));
     } catch (HelixException e) {
       Assert.assertNull(manager.getHelixDataAccessor()
-          .getProperty(accessor.keyBuilder().liveInstance(instance3)));
+          .getProperty(accessor.keyBuilder().liveInstance(instance4)));
     }
 
     autoParticipant.syncStop();
@@ -135,11 +180,11 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
    * class name.
    * @throws Exception
    */
-  @Test
+  @Test(dependsOnMethods = "testAutoRegistration")
   public void testAutoRegistrationCustomizedFullyQualifiedInfoProcessorPath() throws Exception {
     HelixManager manager = _participants[0];
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    String instance4 = "localhost_279707";
+    String instance5 = "localhost_279702";
 
     // Enable cluster auto join.
     HelixConfigScope scope =
@@ -160,58 +205,17 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     // Create and start a new participant.
     MockParticipantManager autoParticipant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance4);
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance5);
     autoParticipant.syncStart();
 
     Assert.assertTrue(TestHelper.verify(() -> {
       // Check that live instance is added and instance config is populated with correct domain.
       return null != manager.getHelixDataAccessor()
-          .getProperty(accessor.keyBuilder().liveInstance(instance4)) && manager.getConfigAccessor()
-          .getInstanceConfig(CLUSTER_NAME, instance4).getDomainAsString()
-          .equals("rack=A:123, host=" + instance4);
+          .getProperty(accessor.keyBuilder().liveInstance(instance5)) && manager.getConfigAccessor()
+          .getInstanceConfig(CLUSTER_NAME, instance5).getDomainAsString()
+          .equals("rack=A:123, host=" + instance5);
     }, 2000));
 
     autoParticipant.syncStop();
   }
-
-//  /**
-//   * Test auto join with a defaultInstanceConfig.
-//   * @throws Exception
-//   */
-//  @Test
-//  public void testAutoJoinWithDefaultInstanceConfig() throws Exception {
-//    HelixManager manager = _participants[0];
-//    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-//    String instance4 = "localhost_279707";
-//
-//    // Enable cluster auto join.
-//    HelixConfigScope scope =
-//        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER).forCluster(
-//            CLUSTER_NAME).build();
-//    manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
-//
-//    // Create and start a new participant with default instance config.
-//    InstanceConfig defaultInstanceConfig = new InstanceConfig(instance4);
-//    defaultInstanceConfig.setInstanceEnabled(false);
-//    defaultInstanceConfig.setMaxConcurrentTask(100);
-//    MockParticipantManager autoParticipant =
-//        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance4, 10, null,
-//            new HelixManagerProperty.Builder().setDefaultInstanceConfig(defaultInstanceConfig)
-//                .build());
-//    autoParticipant.syncStart();
-//
-//    Assert.assertTrue(TestHelper.verify(() -> {
-//      // Check that live instance is added and instance config is populated with correct fields.
-//      if (manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance4))
-//          == null) {
-//        return false;
-//      }
-//      InstanceConfig composedInstanceConfig =
-//          manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance4);
-//      return !composedInstanceConfig.getInstanceEnabled()
-//          && composedInstanceConfig.getMaxConcurrentTask() == 100;
-//    }, 2000));
-//
-//    autoParticipant.syncStop();
-//  }
 }

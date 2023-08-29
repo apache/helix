@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixManagerProperty;
+import org.apache.helix.HelixPropertyFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
@@ -58,7 +59,14 @@ public class MockParticipantManager extends ClusterManager {
 
   public MockParticipantManager(String zkAddr, String clusterName, String instanceName,
       int transDelay, HelixCloudProperty helixCloudProperty) {
-    super(zkAddr, clusterName, instanceName, InstanceType.PARTICIPANT);
+    this(zkAddr, clusterName, instanceName, transDelay, helixCloudProperty,
+        HelixPropertyFactory.getInstance().getHelixManagerProperty(zkAddr, clusterName));
+  }
+
+  public MockParticipantManager(String zkAddr, String clusterName, String instanceName,
+      int transDelay, HelixCloudProperty helixCloudProperty,
+      HelixManagerProperty helixManagerProperty) {
+    super(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr, null, helixManagerProperty);
     _transDelay = transDelay;
     _msModelFactory = new MockMSModelFactory(null);
     _lsModelFactory = new DummyLeaderStandbyStateModelFactory(_transDelay);
@@ -67,7 +75,8 @@ public class MockParticipantManager extends ClusterManager {
   }
 
   public MockParticipantManager(String clusterName, String instanceName,
-      HelixManagerProperty helixManagerProperty, int transDelay, HelixCloudProperty helixCloudProperty) {
+      HelixManagerProperty helixManagerProperty, int transDelay,
+      HelixCloudProperty helixCloudProperty) {
     super(clusterName, instanceName, InstanceType.PARTICIPANT, null, null, helixManagerProperty);
     _transDelay = transDelay;
     _msModelFactory = new MockMSModelFactory(null);

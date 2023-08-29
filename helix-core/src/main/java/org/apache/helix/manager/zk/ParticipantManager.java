@@ -199,8 +199,7 @@ public class ParticipantManager {
     // Difference between auto join and auto registration is that the latter will also populate the
     // domain information in instance config
     try {
-      autoRegistration =
-          Boolean.valueOf(_helixManagerProperty.getHelixCloudProperty().getCloudEnabled());
+      autoRegistration = _helixManagerProperty.getHelixCloudProperty().getCloudEnabled();
       LOG.info("instance: " + _instanceName + " auto-registering " + _clusterName + " is "
           + autoRegistration);
     } catch (Exception e) {
@@ -215,13 +214,15 @@ public class ParticipantManager {
       }
       if (!autoRegistration) {
         LOG.info(_instanceName + " is auto-joining cluster: " + _clusterName);
-        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
+        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName,
+            _helixManagerProperty.getDefaultInstanceConfig());
       } else {
         LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
         CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
-        String domain = cloudInstanceInformation
-            .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
-        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
+        String domain = cloudInstanceInformation.get(
+            CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
+        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName,
+            _helixManagerProperty.getDefaultInstanceConfig());
         instanceConfig.setDomain(domain);
       }
       instanceConfig

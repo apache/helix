@@ -173,4 +173,45 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     autoParticipant.syncStop();
   }
+
+//  /**
+//   * Test auto join with a defaultInstanceConfig.
+//   * @throws Exception
+//   */
+//  @Test
+//  public void testAutoJoinWithDefaultInstanceConfig() throws Exception {
+//    HelixManager manager = _participants[0];
+//    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+//    String instance4 = "localhost_279707";
+//
+//    // Enable cluster auto join.
+//    HelixConfigScope scope =
+//        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER).forCluster(
+//            CLUSTER_NAME).build();
+//    manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
+//
+//    // Create and start a new participant with default instance config.
+//    InstanceConfig defaultInstanceConfig = new InstanceConfig(instance4);
+//    defaultInstanceConfig.setInstanceEnabled(false);
+//    defaultInstanceConfig.setMaxConcurrentTask(100);
+//    MockParticipantManager autoParticipant =
+//        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance4, 10, null,
+//            new HelixManagerProperty.Builder().setDefaultInstanceConfig(defaultInstanceConfig)
+//                .build());
+//    autoParticipant.syncStart();
+//
+//    Assert.assertTrue(TestHelper.verify(() -> {
+//      // Check that live instance is added and instance config is populated with correct fields.
+//      if (manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance4))
+//          == null) {
+//        return false;
+//      }
+//      InstanceConfig composedInstanceConfig =
+//          manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance4);
+//      return !composedInstanceConfig.getInstanceEnabled()
+//          && composedInstanceConfig.getMaxConcurrentTask() == 100;
+//    }, 2000));
+//
+//    autoParticipant.syncStop();
+//  }
 }

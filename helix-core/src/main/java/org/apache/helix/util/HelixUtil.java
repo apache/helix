@@ -533,11 +533,25 @@ public final class HelixUtil {
 
   /**
    * Compose the config for an instance
-   * @param instanceName
+   * @param instanceName the unique name of the instance
    * @return InstanceConfig
    */
+  @Deprecated
   public static InstanceConfig composeInstanceConfig(String instanceName) {
-    InstanceConfig instanceConfig = new InstanceConfig(instanceName);
+    return composeInstanceConfig(instanceName, new InstanceConfig(instanceName));
+  }
+
+  /**
+   * Compose the config for an instance with defaults if provided.
+   * @param instanceName the unique name of the instance
+   * @param defaultInstanceConfig default instance config
+   * @return InstanceConfig
+   */
+  public static InstanceConfig composeInstanceConfig(String instanceName,
+      InstanceConfig defaultInstanceConfig) {
+    InstanceConfig instanceConfig =
+        defaultInstanceConfig == null ? new InstanceConfig(instanceName) : defaultInstanceConfig;
+
     String hostName = instanceName;
     String port = "";
     int lastPos = instanceName.lastIndexOf("_");
@@ -545,9 +559,19 @@ public final class HelixUtil {
       hostName = instanceName.substring(0, lastPos);
       port = instanceName.substring(lastPos + 1);
     }
-    instanceConfig.setHostName(hostName);
-    instanceConfig.setPort(port);
-    instanceConfig.setInstanceEnabled(true);
+
+    if (instanceConfig.getHostName() == null) {
+      instanceConfig.setHostName(hostName);
+    }
+    if (instanceConfig.getPort() == null) {
+      instanceConfig.setPort(port);
+    }
+    // Check to see if the instance is enabled (InstanceConfig defaults to true if not set).
+    // If true, explicitly set it to true so that this is persisted in ZK.
+    if (instanceConfig.getInstanceEnabled()) {
+      instanceConfig.setInstanceEnabled(true);
+    }
+
     return instanceConfig;
   }
 

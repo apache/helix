@@ -323,7 +323,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       missingTopStateMap.get(resourceName).put(partitionName, record);
       // Since top state handoff has not completed yet we can't log helix top state latency but can log since how long
       // top state is missing.
-      LogUtil.logInfo(LOG, _eventId, String.format(
+      LogUtil.logDebug(LOG, _eventId, String.format(
           "Missing top state for partition %s beyond %s time. Graceful: %s",
           partitionName, missingDuration, false));
       if (clusterStatusMonitor != null) {
@@ -494,7 +494,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
     // In case of recovery after failure, we should decrement the missingTopStateBeyondThresholdGauge value.
     if (clusterStatusMonitor != null && record.isFailed()) {
-      LogUtil.logInfo(LOG, _eventId, String.format(
+      LogUtil.logDebug(LOG, _eventId, String.format(
           "Missing top state recovered for resource %s and partition %s. Decrementing missingTopStateBeyondThresholdGauge.",
           resourceName, partition.getPartitionName()));
       clusterStatusMonitor.decrementMissingTopStateBeyondThresholdGauge(resourceName);

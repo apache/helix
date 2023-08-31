@@ -27,6 +27,7 @@ package org.apache.helix.controller.pipeline;
  */
 
 public enum AsyncWorkerType {
+  TopStateHandoffReportWorker,
   TargetExternalViewCalcWorker,
   PersistAssignmentWorker,
   ExternalViewComputeWorker,

@@ -26,7 +26,8 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
-import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
+import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
@@ -42,20 +43,27 @@ import org.slf4j.LoggerFactory;
 /**
  * Observe top state handoff and report latency
  */
-public class TopStateHandoffReportStage extends AbstractBaseStage {
+public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
   private static final long DEFAULT_HANDOFF_USER_LATENCY = 0L;
   private static Logger LOG = LoggerFactory.getLogger(TopStateHandoffReportStage.class);
   public static final long TIMESTAMP_NOT_RECORDED = -1L;
 
   @Override
-  public void process(ClusterEvent event) throws Exception {
+  public AsyncWorkerType getAsyncWorkerType() {
+    return AsyncWorkerType.TopStateHandoffReportWorker;
+  }
+
+  @Override
+  public void execute(final ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
-    final BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
-    final Long lastPipelineFinishTimestamp = event
-        .getAttributeWithDefault(AttributeName.LastRebalanceFinishTimeStamp.name(),
+    final BaseControllerDataProvider cache =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
+    final Long lastPipelineFinishTimestamp =
+        event.getAttributeWithDefault(AttributeName.LastRebalanceFinishTimeStamp.name(),
             TIMESTAMP_NOT_RECORDED);
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    final CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
+    final CurrentStateOutput currentStateOutput =
+        event.getAttribute(AttributeName.CURRENT_STATE.name());
     final ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
 

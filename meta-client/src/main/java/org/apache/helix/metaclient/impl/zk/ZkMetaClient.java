@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -119,38 +120,51 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void recursiveCreate(String key, T data, EntryMode mode) {
-    recursiveCreateHelper(key, data, mode, -1);
+    iterativeCreateHelper(key, data, mode, -1);
   }
 
   @Override
   public void recursiveCreateWithTTL(String key, T data, long ttl) {
-    recursiveCreateHelper(key, data, EntryMode.TTL, ttl);
+    iterativeCreateHelper(key, data, EntryMode.TTL, ttl);
   }
 
-  private void recursiveCreateHelper(String key, T data, EntryMode mode, long ttl) {
-    boolean retry;
-    // Ephemeral nodes cannot have children, so we will create PERSISTENT nodes as the parents
-    EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
-        EntryMode.PERSISTENT : mode);
+  private void iterativeCreateHelper(String key, T data, EntryMode mode, long ttl) {
+    ArrayList<Integer> failedCreationIndices = new ArrayList<>();
+    EntryMode entryMode = mode;
 
-    do {
-      retry = false;
-      try {
-        if (EntryMode.TTL.equals(mode)) {
-          createWithTTL(key, data, ttl);
-        } else {
-          create(key, data, mode);
+    // Iterate backwards over path and try to create full first then each successive parent
+    // For key /a/b/c try to create /a/b/c --> then try /a/b --> then try /a
+    for (int i = key.length(); i > 0; i--) {
+      if (i == key.length() || key.charAt(i) == '/') {
+        try {
+          if (EntryMode.TTL.equals(entryMode)) {
+            createWithTTL(key.substring(0,i), data, ttl);
+          } else {
+            create(key.substring(0, i), data, entryMode);
+          }
+        } catch (MetaClientNoNodeException ignoredParentDoesntExistException) {
+          failedCreationIndices.add(i);
+          // Ephemeral nodes cant have children, so change mode when creating parents
+          entryMode = (EntryMode.EPHEMERAL.equals(entryMode) ?
+              EntryMode.PERSISTENT : entryMode);
+          continue;
         }
-      // If create fails due to parent node not existing, then call recursion on the parent path
-      // and retry create call. We only accept failures due to missing parent node, so do not retry
-      // on other errors.
-      } catch (MetaClientNoNodeException e) {
-        String parentPath = getZkParentPath(key);
-        recursiveCreateHelper(parentPath, null, parentMode, ttl);
-        retry = true;
-      }
-    } while (retry);
 
+        // Node was successfully created, now try to create children
+        // Keep list of indices where create failed, so we don't have to reiterate over the string
+        // looking for the '/' we've encountered or end of string
+        for (int j = failedCreationIndices.size()-1; j >= 0; j--) {
+          if (EntryMode.TTL.equals(entryMode)) {
+            createWithTTL(key.substring(0, failedCreationIndices.get(j)), data, ttl);
+          } else {
+            // If creating full key (j==0, first element in list will always be from creating full
+            // key) then use the original entryMode specified.
+            create(key.substring(0, failedCreationIndices.get(j)), data, j==0 ? mode : entryMode);
+          }
+        }
+        break;
+      }
+    }
   }
 
   @Override

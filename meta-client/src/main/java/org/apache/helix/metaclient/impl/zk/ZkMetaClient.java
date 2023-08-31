@@ -65,7 +65,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.getZkParentPath;
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.separateIntoUniqueNodePaths;
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
 
 
@@ -120,12 +120,12 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void recursiveCreate(String key, T data, EntryMode mode) {
-    iterativeCreateHelper(key, data, mode, -1);
+    iterativeCreateHelperTwo(key, data, mode, -1);
   }
 
   @Override
   public void recursiveCreateWithTTL(String key, T data, long ttl) {
-    iterativeCreateHelper(key, data, EntryMode.TTL, ttl);
+    iterativeCreateHelperTwo(key, data, EntryMode.TTL, ttl);
   }
 
   private void iterativeCreateHelper(String key, T data, EntryMode mode, long ttl) {
@@ -163,6 +163,37 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
           }
         }
         break;
+      }
+    }
+  }
+
+  private void iterativeCreateHelperTwo(String key, T data, EntryMode mode, long ttl) {
+    List<String> nodePaths = separateIntoUniqueNodePaths(key);
+    int i = 0;
+    // Ephemeral nodes cant have children, so change mode when creating parents
+    EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
+        EntryMode.PERSISTENT : mode);
+    // Iterate over paths, starting with full key then attempting each successive parent
+    while (i < nodePaths.size()) {
+      try {
+        if (EntryMode.TTL.equals(mode)) {
+          createWithTTL(nodePaths.get(i), data, ttl);
+        } else {
+          create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
+        }
+        break;
+      } catch (MetaClientNoNodeException ignoredParentDoesntExistException) {
+        i++;
+      }
+
+    }
+
+    // Reattempt creation of children that failed due to NoNodeException
+    while (--i >= 0) {
+      if (EntryMode.TTL.equals(mode)) {
+        createWithTTL(nodePaths.get(i), data, ttl);
+      } else {
+        create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
       }
     }
   }

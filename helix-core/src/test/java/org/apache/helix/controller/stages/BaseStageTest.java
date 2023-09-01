@@ -31,8 +31,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.model.Message;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.mock.MockHelixAdmin;
@@ -44,10 +43,12 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.ITestContext;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -209,7 +210,11 @@ public class BaseStageTest {
     stage.init(context);
     stage.preProcess();
     try {
-      stage.process(event);
+      if (stage instanceof AbstractAsyncBaseStage) {
+        ((AbstractAsyncBaseStage) stage).execute(event);
+      } else {
+        stage.process(event);
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }

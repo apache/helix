@@ -105,13 +105,12 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
 
     // Create and start a new participant with default instance config.
-    InstanceConfig defaultInstanceConfig = new InstanceConfig(instance3);
-    defaultInstanceConfig.setInstanceEnabled(false);
-    defaultInstanceConfig.setMaxConcurrentTask(100);
+    InstanceConfig.Builder defaultInstanceConfig =
+        new InstanceConfig.Builder().setInstanceEnabled(false).addTag("foo");
     MockParticipantManager autoParticipant =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance3, 10, null,
-            new HelixManagerProperty.Builder().setDefaultInstanceConfig(defaultInstanceConfig)
-                .build());
+            new HelixManagerProperty.Builder().setDefaultInstanceConfigBuilder(
+                defaultInstanceConfig).build());
     autoParticipant.syncStart();
 
     Assert.assertTrue(TestHelper.verify(() -> {
@@ -122,8 +121,8 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
       }
       InstanceConfig composedInstanceConfig =
           manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance3);
-      return !composedInstanceConfig.getInstanceEnabled()
-          && composedInstanceConfig.getMaxConcurrentTask() == 100;
+      return !composedInstanceConfig.getInstanceEnabled() && composedInstanceConfig.getTags()
+          .contains("foo");
     }, 2000));
 
     autoParticipant.syncStop();

@@ -29,11 +29,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.topology.Topology;
+import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -68,6 +68,7 @@ public class InstanceConfig extends HelixProperty {
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
   private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
+  private static final boolean HELIX_ENABLED_DEFAULT_VALUE = true;
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -254,7 +255,8 @@ public class InstanceConfig extends HelixProperty {
    * @return true if enabled, false if disabled
    */
   public boolean getInstanceEnabled() {
-    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), true);
+    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(),
+        HELIX_ENABLED_DEFAULT_VALUE);
   }
 
   /**
@@ -718,7 +720,7 @@ public class InstanceConfig extends HelixProperty {
 
     }
 
-    config.setInstanceEnabled(true);
+    config.setInstanceEnabled(HELIX_ENABLED_DEFAULT_VALUE);
     if (config.getHostName() == null) {
       config.setHostName(instanceId);
     }
@@ -738,5 +740,126 @@ public class InstanceConfig extends HelixProperty {
     Topology.computeInstanceTopologyMap(clusterConfig, instanceName, this,
         false /*earlyQuitForFaultZone*/);
     return true;
+  }
+
+  public static class Builder {
+    private String _hostName;
+    private String _port;
+    private String _domain;
+    private int _weight = WEIGHT_NOT_SET;
+    private List<String> _tags = new ArrayList<>();
+    private boolean _instanceEnabled = HELIX_ENABLED_DEFAULT_VALUE;
+    private Map<String, Integer> _instanceCapacityMap;
+
+    /**
+     * Build a new InstanceConfig with given instanceId
+     * @param instanceId A unique ID for this instance
+     * @return InstanceConfig
+     */
+    public InstanceConfig build(String instanceId) {
+      InstanceConfig instanceConfig = new InstanceConfig(instanceId);
+
+      if (_hostName != null) {
+        instanceConfig.setHostName(_hostName);
+      }
+
+      if (_port != null) {
+        instanceConfig.setPort(_port);
+      }
+
+      if (_domain != null) {
+        instanceConfig.setDomain(_domain);
+      }
+
+      if (_weight != InstanceConfig.WEIGHT_NOT_SET) {
+        instanceConfig.setWeight(_weight);
+      }
+
+      for (String tag : _tags) {
+        instanceConfig.addTag(tag);
+      }
+
+      if (_instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
+        instanceConfig.setInstanceEnabled(_instanceEnabled);
+      }
+
+      instanceConfig.setInstanceEnabled(_instanceEnabled);
+
+      if (_instanceCapacityMap != null) {
+        instanceConfig.setInstanceCapacityMap(_instanceCapacityMap);
+      }
+
+      return instanceConfig;
+    }
+
+    /**
+     * Set the host name for this instance
+     * @param hostName the host name
+     * @return InstanceConfig.Builder
+     */
+    public Builder setHostName(String hostName) {
+      _hostName = hostName;
+      return this;
+    }
+
+    /**
+     * Set the port for this instance
+     * @param port the Helix port
+     * @return InstanceConfig.Builder
+     */
+    public Builder setPort(String port) {
+      _port = port;
+      return this;
+    }
+
+    /**
+     * Set the domain for this instance
+     * @param domain the domain
+     * @return InstanceConfig.Builder
+     */
+    public Builder setDomain(String domain) {
+      _domain = domain;
+      return this;
+    }
+
+    /**
+     * Set the weight for this instance
+     * @param weight the weight
+     * @return InstanceConfig.Builder
+     */
+    public Builder setWeight(int weight) {
+      _weight = weight;
+      return this;
+    }
+
+    /**
+     * Add a tag for this instance
+     * @param tag the tag
+     * @return InstanceConfig.Builder
+     */
+    public Builder addTag(String tag) {
+      _tags.add(tag);
+      return this;
+    }
+
+    /**
+     * Set the enabled status for this instance
+     * @param instanceEnabled true if enabled, false otherwise
+     * @return InstanceConfig.Builder
+     */
+    public Builder setInstanceEnabled(boolean instanceEnabled) {
+      _instanceEnabled = instanceEnabled;
+      return this;
+    }
+
+    /**
+     * Set the capacity map for this instance
+     * @param instanceCapacityMap the capacity map
+     * @return InstanceConfig.Builder
+     */
+    public Builder setInstanceCapacityMap(Map<String, Integer> instanceCapacityMap) {
+      _instanceCapacityMap = instanceCapacityMap;
+      return this;
+    }
   }
 }

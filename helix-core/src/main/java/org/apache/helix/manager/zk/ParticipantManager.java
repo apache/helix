@@ -215,14 +215,14 @@ public class ParticipantManager {
       if (!autoRegistration) {
         LOG.info(_instanceName + " is auto-joining cluster: " + _clusterName);
         instanceConfig = HelixUtil.composeInstanceConfig(_instanceName,
-            _helixManagerProperty.getDefaultInstanceConfig());
+            _helixManagerProperty.getDefaultInstanceConfigBuilder());
       } else {
         LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
         CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
         String domain = cloudInstanceInformation.get(
             CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
         instanceConfig = HelixUtil.composeInstanceConfig(_instanceName,
-            _helixManagerProperty.getDefaultInstanceConfig());
+            _helixManagerProperty.getDefaultInstanceConfigBuilder());
         instanceConfig.setDomain(domain);
       }
       instanceConfig

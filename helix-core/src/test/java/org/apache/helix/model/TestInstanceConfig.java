@@ -160,13 +160,33 @@ public class TestInstanceConfig {
     InstanceConfig testConfig = new InstanceConfig("testConfig");
     testConfig.setTargetTaskThreadPoolSize(100);
 
-    Assert.assertEquals(testConfig.getRecord().getIntField(
-        InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(), -1), 100);
+    Assert.assertEquals(testConfig.getRecord()
+            .getIntField(InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(), -1),
+        100);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void testSetTargetTaskThreadPoolSizeIllegalArgument() {
     InstanceConfig testConfig = new InstanceConfig("testConfig");
     testConfig.setTargetTaskThreadPoolSize(-1);
+  }
+
+  @Test
+  public void testInstanceConfigBuilder() {
+    Map<String, Integer> capacityDataMap = ImmutableMap.of("weight1", 1);
+    InstanceConfig instanceConfig =
+        new InstanceConfig.Builder().setHostName("testHost").setPort("1234").setDomain("foo=bar")
+            .setWeight(100).setInstanceEnabled(true).addTag("tag1").addTag("tag2")
+            .setInstanceEnabled(false).setInstanceCapacityMap(capacityDataMap).build("instance1");
+
+    Assert.assertEquals(instanceConfig.getId(), "instance1");
+    Assert.assertEquals(instanceConfig.getHostName(), "testHost");
+    Assert.assertEquals(instanceConfig.getPort(), "1234");
+    Assert.assertEquals(instanceConfig.getDomainAsString(), "foo=bar");
+    Assert.assertEquals(instanceConfig.getWeight(), 100);
+    Assert.assertTrue(instanceConfig.getTags().contains("tag1"));
+    Assert.assertTrue(instanceConfig.getTags().contains("tag2"));
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight1"), Integer.valueOf(1));
   }
 }

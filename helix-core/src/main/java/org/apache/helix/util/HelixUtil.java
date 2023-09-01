@@ -538,38 +538,31 @@ public final class HelixUtil {
    */
   @Deprecated
   public static InstanceConfig composeInstanceConfig(String instanceName) {
-    return composeInstanceConfig(instanceName, new InstanceConfig(instanceName));
+    return composeInstanceConfig(instanceName, new InstanceConfig.Builder());
   }
 
   /**
    * Compose the config for an instance with defaults if provided.
    * @param instanceName the unique name of the instance
-   * @param defaultInstanceConfig default instance config
+   * @param defaultInstanceConfigBuilder instance config builder filled with defaults
    * @return InstanceConfig
    */
   public static InstanceConfig composeInstanceConfig(String instanceName,
-      InstanceConfig defaultInstanceConfig) {
-    InstanceConfig instanceConfig =
-        defaultInstanceConfig == null ? new InstanceConfig(instanceName) : defaultInstanceConfig;
-
-    String hostName = instanceName;
-    String port = "";
+      InstanceConfig.Builder defaultInstanceConfigBuilder) {
+    InstanceConfig instanceConfig = defaultInstanceConfigBuilder.build(instanceName);
+    String proposedHostName = instanceName;
+    String proposedPort = "";
     int lastPos = instanceName.lastIndexOf("_");
     if (lastPos > 0) {
-      hostName = instanceName.substring(0, lastPos);
-      port = instanceName.substring(lastPos + 1);
+      proposedHostName = instanceName.substring(0, lastPos);
+      proposedPort = instanceName.substring(lastPos + 1);
     }
 
     if (instanceConfig.getHostName() == null) {
-      instanceConfig.setHostName(hostName);
+      instanceConfig.setHostName(proposedHostName);
     }
     if (instanceConfig.getPort() == null) {
-      instanceConfig.setPort(port);
-    }
-    // Check to see if the instance is enabled (InstanceConfig defaults to true if not set).
-    // If true, explicitly set it to true so that this is persisted in ZK.
-    if (instanceConfig.getInstanceEnabled()) {
-      instanceConfig.setInstanceEnabled(true);
+      instanceConfig.setPort(proposedPort);
     }
 
     return instanceConfig;

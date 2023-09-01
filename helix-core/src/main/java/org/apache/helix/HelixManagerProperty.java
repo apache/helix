@@ -20,7 +20,6 @@ package org.apache.helix;
  */
 
 import java.util.Properties;
-import javax.annotation.Nullable;
 
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -37,7 +36,7 @@ public class HelixManagerProperty {
   private String _version;
   private long _healthReportLatency;
   private HelixCloudProperty _helixCloudProperty;
-  private InstanceConfig _defaultInstanceConfig;
+  private InstanceConfig.Builder _defaultInstanceConfigBuilder;
   private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
   private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
 
@@ -58,13 +57,13 @@ public class HelixManagerProperty {
   }
 
   private HelixManagerProperty(String version, long healthReportLatency,
-      HelixCloudProperty helixCloudProperty, InstanceConfig defaultInstanceConfig,
+      HelixCloudProperty helixCloudProperty, InstanceConfig.Builder defaultInstanceConfig,
       RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
     _version = version;
     _healthReportLatency = healthReportLatency;
     _helixCloudProperty = helixCloudProperty;
-    _defaultInstanceConfig = defaultInstanceConfig;
+    _defaultInstanceConfigBuilder = defaultInstanceConfig;
     _zkConnectionConfig = zkConnectionConfig;
     _zkClientConfig = zkClientConfig;
   }
@@ -76,9 +75,11 @@ public class HelixManagerProperty {
     return _helixCloudProperty;
   }
 
-  @Nullable
-  public InstanceConfig getDefaultInstanceConfig() {
-    return _defaultInstanceConfig;
+  public InstanceConfig.Builder getDefaultInstanceConfigBuilder() {
+    if (_defaultInstanceConfigBuilder == null) {
+      _defaultInstanceConfigBuilder = new InstanceConfig.Builder();
+    }
+    return _defaultInstanceConfigBuilder;
   }
 
   public String getVersion() {
@@ -101,7 +102,7 @@ public class HelixManagerProperty {
     private String _version;
     private long _healthReportLatency;
     private HelixCloudProperty _helixCloudProperty;
-    private InstanceConfig _defaultInstanceConfig;
+    private InstanceConfig.Builder _defaultInstanceConfigBuilder;
     private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
     private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
 
@@ -110,7 +111,7 @@ public class HelixManagerProperty {
 
     public HelixManagerProperty build() {
       return new HelixManagerProperty(_version, _healthReportLatency, _helixCloudProperty,
-          _defaultInstanceConfig, _zkConnectionConfig, _zkClientConfig);
+          _defaultInstanceConfigBuilder, _zkConnectionConfig, _zkClientConfig);
     }
 
     public Builder setVersion(String version) {
@@ -128,8 +129,9 @@ public class HelixManagerProperty {
       return this;
     }
 
-    public Builder setDefaultInstanceConfig(InstanceConfig defaultInstanceConfig) {
-      _defaultInstanceConfig = defaultInstanceConfig;
+    public Builder setDefaultInstanceConfigBuilder(
+        InstanceConfig.Builder defaultInstanceConfigBuilder) {
+      _defaultInstanceConfigBuilder = defaultInstanceConfigBuilder;
       return this;
     }
 

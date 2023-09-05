@@ -494,7 +494,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
     // In case of recovery after failure, we should decrement the missingTopStateBeyondThresholdGauge value.
     if (clusterStatusMonitor != null && record.isFailed()) {
-      LogUtil.logDebug(LOG, _eventId, String.format(
+      LogUtil.logInfo(LOG, _eventId, String.format(
           "Missing top state recovered for resource %s and partition %s. Decrementing missingTopStateBeyondThresholdGauge.",
           resourceName, partition.getPartitionName()));
       clusterStatusMonitor.decrementMissingTopStateBeyondThresholdGauge(resourceName);

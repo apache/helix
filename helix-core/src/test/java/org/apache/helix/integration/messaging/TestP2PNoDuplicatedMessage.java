@@ -165,36 +165,28 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
     MockHelixTaskExecutor.resetStats();
     // rolling upgrade the cluster
     for (String ins : _instances) {
-      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, false);
-      Assert.assertTrue(_clusterVerifier.verifyByPolling());
-      // Since new host that receives the p2p relay message will record the source host (controller)
-      // of the relay message as the trigger host, the top state transition triggered by the
-      // controller should be equal to the total number of top state transitions.
-      Assert.assertTrue(TestHelper.verify(() -> {
-            total = 0;
-            p2pTriggered = 0;
-            verifyP2PEnabled(startTime);
-            return total == p2pTriggered;
-          }, TestHelper.WAIT_DURATION),
-          "Number of successful p2p transitions when disable instance " + ins + ": " + p2pTriggered
-              + " , expect: " + total);
-
-      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, true);
-      Assert.assertTrue(_clusterVerifier.verifyByPolling());
-      Assert.assertTrue(TestHelper.verify(() -> {
-            total = 0;
-            p2pTriggered = 0;
-            verifyP2PEnabled(startTime);
-            return total == p2pTriggered;
-          }, TestHelper.WAIT_DURATION),
-          "Number of successful p2p transitions when enable instance " + ins + ":" + p2pTriggered
-              + " , expect:" + total);
+      verifyP2P(startTime, ins, false);
+      verifyP2P(startTime, ins, true);
     }
 
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessagesInProgress, 0,
         "There are duplicated transition messages sent while participant is handling the state-transition!");
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessages, 0,
         "There are duplicated transition messages sent at same time!");
+  }
+
+  private void verifyP2P(long startTime, String instance, boolean enabled) throws Exception {
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instance, enabled);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(TestHelper.verify(() -> {
+          total = 0;
+          p2pTriggered = 0;
+          verifyP2PEnabled(startTime);
+          return total == p2pTriggered;
+        }, TestHelper.WAIT_DURATION),
+        "Number of successful p2p transitions when disable instance " + instance + ": "
+            + p2pTriggered + " , expect: " + total);
+    Thread.sleep(5000);
   }
 
   private void verifyP2PDisabled() {

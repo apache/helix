@@ -159,29 +159,34 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   }
 
   @Test (dependsOnMethods = {"testP2PStateTransitionDisabled"})
-  public void testP2PStateTransitionEnabled() {
+  public void testP2PStateTransitionEnabled() throws Exception {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
     long startTime = System.currentTimeMillis();
     MockHelixTaskExecutor.resetStats();
     // rolling upgrade the cluster
     for (String ins : _instances) {
-      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, false);
-      Assert.assertTrue(_clusterVerifier.verifyByPolling());
-      verifyP2PEnabled(startTime);
-
-      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, true);
-      Assert.assertTrue(_clusterVerifier.verifyByPolling());
-      verifyP2PEnabled(startTime);
+      verifyP2P(startTime, ins, false);
+      verifyP2P(startTime, ins, true);
     }
 
-    // The success rate really depends on how quick participant act in relationship with controller.
-    // For now, we set 90% threshold.
-    long threshold = Math.round(total * 0.9);
-    Assert.assertTrue( p2pTrigged > Math.round(total * 0.9));
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessagesInProgress, 0,
         "There are duplicated transition messages sent while participant is handling the state-transition!");
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessages, 0,
         "There are duplicated transition messages sent at same time!");
+  }
+
+  private void verifyP2P(long startTime, String instance, boolean enabled) throws Exception {
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instance, enabled);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(TestHelper.verify(() -> {
+          total = 0;
+          p2pTriggered = 0;
+          verifyP2PEnabled(startTime);
+          return total == p2pTriggered;
+        }, TestHelper.WAIT_DURATION),
+        "Number of successful p2p transitions when disable instance " + instance + ": "
+            + p2pTriggered + " , expect: " + total);
+    Thread.sleep(5000);
   }
 
   private void verifyP2PDisabled() {
@@ -208,7 +213,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   }
 
   static int total = 0;
-  static int p2pTrigged = 0;
+  static int p2pTriggered = 0;
 
   private void verifyP2PEnabled(long startTime) {
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
@@ -226,7 +231,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
           if (state.equalsIgnoreCase("MASTER") && start > startTime) {
             String triggerHost = currentState.getTriggerHost(partition);
             if (!triggerHost.equals(_controllerName)) {
-              p2pTrigged ++;
+              p2pTriggered ++;
             }
             total ++;
           }

@@ -18,39 +18,44 @@ package org.apache.helix.metaclient.api;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.HashMap;
+import java.util.Map;
+
 public interface MetaClientCacheInterface<T> extends MetaClientInterface<T> {
-    enum  CacheState {
-        /**
-         * When cache is closed or recently created and hasn't been started yet.
-         */
-        UNINITIALIZED,
-        /**
-         * When a change happens in the underlying metadata storage, the
-         * cache must be updated accordingly. In this state, the cache is
-         * being rebuilt based on the changes that the listener picks up.
-         */
-        PROCESSING_CHANGES,
-        /**
-         * The cache is up-to-date with the key from the underlying
-         * metadata storage and no changes are being processed.
-         */
-        UP_TO_DATE
+
+    /**
+     * TrieNode class to store the children of the entries to be cached.
+     */
+    class TrieNode {
+        // A mapping between trie key and children nodes.
+        private Map<String, TrieNode> _children;
+
+        // the complete path/prefix leading to the current node.
+        private final String _path;
+
+        private final String _nodeKey;
+
+        TrieNode(String path, String nodeKey) {
+            _path = path;
+            _nodeKey = nodeKey;
+            _children = new HashMap<>();
+        }
+
+        public Map<String, TrieNode> getChildren() {
+            return _children;
+        }
+
+        public String getPath() {
+            return _path;
+        }
+
+        public String getNodeKey() {
+            return _nodeKey;
+        }
+
+        public void addChild(String key,  TrieNode node) {
+            _children.put(key, node);
+        }
     }
-
-    /**
-     * Start the cache. The cache is not started automatically. You must call this method.
-     * Whether the cache is populated immediately or not is defined when crating the cache client.
-     */
-    void startCache();
-
-    /**
-     * Close / end the cache.
-     */
-    void closeCache();
-
-    /**
-     * Rebuild the entries that exist in the current cache. Will log an error and return null
-     * if the cache is close / hasn't started yet.
-     */
-    void rebuildCache();
 }

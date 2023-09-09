@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.factories;
  */
 
 
+import org.apache.helix.metaclient.api.MetaClientCacheInterface;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
@@ -48,5 +49,22 @@ public class MetaClientFactory {
       return new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
     }
     return null;
+  }
+
+  public MetaClientCacheInterface getMetaClientCache(MetaClientConfig config, String key, Boolean cacheData,
+                                                     Boolean cacheChildren, Boolean lazyCaching) {
+    if (config == null) {
+      throw new IllegalArgumentException("MetaClientConfig cannot be null.");
+    }
+    if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
+      ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
+              setConnectionAddress(config.getConnectionAddress())
+              .setMetaClientReconnectPolicy(config.getMetaClientReconnectPolicy())
+              .setConnectionInitTimeoutInMillis(config.getConnectionInitTimeoutInMillis())
+              .setSessionTimeoutInMillis(config.getSessionTimeoutInMillis())
+              .build();
+      return new ZkMetaClientFactory().getMetaClientCache(zkMetaClientConfig, key, cacheData, cacheChildren, lazyCaching);
+    }
+      return null;
   }
 }

@@ -30,6 +30,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
@@ -38,6 +39,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor.AccessResult;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -179,6 +181,35 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "submsg_0");
 
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testDoSetWithException() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s/%s", _rootPath, "msg_0", "submsg_0");
+    ZNRecord record = new ZNRecord("submsg_0");
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    AccessResult result = accessor.doSet(path, record, -1, AccessOption.PERSISTENT);
+    ZNRecord getRecord = _gZkClient.readData(path);
+
+    // create mock spy for _gZkClient
+    HelixZkClient mockZkClient = Mockito.spy(_gZkClient);
+
+    // mock so that _gZkClient throws ZkBadVersionException
+    Mockito.doThrow(new ZkBadVersionException(""))
+        .when(mockZkClient).writeDataGetStat(Mockito.anyString(), Mockito.any(), Mockito.anyInt());
+
+    try {
+      accessor.doSet(path, record, getRecord.getVersion(), AccessOption.PERSISTENT);
+    } catch (ZkBadVersionException e) {
+      // OK
+    }
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 

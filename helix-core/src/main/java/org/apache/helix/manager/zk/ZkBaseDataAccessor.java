@@ -393,6 +393,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           result._retCode = RetCode.ERROR;
           return result;
         }
+      } catch (ZkBadVersionException e) {
+        LOG.debug("Exception while setting path: " + path, e);
+        throw e;
       } catch (Exception e) {
         LOG.error("Exception while setting path: " + path, e);
         result._retCode = RetCode.ERROR;

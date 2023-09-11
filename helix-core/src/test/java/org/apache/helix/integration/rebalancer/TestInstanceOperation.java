@@ -125,7 +125,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // revert an evacuate instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -138,6 +138,55 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testRevertEvacuation")
+  public void testAddingNodeWithEvacuationTag() throws Exception {
+    // first disable and instance, and wait for all replicas to be moved out
+    String mockNewInstance = _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool()
+        .enableInstance(CLUSTER_NAME, mockNewInstance, false);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    //ev should contain all instances but the disabled one
+    Map<String, ExternalView> assignment = getEV();
+    List<String> currentActiveInstances =
+        _participantNames.stream().filter(n -> !n.equals(mockNewInstance)).collect(Collectors.toList());
+    for (String resource : _allDBs) {
+      validateAssignmentInEv(assignment.get(resource));
+      Set<String> newPAssignedParticipants = getParticipantsInEv(assignment.get(resource));
+      Assert.assertFalse(newPAssignedParticipants.contains(mockNewInstance));
+      Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
+    }
+
+    // add evacuate tag and enable instance
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, mockNewInstance, InstanceConstants.InstanceOperation.EVACUATE);
+    _gSetupTool.getClusterManagementTool()
+        .enableInstance(CLUSTER_NAME, mockNewInstance, true);
+    //ev should be the same
+    assignment = getEV();
+    currentActiveInstances =
+        _participantNames.stream().filter(n -> !n.equals(mockNewInstance)).collect(Collectors.toList());
+    for (String resource : _allDBs) {
+      validateAssignmentInEv(assignment.get(resource));
+      Set<String> newPAssignedParticipants = getParticipantsInEv(assignment.get(resource));
+      Assert.assertFalse(newPAssignedParticipants.contains(mockNewInstance));
+      Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
+    }
+
+    // now remove operation tag
+    String instanceToEvacuate = _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // EV should contain all participants, check resources one by one
+     assignment = getEV();
+    for (String resource : _allDBs) {
+      Assert.assertTrue(getParticipantsInEv(assignment.get(resource)).containsAll(_participantNames));
+      validateAssignmentInEv(assignment.get(resource));
+    }
+  }
+
+  @Test(dependsOnMethods = "testAddingNodeWithEvacuationTag")
   public void testEvacuateAndCancelBeforeBootstrapFinish() throws Exception {
     // add a resource where downward state transition is slow
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB3_DELAYED_CRUSHED", "MasterSlave", PARTITIONS, REPLICA,
@@ -151,7 +200,7 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // set bootstrap ST delay to a large number
-    _stateModelDelay = -300000L;
+    _stateModelDelay = -10000L;
     // evacuate an instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
@@ -174,9 +223,9 @@ public class TestInstanceOperation extends ZkTestBase {
       validateAssignmentInEv(assignment.get(resource));
     }
 
-    // cancel the evacuation by setting instance operation back to `ENABLE`
+    // cancel the evacuation
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
 
     assignment = getEV();
     for (String resource : _allDBs) {
@@ -200,7 +249,7 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testEvacuateAndCancelBeforeDropFinish() throws Exception {
 
     // set DROP ST delay to a large number
-    _stateModelDelay = 300000L;
+    _stateModelDelay = 10000L;
 
     // evacuate an instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
@@ -211,8 +260,9 @@ public class TestInstanceOperation extends ZkTestBase {
     TestHelper.verify(
         () -> ((_dataAccessor.getChildNames(_dataAccessor.keyBuilder().messages(instanceToEvacuate))).isEmpty()), 30000);
 
+    // cancel evacuation
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
     // check every replica has >= 3 active replicas, even before cluster converge
     Map<String, ExternalView> assignment = getEV();
     for (String resource : _allDBs) {
@@ -290,6 +340,10 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
    private void createTestDBs(long delayTime) throws InterruptedException {
+     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB0_CRUSHED",
+         BuiltInStateModelDefinitions.LeaderStandby.name(), PARTITIONS, REPLICA, REPLICA - 1, -1,
+         CrushEdRebalanceStrategy.class.getName());
+     _allDBs.add("TEST_DB0_CRUSHED");
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB1_CRUSHED",
         BuiltInStateModelDefinitions.LeaderStandby.name(), PARTITIONS, REPLICA, REPLICA - 1, 200,
         CrushEdRebalanceStrategy.class.getName());
@@ -375,7 +429,7 @@ public class TestInstanceOperation extends ZkTestBase {
     private void sleepWhileNotCanceled(long sleepTime) throws InterruptedException{
       while(sleepTime >0 && !isCancelled()) {
         Thread.sleep(5000);
-        sleepTime =- 5000;
+        sleepTime = sleepTime - 5000;
       }
       if (isCancelled()) {
         _cancelled = false;

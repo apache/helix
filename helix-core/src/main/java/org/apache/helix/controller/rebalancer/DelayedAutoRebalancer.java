@@ -109,14 +109,12 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       allNodes = clusterData.getAllInstances();
     }
 
-    Set<String> activeNodes = liveEnabledNodes;
+    long delay = DelayedRebalanceUtil.getRebalanceDelay(currentIdealState, clusterConfig);
+    Set<String> activeNodes = DelayedRebalanceUtil
+        .getActiveNodes(allNodes, currentIdealState, liveEnabledNodes,
+            clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
+            clusterData.getInstanceConfigMap(), delay, clusterConfig);
     if (delayRebalanceEnabled) {
-      long delay = DelayedRebalanceUtil.getRebalanceDelay(currentIdealState, clusterConfig);
-      activeNodes = DelayedRebalanceUtil
-          .getActiveNodes(allNodes, currentIdealState, liveEnabledNodes,
-              clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-              clusterData.getInstanceConfigMap(), delay, clusterConfig);
-
       Set<String> offlineOrDisabledInstances = new HashSet<>(activeNodes);
       offlineOrDisabledInstances.removeAll(liveEnabledNodes);
       DelayedRebalanceUtil.setRebalanceScheduler(currentIdealState.getResourceName(), true,
@@ -165,7 +163,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         .computePartitionAssignment(allNodeList, liveEnabledNodeList, currentMapping, clusterData);
     ZNRecord finalMapping = newIdealMapping;
 
-    if (DelayedRebalanceUtil.isDelayRebalanceEnabled(currentIdealState, clusterConfig)) {
+    if (DelayedRebalanceUtil.isDelayRebalanceEnabled(currentIdealState, clusterConfig)
+        || liveEnabledNodeList.size()!= activeNodes.size()) {
       List<String> activeNodeList = new ArrayList<>(activeNodes);
       Collections.sort(activeNodeList);
       int minActiveReplicas = DelayedRebalanceUtil.getMinActiveReplica(

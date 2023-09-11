@@ -19,7 +19,6 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -42,7 +41,6 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
-import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.impl.zk.adapter.ChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
@@ -120,60 +118,24 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public void recursiveCreate(String key, T data, EntryMode mode) {
-    iterativeCreateHelperTwo(key, data, mode, -1);
+    // Function named recursiveCreate to match naming scheme, but actual work is iterative
+    iterativeCreate(key, data, mode, -1);
   }
 
   @Override
   public void recursiveCreateWithTTL(String key, T data, long ttl) {
-    iterativeCreateHelperTwo(key, data, EntryMode.TTL, ttl);
+    iterativeCreate(key, data, EntryMode.TTL, ttl);
   }
 
-  private void iterativeCreateHelper(String key, T data, EntryMode mode, long ttl) {
-    ArrayList<Integer> failedCreationIndices = new ArrayList<>();
-    EntryMode entryMode = mode;
-
-    // Iterate backwards over path and try to create full first then each successive parent
-    // For key /a/b/c try to create /a/b/c --> then try /a/b --> then try /a
-    for (int i = key.length(); i > 0; i--) {
-      if (i == key.length() || key.charAt(i) == '/') {
-        try {
-          if (EntryMode.TTL.equals(entryMode)) {
-            createWithTTL(key.substring(0,i), data, ttl);
-          } else {
-            create(key.substring(0, i), data, entryMode);
-          }
-        } catch (MetaClientNoNodeException ignoredParentDoesntExistException) {
-          failedCreationIndices.add(i);
-          // Ephemeral nodes cant have children, so change mode when creating parents
-          entryMode = (EntryMode.EPHEMERAL.equals(entryMode) ?
-              EntryMode.PERSISTENT : entryMode);
-          continue;
-        }
-
-        // Node was successfully created, now try to create children
-        // Keep list of indices where create failed, so we don't have to reiterate over the string
-        // looking for the '/' we've encountered or end of string
-        for (int j = failedCreationIndices.size()-1; j >= 0; j--) {
-          if (EntryMode.TTL.equals(entryMode)) {
-            createWithTTL(key.substring(0, failedCreationIndices.get(j)), data, ttl);
-          } else {
-            // If creating full key (j==0, first element in list will always be from creating full
-            // key) then use the original entryMode specified.
-            create(key.substring(0, failedCreationIndices.get(j)), data, j==0 ? mode : entryMode);
-          }
-        }
-        break;
-      }
-    }
-  }
-
-  private void iterativeCreateHelperTwo(String key, T data, EntryMode mode, long ttl) {
+  private void iterativeCreate(String key, T data, EntryMode mode, long ttl) {
     List<String> nodePaths = separateIntoUniqueNodePaths(key);
     int i = 0;
     // Ephemeral nodes cant have children, so change mode when creating parents
     EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
         EntryMode.PERSISTENT : mode);
+
     // Iterate over paths, starting with full key then attempting each successive parent
+    // Try /a/b/c, if fails due to NoNode then try /a/b .. etc..
     while (i < nodePaths.size()) {
       try {
         if (EntryMode.TTL.equals(mode)) {
@@ -182,6 +144,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
           create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
         }
         break;
+        // NoNodeException thrown when parent path does not exist. We want to
       } catch (MetaClientNoNodeException ignoredParentDoesntExistException) {
         i++;
       }

@@ -144,7 +144,8 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
           create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
         }
         break;
-        // NoNodeException thrown when parent path does not exist. We want to
+        // NoNodeException thrown when parent path does not exist. We allow this and re-attempt
+        // creation of these nodes below
       } catch (MetaClientNoNodeException ignoredParentDoesntExistException) {
         i++;
       }

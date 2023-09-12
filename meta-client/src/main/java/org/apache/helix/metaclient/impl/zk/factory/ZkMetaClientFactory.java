@@ -19,10 +19,13 @@ package org.apache.helix.metaclient.impl.zk.factory;
  * under the License.
  */
 
+import org.apache.helix.metaclient.api.MetaClientCacheInterface;
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.factories.MetaClientCacheConfig;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.factories.MetaClientFactory;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
+import org.apache.helix.metaclient.impl.zk.ZkMetaClientCache;
 
 public class ZkMetaClientFactory extends MetaClientFactory {
   @Override
@@ -33,6 +36,18 @@ public class ZkMetaClientFactory extends MetaClientFactory {
     if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())
         && config instanceof ZkMetaClientConfig) {
       return new ZkMetaClient((ZkMetaClientConfig) config);
+    }
+    throw new IllegalArgumentException("Invalid MetaClientConfig type.");
+  }
+
+  @Override
+  public MetaClientCacheInterface getMetaClientCache(MetaClientConfig config, MetaClientCacheConfig cacheConfig) {
+    if (config == null) {
+      throw new IllegalArgumentException("MetaClientConfig cannot be null.");
+    }
+    if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())
+            && config instanceof ZkMetaClientConfig) {
+      return new ZkMetaClientCache((ZkMetaClientConfig) config, cacheConfig);
     }
     throw new IllegalArgumentException("Invalid MetaClientConfig type.");
   }

@@ -22,10 +22,10 @@ package org.apache.helix.metaclient.factories;
 
 
 public class MetaClientCacheConfig {
-    private String _rootEntry;
-    private boolean _cacheData;
-    private boolean _cacheChildren;
-    private boolean _lazyCaching;
+    private final String _rootEntry;
+    private boolean _cacheData = false;
+    private boolean _cacheChildren = false;
+    private boolean _lazyCaching = true;
 
     public MetaClientCacheConfig(String rootEntry, boolean cacheData, boolean cacheChildren, boolean lazyCaching) {
         _rootEntry = rootEntry;

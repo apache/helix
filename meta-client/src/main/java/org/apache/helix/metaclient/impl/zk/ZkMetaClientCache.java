@@ -23,6 +23,7 @@ import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.MetaClientCacheInterface;
 import org.apache.helix.metaclient.datamodel.DataRecord;
 import org.apache.helix.metaclient.exception.MetaClientException;
+import org.apache.helix.metaclient.factories.MetaClientCacheConfig;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
@@ -47,25 +48,17 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
     private  ZkClient _cacheClient;
 
     /**
-     * Creates a cached metaclient with ZooKeeper as the underlying data storage.
-     * @param config Configuration file to setup a zkmetaclient
-     * @param key The root node of the entry to be cached.
-     * @param cacheData Indicates whether the data should be cached.
-     * @param cacheChildren Indicates whether the children of the nodes should be cached.
-     * @param lazyCaching Indicates whether lazy loading of the cache is enabled.
+     * Constructor for ZkMetaClientCache.
+     * @param config ZkMetaClientConfig
+     * @param cacheConfig MetaClientCacheConfig
      */
-    public ZkMetaClientCache(ZkMetaClientConfig config, String key, Boolean cacheData,
-                             Boolean cacheChildren, Boolean lazyCaching) {
+    public ZkMetaClientCache(ZkMetaClientConfig config, MetaClientCacheConfig cacheConfig) {
         super(config);
         _cacheClient = getZkClient();
-        _rootEntry = key;
-        _lazyCaching = lazyCaching;
-        _cacheData = cacheData;
-        _cacheChildren = cacheChildren;
-    }
-
-    private void setLazyLoading(boolean lazyLoading) {
-        _lazyCaching = lazyLoading;
+        _rootEntry = cacheConfig.getRootEntry();
+        _lazyCaching = cacheConfig.getLazyCaching();
+        _cacheData = cacheConfig.getCacheData();
+        _cacheChildren = cacheConfig.getCacheChildren();
     }
 
     @Override
@@ -98,7 +91,4 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         throw new MetaClientException("Not implemented yet.");
     }
 
-    public ZkClient getCacheClient() {
-        return _cacheClient;
-    }
 }

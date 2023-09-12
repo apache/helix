@@ -21,6 +21,7 @@ package org.apache.helix.metaclient.impl.zk.factory;
 
 import org.apache.helix.metaclient.api.MetaClientCacheInterface;
 import org.apache.helix.metaclient.api.MetaClientInterface;
+import org.apache.helix.metaclient.factories.MetaClientCacheConfig;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.factories.MetaClientFactory;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
@@ -40,14 +41,13 @@ public class ZkMetaClientFactory extends MetaClientFactory {
   }
 
   @Override
-  public MetaClientCacheInterface getMetaClientCache(MetaClientConfig config, String key, Boolean cacheData,
-                                                     Boolean cacheChildren, Boolean lazyCaching) {
+  public MetaClientCacheInterface getMetaClientCache(MetaClientConfig config, MetaClientCacheConfig cacheConfig) {
     if (config == null) {
       throw new IllegalArgumentException("MetaClientConfig cannot be null.");
     }
     if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())
             && config instanceof ZkMetaClientConfig) {
-      return new ZkMetaClientCache((ZkMetaClientConfig) config, key, cacheData, cacheChildren, lazyCaching);
+      return new ZkMetaClientCache((ZkMetaClientConfig) config, cacheConfig);
     }
     throw new IllegalArgumentException("Invalid MetaClientConfig type.");
   }

@@ -51,8 +51,7 @@ public class MetaClientFactory {
     return null;
   }
 
-  public MetaClientCacheInterface getMetaClientCache(MetaClientConfig config, String key, Boolean cacheData,
-                                                     Boolean cacheChildren, Boolean lazyCaching) {
+  public MetaClientCacheInterface getMetaClientCache(MetaClientConfig config, MetaClientCacheConfig cacheConfig) {
     if (config == null) {
       throw new IllegalArgumentException("MetaClientConfig cannot be null.");
     }
@@ -63,7 +62,7 @@ public class MetaClientFactory {
               .setConnectionInitTimeoutInMillis(config.getConnectionInitTimeoutInMillis())
               .setSessionTimeoutInMillis(config.getSessionTimeoutInMillis())
               .build();
-      return new ZkMetaClientFactory().getMetaClientCache(zkMetaClientConfig, key, cacheData, cacheChildren, lazyCaching);
+      return new ZkMetaClientFactory().getMetaClientCache(zkMetaClientConfig, cacheConfig);
     }
       return null;
   }

@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.impl.zk;
  */
 
 
+import org.apache.helix.metaclient.factories.MetaClientCacheConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -29,7 +30,7 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
 
     @Test
     public void testCreateClient() {
-        final String key = "/TestZkMetaClient_testCreate";
+        final String key = "/TestZkMetaClientCache_testCreate";
         try (ZkMetaClient<String> zkMetaClientCache = createZkMetaClientCache()) {
             zkMetaClientCache.connect();
             // Perform some random non-read operation
@@ -38,7 +39,7 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
             try {
                 //Perform some read operation - should fail.
                 // TODO: Remove this once implemented.
-                zkMetaClientCache.get(PATH);
+                zkMetaClientCache.get(key);
                 Assert.fail("Should have failed with non implemented yet.");
             } catch (Exception ignored) {
             }
@@ -50,6 +51,7 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
                 new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR)
                         //.setZkSerializer(new TestStringSerializer())
                         .build();
-        return new ZkMetaClientCache<>(config, TestZkMetaClientCache.PATH, true, true, true);
+        MetaClientCacheConfig cacheConfig = new MetaClientCacheConfig(PATH, true, true, true);
+        return new ZkMetaClientCache<>(config, cacheConfig);
     }
 }

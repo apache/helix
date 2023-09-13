@@ -495,7 +495,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.EVACUATE.toString());
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=INVALIDOP")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
-    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation")
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
     Assert.assertEquals(

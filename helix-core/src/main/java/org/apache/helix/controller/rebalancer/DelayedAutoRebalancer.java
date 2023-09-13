@@ -30,8 +30,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import java.util.stream.Collectors;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
@@ -39,6 +41,7 @@ import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -155,16 +158,17 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     // sort node lists to ensure consistent preferred assignments
     List<String> allNodeList = new ArrayList<>(allNodes);
-    List<String> liveEnabledNodeList = new ArrayList<>(liveEnabledNodes);
+    List<String> liveEnabledAssignableNodeList = filterOutEvacuatingInstances(clusterData.getInstanceConfigMap(),
+        liveEnabledNodes);
     Collections.sort(allNodeList);
-    Collections.sort(liveEnabledNodeList);
+    Collections.sort(liveEnabledAssignableNodeList);
 
     ZNRecord newIdealMapping = _rebalanceStrategy
-        .computePartitionAssignment(allNodeList, liveEnabledNodeList, currentMapping, clusterData);
+        .computePartitionAssignment(allNodeList, liveEnabledAssignableNodeList, currentMapping, clusterData);
     ZNRecord finalMapping = newIdealMapping;
 
     if (DelayedRebalanceUtil.isDelayRebalanceEnabled(currentIdealState, clusterConfig)
-        || liveEnabledNodeList.size()!= activeNodes.size()) {
+        || liveEnabledAssignableNodeList.size()!= activeNodes.size()) {
       List<String> activeNodeList = new ArrayList<>(activeNodes);
       Collections.sort(activeNodeList);
       int minActiveReplicas = DelayedRebalanceUtil.getMinActiveReplica(
@@ -191,6 +195,14 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     IdealState idealState = generateNewIdealState(resourceName, currentIdealState, finalMapping);
     clusterData.setCachedIdealMapping(resourceName, idealState.getRecord());
     return idealState;
+  }
+
+  public static List<String> filterOutEvacuatingInstances(Map<String, InstanceConfig> instanceConfigMap,
+      Set<String> nodes) {
+    return  nodes.stream()
+        .filter(instance -> !instanceConfigMap.get(instance).getInstanceOperation().equals(
+            InstanceConstants.InstanceOperation.EVACUATE.name()))
+        .collect(Collectors.toList());
   }
 
   private IdealState generateNewIdealState(String resourceName, IdealState currentIdealState,

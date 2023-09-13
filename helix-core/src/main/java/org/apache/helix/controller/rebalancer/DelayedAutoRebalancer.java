@@ -158,7 +158,10 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     // sort node lists to ensure consistent preferred assignments
     List<String> allNodeList = new ArrayList<>(allNodes);
-    List<String> liveEnabledAssignableNodeList = filterOutEvacuatingInstances(clusterData.getInstanceConfigMap(),
+    // We will not assign partition to instances with evacuation and wap-out tag.
+    // TODO: Currently we have 2 groups of instances and compute preference list twice and merge.
+    // Eventually we want to have exclusive groups of instance for different instance tag.
+    List<String> liveEnabledAssignableNodeList = filterOutOnOperationInstances(clusterData.getInstanceConfigMap(),
         liveEnabledNodes);
     Collections.sort(allNodeList);
     Collections.sort(liveEnabledAssignableNodeList);
@@ -197,11 +200,14 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     return idealState;
   }
 
-  public static List<String> filterOutEvacuatingInstances(Map<String, InstanceConfig> instanceConfigMap,
+  private static List<String> filterOutOnOperationInstances(Map<String, InstanceConfig> instanceConfigMap,
       Set<String> nodes) {
     return  nodes.stream()
-        .filter(instance -> !instanceConfigMap.get(instance).getInstanceOperation().equals(
-            InstanceConstants.InstanceOperation.EVACUATE.name()))
+        .filter(instance ->
+            !(instanceConfigMap.get(instance).getInstanceOperation().equals(
+            InstanceConstants.InstanceOperation.EVACUATE.name())||
+            instanceConfigMap.get(instance).getInstanceOperation().equals(
+            InstanceConstants.InstanceOperation.SWAP_IN.name())))
         .collect(Collectors.toList());
   }
 

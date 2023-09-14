@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedAutoRebalancer.class);
+  private static final Set<String> INSTANCE_OPERATION_TO_EXCLUDE = Set.of("EVACUATE", "SWAP_IN");
 
   @Override
   public IdealState computeNewIdealState(String resourceName,
@@ -202,12 +203,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
   private static List<String> filterOutOnOperationInstances(Map<String, InstanceConfig> instanceConfigMap,
       Set<String> nodes) {
-    return  nodes.stream()
-        .filter(instance ->
-            !(instanceConfigMap.get(instance).getInstanceOperation().equals(
-            InstanceConstants.InstanceOperation.EVACUATE.name())||
-            instanceConfigMap.get(instance).getInstanceOperation().equals(
-            InstanceConstants.InstanceOperation.SWAP_IN.name())))
+    return nodes.stream()
+        .filter(
+            instance -> !INSTANCE_OPERATION_TO_EXCLUDE.contains(instanceConfigMap.get(instance).getInstanceOperation()))
         .collect(Collectors.toList());
   }
 

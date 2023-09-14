@@ -106,6 +106,7 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.EVACUATE);
 
+    System.out.println("123");
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // New ev should contain all instances but the evacuated one

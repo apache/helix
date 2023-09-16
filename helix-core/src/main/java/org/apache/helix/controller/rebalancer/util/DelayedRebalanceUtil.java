@@ -126,6 +126,7 @@ public class DelayedRebalanceUtil {
         activeNodes.add(ins);
       }
     }
+    // TODO: change this after merging operation and helix-enable field.
     return filterOutEvacuatingInstances(instanceConfigMap, activeNodes);
   }
 

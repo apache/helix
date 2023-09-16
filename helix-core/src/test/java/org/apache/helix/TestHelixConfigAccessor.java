@@ -22,6 +22,7 @@ package org.apache.helix;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -30,7 +31,7 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestHelixConfigAccessor extends ZkUnitTestBase {
+public class TestHelixConfigAccessor extends ZkTestBase {
 
   @Test
   public void testBasic() throws Exception {

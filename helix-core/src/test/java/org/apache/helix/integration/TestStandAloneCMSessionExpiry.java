@@ -24,6 +24,8 @@ import java.util.Date;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.common.execution.TestClusterParameters;
+import org.apache.helix.common.execution.TestExecutionFlow;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
@@ -32,33 +34,27 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStandAloneCMSessionExpiry extends ZkTestBase {
+
   @Test()
   public void testStandAloneCMSessionExpiry() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
+    TestExecutionFlow flow = createClusterTestExecutionFlow();
+    flow.createCluster(
+        new TestClusterParameters.Builder()
+            .setResourceName("TestDB")
+            .setResourcesCount(1)
+            .setPartitionsPerResource(20)
+            .setNodeCount(5)
+            .setReplicaCount(3)
+            .setStateModelDef("MasterSlave")
+            .enableRebalance()
+            .build())
+        .initializeParticipants()
+        .startController()
+        .assertBestPossibleExternalViewVerifier();
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, PARTICIPANT_PREFIX, "TestDB", 1, 20, 5, 3,
-        "MasterSlave", true);
-
-    MockParticipantManager[] participants = new MockParticipantManager[5];
-    for (int i = 0; i < 5; i++) {
-      String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
-      participants[i].syncStart();
-    }
-
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
-    controller.syncStart();
-
-    boolean result;
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
-
+    String clusterName = flow.getClusterName();
+    ClusterControllerManager controller = flow.getController();
+    MockParticipantManager[] participants = flow.getParticipants();
     // participant session expiry
     MockParticipantManager participantToExpire = participants[1];
 
@@ -75,9 +71,7 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     setupTool.addResourceToCluster(clusterName, "TestDB1", 10, "MasterSlave");
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
+    flow.assertBestPossibleExternalViewVerifier();
 
     // controller session expiry
     // System.out.println("Expire controller session");
@@ -91,18 +85,7 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     setupTool.addResourceToCluster(clusterName, "TestDB2", 8, "MasterSlave");
     setupTool.rebalanceStorageCluster(clusterName, "TestDB2", 3);
 
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
-
-    // clean up
-    System.out.println("Clean up ...");
-    controller.syncStop();
-    for (int i = 0; i < 5; i++) {
-      participants[i].syncStop();
-    }
-
-    deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    flow.assertBestPossibleExternalViewVerifier()
+        .cleanup();
   }
 }

@@ -27,13 +27,13 @@ import java.util.List;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
-import org.apache.helix.ZkUnitTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
+public class TestWtCacheSyncOpSingleThread extends ZkTestBase {
 
   @Test
   public void testHappyPathZkCacheBaseDataAccessor() {

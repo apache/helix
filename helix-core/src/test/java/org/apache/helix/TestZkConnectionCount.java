@@ -19,11 +19,12 @@ package org.apache.helix;
  * under the License.
  */
 
+import org.apache.helix.common.ZkTestBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // TODO fix this test
-public class TestZkConnectionCount extends ZkUnitTestBase {
+public class TestZkConnectionCount extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestZkConnectionCount.class);
 
   // @Test ()

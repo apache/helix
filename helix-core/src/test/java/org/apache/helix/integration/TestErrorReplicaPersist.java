@@ -20,16 +20,15 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.zkVerifiers.ExternalViewBalancedVerifier;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.integration.rebalancer.TestAutoRebalance;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Message;
@@ -47,6 +46,8 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import static org.apache.helix.common.TestClusterOperations.*;
 
 public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
   @BeforeClass
@@ -84,7 +85,7 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
     _controller.syncStart();
 
     boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new TestAutoRebalance.ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
+        new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
 
     Assert.assertTrue(result);
   }
@@ -103,7 +104,7 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setErrorPartitionThresholdForLoadBalance(100000);
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    
+
     for (int i = 0; i < (NODE_NR + 1) / 2; i++) {
       _participants[i].syncStop();
       Thread.sleep(2000);

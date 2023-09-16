@@ -31,16 +31,16 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.store.HelixPropertyListener;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
+public class TestZkCacheSyncOpSingleThread extends ZkTestBase {
   class TestListener implements HelixPropertyListener {
     ConcurrentLinkedQueue<String> _deletePathQueue = new ConcurrentLinkedQueue<>();
     ConcurrentLinkedQueue<String> _createPathQueue = new ConcurrentLinkedQueue<>();

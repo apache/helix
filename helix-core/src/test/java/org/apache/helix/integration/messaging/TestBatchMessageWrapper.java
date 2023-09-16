@@ -24,8 +24,8 @@ import java.util.Date;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -39,7 +39,8 @@ import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestBatchMessageWrapper extends ZkUnitTestBase {
+public class TestBatchMessageWrapper extends ZkTestBase {
+
   class MockBatchMsgWrapper extends BatchMessageWrapper {
     int _startCount = 0;
     int _endCount = 0;

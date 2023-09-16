@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
@@ -43,6 +42,9 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static org.apache.helix.common.TestClusterOperations.*;
+import static org.apache.helix.common.TestClusterValidateOperations.*;
 
 public class TestDelayedAutoRebalance extends ZkTestBase {
   static final int NUM_NODE = 5;

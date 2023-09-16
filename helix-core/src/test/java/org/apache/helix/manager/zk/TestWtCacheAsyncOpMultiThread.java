@@ -28,14 +28,14 @@ import java.util.concurrent.Callable;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
+public class TestWtCacheAsyncOpMultiThread extends ZkTestBase {
   class TestCreateZkCacheBaseDataAccessor implements Callable<Boolean> {
     final ZkCacheBaseDataAccessor<ZNRecord> _accessor;
     final String _clusterName;

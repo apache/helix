@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.common.zkVerifiers.ExternalViewBalancedVerifier;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -89,8 +90,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
 
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
+    boolean result = ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
             CLUSTER_NAME, db2));
     Assert.assertTrue(result);
     Thread.sleep(1000);
@@ -111,96 +111,4 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
     Assert.assertTrue(testRebalancerInvoked);
   }
 
-  public static class ExternalViewBalancedVerifier implements ZkVerifier {
-    HelixZkClient _client;
-    String _clusterName;
-    String _resourceName;
-
-    public ExternalViewBalancedVerifier(HelixZkClient client, String clusterName, String resourceName) {
-      _client = client;
-      _clusterName = clusterName;
-      _resourceName = resourceName;
-    }
-
-    @Override
-    public boolean verify() {
-      try {
-        HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
-        Builder keyBuilder = accessor.keyBuilder();
-        int numberOfPartitions =
-            accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
-                .size();
-        ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
-        cache.refresh(accessor);
-        String masterValue =
-            cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-                .getStatesPriorityList().get(0);
-        int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-        String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
-        int instances = 0;
-        for (String liveInstanceName : cache.getLiveInstances().keySet()) {
-          if (cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
-            instances++;
-          }
-        }
-        if (instances == 0) {
-          instances = cache.getLiveInstances().size();
-        }
-        return verifyBalanceExternalView(
-            accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
-            numberOfPartitions, masterValue, replicas, instances);
-      } catch (Exception e) {
-        return false;
-      }
-    }
-
-    @Override
-    public ZkClient getZkClient() {
-      return (ZkClient) _client;
-    }
-
-    @Override
-    public String getClusterName() {
-      return _clusterName;
-    }
-  }
-
-  static boolean verifyBalanceExternalView(ZNRecord externalView, int partitionCount,
-      String masterState, int replica, int instances) {
-    Map<String, Integer> masterPartitionsCountMap = new HashMap<String, Integer>();
-    for (String partitionName : externalView.getMapFields().keySet()) {
-      Map<String, String> assignmentMap = externalView.getMapField(partitionName);
-      // Assert.assertTrue(assignmentMap.size() >= replica);
-      for (String instance : assignmentMap.keySet()) {
-        if (assignmentMap.get(instance).equals(masterState)) {
-          if (!masterPartitionsCountMap.containsKey(instance)) {
-            masterPartitionsCountMap.put(instance, 0);
-          }
-          masterPartitionsCountMap.put(instance, masterPartitionsCountMap.get(instance) + 1);
-        }
-      }
-    }
-
-    int perInstancePartition = partitionCount / instances;
-
-    int totalCount = 0;
-    for (String instanceName : masterPartitionsCountMap.keySet()) {
-      int instancePartitionCount = masterPartitionsCountMap.get(instanceName);
-      totalCount += instancePartitionCount;
-      if (!(instancePartitionCount == perInstancePartition || instancePartitionCount == perInstancePartition + 1)) {
-        return false;
-      }
-      if (instancePartitionCount == perInstancePartition + 1) {
-        if (partitionCount % instances == 0) {
-          return false;
-        }
-      }
-    }
-    if (partitionCount != totalCount) {
-      return false;
-    }
-    return true;
-
-  }
 }

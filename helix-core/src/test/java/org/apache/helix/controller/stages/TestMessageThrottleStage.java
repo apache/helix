@@ -29,8 +29,8 @@ import java.util.TreeMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -45,7 +45,7 @@ import org.apache.helix.model.Partition;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestMessageThrottleStage extends ZkUnitTestBase {
+public class TestMessageThrottleStage extends ZkTestBase {
   final String _className = getShortClassName();
 
   @Test

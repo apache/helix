@@ -85,7 +85,7 @@ public class TestNonOfflineInitState extends ZkTestBase {
     System.out.println("END testNonOfflineInitState at " + new Date(System.currentTimeMillis()));
   }
 
-  private static void setupCluster(String clusterName, String ZkAddr, int startPort,
+  private void setupCluster(String clusterName, String ZkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
 

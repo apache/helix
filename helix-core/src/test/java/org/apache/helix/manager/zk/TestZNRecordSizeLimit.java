@@ -25,9 +25,9 @@ import java.util.Date;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
@@ -41,7 +41,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestZNRecordSizeLimit extends ZkUnitTestBase {
+public class TestZNRecordSizeLimit extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestZNRecordSizeLimit.class);
 
   private static final String ASSERTION_MESSAGE =

@@ -34,14 +34,14 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.task.TaskConstants;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestLiveInstance extends ZkUnitTestBase {
+public class TestLiveInstance extends ZkTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
 
   @BeforeClass()

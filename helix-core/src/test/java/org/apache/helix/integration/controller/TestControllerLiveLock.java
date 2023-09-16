@@ -22,31 +22,32 @@ package org.apache.helix.integration.controller;
 import java.util.Date;
 import java.util.Map;
 import java.util.Random;
-
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.common.TestClusterOperations.*;
+
+
 /**
  * This is for testing Helix controller livelock @see Helix-541
  * The test has a high probability to reproduce the problem
  */
-public class TestControllerLiveLock extends ZkUnitTestBase {
+public class TestControllerLiveLock extends ZkTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestControllerLiveLock.class);
 
   @Test

@@ -28,7 +28,7 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -44,7 +44,7 @@ import org.testng.annotations.Test;
 /**
  * test drop resource should remove state-models
  */
-public class TestStateModelLeak extends ZkUnitTestBase {
+public class TestStateModelLeak extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestStateModelLeak.class);
 
   /**

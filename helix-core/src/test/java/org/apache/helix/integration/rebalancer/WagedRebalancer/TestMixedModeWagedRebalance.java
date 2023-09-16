@@ -24,6 +24,8 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.DataProvider;
 
+import static org.apache.helix.common.TestClusterOperations.*;
+
 public class TestMixedModeWagedRebalance extends TestMixedModeAutoRebalance {
   private final String CLASS_NAME = getShortClassName();
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;

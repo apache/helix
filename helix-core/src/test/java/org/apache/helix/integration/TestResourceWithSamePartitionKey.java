@@ -19,21 +19,18 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.Date;
 import java.util.List;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.common.execution.TestClusterParameters;
+import org.apache.helix.common.execution.TestExecutionFlow;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -42,28 +39,24 @@ import org.testng.annotations.Test;
  *      StateModelFactory#_stateModelMap should use both resourceName and partitionKey to map a
  *      state model
  */
-public class TestResourceWithSamePartitionKey extends ZkUnitTestBase {
+public class TestResourceWithSamePartitionKey extends ZkTestBase {
 
   @Test
   public void test() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-    int n = 2;
+    int nodeCount = 2;
+    TestExecutionFlow flow = createClusterTestExecutionFlow();
+    flow.createCluster(new TestClusterParameters.Builder()
+        .setResourcesCount(1)
+        .setPartitionsPerResource(2)
+        .setNodeCount(nodeCount)
+        .setReplicaCount(2)
+        .setStateModelDef("OnlineOffline")
+        .setRebalanceMode(RebalanceMode.CUSTOMIZED)
+        .disableRebalance()
+        .build());
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(flow.getClusterName(), new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        2, // partitions per resource
-        n, // number of nodes
-        2, // replicas
-        "OnlineOffline", RebalanceMode.CUSTOMIZED, false); // do rebalance
-
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setReplicas("2");
@@ -73,24 +66,9 @@ public class TestResourceWithSamePartitionKey extends ZkUnitTestBase {
     idealState.setPartitionState("1", "localhost_12919", "ONLINE");
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
-    controller.syncStart();
-
-    // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
-    for (int i = 0; i < n; i++) {
-      String instanceName = "localhost_" + (12918 + i);
-
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
-      participants[i].syncStart();
-    }
-
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
-    Assert.assertTrue(result);
+    flow.startController()
+        .initializeParticipants()
+        .assertBestPossibleExternalViewVerifier();
 
     // add a second resource with the same partition-key
     IdealState newIdealState = new IdealState("TestDB1");
@@ -101,27 +79,16 @@ public class TestResourceWithSamePartitionKey extends ZkUnitTestBase {
     newIdealState.setPartitionState("1", "localhost_12919", "ONLINE");
     accessor.setProperty(keyBuilder.idealStates("TestDB1"), newIdealState);
 
-    result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
-    Assert.assertTrue(result);
+    flow.assertBestPossibleExternalViewVerifier();
 
     // assert no ERROR
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < nodeCount; i++) {
       String instanceName = "localhost_" + (12918 + i);
       List<String> errs = accessor.getChildNames(keyBuilder.errors(instanceName));
       Assert.assertTrue(errs.isEmpty());
     }
 
-    // clean up
-    controller.syncStop();
-    for (int i = 0; i < n; i++) {
-      participants[i].syncStop();
-    }
-    TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    flow.cleanup();
   }
 
 }

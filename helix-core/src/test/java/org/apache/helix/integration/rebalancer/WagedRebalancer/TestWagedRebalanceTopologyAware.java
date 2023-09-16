@@ -20,7 +20,6 @@ package org.apache.helix.integration.rebalancer.WagedRebalancer;
  */
 
 import java.util.Date;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -28,6 +27,8 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import static org.apache.helix.common.TestClusterOperations.*;
 
 public class TestWagedRebalanceTopologyAware extends TestWagedRebalanceFaultZone {
   private static final String TOLOPOGY_DEF = "/DOMAIN/ZONE/INSTANCE";

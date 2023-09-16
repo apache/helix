@@ -37,7 +37,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -48,7 +47,6 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
@@ -90,21 +88,23 @@ public class TestHelper {
     return port;
   }
 
-  static public ZkServer startZkServer(final String zkAddress) throws Exception {
-    List<String> empty = Collections.emptyList();
-    return TestHelper.startZkServer(zkAddress, empty, true);
+  static public ZkServer startZkServer(final String zkAddress) {
+    try {
+      List<String> empty = Collections.emptyList();
+      return TestHelper.startZkServer(zkAddress, empty, true);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Failed to start zookeeper server at " + zkAddress, e);
+    }
   }
 
-  static public ZkServer startZkServer(final String zkAddress, final String rootNamespace)
-      throws Exception {
-    List<String> rootNamespaces = new ArrayList<String>();
-    rootNamespaces.add(rootNamespace);
-    return TestHelper.startZkServer(zkAddress, rootNamespaces, true);
-  }
-
-  static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces)
-      throws Exception {
-    return startZkServer(zkAddress, rootNamespaces, true);
+  static public ZkServer startZkServer(final String zkAddress, final String rootNamespace) {
+    try {
+      List<String> rootNamespaces = new ArrayList<String>();
+      rootNamespaces.add(rootNamespace);
+      return TestHelper.startZkServer(zkAddress, rootNamespaces, true);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Failed to start zookeeper server at " + zkAddress, e);
+    }
   }
 
   static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces,
@@ -219,56 +219,9 @@ public class TestHelper {
     return null;
   }
 
-  public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceName,
-      Set<String> instanceNames, String zkAddr) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-
-    try {
-      ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
-      Builder keyBuilder = accessor.keyBuilder();
-
-      for (String instanceName : instanceNames) {
-        List<String> sessionIds = accessor.getChildNames(keyBuilder.sessions(instanceName));
-
-        for (String sessionId : sessionIds) {
-          CurrentState curState =
-              accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
-
-          if (curState != null && curState.getRecord().getMapFields().size() != 0) {
-            return false;
-          }
-
-          CurrentState taskCurState =
-              accessor.getProperty(keyBuilder.taskCurrentState(instanceName, sessionId, resourceName));
-
-          if (taskCurState != null && taskCurState.getRecord().getMapFields().size() != 0) {
-            return false;
-          }
-        }
-
-        ExternalView extView = accessor.getProperty(keyBuilder.externalView(resourceName));
-
-        if (extView != null && extView.getRecord().getMapFields().size() != 0) {
-          return false;
-        }
-      }
-
-      return true;
-    } finally {
-      zkClient.close();
-    }
-  }
-
-  public static boolean verifyNotConnected(HelixManager manager) {
-    return !manager.isConnected();
-  }
-
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
-      int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
+      int nodesNb, int replica, String stateModelDef, boolean doRebalance) {
     TestHelper
         .setupCluster(clusterName, zkAddr, startPort, participantNamePrefix, resourceNamePrefix,
             resourceNb, partitionNb, nodesNb, replica, stateModelDef, RebalanceMode.SEMI_AUTO,

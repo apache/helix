@@ -31,6 +31,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.common.TestClusterOperations.*;
+import static org.apache.helix.common.TestClusterValidateOperations.*;
 
 public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAutoRebalance {
   private ConfigAccessor _configAccessor;

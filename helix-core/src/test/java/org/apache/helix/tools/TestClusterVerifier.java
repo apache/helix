@@ -26,7 +26,7 @@ import com.google.common.collect.Sets;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -44,7 +44,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestClusterVerifier extends ZkUnitTestBase {
+public class TestClusterVerifier extends ZkTestBase {
   final String[] RESOURCES = {
       "resource_semi_MasterSlave", "resource_semi_OnlineOffline",
       "resource_full_MasterSlave", "resource_full_OnlineOffline"

@@ -26,15 +26,15 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.cloud.constants.CloudProvider;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CloudConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestCloudConfig extends ZkUnitTestBase {
+public class TestCloudConfig extends ZkTestBase {
 
   @Test(expectedExceptions = HelixException.class)
   public void testCloudConfigNonExistentCluster() {

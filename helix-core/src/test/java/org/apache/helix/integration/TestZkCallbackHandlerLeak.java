@@ -30,7 +30,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.ClusterSpectatorManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
+public class TestZkCallbackHandlerLeak extends ZkTestBase {
 
   private static Logger LOG = LoggerFactory.getLogger(TestZkCallbackHandlerLeak.class);
 

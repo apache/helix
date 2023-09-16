@@ -269,8 +269,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     // Wait until master is switched to new instance and two masters exist on two different instances
     boolean isMasterOnTwoDifferentNodes = TestHelper.verify(() -> {
       Set<String> masterInstances = new HashSet<>();
-      ExternalView externalView =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
+      ExternalView externalView = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
       if (externalView == null) {
         return false;
       }

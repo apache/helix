@@ -23,14 +23,14 @@ import java.util.Date;
 
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.tools.commandtools.ZkCopy;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkCopy extends ZkUnitTestBase {
+public class TestZkCopy extends ZkTestBase {
 
   @Test
   public void test() throws Exception {

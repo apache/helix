@@ -32,8 +32,8 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
@@ -47,7 +47,7 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
-public class TestZkHelixPropertyStore extends ZkUnitTestBase {
+public class TestZkHelixPropertyStore extends ZkTestBase {
   final String _root = "/" + getShortClassName();
   final int bufSize = 128;
   final int mapNr = 10;

@@ -33,7 +33,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.StageException;
@@ -51,7 +51,7 @@ import org.apache.helix.model.Partition;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestRebalancePipeline extends ZkUnitTestBase {
+public class TestRebalancePipeline extends ZkTestBase {
   private final String _className = getShortClassName();
 
   @Test

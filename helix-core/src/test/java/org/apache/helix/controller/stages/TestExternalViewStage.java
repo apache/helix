@@ -24,7 +24,7 @@ import java.util.List;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -33,7 +33,7 @@ import org.apache.helix.model.ExternalView;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestExternalViewStage extends ZkUnitTestBase {
+public class TestExternalViewStage extends ZkTestBase {
   @Test
   public void testCachedExternalViews() throws Exception {
     String clusterName = "CLUSTER_" + TestHelper.getTestMethodName();

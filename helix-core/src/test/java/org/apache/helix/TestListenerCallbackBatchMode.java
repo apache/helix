@@ -25,6 +25,7 @@ import java.util.Random;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.listeners.BatchMode;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
@@ -32,7 +33,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
+public class TestListenerCallbackBatchMode extends ZkTestBase {
 
   class Listener implements InstanceConfigChangeListener, IdealStateChangeListener {
     int _idealStateChangedCount = 0;

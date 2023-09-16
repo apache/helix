@@ -25,7 +25,8 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.common.zkVerifiers.EmptyZkVerifier;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -35,7 +36,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestInvalidResourceRebalance extends ZkUnitTestBase {
+public class TestInvalidResourceRebalance extends ZkTestBase {
   /**
    * Ensure that the Helix controller doesn't attempt to rebalance resources with invalid ideal
    * states

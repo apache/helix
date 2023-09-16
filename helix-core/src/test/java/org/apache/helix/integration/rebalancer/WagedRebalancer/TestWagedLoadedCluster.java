@@ -19,6 +19,7 @@ package org.apache.helix.integration.rebalancer.WagedRebalancer;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -27,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-
-import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.ZkTestBase;
@@ -44,13 +43,13 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.participant.StateMachineEngine;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import static org.apache.helix.common.TestClusterOperations.*;
 
 /**
  * This test case is specially targeting for n - n+1 issue.

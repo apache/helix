@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.TestCommand;
@@ -41,7 +42,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZnodeModify extends ZkUnitTestBase {
+public class TestZnodeModify extends ZkTestBase {
   private static Logger logger = LoggerFactory.getLogger(TestZnodeModify.class);
   private final String PREFIX = "/" + getShortClassName();
 

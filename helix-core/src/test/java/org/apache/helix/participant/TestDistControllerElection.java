@@ -34,7 +34,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.manager.zk.DistributedLeaderElection;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -47,7 +47,7 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestDistControllerElection extends ZkUnitTestBase {
+public class TestDistControllerElection extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestDistControllerElection.class);
 
   @Test()

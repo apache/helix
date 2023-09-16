@@ -27,8 +27,8 @@ import java.util.Map;
 
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +39,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestZKUtil extends ZkUnitTestBase {
+public class TestZKUtil extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestZKUtil.class);
 
   String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();

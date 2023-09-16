@@ -22,7 +22,7 @@ package org.apache.helix.manager.zk.client;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -31,7 +31,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestHelixZkClient extends ZkUnitTestBase {
+public class TestHelixZkClient extends ZkTestBase {
   private final String TEST_NODE = "/test_helix_zkclient";
 
   @Test

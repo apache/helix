@@ -27,7 +27,7 @@ import javax.management.ObjectName;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.HelixConfigScope;
@@ -39,7 +39,7 @@ import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDisableResourceMbean extends ZkUnitTestBase {
+public class TestDisableResourceMbean extends ZkTestBase {
   private MBeanServerConnection _mbeanServer = ManagementFactory.getPlatformMBeanServer();
 
   @Test

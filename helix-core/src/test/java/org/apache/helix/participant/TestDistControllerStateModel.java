@@ -21,8 +21,8 @@ package org.apache.helix.participant;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.slf4j.Logger;
@@ -31,7 +31,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestDistControllerStateModel extends ZkUnitTestBase {
+public class TestDistControllerStateModel extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestDistControllerStateModel.class);
 
   final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();

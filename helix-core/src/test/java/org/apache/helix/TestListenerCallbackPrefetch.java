@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.listeners.PreFetch;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
@@ -32,7 +33,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
+public class TestListenerCallbackPrefetch extends ZkTestBase {
 
   class PrefetchListener implements InstanceConfigChangeListener, IdealStateChangeListener {
     boolean _idealStateChanged = false;

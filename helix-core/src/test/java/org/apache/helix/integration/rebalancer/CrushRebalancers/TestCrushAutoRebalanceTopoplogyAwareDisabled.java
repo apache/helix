@@ -20,12 +20,14 @@ package org.apache.helix.integration.rebalancer.CrushRebalancers;
  */
 
 import java.util.Date;
-
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import static org.apache.helix.common.TestClusterOperations.*;
+
 
 public class TestCrushAutoRebalanceTopoplogyAwareDisabled extends TestCrushAutoRebalanceNonRack {
 
@@ -57,7 +59,7 @@ public class TestCrushAutoRebalanceTopoplogyAwareDisabled extends TestCrushAutoR
     _controller = new ClusterControllerManager(ZkTestBase.ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    enablePersistBestPossibleAssignment(ZkTestBase._gZkClient, CLUSTER_NAME, true);
+    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
   }
 
   @Test(dataProvider = "rebalanceStrategies")

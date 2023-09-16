@@ -32,7 +32,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.messaging.handling.HelixTaskResult;
@@ -43,7 +43,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkSessionExpiry extends ZkUnitTestBase {
+public class TestZkSessionExpiry extends ZkTestBase {
   private final static String DUMMY_MSG_TYPE = "DUMMY";
 
   static class DummyMessageHandler extends MessageHandler {
@@ -80,7 +80,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     public MessageHandler createHandler(Message message, NotificationContext context) {
       return new DummyMessageHandler(message, context, _handledMsgSet);
     }
-    
+
     @Override
     public List<String> getMessageTypes() {
       return ImmutableList.of(DUMMY_MSG_TYPE);

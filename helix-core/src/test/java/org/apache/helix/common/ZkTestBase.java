@@ -19,32 +19,25 @@ package org.apache.helix.common;
  * under the License.
  */
 
-import com.google.common.base.Preconditions;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
-
-import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.config.HelixConfigProperty;
+import org.apache.helix.common.execution.TestExecutionFlow;
+import org.apache.helix.common.execution.TestExecutionRuntime;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
@@ -56,175 +49,52 @@ import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.BuiltInStateModelDefinitions;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.OnlineOfflineSMD;
-import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 import org.testng.ITestContext;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
-public class ZkTestBase {
+
+public class ZkTestBase extends TestExecutionRuntime {
   private static final Logger LOG = LoggerFactory.getLogger(ZkTestBase.class);
-  private static final String MULTI_ZK_PROPERTY_KEY = "multiZk";
-  private static final String NUM_ZK_PROPERTY_KEY = "numZk";
 
-  protected static ZkServer _zkServer;
-  protected static HelixZkClient _gZkClient;
-  protected static ClusterSetup _gSetupTool;
-  protected static BaseDataAccessor<ZNRecord> _baseAccessor;
-  protected static MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
-
-  private final Map<String, Map<String, HelixZkClient>> _liveInstanceOwners = new HashMap<>();
-
-  private static final String ZK_PREFIX = "localhost:";
-  private static final int ZK_START_PORT = 2183;
   public static final String ZK_ADDR = ZK_PREFIX + ZK_START_PORT;
   protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
-  protected final String CONTROLLER_PREFIX = "controller";
-  protected final String PARTICIPANT_PREFIX = "localhost";
-  private static final long MANUAL_GC_PAUSE = 4000L;
-
-  /*
-   * Multiple ZK references
-   */
-  // The following maps hold ZK connect string as keys
-  protected static final Map<String, ZkServer> _zkServerMap = new HashMap<>();
-  protected static final Map<String, HelixZkClient> _helixZkClientMap = new HashMap<>();
-  protected static final Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
-  protected static final Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
-
-  static public void reportPhysicalMemory() {
-    com.sun.management.OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean)
-        java.lang.management.ManagementFactory.getOperatingSystemMXBean();
-    long physicalMemorySize = os.getTotalPhysicalMemorySize();
-    System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
-
-    long MB = 1024 * 1024;
-    Runtime runtime = Runtime.getRuntime();
-    long free = runtime.freeMemory()/MB;
-    long total = runtime.totalMemory()/MB;
-    System.out.println("************ total memory:" + total + " free memory:" + free);
-  }
+  protected static final String CONTROLLER_PREFIX = "controller";
+  protected static final String PARTICIPANT_PREFIX = "localhost";
 
   @BeforeSuite
-  public void beforeSuite() throws Exception {
-    // TODO: use logging.properties file to config java.util.logging.Logger levels
+  public void beforeSuite() {
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
 
     // Due to ZOOKEEPER-2693 fix, we need to specify whitelist for execute zk commends
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
     System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "3000");
-
-    // Start in-memory ZooKeepers
-    // If multi-ZooKeeper is enabled, start more ZKs. Otherwise, just set up one ZK
-    int numZkToStart = 1;
-    String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
-    if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
-      String numZkFromConfig = System.getProperty(NUM_ZK_PROPERTY_KEY);
-      if (numZkFromConfig != null) {
-        try {
-          numZkToStart = Math.max(Integer.parseInt(numZkFromConfig), numZkToStart);
-        } catch (Exception e) {
-          Assert.fail("Failed to parse the number of ZKs from config!");
-        }
-      } else {
-        Assert.fail("multiZk config is set but numZk config is missing!");
-      }
-    }
-
-    // Start "numZkFromConfigInt" ZooKeepers
-    for (int i = 0; i < numZkToStart; i++) {
-      startZooKeeper(i);
-    }
-
-    // Set the references for backward-compatibility with a single ZK environment
-    _zkServer = _zkServerMap.get(ZK_ADDR);
-    _gZkClient = _helixZkClientMap.get(ZK_ADDR);
-    _gSetupTool = _clusterSetupMap.get(ZK_ADDR);
-    _baseAccessor = _baseDataAccessorMap.get(ZK_ADDR);
-
-    // Clean up all JMX objects
-    for (ObjectName mbean : _server.queryNames(null, null)) {
-      try {
-        _server.unregisterMBean(mbean);
-      } catch (Exception e) {
-        // OK
-      }
-    }
-  }
-
-  /**
-   * Starts an additional in-memory ZooKeeper for testing.
-   * @param i index to be added to the ZK port to avoid conflicts
-   * @throws Exception
-   */
-  private static synchronized void startZooKeeper(int i) {
-    String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
-    _zkServerMap.computeIfAbsent(zkAddress, ZkTestBase::createZookeeperServer);
-    _helixZkClientMap.computeIfAbsent(zkAddress, ZkTestBase::createZkClient);
-    _clusterSetupMap.computeIfAbsent(zkAddress, key -> new ClusterSetup(_helixZkClientMap.get(key)));
-    _baseDataAccessorMap.computeIfAbsent(zkAddress, key -> new ZkBaseDataAccessor(_helixZkClientMap.get(key)));
-  }
-
-  private static ZkServer createZookeeperServer(String zkAddress) {
-    try {
-      return Preconditions.checkNotNull(TestHelper.startZkServer(zkAddress));
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Failed to start zookeeper server at " + zkAddress, e);
-    }
-  }
-
-  private static HelixZkClient createZkClient(String zkAddress) {
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig.setZkSerializer(new ZNRecordSerializer());
-    return DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
+    initialize();
   }
 
   @AfterSuite
   public void afterSuite() throws IOException {
-    // Clean up all JMX objects
-    for (ObjectName mbean : _server.queryNames(null, null)) {
-      try {
-        _server.unregisterMBean(mbean);
-      } catch (Exception e) {
-        // OK
-      }
-    }
-
-    synchronized (ZkTestBase.class) {
-      // Close all ZK resources
-      _baseDataAccessorMap.values().forEach(BaseDataAccessor::close);
-      _clusterSetupMap.values().forEach(ClusterSetup::close);
-      _helixZkClientMap.values().forEach(HelixZkClient::close);
-      _zkServerMap.values().forEach(TestHelper::stopZkServer);
-    }
+    unwind();
   }
 
   @BeforeClass
@@ -236,124 +106,40 @@ public class ZkTestBase {
     Thread.sleep(MANUAL_GC_PAUSE);
   }
 
-  @BeforeMethod
-  public void beforeTest(Method testMethod, ITestContext testContext) {
-    testContext.setAttribute("StartTime", System.currentTimeMillis());
+  @AfterClass
+  public void cleanupLiveInstanceOwners(ITestContext testContext) {
+    System.out.println("AfterClass: " + testContext.getName() + " called.");
+    for (String cluster : getLiveInstanceOwners().keySet()) {
+      Map<String, HelixZkClient> clientMap = getLiveInstanceOwners().get(cluster);
+      for (HelixZkClient client : clientMap.values()) {
+        client.close();
+      }
+      clientMap.clear();
+    }
+    getLiveInstanceOwners().clear();
   }
 
-  protected void cleanupJMXObjects() throws IOException {
-    // Clean up all JMX objects
-    for (ObjectName mbean : _server.queryNames(null, null)) {
-      try {
-        _server.unregisterMBean(mbean);
-      } catch (Exception e) {
-        // OK
-      }
-    }
+  @BeforeMethod
+  public void beforeTest(Method testMethod, ITestContext testContext) {
+    Long startTime = System.currentTimeMillis();
+    testContext.setAttribute("StartTime", startTime);
+    System.out.println(String.format("Test-case: %s started at: %s", testMethod.getName(), new Date(startTime)));
+  }
+
+  @AfterMethod
+  public void afterTest(Method testMethod, ITestContext testContext) {
+    Long startTime = (Long) testContext.getAttribute("StartTime");
+    Long endTime = System.currentTimeMillis();
+    System.out.println(String.format("Test-case: %s ended at: %s, took total time: %s ms",
+        testMethod.getName(), new Date(endTime), endTime - startTime));
+  }
+
+  public TestExecutionFlow createClusterTestExecutionFlow() {
+    return new TestExecutionFlow(_gZkClient);
   }
 
   protected String getShortClassName() {
     return this.getClass().getSimpleName();
-  }
-
-  protected String getCurrentLeader(HelixZkClient zkClient, String clusterName) {
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-
-    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-    if (leader == null) {
-      return null;
-    }
-    return leader.getInstanceName();
-  }
-
-  protected void enablePersistBestPossibleAssignment(HelixZkClient zkClient, String clusterName,
-      Boolean enabled) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setPersistBestPossibleAssignment(enabled);
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
-  }
-
-  protected void enablePersistIntermediateAssignment(HelixZkClient zkClient, String clusterName,
-      Boolean enabled) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setPersistIntermediateAssignment(enabled);
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
-  }
-
-  protected void enableTopologyAwareRebalance(HelixZkClient zkClient, String clusterName,
-      Boolean enabled) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setTopologyAwareEnabled(enabled);
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
-  }
-
-  protected void enableDelayRebalanceInCluster(HelixZkClient zkClient, String clusterName,
-      boolean enabled) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setDelayRebalaceEnabled(enabled);
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
-  }
-
-  protected void enableDelayRebalanceInInstance(HelixZkClient zkClient, String clusterName,
-      String instanceName, boolean enabled) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
-    instanceConfig.setDelayRebalanceEnabled(enabled);
-    configAccessor.setInstanceConfig(clusterName, instanceName, instanceConfig);
-  }
-
-  protected void enableDelayRebalanceInCluster(HelixZkClient zkClient, String clusterName,
-      boolean enabled, long delay) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setDelayRebalaceEnabled(enabled);
-    clusterConfig.setRebalanceDelayTime(delay);
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
-  }
-
-  protected void enableP2PInCluster(String clusterName, ConfigAccessor configAccessor,
-      boolean enable) {
-    // enable p2p message in cluster.
-    if (enable) {
-      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-      clusterConfig.enableP2PMessage(true);
-      configAccessor.setClusterConfig(clusterName, clusterConfig);
-    } else {
-      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-      clusterConfig.getRecord().getSimpleFields()
-          .remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
-      configAccessor.setClusterConfig(clusterName, clusterConfig);
-    }
-  }
-
-  protected void enableP2PInResource(String clusterName, ConfigAccessor configAccessor,
-      String dbName, boolean enable) {
-    if (enable) {
-      ResourceConfig resourceConfig =
-          new ResourceConfig.Builder(dbName).setP2PMessageEnabled(true).build();
-      configAccessor.setResourceConfig(clusterName, dbName, resourceConfig);
-    } else {
-      // remove P2P Message in resource config
-      ResourceConfig resourceConfig = configAccessor.getResourceConfig(clusterName, dbName);
-      if (resourceConfig != null) {
-        resourceConfig.getRecord().getSimpleFields()
-            .remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
-        configAccessor.setResourceConfig(clusterName, dbName, resourceConfig);
-      }
-    }
-  }
-
-  protected void setDelayTimeInCluster(HelixZkClient zkClient, String clusterName, long delay) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setRebalanceDelayTime(delay);
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
@@ -378,8 +164,8 @@ public class ZkTestBase {
   private IdealState createResource(String clusterName, String db, String stateModel,
       int numPartition, int replica, int minActiveReplica, long delay, String rebalancerClassName,
       String rebalanceStrategy) {
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
+    IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
+
     if (idealState == null) {
       _gSetupTool.addResourceToCluster(clusterName, db, numPartition, stateModel,
           IdealState.RebalanceMode.FULL_AUTO + "", rebalanceStrategy);
@@ -429,56 +215,11 @@ public class ZkTestBase {
         IdealState.RebalanceMode.SEMI_AUTO.toString());
     clusterSetup.rebalanceStorageCluster(clusterName, dbName, replica);
 
-    IdealState is =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, dbName);
+    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, dbName);
     for (String p : is.getPartitionSet()) {
       is.setPreferenceList(p, preferenceList);
     }
     clusterSetup.getClusterManagementTool().setResourceIdealState(clusterName, dbName, is);
-  }
-
-  /**
-   * Validate there should be always minimal active replica and top state replica for each
-   * partition.
-   * Also make sure there is always some partitions with only active replica count.
-   */
-  protected void validateMinActiveAndTopStateReplica(IdealState is, ExternalView ev,
-      int minActiveReplica, int numNodes) {
-    StateModelDefinition stateModelDef =
-        BuiltInStateModelDefinitions.valueOf(is.getStateModelDefRef()).getStateModelDefinition();
-    String topState = stateModelDef.getStatesPriorityList().get(0);
-    int replica = Integer.valueOf(is.getReplicas());
-
-    Map<String, Integer> stateCount = stateModelDef.getStateCountMap(numNodes, replica);
-    Set<String> activeStates = stateCount.keySet();
-
-    for (String partition : is.getPartitionSet()) {
-      Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
-      Assert.assertNotNull(assignmentMap,
-          is.getResourceName() + "'s best possible assignment is null for partition " + partition);
-      Assert.assertTrue(!assignmentMap.isEmpty(),
-          is.getResourceName() + "'s partition " + partition + " has no best possible map in IS.");
-
-      boolean hasTopState = false;
-      int activeReplica = 0;
-      for (String state : assignmentMap.values()) {
-        if (topState.equalsIgnoreCase(state)) {
-          hasTopState = true;
-        }
-        if (activeStates.contains(state)) {
-          activeReplica++;
-        }
-      }
-
-      if (activeReplica < minActiveReplica) {
-        int a = 0;
-      }
-
-      Assert.assertTrue(hasTopState, String.format("%s missing %s replica", partition, topState));
-      Assert.assertTrue(activeReplica >= minActiveReplica,
-          String.format("%s has less active replica %d then required %d", partition, activeReplica,
-              minActiveReplica));
-    }
   }
 
   protected void runStage(HelixManager manager, ClusterEvent event, Stage stage) throws Exception {
@@ -495,48 +236,6 @@ public class ZkTestBase {
       stage.process(event);
     }
     stage.postProcess();
-  }
-
-  public void verifyInstance(HelixZkClient zkClient, String clusterName, String instance,
-      boolean wantExists) {
-    // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
-    String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
-    String instanceConfigPath = instanceConfigsPath + "/" + instance;
-    String instancePath = PropertyPathBuilder.instance(clusterName, instance);
-    Assert.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
-    Assert.assertEquals(wantExists, zkClient.exists(instancePath));
-  }
-
-  public void verifyResource(HelixZkClient zkClient, String clusterName, String resource,
-      boolean wantExists) {
-    String resourcePath = PropertyPathBuilder.idealState(clusterName, resource);
-    Assert.assertEquals(wantExists, zkClient.exists(resourcePath));
-  }
-
-  public void verifyEnabled(HelixZkClient zkClient, String clusterName, String instance,
-      boolean wantEnabled) {
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-
-    InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
-    Assert.assertEquals(wantEnabled, config.getInstanceEnabled());
-  }
-
-  public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource,
-      int repl) {
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
-    for (String partitionName : idealState.getPartitionSet()) {
-      if (idealState.getRebalanceMode() == IdealState.RebalanceMode.SEMI_AUTO) {
-        Assert.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
-      } else if (idealState.getRebalanceMode() == IdealState.RebalanceMode.CUSTOMIZED) {
-        Assert.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
-      }
-    }
   }
 
   protected void setupStateModel(String clusterName) {
@@ -570,8 +269,7 @@ public class ZkTestBase {
 
   protected List<IdealState> setupIdealState(String clusterName, int[] nodes, String[] resources,
       int partitions, int replicas) {
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     List<IdealState> idealStates = new ArrayList<>();
@@ -603,31 +301,18 @@ public class ZkTestBase {
     return idealStates;
   }
 
-  @AfterClass
-  public void cleanupLiveInstanceOwners() throws InterruptedException {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " called.");
-    for (String cluster : _liveInstanceOwners.keySet()) {
-      Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(cluster);
-      for (HelixZkClient client : clientMap.values()) {
-        client.close();
-      }
-      clientMap.clear();
-    }
-    _liveInstanceOwners.clear();
-  }
-
   protected List<LiveInstance> setupLiveInstances(String clusterName, int[] liveInstances) {
     HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
     clientConfig.setZkSerializer(new ZNRecordSerializer());
 
     List<LiveInstance> result = new ArrayList<>();
+    Map<String, Map<String, HelixZkClient>> liveInstanceOwners = getLiveInstanceOwners();
 
     for (int i = 0; i < liveInstances.length; i++) {
       String instance = "localhost_" + liveInstances[i];
 
-      _liveInstanceOwners.putIfAbsent(clusterName, new HashMap<>());
-      Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(clusterName);
+      liveInstanceOwners.putIfAbsent(clusterName, new HashMap<>());
+      Map<String, HelixZkClient> clientMap = liveInstanceOwners.get(clusterName);
       clientMap.putIfAbsent(instance, DedicatedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig));
       HelixZkClient client = clientMap.get(instance);
@@ -654,7 +339,8 @@ public class ZkTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    Map<String, HelixZkClient> clientMap = _liveInstanceOwners.getOrDefault(clusterName, Collections.emptyMap());
+    Map<String, Map<String, HelixZkClient>> liveInstanceOwners = getLiveInstanceOwners();
+    Map<String, HelixZkClient> clientMap = liveInstanceOwners.getOrDefault(clusterName, Collections.emptyMap());
 
     for (String liveInstance : accessor.getChildNames(keyBuilder.liveInstances())) {
       ZKHelixDataAccessor dataAccessor =
@@ -668,7 +354,7 @@ public class ZkTestBase {
     }
 
     if (clientMap.isEmpty()) {
-      _liveInstanceOwners.remove(clusterName);
+      liveInstanceOwners.remove(clusterName);
     }
   }
 
@@ -722,7 +408,7 @@ public class ZkTestBase {
 
   /**
    * Poll for the existence (or lack thereof) of a specific Helix property
-   * @param clazz the HelixProeprty subclass
+   * @param clazz the HelixProperty subclass
    * @param accessor connected HelixDataAccessor
    * @param key the property key to look up
    * @param shouldExist true if the property should exist, false otherwise
@@ -743,83 +429,4 @@ public class ZkTestBase {
     return property;
   }
 
-  /**
-   * Ensures that external view and current state are empty
-   */
-  protected static class EmptyZkVerifier implements ClusterStateVerifier.ZkVerifier {
-    private final String _clusterName;
-    private final String _resourceName;
-    private final HelixZkClient _zkClient;
-
-    /**
-     * Instantiate the verifier
-     * @param clusterName the cluster to verify
-     * @param resourceName the resource to verify
-     */
-    public EmptyZkVerifier(String clusterName, String resourceName) {
-      _clusterName = clusterName;
-      _resourceName = resourceName;
-
-      _zkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
-      _zkClient.setZkSerializer(new ZNRecordSerializer());
-    }
-
-    @Override
-    public boolean verify() {
-      BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
-      HelixDataAccessor accessor = new ZKHelixDataAccessor(_clusterName, baseAccessor);
-      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      ExternalView externalView = accessor.getProperty(keyBuilder.externalView(_resourceName));
-
-      // verify external view empty
-      if (externalView != null) {
-        for (String partition : externalView.getPartitionSet()) {
-          Map<String, String> stateMap = externalView.getStateMap(partition);
-          if (stateMap != null && !stateMap.isEmpty()) {
-            LOG.error("External view not empty for " + partition);
-            return false;
-          }
-        }
-      }
-
-      // verify current state empty
-      List<String> liveParticipants = accessor.getChildNames(keyBuilder.liveInstances());
-      for (String participant : liveParticipants) {
-        List<String> sessionIds = accessor.getChildNames(keyBuilder.sessions(participant));
-        for (String sessionId : sessionIds) {
-          CurrentState currentState =
-              accessor.getProperty(keyBuilder.currentState(participant, sessionId, _resourceName));
-          Map<String, String> partitionStateMap = currentState.getPartitionStateMap();
-          if (partitionStateMap != null && !partitionStateMap.isEmpty()) {
-            LOG.error("Current state not empty for " + participant);
-            return false;
-          }
-        }
-
-        List<String> taskSessionIds =
-            accessor.getChildNames(keyBuilder.taskCurrentStateSessions(participant));
-        for (String sessionId : taskSessionIds) {
-          CurrentState taskCurrentState = accessor
-              .getProperty(keyBuilder.taskCurrentState(participant, sessionId, _resourceName));
-          Map<String, String> taskPartitionStateMap = taskCurrentState.getPartitionStateMap();
-          if (taskPartitionStateMap != null && !taskPartitionStateMap.isEmpty()) {
-            LOG.error("Task current state not empty for " + participant);
-            return false;
-          }
-        }
-      }
-      return true;
-    }
-
-    @Override
-    public ZkClient getZkClient() {
-      return (ZkClient) _zkClient;
-    }
-
-    @Override
-    public String getClusterName() {
-      return _clusterName;
-    }
-  }
 }

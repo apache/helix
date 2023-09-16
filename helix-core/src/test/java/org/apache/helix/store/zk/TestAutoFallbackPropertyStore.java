@@ -26,15 +26,15 @@ import java.util.List;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
+public class TestAutoFallbackPropertyStore extends ZkTestBase {
   class MyDataUpdater implements DataUpdater<ZNRecord> {
     final String _id;
 

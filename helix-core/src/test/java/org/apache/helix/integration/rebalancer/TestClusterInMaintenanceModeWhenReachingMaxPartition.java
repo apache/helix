@@ -22,7 +22,6 @@ package org.apache.helix.integration.rebalancer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
@@ -39,6 +38,9 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import static org.apache.helix.common.TestClusterOperations.*;
+
 
 public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTestBase {
   private final int NUM_NODE = 5;

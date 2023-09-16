@@ -28,7 +28,6 @@ import java.util.Set;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -54,9 +53,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
-import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.RESOURCE_DN_KEY;
-import static org.apache.helix.util.StatusUpdateUtil.ErrorType.RebalanceResourceFailure;
+import static org.apache.helix.common.TestClusterOperations.*;
+import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.*;
+import static org.apache.helix.util.StatusUpdateUtil.ErrorType.*;
 
 public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
   private static final long TIMEOUT = 180 * 1000L;

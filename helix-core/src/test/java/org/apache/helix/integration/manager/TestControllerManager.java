@@ -24,13 +24,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestControllerManager extends ZkUnitTestBase {
+public class TestControllerManager extends ZkTestBase {
 
   @Test
   public void testMultipleControllersOfSameName() throws Exception {

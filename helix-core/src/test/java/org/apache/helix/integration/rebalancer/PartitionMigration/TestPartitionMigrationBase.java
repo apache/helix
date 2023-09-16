@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -48,6 +47,7 @@ import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
+import static org.apache.helix.common.TestClusterOperations.*;
 
 public class TestPartitionMigrationBase extends ZkTestBase {
   protected final int NUM_NODE = 6;

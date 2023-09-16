@@ -24,7 +24,7 @@ import java.util.Arrays;
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
@@ -36,7 +36,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 @Deprecated
-public class TestClusterStateVerifier extends ZkUnitTestBase {
+public class TestClusterStateVerifier extends ZkTestBase {
   final String[] RESOURCES = {
       "resource0", "resource1"
   };

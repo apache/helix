@@ -27,8 +27,8 @@ import java.util.TreeMap;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
@@ -37,7 +37,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestConstraint extends ZkUnitTestBase {
+public class TestConstraint extends ZkTestBase {
 
   @Test
   public void testMsgConstraint() {

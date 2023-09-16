@@ -34,9 +34,9 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.MockListener;
 import org.apache.helix.model.HelixConfigScope;
@@ -49,7 +49,7 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestZkClusterManager extends ZkUnitTestBase {
+public class TestZkClusterManager extends ZkTestBase {
   final String className = getShortClassName();
 
   @Test()

@@ -32,8 +32,9 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.Verifier;
+import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.common.zkVerifiers.EmptyZkVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -57,7 +58,7 @@ import org.testng.annotations.Test;
 /**
  * Test that node tagging behaves correctly in FULL_AUTO mode
  */
-public class TestFullAutoNodeTagging extends ZkUnitTestBase {
+public class TestFullAutoNodeTagging extends ZkTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestFullAutoNodeTagging.class);
 
   @Test

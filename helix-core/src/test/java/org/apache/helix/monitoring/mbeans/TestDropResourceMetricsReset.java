@@ -29,7 +29,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -38,7 +38,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestDropResourceMetricsReset extends ZkUnitTestBase {
+public class TestDropResourceMetricsReset extends ZkTestBase {
   private CountDownLatch _registerLatch;
   private CountDownLatch _unregisterLatch;
   private String _className = TestHelper.getTestClassName();

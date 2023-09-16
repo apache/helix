@@ -23,9 +23,9 @@ import java.util.Date;
 
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -41,8 +41,10 @@ import org.testng.annotations.Test;
  * Test clean external-view - if current-state is remove externally, controller should remove the
  * orphan external-view
  */
-public class TestCleanupExternalView extends ZkUnitTestBase {
+public class TestCleanupExternalView extends ZkTestBase {
+
   private ExternalView _externalView = null;
+
   @Test
   public void test() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);

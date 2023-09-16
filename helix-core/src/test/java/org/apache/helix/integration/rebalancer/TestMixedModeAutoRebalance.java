@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
@@ -52,7 +51,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-  public class TestMixedModeAutoRebalance extends ZkTestBase {
+import static org.apache.helix.common.TestClusterOperations.*;
+import static org.apache.helix.common.TestClusterValidateOperations.*;
+
+public class TestMixedModeAutoRebalance extends ZkTestBase {
   private final int NUM_NODE = 5;
   private static final int START_PORT = 12918;
   private static final int _PARTITIONS = 5;

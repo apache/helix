@@ -22,12 +22,12 @@ package org.apache.helix.integration.controller;
 import java.util.ArrayList;
 import java.util.Set;
 
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.GenericHelixController;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestGenericHelixControllerThreading extends ZkUnitTestBase {
+public class TestGenericHelixControllerThreading extends ZkTestBase {
 
   private static final String EVENT_PROCESS_THREAD_NAME_PREFIX =
       "GerenricHelixController-event_process";

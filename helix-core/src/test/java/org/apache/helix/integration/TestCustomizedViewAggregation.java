@@ -37,7 +37,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.customizedstate.CustomizedStateProvider;
 import org.apache.helix.customizedstate.CustomizedStateProviderFactory;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -54,7 +54,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestCustomizedViewAggregation extends ZkUnitTestBase {
+public class TestCustomizedViewAggregation extends ZkTestBase {
 
   private static CustomizedStateProvider _customizedStateProvider_participant0;
   private static CustomizedStateProvider _customizedStateProvider_participant1;

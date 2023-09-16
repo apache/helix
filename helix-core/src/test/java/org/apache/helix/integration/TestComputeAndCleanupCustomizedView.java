@@ -27,7 +27,7 @@ import java.util.Map;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -46,7 +46,7 @@ import org.testng.annotations.Test;
  * should remove the
  * orphan customized view
  */
-public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
+public class TestComputeAndCleanupCustomizedView extends ZkTestBase {
 
   private final String RESOURCE_NAME = "TestDB0";
   private final String PARTITION_NAME1 = "TestDB0_0";

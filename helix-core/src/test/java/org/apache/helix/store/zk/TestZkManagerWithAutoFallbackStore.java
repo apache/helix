@@ -24,13 +24,13 @@ import java.util.Date;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
+public class TestZkManagerWithAutoFallbackStore extends ZkTestBase {
   @Test
   public void testBasic() throws Exception {
     String className = TestHelper.getTestClassName();

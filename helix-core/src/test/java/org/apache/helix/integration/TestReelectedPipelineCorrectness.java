@@ -24,7 +24,7 @@ import java.util.Date;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
@@ -41,7 +41,7 @@ import org.testng.annotations.Test;
  * when the change. However, if a controller loses leadership and subsequently regains it, we need
  * to ensure that the controller can verify its cache. That's what this test is for.
  */
-public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
+public class TestReelectedPipelineCorrectness extends ZkTestBase {
   private static final int CHECK_INTERVAL = 50;
   private static final int CHECK_TIMEOUT = 10000;
 

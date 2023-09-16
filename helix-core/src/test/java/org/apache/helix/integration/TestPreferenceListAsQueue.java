@@ -36,8 +36,8 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.IdealState;
@@ -57,7 +57,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestPreferenceListAsQueue extends ZkUnitTestBase {
+public class TestPreferenceListAsQueue extends ZkTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestPreferenceListAsQueue.class);
   private static final int TRANSITION_TIME = 500;
   private static final int PARALLELISM = 1;

@@ -24,14 +24,14 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import java.util.List;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestCustomizedStateConfig extends ZkUnitTestBase {
+public class TestCustomizedStateConfig extends ZkTestBase {
 
   @Test(expectedExceptions = HelixException.class)
   public void TestCustomizedStateConfigNonExistentCluster() {

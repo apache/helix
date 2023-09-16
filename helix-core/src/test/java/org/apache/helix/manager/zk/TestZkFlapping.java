@@ -27,7 +27,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
@@ -38,7 +38,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestZkFlapping extends ZkUnitTestBase {
+public class TestZkFlapping extends ZkTestBase {
   private final int _disconnectThreshold = 5;
 
   class ZkStateCountListener implements IZkStateListener {

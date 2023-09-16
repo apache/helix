@@ -30,7 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -44,7 +44,7 @@ import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestCustomizedViewStage extends ZkUnitTestBase {
+public class TestCustomizedViewStage extends ZkTestBase {
   private final String RESOURCE_NAME = "TestDB";
   private final String PARTITION_NAME = "TestDB_0";
   private final String CUSTOMIZED_STATE_NAME = "customizedState1";

@@ -113,7 +113,7 @@ public class DelayedRebalanceUtil {
   private static Set<String> getActiveNodes(Set<String> allNodes, Set<String> liveEnabledNodes,
       Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes, Map<String, InstanceConfig> instanceConfigMap,
       long delay, ClusterConfig clusterConfig) {
-    Set<String> activeNodes = filterOutEvacuatingInstances(instanceConfigMap, liveEnabledNodes);
+    Set<String> activeNodes =  new HashSet<>(liveEnabledNodes);
     Set<String> offlineOrDisabledInstances = new HashSet<>(allNodes);
     offlineOrDisabledInstances.removeAll(liveEnabledNodes);
     long currentTime = System.currentTimeMillis();
@@ -126,10 +126,11 @@ public class DelayedRebalanceUtil {
         activeNodes.add(ins);
       }
     }
-    return activeNodes;
+    // TODO: change this after merging operation and helix-enable field.
+    return filterOutEvacuatingInstances(instanceConfigMap, activeNodes);
   }
 
-  private static Set<String> filterOutEvacuatingInstances(Map<String, InstanceConfig> instanceConfigMap,
+  public static Set<String> filterOutEvacuatingInstances(Map<String, InstanceConfig> instanceConfigMap,
       Set<String> nodes) {
     return  nodes.stream()
         .filter(instance -> !instanceConfigMap.get(instance).getInstanceOperation().equals(

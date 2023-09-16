@@ -27,6 +27,7 @@ import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.participant.StateMachineEngine;
@@ -55,7 +56,7 @@ public class TestInstanceOperation extends ZkTestBase {
   private Set<String> _allDBs = new HashSet<>();
   private ZkHelixClusterVerifier _clusterVerifier;
   private ConfigAccessor _configAccessor;
-  private long _stateModelDelay = 30L;
+  private long _stateModelDelay = 3L;
   protected AssignmentMetadataStore _assignmentMetadataStore;
   HelixDataAccessor _dataAccessor;
 
@@ -105,6 +106,7 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.EVACUATE);
 
+    System.out.println("123");
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // New ev should contain all instances but the evacuated one
@@ -125,7 +127,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // revert an evacuate instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -138,6 +140,55 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testRevertEvacuation")
+  public void testAddingNodeWithEvacuationTag() throws Exception {
+    // first disable and instance, and wait for all replicas to be moved out
+    String mockNewInstance = _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool()
+        .enableInstance(CLUSTER_NAME, mockNewInstance, false);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    //ev should contain all instances but the disabled one
+    Map<String, ExternalView> assignment = getEV();
+    List<String> currentActiveInstances =
+        _participantNames.stream().filter(n -> !n.equals(mockNewInstance)).collect(Collectors.toList());
+    for (String resource : _allDBs) {
+      validateAssignmentInEv(assignment.get(resource), REPLICA-1);
+      Set<String> newPAssignedParticipants = getParticipantsInEv(assignment.get(resource));
+      Assert.assertFalse(newPAssignedParticipants.contains(mockNewInstance));
+      Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
+    }
+
+    // add evacuate tag and enable instance
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, mockNewInstance, InstanceConstants.InstanceOperation.EVACUATE);
+    _gSetupTool.getClusterManagementTool()
+        .enableInstance(CLUSTER_NAME, mockNewInstance, true);
+    //ev should be the same
+    assignment = getEV();
+    currentActiveInstances =
+        _participantNames.stream().filter(n -> !n.equals(mockNewInstance)).collect(Collectors.toList());
+    for (String resource : _allDBs) {
+      validateAssignmentInEv(assignment.get(resource), REPLICA-1);
+      Set<String> newPAssignedParticipants = getParticipantsInEv(assignment.get(resource));
+      Assert.assertFalse(newPAssignedParticipants.contains(mockNewInstance));
+      Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
+    }
+
+    // now remove operation tag
+    String instanceToEvacuate = _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // EV should contain all participants, check resources one by one
+     assignment = getEV();
+    for (String resource : _allDBs) {
+      Assert.assertTrue(getParticipantsInEv(assignment.get(resource)).containsAll(_participantNames));
+      validateAssignmentInEv(assignment.get(resource));
+    }
+  }
+
+  @Test(dependsOnMethods = "testAddingNodeWithEvacuationTag")
   public void testEvacuateAndCancelBeforeBootstrapFinish() throws Exception {
     // add a resource where downward state transition is slow
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB3_DELAYED_CRUSHED", "MasterSlave", PARTITIONS, REPLICA,
@@ -151,7 +202,7 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // set bootstrap ST delay to a large number
-    _stateModelDelay = -300000L;
+    _stateModelDelay = -10000L;
     // evacuate an instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
@@ -174,9 +225,9 @@ public class TestInstanceOperation extends ZkTestBase {
       validateAssignmentInEv(assignment.get(resource));
     }
 
-    // cancel the evacuation by setting instance operation back to `ENABLE`
+    // cancel the evacuation
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
 
     assignment = getEV();
     for (String resource : _allDBs) {
@@ -200,7 +251,7 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testEvacuateAndCancelBeforeDropFinish() throws Exception {
 
     // set DROP ST delay to a large number
-    _stateModelDelay = 300000L;
+    _stateModelDelay = 10000L;
 
     // evacuate an instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
@@ -211,8 +262,9 @@ public class TestInstanceOperation extends ZkTestBase {
     TestHelper.verify(
         () -> ((_dataAccessor.getChildNames(_dataAccessor.keyBuilder().messages(instanceToEvacuate))).isEmpty()), 30000);
 
+    // cancel evacuation
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
     // check every replica has >= 3 active replicas, even before cluster converge
     Map<String, ExternalView> assignment = getEV();
     for (String resource : _allDBs) {
@@ -274,6 +326,27 @@ public class TestInstanceOperation extends ZkTestBase {
 
   }
 
+  @Test(dependsOnMethods = "testMarkEvacuationAfterEMM")
+  public void testEvacuationWithOfflineInstancesInCluster() throws Exception {
+    _participants.get(2).syncStop();
+    _participants.get(3).syncStop();
+    // wait for converge, and set evacuate on instance 0
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    String evacuateInstanceName =  _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, evacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
+
+    Map<String, IdealState> assignment;
+    List<String> currentActiveInstances =
+        _participantNames.stream().filter(n -> (!n.equals(evacuateInstanceName) && !n.equals(_participants.get(3).getInstanceName()))).collect(Collectors.toList());
+    TestHelper.verify( ()-> {return verifyIS(evacuateInstanceName);}, TestHelper.WAIT_DURATION);
+
+    _participants.get(3).syncStart();
+    _participants.get(2).syncStart();
+  }
+
+
   private void addParticipant(String participantName) {
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, participantName);
 
@@ -290,8 +363,12 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
    private void createTestDBs(long delayTime) throws InterruptedException {
+     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB0_CRUSHED",
+         BuiltInStateModelDefinitions.LeaderStandby.name(), PARTITIONS, REPLICA, REPLICA - 1, -1,
+         CrushEdRebalanceStrategy.class.getName());
+     _allDBs.add("TEST_DB0_CRUSHED");
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB1_CRUSHED",
-        BuiltInStateModelDefinitions.LeaderStandby.name(), PARTITIONS, REPLICA, REPLICA - 1, 200,
+        BuiltInStateModelDefinitions.LeaderStandby.name(), PARTITIONS, REPLICA, REPLICA - 1, 2000000,
         CrushEdRebalanceStrategy.class.getName());
     _allDBs.add("TEST_DB1_CRUSHED");
     createResourceWithWagedRebalance(CLUSTER_NAME, "TEST_DB2_WAGED", BuiltInStateModelDefinitions.LeaderStandby.name(),
@@ -310,14 +387,39 @@ public class TestInstanceOperation extends ZkTestBase {
     return externalViews;
   }
 
+  private boolean verifyIS(String evacuateInstanceName) {
+    for (String db : _allDBs) {
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      for (String partition : is.getPartitionSet()) {
+        List<String> newPAssignedParticipants = is.getPreferenceList(partition);
+        if (newPAssignedParticipants.contains(evacuateInstanceName)) {
+          System.out.println("partition " + partition + " assignment " + newPAssignedParticipants + " ev " + evacuateInstanceName);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   private Set<String> getParticipantsInEv(ExternalView ev) {
     Set<String> assignedParticipants = new HashSet<>();
-    ev.getPartitionSet().forEach(partition -> assignedParticipants.addAll(ev.getStateMap(partition).keySet()));
+    for (String partition : ev.getPartitionSet()) {
+      ev.getStateMap(partition)
+          .keySet()
+          .stream()
+          .filter(k -> !ev.getStateMap(partition).get(k).equals("OFFLINE"))
+          .forEach(assignedParticipants::add);
+    }
     return assignedParticipants;
   }
 
   // verify that each partition has >=REPLICA (3 in this case) replicas
+
   private void validateAssignmentInEv(ExternalView ev) {
+    validateAssignmentInEv(ev, REPLICA);
+  }
+
+  private void validateAssignmentInEv(ExternalView ev, int expectedNumber) {
     Set<String> partitionSet = ev.getPartitionSet();
     for (String partition : partitionSet) {
       AtomicInteger activeReplicaCount = new AtomicInteger();
@@ -326,8 +428,7 @@ public class TestInstanceOperation extends ZkTestBase {
           .stream()
           .filter(v -> v.equals("MASTER") || v.equals("LEADER") || v.equals("SLAVE") || v.equals("FOLLOWER") || v.equals("STANDBY"))
           .forEach(v -> activeReplicaCount.getAndIncrement());
-      Assert.assertTrue(activeReplicaCount.get() >=REPLICA);
-
+      Assert.assertTrue(activeReplicaCount.get() >=expectedNumber);
     }
   }
 
@@ -375,7 +476,7 @@ public class TestInstanceOperation extends ZkTestBase {
     private void sleepWhileNotCanceled(long sleepTime) throws InterruptedException{
       while(sleepTime >0 && !isCancelled()) {
         Thread.sleep(5000);
-        sleepTime =- 5000;
+        sleepTime = sleepTime - 5000;
       }
       if (isCancelled()) {
         _cancelled = false;

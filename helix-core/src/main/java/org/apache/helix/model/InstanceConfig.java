@@ -265,15 +265,6 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setInstanceEnabled(boolean enabled) {
     // set instance operation only when we need to change InstanceEnabled value.
-    // When enabling an instance where current HELIX_ENABLED is false, we update INSTANCE_OPERATION to 'ENABLE'
-    // When disabling and instance where current HELIX_ENABLED is false, we overwrite what current operation and
-    // update INSTANCE_OPERATION to 'DISABLE'.
-    String instanceOperationKey = InstanceConfigProperty.INSTANCE_OPERATION.toString();
-    if (enabled != getInstanceEnabled()) {
-      _record.setSimpleField(instanceOperationKey,
-          enabled ? InstanceConstants.InstanceOperation.ENABLE.name()
-              : InstanceConstants.InstanceOperation.DISABLE.name());
-    }
     setInstanceEnabledHelper(enabled);
   }
 
@@ -344,17 +335,8 @@ public class InstanceConfig extends HelixProperty {
   }
 
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
-    if (operation != InstanceConstants.InstanceOperation.DISABLE
-        && operation != InstanceConstants.InstanceOperation.ENABLE) {
-      if (!getInstanceEnabled()) {
-        throw new HelixException(
-            "setting non enable/disable operation (e.g. evacuate, swap) to helix disabled instance is not allowed");
-      }
-    } else {
-      setInstanceEnabledHelper(operation == InstanceConstants.InstanceOperation.ENABLE);
-    }
-
-    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.toString(), operation.toString());
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name(),
+        operation == null ? "" : operation.name());
   }
 
   public String getInstanceOperation() {

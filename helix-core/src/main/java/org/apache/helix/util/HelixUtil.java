@@ -541,17 +541,6 @@ public final class HelixUtil {
   }
 
   /**
-   * Compose the config for an instance with defaults if provided.
-   * @param instanceName the unique name of the instance
-   * @param defaultInstanceConfigBuilder instance config builder filled with defaults
-   * @return InstanceConfig
-   */
-  public static InstanceConfig composeInstanceConfig(String instanceName,
-      InstanceConfig.Builder defaultInstanceConfigBuilder) {
-    return defaultInstanceConfigBuilder.build(instanceName);
-  }
-
-  /**
    * Checks whether or not the cluster is in management mode. It checks:
    * - pause signal
    * - live instances: whether any live instance is not in normal status, eg. frozen.

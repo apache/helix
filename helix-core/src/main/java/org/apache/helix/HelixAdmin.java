@@ -738,4 +738,15 @@ public interface HelixAdmin {
    */
   Map<String, Boolean> validateInstancesForWagedRebalance(String clusterName,
       List<String> instancesNames);
+
+  /**
+   * Return if instance operation 'Evacuate' is finished.
+   * Only return true if there is no current state on the instance and that instance is still alive.
+   * @param clusterName
+   * @param instancesNames
+   * @return
+   */
+  boolean isEvacuateFinished(String clusterName, String instancesNames);
+
+  boolean isPrepopulateReady(String clusterName, String instancesNames);
 }

@@ -47,6 +47,7 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
@@ -406,7 +407,41 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
   }
 
+
   @Override
+  public boolean isEvacuateFinished(String clusterName, String instanceName) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    // check the instance is alive
+    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
+    if (liveInstance == null) {
+      logger.warn("instance {} in cluster {} is not alive.", instanceName, clusterName);
+      return false;
+    }
+
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    String sessionId = liveInstance.getEphemeralOwner();
+
+    String path = PropertyPathBuilder.instanceCurrentState(clusterName, instanceName, sessionId);
+    List<String> currentStates = baseAccessor.getChildNames(path, 0);
+    if (currentStates == null) {
+      logger.warn("instance {} in cluster {} does not have live session.", instanceName,
+          clusterName);
+      return false;
+    }
+    return  currentStates.isEmpty();
+  }
+
+  @Override
+  public boolean isPrepopulateReady(String clusterName, String instanceName) {
+    return this.getInstanceConfig(clusterName, instanceName)
+        .getInstanceOperation()
+        .equals(InstanceConstants.InstanceOperation.EVACUATE.name());
+  }
+
+    @Override
   public void enableResource(final String clusterName, final String resourceName,
       final boolean enabled) {
     logger.info("{} resource {} in cluster {}.", enabled ? "Enable" : "Disable", resourceName,

@@ -550,4 +550,14 @@ public class MockHelixAdmin implements HelixAdmin {
       List<String> instancesNames) {
     return null;
   }
+
+  @Override
+  public boolean isEvacuateFinished(String clusterName, String instancesNames) {
+    return false;
+  }
+
+  @Override
+  public boolean isPrepopulateReady(String clusterName, String instancesNames) {
+    return false;
+  }
 }

@@ -720,7 +720,6 @@ public class InstanceConfig extends HelixProperty {
 
     }
 
-    config.setInstanceEnabled(HELIX_ENABLED_DEFAULT_VALUE);
     if (config.getHostName() == null) {
       config.setHostName(instanceId);
     }
@@ -759,12 +758,24 @@ public class InstanceConfig extends HelixProperty {
     public InstanceConfig build(String instanceId) {
       InstanceConfig instanceConfig = new InstanceConfig(instanceId);
 
+      String proposedHostName = instanceId;
+      String proposedPort = "";
+      int lastPos = instanceId.lastIndexOf("_");
+      if (lastPos > 0) {
+        proposedHostName = instanceId.substring(0, lastPos);
+        proposedPort = instanceId.substring(lastPos + 1);
+      }
+
       if (_hostName != null) {
         instanceConfig.setHostName(_hostName);
+      } else {
+        instanceConfig.setHostName(proposedHostName);
       }
 
       if (_port != null) {
         instanceConfig.setPort(_port);
+      } else {
+        instanceConfig.setPort(proposedPort);
       }
 
       if (_domain != null) {

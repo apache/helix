@@ -536,9 +536,8 @@ public final class HelixUtil {
    * @param instanceName the unique name of the instance
    * @return InstanceConfig
    */
-  @Deprecated
   public static InstanceConfig composeInstanceConfig(String instanceName) {
-    return composeInstanceConfig(instanceName, new InstanceConfig.Builder());
+    return new InstanceConfig.Builder().build(instanceName);
   }
 
   /**
@@ -549,23 +548,7 @@ public final class HelixUtil {
    */
   public static InstanceConfig composeInstanceConfig(String instanceName,
       InstanceConfig.Builder defaultInstanceConfigBuilder) {
-    InstanceConfig instanceConfig = defaultInstanceConfigBuilder.build(instanceName);
-    String proposedHostName = instanceName;
-    String proposedPort = "";
-    int lastPos = instanceName.lastIndexOf("_");
-    if (lastPos > 0) {
-      proposedHostName = instanceName.substring(0, lastPos);
-      proposedPort = instanceName.substring(lastPos + 1);
-    }
-
-    if (instanceConfig.getHostName() == null) {
-      instanceConfig.setHostName(proposedHostName);
-    }
-    if (instanceConfig.getPort() == null) {
-      instanceConfig.setPort(proposedPort);
-    }
-
-    return instanceConfig;
+    return defaultInstanceConfigBuilder.build(instanceName);
   }
 
   /**

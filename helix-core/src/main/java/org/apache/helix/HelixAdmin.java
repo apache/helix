@@ -748,5 +748,5 @@ public interface HelixAdmin {
    */
   boolean isEvacuateFinished(String clusterName, String instancesNames);
 
-  boolean isPrepopulateReady(String clusterName, String instancesNames);
+  boolean isReadyForPreparingJoiningCluster(String clusterName, String instancesNames);
 }

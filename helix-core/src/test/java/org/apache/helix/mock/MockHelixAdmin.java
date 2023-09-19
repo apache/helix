@@ -557,7 +557,7 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public boolean isPrepopulateReady(String clusterName, String instancesNames) {
+  public boolean isReadyForPreparingJoiningCluster(String clusterName, String instancesNames) {
     return false;
   }
 }

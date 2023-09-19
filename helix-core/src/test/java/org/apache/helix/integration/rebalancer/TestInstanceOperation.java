@@ -16,7 +16,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -127,7 +126,7 @@ public class TestInstanceOperation extends ZkTestBase {
     }
 
     Assert.assertTrue(_admin.isEvacuateFinished(CLUSTER_NAME, instanceToEvacuate));
-    Assert.assertTrue(_admin.isPrepopulateReady(CLUSTER_NAME, instanceToEvacuate));
+    Assert.assertTrue(_admin.isReadyForPreparingJoiningCluster(CLUSTER_NAME, instanceToEvacuate));
   }
 
   @Test(dependsOnMethods = "testEvacuate")
@@ -334,7 +333,7 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertFalse(newPAssignedParticipants.contains(instanceToEvacuate));
       Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
     }
-    Assert.assertTrue(_admin.isPrepopulateReady(CLUSTER_NAME, instanceToEvacuate));
+    Assert.assertTrue(_admin.isReadyForPreparingJoiningCluster(CLUSTER_NAME, instanceToEvacuate));
   }
 
   @Test(dependsOnMethods = "testMarkEvacuationAfterEMM")

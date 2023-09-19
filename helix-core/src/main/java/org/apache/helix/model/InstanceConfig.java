@@ -93,7 +93,7 @@ public class InstanceConfig extends HelixProperty {
    * @return the host name
    */
   public String getHostName() {
-    return _record.getSimpleField(InstanceConfigProperty.HELIX_HOST.toString());
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_HOST.name());
   }
 
   /**
@@ -101,7 +101,7 @@ public class InstanceConfig extends HelixProperty {
    * @param hostName the host name
    */
   public void setHostName(String hostName) {
-    _record.setSimpleField(InstanceConfigProperty.HELIX_HOST.toString(), hostName);
+    _record.setSimpleField(InstanceConfigProperty.HELIX_HOST.name(), hostName);
   }
 
   /**
@@ -109,7 +109,7 @@ public class InstanceConfig extends HelixProperty {
    * @return the port
    */
   public String getPort() {
-    return _record.getSimpleField(InstanceConfigProperty.HELIX_PORT.toString());
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_PORT.name());
   }
 
   /**
@@ -117,7 +117,7 @@ public class InstanceConfig extends HelixProperty {
    * @param port the port
    */
   public void setPort(String port) {
-    _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
+    _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.name(), port);
   }
 
   /**
@@ -201,7 +201,7 @@ public class InstanceConfig extends HelixProperty {
    * @return a list of tags
    */
   public List<String> getTags() {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       tags = new ArrayList<String>(0);
     }
@@ -213,14 +213,14 @@ public class InstanceConfig extends HelixProperty {
    * @param tag an arbitrary property of the instance
    */
   public void addTag(String tag) {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       tags = new ArrayList<String>(0);
     }
     if (!tags.contains(tag)) {
       tags.add(tag);
     }
-    getRecord().setListField(InstanceConfigProperty.TAG_LIST.toString(), tags);
+    getRecord().setListField(InstanceConfigProperty.TAG_LIST.name(), tags);
   }
 
   /**
@@ -228,7 +228,7 @@ public class InstanceConfig extends HelixProperty {
    * @param tag a property of this instance
    */
   public void removeTag(String tag) {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       return;
     }
@@ -243,7 +243,7 @@ public class InstanceConfig extends HelixProperty {
    * @return true if the instance contains the tag, false otherwise
    */
   public boolean containsTag(String tag) {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       return false;
     }
@@ -255,7 +255,7 @@ public class InstanceConfig extends HelixProperty {
    * @return true if enabled, false if disabled
    */
   public boolean getInstanceEnabled() {
-    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(),
+    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
         HELIX_ENABLED_DEFAULT_VALUE);
   }
 
@@ -282,8 +282,8 @@ public class InstanceConfig extends HelixProperty {
    * Removes HELIX_DISABLED_REASON and HELIX_DISABLED_TYPE entry from simple field.
    */
   public void resetInstanceDisabledTypeAndReason() {
-    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.toString());
-    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString());
+    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.name());
+    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.name());
   }
 
   /**
@@ -292,7 +292,7 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setInstanceDisabledReason(String disabledReason) {
      if (!getInstanceEnabled()) {
-     _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.toString(), disabledReason);
+       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), disabledReason);
      }
   }
 
@@ -302,8 +302,8 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setInstanceDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
     if (!getInstanceEnabled()) {
-      _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString(),
-          disabledType.toString());
+      _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
+          disabledType.name());
     }
   }
 
@@ -311,7 +311,7 @@ public class InstanceConfig extends HelixProperty {
    * @return Return instance disabled reason. Default is am empty string.
    */
   public String getInstanceDisabledReason() {
-    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_REASON.toString(), "");
+    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), "");
   }
 
   /**
@@ -323,8 +323,8 @@ public class InstanceConfig extends HelixProperty {
     if (getInstanceEnabled()) {
       return InstanceConstants.INSTANCE_NOT_DISABLED;
     }
-    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString(),
-        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
+    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
+        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
   }
 
   /**
@@ -470,7 +470,7 @@ public class InstanceConfig extends HelixProperty {
   @Deprecated
   public void setInstanceEnabledForPartition(String partitionName, boolean enabled) {
     List<String> list =
-        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
     Set<String> disabledPartitions = new HashSet<String>();
     if (list != null) {
       disabledPartitions.addAll(list);
@@ -484,7 +484,7 @@ public class InstanceConfig extends HelixProperty {
 
     list = new ArrayList<String>(disabledPartitions);
     Collections.sort(list);
-    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
+    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(), list);
   }
 
   public void setInstanceEnabledForPartition(String resourceName, String partitionName,

@@ -794,8 +794,6 @@ public class InstanceConfig extends HelixProperty {
         instanceConfig.setInstanceEnabled(_instanceEnabled);
       }
 
-      instanceConfig.setInstanceEnabled(_instanceEnabled);
-
       if (_instanceCapacityMap != null) {
         instanceConfig.setInstanceCapacityMap(_instanceCapacityMap);
       }

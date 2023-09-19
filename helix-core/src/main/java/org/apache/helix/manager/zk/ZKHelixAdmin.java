@@ -47,6 +47,7 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
@@ -57,6 +58,7 @@ import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.constants.InstanceConstants;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -407,10 +409,70 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public void enableResource(final String clusterName, final String resourceName,
-      final boolean enabled) {
-    logger.info("{} resource {} in cluster {}.", enabled ? "Enable" : "Disable", resourceName,
-        clusterName);
+  public boolean isEvacuateFinished(String clusterName, String instanceName) {
+    return !instanceHasCurrentSateOrMessage(clusterName, instanceName) && (getInstanceConfig(clusterName,
+        instanceName).getInstanceOperation().equals(InstanceConstants.InstanceOperation.EVACUATE.name()));
+  }
+
+  @Override
+  public boolean isReadyForPreparingJoiningCluster(String clusterName, String instanceName) {
+    return !instanceHasCurrentSateOrMessage(clusterName, instanceName)
+        && DelayedAutoRebalancer.INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(
+        getInstanceConfig(clusterName, instanceName).getInstanceOperation());
+  }
+
+  /**
+   * Return true if Instance has any current state or pending message. Otherwise, return false if instance is offline,
+   * instance has no active session, or if instance is online but has no current state or pending message.
+   * @param clusterName
+   * @param instanceName
+   * @return
+   */
+  private boolean instanceHasCurrentSateOrMessage(String clusterName, String instanceName) {
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    // check the instance is alive
+    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
+    if (liveInstance == null) {
+      logger.warn("Instance {} in cluster {} is not alive. The instance can be removed anyway.", instanceName,
+          clusterName);
+      return false;
+    }
+
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    // count number of sessions under CurrentState folder. If it is carrying over from prv session,
+    // then there are > 1 session ZNodes.
+    List<String> sessions = baseAccessor.getChildNames(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName), 0);
+    if (sessions.size() > 1) {
+      logger.warn("Instance {} in cluster {} is carrying over from prev session.", instanceName,
+          clusterName);
+      return true;
+    }
+
+    String sessionId = liveInstance.getEphemeralOwner();
+
+    String path = PropertyPathBuilder.instanceCurrentState(clusterName, instanceName, sessionId);
+    List<String> currentStates = baseAccessor.getChildNames(path, 0);
+    if (currentStates == null) {
+      logger.warn("Instance {} in cluster {} does not have live session.  The instance can be removed anyway.",
+          instanceName, clusterName);
+      return false;
+    }
+
+    // see if instance has pending message.
+    List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName), true);
+    if (messages != null && !messages.isEmpty()) {
+      logger.warn("Instance {} in cluster {} has pending messages.", instanceName, clusterName);
+      return true;
+    }
+
+    return !currentStates.isEmpty();
+  }
+
+  @Override
+  public void enableResource(final String clusterName, final String resourceName, final boolean enabled) {
+    logger.info("{} resource {} in cluster {}.", enabled ? "Enable" : "Disable", resourceName, clusterName);
     String path = PropertyPathBuilder.idealState(clusterName, resourceName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
     if (!baseAccessor.exists(path, 0)) {

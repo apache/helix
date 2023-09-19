@@ -11,17 +11,18 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -57,6 +58,8 @@ public class TestInstanceOperation extends ZkTestBase {
   private ZkHelixClusterVerifier _clusterVerifier;
   private ConfigAccessor _configAccessor;
   private long _stateModelDelay = 3L;
+
+  private HelixAdmin _admin;
   protected AssignmentMetadataStore _assignmentMetadataStore;
   HelixDataAccessor _dataAccessor;
 
@@ -91,6 +94,8 @@ public class TestInstanceOperation extends ZkTestBase {
     createTestDBs(200);
 
     setUpWagedBaseline();
+
+    _admin = new ZKHelixAdmin(_gZkClient);
   }
 
   @Test
@@ -106,7 +111,6 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.EVACUATE);
 
-    System.out.println("123");
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // New ev should contain all instances but the evacuated one
@@ -119,6 +123,9 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertFalse(newPAssignedParticipants.contains(instanceToEvacuate));
       Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
     }
+
+    Assert.assertTrue(_admin.isEvacuateFinished(CLUSTER_NAME, instanceToEvacuate));
+    Assert.assertTrue(_admin.isReadyForPreparingJoiningCluster(CLUSTER_NAME, instanceToEvacuate));
   }
 
   @Test(dependsOnMethods = "testEvacuate")
@@ -215,6 +222,8 @@ public class TestInstanceOperation extends ZkTestBase {
       TestHelper.verify(
           () -> ((_dataAccessor.getChildNames(_dataAccessor.keyBuilder().messages(participant))).isEmpty()), 30000);
     }
+    Assert.assertFalse(_admin.isEvacuateFinished(CLUSTER_NAME, instanceToEvacuate));
+    Assert.assertFalse(_admin.isReadyForPreparingJoiningCluster(CLUSTER_NAME, instanceToEvacuate));
 
     // sleep a bit so ST messages can start executing
     Thread.sleep(Math.abs(_stateModelDelay / 100));
@@ -261,6 +270,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // message should be pending at the to evacuate participant
     TestHelper.verify(
         () -> ((_dataAccessor.getChildNames(_dataAccessor.keyBuilder().messages(instanceToEvacuate))).isEmpty()), 30000);
+    Assert.assertFalse(_admin.isEvacuateFinished(CLUSTER_NAME, instanceToEvacuate));
 
     // cancel evacuation
     _gSetupTool.getClusterManagementTool()
@@ -323,7 +333,7 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertFalse(newPAssignedParticipants.contains(instanceToEvacuate));
       Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
     }
-
+    Assert.assertTrue(_admin.isReadyForPreparingJoiningCluster(CLUSTER_NAME, instanceToEvacuate));
   }
 
   @Test(dependsOnMethods = "testMarkEvacuationAfterEMM")

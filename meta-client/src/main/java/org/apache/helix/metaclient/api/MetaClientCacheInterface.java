@@ -36,7 +36,7 @@ public interface MetaClientCacheInterface<T> extends MetaClientInterface<T> {
 
         private final String _nodeKey;
 
-        TrieNode(String path, String nodeKey) {
+        public TrieNode(String path, String nodeKey) {
             _path = path;
             _nodeKey = nodeKey;
             _children = new HashMap<>();

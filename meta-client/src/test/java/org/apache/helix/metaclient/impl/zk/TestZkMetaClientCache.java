@@ -19,39 +19,80 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
-
 import org.apache.helix.metaclient.factories.MetaClientCacheConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkMetaClientCache extends ZkMetaClientTestBase {
-    private static final String PATH = "/Cache";
+    private static final String DATA_PATH = "/data";
+    private static final String DATA_VALUE = "testData";
 
     @Test
     public void testCreateClient() {
-        final String key = "/TestZkMetaClientCache_testCreate";
-        try (ZkMetaClient<String> zkMetaClientCache = createZkMetaClientCache()) {
+        final String key = "/testCreate";
+        try (ZkMetaClientCache<String> zkMetaClientCache = createZkMetaClientCacheLazyCaching(key)) {
             zkMetaClientCache.connect();
             // Perform some random non-read operation
             zkMetaClientCache.create(key, ENTRY_STRING_VALUE);
-
-            try {
-                //Perform some read operation - should fail.
-                // TODO: Remove this once implemented.
-                zkMetaClientCache.get(key);
-                Assert.fail("Should have failed with non implemented yet.");
-            } catch (Exception ignored) {
-            }
         }
     }
 
-    protected static ZkMetaClientCache<String> createZkMetaClientCache() {
+    @Test
+    public void testLazyDataCacheAndFetch() {
+        final String key = "/testLazyDataCacheAndFetch";
+        try (ZkMetaClientCache<String> zkMetaClientCache = createZkMetaClientCacheLazyCaching(key)) {
+            zkMetaClientCache.connect();
+            zkMetaClientCache.create(key, "test");
+
+            // Verify that data is not cached initially
+            Assert.assertFalse(zkMetaClientCache.getDataCacheMap().containsKey(key + DATA_PATH));
+
+            zkMetaClientCache.create(key + DATA_PATH, DATA_VALUE);
+
+            // Get data for DATA_PATH (should trigger lazy loading)
+            String data = zkMetaClientCache.get(key + DATA_PATH);
+
+            // Verify that data is now cached
+            Assert.assertTrue(zkMetaClientCache.getDataCacheMap().containsKey(key + DATA_PATH));
+            Assert.assertEquals(DATA_VALUE, data);
+        }
+    }
+
+    @Test
+    public void testCacheDataUpdates() {
+        final String key = "/testCacheDataUpdates";
+        try (ZkMetaClientCache<String> zkMetaClientCache = createZkMetaClientCacheLazyCaching(key)) {
+            zkMetaClientCache.connect();
+            zkMetaClientCache.create(key, "test");
+            zkMetaClientCache.create(key + DATA_PATH, DATA_VALUE);
+
+            // Get data for DATA_PATH and cache it
+            String data = zkMetaClientCache.get(key + DATA_PATH);
+            Assert.assertEquals(data, zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH));
+
+            // Update data for DATA_PATH
+            String newData = zkMetaClientCache.update(key + DATA_PATH, currentData -> currentData + "1");
+
+            // Verify that cached data is updated. Might take some time
+            for (int i = 0; i < 10; i++) {
+                if (zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH).equals(newData)) {
+                    break;
+                }
+                Thread.sleep(1000);
+            }
+            Assert.assertEquals(newData, zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected static ZkMetaClientCache<String> createZkMetaClientCacheLazyCaching(String rootPath) {
         ZkMetaClientConfig config =
                 new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR)
                         //.setZkSerializer(new TestStringSerializer())
                         .build();
-        MetaClientCacheConfig cacheConfig = new MetaClientCacheConfig(PATH, true, true, true);
+        MetaClientCacheConfig cacheConfig = new MetaClientCacheConfig(rootPath, true, true, true);
         return new ZkMetaClientCache<>(config, cacheConfig);
     }
 }

@@ -40,13 +40,7 @@ public class MetaClientFactory {
       throw new IllegalArgumentException("MetaClientConfig cannot be null.");
     }
     if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
-      ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
-          setConnectionAddress(config.getConnectionAddress())
-          .setMetaClientReconnectPolicy(config.getMetaClientReconnectPolicy())
-          .setConnectionInitTimeoutInMillis(config.getConnectionInitTimeoutInMillis())
-          .setSessionTimeoutInMillis(config.getSessionTimeoutInMillis())
-          .build();
-      return new ZkMetaClientFactory().getMetaClient(zkMetaClientConfig);
+      return new ZkMetaClientFactory().getMetaClient(createZkMetaClientConfig(config));
     }
     return null;
   }
@@ -56,14 +50,17 @@ public class MetaClientFactory {
       throw new IllegalArgumentException("MetaClientConfig cannot be null.");
     }
     if (MetaClientConfig.StoreType.ZOOKEEPER.equals(config.getStoreType())) {
-      ZkMetaClientConfig zkMetaClientConfig = new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
-              setConnectionAddress(config.getConnectionAddress())
-              .setMetaClientReconnectPolicy(config.getMetaClientReconnectPolicy())
-              .setConnectionInitTimeoutInMillis(config.getConnectionInitTimeoutInMillis())
-              .setSessionTimeoutInMillis(config.getSessionTimeoutInMillis())
-              .build();
-      return new ZkMetaClientFactory().getMetaClientCache(zkMetaClientConfig, cacheConfig);
+      return new ZkMetaClientFactory().getMetaClientCache(createZkMetaClientConfig(config), cacheConfig);
     }
       return null;
+  }
+
+  private ZkMetaClientConfig createZkMetaClientConfig(MetaClientConfig config) {
+      return new ZkMetaClientConfig.ZkMetaClientConfigBuilder().
+        setConnectionAddress(config.getConnectionAddress())
+        .setMetaClientReconnectPolicy(config.getMetaClientReconnectPolicy())
+        .setConnectionInitTimeoutInMillis(config.getConnectionInitTimeoutInMillis())
+        .setSessionTimeoutInMillis(config.getSessionTimeoutInMillis())
+        .build();
   }
 }

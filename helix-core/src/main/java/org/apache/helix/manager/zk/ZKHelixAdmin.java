@@ -410,7 +410,8 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public boolean isEvacuateFinished(String clusterName, String instanceName) {
-    return !instanceHasCurrentSateOrMessage(clusterName, instanceName);
+    return !instanceHasCurrentSateOrMessage(clusterName, instanceName) && (getInstanceConfig(clusterName,
+        instanceName).getInstanceOperation().equals(InstanceConstants.InstanceOperation.EVACUATE.name()));
   }
 
   @Override
@@ -440,6 +441,15 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    // count number of sessions under CurrentState folder. If it is carrying over from prv session,
+    // then there are > 1 session ZNodes.
+    List<String> sessions = baseAccessor.getChildNames(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName), 0);
+    if (sessions.size() > 1) {
+      logger.warn("Instance {} in cluster {} is carrying over from prev session.", instanceName,
+          clusterName);
+      return true;
+    }
+
     String sessionId = liveInstance.getEphemeralOwner();
 
     String path = PropertyPathBuilder.instanceCurrentState(clusterName, instanceName, sessionId);

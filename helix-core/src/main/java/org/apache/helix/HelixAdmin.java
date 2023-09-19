@@ -741,12 +741,18 @@ public interface HelixAdmin {
 
   /**
    * Return if instance operation 'Evacuate' is finished.
-   * Only return true if there is no current state on the instance and that instance is still alive.
    * @param clusterName
    * @param instancesNames
-   * @return
+   * @return Return true if there is no current state nor pending message on the instance.
    */
   boolean isEvacuateFinished(String clusterName, String instancesNames);
 
+  /**
+   * Return if instance is ready for preparing joining cluster. The instance should have no current state,
+   * no pending message and tagged with operation that exclude the instance from Helix assignment.
+   * @param clusterName
+   * @param instancesNames
+   * @return true if the instance is ready for preparing joining cluster.
+   */
   boolean isReadyForPreparingJoiningCluster(String clusterName, String instancesNames);
 }

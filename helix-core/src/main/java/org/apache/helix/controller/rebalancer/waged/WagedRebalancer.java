@@ -396,6 +396,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       Map<String, ResourceAssignment> currentResourceAssignment,
       RebalanceAlgorithm algorithm) throws HelixRebalanceException {
     // the "real" live nodes at the time
+    // TODO: this is a hacky way to filter our on operation instance. We should consider redesign `getEnabledLiveInstances()`.
     final Set<String> enabledLiveInstances = filterOutOnOperationInstances(clusterData.getInstanceConfigMap(), clusterData.getEnabledLiveInstances());
     if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment

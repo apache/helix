@@ -35,7 +35,6 @@ public class CustomCloudInstanceInformation implements CloudInstanceInformationV
       ImmutableMap.of(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name(),
           "mz=0, host=localhost, container=containerId", "MAINTENANCE_ZONE", "0", "INSTANCE_NAME",
           "localhost_something");
-  ;
 
   public CustomCloudInstanceInformation() {
   }

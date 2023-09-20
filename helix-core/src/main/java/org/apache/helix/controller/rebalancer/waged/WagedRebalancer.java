@@ -47,6 +47,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -395,7 +396,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       Map<String, ResourceAssignment> currentResourceAssignment,
       RebalanceAlgorithm algorithm) throws HelixRebalanceException {
     // the "real" live nodes at the time
-    final Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+    // TODO: this is a hacky way to filter our on operation instance. We should consider redesign `getEnabledLiveInstances()`.
+    final Set<String> enabledLiveInstances = filterOutOnOperationInstances(clusterData.getInstanceConfigMap(), clusterData.getEnabledLiveInstances());
     if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment
       return currentResourceAssignment;
@@ -422,6 +424,14 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     } finally {
       _rebalanceOverwriteLatency.endMeasuringLatency();
     }
+  }
+
+  private static Set<String> filterOutOnOperationInstances(Map<String, InstanceConfig> instanceConfigMap,
+      Set<String> nodes) {
+    return nodes.stream()
+        .filter(
+            instance -> !DelayedAutoRebalancer.INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(instanceConfigMap.get(instance).getInstanceOperation()))
+        .collect(Collectors.toSet());
   }
 
   /**
@@ -608,7 +618,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     bestPossibleAssignment.values().parallelStream().forEach((resourceAssignment -> {
       String resourceName = resourceAssignment.getResourceName();
       IdealState currentIdealState = clusterData.getIdealState(resourceName);
-      Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+      Set<String> enabledLiveInstances =
+          filterOutOnOperationInstances(clusterData.getInstanceConfigMap(), clusterData.getEnabledLiveInstances());
       int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
       int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
           .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),

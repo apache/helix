@@ -880,7 +880,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         callbackMonitor.unregister();
       }
 
-      _helixPropertyStore = null;
+      if (_helixPropertyStore != null) {
+        _helixPropertyStore.stop();
+        _helixPropertyStore = null;
+      }
 
       if (_cloudEventListener != null) {
         try {

@@ -29,11 +29,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.topology.Topology;
+import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -68,6 +68,7 @@ public class InstanceConfig extends HelixProperty {
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
   private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
+  private static final boolean HELIX_ENABLED_DEFAULT_VALUE = true;
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -92,7 +93,7 @@ public class InstanceConfig extends HelixProperty {
    * @return the host name
    */
   public String getHostName() {
-    return _record.getSimpleField(InstanceConfigProperty.HELIX_HOST.toString());
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_HOST.name());
   }
 
   /**
@@ -100,7 +101,7 @@ public class InstanceConfig extends HelixProperty {
    * @param hostName the host name
    */
   public void setHostName(String hostName) {
-    _record.setSimpleField(InstanceConfigProperty.HELIX_HOST.toString(), hostName);
+    _record.setSimpleField(InstanceConfigProperty.HELIX_HOST.name(), hostName);
   }
 
   /**
@@ -108,7 +109,7 @@ public class InstanceConfig extends HelixProperty {
    * @return the port
    */
   public String getPort() {
-    return _record.getSimpleField(InstanceConfigProperty.HELIX_PORT.toString());
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_PORT.name());
   }
 
   /**
@@ -116,7 +117,7 @@ public class InstanceConfig extends HelixProperty {
    * @param port the port
    */
   public void setPort(String port) {
-    _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
+    _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.name(), port);
   }
 
   /**
@@ -200,7 +201,7 @@ public class InstanceConfig extends HelixProperty {
    * @return a list of tags
    */
   public List<String> getTags() {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       tags = new ArrayList<String>(0);
     }
@@ -212,14 +213,14 @@ public class InstanceConfig extends HelixProperty {
    * @param tag an arbitrary property of the instance
    */
   public void addTag(String tag) {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       tags = new ArrayList<String>(0);
     }
     if (!tags.contains(tag)) {
       tags.add(tag);
     }
-    getRecord().setListField(InstanceConfigProperty.TAG_LIST.toString(), tags);
+    getRecord().setListField(InstanceConfigProperty.TAG_LIST.name(), tags);
   }
 
   /**
@@ -227,7 +228,7 @@ public class InstanceConfig extends HelixProperty {
    * @param tag a property of this instance
    */
   public void removeTag(String tag) {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       return;
     }
@@ -242,7 +243,7 @@ public class InstanceConfig extends HelixProperty {
    * @return true if the instance contains the tag, false otherwise
    */
   public boolean containsTag(String tag) {
-    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.name());
     if (tags == null) {
       return false;
     }
@@ -254,7 +255,8 @@ public class InstanceConfig extends HelixProperty {
    * @return true if enabled, false if disabled
    */
   public boolean getInstanceEnabled() {
-    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), true);
+    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
+        HELIX_ENABLED_DEFAULT_VALUE);
   }
 
   /**
@@ -280,8 +282,8 @@ public class InstanceConfig extends HelixProperty {
    * Removes HELIX_DISABLED_REASON and HELIX_DISABLED_TYPE entry from simple field.
    */
   public void resetInstanceDisabledTypeAndReason() {
-    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.toString());
-    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString());
+    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.name());
+    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.name());
   }
 
   /**
@@ -290,7 +292,7 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setInstanceDisabledReason(String disabledReason) {
      if (!getInstanceEnabled()) {
-     _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.toString(), disabledReason);
+       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), disabledReason);
      }
   }
 
@@ -300,8 +302,8 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setInstanceDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
     if (!getInstanceEnabled()) {
-      _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString(),
-          disabledType.toString());
+      _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
+          disabledType.name());
     }
   }
 
@@ -309,7 +311,7 @@ public class InstanceConfig extends HelixProperty {
    * @return Return instance disabled reason. Default is am empty string.
    */
   public String getInstanceDisabledReason() {
-    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_REASON.toString(), "");
+    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), "");
   }
 
   /**
@@ -321,8 +323,8 @@ public class InstanceConfig extends HelixProperty {
     if (getInstanceEnabled()) {
       return InstanceConstants.INSTANCE_NOT_DISABLED;
     }
-    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString(),
-        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
+    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
+        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
   }
 
   /**
@@ -468,7 +470,7 @@ public class InstanceConfig extends HelixProperty {
   @Deprecated
   public void setInstanceEnabledForPartition(String partitionName, boolean enabled) {
     List<String> list =
-        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
     Set<String> disabledPartitions = new HashSet<String>();
     if (list != null) {
       disabledPartitions.addAll(list);
@@ -482,7 +484,7 @@ public class InstanceConfig extends HelixProperty {
 
     list = new ArrayList<String>(disabledPartitions);
     Collections.sort(list);
-    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
+    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(), list);
   }
 
   public void setInstanceEnabledForPartition(String resourceName, String partitionName,
@@ -718,7 +720,6 @@ public class InstanceConfig extends HelixProperty {
 
     }
 
-    config.setInstanceEnabled(true);
     if (config.getHostName() == null) {
       config.setHostName(instanceId);
     }
@@ -738,5 +739,136 @@ public class InstanceConfig extends HelixProperty {
     Topology.computeInstanceTopologyMap(clusterConfig, instanceName, this,
         false /*earlyQuitForFaultZone*/);
     return true;
+  }
+
+  public static class Builder {
+    private String _hostName;
+    private String _port;
+    private String _domain;
+    private int _weight = WEIGHT_NOT_SET;
+    private List<String> _tags = new ArrayList<>();
+    private boolean _instanceEnabled = HELIX_ENABLED_DEFAULT_VALUE;
+    private Map<String, Integer> _instanceCapacityMap;
+
+    /**
+     * Build a new InstanceConfig with given instanceId
+     * @param instanceId A unique ID for this instance
+     * @return InstanceConfig
+     */
+    public InstanceConfig build(String instanceId) {
+      InstanceConfig instanceConfig = new InstanceConfig(instanceId);
+
+      String proposedHostName = instanceId;
+      String proposedPort = "";
+      int lastPos = instanceId.lastIndexOf("_");
+      if (lastPos > 0) {
+        proposedHostName = instanceId.substring(0, lastPos);
+        proposedPort = instanceId.substring(lastPos + 1);
+      }
+
+      if (_hostName != null) {
+        instanceConfig.setHostName(_hostName);
+      } else {
+        instanceConfig.setHostName(proposedHostName);
+      }
+
+      if (_port != null) {
+        instanceConfig.setPort(_port);
+      } else {
+        instanceConfig.setPort(proposedPort);
+      }
+
+      if (_domain != null) {
+        instanceConfig.setDomain(_domain);
+      }
+
+      if (_weight != InstanceConfig.WEIGHT_NOT_SET) {
+        instanceConfig.setWeight(_weight);
+      }
+
+      for (String tag : _tags) {
+        instanceConfig.addTag(tag);
+      }
+
+      if (_instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
+        instanceConfig.setInstanceEnabled(_instanceEnabled);
+      }
+
+      if (_instanceCapacityMap != null) {
+        instanceConfig.setInstanceCapacityMap(_instanceCapacityMap);
+      }
+
+      return instanceConfig;
+    }
+
+    /**
+     * Set the host name for this instance
+     * @param hostName the host name
+     * @return InstanceConfig.Builder
+     */
+    public Builder setHostName(String hostName) {
+      _hostName = hostName;
+      return this;
+    }
+
+    /**
+     * Set the port for this instance
+     * @param port the Helix port
+     * @return InstanceConfig.Builder
+     */
+    public Builder setPort(String port) {
+      _port = port;
+      return this;
+    }
+
+    /**
+     * Set the domain for this instance
+     * @param domain the domain
+     * @return InstanceConfig.Builder
+     */
+    public Builder setDomain(String domain) {
+      _domain = domain;
+      return this;
+    }
+
+    /**
+     * Set the weight for this instance
+     * @param weight the weight
+     * @return InstanceConfig.Builder
+     */
+    public Builder setWeight(int weight) {
+      _weight = weight;
+      return this;
+    }
+
+    /**
+     * Add a tag for this instance
+     * @param tag the tag
+     * @return InstanceConfig.Builder
+     */
+    public Builder addTag(String tag) {
+      _tags.add(tag);
+      return this;
+    }
+
+    /**
+     * Set the enabled status for this instance
+     * @param instanceEnabled true if enabled, false otherwise
+     * @return InstanceConfig.Builder
+     */
+    public Builder setInstanceEnabled(boolean instanceEnabled) {
+      _instanceEnabled = instanceEnabled;
+      return this;
+    }
+
+    /**
+     * Set the capacity map for this instance
+     * @param instanceCapacityMap the capacity map
+     * @return InstanceConfig.Builder
+     */
+    public Builder setInstanceCapacityMap(Map<String, Integer> instanceCapacityMap) {
+      _instanceCapacityMap = instanceCapacityMap;
+      return this;
+    }
   }
 }

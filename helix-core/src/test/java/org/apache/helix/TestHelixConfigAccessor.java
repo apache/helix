@@ -112,23 +112,20 @@ public class TestHelixConfigAccessor extends ZkTestBase {
     Assert.assertEquals(keys.size(), 1, "should be [resourceConfigKey]");
     Assert.assertTrue(keys.contains("resourceConfigKey"));
 
-    keys =
-        configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
-            clusterName).build());
+    keys = configAccessor.getKeys(
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build());
     Assert.assertEquals(keys.size(), 1, "should be [clusterConfigKey]");
     Assert.assertTrue(keys.contains("clusterConfigKey"));
 
-    keys =
-        configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
-            .forCluster(clusterName).forParticipant("localhost_12918").build());
-    Assert.assertEquals(keys.size(), 5,
-        "should be [HELIX_ENABLED, HELIX_ENABLED_TIMESTAMP, HELIX_PORT, HELIX_HOST, participantConfigKey]");
+    keys = configAccessor.getKeys(
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+            .forParticipant("localhost_12918").build());
+    Assert.assertEquals(keys.size(), 3, "should be [HELIX_PORT, HELIX_HOST, participantConfigKey]");
     Assert.assertTrue(keys.contains("participantConfigKey"));
 
-    keys =
-        configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
-            .forCluster(clusterName).forResource("testResource").forPartition("testPartition")
-            .build());
+    keys = configAccessor.getKeys(
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
+            .forResource("testResource").forPartition("testPartition").build());
     Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
     Assert.assertEquals(keys.get(0), "partitionConfigKey");
 

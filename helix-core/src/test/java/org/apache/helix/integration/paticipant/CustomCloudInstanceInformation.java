@@ -19,24 +19,34 @@ package org.apache.helix.integration.paticipant;
  * under the License.
  */
 
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.api.cloud.CloudInstanceInformation;
+import org.apache.helix.api.cloud.CloudInstanceInformationV2;
 
 /**
  * This is a custom implementation of CloudInstanceInformation. It is used to test the functionality
  * of Helix node auto-registration.
  */
-public class CustomCloudInstanceInformation implements CloudInstanceInformation {
-  private final String _faultDomain;
+public class CustomCloudInstanceInformation implements CloudInstanceInformationV2 {
 
-  public CustomCloudInstanceInformation(String faultDomain) {
-    _faultDomain = faultDomain;
+  public static final Map<String, String> _cloudInstanceInfo =
+      ImmutableMap.of(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name(),
+          "mz=0, host=localhost, container=containerId", "MAINTENANCE_ZONE", "0", "INSTANCE_NAME",
+          "localhost_something");
+  ;
+
+  public CustomCloudInstanceInformation() {
   }
 
   @Override
   public String get(String key) {
-    if (key.equals(CloudInstanceField.FAULT_DOMAIN.name())) {
-      return _faultDomain;
-    }
-    return null;
+    return _cloudInstanceInfo.get(key);
+  }
+
+  @Override
+  public Map<String, String> getAll() {
+    return _cloudInstanceInfo;
   }
 }

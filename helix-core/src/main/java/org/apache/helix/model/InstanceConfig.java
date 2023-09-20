@@ -60,6 +60,7 @@ public class InstanceConfig extends HelixProperty {
     DOMAIN,
     DELAY_REBALANCE_ENABLED,
     MAX_CONCURRENT_TASK,
+    INSTANCE_INFO_MAP,
     INSTANCE_CAPACITY_MAP,
     TARGET_TASK_THREAD_POOL_SIZE,
     INSTANCE_OPERATION
@@ -608,6 +609,29 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
+   * Get the instance information map from the map fields.
+   * @return data map if it exists, or empty map
+   */
+  public Map<String, String> getInstanceInfoMap() {
+    Map<String, String> instanceInfoMap =
+        _record.getMapField(InstanceConfigProperty.INSTANCE_INFO_MAP.name());
+    return instanceInfoMap != null ? instanceInfoMap : Collections.emptyMap();
+  }
+
+  /**
+   * Set instanceInfoMap to map of information about the instance that can be used
+   * to construct the DOMAIN field.
+   * @param instanceInfoMap Map of information about the instance. ie: { 'rack': 'rack-1', 'host': 'host-1' }
+   */
+  private void setInstanceInfoMap(Map<String, String> instanceInfoMap) {
+    if (instanceInfoMap == null) {
+      _record.getMapFields().remove(InstanceConfigProperty.INSTANCE_INFO_MAP.name());
+    } else {
+      _record.setMapField(InstanceConfigProperty.INSTANCE_INFO_MAP.name(), instanceInfoMap);
+    }
+  }
+
+  /**
    * Get the instance capacity information from the map fields.
    * @return data map if it exists, or empty map
    */
@@ -748,6 +772,7 @@ public class InstanceConfig extends HelixProperty {
     private int _weight = WEIGHT_NOT_SET;
     private List<String> _tags = new ArrayList<>();
     private boolean _instanceEnabled = HELIX_ENABLED_DEFAULT_VALUE;
+    private Map<String, String> _instanceInfoMap;
     private Map<String, Integer> _instanceCapacityMap;
 
     /**
@@ -792,6 +817,10 @@ public class InstanceConfig extends HelixProperty {
 
       if (_instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
         instanceConfig.setInstanceEnabled(_instanceEnabled);
+      }
+
+      if (_instanceInfoMap != null) {
+        instanceConfig.setInstanceInfoMap(_instanceInfoMap);
       }
 
       if (_instanceCapacityMap != null) {
@@ -858,6 +887,31 @@ public class InstanceConfig extends HelixProperty {
      */
     public Builder setInstanceEnabled(boolean instanceEnabled) {
       _instanceEnabled = instanceEnabled;
+      return this;
+    }
+
+    /**
+     * Set the INSTANCE_INFO_MAP for this instance
+     * @param instanceInfoMap the instance info map
+     * @return InstanceConfig.Builder
+     */
+    public Builder setInstanceInfoMap(Map<String, String> instanceInfoMap) {
+      _instanceInfoMap = instanceInfoMap;
+      return this;
+    }
+
+    /**
+     * Add instance info to the INSTANCE_INFO_MAP.
+     * Only adds if the key does not already exist.
+     * @param key the key for the information
+     * @param value the value the information
+     * @return InstanceConfig.Builder
+     */
+    public Builder addInstanceInfo(String key, String value) {
+      if (_instanceInfoMap == null) {
+        _instanceInfoMap = new HashMap<>();
+      }
+      _instanceInfoMap.putIfAbsent(key, value);
       return this;
     }
 

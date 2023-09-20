@@ -31,6 +31,7 @@ import org.apache.helix.api.cloud.CloudInstanceInformationProcessor;
  * It is used to test the functionality of Helix node auto-registration.
  */
 public class CustomCloudInstanceInformationProcessor implements CloudInstanceInformationProcessor<String> {
+
   public CustomCloudInstanceInformationProcessor(HelixCloudProperty helixCloudProperty) {
   }
 
@@ -41,6 +42,6 @@ public class CustomCloudInstanceInformationProcessor implements CloudInstanceInf
 
   @Override
   public CloudInstanceInformation parseCloudInstanceInformation(List<String> responses) {
-    return new CustomCloudInstanceInformation("rack=A:123, host=");
+    return new CustomCloudInstanceInformation();
   }
 }

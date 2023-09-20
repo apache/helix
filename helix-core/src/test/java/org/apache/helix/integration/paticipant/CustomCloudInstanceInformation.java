@@ -19,8 +19,6 @@ package org.apache.helix.integration.paticipant;
  * under the License.
  */
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.api.cloud.CloudInstanceInformation;
 import org.apache.helix.api.cloud.CloudInstanceInformationV2;
@@ -31,7 +29,7 @@ import org.apache.helix.api.cloud.CloudInstanceInformationV2;
  */
 public class CustomCloudInstanceInformation implements CloudInstanceInformationV2 {
 
-  public static final Map<String, String> _cloudInstanceInfo =
+  public static final ImmutableMap<String, String> _cloudInstanceInfo =
       ImmutableMap.of(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name(),
           "mz=0, host=localhost, container=containerId", "MAINTENANCE_ZONE", "0", "INSTANCE_NAME",
           "localhost_something");
@@ -45,7 +43,7 @@ public class CustomCloudInstanceInformation implements CloudInstanceInformationV
   }
 
   @Override
-  public Map<String, String> getAll() {
+  public ImmutableMap<String, String> getAll() {
     return _cloudInstanceInfo;
   }
 }

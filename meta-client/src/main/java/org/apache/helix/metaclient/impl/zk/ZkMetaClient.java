@@ -135,21 +135,20 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         EntryMode.PERSISTENT : mode);
 
     // Iterate over paths, starting with full key then attempting each successive parent
-    // Try /a/b/c, if fails due to NoNode then try /a/b .. etc..
+    // Try /a/b/c, if parent /a/b, does not exist, then try to create parent, etc..
     while (i < nodePaths.size()) {
-      try {
+      // If parent exists then create and exit loop
+      if (i == nodePaths.size() -1 || _zkClient.exists(nodePaths.get(i+1))) {
         if (EntryMode.TTL.equals(mode)) {
           createWithTTL(nodePaths.get(i), data, ttl);
         } else {
           create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
         }
         break;
-        // NoNodeException thrown when parent path does not exist. We allow this and re-attempt
-        // creation of these nodes below
-      } catch (MetaClientNoNodeException ignoredParentDoesntExistException) {
-        i++;
+      // Else try to create parent in next loop iteration
+      } else {
+       i++;
       }
-
     }
 
     // Reattempt creation of children that failed due to NoNodeException

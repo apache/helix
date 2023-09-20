@@ -20,6 +20,7 @@ package org.apache.helix.metaclient.impl.zk.util;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -359,24 +360,27 @@ public class ZkMetaClientUtil {
     }
   }
 
+  // Returns null if no parent path
   public static String getZkParentPath(String path) {
-    if (path.equals("/")) {
-      return null;
-    }
-
     int idx = path.lastIndexOf('/');
-    return idx == 0 ? "/" : path.substring(0, idx);
+    return idx == 0 ? null : path.substring(0, idx);
   }
 
   // Splits a path into the paths for each node along the way.
   // /a/b/c --> /a/b/c, /a/b, /a
   public static List<String> separateIntoUniqueNodePaths(String path) {
-    ArrayList<String> nodePaths = new ArrayList<>();
-    String tempStr = path;
-    while (tempStr.length() > 1) {
-      nodePaths.add(tempStr);
-      tempStr = getZkParentPath(tempStr);
+    if (path == null || "/".equals(path)) {
+      return null;
     }
-    return nodePaths;
+
+    String[] subPath = path.split("/");
+    String[] nodePaths = new String[subPath.length-1];
+    StringBuilder tempPath = new StringBuilder();
+    for (int i = 1; i < subPath.length; i++) {
+      tempPath.append( "/");
+      tempPath.append(subPath[i]);
+      nodePaths[subPath.length - 1 - i] = tempPath.toString();
+    }
+    return Arrays.asList(nodePaths);
   }
 }

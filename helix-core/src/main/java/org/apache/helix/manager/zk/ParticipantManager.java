@@ -59,6 +59,7 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
@@ -231,8 +232,13 @@ public class ParticipantManager {
         String cloudInstanceInformationFaultDomain = cloudInstanceInformation.get(
             CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name());
         instanceConfig = instanceConfigBuilder.setDomain(
-            cloudInstanceInformationFaultDomain.endsWith("=") ? cloudInstanceInformationFaultDomain
-                + _instanceName : cloudInstanceInformationFaultDomain).build(_instanceName);
+            // Previously, the FAULT_DOMAIN was expected to end with the final DOMAIN field key without a value,
+            // like "rack=25, host=" or "cabinet=A, rack=25, host=". This is because ParticipantManager would append
+            // the _instanceName to populate the value. This check has been added to preserve backwards compatibility
+            // while also allowing the auto-registration to construct the full DOMAIN which includes the last value.
+            cloudInstanceInformationFaultDomain.endsWith(ConfigStringUtil.CONCATENATE_CONFIG_JOINER)
+                ? cloudInstanceInformationFaultDomain + _instanceName
+                : cloudInstanceInformationFaultDomain).build(_instanceName);
       }
       instanceConfig.validateTopologySettingInInstanceConfig(
           _configAccessor.getClusterConfig(_clusterName), _instanceName);

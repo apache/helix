@@ -23,6 +23,12 @@ package org.apache.helix.api.cloud;
 
 import com.google.common.collect.ImmutableMap;
 
+/**
+ * Generic interface for cloud instance information which builds on top of CloudInstanceInformation.
+ * This interface adds a new method, getAll(), which returns all the key value pairs of a specific cloud instance.
+ * We call suffix the name of this interface with V2 to preserve backwards compatibility for all classes
+ * that implement CloudInstanceInformation.
+ */
 public interface CloudInstanceInformationV2 extends CloudInstanceInformation {
   /**
    * Get all the key value pairs of a specific cloud instance

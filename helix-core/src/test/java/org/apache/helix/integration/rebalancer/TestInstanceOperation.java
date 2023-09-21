@@ -103,6 +103,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test
   public void testEvacuate() throws Exception {
+    System.out.println("START TestInstanceOperation.testEvacuate() at " + new Date(System.currentTimeMillis()));
     // EV should contain all participants, check resources one by one
     Map<String, ExternalView> assignment = getEV();
     for (String resource : _allDBs) {
@@ -133,7 +134,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testEvacuate")
   public void testRevertEvacuation() throws Exception {
-
+    System.out.println("START TestInstanceOperation.testRevertEvacuation() at " + new Date(System.currentTimeMillis()));
     // revert an evacuate instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
@@ -151,6 +152,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testRevertEvacuation")
   public void testAddingNodeWithEvacuationTag() throws Exception {
+    System.out.println("START TestInstanceOperation.testAddingNodeWithEvacuationTag() at " + new Date(System.currentTimeMillis()));
     // first disable and instance, and wait for all replicas to be moved out
     String mockNewInstance = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
@@ -200,6 +202,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testAddingNodeWithEvacuationTag")
   public void testEvacuateAndCancelBeforeBootstrapFinish() throws Exception {
+    System.out.println("START TestInstanceOperation.testEvacuateAndCancelBeforeBootstrapFinish() at " + new Date(System.currentTimeMillis()));
     // add a resource where downward state transition is slow
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB3_DELAYED_CRUSHED", "MasterSlave", PARTITIONS, REPLICA,
         REPLICA - 1, 200000, CrushEdRebalanceStrategy.class.getName());
@@ -261,6 +264,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testEvacuateAndCancelBeforeBootstrapFinish")
   public void testEvacuateAndCancelBeforeDropFinish() throws Exception {
+    System.out.println("START TestInstanceOperation.testEvacuateAndCancelBeforeDropFinish() at " + new Date(System.currentTimeMillis()));
 
     // set DROP ST delay to a large number
     _stateModelDelay = 10000L;
@@ -297,6 +301,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testEvacuateAndCancelBeforeDropFinish")
   public void testMarkEvacuationAfterEMM() throws Exception {
+    System.out.println("START TestInstanceOperation.testMarkEvacuationAfterEMM() at " + new Date(System.currentTimeMillis()));
     _stateModelDelay = 1000L;
     Assert.assertFalse(_gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME));
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, null,
@@ -341,6 +346,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testMarkEvacuationAfterEMM")
   public void testEvacuationWithOfflineInstancesInCluster() throws Exception {
+    System.out.println("START TestInstanceOperation.testEvacuationWithOfflineInstancesInCluster() at " + new Date(System.currentTimeMillis()));
     _participants.get(1).syncStop();
     _participants.get(2).syncStop();
 
@@ -352,24 +358,25 @@ public class TestInstanceOperation extends ZkTestBase {
     // EV should contain all participants, check resources one by one
     assignment = getEV();
     for (String resource : _allDBs) {
-      ExternalView ev = assignment.get(resource);
-      for (String partition : ev.getPartitionSet()) {
-        AtomicInteger activeReplicaCount = new AtomicInteger();
-        ev.getStateMap(partition)
-            .values()
-            .stream()
-            .filter(
-                v -> v.equals("MASTER") || v.equals("LEADER") || v.equals("SLAVE") || v.equals("FOLLOWER") || v.equals(
-                    "STANDBY"))
-            .forEach(v -> activeReplicaCount.getAndIncrement());
-        Assert.assertTrue(activeReplicaCount.get() >= REPLICA-1);
-        Assert.assertFalse(ev.getStateMap(partition).containsKey(evacuateInstanceName) && ev.getStateMap(partition)
-            .get(evacuateInstanceName)
-            .equals("MASTER") && ev.getStateMap(partition)
-            .get(evacuateInstanceName)
-            .equals("LEADER"));
-
-      }
+      TestHelper.verify(() -> {
+        ExternalView ev = assignment.get(resource);
+        for (String partition : ev.getPartitionSet()) {
+          AtomicInteger activeReplicaCount = new AtomicInteger();
+          ev.getStateMap(partition)
+              .values()
+              .stream()
+              .filter(v -> v.equals("MASTER") || v.equals("LEADER") || v.equals("SLAVE") || v.equals("FOLLOWER")
+                  || v.equals("STANDBY"))
+              .forEach(v -> activeReplicaCount.getAndIncrement());
+          if (activeReplicaCount.get() < REPLICA - 1 || (ev.getStateMap(partition).containsKey(evacuateInstanceName)
+              && ev.getStateMap(partition).get(evacuateInstanceName).equals("MASTER") && ev.getStateMap(partition)
+              .get(evacuateInstanceName)
+              .equals("LEADER"))) {
+            return false;
+          }
+        }
+        return true;
+      }, 30000);
     }
 
     _participants.get(1).syncStart();

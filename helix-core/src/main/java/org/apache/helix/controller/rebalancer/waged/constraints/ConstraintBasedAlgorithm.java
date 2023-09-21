@@ -100,7 +100,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
               optimalAssignment);
       // stop immediately if any replica cannot find best assignable node
-      if (maybeBestNode.isEmpty() || optimalAssignment.hasAnyFailure()) {
+      if (!maybeBestNode.isPresent() || optimalAssignment.hasAnyFailure()) {
         String errorMessage = String.format(
             "Unable to find any available candidate node for partition %s; Fail reasons: %s",
             replica.getPartitionName(), optimalAssignment.getFailures());

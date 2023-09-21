@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -737,7 +738,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     instances.add(offlineInstance);
     when(clusterData.getAllInstances()).thenReturn(instances);
     when(clusterData.getEnabledInstances()).thenReturn(instances);
-    when(clusterData.getEnabledLiveInstances()).thenReturn(Set.of(instance0, instance1, instance2));
+    when(clusterData.getEnabledLiveInstances()).thenReturn(ImmutableSet.of(instance0, instance1, instance2));
     Map<String, Long> instanceOfflineTimeMap = new HashMap<>();
     instanceOfflineTimeMap.put(offlineInstance, System.currentTimeMillis() + Integer.MAX_VALUE);
     when(clusterData.getInstanceOfflineTimeMap()).thenReturn(instanceOfflineTimeMap);
@@ -862,10 +863,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   public void testResourceWeightProvider() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     WagedResourceWeightsProvider dataProvider = new WagedResourceWeightsProvider(testCache);
-    Map<String, Integer> weights1 = Map.of("item1", 3, "item2", 6, "item3", 0);
+    Map<String, Integer> weights1 = ImmutableMap.of("item1", 3, "item2", 6, "item3", 0);
     Assert.assertEquals(dataProvider.getPartitionWeights("Resource1", "Partition1"), weights1);
     Assert.assertEquals(dataProvider.getPartitionWeights("Resource1", "Partition2"), weights1);
-    Map<String, Integer> weights2 = Map.of("item1", 5, "item2", 10, "item3", 0);
+    Map<String, Integer> weights2 = ImmutableMap.of("item1", 5, "item2", 10, "item3", 0);
     Assert.assertEquals(dataProvider.getPartitionWeights("Resource2", "Partition2"), weights2);
   }
 
@@ -898,7 +899,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         }));
     WagedInstanceCapacity provider = new WagedInstanceCapacity(clusterData);
 
-    Map<String, Integer> weights1 = Map.of("item1", 20, "item2", 40, "item3", 30);
+    Map<String, Integer> weights1 = ImmutableMap.of("item1", 20, "item2", 40, "item3", 30);
     Map<String, Integer> capacity = provider.getInstanceAvailableCapacity("testInstanceId");
     Assert.assertEquals(provider.getInstanceAvailableCapacity("testInstanceId"), weights1);
     Assert.assertEquals(provider.getInstanceAvailableCapacity("testInstanceId1"), weights1);

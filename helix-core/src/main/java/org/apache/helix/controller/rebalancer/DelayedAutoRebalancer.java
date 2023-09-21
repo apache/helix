@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,7 +56,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedAutoRebalancer.class);
-   public static final Set<String> INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT = Set.of("EVACUATE", "SWAP_IN");
+   public static final Set<String> INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT = ImmutableSet.of("EVACUATE", "SWAP_IN");
 
   @Override
   public IdealState computeNewIdealState(String resourceName,

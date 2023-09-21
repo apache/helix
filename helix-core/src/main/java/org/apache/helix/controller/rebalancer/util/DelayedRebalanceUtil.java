@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.util;
  * under the License.
  */
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -400,7 +401,7 @@ public class DelayedRebalanceUtil {
       Map<String, ResourceAssignment> currentAssignment) {
     return currentAssignment.entrySet()
         .parallelStream()
-        .map(e -> Map.entry(e.getKey(), findPartitionsMissingMinActiveReplica(clusterData, e.getValue())))
+        .map(e -> new HashMap.SimpleEntry<>(e.getKey(), findPartitionsMissingMinActiveReplica(clusterData, e.getValue())))
         .filter(e -> !e.getValue().isEmpty())
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }

@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientCacheInterface<T> {
 
@@ -44,6 +46,8 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
     private boolean _lazyCaching;
     private static final Logger LOG = LoggerFactory.getLogger(ZkMetaClientCache.class);
     private  ZkClient _cacheClient;
+
+    private ExecutorService executor;
 
     /**
      * Constructor for ZkMetaClientCache.
@@ -69,13 +73,7 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
     @Override
     public T get(final String key) {
         if (_cacheData) {
-            if (!getDataCacheMap().containsKey(key)) {
-                T data = _cacheClient.readData(key, true);
-                if (data == null) {
-                    return null;
-                }
-                getDataCacheMap().put(key, data);
-            }
+            getDataCacheMap().computeIfAbsent(key, k -> _cacheClient.readData(k, true));
             return getDataCacheMap().get(key);
         }
         return _cacheClient.readData(key, true);
@@ -86,13 +84,7 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         List<T> dataList = new ArrayList<>();
         if (_cacheData) {
             for (String key : keys) {
-                if (!getDataCacheMap().containsKey(key)) {
-                    T data = _cacheClient.readData(key, true);
-                    if (data == null) {
-                        continue;
-                    }
-                    getDataCacheMap().put(key, data);
-                }
+                getDataCacheMap().computeIfAbsent(key, k -> _cacheClient.readData(k, true));
                 dataList.add(getDataCacheMap().get(key));
             }
         }
@@ -152,7 +144,9 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
     public void connect() {
         super.connect();
         _eventListener = this::handleCacheUpdate;
-        _cacheClient.subscribePersistRecursiveListener(_rootEntry, new ChildListenerAdapter(_eventListener));
+        executor = Executors.newSingleThreadExecutor(); // Create a single-thread executor
+        executor.execute(() -> {
+            _cacheClient.subscribePersistRecursiveListener(_rootEntry, new ChildListenerAdapter(_eventListener));
+        });
     }
-
 }

@@ -24,6 +24,9 @@ import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class TestZkMetaClientCache extends ZkMetaClientTestBase {
     private static final String DATA_PATH = "/data";
     private static final String DATA_VALUE = "testData";
@@ -84,6 +87,28 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
             Assert.assertEquals(newData, zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void testBatchGet() {
+        final String key = "/testBatchGet";
+        try (ZkMetaClientCache<String> zkMetaClientCache = createZkMetaClientCacheLazyCaching(key)) {
+            zkMetaClientCache.connect();
+            zkMetaClientCache.create(key, "test");
+            zkMetaClientCache.create(key + DATA_PATH, DATA_VALUE);
+
+            ArrayList<String> keys = new ArrayList<>();
+            keys.add(key);
+            keys.add(key + DATA_PATH);
+
+            ArrayList<String> values = new ArrayList<>();
+            values.add("test");
+            values.add(DATA_VALUE);
+
+            // Get data for DATA_PATH and cache it
+            List<String> data = zkMetaClientCache.get(keys);
+            Assert.assertEquals(data, values);
         }
     }
 

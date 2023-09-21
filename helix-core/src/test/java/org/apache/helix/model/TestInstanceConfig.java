@@ -20,6 +20,7 @@ package org.apache.helix.model;
  */
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
@@ -173,11 +174,16 @@ public class TestInstanceConfig {
 
   @Test
   public void testInstanceConfigBuilder() {
+
+    Map<String, String> instanceInfoMap = new HashMap<>();
+    instanceInfoMap.put("CAGE", "H");
     Map<String, Integer> capacityDataMap = ImmutableMap.of("weight1", 1);
     InstanceConfig instanceConfig =
         new InstanceConfig.Builder().setHostName("testHost").setPort("1234").setDomain("foo=bar")
             .setWeight(100).setInstanceEnabled(true).addTag("tag1").addTag("tag2")
-            .setInstanceEnabled(false).setInstanceCapacityMap(capacityDataMap).build("instance1");
+            .setInstanceEnabled(false).setInstanceInfoMap(instanceInfoMap)
+            .addInstanceInfo("CAGE", "G").addInstanceInfo("CABINET", "30")
+            .setInstanceCapacityMap(capacityDataMap).build("instance1");
 
     Assert.assertEquals(instanceConfig.getId(), "instance1");
     Assert.assertEquals(instanceConfig.getHostName(), "testHost");
@@ -187,6 +193,8 @@ public class TestInstanceConfig {
     Assert.assertTrue(instanceConfig.getTags().contains("tag1"));
     Assert.assertTrue(instanceConfig.getTags().contains("tag2"));
     Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CAGE"), "H");
+    Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CABINET"), "30");
     Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight1"), Integer.valueOf(1));
   }
 }

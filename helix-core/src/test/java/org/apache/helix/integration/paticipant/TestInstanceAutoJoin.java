@@ -8,6 +8,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.cloud.CloudInstanceInformation;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
@@ -211,8 +212,11 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
       // Check that live instance is added and instance config is populated with correct domain.
       return null != manager.getHelixDataAccessor()
           .getProperty(accessor.keyBuilder().liveInstance(instance5)) && manager.getConfigAccessor()
-          .getInstanceConfig(CLUSTER_NAME, instance5).getDomainAsString()
-          .equals("rack=A:123, host=" + instance5);
+          .getInstanceConfig(CLUSTER_NAME, instance5).getDomainAsString().equals(
+              CustomCloudInstanceInformation._cloudInstanceInfo.get(
+                  CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()))
+          && manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance5)
+          .getInstanceInfoMap().equals(CustomCloudInstanceInformation._cloudInstanceInfo);
     }, 2000));
 
     autoParticipant.syncStop();

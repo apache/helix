@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 public final class ConfigStringUtil {
   private static final String CONCATENATE_CONFIG_SPLITTER = ",";
-  private static final String CONCATENATE_CONFIG_JOINER = "=";
+  public static final String CONCATENATE_CONFIG_JOINER = "=";
 
   private ConfigStringUtil() {
     throw new java.lang.UnsupportedOperationException(

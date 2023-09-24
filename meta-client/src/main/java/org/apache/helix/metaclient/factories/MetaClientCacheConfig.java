@@ -25,13 +25,11 @@ public class MetaClientCacheConfig {
     private final String _rootEntry;
     private boolean _cacheData = false;
     private boolean _cacheChildren = false;
-    private boolean _lazyCaching = true;
 
     public MetaClientCacheConfig(String rootEntry, boolean cacheData, boolean cacheChildren, boolean lazyCaching) {
         _rootEntry = rootEntry;
         _cacheData = cacheData;
         _cacheChildren = cacheChildren;
-        _lazyCaching = lazyCaching;
     }
 
     public String getRootEntry() {
@@ -46,7 +44,4 @@ public class MetaClientCacheConfig {
         return _cacheChildren;
     }
 
-    public boolean getLazyCaching() {
-        return _lazyCaching;
-    }
 }

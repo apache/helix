@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,11 +44,10 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
     private ChildChangeListener _eventListener;
     private boolean _cacheData;
     private boolean _cacheChildren;
-    private boolean _lazyCaching;
     private static final Logger LOG = LoggerFactory.getLogger(ZkMetaClientCache.class);
     private  ZkClient _cacheClient;
-
     private ExecutorService executor;
+    private final CountDownLatch latch = new CountDownLatch(1);
 
     /**
      * Constructor for ZkMetaClientCache.
@@ -58,7 +58,6 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         super(config);
         _cacheClient = getZkClient();
         _rootEntry = cacheConfig.getRootEntry();
-        _lazyCaching = cacheConfig.getLazyCaching();
         _cacheData = cacheConfig.getCacheData();
         _cacheChildren = cacheConfig.getCacheChildren();
 
@@ -70,10 +69,16 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         }
     }
 
+    /**
+     * Get data for a given key.
+     * If datacache is enabled, will fetch for cache. If it doesn't exist
+     * returns null (for when initial populating cache is in progress).
+     * @param key key to identify the entry
+     * @return data for the key
+     */
     @Override
     public T get(final String key) {
         if (_cacheData) {
-            getDataCacheMap().computeIfAbsent(key, k -> _cacheClient.readData(k, true));
             return getDataCacheMap().get(key);
         }
         return _cacheClient.readData(key, true);
@@ -82,16 +87,8 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
     @Override
     public List<T> get(List<String> keys) {
         List<T> dataList = new ArrayList<>();
-        if (_cacheData) {
-            for (String key : keys) {
-                getDataCacheMap().computeIfAbsent(key, k -> _cacheClient.readData(k, true));
-                dataList.add(getDataCacheMap().get(key));
-            }
-        }
-        else {
-            for (String key : keys) {
-                dataList.add(_cacheClient.readData(key, true));
-            }
+        for (String key : keys) {
+            dataList.add(get(key));
         }
         return dataList;
     }
@@ -106,26 +103,56 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         throw new MetaClientException("Not implemented yet.");
     }
 
+    private void populateAllCache() {
+        if (_cacheData) {
+            try {
+                List<String> children = _cacheClient.getChildren(_rootEntry);
+                for (String child : children) {
+                    String childPath = _rootEntry + "/" + child;
+                    T dataRecord = _cacheClient.readData(childPath, true);
+                    getDataCacheMap().put(childPath, dataRecord);
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+    }
+
     private void handleCacheUpdate(String path, ChildChangeListener.ChangeType changeType) {
+        waitForPopulateAllCache();
         switch (changeType) {
             case ENTRY_CREATED:
                 // Not implemented yet.
+                modifyDataInCache(path, false);
                 break;
             case ENTRY_DELETED:
                 // Not implemented yet.
+                modifyDataInCache(path, true);
                 break;
             case ENTRY_DATA_CHANGE:
-                modifyDataInCache(path);
+                modifyDataInCache(path, false);
                 break;
             default:
                 LOG.error("Unknown change type: " + changeType);
         }
     }
 
-    private void modifyDataInCache(String path) {
+    private void waitForPopulateAllCache() {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new MetaClientException("Interrupted while waiting for cache to populate.", e);
+        }
+    }
+
+    private void modifyDataInCache(String path, Boolean isDelete) {
         if (_cacheData) {
-            T dataRecord = _cacheClient.readData(path, true);
-            getDataCacheMap().put(path, dataRecord);
+            if (isDelete) {
+                getDataCacheMap().remove(path);
+            } else {
+                T dataRecord = _cacheClient.readData(path, true);
+                getDataCacheMap().put(path, dataRecord);
+            }
         }
     }
 
@@ -144,9 +171,12 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
     public void connect() {
         super.connect();
         _eventListener = this::handleCacheUpdate;
-        executor = Executors.newSingleThreadExecutor(); // Create a single-thread executor
+        executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             _cacheClient.subscribePersistRecursiveListener(_rootEntry, new ChildListenerAdapter(_eventListener));
         });
+        populateAllCache();
+        // Notify the latch that cache is populated.
+        latch.countDown();
     }
 }

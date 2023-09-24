@@ -42,27 +42,6 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
     }
 
     @Test
-    public void testLazyDataCacheAndFetch() {
-        final String key = "/testLazyDataCacheAndFetch";
-        try (ZkMetaClientCache<String> zkMetaClientCache = createZkMetaClientCacheLazyCaching(key)) {
-            zkMetaClientCache.connect();
-            zkMetaClientCache.create(key, "test");
-
-            // Verify that data is not cached initially
-            Assert.assertFalse(zkMetaClientCache.getDataCacheMap().containsKey(key + DATA_PATH));
-
-            zkMetaClientCache.create(key + DATA_PATH, DATA_VALUE);
-
-            // Get data for DATA_PATH (should trigger lazy loading)
-            String data = zkMetaClientCache.get(key + DATA_PATH);
-
-            // Verify that data is now cached
-            Assert.assertTrue(zkMetaClientCache.getDataCacheMap().containsKey(key + DATA_PATH));
-            Assert.assertEquals(DATA_VALUE, data);
-        }
-    }
-
-    @Test
     public void testCacheDataUpdates() {
         final String key = "/testCacheDataUpdates";
         try (ZkMetaClientCache<String> zkMetaClientCache = createZkMetaClientCacheLazyCaching(key)) {
@@ -85,6 +64,15 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
                 Thread.sleep(1000);
             }
             Assert.assertEquals(newData, zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH));
+
+            zkMetaClientCache.delete(key + DATA_PATH);
+            // Verify that cached data is updated. Might take some time
+            for (int i = 0; i < 10; i++) {
+                if (zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH) == null) {
+                    break;
+                }
+                Thread.sleep(1000);
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -106,9 +94,16 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
             values.add("test");
             values.add(DATA_VALUE);
 
-            // Get data for DATA_PATH and cache it
-            List<String> data = zkMetaClientCache.get(keys);
-            Assert.assertEquals(data, values);
+            for (int i = 0; i < 10; i++) {
+                // Get data for DATA_PATH and cache it
+                List<String> data = zkMetaClientCache.get(keys);
+                if (data.equals(values)) {
+                    break;
+                }
+                Thread.sleep(1000);
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 

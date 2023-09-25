@@ -41,6 +41,7 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.impl.zk.adapter.ChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
@@ -137,12 +138,21 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     // Iterate over paths, starting with full key then attempting each successive parent
     // Try /a/b/c, if parent /a/b, does not exist, then try to create parent, etc..
     while (i < nodePaths.size()) {
-      // If parent exists then create and exit loop
-      if (i == nodePaths.size() -1 || _zkClient.exists(nodePaths.get(i+1))) {
-        if (EntryMode.TTL.equals(mode)) {
-          createWithTTL(nodePaths.get(i), data, ttl);
-        } else {
-          create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
+      // If parent exists or there is no parent node, then try to create the node
+      // and break out of loop on successful create
+      if (i == nodePaths.size() - 1 || _zkClient.exists(nodePaths.get(i+1))) {
+        try {
+          if (EntryMode.TTL.equals(mode)) {
+            createWithTTL(nodePaths.get(i), data, ttl);
+          } else {
+            create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
+          }
+        // Race condition may occur where a  node is created by another thread in between loops.
+        // We should not throw error if this occurs for parent nodes, only for the full node path.
+        } catch (MetaClientNodeExistsException e) {
+          if (i != 0) {
+            throw e;
+          }
         }
         break;
       // Else try to create parent in next loop iteration
@@ -153,10 +163,17 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
     // Reattempt creation of children that failed due to NoNodeException
     while (--i >= 0) {
-      if (EntryMode.TTL.equals(mode)) {
-        createWithTTL(nodePaths.get(i), data, ttl);
-      } else {
-        create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
+      try {
+        if (EntryMode.TTL.equals(mode)) {
+          createWithTTL(nodePaths.get(i), data, ttl);
+        } else {
+          create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
+        }
+      // Catch same race condition as above
+      } catch (MetaClientNodeExistsException e) {
+        if (i != 0) {
+          throw e;
+        }
       }
     }
   }

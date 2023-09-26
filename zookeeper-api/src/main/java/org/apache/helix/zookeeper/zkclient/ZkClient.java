@@ -1474,7 +1474,7 @@ public class ZkClient implements Watcher {
   }
 
   public boolean exists(final String path) {
-    return exists(path, hasChildOrDataListeners(path));
+    return exists(path, (!_usePersistWatcher) && hasChildOrDataListeners(path));
   }
 
   protected boolean exists(final String path, final boolean watch) {

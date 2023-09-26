@@ -517,12 +517,20 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
             throws Exception {
         }
       };
-      zkMetaClient.subscribeDataChange(basePath, listener, false);
+      DirectChildChangeListener cldListener = new DirectChildChangeListener() {
+
+        @Override
+        public void handleDirectChildChange(String key) throws Exception {
+
+        }
+      };
+      zkMetaClient.subscribeDataChange(basePath, listener, true);
       zkMetaClient.create(basePath, "");
       zkMetaClient.get(basePath);
       zkMetaClient.exists(basePath);
       zkMetaClient.getDataAndStat(basePath);
       zkMetaClient.getDirectChildrenKeys(basePath);
+      zkMetaClient.subscribeDirectChildChange(basePath, cldListener, true);
     }
   }
 

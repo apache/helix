@@ -113,6 +113,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       reportResourcePartitionCapacityMetrics(dataProvider.getAsyncTasksThreadPool(),
           clusterStatusMonitor, dataProvider.getResourceConfigMap().values());
 
+      // TODO: we only need to compute when there are resource using Waged. We should
+      // do this as perf improvement in future.
       WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(dataProvider);
       WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(dataProvider);
 

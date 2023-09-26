@@ -21,9 +21,13 @@ package org.apache.helix.controller.stages;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.CurrentState;
@@ -40,9 +44,17 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     Map<String, Resource> resourceMap = getResourceMap();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
-    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
+    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), dataCache);
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor(_clusterName));
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
+    ClusterConfig clsCfg = dataCache.getClusterConfig();
+    clsCfg.setInstanceCapacityKeys(List.of("s1", "s2", "s3"));
+    dataCache.setClusterConfig(clsCfg);
+    dataCache.setInstanceConfigMap(Map.of(
+        "a", new InstanceConfig("a")
+    ));
     runStage(event, stage);
     CurrentStateOutput output = event.getAttribute(AttributeName.CURRENT_STATE.name());
     AssertJUnit.assertEquals(

@@ -29,8 +29,11 @@ import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -111,18 +114,26 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
 
     private void populateAllCache() {
         // TODO: Concurrently populate children and data cache.
-        if (_cacheData) {
-            try {
-                List<String> children = _cacheClient.getChildren(_rootEntry);
-                for (String child : children) {
-                    String childPath = _rootEntry + "/" + child;
-                    T dataRecord = _cacheClient.readData(childPath, true);
-                    getDataCacheMap().put(childPath, dataRecord);
-                }
-            } catch (Exception e) {
-                // Ignore
-            }
+        if (!_cacheClient.exists(_rootEntry)) {
+            LOG.warn("Root entry: {} does not exist.", _rootEntry);
+            // Let the other threads know that the cache is populated.
+            _initializedCache.countDown();
+            return;
         }
+
+        Queue<String> queue = new ArrayDeque<>();
+        queue.add(_rootEntry);
+
+        while (!queue.isEmpty()) {
+            String node = queue.poll();
+            if (_cacheData) {
+                T dataRecord = _cacheClient.readData(node, true);
+                _dataCacheMap.put(node, dataRecord);
+            }
+            queue.addAll(_cacheClient.getChildren(node));
+        }
+        // Let the other threads know that the cache is populated.
+        _initializedCache.countDown();
     }
 
     private class CacheUpdateRunnable implements Runnable {
@@ -196,7 +207,5 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         executor = Executors.newSingleThreadExecutor();
         _cacheClient.subscribePersistRecursiveListener(_rootEntry, new ChildListenerAdapter(_eventListener));
         populateAllCache();
-        // Notify the latch that cache is populated.
-        _initializedCache.countDown();
     }
 }

@@ -32,11 +32,11 @@ public class TestExecutionRuntime {
   public static final long MANUAL_GC_PAUSE = 4000L;
   public static final String ZK_ADDR = ZK_PREFIX + ZK_START_PORT;
 
-  protected ZkServer _zkServer;
-  protected HelixZkClient _gZkClient;
-  protected ClusterSetup _gSetupTool;
-  protected BaseDataAccessor<ZNRecord> _baseAccessor;
-  protected MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
+  protected static ZkServer _zkServer;
+  protected static HelixZkClient _gZkClient;
+  protected static ClusterSetup _gSetupTool;
+  protected static BaseDataAccessor<ZNRecord> _baseAccessor;
+  protected static MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
   protected Map<String, Map<String, HelixZkClient>> _liveInstanceOwners = new HashMap<>();
 
   /*

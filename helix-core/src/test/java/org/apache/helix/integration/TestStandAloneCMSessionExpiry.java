@@ -34,7 +34,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStandAloneCMSessionExpiry extends ZkTestBase {
-
   @Test()
   public void testStandAloneCMSessionExpiry() throws Exception {
     TestExecutionFlow flow = createClusterTestExecutionFlow();

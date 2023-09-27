@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.helix.cloud.constants.CloudProvider;
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ConfigScope;
@@ -39,7 +38,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestConfigAccessor extends ZkTestBase {
+public class TestConfigAccessor extends ZkUnitTestBase {
   @Test
   public void testBasic() throws Exception {
     String className = TestHelper.getTestClassName();

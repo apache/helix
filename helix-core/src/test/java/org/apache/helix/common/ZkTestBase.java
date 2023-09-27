@@ -19,21 +19,16 @@ package org.apache.helix.common;
  * under the License.
  */
 
-import com.google.common.base.Preconditions;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
-
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -45,6 +40,8 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.config.HelixConfigProperty;
+import org.apache.helix.common.execution.TestExecutionFlow;
+import org.apache.helix.common.execution.TestExecutionRuntime;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
@@ -56,11 +53,9 @@ import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -70,12 +65,11 @@ import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.ITestContext;
@@ -85,7 +79,6 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
-
 
 public class ZkTestBase extends TestExecutionRuntime {
   private static final Logger LOG = LoggerFactory.getLogger(ZkTestBase.class);
@@ -157,6 +150,114 @@ public class ZkTestBase extends TestExecutionRuntime {
     return this.getClass().getSimpleName();
   }
 
+  protected String getCurrentLeader(HelixZkClient zkClient, String clusterName) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+    if (leader == null) {
+      return null;
+    }
+    return leader.getInstanceName();
+  }
+
+  protected void enablePersistBestPossibleAssignment(HelixZkClient zkClient, String clusterName,
+      Boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setPersistBestPossibleAssignment(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void enablePersistIntermediateAssignment(HelixZkClient zkClient, String clusterName,
+      Boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setPersistIntermediateAssignment(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void enableTopologyAwareRebalance(HelixZkClient zkClient, String clusterName,
+      Boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setTopologyAwareEnabled(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void enableDelayRebalanceInCluster(HelixZkClient zkClient, String clusterName,
+      boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setDelayRebalaceEnabled(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void enableDelayRebalanceInInstance(HelixZkClient zkClient, String clusterName,
+      String instanceName, boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
+    instanceConfig.setDelayRebalanceEnabled(enabled);
+    configAccessor.setInstanceConfig(clusterName, instanceName, instanceConfig);
+  }
+
+  protected void enableDelayRebalanceInCluster(HelixZkClient zkClient, String clusterName,
+      boolean enabled, long delay) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setDelayRebalaceEnabled(enabled);
+    clusterConfig.setRebalanceDelayTime(delay);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void enableP2PInCluster(String clusterName, ConfigAccessor configAccessor,
+      boolean enable) {
+    // enable p2p message in cluster.
+    if (enable) {
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+      clusterConfig.enableP2PMessage(true);
+      configAccessor.setClusterConfig(clusterName, clusterConfig);
+    } else {
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+      clusterConfig.getRecord().getSimpleFields()
+          .remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
+      configAccessor.setClusterConfig(clusterName, clusterConfig);
+    }
+  }
+
+  protected void enableP2PInResource(String clusterName, ConfigAccessor configAccessor,
+      String dbName, boolean enable) {
+    if (enable) {
+      ResourceConfig resourceConfig =
+          new ResourceConfig.Builder(dbName).setP2PMessageEnabled(true).build();
+      configAccessor.setResourceConfig(clusterName, dbName, resourceConfig);
+    } else {
+      // remove P2P Message in resource config
+      ResourceConfig resourceConfig = configAccessor.getResourceConfig(clusterName, dbName);
+      if (resourceConfig != null) {
+        resourceConfig.getRecord().getSimpleFields()
+            .remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
+        configAccessor.setResourceConfig(clusterName, dbName, resourceConfig);
+      }
+    }
+  }
+
+  protected void setDelayTimeInCluster(HelixZkClient zkClient, String clusterName, long delay) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setRebalanceDelayTime(delay);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void setLastOnDemandRebalanceTimeInCluster(HelixZkClient zkClient,
+      String clusterName, long lastOnDemandTime) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setLastOnDemandRebalanceTimestamp(lastOnDemandTime);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
       String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
     return createResourceWithDelayedRebalance(clusterName, db, stateModel, numPartition, replica,
@@ -179,8 +280,8 @@ public class ZkTestBase extends TestExecutionRuntime {
   private IdealState createResource(String clusterName, String db, String stateModel,
       int numPartition, int replica, int minActiveReplica, long delay, String rebalancerClassName,
       String rebalanceStrategy) {
-    IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
-
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
     if (idealState == null) {
       _gSetupTool.addResourceToCluster(clusterName, db, numPartition, stateModel,
           IdealState.RebalanceMode.FULL_AUTO + "", rebalanceStrategy);
@@ -230,11 +331,56 @@ public class ZkTestBase extends TestExecutionRuntime {
         IdealState.RebalanceMode.SEMI_AUTO.toString());
     clusterSetup.rebalanceStorageCluster(clusterName, dbName, replica);
 
-    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, dbName);
+    IdealState is =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, dbName);
     for (String p : is.getPartitionSet()) {
       is.setPreferenceList(p, preferenceList);
     }
     clusterSetup.getClusterManagementTool().setResourceIdealState(clusterName, dbName, is);
+  }
+
+  /**
+   * Validate there should be always minimal active replica and top state replica for each
+   * partition.
+   * Also make sure there is always some partitions with only active replica count.
+   */
+  protected void validateMinActiveAndTopStateReplica(IdealState is, ExternalView ev,
+      int minActiveReplica, int numNodes) {
+    StateModelDefinition stateModelDef =
+        BuiltInStateModelDefinitions.valueOf(is.getStateModelDefRef()).getStateModelDefinition();
+    String topState = stateModelDef.getStatesPriorityList().get(0);
+    int replica = Integer.valueOf(is.getReplicas());
+
+    Map<String, Integer> stateCount = stateModelDef.getStateCountMap(numNodes, replica);
+    Set<String> activeStates = stateCount.keySet();
+
+    for (String partition : is.getPartitionSet()) {
+      Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
+      Assert.assertNotNull(assignmentMap,
+          is.getResourceName() + "'s best possible assignment is null for partition " + partition);
+      Assert.assertTrue(!assignmentMap.isEmpty(),
+          is.getResourceName() + "'s partition " + partition + " has no best possible map in IS.");
+
+      boolean hasTopState = false;
+      int activeReplica = 0;
+      for (String state : assignmentMap.values()) {
+        if (topState.equalsIgnoreCase(state)) {
+          hasTopState = true;
+        }
+        if (activeStates.contains(state)) {
+          activeReplica++;
+        }
+      }
+
+      if (activeReplica < minActiveReplica) {
+        int a = 0;
+      }
+
+      Assert.assertTrue(hasTopState, String.format("%s missing %s replica", partition, topState));
+      Assert.assertTrue(activeReplica >= minActiveReplica,
+          String.format("%s has less active replica %d then required %d", partition, activeReplica,
+              minActiveReplica));
+    }
   }
 
   protected void runStage(HelixManager manager, ClusterEvent event, Stage stage) throws Exception {
@@ -251,6 +397,48 @@ public class ZkTestBase extends TestExecutionRuntime {
       stage.process(event);
     }
     stage.postProcess();
+  }
+
+  public void verifyInstance(HelixZkClient zkClient, String clusterName, String instance,
+      boolean wantExists) {
+    // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
+    String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
+    String instanceConfigPath = instanceConfigsPath + "/" + instance;
+    String instancePath = PropertyPathBuilder.instance(clusterName, instance);
+    Assert.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
+    Assert.assertEquals(wantExists, zkClient.exists(instancePath));
+  }
+
+  public void verifyResource(HelixZkClient zkClient, String clusterName, String resource,
+      boolean wantExists) {
+    String resourcePath = PropertyPathBuilder.idealState(clusterName, resource);
+    Assert.assertEquals(wantExists, zkClient.exists(resourcePath));
+  }
+
+  public void verifyEnabled(HelixZkClient zkClient, String clusterName, String instance,
+      boolean wantEnabled) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
+    Assert.assertEquals(wantEnabled, config.getInstanceEnabled());
+  }
+
+  public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource,
+      int repl) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
+    for (String partitionName : idealState.getPartitionSet()) {
+      if (idealState.getRebalanceMode() == IdealState.RebalanceMode.SEMI_AUTO) {
+        Assert.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
+      } else if (idealState.getRebalanceMode() == IdealState.RebalanceMode.CUSTOMIZED) {
+        Assert.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
+      }
+    }
   }
 
   protected void setupStateModel(String clusterName) {
@@ -284,7 +472,8 @@ public class ZkTestBase extends TestExecutionRuntime {
 
   protected List<IdealState> setupIdealState(String clusterName, int[] nodes, String[] resources,
       int partitions, int replicas) {
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     List<IdealState> idealStates = new ArrayList<>();

@@ -27,7 +27,6 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
@@ -37,7 +36,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestListenerCallback extends ZkTestBase {
+public class TestListenerCallback extends ZkUnitTestBase {
   class TestScopedConfigListener implements ScopedConfigChangeListener {
     boolean _configChanged = false;
     int _configSize = 0;

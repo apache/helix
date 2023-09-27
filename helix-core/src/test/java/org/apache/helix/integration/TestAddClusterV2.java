@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -34,8 +35,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import static org.apache.helix.common.TestClusterOperations.*;
 
 public class TestAddClusterV2 extends ZkTestBase {
   private static final int CLUSTER_NR = 10;

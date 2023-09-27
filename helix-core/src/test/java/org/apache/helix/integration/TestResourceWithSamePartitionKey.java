@@ -23,14 +23,14 @@ import java.util.List;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.common.execution.TestClusterParameters;
 import org.apache.helix.common.execution.TestExecutionFlow;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -39,7 +39,7 @@ import org.testng.annotations.Test;
  *      StateModelFactory#_stateModelMap should use both resourceName and partitionKey to map a
  *      state model
  */
-public class TestResourceWithSamePartitionKey extends ZkTestBase {
+public class TestResourceWithSamePartitionKey extends ZkUnitTestBase {
 
   @Test
   public void test() throws Exception {

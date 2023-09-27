@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
@@ -39,7 +38,7 @@ import org.testng.annotations.Test;
 /**
  * test zookeeper basis
  */
-public class TestZkBasis extends ZkTestBase {
+public class TestZkBasis extends ZkUnitTestBase {
   class ZkListener implements IZkDataListener, IZkChildListener {
     String _parentPath = null;
     String _dataDeletePath = null;

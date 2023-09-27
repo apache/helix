@@ -51,6 +51,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
   protected int _numPartitions = 20;
   protected int _numReplicas = 3;
   protected int _numDbs = 1;
+
   protected Boolean _partitionVary = true;
   protected Boolean _instanceGroupTag = false;
 

@@ -21,14 +21,13 @@ package org.apache.helix;
 
 import java.io.FileFilter;
 
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.HierarchicalDataHolder;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestHierarchicalDataStore extends ZkTestBase {
+public class TestHierarchicalDataStore extends ZkUnitTestBase {
   protected static HelixZkClient _zkClient = null;
 
   @Test(groups = { "unitTest"

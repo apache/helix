@@ -22,12 +22,14 @@ package org.apache.helix.integration.manager;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -35,14 +37,12 @@ import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
+public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestConsecutiveZkSessionExpiry.class);
 
   /**
@@ -204,7 +204,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
 
     ZkTestHelper.asyncExpireSession(distributedControllers[0].getZkClient());
     String newSessionId = distributedControllers[0].getSessionId();
-    LOG.info("Expired distributedController session. oldSessionId: " + oldSessionId
+    LOG.info("Expried distributedController session. oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
 
     // expire zk session again during HelixManager#handleNewSession()
@@ -214,7 +214,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
 
     ZkTestHelper.asyncExpireSession(distributedControllers[0].getZkClient());
     newSessionId = distributedControllers[0].getSessionId();
-    LOG.info("Expired distributedController session. oldSessionId: " + oldSessionId
+    LOG.info("Expried distributedController session. oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
 
     endCountdown.countDown();
@@ -222,7 +222,8 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
     Assert.assertTrue(bestPossibleExtViewVerifier.verifyByZkCallback(30000));
 
     // verify leader changes to localhost_12919
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNotNull(pollForProperty(LiveInstance.class, accessor,
         keyBuilder.liveInstance("localhost_12918"), true));

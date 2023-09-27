@@ -22,6 +22,7 @@ package org.apache.helix.integration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -30,12 +31,14 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
@@ -46,13 +49,10 @@ import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestEntropyFreeNodeBounce extends ZkTestBase {
+public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
   @Test
   public void testBounceAll() throws Exception {
     // pick numbers that don't divide evenly
@@ -168,7 +168,7 @@ public class TestEntropyFreeNodeBounce extends ZkTestBase {
   /**
    * Simple verifier: just check that the external view matches a reference
    */
-  private class MatchingExternalViewVerifier implements ZkVerifier {
+  private static class MatchingExternalViewVerifier implements ZkVerifier {
     private final HelixDataAccessor _accessor;
     private final ExternalView _reference;
     private final String _clusterName;

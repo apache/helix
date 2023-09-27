@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
@@ -46,8 +47,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import static org.apache.helix.common.TestClusterOperations.*;
 
 public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
   @BeforeClass

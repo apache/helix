@@ -1,4 +1,4 @@
-package org.apache.helix.participant;
+package org.apache.helix;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,19 +19,9 @@ package org.apache.helix.participant;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.model.Message;
-import org.testng.annotations.Test;
+import org.apache.helix.common.ZkTestBase;
 
-public class TestDistControllerStateModelFactory {
-  final String zkAddr = ZkUnitTestBase.ZK_ADDR;
+// TODO merge code with ZkIntegrationTestBase
+public class ZkUnitTestBase extends ZkTestBase {
 
-  @Test()
-  public void testDistControllerStateModelFactory() {
-    DistClusterControllerStateModelFactory factory =
-        new DistClusterControllerStateModelFactory(zkAddr);
-    DistClusterControllerStateModel stateModel = factory.createNewStateModel("name", "key");
-    stateModel.onBecomeStandbyFromOffline(new Message(new ZNRecord("Test")), null);
-  }
 }

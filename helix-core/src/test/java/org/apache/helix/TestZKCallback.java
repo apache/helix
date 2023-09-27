@@ -33,7 +33,6 @@ import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.TaskCurrentStateChangeListener;
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
@@ -49,7 +48,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZKCallback extends ZkTestBase {
+public class TestZKCallback extends ZkUnitTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
 
   private static String[] createArgs(String str) {

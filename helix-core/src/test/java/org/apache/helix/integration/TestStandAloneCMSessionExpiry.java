@@ -19,9 +19,6 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.Date;
-
-import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.common.execution.TestClusterParameters;
@@ -29,7 +26,6 @@ import org.apache.helix.common.execution.TestExecutionFlow;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -55,16 +55,15 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
       return;
     }
     for (InstanceConfig instanceConfig : clusterData.getInstanceConfigMap().values()) {
-      Map<String, Integer> instanceCapacity;
+      Map<String, Integer> instanceCapacity = null;
       try {
         instanceCapacity = WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
       } catch (HelixException ex) {
         // We don't want to throw exception here, it would be OK if no resource is using Waged.
         // Waged rebalancer will fail in later pipeline stage only for waged resource. So it won't block other resources.
         LOG.error("Failed to initialize instance capacity map. Instance capacity map is not property set up", ex);
-        return;
       }
-      _instanceCapacityMap.put(instanceConfig.getInstanceName(), instanceCapacity);
+      _instanceCapacityMap.put(instanceConfig.getInstanceName(), instanceCapacity == null? new HashMap<>(): instanceCapacity);
       _allocatedPartitionsMap.put(instanceConfig.getInstanceName(), new HashMap<>());
     }
   }

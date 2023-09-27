@@ -161,7 +161,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       }
     }
 
-    // Reattempt creation of children that failed due to NoNodeException
+    // Reattempt creation of children that failed due to parent not existing
     while (--i >= 0) {
       try {
         if (EntryMode.TTL.equals(mode)) {

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
@@ -54,8 +55,15 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
       return;
     }
     for (InstanceConfig instanceConfig : clusterData.getInstanceConfigMap().values()) {
-      Map<String, Integer> instanceCapacity = WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
-      _instanceCapacityMap.put(instanceConfig.getInstanceName(), instanceCapacity);
+      Map<String, Integer> instanceCapacity = null;
+      try {
+        instanceCapacity = WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
+      } catch (HelixException ignore) {
+        // We don't want to throw exception here, it would be OK if no resource is using Waged.
+        // Waged rebalancer will fail in later pipeline stage only for waged resource. So it won't block other resources.
+      }
+      _instanceCapacityMap.put(instanceConfig.getInstanceName(),
+          instanceCapacity == null ? new HashMap<>() : instanceCapacity);
       _allocatedPartitionsMap.put(instanceConfig.getInstanceName(), new HashMap<>());
     }
   }

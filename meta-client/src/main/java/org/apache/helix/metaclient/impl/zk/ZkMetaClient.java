@@ -150,7 +150,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         // Race condition may occur where a  node is created by another thread in between loops.
         // We should not throw error if this occurs for parent nodes, only for the full node path.
         } catch (MetaClientNodeExistsException e) {
-          if (i != 0) {
+          if (i == 0) {
             throw e;
           }
         }
@@ -171,7 +171,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         }
       // Catch same race condition as above
       } catch (MetaClientNodeExistsException e) {
-        if (i != 0) {
+        if (i == 0) {
           throw e;
         }
       }

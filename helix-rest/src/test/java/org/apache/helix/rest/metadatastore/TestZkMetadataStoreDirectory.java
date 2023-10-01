@@ -21,6 +21,7 @@ package org.apache.helix.rest.metadatastore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,7 +32,6 @@ import java.util.Set;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -136,7 +136,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     realms.add(TEST_REALM_2);
 
     for (String namespace : _routingZkAddrMap.keySet()) {
-      Assert.assertEquals(_metadataStoreDirectory.getAllMetadataStoreRealms(namespace), realms);
+      assertCollectionsContainSameElementsIgnoringOrder(_metadataStoreDirectory.getAllMetadataStoreRealms(namespace), realms);
     }
   }
 
@@ -147,7 +147,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     allShardingKeys.addAll(TEST_SHARDING_KEYS_2);
 
     for (String namespace : _routingZkAddrMap.keySet()) {
-      Assert.assertEquals(_metadataStoreDirectory.getAllShardingKeys(namespace), allShardingKeys);
+      assertCollectionsContainSameElementsIgnoringOrder(_metadataStoreDirectory.getAllShardingKeys(namespace),allShardingKeys);
     }
   }
 
@@ -374,5 +374,11 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
       }
       return true;
     }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
+  }
+  private void assertCollectionsContainSameElementsIgnoringOrder(Collection<String> collection1,
+   Collection<String> collection2) {
+     Assert.assertEquals(collection2.size(), collection1.size());
+     Assert.assertTrue(collection2.containsAll(collection1));
+     Assert.assertTrue(collection1.containsAll(collection2));
   }
 }

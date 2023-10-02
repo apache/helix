@@ -159,8 +159,12 @@ public class TestInstancesAccessor extends AbstractTestClass {
 
     Set<String> instances = OBJECT_MAPPER.readValue(instancesStr,
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
-    Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
-        + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
+    Assert.assertEquals(instances.size(), _instancesMap.get(CLUSTER_NAME).size(), "Different amount of elements in "
+        + "the sets: " + instances.size() + " vs: " + _instancesMap.get(CLUSTER_NAME).size());
+    Assert.assertTrue(instances.containsAll(_instancesMap.get(CLUSTER_NAME)), "instances set does not contain all "
+        + "elements of _instanceMap");
+    Assert.assertTrue(_instancesMap.get(CLUSTER_NAME).containsAll(instances), "_instanceMap set does not contain all "
+        + "elements of instances");
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

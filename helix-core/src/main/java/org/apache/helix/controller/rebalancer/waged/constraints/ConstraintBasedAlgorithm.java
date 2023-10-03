@@ -123,8 +123,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     Map<AssignableNode, List<String>> hardConstraintFailures = new ConcurrentHashMap<>();
     List<AssignableNode> candidateNodes = assignableNodes.parallelStream().filter(candidateNode -> {
       boolean isValid = true;
-      // need to record all the failure reasons and it gives us the ability to debug/fix the runtime
-      // cluster environment
       for (HardConstraint hardConstraint : _hardConstraints) {
         ValidationResult validationResult  = hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext);
         if (validationResult.isFailed()) {

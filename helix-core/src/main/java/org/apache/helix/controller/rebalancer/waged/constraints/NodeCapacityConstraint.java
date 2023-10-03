@@ -38,7 +38,7 @@ class NodeCapacityConstraint extends HardConstraint {
       if (nodeCapacity.containsKey(key)) {
         if (nodeCapacity.get(key) < replicaCapacity.get(key)) {
           return ValidationResult.fail(
-              String.format("Node has insufficient capacity for dimension: %s. Left available: %s, Required: %s",
+              String.format("Node has insufficient capacity for: %s. Left available: %s, Required: %s",
                   key, nodeCapacity.get(key), replicaCapacity.get(key)));
         }
       }

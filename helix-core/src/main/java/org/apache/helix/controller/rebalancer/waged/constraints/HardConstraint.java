@@ -67,7 +67,7 @@ abstract class HardConstraint {
       return _status == Status.SUCCESSFUL;
     }
 
-    public boolean iFailed() {
+    public boolean isFailed() {
       return _status == Status.FAILED;
     }
 

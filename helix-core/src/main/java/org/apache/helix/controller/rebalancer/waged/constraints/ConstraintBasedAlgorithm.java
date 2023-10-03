@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
@@ -128,7 +127,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       // cluster environment
       for (HardConstraint hardConstraint : _hardConstraints) {
         ValidationResult validationResult  = hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext);
-        if (validationResult.iFailed()) {
+        if (validationResult.isFailed()) {
           hardConstraintFailures.computeIfAbsent(candidateNode, node -> new ArrayList<>())
               .add(validationResult.getErrorMessage());
           isValid = false;

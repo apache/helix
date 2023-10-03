@@ -38,6 +38,8 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.server.resources.helix.ResourceAssignmentOptimizerAccessor;
+import org.json.JSONException;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -99,7 +101,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testComputePartitionAssignment() throws IOException {
+  public void testComputePartitionAssignment() throws IOException, JSONException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
     // Test AddInstances, RemoveInstances and SwapInstances
@@ -121,8 +123,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     Assert.assertTrue(headers.containsKey(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY));
     Assert.assertFalse(
         headers.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
-    Assert.assertEquals(headers.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).get(0),
-        "{instanceFilter=[], resourceFilter=[], returnFormat=IdealStateFormat}");
+    JSONAssert.assertEquals((String) headers.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).get(0), "{instanceFilter=[], resourceFilter=[], returnFormat=IdealStateFormat}", false);
 
     // Test partitionAssignment InstanceFilter
     String payload2 = "{\"Options\" : { \"InstanceFilter\" : [\"" + liveInstances.get(0) + "\" , \""
@@ -146,14 +147,10 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         headers2.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY);
     Assert.assertFalse(
         headers2.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
-    Assert.assertTrue(
-        partitionAssignmentMetadata2.get(0).equals(
-            "{instanceFilter=[" + liveInstances.get(0) + ", " + liveInstances.get(1)
-            + "], resourceFilter=[], returnFormat=IdealStateFormat}") ||
-        partitionAssignmentMetadata2.get(0).equals(
-            "{instanceFilter=[" + liveInstances.get(1) + ", " + liveInstances.get(0)
-                + "], resourceFilter=[], returnFormat=IdealStateFormat}"),
-        partitionAssignmentMetadata2.get(0).toString());
+    JSONAssert.assertEquals("{instanceFilter=[" + liveInstances.get(0) + ", " + liveInstances.get(1) + "], "
+    + "resourceFilter=[], " + "returnFormat=IdealStateFormat}", partitionAssignmentMetadata2.get(0).toString(), false);
+    JSONAssert.assertEquals("{instanceFilter=[" + liveInstances.get(0) + ", " + liveInstances.get(1) + "], "
+        + "resourceFilter=[], " + "returnFormat=IdealStateFormat}", ((String) partitionAssignmentMetadata2.get(0)), false);
 
     // Test partitionAssignment ResourceFilter
     String payload3 =
@@ -177,14 +174,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         headers3.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY);
     Assert.assertFalse(
         headers3.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
-    Assert.assertTrue(
-        partitionAssignmentMetadata3.get(0).equals(
-            "{instanceFilter=[], resourceFilter=[" + resources.get(0) + ", " + resources.get(1)
-                + "], returnFormat=IdealStateFormat}") ||
-        partitionAssignmentMetadata3.get(0).equals(
-                "{instanceFilter=[], resourceFilter=[" + resources.get(1) + ", " + resources.get(0)
-                    + "], returnFormat=IdealStateFormat}"),
-        partitionAssignmentMetadata3.get(0).toString());
+    JSONAssert.assertEquals("{instanceFilter=[], resourceFilter=[" + resources.get(0) + ", " + resources.get(1)
+        + "], returnFormat=IdealStateFormat}", partitionAssignmentMetadata3.get(0).toString(), false);
 
     // Test Option CurrentState format with AddInstances, RemoveInstances and SwapInstances
     String payload4 = "{\"InstanceChange\" : { \"ActivateInstances\" : [\"" + toEnabledInstance
@@ -211,14 +202,9 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         headers4.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY);
     Assert.assertFalse(
         headers4.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
-    Assert.assertTrue(
-        partitionAssignmentMetadata4.get(0).equals(
-            "{instanceFilter=[], resourceFilter=[" + resources.get(0) + ", " + resources.get(1)
-                + "], returnFormat=CurrentStateFormat}") ||
-        partitionAssignmentMetadata4.get(0).equals(
-                "{instanceFilter=[], resourceFilter=[" + resources.get(1) + ", " + resources.get(0)
-                    + "], returnFormat=CurrentStateFormat}"),
-        partitionAssignmentMetadata4.get(0).toString());
+    JSONAssert.assertEquals(partitionAssignmentMetadata4.get(0).toString(),
+      "{instanceFilter=[], resourceFilter=[" + resources.get(0) + ", " + resources.get(1)+ "], returnFormat" +
+      "=CurrentStateFormat}",false);
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }

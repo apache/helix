@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
+import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -44,13 +45,22 @@ public class TestNodeMaxPartitionLimitConstraint {
     when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE))
         .thenReturn(Collections.emptySet());
     when(_testReplica.getResourceMaxPartitionsPerInstance()).thenReturn(5);
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+
+    ValidationResult validationResult = _constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
+
+    Assert.assertTrue(validationResult.isSuccessful());
+    Assert.assertNull(validationResult.getErrorMessage());
   }
 
   @Test
   public void testConstraintInvalid() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_testNode.getMaxPartition()).thenReturn(5);
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+
+    ValidationResult validationResult = _constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
+
+    Assert.assertFalse(validationResult.isSuccessful());
+    Assert.assertEquals(validationResult.getErrorMessage(),
+        "Cannot exceed the max number of partitions (5) limitation on node. Assigned replica count: 10");
   }
 }

@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import java.util.Map;
 
+import java.util.Optional;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -28,7 +29,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 class NodeCapacityConstraint extends HardConstraint {
 
   @Override
-  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     Map<String, Integer> nodeCapacity = node.getRemainingCapacity();
     Map<String, Integer> replicaCapacity = replica.getCapacity();
@@ -36,15 +37,13 @@ class NodeCapacityConstraint extends HardConstraint {
     for (String key : replicaCapacity.keySet()) {
       if (nodeCapacity.containsKey(key)) {
         if (nodeCapacity.get(key) < replicaCapacity.get(key)) {
-          return false;
+          return ValidationResult.fail(
+              String.format("Node has insufficient capacity for dimension: %s. Left available: %s, Required: %s",
+                  key, nodeCapacity.get(key), replicaCapacity.get(key)));
         }
       }
     }
-    return true;
+    return ValidationResult.ok();
   }
 
-  @Override
-  String getDescription() {
-    return "Node has insufficient capacity";
-  }
 }

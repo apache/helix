@@ -21,21 +21,22 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import java.util.List;
 
+import java.util.Optional;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 class ReplicaActivateConstraint extends HardConstraint {
-  @Override
-  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
-      ClusterContext clusterContext) {
-    List<String> disabledPartitions =
-        node.getDisabledPartitionsMap().get(replica.getResourceName());
-    return disabledPartitions == null || !disabledPartitions.contains(replica.getPartitionName());
-  }
 
   @Override
-  String getDescription() {
-    return "Cannot assign the inactive replica";
+  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
+    List<String> disabledPartitions = node.getDisabledPartitionsMap().get(replica.getResourceName());
+
+    if (disabledPartitions != null && disabledPartitions.contains(replica.getPartitionName())) {
+      return ValidationResult.fail(String.format("Cannot assign the inactive replica: %s", replica.getPartitionName()));
+    }
+    return ValidationResult.ok();
   }
+
 }

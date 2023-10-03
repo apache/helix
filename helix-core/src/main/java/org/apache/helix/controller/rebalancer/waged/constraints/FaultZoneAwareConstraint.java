@@ -19,25 +19,30 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
+import java.util.Set;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
+
 class FaultZoneAwareConstraint extends HardConstraint {
 
   @Override
-  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     if (!node.hasFaultZone()) {
-      return true;
+      return ValidationResult.ok();
     }
-    return !clusterContext
-        .getPartitionsForResourceAndFaultZone(replica.getResourceName(), node.getFaultZone())
-        .contains(replica.getPartitionName());
+
+    Set<String> partitionsForResourceAndFaultZone =
+        clusterContext.getPartitionsForResourceAndFaultZone(replica.getResourceName(), node.getFaultZone());
+
+    if (partitionsForResourceAndFaultZone.contains(replica.getPartitionName())) {
+      return ValidationResult.fail(String.format(
+          "A fault zone cannot contain more than 1 replica of same partition. Found replica for partition: %s",
+          replica.getPartitionName()));
+    }
+    return ValidationResult.ok();
   }
 
-  @Override
-  String getDescription() {
-    return "A fault zone cannot contain more than 1 replica of same partition";
-  }
 }

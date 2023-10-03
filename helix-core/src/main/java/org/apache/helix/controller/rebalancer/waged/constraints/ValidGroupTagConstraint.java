@@ -25,17 +25,17 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 class ValidGroupTagConstraint extends HardConstraint {
   @Override
-  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     if (!replica.hasResourceInstanceGroupTag()) {
-      return true;
+      return ValidationResult.ok();
     }
 
-    return node.getInstanceTags().contains(replica.getResourceInstanceGroupTag());
+    if (!node.getInstanceTags().contains(replica.getResourceInstanceGroupTag())) {
+      return ValidationResult.fail(String.format("Instance doesn't have the tag of the replica (%s)",
+          replica.getResourceInstanceGroupTag()));
+    }
+    return ValidationResult.ok();
   }
 
-  @Override
-  String getDescription() {
-    return "Instance doesn't have the tag of the replica";
-  }
 }

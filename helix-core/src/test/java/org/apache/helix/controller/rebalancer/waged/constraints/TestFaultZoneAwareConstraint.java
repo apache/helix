@@ -19,10 +19,9 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import static org.mockito.Mockito.when;
-
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
-
+import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -31,7 +30,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.google.common.collect.ImmutableSet;
+import static org.mockito.Mockito.*;
 
 public class TestFaultZoneAwareConstraint {
   private static final String TEST_PARTITION = "testPartition";
@@ -56,8 +55,11 @@ public class TestFaultZoneAwareConstraint {
     when(_clusterContext.getPartitionsForResourceAndFaultZone(TEST_RESOURCE, TEST_ZONE)).thenReturn(
             ImmutableSet.of(TEST_PARTITION));
 
-    Assert.assertFalse(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
+
+    Assert.assertFalse(validationResult.isSuccessful());
+    Assert.assertEquals(validationResult.getErrorMessage(),
+        "A fault zone cannot contain more than 1 replica of same partition. Found replica for partition: testPartition");
   }
 
   @Test
@@ -65,15 +67,19 @@ public class TestFaultZoneAwareConstraint {
     when(_testNode.hasFaultZone()).thenReturn(true);
     when(_clusterContext.getPartitionsForResourceAndFaultZone(TEST_RESOURCE, TEST_ZONE)).thenReturn(Collections.emptySet());
 
-    Assert.assertTrue(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
+
+    Assert.assertTrue(validationResult.isSuccessful());
+    Assert.assertNull(validationResult.getErrorMessage());
   }
 
   @Test
   public void validWhenNoFaultZone() {
     when(_testNode.hasFaultZone()).thenReturn(false);
 
-    Assert.assertTrue(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
+
+    Assert.assertTrue(validationResult.isSuccessful());
+    Assert.assertNull(validationResult.getErrorMessage());
   }
 }

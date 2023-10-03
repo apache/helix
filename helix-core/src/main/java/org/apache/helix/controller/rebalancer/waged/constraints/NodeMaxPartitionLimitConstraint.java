@@ -26,18 +26,28 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 class NodeMaxPartitionLimitConstraint extends HardConstraint {
 
   @Override
-  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     boolean exceedMaxPartitionLimit =
         node.getMaxPartition() < 0 || node.getAssignedReplicaCount() < node.getMaxPartition();
-    boolean exceedResourceMaxPartitionLimit = replica.getResourceMaxPartitionsPerInstance() < 0
-        || node.getAssignedPartitionsByResource(replica.getResourceName()).size() < replica
-        .getResourceMaxPartitionsPerInstance();
-    return exceedMaxPartitionLimit && exceedResourceMaxPartitionLimit;
+
+    if (!exceedMaxPartitionLimit) {
+      return ValidationResult.fail(String.format(
+          "Cannot exceed the max number of partitions (%s) limitation on node. Assigned replica count: %s",
+          node.getMaxPartition(), node.getAssignedReplicaCount()));
+    }
+
+    int resourceMaxPartitionsPerInstance = replica.getResourceMaxPartitionsPerInstance();
+    int assignedPartitionsByResourceSize = node.getAssignedPartitionsByResource(replica.getResourceName()).size();
+    boolean exceedResourceMaxPartitionLimit = resourceMaxPartitionsPerInstance < 0
+        || assignedPartitionsByResourceSize < resourceMaxPartitionsPerInstance;
+
+    if (!exceedResourceMaxPartitionLimit) {
+      return ValidationResult.fail(String.format(
+          "Cannot exceed the max number of partitions per resource (%s) limitation on node. Assigned replica count: %s",
+          resourceMaxPartitionsPerInstance, assignedPartitionsByResourceSize));
+    }
+    return ValidationResult.ok();
   }
 
-  @Override
-  String getDescription() {
-    return "Cannot exceed the maximum number of partitions limitation on node";
-  }
 }

@@ -47,10 +47,11 @@ public class TestPartitionActivateConstraint {
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap())
         .thenReturn(ImmutableMap.of(TEST_PARTITION, Collections.emptyList()));
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccessful());
+
     when(_testNode.getDisabledPartitionsMap())
         .thenReturn(ImmutableMap.of(TEST_PARTITION, ImmutableList.of("dummy")));
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccessful());
   }
 
   @Test
@@ -59,6 +60,6 @@ public class TestPartitionActivateConstraint {
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap())
         .thenReturn(ImmutableMap.of(TEST_PARTITION, ImmutableList.of(TEST_PARTITION)));
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccessful());
   }
 }

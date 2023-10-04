@@ -26,6 +26,8 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.api.DirectChildChangeListener;
 
+import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.DataChangeListener;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
@@ -50,6 +51,7 @@ import org.testng.annotations.Test;
 
 import static org.apache.helix.metaclient.api.DataChangeListener.ChangeType.ENTRY_UPDATE;
 import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.CONTAINER;
+import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.EPHEMERAL;
 import static org.apache.helix.metaclient.api.MetaClientInterface.EntryMode.PERSISTENT;
 
 
@@ -94,6 +96,48 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       zkMetaClient.connect();
       zkMetaClient.createWithTTL(key, ENTRY_STRING_VALUE, 1000);
       Assert.assertNotNull(zkMetaClient.exists(key));
+    }
+  }
+
+  @Test
+  public void testRecursiveCreate() {
+    final String path = "/Test/ZkMetaClient/_fullPath";
+
+
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      MetaClientInterface.EntryMode mode = EPHEMERAL;
+
+      // Should succeed even if one of the parent nodes exists
+      String extendedPath = "/A" + path;
+      zkMetaClient.create("/A", ENTRY_STRING_VALUE, PERSISTENT);
+      zkMetaClient.recursiveCreate(extendedPath, ENTRY_STRING_VALUE, mode);
+      Assert.assertNotNull(zkMetaClient.exists(extendedPath));
+
+      // Should succeed if no parent nodes exist
+      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, mode);
+      Assert.assertNotNull(zkMetaClient.exists(path));
+      Assert.assertEquals(zkMetaClient.getDataAndStat("/Test").getRight().getEntryType(), PERSISTENT);
+      Assert.assertEquals(zkMetaClient.getDataAndStat(path).getRight().getEntryType(), mode);
+
+      // Should throw NodeExistsException if child node exists
+      zkMetaClient.recursiveCreate(path, ENTRY_STRING_VALUE, mode);
+      Assert.fail("Should have failed due to node already created");
+    } catch (MetaClientException e) {
+      Assert.assertEquals(e.getMessage(), "org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException: org.apache.zookeeper.KeeperException$NodeExistsException: KeeperErrorCode = NodeExists for /Test/ZkMetaClient/_fullPath");
+      System.out.println(e.getMessage());
+    }
+
+  }
+
+  @Test
+  public void testRecursiveCreateWithTTL() {
+    final String path = "/Test/ZkMetaClient/_fullPath/withTTL";
+
+    try (ZkMetaClient<String> zkMetaClient = createZkMetaClient()) {
+      zkMetaClient.connect();
+      zkMetaClient.recursiveCreateWithTTL(path, ENTRY_STRING_VALUE, 1000);
+      Assert.assertNotNull(zkMetaClient.exists(path));
     }
   }
 

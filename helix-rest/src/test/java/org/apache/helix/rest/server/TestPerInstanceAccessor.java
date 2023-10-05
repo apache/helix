@@ -62,12 +62,13 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, String> params = ImmutableMap.of("client", "espresso");
     Entity entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
-    Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
-        .format(STOPPABLE_CLUSTER, "instance1").post(this, entity);
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/stoppable?skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER, "instance1").post(this, entity);
     String stoppableCheckResult = response.readEntity(String.class);
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(stoppableCheckResult, Map.class);
-    List<String> failedChecks = Arrays
-        .asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
+    List<String> failedChecks =
+        Arrays.asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
             "HELIX:INSTANCE_NOT_STABLE");
     Map<String, Object> expectedMap =
         ImmutableMap.of("stoppable", false, "failedChecks", failedChecks);

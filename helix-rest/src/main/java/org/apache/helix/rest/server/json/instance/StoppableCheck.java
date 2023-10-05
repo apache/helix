@@ -19,8 +19,10 @@ package org.apache.helix.rest.server.json.instance;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -41,6 +43,12 @@ public class StoppableCheck {
 
     public String getPrefix() {
       return prefix;
+    }
+
+    public static Set<Category> categorySetFromCommaSeperatedString(String categories)
+        throws IllegalArgumentException {
+      return Arrays.stream(categories.split(",")).map(StoppableCheck.Category::valueOf)
+          .collect(Collectors.toSet());
     }
   }
 

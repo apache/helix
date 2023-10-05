@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,10 +34,12 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.LeaderStandbySMD;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
@@ -51,6 +54,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
@@ -62,17 +66,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-
 public class TestMaintenanceManagementService {
   private static final String TEST_CLUSTER = "TestCluster";
   private static final String TEST_INSTANCE = "instance0.linkedin.com_1235";
 
   @Mock
-  private HelixDataAccessorWrapper _dataAccessor;
+  private HelixDataAccessorWrapper _dataAccessorWrapper;
   @Mock
   private ConfigAccessor _configAccessor;
   @Mock
   private CustomRestClient _customRestClient;
+
   @BeforeMethod
   public void beforeMethod() {
     MockitoAnnotations.initMocks(this);
@@ -86,16 +90,26 @@ public class TestMaintenanceManagementService {
     public MockMaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
         ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
         boolean continueOnFailure, String namespace) {
-      super(dataAccessor, configAccessor, customRestClient, skipZKRead,
+      super(new HelixDataAccessorWrapper(dataAccessor, customRestClient, namespace), configAccessor,
+          customRestClient, skipZKRead,
           continueOnFailure ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
-              : Collections.emptySet(), namespace);
+              : Collections.emptySet(), null, namespace);
+    }
+
+    public MockMaintenanceManagementService(HelixDataAccessorWrapper dataAccessorWrapper,
+        ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
+        boolean continueOnFailure, Set<StoppableCheck.Category> skipHealthCheckCategories,
+        String namespace) {
+      super(dataAccessorWrapper, configAccessor, customRestClient, skipZKRead,
+          continueOnFailure ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
+              : Collections.emptySet(), skipHealthCheckCategories, namespace);
     }
 
     public MockMaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
         ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
         Set<String> nonBlockingHealthChecks, String namespace) {
-      super(dataAccessor, configAccessor, customRestClient, skipZKRead, nonBlockingHealthChecks,
-          namespace);
+      super(new HelixDataAccessorWrapper(dataAccessor, customRestClient, namespace), configAccessor,
+          customRestClient, skipZKRead, nonBlockingHealthChecks, null, namespace);
     }
 
     @Override
@@ -105,13 +119,12 @@ public class TestMaintenanceManagementService {
     }
   }
 
-
   @Test
   public void testGetInstanceStoppableCheckWhenHelixOwnCheckFail() throws IOException {
     Map<String, Boolean> failedCheck = ImmutableMap.of("FailCheck", false);
     MockMaintenanceManagementService service =
-        new MockMaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient,
-            false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {
@@ -130,8 +143,8 @@ public class TestMaintenanceManagementService {
   @Test
   public void testGetInstanceStoppableCheckWhenCustomInstanceCheckFail() throws IOException {
     MockMaintenanceManagementService service =
-        new MockMaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient, false, false,
-            HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {
@@ -139,8 +152,8 @@ public class TestMaintenanceManagementService {
           }
         };
     Map<String, Boolean> failedCheck = ImmutableMap.of("FailCheck", false);
-    when(_customRestClient.getInstanceStoppableCheck(anyString(), anyMap()))
-        .thenReturn(failedCheck);
+    when(_customRestClient.getInstanceStoppableCheck(anyString(), anyMap())).thenReturn(
+        failedCheck);
     String jsonContent = "{\n" + "   \"param1\": \"value1\",\n" + "\"param2\": \"value2\"\n" + "}";
     StoppableCheck actual =
         service.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, jsonContent);
@@ -151,10 +164,84 @@ public class TestMaintenanceManagementService {
   }
 
   @Test
+  public void testGetInstanceStoppableCheckWhenCustomInstanceCheckAndCustomPartitionCheckDisabled()
+      throws IOException {
+    // Test when custom instance and partition check are both disabled.
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, new HashSet<>(
+            Arrays.asList(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK,
+                StoppableCheck.Category.CUSTOM_PARTITION_CHECK)),
+            HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    StoppableCheck actual = service.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, "");
+    Assert.assertTrue(actual.isStoppable());
+    verify(_dataAccessorWrapper, times(0)).getAllPartitionsHealthOnLiveInstance(any(), any(),
+        anyBoolean());
+    verify(_customRestClient, times(0)).getInstanceStoppableCheck(any(), any());
+  }
+
+  @Test
+  public void testGetInstanceStoppableCheckWhenCustomPartitionCheckDisabled() throws IOException {
+
+    // Test when custom only partition check is disabled and instance check fails.
+    when(_dataAccessorWrapper.getAllPartitionsHealthOnLiveInstance(any(), anyMap(),
+        anyBoolean())).thenReturn(Collections.emptyMap());
+    when(_dataAccessorWrapper.getChildValues(any(), anyBoolean())).thenReturn(
+        Collections.emptyList());
+    when(_customRestClient.getInstanceStoppableCheck(anyString(), anyMap())).thenReturn(
+        ImmutableMap.of("FailCheck", false));
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false,
+            new HashSet<>(Arrays.asList(StoppableCheck.Category.CUSTOM_PARTITION_CHECK)),
+            HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    StoppableCheck actual = service.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, "");
+    List<String> expectedFailedChecks =
+        Arrays.asList(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK.getPrefix() + "FailCheck");
+    Assert.assertEquals(actual.getFailedChecks(), expectedFailedChecks);
+    Assert.assertFalse(actual.isStoppable());
+    verify(_dataAccessorWrapper, times(0)).getAllPartitionsHealthOnLiveInstance(any(), any(),
+        anyBoolean());
+    verify(_customRestClient, times(1)).getInstanceStoppableCheck(any(), any());
+  }
+
+  @Test
+  public void testGetInstanceStoppableCheckWhenCustomInstanceCheckDisabled() throws IOException {
+    // Test when custom only instance check is disabled and partition check fails.
+    when(_dataAccessorWrapper.getAllPartitionsHealthOnLiveInstance(any(), anyMap(),
+        anyBoolean())).thenReturn(Collections.emptyMap());
+    when(_dataAccessorWrapper.getProperty((PropertyKey) any())).thenReturn(new LeaderStandbySMD());
+    String testResource = "testResource";
+    ZNRecord externalViewZnode = new ZNRecord(testResource);
+    externalViewZnode.setSimpleField(
+        ExternalView.ExternalViewProperty.STATE_MODEL_DEF_REF.toString(), LeaderStandbySMD.name);
+    ExternalView externalView = new ExternalView(externalViewZnode);
+    externalView.setStateMap("testPartition",
+        ImmutableMap.of(TEST_INSTANCE, "LEADER", "sibling_instance", "OFFLINE"));
+    when(_dataAccessorWrapper.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
+    when(_dataAccessorWrapper.getChildValues(any(), anyBoolean())).thenReturn(
+        Arrays.asList(externalView));
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false,
+            new HashSet<>(Arrays.asList(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)),
+            HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    StoppableCheck actual = service.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, "");
+    List<String> expectedFailedChecks = Arrays.asList(
+        StoppableCheck.Category.CUSTOM_PARTITION_CHECK.getPrefix()
+            + "PARTITION_INITIAL_STATE_FAIL:testPartition");
+    Assert.assertEquals(actual.getFailedChecks(), expectedFailedChecks);
+    Assert.assertFalse(actual.isStoppable());
+    verify(_dataAccessorWrapper, times(1)).getAllPartitionsHealthOnLiveInstance(any(), any(),
+        anyBoolean());
+    verify(_customRestClient, times(0)).getInstanceStoppableCheck(any(), any());
+  }
+
+  @Test
   public void testGetInstanceStoppableCheckConnectionRefused() throws IOException {
     MockMaintenanceManagementService service =
-        new MockMaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient, false, false,
-            HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {
@@ -300,8 +387,8 @@ public class TestMaintenanceManagementService {
   @Test(enabled = false)
   public void testGetInstanceStoppableCheckWhenPartitionsCheckFail() throws IOException {
     MockMaintenanceManagementService service =
-        new MockMaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient, false, false,
-            HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {

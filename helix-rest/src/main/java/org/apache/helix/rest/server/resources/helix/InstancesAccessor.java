@@ -44,7 +44,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -150,17 +149,32 @@ public class InstancesAccessor extends AbstractHelixResource {
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
-  public Response instancesOperations(
-      @PathParam("clusterId") String clusterId,
+  public Response instancesOperations(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String command,
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
-      String content) {
+      @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
     } catch (Exception e) {
       return badRequest("Invalid command : " + command);
+    }
+
+    Set<StoppableCheck.Category> skipHealthCheckCategorySet;
+    try {
+      skipHealthCheckCategorySet = skipHealthCheckCategories != null
+          ? StoppableCheck.Category.categorySetFromCommaSeperatedString(skipHealthCheckCategories)
+          : Collections.emptySet();
+      if (!MaintenanceManagementService.SKIPPABLE_HEALTH_CHECK_CATEGORIES.containsAll(
+          skipHealthCheckCategorySet)) {
+        throw new IllegalArgumentException(
+            "Some of the provided skipHealthCheckCategories are not skippable. The supported skippable categories are: "
+                + MaintenanceManagementService.SKIPPABLE_HEALTH_CHECK_CATEGORIES);
+      }
+    } catch (Exception e) {
+      return badRequest("Invalid skipHealthCheckCategories: " + skipHealthCheckCategories + "\n"
+          + e.getMessage());
     }
 
     HelixAdmin admin = getHelixAdmin();
@@ -176,17 +190,18 @@ public class InstancesAccessor extends AbstractHelixResource {
           .readValue(node.get(InstancesAccessor.InstancesProperties.instances.name()).toString(),
               OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
       switch (cmd) {
-      case enable:
-        admin.enableInstance(clusterId, enableInstances, true);
-        break;
-      case disable:
-        admin.enableInstance(clusterId, enableInstances, false);
-        break;
-      case stoppable:
-        return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures);
-      default:
-        _logger.error("Unsupported command :" + command);
-        return badRequest("Unsupported command :" + command);
+        case enable:
+          admin.enableInstance(clusterId, enableInstances, true);
+          break;
+        case disable:
+          admin.enableInstance(clusterId, enableInstances, false);
+          break;
+        case stoppable:
+          return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures,
+              skipHealthCheckCategorySet);
+        default:
+          _logger.error("Unsupported command :" + command);
+          return badRequest("Unsupported command :" + command);
       }
     } catch (HelixHealthException e) {
       _logger
@@ -200,26 +215,28 @@ public class InstancesAccessor extends AbstractHelixResource {
   }
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
-      boolean continueOnFailures) throws IOException {
+      boolean continueOnFailures, Set<StoppableCheck.Category> skipHealthCheckCategories)
+      throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
           InstancesAccessor.InstanceHealthSelectionBase.valueOf(
               node.get(InstancesAccessor.InstancesProperties.selection_base.name()).textValue());
-      List<String> instances = OBJECT_MAPPER
-          .readValue(node.get(InstancesAccessor.InstancesProperties.instances.name()).toString(),
-              OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
+      List<String> instances = OBJECT_MAPPER.readValue(
+          node.get(InstancesAccessor.InstancesProperties.instances.name()).toString(),
+          OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
 
       List<String> orderOfZone = null;
       String customizedInput = null;
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
+        customizedInput =
+            node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
       }
 
       if (node.get(InstancesAccessor.InstancesProperties.zone_order.name()) != null) {
-        orderOfZone = OBJECT_MAPPER
-            .readValue(node.get(InstancesAccessor.InstancesProperties.zone_order.name()).toString(),
-                OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
+        orderOfZone = OBJECT_MAPPER.readValue(
+            node.get(InstancesAccessor.InstancesProperties.zone_order.name()).toString(),
+            OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
       }
 
       // Prepare output result
@@ -231,46 +248,49 @@ public class InstancesAccessor extends AbstractHelixResource {
 
       MaintenanceManagementService maintenanceService =
           new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
-              getConfigAccessor(), skipZKRead, continueOnFailures, getNamespace());
-      ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
+              getConfigAccessor(), skipZKRead, continueOnFailures, skipHealthCheckCategories,
+              getNamespace());
+      ClusterService clusterService =
+          new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       switch (selectionBase) {
-      case zone_based:
-        List<String> zoneBasedInstance =
-            getZoneBasedInstances(instances, orderOfZone, clusterTopology.toZoneMapping());
-        Map<String, StoppableCheck> instancesStoppableChecks = maintenanceService.batchGetInstancesStoppableChecks(
-            clusterId, zoneBasedInstance, customizedInput);
-        for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
-          String instance = instanceStoppableCheck.getKey();
-          StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
-          if (!stoppableCheck.isStoppable()) {
-            ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
-            for (String failedReason : stoppableCheck.getFailedChecks()) {
-              failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
+        case zone_based:
+          List<String> zoneBasedInstance =
+              getZoneBasedInstances(instances, orderOfZone, clusterTopology.toZoneMapping());
+          Map<String, StoppableCheck> instancesStoppableChecks =
+              maintenanceService.batchGetInstancesStoppableChecks(clusterId, zoneBasedInstance,
+                  customizedInput);
+          for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
+            String instance = instanceStoppableCheck.getKey();
+            StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
+            if (!stoppableCheck.isStoppable()) {
+              ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
+              for (String failedReason : stoppableCheck.getFailedChecks()) {
+                failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
+              }
+            } else {
+              stoppableInstances.add(instance);
             }
-          } else {
-            stoppableInstances.add(instance);
           }
-        }
-        // Adding following logic to check whether instances exist or not. An instance exist could be
-        // checking following scenario:
-        // 1. Instance got dropped. (InstanceConfig is gone.)
-        // 2. Instance name has typo.
+          // Adding following logic to check whether instances exist or not. An instance exist could be
+          // checking following scenario:
+          // 1. Instance got dropped. (InstanceConfig is gone.)
+          // 2. Instance name has typo.
 
-        // If we dont add this check, the instance, which does not exist, will be disappeared from
-        // result since Helix skips instances for instances not in the selected zone. User may get
-        // confused with the output.
-        Set<String> nonSelectedInstances = new HashSet<>(instances);
-        nonSelectedInstances.removeAll(clusterTopology.getAllInstances());
-        for (String nonSelectedInstance : nonSelectedInstances) {
-          ArrayNode failedReasonsNode = failedStoppableInstances.putArray(nonSelectedInstance);
-          failedReasonsNode.add(JsonNodeFactory.instance.textNode(INSTANCE_NOT_EXIST));
-        }
+          // If we dont add this check, the instance, which does not exist, will be disappeared from
+          // result since Helix skips instances for instances not in the selected zone. User may get
+          // confused with the output.
+          Set<String> nonSelectedInstances = new HashSet<>(instances);
+          nonSelectedInstances.removeAll(clusterTopology.getAllInstances());
+          for (String nonSelectedInstance : nonSelectedInstances) {
+            ArrayNode failedReasonsNode = failedStoppableInstances.putArray(nonSelectedInstance);
+            failedReasonsNode.add(JsonNodeFactory.instance.textNode(INSTANCE_NOT_EXIST));
+          }
 
-        break;
-      case instance_based:
-      default:
-        throw new UnsupportedOperationException("instance_based selection is not supported yet!");
+          break;
+        case instance_based:
+        default:
+          throw new UnsupportedOperationException("instance_based selection is not supported yet!");
       }
       return JSONRepresentation(result);
     } catch (HelixException e) {

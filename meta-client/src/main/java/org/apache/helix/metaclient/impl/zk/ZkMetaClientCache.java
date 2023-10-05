@@ -70,7 +70,7 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
             _dataCacheMap = new ConcurrentHashMap<>();
         }
         if (_cacheChildren) {
-            _childrenCacheTree = new TrieNode(_rootEntry, null);
+            _childrenCacheTree = new TrieNode(_rootEntry, _rootEntry.substring(1));
         }
     }
 
@@ -102,14 +102,46 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         return dataList;
     }
 
+    /**
+     * Get the direct children for a given key.
+     * @param key For metadata storage that has hierarchical key space (e.g. ZK), the key would be
+     *            a parent key,
+     *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
+     *            be a prefix key.
+     * @return list of direct children or null if key doesn't exist / cache is not populated yet.
+     */
     @Override
     public List<String> getDirectChildrenKeys(final String key) {
-        throw new MetaClientException("Not implemented yet.");
+        if (_cacheChildren) {
+            TrieNode node = _childrenCacheTree.processPath(key, true);
+            if (node == null) {
+                LOG.debug("Children not found in cache for key: {}. This could be because the cache is still being populated.", key);
+                return null;
+            }
+            return List.copyOf(node.getChildren().keySet());
+        }
+        return super.getDirectChildrenKeys(key);
     }
 
+    /**
+     * Get the number of direct children for a given key.
+     * @param key For metadata storage that has hierarchical key space (e.g. ZK), the key would be
+     *            a parent key,
+     *            For metadata storage that has non-hierarchical key space (e.g. etcd), the key would
+     *            be a prefix key.
+     * @return number of direct children or 0 if key doesn't exist / has no children / cache is not populated yet.
+     */
     @Override
     public int countDirectChildren(final String key) {
-        throw new MetaClientException("Not implemented yet.");
+        if (_cacheChildren) {
+            TrieNode node = _childrenCacheTree.processPath(key, true);
+            if (node == null) {
+                LOG.debug("Children not found in cache for key: {}. This could be because the cache is still being populated.", key);
+                return 0;
+            }
+            return node.getChildren().size();
+        }
+        return super.countDirectChildren(key);
     }
 
     private void populateAllCache() {
@@ -130,7 +162,13 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
                 T dataRecord = _cacheClient.readData(node, true);
                 _dataCacheMap.put(node, dataRecord);
             }
-            queue.addAll(_cacheClient.getChildren(node));
+            if (_cacheChildren) {
+                _childrenCacheTree.processPath(node, true);
+            }
+            List<String> childNodes = _cacheClient.getChildren(node);
+            for (String child : childNodes) {
+                queue.add(node + "/" + child); // Add child nodes to the queue with their full path.
+            }
         }
         // Let the other threads know that the cache is populated.
         _initializedCache.countDown();
@@ -151,11 +189,11 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
             //  TODO: HANDLE DEDUP EVENT CHANGES
             switch (changeType) {
                 case ENTRY_CREATED:
-                    // Not implemented yet.
+                    _childrenCacheTree.processPath(path, true);
                     modifyDataInCache(path, false);
                     break;
                 case ENTRY_DELETED:
-                    // Not implemented yet.
+                    _childrenCacheTree.processPath(path, false);
                     modifyDataInCache(path, true);
                     break;
                 case ENTRY_DATA_CHANGE:
@@ -190,9 +228,6 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
         return _dataCacheMap;
     }
 
-    public TrieNode getChildrenCacheTree() {
-        return _childrenCacheTree;
-    }
 
     /**
      * Connect to the underlying ZkClient.

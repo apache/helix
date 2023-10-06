@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
-
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -35,8 +34,7 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
-import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
-import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
+import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacityManager;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -113,14 +111,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       reportResourcePartitionCapacityMetrics(dataProvider.getAsyncTasksThreadPool(),
           clusterStatusMonitor, dataProvider.getResourceConfigMap().values());
 
-      // TODO: we only need to compute when there are resource using Waged. We should
-      // do this as perf improvement in future.
-      WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(dataProvider);
-      WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(dataProvider);
-
-      // Process the currentState and update the available instance capacity.
-      capacityProvider.process(dataProvider, currentStateOutput, resourceMap, weightProvider);
-      dataProvider.setWagedCapacityProviders(capacityProvider, weightProvider);
+      WagedInstanceCapacityManager.getInstance().processEvent(event, currentStateOutput);
     }
   }
 

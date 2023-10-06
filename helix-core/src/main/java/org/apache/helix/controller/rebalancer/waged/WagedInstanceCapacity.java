@@ -24,17 +24,19 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.dataproviders.InstanceCapacityDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.controller.dataproviders.InstanceCapacityDataProvider;
-import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +70,10 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     }
   }
 
+  public Map<String, Map<String, Set<String>>> getAllocatedPartitionsMap() {
+    return _allocatedPartitionsMap;
+  }
+
   // Helper methods.
   // TODO: Currently, we don't allow double-accounting. But there may be
   // future scenarios, where we may want to allow.
@@ -82,7 +88,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
 
   public void process(ResourceControllerDataProvider cache, CurrentStateOutput currentStateOutput,
       Map<String, Resource> resourceMap, WagedResourceWeightsProvider weightProvider) {
-    processCurrentState(cache, currentStateOutput, resourceMap, weightProvider);
+    processCurrentState(cache, currentStateOutput, resourceMap);
     processPendingMessages(cache, resourceMap, weightProvider);
   }
 
@@ -130,28 +136,29 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     }
   }
 
-
-  private void processCurrentState(ResourceControllerDataProvider cache,
-      CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap,
-      WagedResourceWeightsProvider weightProvider) {
+  void processCurrentState(ResourceControllerDataProvider cache,
+      CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap) {
 
     // Iterate through all the resources
     for (Map.Entry<String, Resource> entry : resourceMap.entrySet()) {
       String resName = entry.getKey();
       Resource resource = entry.getValue();
 
-      // if Resource is WAGED managed, then we need to manage the capacity.
-      if (!WagedValidationUtil.isWagedEnabled(cache.getIdealState(resName))) {
-        continue;
-      }
-
       // list of partitions in the resource
       Collection<Partition> partitions = resource.getPartitions();
+
+      // calculate merge resource-config one for each resource.
+      ResourceConfig resourceConfig = cache.getResourceConfig(resName);
+      IdealState is = cache.getIdealState(resName);
+      ResourceConfig mergedResourceConfig =
+          ResourceConfig.mergeIdealStateWithResourceConfig(resourceConfig, is);
 
       for (Partition partition : partitions) {
         String partitionName = partition.getPartitionName();
         // Get Partition Weight
-        Map<String, Integer> partCapacity = weightProvider.getPartitionWeights(resName, partitionName);
+        Map<String, Integer> partCapacity =
+            WagedRebalanceUtil.fetchCapacityUsage(partitionName, mergedResourceConfig, cache.getClusterConfig());
+
         // Get the current state for the partition
         Map<String, String> currentStateMap = currentStateOutput.getCurrentStateMap(resName, partition);
         if (currentStateMap != null && !currentStateMap.isEmpty()) {
@@ -187,7 +194,6 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     return true;
   }
 
-
   public synchronized boolean checkAndReduceInstanceCapacity(String instance, String resName,
       String partitionName, Map<String, Integer> partitionCapacity) {
 
@@ -215,7 +221,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     }
     _allocatedPartitionsMap.computeIfAbsent(instance, k -> new HashMap<>())
         .computeIfAbsent(resName, k -> new HashSet<>()).add(partitionName);
-    LOG.info("Reduced capacity for instance: " + instance + " for resource: " + resName
+    LOG.debug("Reduced capacity for instance: " + instance + " for resource: " + resName
         + " for partition: " + partitionName);
     return true;
   }

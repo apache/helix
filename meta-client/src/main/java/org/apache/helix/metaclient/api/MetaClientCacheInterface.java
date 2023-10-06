@@ -30,10 +30,8 @@ public interface MetaClientCacheInterface<T> extends MetaClientInterface<T> {
     class TrieNode {
         // A mapping between trie key and children nodes.
         private Map<String, TrieNode> _children;
-
         // the complete path/prefix leading to the current node.
         private final String _path;
-
         private final String _nodeKey;
 
         public TrieNode(String path, String nodeKey) {
@@ -54,8 +52,39 @@ public interface MetaClientCacheInterface<T> extends MetaClientInterface<T> {
             return _nodeKey;
         }
 
-        public void addChild(String key,  TrieNode node) {
+        public void addChild(String key, TrieNode node) {
             _children.put(key, node);
+        }
+
+        public TrieNode processPath(String path, boolean isCreate) {
+            String[] pathComponents = path.split("/");
+            TrieNode currentNode = this;
+            TrieNode previousNode = null;
+
+            for (int i = 1; i < pathComponents.length; i++) {
+                String component = pathComponents[i];
+                if (component.equals(_nodeKey)) {
+                    // Skip the root node
+                } else if (!currentNode.getChildren().containsKey(component)) {
+                    if (isCreate) {
+                        TrieNode newNode = new TrieNode(currentNode.getPath() + "/" + component, component);
+                        currentNode.addChild(component, newNode);
+                        previousNode = currentNode;
+                        currentNode = newNode;
+                    } else {
+                        return currentNode;
+                    }
+                } else {
+                    previousNode = currentNode;
+                    currentNode = currentNode.getChildren().get(component);
+                }
+            }
+
+            if (!isCreate && previousNode != null) {
+                previousNode.getChildren().remove(currentNode.getNodeKey());
+            }
+
+            return currentNode;
         }
     }
 }

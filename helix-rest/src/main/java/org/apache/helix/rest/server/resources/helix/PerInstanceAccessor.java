@@ -164,6 +164,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
    * @param continueOnFailures whether or not continue to perform the subsequent checks if previous
    *                           check fails. If false, when helix own check fails, the subsequent
    *                           custom checks will not be performed.
+   * @param skipHealthCheckCategories StoppableCheck Categories to skip.
    * @return json response representing if queried instance is stoppable
    * @throws IOException if there is any IO/network error
    */
@@ -172,16 +173,32 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @POST
   @Path("stoppable")
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response isInstanceStoppable(
-      String jsonContent,
-      @PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName,
-      @QueryParam("skipZKRead") boolean skipZKRead,
-      @QueryParam("continueOnFailures") boolean continueOnFailures) throws IOException {
+  public Response isInstanceStoppable(String jsonContent, @PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") boolean skipZKRead,
+      @QueryParam("continueOnFailures") boolean continueOnFailures,
+      @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories)
+      throws IOException {
+
+    Set<StoppableCheck.Category> skipHealthCheckCategorySet;
+    try {
+      skipHealthCheckCategorySet = skipHealthCheckCategories != null
+          ? StoppableCheck.Category.categorySetFromCommaSeperatedString(skipHealthCheckCategories)
+          : Collections.emptySet();
+      if (!MaintenanceManagementService.SKIPPABLE_HEALTH_CHECK_CATEGORIES.containsAll(
+          skipHealthCheckCategorySet)) {
+        throw new IllegalArgumentException(
+            "Some of the provided skipHealthCheckCategories are not skippable. The supported skippable categories are: "
+                + MaintenanceManagementService.SKIPPABLE_HEALTH_CHECK_CATEGORIES);
+      }
+    } catch (Exception e) {
+      return badRequest("Invalid skipHealthCheckCategories: " + skipHealthCheckCategories + "\n"
+          + e.getMessage());
+    }
+
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     MaintenanceManagementService maintenanceService =
-        new MaintenanceManagementService((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(), skipZKRead,
-            continueOnFailures, getNamespace());
+        new MaintenanceManagementService((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
+            skipZKRead, continueOnFailures, skipHealthCheckCategorySet, getNamespace());
     StoppableCheck stoppableCheck;
     try {
       JsonNode node = null;

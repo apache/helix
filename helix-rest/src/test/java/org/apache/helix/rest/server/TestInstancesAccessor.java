@@ -56,9 +56,9 @@ public class TestInstancesAccessor extends AbstractTestClass {
         InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
         "instance2", "instance3", "instance4", "instance5", "invalidInstance",
         InstancesAccessor.InstancesProperties.zone_order.name(), "zone2", "zone1");
-    Response response =
-        new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable").format(
-            STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
     JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
     Assert.assertFalse(
         jsonNode.withArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name())

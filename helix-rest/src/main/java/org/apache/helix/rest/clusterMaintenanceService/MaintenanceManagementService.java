@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -81,43 +82,65 @@ public class MaintenanceManagementService {
   public static final String HELIX_CUSTOM_STOPPABLE_CHECK = "CustomInstanceStoppableCheck";
   public static final String OPERATION_CONFIG_SHARED_INPUT = "OperationConfigSharedInput";
 
+  public static final Set<StoppableCheck.Category> SKIPPABLE_HEALTH_CHECK_CATEGORIES =
+      ImmutableSet.of(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK,
+          StoppableCheck.Category.CUSTOM_PARTITION_CHECK);
+
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
   private final String _namespace;
   private final boolean _skipZKRead;
   private final HelixDataAccessorWrapper _dataAccessor;
   private final Set<String> _nonBlockingHealthChecks;
+  private final Set<StoppableCheck.Category> _skipHealthCheckCategories;
 
   public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, boolean skipZKRead, String namespace) {
-    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead,
+    this(new HelixDataAccessorWrapper(dataAccessor, CustomRestClientFactory.get(), namespace),
+        configAccessor, CustomRestClientFactory.get(), skipZKRead, Collections.emptySet(),
         Collections.emptySet(), namespace);
   }
 
   public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, boolean skipZKRead, Set<String> nonBlockingHealthChecks,
       String namespace) {
-    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead,
-        nonBlockingHealthChecks, namespace);
+    this(new HelixDataAccessorWrapper(dataAccessor, CustomRestClientFactory.get(), namespace),
+        configAccessor, CustomRestClientFactory.get(), skipZKRead, nonBlockingHealthChecks,
+        Collections.emptySet(), namespace);
   }
 
   public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, boolean skipZKRead, boolean continueOnFailure,
       String namespace) {
-    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead,
+    this(new HelixDataAccessorWrapper(dataAccessor, CustomRestClientFactory.get(), namespace),
+        configAccessor, CustomRestClientFactory.get(), skipZKRead,
         continueOnFailure ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
-            : Collections.emptySet(), namespace);
+            : Collections.emptySet(), Collections.emptySet(), namespace);
+  }
+
+  public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
+      ConfigAccessor configAccessor, boolean skipZKRead, boolean continueOnFailure,
+      Set<StoppableCheck.Category> skipHealthCheckCategories, String namespace) {
+    this(new HelixDataAccessorWrapper(dataAccessor, CustomRestClientFactory.get(), namespace),
+        configAccessor, CustomRestClientFactory.get(), skipZKRead,
+        continueOnFailure ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
+            : Collections.emptySet(),
+        skipHealthCheckCategories != null ? skipHealthCheckCategories : Collections.emptySet(),
+        namespace);
   }
 
   @VisibleForTesting
-  MaintenanceManagementService(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient, boolean skipZKRead, Set<String> nonBlockingHealthChecks,
+  MaintenanceManagementService(HelixDataAccessorWrapper dataAccessorWrapper,
+      ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
+      Set<String> nonBlockingHealthChecks, Set<StoppableCheck.Category> skipHealthCheckCategories,
       String namespace) {
-    _dataAccessor = new HelixDataAccessorWrapper(dataAccessor, customRestClient, namespace);
+    _dataAccessor = dataAccessorWrapper;
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
     _skipZKRead = skipZKRead;
     _nonBlockingHealthChecks = nonBlockingHealthChecks;
+    _skipHealthCheckCategories =
+        skipHealthCheckCategories != null ? skipHealthCheckCategories : Collections.emptySet();
     _namespace = namespace;
   }
 
@@ -440,20 +463,27 @@ public class MaintenanceManagementService {
       LOG.error(errorMessage);
       throw new HelixException(errorMessage);
     }
-    Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
-        Collectors.toMap(Function.identity(), instance -> POOL.submit(
-            () -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance),
-                customPayLoads))));
-    List<String> instancesForCustomPartitionLevelChecks =
-        filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);
-    if (!instancesForCustomPartitionLevelChecks.isEmpty()) {
+
+    List<String> instancesForCustomPartitionLevelChecks;
+    if (!_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)) {
+      Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
+          Collectors.toMap(Function.identity(), instance -> POOL.submit(
+              () -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance),
+                  customPayLoads))));
+      instancesForCustomPartitionLevelChecks =
+          filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);
+    } else {
+      instancesForCustomPartitionLevelChecks = instances;
+    }
+
+    if (!instancesForCustomPartitionLevelChecks.isEmpty() && !_skipHealthCheckCategories.contains(
+        StoppableCheck.Category.CUSTOM_PARTITION_CHECK)) {
       // add to finalStoppableChecks regardless of stoppable or not.
       Map<String, StoppableCheck> instancePartitionLevelChecks =
           performPartitionsCheck(instancesForCustomPartitionLevelChecks, restConfig,
               customPayLoads);
       List<String> instancesForFollowingChecks = new ArrayList<>();
-      for (Map.Entry<String, StoppableCheck> instancePartitionStoppableCheckEntry : instancePartitionLevelChecks
-          .entrySet()) {
+      for (Map.Entry<String, StoppableCheck> instancePartitionStoppableCheckEntry : instancePartitionLevelChecks.entrySet()) {
         String instance = instancePartitionStoppableCheckEntry.getKey();
         StoppableCheck stoppableCheck = instancePartitionStoppableCheckEntry.getValue();
         addStoppableCheck(finalStoppableChecks, instance, stoppableCheck);
@@ -465,6 +495,8 @@ public class MaintenanceManagementService {
       }
       return instancesForFollowingChecks;
     }
+
+    // This means that we skipped
     return instancesForCustomPartitionLevelChecks;
   }
 
@@ -474,7 +506,7 @@ public class MaintenanceManagementService {
     Map<String, MaintenanceManagementInstanceInfo> instanceInfos = new HashMap<>();
     Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
     // TODO: Right now user can only choose from HelixInstanceStoppableCheck and
-    // CostumeInstanceStoppableCheck. We should add finer grain check groups to choose from
+    // CustomInstanceStoppableCheck. We should add finer grain check groups to choose from
     // i.e. HELIX:INSTANCE_NOT_ENABLED, CUSTOM_PARTITION_HEALTH_FAILURE:PARTITION_INITIAL_STATE_FAIL etc.
     for (String healthCheck : healthChecks) {
       if (healthCheck.equals(HELIX_INSTANCE_STOPPABLE_CHECK)) {
@@ -528,10 +560,7 @@ public class MaintenanceManagementService {
       String instance = entry.getKey();
       try {
         StoppableCheck stoppableCheck = entry.getValue().get();
-        if (!stoppableCheck.isStoppable()) {
-          // put the check result of the failed-to-stop instances
-          addStoppableCheck(finalStoppableCheckByInstance, instance, stoppableCheck);
-        }
+        addStoppableCheck(finalStoppableCheckByInstance, instance, stoppableCheck);
         if (stoppableCheck.isStoppable() || isNonBlockingCheck(stoppableCheck)) {
           // instance passed this around of check or mandatory all checks
           // will be checked in the next round

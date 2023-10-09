@@ -400,7 +400,7 @@ public class DelayedRebalanceUtil {
       Map<String, ResourceAssignment> currentAssignment) {
     return currentAssignment.entrySet()
         .parallelStream()
-        .map(e -> Map.entry(e.getKey(), findPartitionsMissingMinActiveReplica(clusterData, e.getValue())))
+        .map(e -> new HashMap.SimpleEntry<>(e.getKey(), findPartitionsMissingMinActiveReplica(clusterData, e.getValue())))
         .filter(e -> !e.getValue().isEmpty())
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }

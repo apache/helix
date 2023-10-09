@@ -19,6 +19,8 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -50,9 +52,9 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
     ClusterConfig clsCfg = dataCache.getClusterConfig();
-    clsCfg.setInstanceCapacityKeys(List.of("s1", "s2", "s3"));
+    clsCfg.setInstanceCapacityKeys(ImmutableList.of("s1", "s2", "s3"));
     dataCache.setClusterConfig(clsCfg);
-    dataCache.setInstanceConfigMap(Map.of(
+    dataCache.setInstanceConfigMap(ImmutableMap.of(
         "a", new InstanceConfig("a")
     ));
     runStage(event, stage);

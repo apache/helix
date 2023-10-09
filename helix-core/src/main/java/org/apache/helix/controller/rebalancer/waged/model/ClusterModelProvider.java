@@ -581,7 +581,7 @@ public class ClusterModelProvider {
           }
         }
       }
-      return Map.entry(resourceName, replicas);
+      return new HashMap.SimpleEntry<>(resourceName, replicas);
     }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 

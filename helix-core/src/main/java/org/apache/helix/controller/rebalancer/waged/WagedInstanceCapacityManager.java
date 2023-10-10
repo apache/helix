@@ -99,9 +99,17 @@ public class WagedInstanceCapacityManager {
     }
 
     switch (event.getEventType()) {
-      case TaskCurrentStateChange:
-      case MessageChange:
+      case CustomizedStateChange:
+      case CustomizedViewChange:
+      case CustomizeStateConfigChange:
+      case ExternalViewChange:
+      case IdealStateChange:
+      case OnDemandRebalance:
       case Resume:
+      case RetryRebalance:
+      case StateVerifier:
+      case TargetExternalViewChange:
+      case TaskCurrentStateChange:
         return true;
       default:
         return false;

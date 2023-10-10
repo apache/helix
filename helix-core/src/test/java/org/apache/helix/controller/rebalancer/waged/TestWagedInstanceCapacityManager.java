@@ -175,15 +175,36 @@ public class TestWagedInstanceCapacityManager {
     Mockito.when(dataProvider.getWagedInstanceCapacity()).thenReturn(instanceCapacity);
 
     Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
-        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.TaskCurrentStateChange)));
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CustomizedStateChange)));
     Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
-        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.MessageChange)));
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CustomizedViewChange)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CustomizeStateConfigChange)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.ExternalViewChange)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.IdealStateChange)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.OnDemandRebalance)));
     Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.Resume)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.RetryRebalance)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.StateVerifier)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.TargetExternalViewChange)));
+    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.TaskCurrentStateChange)));
+
     Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.LiveInstanceChange)));
     Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CurrentStateChange)));
+    Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.MessageChange)));
+    Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
+        dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.PeriodicalRebalance)));
   }
 
   // -- static helpers

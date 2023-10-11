@@ -359,8 +359,10 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     ConfigAccessor cfgAccessor = getConfigAccessor();
     List<ResourceConfig> wagedResourceConfigs = new ArrayList<>();
     for (IdealState idealState : wagedResourceIdealState) {
-      wagedResourceConfigs
-          .add(cfgAccessor.getResourceConfig(clusterId, idealState.getResourceName()));
+      ResourceConfig resourceConfig = cfgAccessor.getResourceConfig(clusterId, idealState.getResourceName());
+      if (resourceConfig != null) {
+        wagedResourceConfigs.add(resourceConfig);
+      }
     }
 
     Map<String, ResourceAssignment> wagedAssignmentResult;

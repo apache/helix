@@ -20,13 +20,10 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -49,6 +46,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.common.StoppableInstancesSelector;
 import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
@@ -63,10 +61,6 @@ import org.slf4j.LoggerFactory;
 @Path("/clusters/{clusterId}/instances")
 public class InstancesAccessor extends AbstractHelixResource {
   private final static Logger _logger = LoggerFactory.getLogger(InstancesAccessor.class);
-  // This type does not belongs to real HealthCheck failed reason. Also if we add this type
-  // to HealthCheck enum, it could introduce more unnecessary check step since the InstanceServiceImpl
-  // loops all the types to do corresponding checks.
-  private final static String INSTANCE_NOT_EXIST = "HELIX:INSTANCE_NOT_EXIST";
   public enum InstancesProperties {
     instances,
     online,
@@ -80,7 +74,8 @@ public class InstancesAccessor extends AbstractHelixResource {
 
   public enum InstanceHealthSelectionBase {
     instance_based,
-    zone_based
+    zone_based,
+    cross_zone_based
   }
 
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
@@ -253,40 +248,22 @@ public class InstancesAccessor extends AbstractHelixResource {
       ClusterService clusterService =
           new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
+      StoppableInstancesSelector stoppableInstancesSelector =
+          new StoppableInstancesSelector.StoppableInstancesSelectorBuilder()
+              .setClusterId(clusterId)
+              .setOrderOfZone(orderOfZone)
+              .setCustomizedInput(customizedInput)
+              .setStoppableInstances(stoppableInstances)
+              .setFailedStoppableInstances(failedStoppableInstances)
+              .setMaintenanceService(maintenanceService)
+              .setClusterTopology(clusterTopology)
+              .build();
       switch (selectionBase) {
         case zone_based:
-          List<String> zoneBasedInstance =
-              getZoneBasedInstances(instances, orderOfZone, clusterTopology.toZoneMapping());
-          Map<String, StoppableCheck> instancesStoppableChecks =
-              maintenanceService.batchGetInstancesStoppableChecks(clusterId, zoneBasedInstance,
-                  customizedInput);
-          for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
-            String instance = instanceStoppableCheck.getKey();
-            StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
-            if (!stoppableCheck.isStoppable()) {
-              ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
-              for (String failedReason : stoppableCheck.getFailedChecks()) {
-                failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
-              }
-            } else {
-              stoppableInstances.add(instance);
-            }
-          }
-          // Adding following logic to check whether instances exist or not. An instance exist could be
-          // checking following scenario:
-          // 1. Instance got dropped. (InstanceConfig is gone.)
-          // 2. Instance name has typo.
-
-          // If we dont add this check, the instance, which does not exist, will be disappeared from
-          // result since Helix skips instances for instances not in the selected zone. User may get
-          // confused with the output.
-          Set<String> nonSelectedInstances = new HashSet<>(instances);
-          nonSelectedInstances.removeAll(clusterTopology.getAllInstances());
-          for (String nonSelectedInstance : nonSelectedInstances) {
-            ArrayNode failedReasonsNode = failedStoppableInstances.putArray(nonSelectedInstance);
-            failedReasonsNode.add(JsonNodeFactory.instance.textNode(INSTANCE_NOT_EXIST));
-          }
-
+          stoppableInstancesSelector.getStoppableInstancesInSingleZone(instances);
+          break;
+        case cross_zone_based:
+          stoppableInstancesSelector.getStoppableInstancesCrossZones();
           break;
         case instance_based:
         default:
@@ -303,42 +280,5 @@ public class InstancesAccessor extends AbstractHelixResource {
               clusterId), e);
       throw e;
     }
-  }
-
-  /**
-   * Get instances belongs to the first zone. If the zone is already empty, Helix will iterate zones
-   * by order until find the zone contains instances.
-   *
-   * The order of zones can directly come from user input. If user did not specify it, Helix will order
-   * zones with alphabetical order.
-   *
-   * @param instances
-   * @param orderedZones
-   * @return
-   */
-  private List<String> getZoneBasedInstances(List<String> instances, List<String> orderedZones,
-      Map<String, Set<String>> zoneMapping) {
-
-    // If the orderedZones is not specified, we will order all zones in alphabetical order.
-    if (orderedZones == null) {
-      orderedZones = new ArrayList<>(zoneMapping.keySet());
-      Collections.sort(orderedZones);
-    }
-
-    if (orderedZones.isEmpty()) {
-      return orderedZones;
-    }
-
-    Set<String> instanceSet = null;
-    for (String zone : orderedZones) {
-      instanceSet = new TreeSet<>(instances);
-      Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone));
-      instanceSet.retainAll(currentZoneInstanceSet);
-      if (instanceSet.size() > 0) {
-        return new ArrayList<>(instanceSet);
-      }
-    }
-
-    return Collections.EMPTY_LIST;
   }
 }

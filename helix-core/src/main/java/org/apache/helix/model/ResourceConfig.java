@@ -69,6 +69,7 @@ public class ResourceConfig extends HelixProperty {
   private static final ObjectMapper _objectMapper = new ObjectMapper();
 
   public static final String DEFAULT_PARTITION_KEY = "DEFAULT";
+  private Map<String, Map<String, Integer>> _deserializedPartitionCapacityMap;
 
   /**
    * Instantiate for a specific instance
@@ -389,6 +390,12 @@ public class ResourceConfig extends HelixProperty {
    * @throws IOException - when JSON conversion fails
    */
   public Map<String, Map<String, Integer>> getPartitionCapacityMap() throws IOException {
+    // It is very expensive to deserialize the partition capacity map every time this is called.
+    // Cache the deserialized map to avoid the overhead.
+    if (_deserializedPartitionCapacityMap != null) {
+      return _deserializedPartitionCapacityMap;
+    }
+
     Map<String, String> partitionCapacityData =
         _record.getMapField(ResourceConfigProperty.PARTITION_CAPACITY_MAP.name());
     Map<String, Map<String, Integer>> partitionCapacityMap = new HashMap<>();
@@ -401,7 +408,11 @@ public class ResourceConfig extends HelixProperty {
         partitionCapacityMap.put(partition, capacities);
       }
     }
-    return partitionCapacityMap;
+
+    // Only set the deserialized map when the deserialization succeeds, so we don't have the potential
+    // of having a partially contracted map.
+    _deserializedPartitionCapacityMap = partitionCapacityMap;
+    return _deserializedPartitionCapacityMap;
   }
 
   /**
@@ -437,6 +448,8 @@ public class ResourceConfig extends HelixProperty {
     }
 
     _record.setMapField(ResourceConfigProperty.PARTITION_CAPACITY_MAP.name(), newCapacityRecord);
+    // Set deserialize map after we have successfully added it to the record.
+    _deserializedPartitionCapacityMap = partitionCapacityMap;
   }
 
   /**

@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,7 +81,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
           .getInstance(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
   // These failure types should be propagated to caller of computeNewIdealStates()
   private static final List<HelixRebalanceException.Type> FAILURE_TYPES_TO_PROPAGATE =
-      List.of(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, HelixRebalanceException.Type.UNKNOWN_FAILURE);
+      ImmutableList.of(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, HelixRebalanceException.Type.UNKNOWN_FAILURE);
 
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;

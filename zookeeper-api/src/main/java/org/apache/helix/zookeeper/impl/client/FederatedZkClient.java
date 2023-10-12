@@ -38,6 +38,7 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
@@ -156,6 +157,16 @@ public class FederatedZkClient implements RealmAwareZkClient {
   public void unsubscribeStateChanges(
       org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
     throwUnsupportedOperationException();
+  }
+
+  @Override
+  public void subscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
+
+  }
+
+  @Override
+  public void unsubscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
+
   }
 
   @Override

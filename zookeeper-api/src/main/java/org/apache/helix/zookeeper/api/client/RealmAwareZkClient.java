@@ -31,6 +31,7 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
@@ -163,6 +164,18 @@ public interface RealmAwareZkClient {
   @Deprecated
   void unsubscribeStateChanges(
       org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener);
+
+  default void subscribePersistRecursiveListener(String path,
+      RecursivePersistListener recursivePersistListener) {
+    throw new UnsupportedOperationException(
+        "subscribePersistRecursiveListener() is not supported!");
+  }
+
+ default void unsubscribePersistRecursiveListener(String path,
+      RecursivePersistListener recursivePersistListener) {
+   throw new UnsupportedOperationException(
+       "subscribePersistRecursiveListener() is not supported!");
+ }
 
   void unsubscribeAll();
 

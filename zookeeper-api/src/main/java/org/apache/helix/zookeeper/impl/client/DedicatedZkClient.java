@@ -35,6 +35,7 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener;
@@ -154,6 +155,16 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   @Override
   public void unsubscribeStateChanges(IZkStateListener listener) {
     _rawZkClient.unsubscribeStateChanges(listener);
+  }
+
+  @Override
+  public void subscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
+
+  }
+
+  @Override
+  public void unsubscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
+
   }
 
   @Override

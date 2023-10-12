@@ -35,6 +35,8 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.rest.common.dataprovider.HelixRestDataProviderManager;
+import org.apache.helix.rest.common.dataprovider.RestServiceDataProvider;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
@@ -79,6 +81,8 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private final Map<String, TaskDriver> _taskDriverPool;
   // Create ZkBucketDataAccessor for ReadOnlyWagedRebalancer.
   private volatile ZkBucketDataAccessor _zkBucketDataAccessor;
+
+  private volatile HelixRestDataProviderManager _helixRestDataProviderManager;
 
   /**
    * Multi-ZK support
@@ -290,6 +294,17 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
       }
     }
     return _zkBucketDataAccessor;
+  }
+
+  public HelixRestDataProviderManager getHelixRestDataProviderManager() {
+    if (_helixRestDataProviderManager == null) {
+      synchronized (this) {
+        if (_helixRestDataProviderManager == null) {
+          _helixRestDataProviderManager = new HelixRestDataProviderManager(getRealmAwareZkClient(), getHelixAdmin());
+        }
+      }
+    }
+    return _helixRestDataProviderManager;
   }
 
   public void close() {

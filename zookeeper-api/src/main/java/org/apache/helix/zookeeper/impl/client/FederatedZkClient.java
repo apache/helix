@@ -161,12 +161,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
 
   @Override
   public void subscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
-
+    getZkClient(path).subscribePersistRecursiveListener(path, recursivePersistListener);
   }
 
   @Override
   public void unsubscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
-
+    getZkClient(path).unsubscribePersistRecursiveListener(path, recursivePersistListener);
   }
 
   @Override
@@ -711,9 +711,9 @@ public class FederatedZkClient implements RealmAwareZkClient {
   private ZkClient createZkClient(String zkAddress) {
     LOG.debug("Creating ZkClient for realm: {}.", zkAddress);
     return new ZkClient(new ZkConnection(zkAddress), (int) _clientConfig.getConnectInitTimeout(),
-        _clientConfig.getOperationRetryTimeout(), _pathBasedZkSerializer,
-        _clientConfig.getMonitorType(), _clientConfig.getMonitorKey(),
-        _clientConfig.getMonitorInstanceName(), _clientConfig.isMonitorRootPathOnly());
+        _clientConfig.getOperationRetryTimeout(), _pathBasedZkSerializer, _clientConfig.getMonitorType(),
+        _clientConfig.getMonitorKey(), _clientConfig.getMonitorInstanceName(), _clientConfig.isMonitorRootPathOnly(),
+        true, _clientConfig.isUsePersistWatcher());
   }
 
   private void checkClosedState() {

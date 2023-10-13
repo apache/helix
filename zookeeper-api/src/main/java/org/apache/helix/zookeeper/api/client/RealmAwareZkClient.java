@@ -577,6 +577,8 @@ public interface RealmAwareZkClient {
     protected String _monitorInstanceName = null;
     protected boolean _monitorRootPathOnly = true;
 
+    protected boolean _usePersistWatcher = false;
+
     public RealmAwareZkClientConfig setZkSerializer(PathBasedZkSerializer zkSerializer) {
       this._zkSerializer = zkSerializer;
       return this;
@@ -632,6 +634,11 @@ public interface RealmAwareZkClient {
       return this;
     }
 
+    public RealmAwareZkClientConfig setUsePersistWatcher(boolean usePersistWatcher) {
+      this._usePersistWatcher = usePersistWatcher;
+      return this;
+    }
+
     public PathBasedZkSerializer getZkSerializer() {
       if (_zkSerializer == null) {
         _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
@@ -661,6 +668,10 @@ public interface RealmAwareZkClient {
 
     public long getConnectInitTimeout() {
       return _connectInitTimeout;
+    }
+
+    public boolean isUsePersistWatcher() {
+      return _usePersistWatcher;
     }
 
     /**

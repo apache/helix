@@ -105,10 +105,11 @@ public class DedicatedZkClient implements RealmAwareZkClient {
         new ZkConnection(zkRealmAddress, connectionConfig.getSessionTimeout());
 
     // Create a ZkClient
-    _rawZkClient = new ZkClient(zkConnection, (int) clientConfig.getConnectInitTimeout(),
-        clientConfig.getOperationRetryTimeout(), clientConfig.getZkSerializer(),
-        clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
-        clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly());
+    _rawZkClient =
+        new ZkClient(zkConnection, (int) clientConfig.getConnectInitTimeout(), clientConfig.getOperationRetryTimeout(),
+            clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
+            clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly(), true,
+            clientConfig.isUsePersistWatcher());
   }
 
   @Override
@@ -159,12 +160,12 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public void subscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
-
+    _rawZkClient.subscribePersistRecursiveListener(path, recursivePersistListener);
   }
 
   @Override
   public void unsubscribePersistRecursiveListener(String path, RecursivePersistListener recursivePersistListener) {
-
+    _rawZkClient.unsubscribePersistRecursiveListener(path, recursivePersistListener);
   }
 
   @Override

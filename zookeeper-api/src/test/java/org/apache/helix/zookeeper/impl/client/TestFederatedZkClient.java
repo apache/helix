@@ -26,8 +26,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
@@ -39,7 +41,9 @@ import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.RecursivePersistListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.testng.Assert;
@@ -647,6 +651,68 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       Assert.assertEquals(ex.getMessage(), "FederatedZkClient is closed!");
     }
   }
+
+  @Test(dependsOnMethods = "testClose")
+  public void testFederatedZkClientWithPersistListener() throws InvalidRoutingDataException, InterruptedException {
+    RealmAwareZkClient realmAwareZkClient =
+        new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+            new RealmAwareZkClient.RealmAwareZkClientConfig().setUsePersistWatcher(true));
+    int count = 100;
+    final AtomicInteger[] event_count = {new AtomicInteger(0)};
+    final AtomicInteger[] event_count2 = {new AtomicInteger(0)};
+    // for each iteration, we will edit a node, create a child, create a grand child, and
+    // delete child. Expect 4 event per iteration. -> total event should be count*4
+    CountDownLatch countDownLatch1 = new CountDownLatch(count * 4);
+    CountDownLatch countDownLatch2 = new CountDownLatch(count);
+    realmAwareZkClient.createPersistent(TEST_VALID_PATH, true);
+    String path = TEST_VALID_PATH + "/testFederatedZkClientWithPersistListener";
+    RecursivePersistListener rcListener = new RecursivePersistListener() {
+      @Override
+      public void handleZNodeChange(String dataPath, Watcher.Event.EventType eventType) throws Exception {
+        countDownLatch1.countDown();
+        event_count[0].incrementAndGet();
+      }
+    };
+    realmAwareZkClient.create(path, "datat", CreateMode.PERSISTENT);
+    realmAwareZkClient.subscribePersistRecursiveListener(path, rcListener);
+    for (int i = 0; i < count; ++i) {
+      realmAwareZkClient.writeData(path, "data7" + i, -1);
+      realmAwareZkClient.create(path + "/c1_" + i, "datat", CreateMode.PERSISTENT);
+      realmAwareZkClient.create(path + "/c1_" + i + "/c2", "datat", CreateMode.PERSISTENT);
+      realmAwareZkClient.delete(path + "/c1_" + i + "/c2");
+    }
+    Assert.assertTrue(countDownLatch1.await(50000000, TimeUnit.MILLISECONDS));
+
+    // subscribe a persist child watch, it should throw exception
+    IZkChildListener childListener2 = new IZkChildListener() {
+      @Override
+      public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
+        countDownLatch2.countDown();
+        event_count2[0].incrementAndGet();
+      }
+    };
+    try {
+      realmAwareZkClient.subscribeChildChanges(path, childListener2, false);
+    } catch (Exception ex) {
+      Assert.assertEquals(ex.getClass().getName(), "java.lang.UnsupportedOperationException");
+    }
+
+    // unsubscribe recursive persist watcher, and subscribe persist watcher should success.
+    realmAwareZkClient.unsubscribePersistRecursiveListener(path, rcListener);
+    realmAwareZkClient.subscribeChildChanges(path, childListener2, false);
+    // we should only get 100 event since only 100 direct child change.
+    for (int i = 0; i < count; ++i) {
+      realmAwareZkClient.writeData(path, "data7" + i, -1);
+      realmAwareZkClient.create(path + "/c2_" + i, "datat", CreateMode.PERSISTENT);
+      realmAwareZkClient.create(path + "/c2_" + i + "/c3", "datat", CreateMode.PERSISTENT);
+      realmAwareZkClient.delete(path + "/c2_" + i + "/c3");
+    }
+    Assert.assertTrue(countDownLatch2.await(50000000, TimeUnit.MILLISECONDS));
+
+    realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+    realmAwareZkClient.close();
+  }
+
 
   @Override
   public void testMultiSetup() throws InvalidRoutingDataException {

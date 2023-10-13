@@ -71,8 +71,14 @@ public class TestAssignableReplica {
     Map<String, Integer> capacityDataMapResource2 = new HashMap<>();
     capacityDataMapResource2.put("item1", 5);
     capacityDataMapResource2.put("item2", 10);
+
+    // We should not directly modify the contents returned by getPartitionCapacityMap()
+    // This will not guard against the modification of the kv pairs in the inner maps as this
+    // is not creating a deepCopy but will ensure we don't override top level kv pairs in
+    // testResourceConfigResource.
     Map<String, Map<String, Integer>> capacityMap =
-        testResourceConfigResource.getPartitionCapacityMap();
+        new HashMap<>(testResourceConfigResource.getPartitionCapacityMap());
+
     String partitionName2 = partitionNamePrefix + 2;
     capacityMap.put(partitionName2, capacityDataMapResource2);
     testResourceConfigResource.setPartitionCapacityMap(capacityMap);

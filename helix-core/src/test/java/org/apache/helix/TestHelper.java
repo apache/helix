@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import com.google.common.base.Stopwatch;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -863,5 +864,11 @@ public class TestHelper {
       }
     }
     System.out.println("}");
+  }
+
+  public static long timeIt(Runnable runnable) {
+    Stopwatch stopwatch = Stopwatch.createStarted();
+    runnable.run();
+    return stopwatch.elapsed().toMillis();
   }
 }

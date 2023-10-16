@@ -41,6 +41,7 @@ import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
+import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.impl.zk.adapter.ChildListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DataListenerAdapter;
 import org.apache.helix.metaclient.impl.zk.adapter.DirectChildListenerAdapter;
@@ -63,6 +64,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.separateIntoUniqueNodePaths;
 import static org.apache.helix.metaclient.impl.zk.util.ZkMetaClientUtil.translateZkExceptionToMetaclientException;
 
 
@@ -104,7 +106,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @Override
-  public void create(String key, Object data, MetaClientInterface.EntryMode mode) {
+  public void create(String key, Object data, EntryMode mode) {
 
     try {
       _zkClient.create(key, data, ZkMetaClientUtil.convertMetaClientMode(mode));
@@ -112,6 +114,67 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       throw translateZkExceptionToMetaclientException(e);
     } catch (KeeperException e) {
       throw new MetaClientException(e);
+    }
+  }
+
+  @Override
+  public void recursiveCreate(String key, T data, EntryMode mode) {
+    // Function named recursiveCreate to match naming scheme, but actual work is iterative
+    iterativeCreate(key, data, mode, -1);
+  }
+
+  @Override
+  public void recursiveCreateWithTTL(String key, T data, long ttl) {
+    iterativeCreate(key, data, EntryMode.TTL, ttl);
+  }
+
+  private void iterativeCreate(String key, T data, EntryMode mode, long ttl) {
+    List<String> nodePaths = separateIntoUniqueNodePaths(key);
+    int i = 0;
+    // Ephemeral nodes cant have children, so change mode when creating parents
+    EntryMode parentMode = (EntryMode.EPHEMERAL.equals(mode) ?
+        EntryMode.PERSISTENT : mode);
+
+    // Iterate over paths, starting with full key then attempting each successive parent
+    // Try /a/b/c, if parent /a/b, does not exist, then try to create parent, etc..
+    while (i < nodePaths.size()) {
+      // If parent exists or there is no parent node, then try to create the node
+      // and break out of loop on successful create
+      if (i == nodePaths.size() - 1 || _zkClient.exists(nodePaths.get(i+1))) {
+        try {
+          if (EntryMode.TTL.equals(mode)) {
+            createWithTTL(nodePaths.get(i), data, ttl);
+          } else {
+            create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
+          }
+        // Race condition may occur where a  node is created by another thread in between loops.
+        // We should not throw error if this occurs for parent nodes, only for the full node path.
+        } catch (MetaClientNodeExistsException e) {
+          if (i == 0) {
+            throw e;
+          }
+        }
+        break;
+      // Else try to create parent in next loop iteration
+      } else {
+       i++;
+      }
+    }
+
+    // Reattempt creation of children that failed due to parent not existing
+    while (--i >= 0) {
+      try {
+        if (EntryMode.TTL.equals(mode)) {
+          createWithTTL(nodePaths.get(i), data, ttl);
+        } else {
+          create(nodePaths.get(i), data, i == 0 ? mode : parentMode);
+        }
+      // Catch same race condition as above
+      } catch (MetaClientNodeExistsException e) {
+        if (i == 0) {
+          throw e;
+        }
+      }
     }
   }
 

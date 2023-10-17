@@ -557,6 +557,16 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public boolean isSwapReadyToComplete(String clusterName, String instancesNames) {
+    return false;
+  }
+
+  @Override
+  public boolean completeSwapIfReady(String clusterName, String instanceName) {
+    return false;
+  }
+
+  @Override
   public boolean isReadyForPreparingJoiningCluster(String clusterName, String instancesNames) {
     return false;
   }

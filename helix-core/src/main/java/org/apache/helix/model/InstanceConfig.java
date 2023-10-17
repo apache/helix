@@ -702,6 +702,16 @@ public class InstanceConfig extends HelixProperty {
     return _record.getId();
   }
 
+  /**
+   * Get the logicalId of this instance. If it does not exist or is not set,
+   * return the instance name.
+   * @param logicalIdKey the key for the DOMAIN field containing the logicalId
+   * @return the logicalId of this instance
+   */
+  public String getLogicalId(String logicalIdKey) {
+    return getDomainAsMap().getOrDefault(logicalIdKey, getInstanceName());
+  }
+
   @Override
   public boolean isValid() {
     // HELIX-65: remove check for hostname/port existence

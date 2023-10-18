@@ -40,10 +40,7 @@ public class WagedResourceWeightsProvider {
 
   public Map<String, Integer> getPartitionWeights(String resourceName, String partition) {
     @Nullable ResourceConfig resourceConfig = _clusterData.getResourceConfig(resourceName);
-    IdealState is = _clusterData.getIdealState(resourceName);
-    ResourceConfig mergedResourceConfig =
-        ResourceConfig.mergeIdealStateWithResourceConfig(resourceConfig, is);
 
-    return WagedRebalanceUtil.fetchCapacityUsage(partition, mergedResourceConfig, _clusterData.getClusterConfig());
+    return WagedRebalanceUtil.fetchCapacityUsage(partition, resourceConfig, _clusterData.getClusterConfig());
   }
 }

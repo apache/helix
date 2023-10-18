@@ -515,7 +515,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
-   * Get cached waged instance capacity map.
+   * Getter for cached waged instance capacity map.
    * @return
    */
   public WagedInstanceCapacity getWagedInstanceCapacity() {

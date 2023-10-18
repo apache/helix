@@ -23,9 +23,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
+
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -34,7 +36,8 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
-import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacityManager;
+import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
+import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -111,7 +114,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       reportResourcePartitionCapacityMetrics(dataProvider.getAsyncTasksThreadPool(),
           clusterStatusMonitor, dataProvider.getResourceConfigMap().values());
 
-      WagedInstanceCapacityManager.getInstance().processEvent(event, currentStateOutput);
+      handleResourceCapacityCalculation(event, (ResourceControllerDataProvider) cache, currentStateOutput);
     }
   }
 
@@ -330,4 +333,64 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       return null;
     });
   }
+
+  void handleResourceCapacityCalculation(ClusterEvent event, ResourceControllerDataProvider cache,
+      CurrentStateOutput currentStateOutput) {
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    if (skipCapacityCalculation(cache, resourceMap, event)) {
+      return;
+    }
+
+    Map<String, Resource> wagedEnabledResourceMap = resourceMap.entrySet()
+        .stream()
+        .filter(entry -> WagedValidationUtil.isWagedEnabled(cache.getIdealState(entry.getKey())))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (wagedEnabledResourceMap.isEmpty()) {
+      return;
+    }
+
+    // Phase 1: Rebuild Always
+    WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(cache);
+    WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(cache);
+
+    capacityProvider.process(cache, currentStateOutput, resourceMap, weightProvider);
+    cache.setWagedCapacityProviders(capacityProvider, weightProvider);
+  }
+
+  /**
+   * Function that checks whether we should return early, without any action on the capacity map or not.
+   *
+   * @param cache it is the cluster level cache for the resources.
+   * @param event the cluster event that is undergoing processing.
+   * @return true, of the condition evaluate to true and no action is needed, else false.
+   */
+  static boolean skipCapacityCalculation(ResourceControllerDataProvider cache, Map<String, Resource> resourceMap,
+      ClusterEvent event) {
+    if (resourceMap == null || resourceMap.isEmpty()) {
+      return true;
+    }
+
+    if (Objects.isNull(cache.getWagedInstanceCapacity())) {
+      return false;
+    }
+
+    switch (event.getEventType()) {
+      case CustomizedStateChange:
+      case CustomizedViewChange:
+      case CustomizeStateConfigChange:
+      case ExternalViewChange:
+      case IdealStateChange:
+      case OnDemandRebalance:
+      case Resume:
+      case RetryRebalance:
+      case StateVerifier:
+      case TargetExternalViewChange:
+      case TaskCurrentStateChange:
+        return true;
+      default:
+        return false;
+    }
+  }
+
 }

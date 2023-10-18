@@ -1,5 +1,25 @@
-package org.apache.helix.controller.rebalancer.waged;
+package org.apache.helix.controller.stages;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.io.IOException;
@@ -13,25 +33,30 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomUtils;
-import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.ClusterEventType;
-import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.mockito.Mockito;
 import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
-public class TestWagedInstanceCapacityManager {
+public class TestCurrentStateComputationStageForHandlingCapacity {
 
   private static final int INSTANCE_COUNT = 3;
   private static final int RESOURCE_COUNT = 2;
@@ -47,6 +72,7 @@ public class TestWagedInstanceCapacityManager {
   private Map<String, Resource> _resourceMap;
   private CurrentStateOutput _currentStateOutput;
   private WagedInstanceCapacity _wagedInstanceCapacity;
+  private CurrentStateComputationStage _currentStateComputationStage;
 
   @BeforeMethod
   public void setUp() {
@@ -69,6 +95,7 @@ public class TestWagedInstanceCapacityManager {
 
     // prepare instance of waged-instance capacity
     _wagedInstanceCapacity = new WagedInstanceCapacity(_clusterData);
+    _currentStateComputationStage = new CurrentStateComputationStage();
   }
 
   @Test
@@ -86,8 +113,7 @@ public class TestWagedInstanceCapacityManager {
     clusterEvent.addAttribute(AttributeName.ControllerDataProvider.name(), _clusterData);
     clusterEvent.addAttribute(AttributeName.RESOURCES.name(), _resourceMap);
 
-    WagedInstanceCapacityManager.getInstance()
-        .processEvent(clusterEvent, _currentStateOutput);
+    _currentStateComputationStage.handleResourceCapacityCalculation(clusterEvent, _clusterData, _currentStateOutput);
 
     // validate that we did not compute and set the capacity map.
     Assert.assertNull(_clusterData.getWagedInstanceCapacity());
@@ -108,8 +134,7 @@ public class TestWagedInstanceCapacityManager {
     clusterEvent.addAttribute(AttributeName.ControllerDataProvider.name(), _clusterData);
     clusterEvent.addAttribute(AttributeName.RESOURCES.name(), _resourceMap);
 
-    WagedInstanceCapacityManager.getInstance()
-        .processEvent(clusterEvent, _currentStateOutput);
+    _currentStateComputationStage.handleResourceCapacityCalculation(clusterEvent, _clusterData, _currentStateOutput);
 
     // validate that we did not compute and set the capacity map.
     WagedInstanceCapacity wagedInstanceCapacity = _clusterData.getWagedInstanceCapacity();
@@ -133,8 +158,7 @@ public class TestWagedInstanceCapacityManager {
     clusterEvent.addAttribute(AttributeName.ControllerDataProvider.name(), _clusterData);
     clusterEvent.addAttribute(AttributeName.RESOURCES.name(), _resourceMap);
 
-    WagedInstanceCapacityManager.getInstance()
-        .processEvent(clusterEvent, _currentStateOutput);
+    _currentStateComputationStage.handleResourceCapacityCalculation(clusterEvent, _clusterData, _currentStateOutput);
 
     // validate that we did not compute and set the capacity map.
     WagedInstanceCapacity wagedInstanceCapacity = _clusterData.getWagedInstanceCapacity();
@@ -150,23 +174,17 @@ public class TestWagedInstanceCapacityManager {
   }
 
   @Test
-  public void testShouldNoOp() {
-    // case: when cache is not of type: ResourceControllerDataProvider
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
-        new ManagementControllerDataProvider("a", "b"),
-        ImmutableMap.of(),
-        new ClusterEvent(ClusterEventType.LiveInstanceChange)));
-
+  public void testSkipCapacityCalculation() {
     // case: when resource-map is null
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         new ResourceControllerDataProvider(), null, new ClusterEvent(ClusterEventType.LiveInstanceChange)));
 
     // case: when resource-map is empty
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         new ResourceControllerDataProvider(), ImmutableMap.of(), new ClusterEvent(ClusterEventType.LiveInstanceChange)));
 
     // case: when instance capacity is null
-    Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertFalse(CurrentStateComputationStage.skipCapacityCalculation(
         new ResourceControllerDataProvider(), _resourceMap, new ClusterEvent(ClusterEventType.LiveInstanceChange)));
 
     // case: when event is of no-op
@@ -174,36 +192,36 @@ public class TestWagedInstanceCapacityManager {
     WagedInstanceCapacity instanceCapacity = Mockito.mock(WagedInstanceCapacity.class);
     Mockito.when(dataProvider.getWagedInstanceCapacity()).thenReturn(instanceCapacity);
 
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CustomizedStateChange)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CustomizedViewChange)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CustomizeStateConfigChange)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.ExternalViewChange)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.IdealStateChange)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.OnDemandRebalance)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.Resume)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.RetryRebalance)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.StateVerifier)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.TargetExternalViewChange)));
-    Assert.assertTrue(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertTrue(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.TaskCurrentStateChange)));
 
-    Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertFalse(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.LiveInstanceChange)));
-    Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertFalse(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.CurrentStateChange)));
-    Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertFalse(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.MessageChange)));
-    Assert.assertFalse(WagedInstanceCapacityManager.shouldNoOp(
+    Assert.assertFalse(CurrentStateComputationStage.skipCapacityCalculation(
         dataProvider, _resourceMap, new ClusterEvent(ClusterEventType.PeriodicalRebalance)));
   }
 

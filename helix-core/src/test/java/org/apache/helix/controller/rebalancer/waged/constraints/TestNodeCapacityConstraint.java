@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import static org.mockito.Mockito.when;
 
-import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -42,11 +41,7 @@ public class TestNodeCapacityConstraint {
     String key = "testKey";
     when(_testNode.getRemainingCapacity()).thenReturn(ImmutableMap.of(key,  10));
     when(_testReplica.getCapacity()).thenReturn(ImmutableMap.of(key, 5));
-
-    ValidationResult validationResult = _constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertTrue(validationResult.isSuccessful());
-    Assert.assertNull(validationResult.getErrorMessage());
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -54,11 +49,6 @@ public class TestNodeCapacityConstraint {
     String key = "testKey";
     when(_testNode.getRemainingCapacity()).thenReturn(ImmutableMap.of(key,  1));
     when(_testReplica.getCapacity()).thenReturn(ImmutableMap.of(key, 5));
-
-    ValidationResult validationResult = _constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertFalse(validationResult.isSuccessful());
-    Assert.assertEquals(validationResult.getErrorMessage(),
-        "Node has insufficient capacity for dimension: testKey. Left available: 1, Required: 5");
+    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 }

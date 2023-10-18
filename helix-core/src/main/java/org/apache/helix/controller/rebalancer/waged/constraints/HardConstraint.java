@@ -23,7 +23,6 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-
 /**
  * Evaluate a partition allocation proposal and return YES or NO based on the cluster context.
  * Any proposal fails one or more hard constraints will be rejected.
@@ -34,46 +33,15 @@ abstract class HardConstraint {
    * Check if the replica could be assigned to the node
    * @return True if the proposed assignment is valid; False otherwise
    */
-  abstract ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  abstract boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
-
   /**
-   * Stores the assignment validation result and the error message, in case of failure.
+   * Return class name by default as description if it's explanatory enough, child class could override
+   * the method and add more detailed descriptions
+   * @return The detailed description of hard constraint
    */
-  public static class ValidationResult {
-    enum Status {
-      SUCCESSFUL,
-      FAILED;
-    }
-
-    private final Status _status;
-    private final String _errorMessage;
-
-    private ValidationResult(Status status, String errorMessage) {
-      _status = status;
-      _errorMessage = errorMessage;
-    }
-
-    public static ValidationResult ok() {
-      return new ValidationResult(Status.SUCCESSFUL, null);
-    }
-
-    public static ValidationResult fail(String errorMessage) {
-      return new ValidationResult(Status.FAILED, errorMessage);
-    }
-
-    public boolean isSuccessful() {
-      return _status == Status.SUCCESSFUL;
-    }
-
-    public boolean isFailed() {
-      return _status == Status.FAILED;
-    }
-
-    public String getErrorMessage() {
-      return _errorMessage;
-    }
+  String getDescription() {
+    return getClass().getName();
   }
-
 }

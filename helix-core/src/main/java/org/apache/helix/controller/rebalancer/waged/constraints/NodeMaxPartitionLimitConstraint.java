@@ -22,19 +22,24 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 class NodeMaxPartitionLimitConstraint extends HardConstraint {
 
+  private static final Logger LOG = LoggerFactory.getLogger(NodeMaxPartitionLimitConstraint.class);
+
   @Override
-  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     boolean exceedMaxPartitionLimit =
         node.getMaxPartition() < 0 || node.getAssignedReplicaCount() < node.getMaxPartition();
 
     if (!exceedMaxPartitionLimit) {
-      return ValidationResult.fail(String.format(
-          "Cannot exceed the max number of partitions (%s) limitation on node. Assigned replica count: %s",
-          node.getMaxPartition(), node.getAssignedReplicaCount()));
+      LOG.debug("Cannot exceed the max number of partitions ({}) limitation on node. Assigned replica count: {}",
+          node.getMaxPartition(), node.getAssignedReplicaCount());
+      return false;
     }
 
     int resourceMaxPartitionsPerInstance = replica.getResourceMaxPartitionsPerInstance();
@@ -43,11 +48,15 @@ class NodeMaxPartitionLimitConstraint extends HardConstraint {
         || assignedPartitionsByResourceSize < resourceMaxPartitionsPerInstance;
 
     if (!exceedResourceMaxPartitionLimit) {
-      return ValidationResult.fail(String.format(
-          "Cannot exceed the max number of partitions per resource (%s) limitation on node. Assigned replica count: %s",
-          resourceMaxPartitionsPerInstance, assignedPartitionsByResourceSize));
+      LOG.debug("Cannot exceed the max number of partitions per resource ({}) limitation on node. Assigned replica count: {}",
+          resourceMaxPartitionsPerInstance, assignedPartitionsByResourceSize);
+      return false;
     }
-    return ValidationResult.ok();
+    return true;
   }
 
+  @Override
+  String getDescription() {
+    return "Cannot exceed the maximum number of partitions limitation on node";
+  }
 }

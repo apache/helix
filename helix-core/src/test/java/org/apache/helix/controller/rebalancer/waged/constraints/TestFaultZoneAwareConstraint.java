@@ -21,7 +21,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
-import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
+
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -55,11 +55,8 @@ public class TestFaultZoneAwareConstraint {
     when(_clusterContext.getPartitionsForResourceAndFaultZone(TEST_RESOURCE, TEST_ZONE)).thenReturn(
             ImmutableSet.of(TEST_PARTITION));
 
-    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertFalse(validationResult.isSuccessful());
-    Assert.assertEquals(validationResult.getErrorMessage(),
-        "A fault zone cannot contain more than 1 replica of same partition. Found replica for partition: testPartition");
+    Assert.assertFalse(
+        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -67,19 +64,15 @@ public class TestFaultZoneAwareConstraint {
     when(_testNode.hasFaultZone()).thenReturn(true);
     when(_clusterContext.getPartitionsForResourceAndFaultZone(TEST_RESOURCE, TEST_ZONE)).thenReturn(Collections.emptySet());
 
-    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertTrue(validationResult.isSuccessful());
-    Assert.assertNull(validationResult.getErrorMessage());
+    Assert.assertTrue(
+        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
   public void validWhenNoFaultZone() {
     when(_testNode.hasFaultZone()).thenReturn(false);
 
-    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertTrue(validationResult.isSuccessful());
-    Assert.assertNull(validationResult.getErrorMessage());
+    Assert.assertTrue(
+        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 }

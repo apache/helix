@@ -23,26 +23,29 @@ import java.util.Set;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 class FaultZoneAwareConstraint extends HardConstraint {
 
+  private static final Logger LOG = LoggerFactory.getLogger(FaultZoneAwareConstraint.class);
+
   @Override
-  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     if (!node.hasFaultZone()) {
-      return ValidationResult.ok();
+      return true;
     }
 
     Set<String> partitionsForResourceAndFaultZone =
         clusterContext.getPartitionsForResourceAndFaultZone(replica.getResourceName(), node.getFaultZone());
 
     if (partitionsForResourceAndFaultZone.contains(replica.getPartitionName())) {
-      return ValidationResult.fail(String.format(
-          "A fault zone cannot contain more than 1 replica of same partition. Found replica for partition: %s",
-          replica.getPartitionName()));
+      LOG.debug("A fault zone cannot contain more than 1 replica of same partition. Found replica for partition: {}",
+          replica.getPartitionName());
+      return false;
     }
-    return ValidationResult.ok();
+    return true;
   }
-
 }

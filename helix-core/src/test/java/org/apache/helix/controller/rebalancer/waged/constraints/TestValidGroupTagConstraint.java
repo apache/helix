@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
-import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -46,9 +45,7 @@ public class TestValidGroupTagConstraint {
     when(_testReplica.getResourceInstanceGroupTag()).thenReturn(TEST_TAG);
     when(_testNode.getInstanceTags()).thenReturn(ImmutableSet.of(TEST_TAG));
 
-    ValidationResult validationResult = _constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-    Assert.assertTrue(validationResult.isSuccessful());
-    Assert.assertNull(validationResult.getErrorMessage());
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -57,18 +54,13 @@ public class TestValidGroupTagConstraint {
     when(_testReplica.getResourceInstanceGroupTag()).thenReturn(TEST_TAG);
     when(_testNode.getInstanceTags()).thenReturn(Collections.emptySet());
 
-    ValidationResult validationResult = _constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-    Assert.assertFalse(validationResult.isSuccessful());
-    Assert.assertEquals(validationResult.getErrorMessage(),
-        "Instance doesn't have the tag of the replica (testTag)");
+    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
   public void testConstraintWhenReplicaHasNoTag() {
     when(_testReplica.hasResourceInstanceGroupTag()).thenReturn(false);
 
-    ValidationResult validationResult = _constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-    Assert.assertTrue(validationResult.isSuccessful());
-    Assert.assertNull(validationResult.getErrorMessage());
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 }

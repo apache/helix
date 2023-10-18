@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -55,10 +54,7 @@ public class TestReplicaActivateConstraint {
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
 
-    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertTrue(validationResult.isSuccessful());
-    Assert.assertNull(validationResult.getErrorMessage());
+    Assert.assertTrue(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -70,10 +66,7 @@ public class TestReplicaActivateConstraint {
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
 
-    ValidationResult validationResult = _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertFalse(validationResult.isSuccessful());
-    Assert.assertEquals(validationResult.getErrorMessage(), "Cannot assign the inactive replica: testPartition");
+    Assert.assertFalse(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
 }

@@ -30,9 +30,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
-import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -120,14 +120,15 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private Optional<AssignableNode> getNodeWithHighestPoints(AssignableReplica replica,
       List<AssignableNode> assignableNodes, ClusterContext clusterContext,
       Set<String> busyInstances, OptimalAssignment optimalAssignment) {
-    Map<AssignableNode, List<String>> hardConstraintFailures = new ConcurrentHashMap<>();
+    Map<AssignableNode, List<HardConstraint>> hardConstraintFailures = new ConcurrentHashMap<>();
     List<AssignableNode> candidateNodes = assignableNodes.parallelStream().filter(candidateNode -> {
       boolean isValid = true;
+      // need to record all the failure reasons and it gives us the ability to debug/fix the runtime
+      // cluster environment
       for (HardConstraint hardConstraint : _hardConstraints) {
-        ValidationResult validationResult  = hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext);
-        if (validationResult.isFailed()) {
+        if (!hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext)) {
           hardConstraintFailures.computeIfAbsent(candidateNode, node -> new ArrayList<>())
-              .add(validationResult.getErrorMessage());
+              .add(hardConstraint);
           isValid = false;
         }
       }
@@ -135,7 +136,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }).collect(Collectors.toList());
 
     if (candidateNodes.isEmpty()) {
-      optimalAssignment.recordAssignmentFailure(replica, hardConstraintFailures);
+      optimalAssignment.recordAssignmentFailure(replica,
+          Maps.transformValues(hardConstraintFailures, this::convertFailureReasons));
       return Optional.empty();
     }
 
@@ -170,6 +172,11 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       }
     }
     return sum;
+  }
+
+  private List<String> convertFailureReasons(List<HardConstraint> hardConstraints) {
+    return hardConstraints.stream().map(HardConstraint::getDescription)
+        .collect(Collectors.toList());
   }
 
   private static class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {

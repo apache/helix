@@ -48,4 +48,9 @@ class FaultZoneAwareConstraint extends HardConstraint {
     }
     return true;
   }
+
+  @Override
+  String getDescription() {
+    return "A fault zone cannot contain more than 1 replica of same partition";
+  }
 }

@@ -367,6 +367,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           currentStateOutput.getCurrentStateMap(resourceName, partition).entrySet().stream()
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
+      if (preferenceList == null || preferenceList.size() == 0) {
+        continue;
+      }
       Map<String, Integer> requiredState = getRequiredStates(resourceName, cache, preferenceList);
       messagesToThrottle.sort(new MessagePriorityComparator(preferenceList, stateModelDef.getStatePriorityMap()));
       for (Message message : messagesToThrottle) {
@@ -467,6 +470,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       // To clarify that custom mode does not apply recovery/load rebalance since user can define different number of
       // replicas for different partitions. Actually, the custom will stopped from resource level checks if this resource
       // is not FULL_AUTO, we will return best possible state and do nothing.
+      List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
+      if (preferenceList == null) {
+        continue;
+      }
       Map<String, Integer> requiredStates =
           getRequiredStates(resourceName, cache, preferenceLists.get(partition.getPartitionName()));
       // Maps instance to its current state
@@ -643,15 +650,18 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     StateModelDefinition stateModelDefinition =
         resourceControllerDataProvider.getStateModelDef(idealState.getStateModelDefRef());
     int requiredNumReplica =
-        idealState.getMinActiveReplicas() == -1 ? idealState.getReplicaCount(preferenceList.size())
+        idealState.getMinActiveReplicas() == -1 ?
+            idealState.getReplicaCount(preferenceList == null ? 0 : preferenceList.size())
             : idealState.getMinActiveReplicas();
 
     // Generate a state mapping, state -> required numbers based on the live and enabled instances for this partition
     // preference list
-    return stateModelDefinition.getStateCountMap(
-        (int) preferenceList.stream()
-            .filter(i -> resourceControllerDataProvider.getEnabledLiveInstances().contains(i))
-            .count(), requiredNumReplica); // StateModelDefinition's counts
+    if (preferenceList != null) {
+      return stateModelDefinition.getStateCountMap((int) preferenceList.stream().filter(i -> resourceControllerDataProvider.getEnabledLiveInstances().contains(i))
+          .count(), requiredNumReplica); // StateModelDefinition's counts
+    }
+    return stateModelDefinition.getStateCountMap(resourceControllerDataProvider.getEnabledLiveInstances().size(),
+        requiredNumReplica); // StateModelDefinition's counts
   }
 
   /**

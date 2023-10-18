@@ -354,7 +354,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(cache);
     WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(cache);
 
-    capacityProvider.process(cache, currentStateOutput, resourceMap, weightProvider);
+    capacityProvider.process(cache, currentStateOutput, wagedEnabledResourceMap, weightProvider);
     cache.setWagedCapacityProviders(capacityProvider, weightProvider);
   }
 
@@ -376,20 +376,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     switch (event.getEventType()) {
-      case CustomizedStateChange:
-      case CustomizedViewChange:
-      case CustomizeStateConfigChange:
-      case ExternalViewChange:
-      case IdealStateChange:
-      case OnDemandRebalance:
-      case Resume:
-      case RetryRebalance:
-      case StateVerifier:
-      case TargetExternalViewChange:
-      case TaskCurrentStateChange:
-        return true;
-      default:
+      case ClusterConfigChange:
+      case InstanceConfigChange:
+      case ResourceConfigChange:
+      case ControllerChange:
+      case LiveInstanceChange:
+      case CurrentStateChange:
+      case PeriodicalRebalance:
+      case MessageChange:
         return false;
+      default:
+        return true;
     }
   }
 

@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.controller.dataproviders.InstanceCapacityDataProvider;
-import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
@@ -35,6 +33,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.controller.dataproviders.InstanceCapacityDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,6 +139,11 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     for (Map.Entry<String, Resource> entry : resourceMap.entrySet()) {
       String resName = entry.getKey();
       Resource resource = entry.getValue();
+
+      // if Resource is WAGED managed, then we need to manage the capacity.
+      if (!WagedValidationUtil.isWagedEnabled(cache.getIdealState(resName))) {
+        continue;
+      }
 
       // list of partitions in the resource
       Collection<Partition> partitions = resource.getPartitions();

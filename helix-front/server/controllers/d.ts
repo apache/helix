@@ -17,6 +17,8 @@ interface HelixSession {
 type AgentOptions = {
   rejectUnauthorized: boolean;
   ca?: string;
+  key?: Buffer;
+  cert?: Buffer;
 };
 
 export type HelixRequestOptions = {

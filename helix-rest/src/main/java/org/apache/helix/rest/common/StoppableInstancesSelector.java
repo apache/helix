@@ -73,7 +73,7 @@ public class StoppableInstancesSelector {
    */
   public void getStoppableInstancesInSingleZone(List<String> instances) throws IOException {
     List<String> zoneBasedInstance =
-        getZoneBasedInstances(instances, _orderOfZone, _clusterTopology.toZoneMapping());
+        getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, zoneBasedInstance,
             _customizedInput);
@@ -111,6 +111,30 @@ public class StoppableInstancesSelector {
   }
 
   /**
+   * Determines the order of zones. If an order is provided by the user, it will be used directly.
+   * Otherwise, zones will be ordered by their associated instance count in descending order.
+   *
+   * If `isRandom` is true, the order of zones will be randomized regardless of any previous order.
+   *
+   * @param isRandom Indicates whether to randomize the order of zones.
+   */
+  public void calculateOrderOfZone(boolean isRandom) {
+    // If the orderedZones is not specified, we will order all zones by their instances count in descending order.
+    if (_orderOfZone == null) {
+      _orderOfZone =
+          new ArrayList<>(getOrderedZoneToInstancesMap(_clusterTopology.toZoneMapping()).keySet());
+    }
+
+    if (_orderOfZone.isEmpty()) {
+      return;
+    }
+
+    if (isRandom) {
+      Collections.shuffle(_orderOfZone);
+    }
+  }
+
+  /**
    * Get instances belongs to the first zone. If the zone is already empty, Helix will iterate zones
    * by order until find the zone contains instances.
    *
@@ -118,23 +142,17 @@ public class StoppableInstancesSelector {
    * zones by the number of associated instances in descending order.
    *
    * @param instances
-   * @param orderedZones
+   * @param zoneMapping
    * @return
    */
-  private List<String> getZoneBasedInstances(List<String> instances, List<String> orderedZones,
+  private List<String> getZoneBasedInstances(List<String> instances,
       Map<String, Set<String>> zoneMapping) {
-
-    // If the orderedZones is not specified, we will order all zones by their instances count in descending order.
-    if (orderedZones == null) {
-      orderedZones = new ArrayList<>(getOrderedZoneToInstancesMap(zoneMapping).keySet());
-    }
-
-    if (orderedZones.isEmpty()) {
-      return orderedZones;
+    if (_orderOfZone.isEmpty()) {
+      return _orderOfZone;
     }
 
     Set<String> instanceSet = null;
-    for (String zone : orderedZones) {
+    for (String zone : _orderOfZone) {
       instanceSet = new TreeSet<>(instances);
       Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone));
       instanceSet.retainAll(currentZoneInstanceSet);

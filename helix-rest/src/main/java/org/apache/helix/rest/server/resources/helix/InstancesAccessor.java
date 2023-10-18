@@ -148,7 +148,8 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("command") String command,
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
-      @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories, String content) {
+      @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
+      @QueryParam("random") boolean random, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -193,7 +194,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           break;
         case stoppable:
           return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures,
-              skipHealthCheckCategorySet);
+              skipHealthCheckCategorySet, random);
         default:
           _logger.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);
@@ -210,8 +211,8 @@ public class InstancesAccessor extends AbstractHelixResource {
   }
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
-      boolean continueOnFailures, Set<StoppableCheck.Category> skipHealthCheckCategories)
-      throws IOException {
+      boolean continueOnFailures, Set<StoppableCheck.Category> skipHealthCheckCategories,
+      boolean random) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -258,6 +259,7 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setMaintenanceService(maintenanceService)
               .setClusterTopology(clusterTopology)
               .build();
+      stoppableInstancesSelector.calculateOrderOfZone(random);
       switch (selectionBase) {
         case zone_based:
           stoppableInstancesSelector.getStoppableInstancesInSingleZone(instances);

@@ -410,15 +410,21 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public boolean isEvacuateFinished(String clusterName, String instanceName) {
-    return !instanceHasCurrentSateOrMessage(clusterName, instanceName) && (getInstanceConfig(clusterName,
-        instanceName).getInstanceOperation().equals(InstanceConstants.InstanceOperation.EVACUATE.name()));
+    if (!instanceHasCurrentSateOrMessage(clusterName, instanceName)) {
+      InstanceConfig config = getInstanceConfig(clusterName, instanceName);
+      return config != null && config.getInstanceOperation().equals(InstanceConstants.InstanceOperation.EVACUATE.name());
+    }
+    return false;
   }
 
   @Override
   public boolean isReadyForPreparingJoiningCluster(String clusterName, String instanceName) {
-    return !instanceHasCurrentSateOrMessage(clusterName, instanceName)
-        && DelayedAutoRebalancer.INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(
-        getInstanceConfig(clusterName, instanceName).getInstanceOperation());
+    if (!instanceHasCurrentSateOrMessage(clusterName, instanceName)) {
+      InstanceConfig config = getInstanceConfig(clusterName, instanceName);
+      return config != null && DelayedAutoRebalancer.INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(
+          config.getInstanceOperation());
+    }
+    return false;
   }
 
   /**

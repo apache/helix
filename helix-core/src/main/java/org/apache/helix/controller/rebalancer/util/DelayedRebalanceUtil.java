@@ -132,9 +132,10 @@ public class DelayedRebalanceUtil {
 
   public static Set<String> filterOutEvacuatingInstances(Map<String, InstanceConfig> instanceConfigMap,
       Set<String> nodes) {
-    return  nodes.stream()
-        .filter(instance -> !instanceConfigMap.get(instance).getInstanceOperation().equals(
-            InstanceConstants.InstanceOperation.EVACUATE.name()))
+    return nodes.stream()
+        .filter(instance -> (instanceConfigMap.get(instance) != null && !instanceConfigMap.get(instance)
+            .getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.EVACUATE.name())))
         .collect(Collectors.toSet());
   }
 

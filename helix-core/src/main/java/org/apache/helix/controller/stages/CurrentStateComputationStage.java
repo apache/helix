@@ -342,7 +342,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     Map<String, Resource> wagedEnabledResourceMap = resourceMap.entrySet()
-        .stream()
+        .parallelStream()
         .filter(entry -> WagedValidationUtil.isWagedEnabled(cache.getIdealState(entry.getKey())))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

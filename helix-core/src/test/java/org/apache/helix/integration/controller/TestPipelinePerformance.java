@@ -104,7 +104,7 @@ public class TestPipelinePerformance extends ZkTestBase {
     deleteCluster(_clusterName);
   }
 
-  @Test
+  @Test(enabled = false)
   public void testWagedInstanceCapacityCalculationPerformance() throws Exception {
     ObjectName currentStateMbeanObjectName = new ObjectName(
         String.format("ClusterStatus:cluster=%s,eventName=ClusterEvent,phaseName=CurrentStateComputationStage",

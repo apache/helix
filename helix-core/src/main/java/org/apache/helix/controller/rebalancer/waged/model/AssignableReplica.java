@@ -50,6 +50,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
   private final int _statePriority;
   // The state of the replica
   private final String _replicaState;
+  private final String _evennessScoringCapacityKey;
 
   /**
    * @param clusterConfig  The cluster config.
@@ -68,6 +69,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     _resourceInstanceGroupTag = resourceConfig.getInstanceGroupTag();
     _resourceMaxPartitionsPerInstance = resourceConfig.getMaxPartitionsPerInstance();
     _replicaKey = generateReplicaKey(_resourceName, _partitionName,_replicaState);
+    _evennessScoringCapacityKey = resourceConfig.getEvennessScoringCapacityKey();
   }
 
   public Map<String, Integer> getCapacity() {
@@ -104,6 +106,10 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
 
   public int getResourceMaxPartitionsPerInstance() {
     return _resourceMaxPartitionsPerInstance;
+  }
+
+  public String getEvennessScoringCapacityKey() {
+    return _evennessScoringCapacityKey;
   }
 
   @Override

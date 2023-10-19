@@ -58,7 +58,8 @@ public class ResourceConfig extends HelixProperty {
     GROUP_ROUTING_ENABLED,
     EXTERNAL_VIEW_DISABLED,
     DELAY_REBALANCE_ENABLED,
-    PARTITION_CAPACITY_MAP
+    PARTITION_CAPACITY_MAP,
+    EVENNESS_SCORING_CAPACITY_KEY
   }
 
   public enum ResourceConfigConstants {
@@ -109,7 +110,7 @@ public class ResourceConfig extends HelixProperty {
     this(resourceId, monitorDisabled, numPartitions, stateModelDefRef, stateModelFactoryName,
         numReplica, minActiveReplica, maxPartitionsPerInstance, instanceGroupTag, helixEnabled,
         resourceGroupName, resourceType, groupRoutingEnabled, externalViewDisabled, rebalanceConfig,
-        stateTransitionTimeoutConfig, listFields, mapFields, p2pMessageEnabled, null);
+        stateTransitionTimeoutConfig, listFields, mapFields, p2pMessageEnabled, null, null);
   }
 
   private ResourceConfig(String resourceId, Boolean monitorDisabled, int numPartitions,
@@ -119,7 +120,8 @@ public class ResourceConfig extends HelixProperty {
         Boolean groupRoutingEnabled, Boolean externalViewDisabled,
         RebalanceConfig rebalanceConfig, StateTransitionTimeoutConfig stateTransitionTimeoutConfig,
         Map<String, List<String>> listFields, Map<String, Map<String, String>> mapFields,
-        Boolean p2pMessageEnabled, Map<String, Map<String, Integer>> partitionCapacityMap) {
+        Boolean p2pMessageEnabled, Map<String, Map<String, Integer>> partitionCapacityMap,
+        String evennessScoringCapacityKey) {
     super(resourceId);
 
     if (monitorDisabled != null) {
@@ -204,6 +206,10 @@ public class ResourceConfig extends HelixProperty {
         throw new IllegalArgumentException(
             "Failed to set partition capacity. Invalid capacity configuration.");
       }
+    }
+
+    if (evennessScoringCapacityKey != null) {
+      putSimpleConfig(ResourceConfigProperty.EVENNESS_SCORING_CAPACITY_KEY.name(), evennessScoringCapacityKey);
     }
   }
 
@@ -457,6 +463,15 @@ public class ResourceConfig extends HelixProperty {
   }
 
   /**
+   * Get the evenness scoring capacity key for the resource, if set.
+   *
+   * @return the evenness scoring capacity key
+   */
+  public String getEvennessScoringCapacityKey() {
+    return _record.getSimpleField(ResourceConfigProperty.EVENNESS_SCORING_CAPACITY_KEY.name());
+  }
+
+  /**
    * Put a set of simple configs.
    *
    * @param configsMap
@@ -583,6 +598,7 @@ public class ResourceConfig extends HelixProperty {
     private Map<String, List<String>> _preferenceLists;
     private Map<String, Map<String, String>> _mapFields;
     private Map<String, Map<String, Integer>> _partitionCapacityMap;
+    private String _evennessScoringCapacityKey;
 
     public Builder(String resourceId) {
       _resourceId = resourceId;
@@ -788,6 +804,15 @@ public class ResourceConfig extends HelixProperty {
       return _partitionCapacityMap.get(partition);
     }
 
+    public Builder setEvennessScoringCapacityKey(String evennessScoringCapacityKey) {
+      _evennessScoringCapacityKey = evennessScoringCapacityKey;
+      return this;
+    }
+
+    public String getEvennessScoringCapacityKey() {
+      return _evennessScoringCapacityKey;
+    }
+
     public Builder setMapField(String key, Map<String, String> fields) {
       if (_mapFields == null) {
         _mapFields = new TreeMap<>();
@@ -855,7 +880,7 @@ public class ResourceConfig extends HelixProperty {
           _stateModelFactoryName, _numReplica, _minActiveReplica, _maxPartitionsPerInstance,
           _instanceGroupTag, _helixEnabled, _resourceGroupName, _resourceType, _groupRoutingEnabled,
           _externalViewDisabled, _rebalanceConfig, _stateTransitionTimeoutConfig, _preferenceLists,
-          _mapFields, _p2pMessageEnabled, _partitionCapacityMap);
+          _mapFields, _p2pMessageEnabled, _partitionCapacityMap, _evennessScoringCapacityKey);
     }
   }
 

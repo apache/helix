@@ -1,4 +1,4 @@
-package org.apache.helix.rest.common;
+package org.apache.helix.rest.clusterMaintenanceService;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -34,7 +34,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
@@ -115,7 +114,7 @@ public class StoppableInstancesSelector {
    * Determines the order of zones. If an order is provided by the user, it will be used directly.
    * Otherwise, zones will be ordered by their associated instance count in descending order.
    *
-   * If `isRandom` is true, the order of zones will be randomized regardless of any previous order.
+   * If `random` is true, the order of zones will be randomized regardless of any previous order.
    *
    * @param random Indicates whether to randomize the order of zones.
    */

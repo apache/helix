@@ -46,7 +46,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService;
 import org.apache.helix.rest.common.HttpConstants;
-import org.apache.helix.rest.common.StoppableInstancesSelector;
+import org.apache.helix.rest.clusterMaintenanceService.StoppableInstancesSelector;
 import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
@@ -149,7 +149,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
-      @QueryParam("random") boolean random, String content) {
+      @DefaultValue("false") @QueryParam("random") boolean random, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -233,6 +233,12 @@ public class InstancesAccessor extends AbstractHelixResource {
         orderOfZone = OBJECT_MAPPER.readValue(
             node.get(InstancesAccessor.InstancesProperties.zone_order.name()).toString(),
             OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
+        if (!orderOfZone.isEmpty() && random) {
+          String message =
+              "Both 'orderOfZone' and 'random' parameters are set. Please specify only one option.";
+          _logger.error(message);
+          return badRequest(message);
+        }
       }
 
       // Prepare output result

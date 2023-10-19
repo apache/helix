@@ -375,6 +375,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       return false;
     }
 
+    // TODO: We will change this logic to handle each event-type differently and depending on the resource type.
     switch (event.getEventType()) {
       case ClusterConfigChange:
       case InstanceConfigChange:

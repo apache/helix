@@ -59,6 +59,12 @@ export class HelixCtrl {
           encoding: 'utf-8',
         });
       }
+      if (SSL.keyfile) {
+        options.agentOptions.key = readFileSync(SSL.keyfile);
+      }
+      if (SSL.certfile) {
+        options.agentOptions.cert = readFileSync(SSL.certfile);
+      }
 
       if (IDENTITY_TOKEN_SOURCE) {
         options.headers['Identity-Token'] =

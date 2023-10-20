@@ -524,7 +524,7 @@ public class ZKHelixAdmin implements HelixAdmin {
    * Check to see if swapping between two instances is ready to be completed. Checks: 1. Both
    * instances must be alive. 2. Both instances must only have one session and not be carrying over
    * from a previous session. 3. Both instances must have no pending messages. 4. Both instances
-   * cannot have partitions in the ERROR state 4. SwapIn instance must have correct state for all
+   * cannot have partitions in the ERROR state 5. SwapIn instance must have correct state for all
    * partitions that are currently assigned to the SwapOut instance.
    * TODO: We may want to make this a public API in the future.
    *
@@ -533,7 +533,7 @@ public class ZKHelixAdmin implements HelixAdmin {
    * @param swapInInstanceName  The instance that is being swapped in
    * @return True if the swap is ready to be completed, false otherwise.
    */
-  private boolean isSwapReadyToComplete(String clusterName, String swapOutInstanceName,
+  private boolean canSwapBeCompleted(String clusterName, String swapOutInstanceName,
       String swapInInstanceName) {
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
@@ -662,7 +662,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public boolean isSwapReadyToComplete(String clusterName, String instanceName) {
+  public boolean canSwapBeCompleted(String clusterName, String instanceName) {
     InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
     if (instanceConfig == null) {
       logger.warn(
@@ -685,12 +685,12 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // Check if the swap is ready to be completed.
-    return isSwapReadyToComplete(clusterName, swapOutInstanceConfig.getInstanceName(),
+    return canSwapBeCompleted(clusterName, swapOutInstanceConfig.getInstanceName(),
         swapInInstanceConfig.getInstanceName());
   }
 
   @Override
-  public boolean completeSwapIfReady(String clusterName, String instanceName) {
+  public boolean completeSwapIfPossible(String clusterName, String instanceName) {
     InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
     if (instanceConfig == null) {
       logger.warn(
@@ -713,7 +713,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // Check if the swap is ready to be completed. If not, return false.
-    if (!isSwapReadyToComplete(clusterName, swapOutInstanceConfig.getInstanceName(),
+    if (!canSwapBeCompleted(clusterName, swapOutInstanceConfig.getInstanceName(),
         swapInInstanceConfig.getInstanceName())) {
       return false;
     }

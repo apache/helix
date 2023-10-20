@@ -763,7 +763,7 @@ public interface HelixAdmin {
    * @param instanceName The instance that is being swapped out or swapped in
    * @return True if the swap is ready to be completed, false otherwise.
    */
-  boolean isSwapReadyToComplete(String clusterName, String instanceName);
+  boolean canSwapBeCompleted(String clusterName, String instanceName);
 
   /**
    * Check to see if swapping between two instances is ready to be completed and completed it if
@@ -774,7 +774,7 @@ public interface HelixAdmin {
    * @return True if the swap is ready to be completed and was completed successfully, false
    * otherwise.
    */
-  boolean completeSwapIfReady(String clusterName, String instanceName);
+  boolean completeSwapIfPossible(String clusterName, String instanceName);
 
   /**
    * Return if instance is ready for preparing joining cluster. The instance should have no current state,

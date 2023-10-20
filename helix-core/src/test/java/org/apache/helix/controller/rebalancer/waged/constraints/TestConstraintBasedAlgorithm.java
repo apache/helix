@@ -19,11 +19,14 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import java.io.IOException;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import org.apache.helix.HelixRebalanceException;
+import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelTestHelper;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
@@ -116,6 +119,28 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(),
           "The cluster does not have enough item1 capacity for all partitions.  Failure Type: FAILED_TO_CALCULATE");
+    }
+  }
+
+  @Test
+  public void testCalculateWithInvalidAssignmentForNodeCapacity() throws IOException {
+    HardConstraint nodeCapacityConstraint = new NodeCapacityConstraint();
+    SoftConstraint soft1 = new MaxCapacityUsageInstanceConstraint();
+    SoftConstraint soft2 = new InstancePartitionsCountConstraint();
+    ConstraintBasedAlgorithm algorithm =
+        new ConstraintBasedAlgorithm(ImmutableList.of(nodeCapacityConstraint),
+            ImmutableMap.of(soft1, 1f, soft2, 1f));
+    ClusterModel clusterModel = new ClusterModelTestHelper().getMultiNodeClusterModel();
+    // increase the ask capacity of item 3, which will trigger the capacity constraint to fail.
+    Map<String, Set<AssignableReplica>> assignableReplicaMap = new HashMap<>(clusterModel.getAssignableReplicaMap());
+    Set<AssignableReplica> resourceAssignableReplicas = assignableReplicaMap.get("Resource3");
+    AssignableReplica replica = resourceAssignableReplicas.iterator().next();
+    replica.getCapacity().put("item3", 40); // available: 30, requested: 40.
+
+    try {
+      algorithm.calculate(clusterModel);
+    } catch (HelixRebalanceException ex) {
+      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
   }
 }

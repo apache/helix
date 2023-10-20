@@ -24,14 +24,24 @@ import java.util.List;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 class ReplicaActivateConstraint extends HardConstraint {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ReplicaActivateConstraint.class);
+
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    List<String> disabledPartitions =
-        node.getDisabledPartitionsMap().get(replica.getResourceName());
-    return disabledPartitions == null || !disabledPartitions.contains(replica.getPartitionName());
+    List<String> disabledPartitions = node.getDisabledPartitionsMap().get(replica.getResourceName());
+
+    if (disabledPartitions != null && disabledPartitions.contains(replica.getPartitionName())) {
+      LOG.debug("Cannot assign the inactive replica: {}", replica.getPartitionName());
+      return false;
+    }
+    return true;
   }
 
   @Override

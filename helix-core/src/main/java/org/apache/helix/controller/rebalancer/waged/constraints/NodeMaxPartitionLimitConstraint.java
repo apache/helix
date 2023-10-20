@@ -22,18 +22,37 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 class NodeMaxPartitionLimitConstraint extends HardConstraint {
+
+  private static final Logger LOG = LoggerFactory.getLogger(NodeMaxPartitionLimitConstraint.class);
 
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     boolean exceedMaxPartitionLimit =
         node.getMaxPartition() < 0 || node.getAssignedReplicaCount() < node.getMaxPartition();
-    boolean exceedResourceMaxPartitionLimit = replica.getResourceMaxPartitionsPerInstance() < 0
-        || node.getAssignedPartitionsByResource(replica.getResourceName()).size() < replica
-        .getResourceMaxPartitionsPerInstance();
-    return exceedMaxPartitionLimit && exceedResourceMaxPartitionLimit;
+
+    if (!exceedMaxPartitionLimit) {
+      LOG.debug("Cannot exceed the max number of partitions ({}) limitation on node. Assigned replica count: {}",
+          node.getMaxPartition(), node.getAssignedReplicaCount());
+      return false;
+    }
+
+    int resourceMaxPartitionsPerInstance = replica.getResourceMaxPartitionsPerInstance();
+    int assignedPartitionsByResourceSize = node.getAssignedPartitionsByResource(replica.getResourceName()).size();
+    boolean exceedResourceMaxPartitionLimit = resourceMaxPartitionsPerInstance < 0
+        || assignedPartitionsByResourceSize < resourceMaxPartitionsPerInstance;
+
+    if (!exceedResourceMaxPartitionLimit) {
+      LOG.debug("Cannot exceed the max number of partitions per resource ({}) limitation on node. Assigned replica count: {}",
+          resourceMaxPartitionsPerInstance, assignedPartitionsByResourceSize);
+      return false;
+    }
+    return true;
   }
 
   @Override

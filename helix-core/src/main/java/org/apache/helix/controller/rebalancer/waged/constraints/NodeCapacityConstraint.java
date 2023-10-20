@@ -20,12 +20,16 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  */
 
 import java.util.Map;
-
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 class NodeCapacityConstraint extends HardConstraint {
+
+  private static final Logger LOG = LoggerFactory.getLogger(NodeCapacityConstraint.class);
 
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
@@ -36,6 +40,8 @@ class NodeCapacityConstraint extends HardConstraint {
     for (String key : replicaCapacity.keySet()) {
       if (nodeCapacity.containsKey(key)) {
         if (nodeCapacity.get(key) < replicaCapacity.get(key)) {
+          LOG.debug("Node has insufficient capacity for: {}. Left available: {}, Required: {}",
+                  key, nodeCapacity.get(key), replicaCapacity.get(key));
           return false;
         }
       }

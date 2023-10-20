@@ -19,60 +19,54 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collections;
-
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.mockito.Mockito;
 import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.*;
 
-public class TestFaultZoneAwareConstraint {
-  private static final String TEST_PARTITION = "testPartition";
-  private static final String TEST_ZONE = "testZone";
+
+public class TestReplicaActivateConstraint {
+
   private static final String TEST_RESOURCE = "testResource";
+  private static final String TEST_PARTITION = "testPartition";
+
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
 
-  private final HardConstraint _faultZoneAwareConstraint = new FaultZoneAwareConstraint();
+  private final HardConstraint _faultZoneAwareConstraint = new ReplicaActivateConstraint();
 
-  @BeforeMethod
-  public void init() {
+  @Test
+  public void validWhenEmptyDisabledReplicaMap() {
+    Map<String, List<String>> disabledReplicaMap = new HashMap<>();
+    disabledReplicaMap.put(TEST_RESOURCE, new ArrayList<>());
+
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
-    when(_testNode.getFaultZone()).thenReturn(TEST_ZONE);
+    when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
+
+    Assert.assertTrue(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
-  public void inValidWhenFaultZoneAlreadyAssigned() {
-    when(_testNode.hasFaultZone()).thenReturn(true);
-    when(_clusterContext.getPartitionsForResourceAndFaultZone(TEST_RESOURCE, TEST_ZONE)).thenReturn(
-            ImmutableSet.of(TEST_PARTITION));
+  public void invalidWhenPartitionIsDisabled() {
+    Map<String, List<String>> disabledReplicaMap = new HashMap<>();
+    disabledReplicaMap.put(TEST_RESOURCE, Collections.singletonList(TEST_PARTITION));
 
-    Assert.assertFalse(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
+    when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
+    when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
+
+    Assert.assertFalse(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
-  @Test
-  public void validWhenEmptyAssignment() {
-    when(_testNode.hasFaultZone()).thenReturn(true);
-    when(_clusterContext.getPartitionsForResourceAndFaultZone(TEST_RESOURCE, TEST_ZONE)).thenReturn(Collections.emptySet());
-
-    Assert.assertTrue(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
-  }
-
-  @Test
-  public void validWhenNoFaultZone() {
-    when(_testNode.hasFaultZone()).thenReturn(false);
-
-    Assert.assertTrue(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
-  }
 }

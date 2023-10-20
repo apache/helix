@@ -10,12 +10,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.constants.InstanceConstants;
@@ -30,6 +31,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.participant.StateMachineEngine;
@@ -51,6 +53,15 @@ public class TestInstanceOperation extends ZkTestBase {
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
+  protected static final String ZONE = "zone";
+  protected static final String HOST = "host";
+  protected static final String LOGICAL_ID = "logicalId";
+  protected static final String TOPOLOGY = String.format("%s/%s/%s", ZONE, HOST, LOGICAL_ID);
+
+  protected static final ImmutableSet<String> SECONDARY_STATE_SET =
+      ImmutableSet.of("SLAVE", "STANDBY");
+  protected static final ImmutableSet<String> ACCEPTABLE_STATE_SET =
+      ImmutableSet.of("MASTER", "LEADER", "SLAVE", "STANDBY");
   private int REPLICA = 3;
   protected ClusterControllerManager _controller;
   List<MockParticipantManager> _participants = new ArrayList<>();
@@ -92,6 +103,9 @@ public class TestInstanceOperation extends ZkTestBase {
     clusterConfig.stateTransitionCancelEnabled(true);
     clusterConfig.setDelayRebalaceEnabled(true);
     clusterConfig.setRebalanceDelayTime(1800000L);
+    clusterConfig.setTopology(TOPOLOGY);
+    clusterConfig.setFaultZoneType(ZONE);
+    clusterConfig.setTopologyAwareEnabled(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     createTestDBs(1800000L);
@@ -383,9 +397,158 @@ public class TestInstanceOperation extends ZkTestBase {
     _participants.get(2).syncStart();
   }
 
+  @Test(dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
+  public void testNodeSwap() throws Exception {
+    System.out.println(
+        "START TestInstanceOperation.testNodeSwap() at " + new Date(System.currentTimeMillis()));
 
-  private void addParticipant(String participantName) {
-    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, participantName);
+    // EV should contain all participants, check resources one by one
+    Map<String, ExternalView> assignment = getEV();
+    for (String resource : _allDBs) {
+      Assert.assertTrue(
+          getParticipantsInEv(assignment.get(resource)).containsAll(_participantNames));
+    }
+
+    // Set instance's InstanceOperation to SWAP_OUT
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    // Store the partitions that are assigned to the SWAP_OUT instance for comparison later
+    Map<String, String> originalPartitionsSwapOutInstance =
+        getPartitionsAndStatesOnInstance(assignment, instanceToSwapOutName);
+
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
+        InstanceConstants.InstanceOperation.SWAP_OUT);
+
+    // Add instance with InstanceOperation set to SWAP_IN
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    addParticipant(instanceToSwapInName, instanceToSwapOutName,
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), true);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Validate all assignments in EVs
+    assignment = getEV();
+    validateAssignmentsInEvs(assignment);
+
+    // Validate that partitions on SWAP_OUT instance does not change after setting the InstanceOperation to SWAP_OUT
+    // and adding the SWAP_IN instance to the cluster.
+    Assert.assertEquals(getPartitionsAndStatesOnInstance(getEV(), instanceToSwapOutName),
+        originalPartitionsSwapOutInstance);
+
+    // Check that the SWAP_IN instance has the same partitions as the SWAP_OUT instance
+    // but none of them are in a top state.
+    Map<String, String> swapInInstancePartitions =
+        getPartitionsAndStatesOnInstance(assignment, instanceToSwapInName);
+    Assert.assertEquals(swapInInstancePartitions.keySet(),
+        originalPartitionsSwapOutInstance.keySet());
+    Set<String> swapInInstancePartitionStates = new HashSet<>(swapInInstancePartitions.values());
+    swapInInstancePartitionStates.removeAll(SECONDARY_STATE_SET);
+    Assert.assertEquals(swapInInstancePartitionStates.size(), 0);
+
+    // Assert isSwapReadyToComplete is true
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
+        .isSwapReadyToComplete(CLUSTER_NAME, instanceToSwapOutName));
+    // Assert completeSwapIfReady is true
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
+        .completeSwapIfReady(CLUSTER_NAME, instanceToSwapOutName));
+
+    // Wait for cluster to converge.
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    assignment = getEV();
+    validateAssignmentsInEvs(assignment);
+
+    // Assert that SWAP_OUT instance is disabled and has not partitions assigned to it.
+    Assert.assertFalse(_gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceEnabled());
+    Assert.assertEquals(getPartitionsAndStatesOnInstance(assignment, instanceToSwapOutName).size(),
+        0);
+
+    // Assert that the SWAP_IN instance has the same partitions that used to be on the SWAP_OUT instance.
+    swapInInstancePartitions = getPartitionsAndStatesOnInstance(assignment, instanceToSwapInName);
+    Assert.assertEquals(swapInInstancePartitions.keySet(),
+        originalPartitionsSwapOutInstance.keySet());
+    swapInInstancePartitionStates = new HashSet<>(swapInInstancePartitions.values());
+    swapInInstancePartitionStates.removeAll(ACCEPTABLE_STATE_SET);
+    Assert.assertEquals(swapInInstancePartitionStates.size(), 0);
+  }
+
+  @Test(dependsOnMethods = "testNodeSwap")
+  public void testRevertNodeSwap() throws Exception {
+    // A proper revert would be removing the SWAP_IN node from the cluster
+    // and then removing the SWAP_OUT InstanceOperation from SWAP_OUT node.
+
+    // Create resource with slow state transition
+
+    // Wait till assignment finishes
+
+    // Set instance's InstanceOperation to SWAP_OUT
+    // Add instance with InstanceOperation set to SWAP_IN
+
+    //
+
+    // What happens when SWAP_IN is set to null
+    // What happens when SWAP_IN is set to EVACUATE
+    // What happens when SWAP_IN is set to SWAP_OUT
+    // What happens when SWAP_OUT is set to null
+    // What happens when SWAP_OUT set to EVACUATE
+    // What happens when either are set to HELIX_ENABLED: false
+  }
+
+  @Test(dependsOnMethods = "testRevertNodeSwap")
+  public void testAddingNodeWithSwapOutInstanceOperation() throws Exception {
+    // Should be treated as adding instance without InstanceOperation set
+    // There should be partitions assigned to this node
+  }
+
+  @Test(dependsOnMethods = "testAddingNodeWithSwapOutInstanceOperation")
+  public void testNodeSwapWithNoSwapOutNode() throws Exception {
+    // This should throw exception when attempting to addInstance with SWAP_IN InstanceOperation.
+  }
+
+  @Test(dependsOnMethods = "testNodeSwapWithNoSwapOutNode")
+  public void testNodeSwapSwapInNodeNoInstanceOperation() throws Exception {
+    // This should throw exception because you can't add node without setting InstanceOperation to SWAP_IN
+  }
+
+  @Test(dependsOnMethods = "testNodeSwapSwapInNodeNoInstanceOperation")
+  public void testNodeSwapSwapInNodeWithAlreadySwappingPair() throws Exception {
+    // This should work because you can't add SWAP_IN node if an already existing pair with same logicalId
+  }
+
+  @Test(dependsOnMethods = "testNodeSwapSwapInNodeWithAlreadySwappingPair")
+  public void testNodeSwapCancelSwapBeforeReadyToComplete() throws Exception {
+    // Cancellation will be the removal of the SWAP_IN node.
+  }
+
+  @Test(dependsOnMethods = "testNodeSwapCancelSwapBeforeReadyToComplete")
+  public void testNodeSwapCancelAfterReadyToComplete() throws Exception {
+    // Cancellation will be the removal of the SWAP_IN node.
+    // Current state of the SWAP_OUT node should not change.
+  }
+
+  @Test(dependsOnMethods = "testNodeSwapCancelAfterReadyToComplete")
+  public void testNodeSwapNoTopologySetup() throws Exception {
+    // This should throw exception because you can't add node without setting InstanceOperation to SWAP_IN
+  }
+
+  @Test(dependsOnMethods = "testNodeSwapNoTopologySetup")
+  public void testNodeSwapAfterEMM() throws Exception {
+    // This should throw exception because you can't add node without setting InstanceOperation to SWAP_IN
+  }
+
+  @Test(dependsOnMethods = "testNodeSwapAfterEMM")
+  public void testNodeSwapWithOfflineInstancesInCluster() throws Exception {
+    // This should throw exception because you can't add node without setting InstanceOperation to SWAP_IN
+  }
+
+  private void addParticipant(String participantName, String logicalId, String zone,
+      boolean enabled) {
+    InstanceConfig config = new InstanceConfig.Builder().setDomain(
+        String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
+            logicalId)).setInstanceEnabled(enabled).build(participantName);
+    _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
     // start dummy participants
     MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName);
@@ -397,6 +560,11 @@ public class TestInstanceOperation extends ZkTestBase {
     participant.syncStart();
     _participants.add(participant);
     _participantNames.add(participantName);
+  }
+
+  private void addParticipant(String participantName) {
+    addParticipant(participantName, Integer.toString(_participants.size()),
+        "zone_" + _participants.size(), true);
   }
 
    private void createTestDBs(long delayTime) throws InterruptedException {
@@ -450,6 +618,25 @@ public class TestInstanceOperation extends ZkTestBase {
     return assignedParticipants;
   }
 
+  private Map<String, String> getPartitionsAndStatesOnInstance(Map<String, ExternalView> evs,
+      String instanceName) {
+    Map<String, String> instancePartitions = new HashMap<>();
+    for (String resourceEV : evs.keySet()) {
+      for (String partition : evs.get(resourceEV).getPartitionSet()) {
+        instancePartitions.putAll(evs.get(resourceEV).getStateMap(partition).entrySet().stream()
+            .filter(e -> e.getKey().equals(instanceName))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+      }
+    }
+
+    return instancePartitions;
+  }
+
+  private void validateAssignmentsInEvs(Map<String, ExternalView> evs) {
+    for (String resource : _allDBs) {
+      validateAssignmentInEv(evs.get(resource));
+    }
+  }
   // verify that each partition has >=REPLICA (3 in this case) replicas
 
   private void validateAssignmentInEv(ExternalView ev) {
@@ -460,10 +647,7 @@ public class TestInstanceOperation extends ZkTestBase {
     Set<String> partitionSet = ev.getPartitionSet();
     for (String partition : partitionSet) {
       AtomicInteger activeReplicaCount = new AtomicInteger();
-      ev.getStateMap(partition)
-          .values()
-          .stream()
-          .filter(v -> v.equals("MASTER") || v.equals("LEADER") || v.equals("SLAVE") || v.equals("FOLLOWER") || v.equals("STANDBY"))
+      ev.getStateMap(partition).values().stream().filter(ACCEPTABLE_STATE_SET::contains)
           .forEach(v -> activeReplicaCount.getAndIncrement());
       Assert.assertTrue(activeReplicaCount.get() >=expectedNumber);
     }

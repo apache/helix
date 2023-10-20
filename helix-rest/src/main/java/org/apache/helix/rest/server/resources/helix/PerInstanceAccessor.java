@@ -435,6 +435,11 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       case setInstanceOperation:
          admin.setInstanceOperation(clusterId, instanceName, state);
          break;
+        case completeSwapIfReady:
+          if (!admin.completeSwapIfReady(clusterId, instanceName)) {
+            return badRequest("Swap is not ready to be completed!");
+          }
+          break;
       case addInstanceTag:
         if (!validInstance(node, instanceName)) {
           return badRequest("Instance names are not match!");

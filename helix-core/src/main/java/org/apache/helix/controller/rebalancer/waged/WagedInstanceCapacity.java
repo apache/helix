@@ -175,6 +175,10 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     return _instanceCapacityMap.get(instanceName);
   }
 
+  public Map<String, Map<String, Set<String>>> getAllocatedPartitionsMap() {
+    return _allocatedPartitionsMap;
+  }
+
   @Override
   public boolean isInstanceCapacityAvailable(String instance, Map<String, Integer> partitionCapacity) {
     Map<String, Integer> instanceCapacity = _instanceCapacityMap.get(instance);
@@ -215,7 +219,7 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
     }
     _allocatedPartitionsMap.computeIfAbsent(instance, k -> new HashMap<>())
         .computeIfAbsent(resName, k -> new HashSet<>()).add(partitionName);
-    LOG.info("Reduced capacity for instance: " + instance + " for resource: " + resName
+    LOG.debug("Reduced capacity for instance: " + instance + " for resource: " + resName
         + " for partition: " + partitionName);
     return true;
   }

@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -113,14 +114,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       reportResourcePartitionCapacityMetrics(dataProvider.getAsyncTasksThreadPool(),
           clusterStatusMonitor, dataProvider.getResourceConfigMap().values());
 
-      // TODO: we only need to compute when there are resource using Waged. We should
-      // do this as perf improvement in future.
-      WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(dataProvider);
-      WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(dataProvider);
-
-      // Process the currentState and update the available instance capacity.
-      capacityProvider.process(dataProvider, currentStateOutput, resourceMap, weightProvider);
-      dataProvider.setWagedCapacityProviders(capacityProvider, weightProvider);
+      handleResourceCapacityCalculation(event, (ResourceControllerDataProvider) cache, currentStateOutput);
     }
   }
 
@@ -339,4 +333,62 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       return null;
     });
   }
+
+  void handleResourceCapacityCalculation(ClusterEvent event, ResourceControllerDataProvider cache,
+      CurrentStateOutput currentStateOutput) {
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    if (skipCapacityCalculation(cache, resourceMap, event)) {
+      return;
+    }
+
+    Map<String, Resource> wagedEnabledResourceMap = resourceMap.entrySet()
+        .parallelStream()
+        .filter(entry -> WagedValidationUtil.isWagedEnabled(cache.getIdealState(entry.getKey())))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (wagedEnabledResourceMap.isEmpty()) {
+      return;
+    }
+
+    // Phase 1: Rebuild Always
+    WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(cache);
+    WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(cache);
+
+    capacityProvider.process(cache, currentStateOutput, wagedEnabledResourceMap, weightProvider);
+    cache.setWagedCapacityProviders(capacityProvider, weightProvider);
+  }
+
+  /**
+   * Function that checks whether we should return early, without any action on the capacity map or not.
+   *
+   * @param cache it is the cluster level cache for the resources.
+   * @param event the cluster event that is undergoing processing.
+   * @return true, of the condition evaluate to true and no action is needed, else false.
+   */
+  static boolean skipCapacityCalculation(ResourceControllerDataProvider cache, Map<String, Resource> resourceMap,
+      ClusterEvent event) {
+    if (resourceMap == null || resourceMap.isEmpty()) {
+      return true;
+    }
+
+    if (Objects.isNull(cache.getWagedInstanceCapacity())) {
+      return false;
+    }
+
+    // TODO: We will change this logic to handle each event-type differently and depending on the resource type.
+    switch (event.getEventType()) {
+      case ClusterConfigChange:
+      case InstanceConfigChange:
+      case ResourceConfigChange:
+      case ControllerChange:
+      case LiveInstanceChange:
+      case CurrentStateChange:
+      case PeriodicalRebalance:
+      case MessageChange:
+        return false;
+      default:
+        return true;
+    }
+  }
+
 }

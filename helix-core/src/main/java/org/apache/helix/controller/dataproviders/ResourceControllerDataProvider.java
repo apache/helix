@@ -513,4 +513,12 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     return _wagedInstanceCapacity.checkAndReduceInstanceCapacity(instance, resourceName, partition,
         partitionWeightMap);
   }
+
+  /**
+   * Getter for cached waged instance capacity map.
+   * @return
+   */
+  public WagedInstanceCapacity getWagedInstanceCapacity() {
+    return _wagedInstanceCapacity;
+  }
 }

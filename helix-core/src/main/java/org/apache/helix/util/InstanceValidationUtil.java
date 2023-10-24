@@ -370,7 +370,8 @@ public class InstanceValidationUtil {
    * @param instanceName
    * @return
    */
-  public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor, String instanceName) {
+  public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor,
+      String instanceName, Set<String> toBeStoppedInstances) {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
     List<String> resources = dataAccessor.getChildNames(propertyKeyBuilder.idealStates());
 
@@ -406,8 +407,8 @@ public class InstanceValidationUtil {
         if (stateByInstanceMap.containsKey(instanceName)) {
           int numHealthySiblings = 0;
           for (Map.Entry<String, String> entry : stateByInstanceMap.entrySet()) {
-            if (!entry.getKey().equals(instanceName)
-                && !unhealthyStates.contains(entry.getValue())) {
+            if (!entry.getKey().equals(instanceName) && !toBeStoppedInstances.contains(
+                entry.getKey()) && !unhealthyStates.contains(entry.getValue())) {
               numHealthySiblings++;
             }
           }

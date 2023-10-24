@@ -22,6 +22,7 @@ package org.apache.helix.rest.clusterMaintenanceService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,7 +34,6 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
@@ -69,14 +69,47 @@ public class StoppableInstancesSelector {
    * reasons for non-stoppability.
    *
    * @param instances A list of instance to be evaluated.
+   * @param toBeStoppedInstances A list of instances presumed to be are already stopped
    * @throws IOException
    */
-  public void getStoppableInstancesInSingleZone(List<String> instances) throws IOException {
+  public void getStoppableInstancesInSingleZone(List<String> instances,
+      Set<String> toBeStoppedInstances) throws IOException {
     List<String> zoneBasedInstance =
         getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
+    getStoppableInstances(zoneBasedInstance, toBeStoppedInstances);
+    processNonexistentInstances(instances);
+  }
+
+  /**
+   * Evaluates and collects stoppable instances cross a set of zones based on the order of zones.
+   * The method iterates through instances, performing stoppable checks, and records reasons for
+   * non-stoppability.
+   *
+   * @param instances A list of instance to be evaluated.
+   * @param toBeStoppedInstances A list of instances presumed to be are already stopped
+   * @throws IOException
+   */
+  public void getStoppableInstancesCrossZones(List<String> instances,
+      Set<String> toBeStoppedInstances) throws IOException {
+    Map<String, Set<String>> zoneMapping = _clusterTopology.toZoneMapping();
+    for (String zone : _orderOfZone) {
+      Set<String> instanceSet = new HashSet<>(instances);
+      Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone));
+      instanceSet.retainAll(currentZoneInstanceSet);
+      if (instanceSet.isEmpty()) {
+        continue;
+      }
+      getStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstances);
+    }
+    processNonexistentInstances(instances);
+  }
+
+  private void getStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances)
+      throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
-        _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, zoneBasedInstance,
-            _customizedInput);
+        _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,
+            _customizedInput, toBeStoppedInstances);
+
     for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
       String instance = instanceStoppableCheck.getKey();
       StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
@@ -87,8 +120,14 @@ public class StoppableInstancesSelector {
         }
       } else {
         _stoppableInstances.add(instance);
+        // Update the toBeStoppedInstances set with the currently identified stoppable instance.
+        // This ensures that subsequent checks in other zones are aware of this instance's stoppable status.
+        toBeStoppedInstances.add(instance);
       }
     }
+  }
+
+  private void processNonexistentInstances(List<String> instances) {
     // Adding following logic to check whether instances exist or not. An instance exist could be
     // checking following scenario:
     // 1. Instance got dropped. (InstanceConfig is gone.)
@@ -105,11 +144,6 @@ public class StoppableInstancesSelector {
     }
   }
 
-  public void getStoppableInstancesCrossZones() {
-    // TODO: Add implementation to enable cross zone stoppable check.
-    throw new NotImplementedException("Not Implemented");
-  }
-
   /**
    * Determines the order of zones. If an order is provided by the user, it will be used directly.
    * Otherwise, zones will be ordered by their associated instance count in descending order.
@@ -118,10 +152,22 @@ public class StoppableInstancesSelector {
    *
    * @param random Indicates whether to randomize the order of zones.
    */
-  public void calculateOrderOfZone(boolean random) {
+  public void calculateOrderOfZone(List<String> instances, boolean random) {
     if (_orderOfZone == null) {
-      _orderOfZone =
-          new ArrayList<>(getOrderedZoneToInstancesMap(_clusterTopology.toZoneMapping()).keySet());
+      Map<String, Set<String>> zoneMapping = _clusterTopology.toZoneMapping();
+      Map<String, Set<String>> zoneToInstancesMap = new HashMap<>();
+      for (ClusterTopology.Zone zone : _clusterTopology.getZones()) {
+        Set<String> instanceSet = new HashSet<>(instances);
+        // TODO: Use instance config from Helix-rest Cache to get the zone instead of reading the topology info
+        Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone.getId()));
+        instanceSet.retainAll(currentZoneInstanceSet);
+        if (instanceSet.isEmpty()) {
+          continue;
+        }
+        zoneToInstancesMap.put(zone.getId(), instanceSet);
+      }
+
+      _orderOfZone = new ArrayList<>(getOrderedZoneToInstancesMap(zoneToInstancesMap).keySet());
     }
 
     if (_orderOfZone.isEmpty()) {

@@ -20,6 +20,7 @@ package org.apache.helix.rest.server.service;
  */
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -90,7 +91,7 @@ public class InstanceServiceImpl implements InstanceService {
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent) throws IOException {
     return _maintenanceManagementService
-        .batchGetInstancesStoppableChecks(clusterId, instances, jsonContent);
+        .batchGetInstancesStoppableChecks(clusterId, instances, jsonContent, Collections.emptySet());
   }
 
 }

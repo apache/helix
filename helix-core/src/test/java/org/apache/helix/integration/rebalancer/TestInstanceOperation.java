@@ -74,6 +74,7 @@ public class TestInstanceOperation extends ZkTestBase {
   private ConfigAccessor _configAccessor;
   private long _stateModelDelay = 3L;
 
+  private final long DEFAULT_RESOURCE_DELAY_TIME = 1800000L;
   private HelixAdmin _admin;
   protected AssignmentMetadataStore _assignmentMetadataStore;
   HelixDataAccessor _dataAccessor;
@@ -105,7 +106,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     setupClusterConfig();
 
-    createTestDBs(1800000L);
+    createTestDBs(DEFAULT_RESOURCE_DELAY_TIME);
 
     setUpWagedBaseline();
 
@@ -113,6 +114,7 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   private void setupClusterConfig() {
+    _stateModelDelay = 3L;
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.stateTransitionCancelEnabled(true);
     clusterConfig.setDelayRebalaceEnabled(true);
@@ -128,11 +130,13 @@ public class TestInstanceOperation extends ZkTestBase {
   private void resetInstances() {
     // Disable and drop any participants that are not in the original participant list.
     Set<String> droppedParticipants = new HashSet<>();
-    for (String participantName : _participantNames) {
+    for (int i = 0; i < _participants.size(); i++) {
+      String participantName = _participantNames.get(i);
       if (!_originalParticipantNames.contains(participantName)) {
+        _participants.get(i).syncStop();
         _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, participantName, false);
         _gSetupTool.getClusterManagementTool()
-            .dropInstance(CLUSTER_NAME, new InstanceConfig(participantName));
+            .dropInstance(CLUSTER_NAME, _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, participantName));
         droppedParticipants.add(participantName);
       }
     }
@@ -141,11 +145,20 @@ public class TestInstanceOperation extends ZkTestBase {
     _participantNames.removeIf(droppedParticipants::contains);
     _participants.removeIf(p -> droppedParticipants.contains(p.getInstanceName()));
 
-    // Clear any instanceOperation on any remaining participants and enabled the instance.
-    for (String participantName : _participantNames) {
+    for (int i = 0; i < _participants.size(); i++) {
+      // If instance is not connected to ZK, replace it
+      if (!_participants.get(i).isConnected()) {
+        // Drop bad instance from the cluster.
+        _gSetupTool.getClusterManagementTool()
+            .dropInstance(CLUSTER_NAME, _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, _participantNames.get(i)));
+        _participants.set(i, createParticipant(_participantNames.get(i), Integer.toString(i),
+            "zone_" + i, null, true));
+        _participants.get(i).syncStart();
+        continue;
+      }
       _gSetupTool.getClusterManagementTool()
-          .setInstanceOperation(CLUSTER_NAME, participantName, null);
-      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, participantName, true);
+          .setInstanceOperation(CLUSTER_NAME, _participantNames.get(i), null);
+      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, _participantNames.get(i), true);
     }
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -428,9 +441,6 @@ public class TestInstanceOperation extends ZkTestBase {
         return true;
       }, 30000);
     }
-
-    _participants.get(1).syncStart();
-    _participants.get(2).syncStart();
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
@@ -438,7 +448,9 @@ public class TestInstanceOperation extends ZkTestBase {
     System.out.println(
         "START TestInstanceOperation.testAddingNodeWithSwapOutInstanceOperation() at " + new Date(
             System.currentTimeMillis()));
+
     resetInstances();
+    dropTestDBs(ImmutableSet.of("TEST_DB3_DELAYED_CRUSHED", "TEST_DB4_DELAYED_WAGED"));
 
     // Set instance's InstanceOperation to SWAP_OUT
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
@@ -597,12 +609,12 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
-    // Assert isSwapReadyToComplete is true
+    // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .isSwapReadyToComplete(CLUSTER_NAME, instanceToSwapOutName));
-    // Assert completeSwapIfReady is true
+        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+    // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .completeSwapIfReady(CLUSTER_NAME, instanceToSwapOutName));
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     // Wait for cluster to converge.
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -662,12 +674,12 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
-    // Assert isSwapReadyToComplete is true
+    // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .isSwapReadyToComplete(CLUSTER_NAME, instanceToSwapOutName));
-    // Assert completeSwapIfReady is true
+        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+    // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .completeSwapIfReady(CLUSTER_NAME, instanceToSwapOutName));
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     // Wait for cluster to converge.
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -724,9 +736,9 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
-    // Assert isSwapReadyToComplete is true
+    // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .isSwapReadyToComplete(CLUSTER_NAME, instanceToSwapOutName));
+        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
 
     // Cancel SWAP by disabling the SWAP_IN instance and remove SWAP_OUT InstanceOperation from swap out node.
     _gSetupTool.getClusterManagementTool()
@@ -794,12 +806,12 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
-    // Assert isSwapReadyToComplete is true
+    // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .isSwapReadyToComplete(CLUSTER_NAME, instanceToSwapOutName));
-    // Assert completeSwapIfReady is true
+        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+    // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .completeSwapIfReady(CLUSTER_NAME, instanceToSwapOutName));
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     // Wait for cluster to converge.
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -862,18 +874,18 @@ public class TestInstanceOperation extends ZkTestBase {
     swapInInstanceStates.removeAll(SECONDARY_STATE_SET);
     Assert.assertEquals(swapInInstanceStates.size(), 0);
 
-    // Assert isSwapReadyToComplete is true
+    // Assert canSwapBeCompleted is true
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
-        .isSwapReadyToComplete(CLUSTER_NAME, instanceToSwapOutName));
+        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
 
     // Enable the SWAP_OUT instance.
     _gSetupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, instanceToSwapOutName, true);
 
-    // Assert completeSwapIfReady is true
+    // Assert completeSwapIfPossible is true
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .completeSwapIfReady(CLUSTER_NAME, instanceToSwapOutName));
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     swapInInstancePartitionsAndStates =
         getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapInName);
@@ -891,12 +903,12 @@ public class TestInstanceOperation extends ZkTestBase {
         0);
   }
 
-  private void addParticipant(String participantName, String logicalId, String zone,
+  private MockParticipantManager createParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation,
       boolean enabled) {
     InstanceConfig config = new InstanceConfig.Builder().setDomain(
-        String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
-            logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
+            String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
+                logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
         .build(participantName);
     _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
@@ -906,6 +918,14 @@ public class TestInstanceOperation extends ZkTestBase {
     // Using a delayed state model
     StDelayMSStateModelFactory delayFactory = new StDelayMSStateModelFactory();
     stateMachine.registerStateModelFactory("MasterSlave", delayFactory);
+    return participant;
+  }
+
+  private void addParticipant(String participantName, String logicalId, String zone,
+      InstanceConstants.InstanceOperation instanceOperation,
+      boolean enabled) {
+    MockParticipantManager participant = createParticipant(participantName, logicalId, zone,
+        instanceOperation, enabled);
 
     participant.syncStart();
     _participants.add(participant);
@@ -930,6 +950,14 @@ public class TestInstanceOperation extends ZkTestBase {
         PARTITIONS, REPLICA, REPLICA - 1);
     _allDBs.add("TEST_DB2_WAGED");
 
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+  }
+
+  private void dropTestDBs(Set<String> dbs) {
+    for (String db : dbs) {
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, db);
+      _allDBs.remove(db);
+    }
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 

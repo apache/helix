@@ -34,12 +34,14 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.InstanceValidationUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,6 +139,84 @@ public class DelayedRebalanceUtil {
             .getInstanceOperation()
             .equals(InstanceConstants.InstanceOperation.EVACUATE.name())))
         .collect(Collectors.toSet());
+  }
+
+  public static Set<String> filterOutInstancesWithDuplicateLogicalIds(
+      ClusterTopologyConfig clusterTopologyConfig, Map<String, InstanceConfig> instanceConfigMap,
+      Set<String> nodes, Set<String> allowedNodes) {
+    Set<String> filteredNodes = new HashSet<>();
+    Map<String, String> filteredInstancesByLogicalId = new HashMap<>();
+
+    // Always keep the SWAP_OUT node over the SWAP_IN node if it exists and is enabled.
+    // If there isn't SWAP_OUT node, then the SWAP_IN node will be kept.
+    nodes.forEach(node -> {
+      InstanceConfig thisInstanceConfig = instanceConfigMap.get(node);
+      if (thisInstanceConfig == null) {
+        return;
+      }
+      String thisLogicalId =
+          thisInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
+
+      // We do not want to allow the addition of nodes that are not in the allowedNodes set it is provided
+      if (allowedNodes != null && !allowedNodes.contains(node)) {
+        return;
+      }
+
+      if (filteredInstancesByLogicalId.containsKey(thisLogicalId)) {
+        InstanceConfig filteredDuplicateInstanceConfig =
+            instanceConfigMap.get(filteredInstancesByLogicalId.get(thisLogicalId));
+        if ((filteredDuplicateInstanceConfig.getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
+            && thisInstanceConfig.getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) || (
+            filteredDuplicateInstanceConfig.getInstanceOperation()
+                .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())
+                && thisInstanceConfig.getInstanceOperation().isEmpty())) {
+          // If the already filtered instance is SWAP_IN and this instance is in SWAP_OUT and enabled,
+          // then replace the filtered instance with this instance.
+          // If the already filtered instance is SWAP_OUT and this instance has no InstanceOperation,
+          // then replace the filtered instance with this instance. This is the case where the SWAP_IN
+          // node has been marked as complete.
+          filteredNodes.remove(filteredInstancesByLogicalId.get(thisLogicalId));
+          filteredNodes.add(node);
+          filteredInstancesByLogicalId.put(thisLogicalId, node);
+        }
+      } else {
+        filteredNodes.add(node);
+        filteredInstancesByLogicalId.put(thisLogicalId, node);
+      }
+    });
+
+    return filteredNodes;
+  }
+
+  /**
+   * Look through the provided mapping and add corresponding SWAP_IN node if a SWAP_OUT node exists
+   * in the partition's preference list.
+   *
+   * @param mapping                      the mapping to be updated (IdealState ZNRecord)
+   * @param swapOutToSwapInInstancePairs the map of SWAP_OUT to SWAP_IN instances
+   */
+  public static void addSwapInInstanceToPreferenceListsIfSwapOutInstanceExists(ZNRecord mapping,
+      Map<String, String> swapOutToSwapInInstancePairs, Set<String> enabledLiveSwapInInstances) {
+    Map<String, List<String>> preferenceListsByPartition = mapping.getListFields();
+    for (String partition : preferenceListsByPartition.keySet()) {
+      // TODO: Improve this so we don't have to allocate a new list every time.
+      List<String> preferenceList = List.copyOf(preferenceListsByPartition.get(partition));
+      if (preferenceList == null) {
+        continue;
+      }
+      for (String instanceName : preferenceList) {
+        if (swapOutToSwapInInstancePairs.containsKey(instanceName)
+            && enabledLiveSwapInInstances.contains(
+            swapOutToSwapInInstancePairs.get(instanceName))) {
+          String swapInInstanceName = swapOutToSwapInInstancePairs.get(instanceName);
+          if (!preferenceList.contains(swapInInstanceName)) {
+            mapping.getListFields().get(partition).add(swapInInstanceName);
+          }
+        }
+      }
+    }
   }
 
   /**

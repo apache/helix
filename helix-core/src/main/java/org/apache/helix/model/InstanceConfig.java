@@ -782,6 +782,7 @@ public class InstanceConfig extends HelixProperty {
     private int _weight = WEIGHT_NOT_SET;
     private List<String> _tags = new ArrayList<>();
     private boolean _instanceEnabled = HELIX_ENABLED_DEFAULT_VALUE;
+    private InstanceConstants.InstanceOperation _instanceOperation;
     private Map<String, String> _instanceInfoMap;
     private Map<String, Integer> _instanceCapacityMap;
 
@@ -827,6 +828,10 @@ public class InstanceConfig extends HelixProperty {
 
       if (_instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
         instanceConfig.setInstanceEnabled(_instanceEnabled);
+      }
+
+      if (_instanceOperation != null) {
+        instanceConfig.setInstanceOperation(_instanceOperation);
       }
 
       if (_instanceInfoMap != null) {
@@ -897,6 +902,17 @@ public class InstanceConfig extends HelixProperty {
      */
     public Builder setInstanceEnabled(boolean instanceEnabled) {
       _instanceEnabled = instanceEnabled;
+      return this;
+    }
+
+    /**
+     * Set the instance operation for this instance
+     *
+     * @param instanceOperation the instance operation.
+     * @return InstanceConfig.Builder
+     */
+    public Builder setInstanceOperation(InstanceConstants.InstanceOperation instanceOperation) {
+      _instanceOperation = instanceOperation;
       return this;
     }
 

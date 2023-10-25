@@ -30,10 +30,12 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.MetricCollector;
@@ -158,13 +160,19 @@ class GlobalRebalanceRunner implements AutoCloseable {
     // Build the cluster model for rebalance calculation.
     // Note, for a Baseline calculation,
     // 1. Ignore node status (disable/offline).
+    // 2. Dedupe and select correct node if there is more than one with the same logical id.
+    // We should be calculating a new baseline only after a swap operation is complete. Adding,
+    // this ensures that adding the SWAP_IN node to the cluster does not cause new baseline to be calculated
+    // with the SWAP_IN node.
     // 2. Use the previous Baseline as the only parameter about the previous assignment.
     Map<String, ResourceAssignment> currentBaseline =
         _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
     ClusterModel clusterModel;
     try {
-      clusterModel =
-          ClusterModelProvider.generateClusterModelForBaseline(clusterData, resourceMap, clusterData.getAllInstances(),
+      clusterModel = ClusterModelProvider.generateClusterModelForBaseline(clusterData, resourceMap,
+          DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
+              ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
+              clusterData.getInstanceConfigMap(), clusterData.getAllInstances(), null),
               clusterChanges, currentBaseline);
     } catch (Exception ex) {
       throw new HelixRebalanceException("Failed to generate cluster model for global rebalance.",

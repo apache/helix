@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import java.util.stream.Collectors;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.constants.InstanceConstants;
@@ -41,8 +40,8 @@ import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -58,8 +57,7 @@ import org.slf4j.LoggerFactory;
 public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedAutoRebalancer.class);
   public static ImmutableSet<String> INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT =
-      ImmutableSet.of(InstanceConstants.InstanceOperation.EVACUATE.name(),
-          InstanceConstants.InstanceOperation.SWAP_IN.name());
+      ImmutableSet.of(InstanceConstants.InstanceOperation.EVACUATE.name());
 
   @Override
   public IdealState computeNewIdealState(String resourceName,
@@ -116,6 +114,13 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       allNodes = clusterData.getAllInstances();
     }
 
+    allNodes = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig),
+        clusterData.getInstanceConfigMap(), allNodes, null);
+    liveEnabledNodes = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig),
+        clusterData.getInstanceConfigMap(), liveEnabledNodes, allNodes);
+
     long delay = DelayedRebalanceUtil.getRebalanceDelay(currentIdealState, clusterConfig);
     Set<String> activeNodes = DelayedRebalanceUtil
         .getActiveNodes(allNodes, currentIdealState, liveEnabledNodes,
@@ -165,30 +170,45 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     // We will not assign partition to instances with evacuation and wap-out tag.
     // TODO: Currently we have 2 groups of instances and compute preference list twice and merge.
     // Eventually we want to have exclusive groups of instance for different instance tag.
-    List<String> liveEnabledAssignableNodeList = filterOutOnOperationInstances(clusterData.getInstanceConfigMap(),
-        liveEnabledNodes);
+    List<String> liveEnabledAssignableNodeList = new ArrayList<>(
+        DelayedRebalanceUtil.filterOutEvacuatingInstances(clusterData.getInstanceConfigMap(),
+            liveEnabledNodes));
     Collections.sort(allNodeList);
     Collections.sort(liveEnabledAssignableNodeList);
 
-    ZNRecord newIdealMapping = _rebalanceStrategy
-        .computePartitionAssignment(allNodeList, liveEnabledAssignableNodeList, currentMapping, clusterData);
+    ZNRecord newIdealMapping =
+        _rebalanceStrategy.computePartitionAssignment(allNodeList, liveEnabledAssignableNodeList,
+            currentMapping, clusterData);
     ZNRecord finalMapping = newIdealMapping;
 
     if (DelayedRebalanceUtil.isDelayRebalanceEnabled(currentIdealState, clusterConfig)
-        || liveEnabledAssignableNodeList.size()!= activeNodes.size()) {
+        || liveEnabledAssignableNodeList.size() != activeNodes.size()) {
       List<String> activeNodeList = new ArrayList<>(activeNodes);
       Collections.sort(activeNodeList);
       int minActiveReplicas = DelayedRebalanceUtil.getMinActiveReplica(
           ResourceConfig.mergeIdealStateWithResourceConfig(resourceConfig, currentIdealState),
           currentIdealState, replicaCount);
 
-      ZNRecord newActiveMapping = _rebalanceStrategy
-          .computePartitionAssignment(allNodeList, activeNodeList, currentMapping, clusterData);
+      ZNRecord newActiveMapping =
+          _rebalanceStrategy.computePartitionAssignment(allNodeList, activeNodeList, currentMapping,
+              clusterData);
       finalMapping = getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping,
           liveEnabledNodes, replicaCount, minActiveReplicas);
     }
 
     finalMapping.getListFields().putAll(userDefinedPreferenceList);
+
+    // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
+    Map<String, String> swapOutToSwapInInstancePairs =
+        clusterData.getSwapOutToSwapInInstancePairs();
+    Set<String> enabledLiveSwapInInstances = clusterData.getEnabledLiveSwapInInstanceNames();
+    // 2. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
+    // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
+    // swap occurring.
+    if (!clusterData.getEnabledLiveSwapInInstanceNames().isEmpty()) {
+      DelayedRebalanceUtil.addSwapInInstanceToPreferenceListsIfSwapOutInstanceExists(finalMapping,
+          swapOutToSwapInInstancePairs, enabledLiveSwapInInstances);
+    }
 
     LOG.debug("currentMapping: {}", currentMapping);
     LOG.debug("stateCountMap: {}", stateCountMap);
@@ -202,14 +222,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     IdealState idealState = generateNewIdealState(resourceName, currentIdealState, finalMapping);
     clusterData.setCachedIdealMapping(resourceName, idealState.getRecord());
     return idealState;
-  }
-
-  private static List<String> filterOutOnOperationInstances(Map<String, InstanceConfig> instanceConfigMap,
-      Set<String> nodes) {
-    return nodes.stream()
-        .filter(
-            instance -> !INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(instanceConfigMap.get(instance).getInstanceOperation()))
-        .collect(Collectors.toList());
   }
 
   private IdealState generateNewIdealState(String resourceName, IdealState currentIdealState,
@@ -379,7 +391,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     // if preference list is not empty, and we do have new intanceToAdd, we
     // should check if it has capacity to hold the partition.
     boolean isWaged = WagedValidationUtil.isWagedEnabled(idealState) && cache != null;
-    if (isWaged && !isPreferenceListEmpty && instanceToAdd.size() > 0) {
+    if (isWaged && !isPreferenceListEmpty && !instanceToAdd.isEmpty()) {
       // check instanceToAdd instance appears in combinedPreferenceList
       for (String instance : instanceToAdd) {
         if (combinedPreferenceList.contains(instance)) {
@@ -412,7 +424,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
       for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
         String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
-        bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
+        // We do not want to drop in a SWAP_IN node because if it is at the end of the preferenceList,
+        // because partitions are actively being added on this node to prepare for SWAP completion.
+        if (cache == null || !cache.getEnabledLiveSwapInInstanceNames().contains(instanceToDrop)) {
+          bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
+        }
       }
     }
 

@@ -305,12 +305,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
     Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
         ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-        clusterData.getInstanceConfigMap(), clusterData.getAllInstances(), null);
-    Set<String> liveEnabledNodesDeduped =
-        DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-            ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-            clusterData.getInstanceConfigMap(), clusterData.getEnabledLiveInstances(),
-            allNodesDeduped);
+        clusterData.getInstanceConfigMap(), clusterData.getAllInstances());
+    // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
+    // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
+    Set<String> liveEnabledNodesDeduped = clusterData.getEnabledLiveInstances();
+    liveEnabledNodesDeduped.retainAll(allNodesDeduped);
 
     Set<String> activeNodes =
         DelayedRebalanceUtil.getActiveNodes(allNodesDeduped, liveEnabledNodesDeduped,
@@ -422,15 +421,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       RebalanceAlgorithm algorithm) throws HelixRebalanceException {
     // the "real" live nodes at the time
     // TODO: this is a hacky way to filter our on operation instance. We should consider redesign `getEnabledLiveInstances()`.
-    final Set<String> allNodes = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
+    final Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
         ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-        clusterData.getInstanceConfigMap(), clusterData.getAllInstances(), null);
-    final Set<String> enabledLiveInstances =
-        DelayedRebalanceUtil.filterOutEvacuatingInstances(clusterData.getInstanceConfigMap(),
-            DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-                ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-                clusterData.getInstanceConfigMap(), clusterData.getEnabledLiveInstances(),
-                allNodes));
+        clusterData.getInstanceConfigMap(), clusterData.getAllInstances());
+    final Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+    // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
+    // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
+    enabledLiveInstances.retainAll(allNodesDeduped);
 
     if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment
@@ -647,13 +644,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
       Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
           ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-          clusterData.getInstanceConfigMap(), clusterData.getAllInstances(), null);
-      Set<String> enabledLiveInstances =
-          DelayedRebalanceUtil.filterOutEvacuatingInstances(clusterData.getInstanceConfigMap(),
-              DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-                  ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-                  clusterData.getInstanceConfigMap(), clusterData.getEnabledLiveInstances(),
-                  allNodesDeduped));
+          clusterData.getInstanceConfigMap(), clusterData.getAllInstances());
+      Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+      // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
+      // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
+      enabledLiveInstances.retainAll(allNodesDeduped);
 
       int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
       int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig

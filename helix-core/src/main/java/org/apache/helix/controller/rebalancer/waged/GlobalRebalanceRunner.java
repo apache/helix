@@ -172,7 +172,7 @@ class GlobalRebalanceRunner implements AutoCloseable {
           // with both the SWAP_OUT and SWAP_IN node.
           DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
               ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-              clusterData.getInstanceConfigMap(), clusterData.getAllInstances(), null),
+              clusterData.getInstanceConfigMap(), clusterData.getAllInstances()),
               clusterChanges, currentBaseline);
     } catch (Exception ex) {
       throw new HelixRebalanceException("Failed to generate cluster model for global rebalance.",

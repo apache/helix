@@ -114,16 +114,16 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       allNodes = clusterData.getAllInstances();
     }
 
-    allNodes = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
+    Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
         ClusterTopologyConfig.createFromClusterConfig(clusterConfig),
-        clusterData.getInstanceConfigMap(), allNodes, null);
-    liveEnabledNodes = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-        ClusterTopologyConfig.createFromClusterConfig(clusterConfig),
-        clusterData.getInstanceConfigMap(), liveEnabledNodes, allNodes);
+        clusterData.getInstanceConfigMap(), allNodes);
+    // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
+    // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
+    liveEnabledNodes.retainAll(allNodesDeduped);
 
     long delay = DelayedRebalanceUtil.getRebalanceDelay(currentIdealState, clusterConfig);
     Set<String> activeNodes = DelayedRebalanceUtil
-        .getActiveNodes(allNodes, currentIdealState, liveEnabledNodes,
+        .getActiveNodes(allNodesDeduped, currentIdealState, liveEnabledNodes,
             clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
             clusterData.getInstanceConfigMap(), delay, clusterConfig);
     if (delayRebalanceEnabled) {
@@ -135,11 +135,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
           clusterConfig, _manager);
     }
 
-    if (allNodes.isEmpty() || activeNodes.isEmpty()) {
+    if (allNodesDeduped.isEmpty() || activeNodes.isEmpty()) {
       LOG.error(String.format(
           "No instances or active instances available for resource %s, "
               + "allInstances: %s, liveInstances: %s, activeInstances: %s",
-          resourceName, allNodes, liveEnabledNodes, activeNodes));
+          resourceName, allNodesDeduped, liveEnabledNodes, activeNodes));
       return generateNewIdealState(resourceName, currentIdealState,
           emptyMapping(currentIdealState));
     }
@@ -166,7 +166,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
             stateCountMap, maxPartition);
 
     // sort node lists to ensure consistent preferred assignments
-    List<String> allNodeList = new ArrayList<>(allNodes);
+    List<String> allNodeList = new ArrayList<>(allNodesDeduped);
     // We will not assign partition to instances with evacuation and wap-out tag.
     // TODO: Currently we have 2 groups of instances and compute preference list twice and merge.
     // Eventually we want to have exclusive groups of instance for different instance tag.
@@ -215,7 +215,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     LOG.debug("stateCountMap: {}", stateCountMap);
     LOG.debug("liveEnabledNodes: {}", liveEnabledNodes);
     LOG.debug("activeNodes: {}", activeNodes);
-    LOG.debug("allNodes: {}", allNodes);
+    LOG.debug("allNodes: {}", allNodesDeduped);
     LOG.debug("maxPartition: {}", maxPartition);
     LOG.debug("newIdealMapping: {}", newIdealMapping);
     LOG.debug("finalMapping: {}", finalMapping);

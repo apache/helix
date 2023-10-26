@@ -586,6 +586,8 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
         InstanceConstants.InstanceOperation.SWAP_IN, true);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @Test(dependsOnMethods = "testNodeSwapNoTopologySetup")

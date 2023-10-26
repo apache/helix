@@ -147,25 +147,16 @@ public class DelayedRebalanceUtil {
    * assignable. If there are duplicates with one node having no InstanceOperation and the other
    * having SWAP_OUT, the node with no InstanceOperation will be chosen. This signifies SWAP
    * completion, therefore making the node assignable.
-   * <p>
-   * Additionally, we never want to add a node that is not in the allowedInstances set if it is
-   * provided. allowedInstances should contain the filtered and deduped superset of nodes such as
-   * allInstances. If this filter method is called on a subset of allInstances, it should not ever
-   * keep an instance with a duplicate logical ID that was not previously returned when filtering
-   * the superset. This is important for cases where filtering allEnabledLiveInstances is filtered
-   * and the SWAP_OUT node is not enabled or live. We must prevent the SWAP_IN node from passing
-   * through the filter.
    *
    * @param clusterTopologyConfig the cluster topology configuration
    * @param instanceConfigMap     the map of instance name to corresponding InstanceConfig
    * @param instances             the set of instances to filter out duplicate logicalIDs for
-   * @param allowedInstances      the set of instances that are allowed to pass through the filter
    * @return the set of instances with duplicate logicalIDs filtered out, there will only be one
    * instance per logicalID
    */
   public static Set<String> filterOutInstancesWithDuplicateLogicalIds(
       ClusterTopologyConfig clusterTopologyConfig, Map<String, InstanceConfig> instanceConfigMap,
-      Set<String> instances, Set<String> allowedInstances) {
+      Set<String> instances) {
     Set<String> filteredNodes = new HashSet<>();
     Map<String, String> filteredInstancesByLogicalId = new HashMap<>();
 
@@ -176,11 +167,6 @@ public class DelayedRebalanceUtil {
       }
       String thisLogicalId =
           thisInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
-
-      // We do not want to allow the addition of nodes that are not in the allowedInstances set it is provided.
-      if (allowedInstances != null && !allowedInstances.contains(node)) {
-        return;
-      }
 
       if (filteredInstancesByLogicalId.containsKey(thisLogicalId)) {
         InstanceConfig filteredDuplicateInstanceConfig =

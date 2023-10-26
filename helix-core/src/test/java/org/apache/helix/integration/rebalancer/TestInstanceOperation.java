@@ -405,6 +405,8 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertTrue(newPAssignedParticipants.containsAll(currentActiveInstances));
     }
     Assert.assertTrue(_admin.isReadyForPreparingJoiningCluster(CLUSTER_NAME, instanceToEvacuate));
+
+    _stateModelDelay = 3L;
   }
 
   @Test(dependsOnMethods = "testMarkEvacuationAfterEMM")
@@ -441,6 +443,9 @@ public class TestInstanceOperation extends ZkTestBase {
         return true;
       }, 30000);
     }
+
+    resetInstances();
+    dropTestDBs(ImmutableSet.of("TEST_DB3_DELAYED_CRUSHED", "TEST_DB4_DELAYED_WAGED"));
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
@@ -450,7 +455,6 @@ public class TestInstanceOperation extends ZkTestBase {
             System.currentTimeMillis()));
 
     resetInstances();
-    dropTestDBs(ImmutableSet.of("TEST_DB3_DELAYED_CRUSHED", "TEST_DB4_DELAYED_WAGED"));
 
     // Set instance's InstanceOperation to SWAP_OUT
     String instanceToSwapOutName = _participants.get(0).getInstanceName();

@@ -141,15 +141,35 @@ public class DelayedRebalanceUtil {
         .collect(Collectors.toSet());
   }
 
+  /**
+   * Filter out instances with duplicate logical IDs. If there are duplicates, the instance with
+   * InstanceOperation SWAP_OUT will be chosen over the instance with SWAP_IN. SWAP_IN is not
+   * assignable. If there are duplicates with one node having no InstanceOperation and the other
+   * having SWAP_OUT, the node with no InstanceOperation will be chosen. This signifies SWAP
+   * completion, therefore making the node assignable.
+   * <p>
+   * Additionally, we never want to add a node that is not in the allowedInstances set if it is
+   * provided. allowedInstances should contain the filtered and deduped superset of nodes such as
+   * allInstances. If this filter method is called on a subset of allInstances, it should not ever
+   * keep an instance with a duplicate logical ID that was not previously returned when filtering
+   * the superset. This is important for cases where filtering allEnabledLiveInstances is filtered
+   * and the SWAP_OUT node is not enabled or live. We must prevent the SWAP_IN node from passing
+   * through the filter.
+   *
+   * @param clusterTopologyConfig the cluster topology configuration
+   * @param instanceConfigMap     the map of instance name to corresponding InstanceConfig
+   * @param instances             the set of instances to filter out duplicate logicalIDs for
+   * @param allowedInstances      the set of instances that are allowed to pass through the filter
+   * @return the set of instances with duplicate logicalIDs filtered out, there will only be one
+   * instance per logicalID
+   */
   public static Set<String> filterOutInstancesWithDuplicateLogicalIds(
       ClusterTopologyConfig clusterTopologyConfig, Map<String, InstanceConfig> instanceConfigMap,
-      Set<String> nodes, Set<String> allowedNodes) {
+      Set<String> instances, Set<String> allowedInstances) {
     Set<String> filteredNodes = new HashSet<>();
     Map<String, String> filteredInstancesByLogicalId = new HashMap<>();
 
-    // Always keep the SWAP_OUT node over the SWAP_IN node if it exists and is enabled.
-    // If there isn't SWAP_OUT node, then the SWAP_IN node will be kept.
-    nodes.forEach(node -> {
+    instances.forEach(node -> {
       InstanceConfig thisInstanceConfig = instanceConfigMap.get(node);
       if (thisInstanceConfig == null) {
         return;
@@ -157,8 +177,8 @@ public class DelayedRebalanceUtil {
       String thisLogicalId =
           thisInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
 
-      // We do not want to allow the addition of nodes that are not in the allowedNodes set it is provided
-      if (allowedNodes != null && !allowedNodes.contains(node)) {
+      // We do not want to allow the addition of nodes that are not in the allowedInstances set it is provided.
+      if (allowedInstances != null && !allowedInstances.contains(node)) {
         return;
       }
 
@@ -172,11 +192,10 @@ public class DelayedRebalanceUtil {
             filteredDuplicateInstanceConfig.getInstanceOperation()
                 .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())
                 && thisInstanceConfig.getInstanceOperation().isEmpty())) {
-          // If the already filtered instance is SWAP_IN and this instance is in SWAP_OUT and enabled,
-          // then replace the filtered instance with this instance.
-          // If the already filtered instance is SWAP_OUT and this instance has no InstanceOperation,
-          // then replace the filtered instance with this instance. This is the case where the SWAP_IN
-          // node has been marked as complete.
+          // If the already filtered instance is SWAP_IN and this instance is in SWAP_OUT, then replace the filtered
+          // instance with this instance. If the already filtered instance is SWAP_OUT and this instance has
+          // no InstanceOperation, then replace the filtered instance with this instance. This is the case
+          // where the SWAP_IN node has been marked as complete.
           filteredNodes.remove(filteredInstancesByLogicalId.get(thisLogicalId));
           filteredNodes.add(node);
           filteredInstancesByLogicalId.put(thisLogicalId, node);
@@ -201,20 +220,24 @@ public class DelayedRebalanceUtil {
       Map<String, String> swapOutToSwapInInstancePairs, Set<String> enabledLiveSwapInInstances) {
     Map<String, List<String>> preferenceListsByPartition = mapping.getListFields();
     for (String partition : preferenceListsByPartition.keySet()) {
-      // TODO: Improve this so we don't have to allocate a new list every time.
-      List<String> preferenceList = List.copyOf(preferenceListsByPartition.get(partition));
+      List<String> preferenceList = preferenceListsByPartition.get(partition);
       if (preferenceList == null) {
         continue;
       }
+      List<String> newInstancesToAdd = new ArrayList<>();
       for (String instanceName : preferenceList) {
         if (swapOutToSwapInInstancePairs.containsKey(instanceName)
             && enabledLiveSwapInInstances.contains(
             swapOutToSwapInInstancePairs.get(instanceName))) {
           String swapInInstanceName = swapOutToSwapInInstancePairs.get(instanceName);
-          if (!preferenceList.contains(swapInInstanceName)) {
-            mapping.getListFields().get(partition).add(swapInInstanceName);
+          if (!preferenceList.contains(swapInInstanceName) && !newInstancesToAdd.contains(
+              swapInInstanceName)) {
+            newInstancesToAdd.add(swapInInstanceName);
           }
         }
+      }
+      if (!newInstancesToAdd.isEmpty()) {
+        preferenceList.addAll(newInstancesToAdd);
       }
     }
   }

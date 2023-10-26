@@ -757,7 +757,7 @@ public interface HelixAdmin {
   boolean isEvacuateFinished(String clusterName, String instancesNames);
 
   /**
-   * Check to see if swapping between two instances is ready to be completed. Either the swapOut or
+   * Check to see if swapping between two instances can be completed. Either the swapOut or
    * swapIn instance can be passed in.
    * @param clusterName  The cluster name
    * @param instanceName The instance that is being swapped out or swapped in
@@ -766,8 +766,8 @@ public interface HelixAdmin {
   boolean canSwapBeCompleted(String clusterName, String instanceName);
 
   /**
-   * Check to see if swapping between two instances is ready to be completed and completed it if
-   * ready. Either the swapOut or swapIn instance can be passed in.
+   * Check to see if swapping between two instances is ready to be completed and complete it if
+   * possible. Either the swapOut or swapIn instance can be passed in.
    *
    * @param clusterName  The cluster name
    * @param instanceName The instance that is being swapped out or swapped in

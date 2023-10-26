@@ -160,16 +160,16 @@ class GlobalRebalanceRunner implements AutoCloseable {
     // Build the cluster model for rebalance calculation.
     // Note, for a Baseline calculation,
     // 1. Ignore node status (disable/offline).
-    // 2. Dedupe and select correct node if there is more than one with the same logical id.
-    // We should be calculating a new baseline only after a swap operation is complete. Adding,
-    // this ensures that adding the SWAP_IN node to the cluster does not cause new baseline to be calculated
-    // with the SWAP_IN node.
     // 2. Use the previous Baseline as the only parameter about the previous assignment.
     Map<String, ResourceAssignment> currentBaseline =
         _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
     ClusterModel clusterModel;
     try {
       clusterModel = ClusterModelProvider.generateClusterModelForBaseline(clusterData, resourceMap,
+          // Dedupe and select correct node if there is more than one with the same logical id.
+          // We should be calculating a new baseline only after a swap operation is complete and the SWAP_IN node is selected
+          // by deduping. This ensures that adding the SWAP_IN node to the cluster does not cause new baseline to be calculated
+          // with both the SWAP_OUT and SWAP_IN node.
           DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
               ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
               clusterData.getInstanceConfigMap(), clusterData.getAllInstances(), null),

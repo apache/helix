@@ -373,8 +373,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
         Map<String, String> swapOutToSwapInInstancePairs =
             clusterData.getSwapOutToSwapInInstancePairs();
+        // 2. Get all enabled and live SWAP_IN instances in the cluster.
         Set<String> enabledLiveSwapInInstances = clusterData.getEnabledLiveSwapInInstanceNames();
-        // 2. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
+        // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
         // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
         // swap occurring.
         if (!clusterData.getEnabledLiveSwapInInstanceNames().isEmpty()) {

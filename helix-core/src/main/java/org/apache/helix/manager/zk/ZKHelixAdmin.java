@@ -261,8 +261,8 @@ public class ZKHelixAdmin implements HelixAdmin {
                 + instanceConfig.getInstanceOperation());
       }
     } else if (!instanceConfig.getInstanceOperation().isEmpty()) {
-      // If there are no instances with the same logicalId, we can only add this instance if InstanceOperation is unset.
-      // because it is a new instance.
+      // If there are no instances with the same logicalId, we can only add this instance if InstanceOperation
+      // is unset because it is a new instance.
       throw new HelixException(
           "There is no instance with logicalId: " + toAddInstanceLogicalId + " in cluster: "
               + clusterName + "; therefore, " + nodeId
@@ -466,21 +466,6 @@ public class ZKHelixAdmin implements HelixAdmin {
           + "creating the InstanceConfig).");
     }
 
-    // Swap will not happen unless both instance are active
-
-    // Logic for picking active swapping instance
-    // SWAP_OUT -> null keep serving the old instance
-    // SWAP_OUT -> deactivated serve the new instance
-    // SWAP_IN -> null keep serving the old instance
-    // SWAP_IN -> deactivated serve the old instance
-
-    // Should not be able to change instance information from SWAP_IN to anything else.
-    // Should not be able to change instance information from SWAP_OUT to anything else.
-    // This should be changed once a SWAP is completed or aborted.
-
-    // active node is SWAP_OUT if it has SWAP_OUT operation and SWAP_IN operation is not set
-    // active node is SWAP_IN if it has SWAP_IN operation
-
     if (!baseAccessor.exists(path, 0)) {
       throw new HelixException(
           "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
@@ -515,7 +500,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   /**
-   * Find the instance that this passed instance is swapping with. If the passed instance has
+   * Find the instance that the passed instance is swapping with. If the passed instance has
    * SWAP_OUT instanceOperation, then find the corresponding instance that has SWAP_IN
    * instanceOperation. If the passed instance has SWAP_IN instanceOperation, then find the
    * corresponding instance that has SWAP_OUT instanceOperation.

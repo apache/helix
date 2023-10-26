@@ -709,6 +709,8 @@ public class InstanceConfig extends HelixProperty {
    * @return the logicalId of this instance
    */
   public String getLogicalId(String logicalIdKey) {
+    // TODO: Consider caching DomainMap, parsing the DOMAIN string every time
+    // getLogicalId is called can become expensive if called too frequently.
     return getDomainAsMap().getOrDefault(logicalIdKey, getInstanceName());
   }
 

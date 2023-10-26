@@ -201,8 +201,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
     Map<String, String> swapOutToSwapInInstancePairs =
         clusterData.getSwapOutToSwapInInstancePairs();
+    // 2. Get all enabled and live SWAP_IN instances in the cluster.
     Set<String> enabledLiveSwapInInstances = clusterData.getEnabledLiveSwapInInstanceNames();
-    // 2. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
+    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
     // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
     // swap occurring.
     if (!clusterData.getEnabledLiveSwapInInstanceNames().isEmpty()) {
@@ -424,7 +425,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
       for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
         String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
-        // We do not want to drop in a SWAP_IN node because if it is at the end of the preferenceList,
+        // We do not want to drop a SWAP_IN node if it is at the end of the preferenceList,
         // because partitions are actively being added on this node to prepare for SWAP completion.
         if (cache == null || !cache.getEnabledLiveSwapInInstanceNames().contains(instanceToDrop)) {
           bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());

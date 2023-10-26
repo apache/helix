@@ -626,7 +626,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
-   * This method allows one to fetch the active swapping instance pairs.
+   * Get all swapping instance pairs.
    *
    * @return a map of SWAP_OUT instanceNames and their corresponding SWAP_IN instanceNames.
    */
@@ -635,7 +635,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
-   * This method allows one to fetch the active SWAP_IN instances.
+   * Get all the enabled and live SWAP_IN instances.
    *
    * @return a set of SWAP_IN instanceNames that have a corresponding SWAP_OUT instance.
    */

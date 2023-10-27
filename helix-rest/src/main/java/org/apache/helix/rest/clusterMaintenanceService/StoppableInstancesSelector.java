@@ -84,7 +84,7 @@ public class StoppableInstancesSelector {
 
     List<String> zoneBasedInstance =
         getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
-    getStoppableInstances(zoneBasedInstance, toBeStoppedInstancesSet, stoppableInstances,
+    populateStoppableInstances(zoneBasedInstance, toBeStoppedInstancesSet, stoppableInstances,
         failedStoppableInstances);
     processNonexistentInstances(instances, failedStoppableInstances);
 
@@ -121,14 +121,14 @@ public class StoppableInstancesSelector {
       if (instanceSet.isEmpty()) {
         continue;
       }
-      getStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstancesSet, stoppableInstances,
+      populateStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstancesSet, stoppableInstances,
           failedStoppableInstances);
     }
     processNonexistentInstances(instances, failedStoppableInstances);
     return result;
   }
 
-  private void getStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances,
+  private void populateStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances,
       ArrayNode stoppableInstances, ObjectNode failedStoppableInstances) throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,

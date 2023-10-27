@@ -339,8 +339,8 @@ public class MaintenanceManagementService {
    */
   public StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
       String jsonContent) throws IOException {
-    return batchGetInstancesStoppableChecks(clusterId, ImmutableList.of(instanceName), jsonContent,
-        Collections.emptySet()).get(instanceName);
+    return batchGetInstancesStoppableChecks(clusterId, ImmutableList.of(instanceName),
+        jsonContent).get(instanceName);
   }
 
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,

@@ -435,7 +435,10 @@ public class TestInstanceValidationUtil {
     toBeStoppedInstances.add("invalidInstances"); // include an invalid instance.
     boolean result =
         InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, toBeStoppedInstances);
+    Assert.assertTrue(result);
 
+    result =
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, null);
     Assert.assertTrue(result);
   }
 

@@ -270,7 +270,8 @@ public class InstanceValidationUtil {
    * @param globalPartitionHealthStatus (instance => (partition name, health status))
    * @param instanceToBeStop The instance to be stopped
    * @param dataAccessor The data accessor
-   * @param toBeStoppedInstances A set of instances presumed to be are already stopped
+   * @param toBeStoppedInstances A set of instances presumed to be are already stopped. And it
+   *                            shouldn't contain the `instanceToBeStop`
    * @return A list of problematic partitions if the instance is stopped
    */
   public static Map<String, List<String>> perPartitionHealthCheck(List<ExternalView> externalViews,
@@ -295,8 +296,8 @@ public class InstanceValidationUtil {
             && stateMap.get(instanceToBeStop).equals(stateModelDefinition.getTopState())) {
           for (String siblingInstance : stateMap.keySet()) {
             // Skip this self check
-            if (siblingInstance.equals(instanceToBeStop) || toBeStoppedInstances.contains(
-                siblingInstance)) {
+            if (siblingInstance.equals(instanceToBeStop) || (toBeStoppedInstances != null
+                && toBeStoppedInstances.contains(siblingInstance))) {
               continue;
             }
 
@@ -390,7 +391,7 @@ public class InstanceValidationUtil {
    * TODO: Use in memory cache and query instance's currentStates
    *
    * @param dataAccessor A helper class to access the Helix data.
-   * @param instanceName A list of instance to be evaluated against this check.
+   * @param instanceName An instance to be evaluated against this check.
    * @return
    */
   public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor,
@@ -408,8 +409,9 @@ public class InstanceValidationUtil {
    * TODO: Use in memory cache and query instance's currentStates
    *
    * @param dataAccessor A helper class to access the Helix data.
-   * @param instanceName A list of instance to be evaluated against this check.
-   * @param toBeStoppedInstances A set of instances presumed to be are already stopped.
+   * @param instanceName An instance to be evaluated against this check.
+   * @param toBeStoppedInstances A set of instances presumed to be are already stopped. And it
+   *                             shouldn't contain the `instanceName`
    * @return
    */
   public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor,
@@ -449,8 +451,9 @@ public class InstanceValidationUtil {
         if (stateByInstanceMap.containsKey(instanceName)) {
           int numHealthySiblings = 0;
           for (Map.Entry<String, String> entry : stateByInstanceMap.entrySet()) {
-            if (!entry.getKey().equals(instanceName) && !toBeStoppedInstances.contains(
-                entry.getKey()) && !unhealthyStates.contains(entry.getValue())) {
+            if (!entry.getKey().equals(instanceName) && (toBeStoppedInstances == null
+                || !toBeStoppedInstances.contains(entry.getKey())) && !unhealthyStates.contains(
+                entry.getValue())) {
               numHealthySiblings++;
             }
           }

@@ -227,7 +227,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
       List<String> orderOfZone = null;
       String customizedInput = null;
-      Set<String> toBeStoppedInstances = Collections.emptySet();
+      List<String> toBeStoppedInstances = Collections.emptyList();
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
         customizedInput =
             node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
@@ -248,7 +248,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       if (node.get(InstancesAccessor.InstancesProperties.to_be_stopped_instances.name()) != null) {
         toBeStoppedInstances = OBJECT_MAPPER.readValue(
             node.get(InstancesProperties.to_be_stopped_instances.name()).toString(),
-            OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
+            OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
         Set<String> instanceSet = new HashSet<>(instances);
         instanceSet.retainAll(toBeStoppedInstances);
         if (!instanceSet.isEmpty()) {
@@ -259,13 +259,6 @@ public class InstancesAccessor extends AbstractHelixResource {
           return badRequest(message);
         }
       }
-
-      // Prepare output result
-      ObjectNode result = JsonNodeFactory.instance.objectNode();
-      ArrayNode stoppableInstances =
-          result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
-      ObjectNode failedStoppableInstances = result.putObject(
-          InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
 
       MaintenanceManagementService maintenanceService =
           new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
@@ -279,18 +272,17 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setClusterId(clusterId)
               .setOrderOfZone(orderOfZone)
               .setCustomizedInput(customizedInput)
-              .setStoppableInstances(stoppableInstances)
-              .setFailedStoppableInstances(failedStoppableInstances)
               .setMaintenanceService(maintenanceService)
               .setClusterTopology(clusterTopology)
               .build();
       stoppableInstancesSelector.calculateOrderOfZone(instances, random);
+      ObjectNode result;
       switch (selectionBase) {
         case zone_based:
-          stoppableInstancesSelector.getStoppableInstancesInSingleZone(instances, toBeStoppedInstances);
+          result = stoppableInstancesSelector.getStoppableInstancesInSingleZone(instances, toBeStoppedInstances);
           break;
         case cross_zone_based:
-          stoppableInstancesSelector.getStoppableInstancesCrossZones(instances, toBeStoppedInstances);
+          result = stoppableInstancesSelector.getStoppableInstancesCrossZones(instances, toBeStoppedInstances);
           break;
         case instance_based:
         default:

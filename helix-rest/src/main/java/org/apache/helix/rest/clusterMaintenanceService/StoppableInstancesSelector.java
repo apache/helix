@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
+import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 
 public class StoppableInstancesSelector {
   // This type does not belong to real HealthCheck failed reason. Also, if we add this type
@@ -45,19 +46,15 @@ public class StoppableInstancesSelector {
   private String _clusterId;
   private List<String> _orderOfZone;
   private String _customizedInput;
-  private ArrayNode _stoppableInstances;
-  private ObjectNode _failedStoppableInstances;
   private MaintenanceManagementService _maintenanceService;
   private ClusterTopology _clusterTopology;
 
   public StoppableInstancesSelector(String clusterId, List<String> orderOfZone,
-      String customizedInput, ArrayNode stoppableInstances, ObjectNode failedStoppableInstances,
-      MaintenanceManagementService maintenanceService, ClusterTopology clusterTopology) {
+      String customizedInput, MaintenanceManagementService maintenanceService,
+      ClusterTopology clusterTopology) {
     _clusterId = clusterId;
     _orderOfZone = orderOfZone;
     _customizedInput = customizedInput;
-    _stoppableInstances = stoppableInstances;
-    _failedStoppableInstances = failedStoppableInstances;
     _maintenanceService = maintenanceService;
     _clusterTopology = clusterTopology;
   }
@@ -72,12 +69,22 @@ public class StoppableInstancesSelector {
    * @param toBeStoppedInstances A list of instances presumed to be are already stopped
    * @throws IOException
    */
-  public void getStoppableInstancesInSingleZone(List<String> instances,
-      Set<String> toBeStoppedInstances) throws IOException {
+  public ObjectNode getStoppableInstancesInSingleZone(List<String> instances,
+      List<String> toBeStoppedInstances) throws IOException {
+    ObjectNode result = JsonNodeFactory.instance.objectNode();
+    ArrayNode stoppableInstances =
+        result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    ObjectNode failedStoppableInstances = result.putObject(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
+
     List<String> zoneBasedInstance =
         getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
-    getStoppableInstances(zoneBasedInstance, toBeStoppedInstances);
-    processNonexistentInstances(instances);
+    getStoppableInstances(zoneBasedInstance, toBeStoppedInstancesSet, stoppableInstances,
+        failedStoppableInstances);
+    processNonexistentInstances(instances, failedStoppableInstances);
+
+    return result;
   }
 
   /**
@@ -89,8 +96,15 @@ public class StoppableInstancesSelector {
    * @param toBeStoppedInstances A list of instances presumed to be are already stopped
    * @throws IOException
    */
-  public void getStoppableInstancesCrossZones(List<String> instances,
-      Set<String> toBeStoppedInstances) throws IOException {
+  public ObjectNode getStoppableInstancesCrossZones(List<String> instances,
+      List<String> toBeStoppedInstances) throws IOException {
+    ObjectNode result = JsonNodeFactory.instance.objectNode();
+    ArrayNode stoppableInstances =
+        result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    ObjectNode failedStoppableInstances = result.putObject(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
+
     Map<String, Set<String>> zoneMapping = _clusterTopology.toZoneMapping();
     for (String zone : _orderOfZone) {
       Set<String> instanceSet = new HashSet<>(instances);
@@ -99,13 +113,15 @@ public class StoppableInstancesSelector {
       if (instanceSet.isEmpty()) {
         continue;
       }
-      getStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstances);
+      getStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstancesSet, stoppableInstances,
+          failedStoppableInstances);
     }
-    processNonexistentInstances(instances);
+    processNonexistentInstances(instances, failedStoppableInstances);
+    return result;
   }
 
-  private void getStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances)
-      throws IOException {
+  private void getStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances,
+      ArrayNode stoppableInstances, ObjectNode failedStoppableInstances) throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,
             _customizedInput, toBeStoppedInstances);
@@ -114,12 +130,12 @@ public class StoppableInstancesSelector {
       String instance = instanceStoppableCheck.getKey();
       StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
       if (!stoppableCheck.isStoppable()) {
-        ArrayNode failedReasonsNode = _failedStoppableInstances.putArray(instance);
+        ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
         for (String failedReason : stoppableCheck.getFailedChecks()) {
           failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
         }
       } else {
-        _stoppableInstances.add(instance);
+        stoppableInstances.add(instance);
         // Update the toBeStoppedInstances set with the currently identified stoppable instance.
         // This ensures that subsequent checks in other zones are aware of this instance's stoppable status.
         toBeStoppedInstances.add(instance);
@@ -127,7 +143,7 @@ public class StoppableInstancesSelector {
     }
   }
 
-  private void processNonexistentInstances(List<String> instances) {
+  private void processNonexistentInstances(List<String> instances, ObjectNode failedStoppableInstances) {
     // Adding following logic to check whether instances exist or not. An instance exist could be
     // checking following scenario:
     // 1. Instance got dropped. (InstanceConfig is gone.)
@@ -139,7 +155,7 @@ public class StoppableInstancesSelector {
     Set<String> nonSelectedInstances = new HashSet<>(instances);
     nonSelectedInstances.removeAll(_clusterTopology.getAllInstances());
     for (String nonSelectedInstance : nonSelectedInstances) {
-      ArrayNode failedReasonsNode = _failedStoppableInstances.putArray(nonSelectedInstance);
+      ArrayNode failedReasonsNode = failedStoppableInstances.putArray(nonSelectedInstance);
       failedReasonsNode.add(JsonNodeFactory.instance.textNode(INSTANCE_NOT_EXIST));
     }
   }
@@ -150,6 +166,7 @@ public class StoppableInstancesSelector {
    *
    * If `random` is true, the order of zones will be randomized regardless of any previous order.
    *
+   * @param instances A list of instance to be used to calculate the order of zones.
    * @param random Indicates whether to randomize the order of zones.
    */
   public void calculateOrderOfZone(List<String> instances, boolean random) {
@@ -228,8 +245,6 @@ public class StoppableInstancesSelector {
     private String _clusterId;
     private List<String> _orderOfZone;
     private String _customizedInput;
-    private ArrayNode _stoppableInstances;
-    private ObjectNode _failedStoppableInstances;
     private MaintenanceManagementService _maintenanceService;
     private ClusterTopology _clusterTopology;
 
@@ -248,16 +263,6 @@ public class StoppableInstancesSelector {
       return this;
     }
 
-    public StoppableInstancesSelectorBuilder setStoppableInstances(ArrayNode stoppableInstances) {
-      _stoppableInstances = stoppableInstances;
-      return this;
-    }
-
-    public StoppableInstancesSelectorBuilder setFailedStoppableInstances(ObjectNode failedStoppableInstances) {
-      _failedStoppableInstances = failedStoppableInstances;
-      return this;
-    }
-
     public StoppableInstancesSelectorBuilder setMaintenanceService(
         MaintenanceManagementService maintenanceService) {
       _maintenanceService = maintenanceService;
@@ -270,9 +275,8 @@ public class StoppableInstancesSelector {
     }
 
     public StoppableInstancesSelector build() {
-      return new StoppableInstancesSelector(_clusterId, _orderOfZone,
-          _customizedInput, _stoppableInstances, _failedStoppableInstances, _maintenanceService,
-          _clusterTopology);
+      return new StoppableInstancesSelector(_clusterId, _orderOfZone, _customizedInput,
+          _maintenanceService, _clusterTopology);
     }
   }
 }

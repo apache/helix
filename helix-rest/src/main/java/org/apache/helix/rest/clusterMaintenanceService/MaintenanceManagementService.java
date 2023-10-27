@@ -296,7 +296,7 @@ public class MaintenanceManagementService {
     }
     try {
       Map<String, Boolean> healthStatus =
-          getInstanceHealthStatus(clusterId, instanceName, healthChecks, Collections.emptySet());
+          getInstanceHealthStatus(clusterId, instanceName, healthChecks);
       instanceInfoBuilder.healthStatus(healthStatus);
     } catch (HelixException ex) {
       LOG.error(
@@ -328,7 +328,7 @@ public class MaintenanceManagementService {
   /**
    * {@inheritDoc}
    * Single instance stoppable check implementation is a special case of
-   * {@link #batchGetInstancesStoppableChecks(String, List, String, Set)}
+   * {@link #batchGetInstancesStoppableChecks(String, List, String)}
    * <p>
    * Step 1: Perform instance level Helix own health checks
    * Step 2: Perform instance level client side health checks
@@ -339,17 +339,23 @@ public class MaintenanceManagementService {
    */
   public StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
       String jsonContent) throws IOException {
-    return batchGetInstancesStoppableChecks(clusterId, ImmutableList.of(instanceName), jsonContent, Collections.emptySet())
-        .get(instanceName);
+    return batchGetInstancesStoppableChecks(clusterId, ImmutableList.of(instanceName), jsonContent,
+        Collections.emptySet()).get(instanceName);
   }
 
+  public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+      List<String> instances, String jsonContent) throws IOException {
+    return batchGetInstancesStoppableChecks(clusterId, instances, jsonContent,
+        Collections.emptySet());
+  }
 
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent, Set<String> toBeStoppedInstances) throws IOException {
     Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
     // helix instance check.
     List<String> instancesForCustomInstanceLevelChecks =
-        batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks, toBeStoppedInstances);
+        batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks,
+            toBeStoppedInstances);
     // custom check, includes partition check.
     batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
         finalStoppableChecks, getMapFromJsonPayload(jsonContent));
@@ -441,10 +447,11 @@ public class MaintenanceManagementService {
   }
 
   private List<String> batchHelixInstanceStoppableCheck(String clusterId,
-      Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks, Set<String> toBeStoppedInstances) {
-    Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(Collectors
-        .toMap(Function.identity(),
-            instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances))));
+      Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks,
+      Set<String> toBeStoppedInstances) {
+    Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(
+        Collectors.toMap(Function.identity(), instance -> POOL.submit(
+            () -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances))));
     // finalStoppableChecks contains instances that does not pass this health check
     return filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
   }
@@ -512,7 +519,8 @@ public class MaintenanceManagementService {
       if (healthCheck.equals(HELIX_INSTANCE_STOPPABLE_CHECK)) {
         // this is helix own check
         instancesForNext =
-            batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks, Collections.emptySet());
+            batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
+                Collections.emptySet());
       } else if (healthCheck.equals(HELIX_CUSTOM_STOPPABLE_CHECK)) {
         // custom check, includes custom Instance check and partition check.
         instancesForNext =
@@ -601,10 +609,12 @@ public class MaintenanceManagementService {
     return true;
   }
 
-  private StoppableCheck performHelixOwnInstanceCheck(String clusterId, String instanceName, Set<String> toBeStoppedInstances) {
+  private StoppableCheck performHelixOwnInstanceCheck(String clusterId, String instanceName,
+      Set<String> toBeStoppedInstances) {
     LOG.info("Perform helix own custom health checks for {}/{}", clusterId, instanceName);
     Map<String, Boolean> helixStoppableCheck =
-        getInstanceHealthStatus(clusterId, instanceName, HealthCheck.STOPPABLE_CHECK_LIST, toBeStoppedInstances);
+        getInstanceHealthStatus(clusterId, instanceName, HealthCheck.STOPPABLE_CHECK_LIST,
+            toBeStoppedInstances);
 
     return new StoppableCheck(helixStoppableCheck, StoppableCheck.Category.HELIX_OWN_CHECK);
   }
@@ -693,6 +703,12 @@ public class MaintenanceManagementService {
   public static boolean getBooleanFromJsonPayload(String jsonString)
       throws IllegalArgumentException, JsonProcessingException {
     return  OBJECT_MAPPER.readTree(jsonString).asBoolean();
+  }
+
+  @VisibleForTesting
+  protected Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
+      List<HealthCheck> healthChecks) {
+    return getInstanceHealthStatus(clusterId, instanceName, healthChecks, Collections.emptySet());
   }
 
   @VisibleForTesting

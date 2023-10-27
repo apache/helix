@@ -398,7 +398,7 @@ public class TestInstanceValidationUtil {
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
 
     boolean result =
-        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, Collections.emptySet());
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
 
     Assert.assertTrue(result);
   }
@@ -502,7 +502,7 @@ public class TestInstanceValidationUtil {
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
 
     boolean result =
-        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, Collections.emptySet());
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
 
     Assert.assertFalse(result);
   }
@@ -526,7 +526,7 @@ public class TestInstanceValidationUtil {
     doReturn(externalView).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
 
-    boolean result = InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, Collections.emptySet());
+    boolean result = InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
     Assert.assertTrue(result);
   }
 
@@ -546,7 +546,7 @@ public class TestInstanceValidationUtil {
     doReturn(null).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
 
-    InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, Collections.emptySet());
+    InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
   }
 
   private class Mock {

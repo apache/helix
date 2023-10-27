@@ -67,6 +67,10 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be are already stopped
+   * @return An ObjectNode containing:
+   *         - 'stoppableNode': List of instances that can be stopped.
+   *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
+   *         a list of reasons for non-stoppability as the value.
    * @throws IOException
    */
   public ObjectNode getStoppableInstancesInSingleZone(List<String> instances,
@@ -94,6 +98,10 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be are already stopped
+   * @return An ObjectNode containing:
+   *         - 'stoppableNode': List of instances that can be stopped.
+   *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
+   *         a list of reasons for non-stoppability as the value.
    * @throws IOException
    */
   public ObjectNode getStoppableInstancesCrossZones(List<String> instances,

@@ -43,11 +43,11 @@ public class StoppableInstancesSelector {
   // to HealthCheck enum, it could introduce more unnecessary check step since the InstanceServiceImpl
   // loops all the types to do corresponding checks.
   private final static String INSTANCE_NOT_EXIST = "HELIX:INSTANCE_NOT_EXIST";
-  private String _clusterId;
+  private final String _clusterId;
   private List<String> _orderOfZone;
-  private String _customizedInput;
-  private MaintenanceManagementService _maintenanceService;
-  private ClusterTopology _clusterTopology;
+  private final String _customizedInput;
+  private final MaintenanceManagementService _maintenanceService;
+  private final ClusterTopology _clusterTopology;
 
   public StoppableInstancesSelector(String clusterId, List<String> orderOfZone,
       String customizedInput, MaintenanceManagementService maintenanceService,

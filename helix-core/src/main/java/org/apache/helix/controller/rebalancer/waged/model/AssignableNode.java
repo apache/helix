@@ -77,8 +77,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
   AssignableNode(ClusterConfig clusterConfig, ClusterTopologyConfig clusterTopologyConfig,
       InstanceConfig instanceConfig, String instanceName) {
     _instanceName = instanceName;
-    _logicaId =
-        clusterTopologyConfig != null ? instanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType())
+    _logicaId = clusterTopologyConfig != null ? instanceConfig.getLogicalId(
+        clusterTopologyConfig.getEndNodeType())
             : instanceName;
     Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);

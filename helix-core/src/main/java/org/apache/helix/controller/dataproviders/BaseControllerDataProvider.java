@@ -888,10 +888,17 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   private void updateSwappingInstances(Collection<InstanceConfig> instanceConfigs,
       Set<String> liveEnabledInstances, ClusterConfig clusterConfig) {
-    ClusterTopologyConfig clusterTopologyConfig =
-        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
     _swapOutInstanceNameToSwapInInstanceName.clear();
     _enabledLiveSwapInInstanceNames.clear();
+
+    if (clusterConfig == null) {
+      logger.warn("Skip refreshing swapping instances because clusterConfig is null.");
+      return;
+    }
+
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
+
     Map<String, String> swapOutLogicalIdsByInstanceName = new HashMap<>();
     Map<String, String> swapInInstancesByLogicalId = new HashMap<>();
     instanceConfigs.forEach(instanceConfig -> {

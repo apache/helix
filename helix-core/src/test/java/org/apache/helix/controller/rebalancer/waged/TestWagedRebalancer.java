@@ -738,7 +738,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     instances.add(offlineInstance);
     when(clusterData.getAllInstances()).thenReturn(instances);
     when(clusterData.getEnabledInstances()).thenReturn(instances);
-    when(clusterData.getEnabledLiveInstances()).thenReturn(ImmutableSet.of(instance0, instance1, instance2));
+    when(clusterData.getEnabledLiveInstances()).thenReturn(new HashSet<>(Set.of(instance0, instance1, instance2)));
     Map<String, Long> instanceOfflineTimeMap = new HashMap<>();
     instanceOfflineTimeMap.put(offlineInstance, System.currentTimeMillis() + Integer.MAX_VALUE);
     when(clusterData.getInstanceOfflineTimeMap()).thenReturn(instanceOfflineTimeMap);

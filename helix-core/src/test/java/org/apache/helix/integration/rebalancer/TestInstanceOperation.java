@@ -562,9 +562,40 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapSwapInNodeWithAlreadySwappingPair")
+  public void testNodeSwapNoTopologySetup() throws Exception {
+    System.out.println("START TestInstanceOperation.testNodeSwapNoTopologySetup() at " + new Date(
+        System.currentTimeMillis()));
+    resetInstances();
+
+    // Disable topology aware rebalancing and remove TOPOLOGY.
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setTopologyAwareEnabled(false);
+    clusterConfig.setTopology(null);
+    clusterConfig.setFaultZoneType(null);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    // Set instance's InstanceOperation to SWAP_OUT
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
+        InstanceConstants.InstanceOperation.SWAP_OUT);
+
+    // Add instance with InstanceOperation set to SWAP_IN
+    // There should be an error that the logicalId does not have SWAP_OUT instance because,
+    // helix can't determine what topology key to use to get the logicalId if TOPOLOGY is not set.
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
+  }
+
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapNoTopologySetup")
   public void testNodeSwapWrongFaultZone() throws Exception {
     System.out.println("START TestInstanceOperation.testNodeSwapWrongFaultZone() at " + new Date(
         System.currentTimeMillis()));
+    // Reset clusterConfig to re-enable topology aware rebalancing and set TOPOLOGY.
+    setupClusterConfig();
     resetInstances();
 
     // Set instance's InstanceOperation to SWAP_OUT
@@ -603,41 +634,10 @@ public class TestInstanceOperation extends ZkTestBase {
         InstanceConstants.InstanceOperation.SWAP_IN, true, TEST_CAPACITY_VALUE - 10);
   }
 
-  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWrongCapacity")
-  public void testNodeSwapNoTopologySetup() throws Exception {
-    System.out.println("START TestInstanceOperation.testNodeSwapNoTopologySetup() at " + new Date(
-        System.currentTimeMillis()));
-    resetInstances();
-
-    // Disable topology aware rebalancing and remove TOPOLOGY.
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-    clusterConfig.setTopologyAwareEnabled(false);
-    clusterConfig.setTopology(null);
-    clusterConfig.setFaultZoneType(null);
-    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-
-    // Set instance's InstanceOperation to SWAP_OUT
-    String instanceToSwapOutName = _participants.get(0).getInstanceName();
-    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
-        InstanceConstants.InstanceOperation.SWAP_OUT);
-
-    // Add instance with InstanceOperation set to SWAP_IN
-    // There should be an error that the logicalId does not have SWAP_OUT instance because,
-    // helix can't determine what topology key to use to get the logicalId if TOPOLOGY is not set.
-    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
-    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
-        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
-    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
-        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
-  }
-
-  @Test(dependsOnMethods = "testNodeSwapNoTopologySetup")
+  @Test(dependsOnMethods = "testNodeSwapWrongCapacity")
   public void testNodeSwap() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwap() at " + new Date(System.currentTimeMillis()));
-    // Reset clusterConfig to re-enable topology aware rebalancing and set TOPOLOGY.
-    setupClusterConfig();
     resetInstances();
 
     // Store original EV
@@ -674,7 +674,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
     // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
@@ -741,7 +741,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
     // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
@@ -802,7 +802,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
 
     // Cancel SWAP by disabling the SWAP_IN instance and remove SWAP_OUT InstanceOperation from SWAP_OUT instance.
     _gSetupTool.getClusterManagementTool()
@@ -886,7 +886,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
     // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
@@ -957,7 +957,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Assert canSwapBeCompleted is false because SWAP_OUT instance is disabled.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
-        .canSwapBeCompleted(CLUSTER_NAME, instanceToSwapOutName));
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
 
     // Enable the SWAP_OUT instance.
     _gSetupTool.getClusterManagementTool()

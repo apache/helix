@@ -557,7 +557,7 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public boolean canSwapBeCompleted(String clusterName, String instancesNames) {
+  public boolean canCompleteSwap(String clusterName, String instancesNames) {
     return false;
   }
 

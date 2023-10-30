@@ -91,7 +91,7 @@ public class InstanceServiceImpl implements InstanceService {
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent) throws IOException {
     return _maintenanceManagementService
-        .batchGetInstancesStoppableChecks(clusterId, instances, jsonContent, Collections.emptySet());
+        .batchGetInstancesStoppableChecks(clusterId, instances, jsonContent);
   }
 
 }

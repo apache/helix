@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -212,9 +213,11 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // Get the topology key used to determine the logicalId of a node.
-    String logicalIdKey =
-        ClusterTopologyConfig.createFromClusterConfig(_configAccessor.getClusterConfig(clusterName))
-            .getEndNodeType();
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
+    String logicalIdKey = clusterTopologyConfig.getEndNodeType();
+    String faultZoneKey = clusterTopologyConfig.getFaultZoneType();
     String toAddInstanceLogicalId = instanceConfig.getLogicalId(logicalIdKey);
 
     HelixConfigScope instanceConfigScope =
@@ -255,10 +258,42 @@ public class ZKHelixAdmin implements HelixAdmin {
                 + " set to " + InstanceConstants.InstanceOperation.SWAP_OUT.name()
                 + " and this instance has InstanceOperation set to "
                 + InstanceConstants.InstanceOperation.SWAP_IN.name() + ". " + "Existing instance: "
-                + foundInstanceConfigsWithMatchingLogicalId.get(0) + " has InstanceOperation: "
+                + foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceName()
+                + " has InstanceOperation: "
                 + foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceOperation()
                 + " and this instance: " + nodeId + " has InstanceOperation: "
                 + instanceConfig.getInstanceOperation());
+      }
+
+      // If the existing instance with the same logicalId is not in the same FAULT_ZONE as this instance, we cannot
+      // add this instance.
+      if (!foundInstanceConfigsWithMatchingLogicalId.get(0).getDomainAsMap()
+          .containsKey(faultZoneKey) || !instanceConfig.getDomainAsMap().containsKey(faultZoneKey)
+          || !foundInstanceConfigsWithMatchingLogicalId.get(0).getDomainAsMap().get(faultZoneKey)
+          .equals(instanceConfig.getDomainAsMap().get(faultZoneKey))) {
+        throw new HelixException(
+            "Instance can only be added if the SWAP_OUT instance sharing the same logicalId is in the same FAULT_ZONE"
+                + " as this instance. " + "Existing instance: "
+                + foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceName()
+                + " has FAULT_ZONE_TYPE: " + foundInstanceConfigsWithMatchingLogicalId.get(0)
+                .getDomainAsMap().get(faultZoneKey) + " and this instance: " + nodeId
+                + " has FAULT_ZONE_TYPE: " + instanceConfig.getDomainAsMap().get(faultZoneKey));
+      }
+
+      Map<String, Integer> foundInstanceCapacityMap =
+          foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceCapacityMap().isEmpty()
+              ? clusterConfig.getDefaultInstanceCapacityMap()
+              : foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceCapacityMap();
+      Map<String, Integer> instanceCapacityMap = instanceConfig.getInstanceCapacityMap().isEmpty()
+          ? clusterConfig.getDefaultInstanceCapacityMap() : instanceConfig.getInstanceCapacityMap();
+      // If the instance does not have the same capacity, we cannot add this instance.
+      if (!new EqualsBuilder().append(foundInstanceCapacityMap, instanceCapacityMap).isEquals()) {
+        throw new HelixException(
+            "Instance can only be added if the SWAP_OUT instance sharing the same logicalId has the same capacity"
+                + " as this instance. " + "Existing instance: "
+                + foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceName()
+                + " has capacity: " + foundInstanceCapacityMap + " and this instance: " + nodeId
+                + " has capacity: " + instanceCapacityMap);
       }
     } else if (!instanceConfig.getInstanceOperation().isEmpty()) {
       // If there are no instances with the same logicalId, we can only add this instance if InstanceOperation

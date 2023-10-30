@@ -55,6 +55,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
+  private final String TEST_CAPACITY_KEY = "TestCapacityKey";
+  private final int TEST_CAPACITY_VALUE = 100;
   protected static final String ZONE = "zone";
   protected static final String HOST = "host";
   protected static final String LOGICAL_ID = "logicalId";
@@ -152,7 +154,7 @@ public class TestInstanceOperation extends ZkTestBase {
         _gSetupTool.getClusterManagementTool()
             .dropInstance(CLUSTER_NAME, _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, _participantNames.get(i)));
         _participants.set(i, createParticipant(_participantNames.get(i), Integer.toString(i),
-            "zone_" + i, null, true));
+            "zone_" + i, null, true, -1));
         _participants.get(i).syncStart();
         continue;
       }
@@ -467,7 +469,7 @@ public class TestInstanceOperation extends ZkTestBase {
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_OUT, true);
+        InstanceConstants.InstanceOperation.SWAP_OUT, true, -1);
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testAddingNodeWithSwapOutInstanceOperation")
@@ -489,7 +491,7 @@ public class TestInstanceOperation extends ZkTestBase {
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testAddingNodeWithSwapOutNodeInstanceOperationUnset")
@@ -502,7 +504,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Add new instance with InstanceOperation set to SWAP_IN
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
     addParticipant(instanceToSwapInName, "1000", "zone_1000",
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
   }
 
   @Test(dependsOnMethods = "testNodeSwapWithNoSwapOutNode")
@@ -525,7 +527,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // set the InstanceOperation to SWAP_IN.
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
-        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, true);
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, true, -1);
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapSwapInNodeNoInstanceOperationEnabled")
@@ -547,7 +549,7 @@ public class TestInstanceOperation extends ZkTestBase {
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
 
     // Add another instance with InstanceOperation set to SWAP_IN with same logicalId as previously
     // added SWAP_IN instance.
@@ -556,10 +558,52 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(secondInstanceToSwapInName,
         instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapSwapInNodeWithAlreadySwappingPair")
+  public void testNodeSwapWrongFaultZone() throws Exception {
+    System.out.println("START TestInstanceOperation.testNodeSwapWrongFaultZone() at " + new Date(
+        System.currentTimeMillis()));
+    resetInstances();
+
+    // Set instance's InstanceOperation to SWAP_OUT
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
+        InstanceConstants.InstanceOperation.SWAP_OUT);
+
+    // Add instance with InstanceOperation set to SWAP_IN
+    // There should be an error because SWAP_IN instance must be in the same FAULT_ZONE as the SWAP_OUT instance.
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE) + "1",
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
+  }
+
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWrongFaultZone")
+  public void testNodeSwapWrongCapacity() throws Exception {
+    System.out.println("START TestInstanceOperation.testNodeSwapWrongCapacity() at " + new Date(
+        System.currentTimeMillis()));
+    resetInstances();
+
+    // Set instance's InstanceOperation to SWAP_OUT
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
+        InstanceConstants.InstanceOperation.SWAP_OUT);
+
+    // Add instance with InstanceOperation set to SWAP_IN
+    // There should be an error because SWAP_IN instance must have same capacity as the SWAP_OUT node.
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
+        InstanceConstants.InstanceOperation.SWAP_IN, true, TEST_CAPACITY_VALUE - 10);
+  }
+
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWrongCapacity")
   public void testNodeSwapNoTopologySetup() throws Exception {
     System.out.println("START TestInstanceOperation.testNodeSwapNoTopologySetup() at " + new Date(
         System.currentTimeMillis()));
@@ -585,9 +629,7 @@ public class TestInstanceOperation extends ZkTestBase {
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
-
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
   }
 
   @Test(dependsOnMethods = "testNodeSwapNoTopologySetup")
@@ -620,7 +662,7 @@ public class TestInstanceOperation extends ZkTestBase {
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
 
     // Validate that partitions on SWAP_OUT instance does not change after setting the InstanceOperation to SWAP_OUT
     // and adding the SWAP_IN instance to the cluster.
@@ -680,7 +722,7 @@ public class TestInstanceOperation extends ZkTestBase {
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
-        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, false);
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, false, -1);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
@@ -748,7 +790,7 @@ public class TestInstanceOperation extends ZkTestBase {
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
 
     // Validate that partitions on SWAP_OUT instance does not change after setting the InstanceOperation to SWAP_OUT
     // and adding the SWAP_IN instance to the cluster.
@@ -822,7 +864,7 @@ public class TestInstanceOperation extends ZkTestBase {
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
 
     // Validate that the assignment has not changed since adding the SWAP_IN node.
     // During MM, the cluster should not compute new assignment.
@@ -900,7 +942,7 @@ public class TestInstanceOperation extends ZkTestBase {
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -948,12 +990,14 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   private MockParticipantManager createParticipant(String participantName, String logicalId, String zone,
-      InstanceConstants.InstanceOperation instanceOperation,
-      boolean enabled) {
+      InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
     InstanceConfig config = new InstanceConfig.Builder().setDomain(
             String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
                 logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
         .build(participantName);
+    if (capacity >= 0) {
+      config.setInstanceCapacityMap(Map.of(TEST_CAPACITY_KEY, capacity));
+    }
     _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
     // start dummy participants
@@ -966,10 +1010,9 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   private void addParticipant(String participantName, String logicalId, String zone,
-      InstanceConstants.InstanceOperation instanceOperation,
-      boolean enabled) {
+      InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
     MockParticipantManager participant = createParticipant(participantName, logicalId, zone,
-        instanceOperation, enabled);
+        instanceOperation, enabled, capacity);
 
     participant.syncStart();
     _participants.add(participant);
@@ -978,7 +1021,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   private void addParticipant(String participantName) {
     addParticipant(participantName, Integer.toString(_participants.size()),
-        "zone_" + _participants.size(), null, true);
+        "zone_" + _participants.size(), null, true, -1);
   }
 
    private void createTestDBs(long delayTime) throws InterruptedException {
@@ -1130,10 +1173,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Set test instance capacity and partition weights
     ClusterConfig clusterConfig = _dataAccessor.getProperty(_dataAccessor.keyBuilder().clusterConfig());
-    String testCapacityKey = "TestCapacityKey";
-    clusterConfig.setInstanceCapacityKeys(Collections.singletonList(testCapacityKey));
-    clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(testCapacityKey, 100));
-    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(testCapacityKey, 1));
+    clusterConfig.setInstanceCapacityKeys(Collections.singletonList(TEST_CAPACITY_KEY));
+    clusterConfig.setDefaultInstanceCapacityMap(
+        Collections.singletonMap(TEST_CAPACITY_KEY, TEST_CAPACITY_VALUE));
+    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(TEST_CAPACITY_KEY, 1));
     _dataAccessor.setProperty(_dataAccessor.keyBuilder().clusterConfig(), clusterConfig);
   }
 

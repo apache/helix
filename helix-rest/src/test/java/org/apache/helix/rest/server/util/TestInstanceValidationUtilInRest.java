@@ -22,8 +22,10 @@ package org.apache.helix.rest.server.util;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -103,6 +105,52 @@ public class TestInstanceValidationUtilInRest{
     Assert.assertEquals(failedPartitions.keySet().size(), 2);
   }
 
+  @Test
+  public void testPartitionLevelCheckWithToBeStoppedNode() {
+    List<ExternalView> externalViews = new ArrayList<>(Arrays.asList(prepareExternalViewOnline()));
+    Mock mock = new Mock();
+    HelixDataAccessor accessor = mock.dataAccessor;
+
+    when(mock.dataAccessor.keyBuilder())
+        .thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
+    when(mock.dataAccessor
+        .getProperty(new PropertyKey.Builder(TEST_CLUSTER).stateModelDef(MasterSlaveSMD.name)))
+        .thenReturn(mock.stateModel);
+    when(mock.stateModel.getTopState()).thenReturn("MASTER");
+    when(mock.stateModel.getInitialState()).thenReturn("OFFLINE");
+
+    Map<String, Map<String, Boolean>> partitionStateMap = new HashMap<>();
+    partitionStateMap.put("h1", new HashMap<>());
+    partitionStateMap.put("h2", new HashMap<>());
+    partitionStateMap.put("h3", new HashMap<>());
+    partitionStateMap.put("h4", new HashMap<>());
+
+    partitionStateMap.get("h1").put("p1", true);
+    partitionStateMap.get("h2").put("p1", true);
+    partitionStateMap.get("h3").put("p1", true);
+    partitionStateMap.get("h4").put("p1", true);
+
+    partitionStateMap.get("h1").put("p2", true);
+    partitionStateMap.get("h2").put("p2", false);
+    partitionStateMap.get("h3").put("p2", true);
+
+    Set<String> toBeStoppedInstances = new HashSet<>();
+    toBeStoppedInstances.add("h3");
+    Map<String, List<String>> failedPartitions = InstanceValidationUtil.perPartitionHealthCheck(
+        externalViews, partitionStateMap, "h1", accessor, toBeStoppedInstances);
+    Assert.assertEquals(failedPartitions.keySet().size(), 1);
+    Assert.assertEquals(failedPartitions.get("p2").size(), 1);
+    Assert.assertTrue(failedPartitions.get("p2").contains("UNHEALTHY_PARTITION"));
+
+    toBeStoppedInstances.remove("h3");
+    toBeStoppedInstances.add("h2");
+    failedPartitions =
+        InstanceValidationUtil.perPartitionHealthCheck(externalViews, partitionStateMap, "h1",
+            accessor, toBeStoppedInstances);
+    // Since we presume h2 as being already stopped, the health status of p2 on h2 will be skipped.
+    Assert.assertEquals(failedPartitions.keySet().size(), 0);
+  }
+
   private ExternalView prepareExternalView() {
     ExternalView externalView = new ExternalView(RESOURCE_NAME);
     externalView.getRecord()
@@ -155,6 +203,22 @@ public class TestInstanceValidationUtilInRest{
     externalView.setState("p1", "h2", "SLAVE");
     externalView.setState("p1", "h3", "SLAVE");
     externalView.setState("p1", "h4", "OFFLINE");
+
+    externalView.setState("p2", "h1", "MASTER");
+    externalView.setState("p2", "h2", "SLAVE");
+    externalView.setState("p2", "h3", "SLAVE");
+
+    return externalView;
+  }
+
+  private ExternalView prepareExternalViewOnline() {
+    ExternalView externalView = new ExternalView(RESOURCE_NAME);
+    externalView.getRecord()
+        .setSimpleField(ExternalView.ExternalViewProperty.STATE_MODEL_DEF_REF.toString(),
+            MasterSlaveSMD.name);
+    externalView.setState("p1", "h1", "MASTER");
+    externalView.setState("p1", "h2", "SLAVE");
+    externalView.setState("p1", "h3", "SLAVE");
 
     externalView.setState("p2", "h1", "MASTER");
     externalView.setState("p2", "h2", "SLAVE");

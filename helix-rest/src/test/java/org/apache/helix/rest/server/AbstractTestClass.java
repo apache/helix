@@ -54,6 +54,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
@@ -129,9 +130,14 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static HelixZkClient _gZkClientTestNS;
   protected static BaseDataAccessor<ZNRecord> _baseAccessorTestNS;
   protected static final String STOPPABLE_CLUSTER = "StoppableTestCluster";
+  protected static final String STOPPABLE_CLUSTER2 = "StoppableTestCluster2";
   protected static final String TASK_TEST_CLUSTER = "TaskTestCluster";
   protected static final List<String> STOPPABLE_INSTANCES =
       Arrays.asList("instance0", "instance1", "instance2", "instance3", "instance4", "instance5");
+  protected static final List<String> STOPPABLE_INSTANCES2 =
+      Arrays.asList("instance0", "instance1", "instance2", "instance3", "instance4", "instance5",
+          "instance6", "instance7", "instance8", "instance9", "instance10", "instance11",
+          "instance12", "instance13", "instance14");
 
   protected static Set<String> _clusters;
   protected static String _superCluster = "superCluster";
@@ -329,13 +335,14 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _configAccessor.setClusterConfig(cluster, clusterConfig);
       createResourceConfigs(cluster, 8);
       _workflowMap.put(cluster, createWorkflows(cluster, 3));
-      Set<String> resources = createResources(cluster, 8);
+      Set<String> resources = createResources(cluster, 8, MIN_ACTIVE_REPLICA, NUM_REPLICA);
       _instancesMap.put(cluster, instances);
       _liveInstancesMap.put(cluster, liveInstances);
       _resourcesMap.put(cluster, resources);
       _clusterControllerManagers.add(startController(cluster));
     }
     preSetupForParallelInstancesStoppableTest(STOPPABLE_CLUSTER, STOPPABLE_INSTANCES);
+    preSetupForCrosszoneParallelInstancesStoppableTest(STOPPABLE_CLUSTER2, STOPPABLE_INSTANCES2);
   }
 
   protected Set<String> createInstances(String cluster, int numInstances) {
@@ -348,16 +355,17 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     return instances;
   }
 
-  protected Set<String> createResources(String cluster, int numResources) {
+  protected Set<String> createResources(String cluster, int numResources, int minActiveReplica,
+      int replicationFactor) {
     Set<String> resources = new HashSet<>();
     for (int i = 0; i < numResources; i++) {
       String resource = cluster + "_db_" + i;
       _gSetupTool.addResourceToCluster(cluster, resource, NUM_PARTITIONS, "MasterSlave");
       IdealState idealState =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
-      idealState.setMinActiveReplicas(MIN_ACTIVE_REPLICA);
+      idealState.setMinActiveReplicas(minActiveReplica);
       _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
-      _gSetupTool.rebalanceStorageCluster(cluster, resource, NUM_REPLICA);
+      _gSetupTool.rebalanceStorageCluster(cluster, resource, replicationFactor);
       resources.add(resource);
     }
     return resources;
@@ -575,7 +583,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
     // Start participant
     startInstances(clusterName, new TreeSet<>(instances), 3);
-    createResources(clusterName, 1);
+    createResources(clusterName, 1, MIN_ACTIVE_REPLICA, NUM_REPLICA);
     _clusterControllerManagers.add(startController(clusterName));
 
     // Make sure that cluster config exists
@@ -606,6 +614,65 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     _workflowMap.put(STOPPABLE_CLUSTER, createWorkflows(STOPPABLE_CLUSTER, 3));
   }
 
+  private void preSetupForCrosszoneParallelInstancesStoppableTest(String clusterName,
+      List<String> instances) throws Exception {
+    _gSetupTool.addCluster(clusterName, true);
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setFaultZoneType("helixZoneId");
+    clusterConfig.setPersistIntermediateAssignment(true);
+    _configAccessor.setClusterConfig(clusterName, clusterConfig);
+    RESTConfig emptyRestConfig = new RESTConfig(clusterName);
+    _configAccessor.setRESTConfig(clusterName, emptyRestConfig);
+    // Create instance configs
+    List<InstanceConfig> instanceConfigs = new ArrayList<>();
+    int perZoneInstancesCount = 3;
+    int curZoneCount = 0, zoneId = 1;
+    for (int i = 0; i < instances.size(); i++) {
+      InstanceConfig instanceConfig = new InstanceConfig(instances.get(i));
+      instanceConfig.setDomain("helixZoneId=zone" + zoneId + ",host=instance" + i);
+      if (++curZoneCount >= perZoneInstancesCount) {
+        curZoneCount = 0;
+        zoneId++;
+      }
+      instanceConfigs.add(instanceConfig);
+    }
+
+    for (InstanceConfig instanceConfig : instanceConfigs) {
+      _gSetupTool.getClusterManagementTool().addInstance(clusterName, instanceConfig);
+    }
+
+    // Start participant
+    startInstances(clusterName, new TreeSet<>(instances), instances.size());
+    createResources(clusterName, 1, 2, 3);
+    _clusterControllerManagers.add(startController(clusterName));
+
+    // Make sure that cluster config exists
+    boolean isClusterConfigExist = TestHelper.verify(() -> {
+      ClusterConfig stoppableClusterConfig;
+      try {
+        stoppableClusterConfig = _configAccessor.getClusterConfig(clusterName);
+      } catch (Exception e) {
+        return false;
+      }
+      return (stoppableClusterConfig != null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isClusterConfigExist);
+    // Make sure that instance config exists for the instance0 to instance5
+    for (String instance: instances) {
+      boolean isinstanceConfigExist = TestHelper.verify(() -> {
+        InstanceConfig instanceConfig;
+        try {
+          instanceConfig = _configAccessor.getInstanceConfig(clusterName, instance);
+        } catch (Exception e) {
+          return false;
+        }
+        return (instanceConfig != null);
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isinstanceConfigExist);
+    }
+    _clusters.add(clusterName);
+    _workflowMap.put(clusterName, createWorkflows(clusterName, 3));
+  }
   /**
    * Starts a HelixRestServer for the test suite.
    * @return

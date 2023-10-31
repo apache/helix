@@ -20,6 +20,7 @@ package org.apache.helix.util;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -254,6 +255,28 @@ public class InstanceValidationUtil {
   public static Map<String, List<String>> perPartitionHealthCheck(List<ExternalView> externalViews,
       Map<String, Map<String, Boolean>> globalPartitionHealthStatus, String instanceToBeStop,
       HelixDataAccessor dataAccessor) {
+    return perPartitionHealthCheck(externalViews, globalPartitionHealthStatus, instanceToBeStop,
+        dataAccessor, Collections.emptySet());
+  }
+
+  /**
+   * Get the problematic partitions on the to-be-stop instance
+   * Requirement:
+   *  If the instance and the toBeStoppedInstances are stopped and the partitions on them are OFFLINE,
+   *  the cluster still have enough "healthy" replicas on other sibling instances
+   *
+   *  - sibling instances mean those who share the same partition (replicas) of the to-be-stop instance
+   *
+   * @param globalPartitionHealthStatus (instance => (partition name, health status))
+   * @param instanceToBeStop The instance to be stopped
+   * @param dataAccessor The data accessor
+   * @param toBeStoppedInstances A set of instances presumed to be are already stopped. And it
+   *                            shouldn't contain the `instanceToBeStop`
+   * @return A list of problematic partitions if the instance is stopped
+   */
+  public static Map<String, List<String>> perPartitionHealthCheck(List<ExternalView> externalViews,
+      Map<String, Map<String, Boolean>> globalPartitionHealthStatus, String instanceToBeStop,
+      HelixDataAccessor dataAccessor, Set<String> toBeStoppedInstances) {
     Map<String, List<String>> unhealthyPartitions = new HashMap<>();
 
     for (ExternalView externalView : externalViews) {
@@ -273,7 +296,8 @@ public class InstanceValidationUtil {
             && stateMap.get(instanceToBeStop).equals(stateModelDefinition.getTopState())) {
           for (String siblingInstance : stateMap.keySet()) {
             // Skip this self check
-            if (siblingInstance.equals(instanceToBeStop)) {
+            if (siblingInstance.equals(instanceToBeStop) || (toBeStoppedInstances != null
+                && toBeStoppedInstances.contains(siblingInstance))) {
               continue;
             }
 
@@ -366,11 +390,32 @@ public class InstanceValidationUtil {
    *
    * TODO: Use in memory cache and query instance's currentStates
    *
-   * @param dataAccessor
-   * @param instanceName
+   * @param dataAccessor A helper class to access the Helix data.
+   * @param instanceName An instance to be evaluated against this check.
    * @return
    */
-  public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor, String instanceName) {
+  public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor,
+      String instanceName) {
+    return siblingNodesActiveReplicaCheck(dataAccessor, instanceName, Collections.emptySet());
+  }
+
+  /**
+   * Check if sibling nodes of the instance meet min active replicas constraint
+   * Two instances are sibling of each other if they host the same partition. And sibling nodes
+   * that are in toBeStoppableInstances will be presumed to be stopped.
+   * WARNING: The check uses ExternalView to reduce network traffic but suffer from accuracy
+   * due to external view propagation latency
+   *
+   * TODO: Use in memory cache and query instance's currentStates
+   *
+   * @param dataAccessor A helper class to access the Helix data.
+   * @param instanceName An instance to be evaluated against this check.
+   * @param toBeStoppedInstances A set of instances presumed to be are already stopped. And it
+   *                             shouldn't contain the `instanceName`
+   * @return
+   */
+  public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor,
+      String instanceName, Set<String> toBeStoppedInstances) {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
     List<String> resources = dataAccessor.getChildNames(propertyKeyBuilder.idealStates());
 
@@ -406,8 +451,9 @@ public class InstanceValidationUtil {
         if (stateByInstanceMap.containsKey(instanceName)) {
           int numHealthySiblings = 0;
           for (Map.Entry<String, String> entry : stateByInstanceMap.entrySet()) {
-            if (!entry.getKey().equals(instanceName)
-                && !unhealthyStates.contains(entry.getValue())) {
+            if (!entry.getKey().equals(instanceName) && (toBeStoppedInstances == null
+                || !toBeStoppedInstances.contains(entry.getKey())) && !unhealthyStates.contains(
+                entry.getValue())) {
               numHealthySiblings++;
             }
           }

@@ -21,7 +21,9 @@ package org.apache.helix.util;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -399,6 +401,81 @@ public class TestInstanceValidationUtil {
         InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
 
     Assert.assertTrue(result);
+  }
+
+  @Test
+  public void TestSiblingNodesActiveReplicaCheckSuccessWithToBeStoppedInstances() {
+    String resource = "resource";
+    Mock mock = new Mock();
+    doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
+        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+
+    // set external view
+    ExternalView externalView = mock(ExternalView.class);
+    when(externalView.getMinActiveReplicas()).thenReturn(2);
+    when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(externalView.getPartitionSet()).thenReturn(ImmutableSet.of("db0"));
+    when(externalView.getStateMap("db0")).thenReturn(ImmutableMap.of(TEST_INSTANCE, "Master",
+        "instance1", "Slave", "instance2", "Slave", "instance3", "Slave"));
+    doReturn(externalView).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    StateModelDefinition stateModelDefinition = mock(StateModelDefinition.class);
+    when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
+    doReturn(stateModelDefinition).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
+
+    Set<String> toBeStoppedInstances = new HashSet<>();
+    toBeStoppedInstances.add("instance3");
+    toBeStoppedInstances.add("invalidInstances"); // include an invalid instance.
+    boolean result =
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, toBeStoppedInstances);
+    Assert.assertTrue(result);
+
+    result =
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, null);
+    Assert.assertTrue(result);
+  }
+
+  @Test
+  public void TestSiblingNodesActiveReplicaCheckFailsWithToBeStoppedInstances() {
+    String resource = "resource";
+    Mock mock = new Mock();
+    doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
+        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+
+    // set external view
+    ExternalView externalView = mock(ExternalView.class);
+    when(externalView.getMinActiveReplicas()).thenReturn(2);
+    when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(externalView.getPartitionSet()).thenReturn(ImmutableSet.of("db0"));
+    when(externalView.getStateMap("db0")).thenReturn(ImmutableMap.of(TEST_INSTANCE, "Master",
+        "instance1", "Slave", "instance2", "Slave", "instance3", "Slave"));
+    doReturn(externalView).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    StateModelDefinition stateModelDefinition = mock(StateModelDefinition.class);
+    when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
+    doReturn(stateModelDefinition).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
+
+    Set<String> toBeStoppedInstances = new HashSet<>();
+    toBeStoppedInstances.add("instance1");
+    toBeStoppedInstances.add("instance2");
+    boolean result =
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, toBeStoppedInstances);
+
+    Assert.assertFalse(result);
   }
 
   @Test

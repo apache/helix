@@ -114,7 +114,7 @@ public class TestMaintenanceManagementService {
 
     @Override
     protected Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
-        List<HealthCheck> healthChecks) {
+        List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
       return Collections.emptyMap();
     }
   }
@@ -127,7 +127,7 @@ public class TestMaintenanceManagementService {
             _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
-              String instanceName, List<HealthCheck> healthChecks) {
+              String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
             return failedCheck;
           }
         };
@@ -147,7 +147,7 @@ public class TestMaintenanceManagementService {
             _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
-              String instanceName, List<HealthCheck> healthChecks) {
+              String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
             return Collections.emptyMap();
           }
         };
@@ -227,7 +227,7 @@ public class TestMaintenanceManagementService {
             _customRestClient, false, false,
             new HashSet<>(Arrays.asList(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)),
             HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
-    
+
     StoppableCheck actual = service.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, "");
     List<String> expectedFailedChecks = Arrays.asList(
         StoppableCheck.Category.CUSTOM_PARTITION_CHECK.getPrefix()
@@ -246,7 +246,7 @@ public class TestMaintenanceManagementService {
             _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
-              String instanceName, List<HealthCheck> healthChecks) {
+              String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
             return Collections.emptyMap();
           }
         };
@@ -365,7 +365,7 @@ public class TestMaintenanceManagementService {
             HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
-              String instanceName, List<HealthCheck> healthChecks) {
+              String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
             return instanceHealthFailedCheck;
           }
         };
@@ -393,7 +393,7 @@ public class TestMaintenanceManagementService {
             _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
-              String instanceName, List<HealthCheck> healthChecks) {
+              String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
             return Collections.emptyMap();
           }
         };

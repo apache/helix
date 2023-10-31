@@ -20,7 +20,9 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +69,7 @@ public class InstancesAccessor extends AbstractHelixResource {
     disabled,
     selection_base,
     zone_order,
+    to_be_stopped_instances,
     customized_values,
     instance_stoppable_parallel,
     instance_not_stoppable_with_reasons
@@ -224,6 +227,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
       List<String> orderOfZone = null;
       String customizedInput = null;
+      List<String> toBeStoppedInstances = Collections.emptyList();
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
         customizedInput =
             node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
@@ -235,18 +239,26 @@ public class InstancesAccessor extends AbstractHelixResource {
             OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
         if (!orderOfZone.isEmpty() && random) {
           String message =
-              "Both 'orderOfZone' and 'random' parameters are set. Please specify only one option.";
+              "Both 'zone_order' and 'random' parameters are set. Please specify only one option.";
           _logger.error(message);
           return badRequest(message);
         }
       }
 
-      // Prepare output result
-      ObjectNode result = JsonNodeFactory.instance.objectNode();
-      ArrayNode stoppableInstances =
-          result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
-      ObjectNode failedStoppableInstances = result.putObject(
-          InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+      if (node.get(InstancesAccessor.InstancesProperties.to_be_stopped_instances.name()) != null) {
+        toBeStoppedInstances = OBJECT_MAPPER.readValue(
+            node.get(InstancesProperties.to_be_stopped_instances.name()).toString(),
+            OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
+        Set<String> instanceSet = new HashSet<>(instances);
+        instanceSet.retainAll(toBeStoppedInstances);
+        if (!instanceSet.isEmpty()) {
+          String message =
+              "'to_be_stopped_instances' and 'instances' have intersection: " + instanceSet
+                  + ". Please make them mutually exclusive.";
+          _logger.error(message);
+          return badRequest(message);
+        }
+      }
 
       MaintenanceManagementService maintenanceService =
           new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
@@ -260,18 +272,17 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setClusterId(clusterId)
               .setOrderOfZone(orderOfZone)
               .setCustomizedInput(customizedInput)
-              .setStoppableInstances(stoppableInstances)
-              .setFailedStoppableInstances(failedStoppableInstances)
               .setMaintenanceService(maintenanceService)
               .setClusterTopology(clusterTopology)
               .build();
-      stoppableInstancesSelector.calculateOrderOfZone(random);
+      stoppableInstancesSelector.calculateOrderOfZone(instances, random);
+      ObjectNode result;
       switch (selectionBase) {
         case zone_based:
-          stoppableInstancesSelector.getStoppableInstancesInSingleZone(instances);
+          result = stoppableInstancesSelector.getStoppableInstancesInSingleZone(instances, toBeStoppedInstances);
           break;
         case cross_zone_based:
-          stoppableInstancesSelector.getStoppableInstancesCrossZones();
+          result = stoppableInstancesSelector.getStoppableInstancesCrossZones(instances, toBeStoppedInstances);
           break;
         case instance_based:
         default:

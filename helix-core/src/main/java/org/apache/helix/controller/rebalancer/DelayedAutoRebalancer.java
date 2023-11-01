@@ -165,14 +165,15 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), allPartitions, resourceName,
             stateCountMap, maxPartition);
 
-    // sort node lists to ensure consistent preferred assignments
     List<String> allNodeList = new ArrayList<>(allNodesDeduped);
-    // We will not assign partition to instances with evacuation and wap-out tag.
+
     // TODO: Currently we have 2 groups of instances and compute preference list twice and merge.
     // Eventually we want to have exclusive groups of instance for different instance tag.
     List<String> liveEnabledAssignableNodeList = new ArrayList<>(
+        // We will not assign partitions to instances with EVACUATE InstanceOperation.
         DelayedRebalanceUtil.filterOutEvacuatingInstances(clusterData.getInstanceConfigMap(),
             liveEnabledNodes));
+    // sort node lists to ensure consistent preferred assignments
     Collections.sort(allNodeList);
     Collections.sort(liveEnabledAssignableNodeList);
 

@@ -989,6 +989,138 @@ public class TestInstanceOperation extends ZkTestBase {
         0);
   }
 
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWithSwapOutInstanceDisabled")
+  public void testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet() {
+    System.out.println(
+        "START TestInstanceOperation.testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet() at "
+            + new Date(System.currentTimeMillis()));
+    resetInstances();
+
+    // Get the SWAP_OUT instance.
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+
+    // Add instance with InstanceOperation set to SWAP_IN enabled before setting SWAP_OUT instance.
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, true, -1);
+  }
+
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet")
+  public void testNodeSwapAddSwapInFirstEnableBeforeSwapOutSet() {
+    System.out.println(
+        "START TestInstanceOperation.testNodeSwapAddSwapInFirstEnableBeforeSwapOutSet() at "
+            + new Date(System.currentTimeMillis()));
+    resetInstances();
+
+    // Get the SWAP_OUT instance.
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+
+    // Add instance with InstanceOperation set to SWAP_IN
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, false, -1);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Enable the SWAP_IN instance before we have set the SWAP_OUT instance.
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceToSwapInName, true);
+  }
+
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapAddSwapInFirstEnableBeforeSwapOutSet")
+  public void testUnsetInstanceOperationOnSwapInWhenAlreadyUnsetOnSwapOut() {
+    System.out.println(
+        "START TestInstanceOperation.testUnsetInstanceOperationOnSwapInWhenAlreadyUnsetOnSwapOut() at "
+            + new Date(System.currentTimeMillis()));
+    resetInstances();
+
+    // Get the SWAP_OUT instance.
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+
+    // Add instance with InstanceOperation set to SWAP_IN
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, false, -1);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Try to remove the InstanceOperation from the SWAP_IN instance before the SWAP_OUT instance is set.
+    // This should throw exception because we cannot ever have two instances with the same logicalId and both have InstanceOperation
+    // unset.
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, instanceToSwapInName, null);
+  }
+
+  @Test(dependsOnMethods = "testUnsetInstanceOperationOnSwapInWhenAlreadyUnsetOnSwapOut")
+  public void testNodeSwapAddSwapInFirst() {
+    System.out.println("START TestInstanceOperation.testNodeSwapAddSwapInFirst() at " + new Date(
+        System.currentTimeMillis()));
+    resetInstances();
+
+    // Store original EV
+    Map<String, ExternalView> originalEVs = getEVs();
+
+    Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
+
+    // Get the SWAP_OUT instance.
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+
+    // Add instance with InstanceOperation set to SWAP_IN
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + (START_PORT + _participants.size());
+    swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, false, -1);
+
+    // Validate that the assignment has not changed since setting the InstanceOperation to SWAP_OUT
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
+        Collections.emptySet(), Collections.emptySet());
+
+    // After the SWAP_IN instance is added, we set the InstanceOperation to SWAP_OUT
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
+        InstanceConstants.InstanceOperation.SWAP_OUT);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Enable the SWAP_IN instance to begin the swap operation.
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceToSwapInName, true);
+
+    // Validate that partitions on SWAP_OUT instance does not change after setting the InstanceOperation to SWAP_OUT
+    // and adding the SWAP_IN instance to the cluster.
+    // Check that the SWAP_IN instance has the same partitions as the SWAP_OUT instance
+    // but none of them are in a top state.
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
+        Set.of(instanceToSwapInName), Collections.emptySet());
+
+    // Assert canSwapBeCompleted is true
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
+    // Assert completeSwapIfPossible is true
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert that SWAP_OUT instance is disabled and has no partitions assigned to it.
+    Assert.assertFalse(_gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceEnabled());
+    Assert.assertEquals(getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapOutName).size(),
+        0);
+
+    // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
+    // swap was completed.
+    validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
+        Collections.emptySet(), Set.of(instanceToSwapInName));
+  }
+
   private MockParticipantManager createParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
     InstanceConfig config = new InstanceConfig.Builder().setDomain(

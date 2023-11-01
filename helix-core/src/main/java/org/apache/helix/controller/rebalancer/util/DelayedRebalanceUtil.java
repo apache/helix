@@ -147,7 +147,8 @@ public class DelayedRebalanceUtil {
    * assignable. If there are duplicates with one node having no InstanceOperation and the other
    * having SWAP_OUT, the node with no InstanceOperation will be chosen. This signifies SWAP
    * completion, therefore making the node assignable.
-   *
+   * TODO: Eventually when we refactor DataProvider to have getAssignableInstances() and
+   * TODO: getAssignableEnabledLiveInstances() this will not need to be called in the rebalancer.
    * @param clusterTopologyConfig the cluster topology configuration
    * @param instanceConfigMap     the map of instance name to corresponding InstanceConfig
    * @param instances             the set of instances to filter out duplicate logicalIDs for
@@ -174,14 +175,12 @@ public class DelayedRebalanceUtil {
         if ((filteredDuplicateInstanceConfig.getInstanceOperation()
             .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
             && thisInstanceConfig.getInstanceOperation()
-            .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) || (
-            filteredDuplicateInstanceConfig.getInstanceOperation()
-                .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())
-                && thisInstanceConfig.getInstanceOperation().isEmpty())) {
+            .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name()))
+            || thisInstanceConfig.getInstanceOperation().isEmpty()) {
           // If the already filtered instance is SWAP_IN and this instance is in SWAP_OUT, then replace the filtered
-          // instance with this instance. If the already filtered instance is SWAP_OUT and this instance has
-          // no InstanceOperation, then replace the filtered instance with this instance. This is the case
-          // where the SWAP_IN node has been marked as complete.
+          // instance with this instance. If this instance has no InstanceOperation, then replace the filtered instance
+          // with this instance. This is the case where the SWAP_IN node has been marked as complete or SWAP_IN exists and
+          // SWAP_OUT does not. There can never be a case where both have no InstanceOperation set.
           filteredNodes.remove(filteredInstancesByLogicalId.get(thisLogicalId));
           filteredNodes.add(node);
           filteredInstancesByLogicalId.put(thisLogicalId, node);

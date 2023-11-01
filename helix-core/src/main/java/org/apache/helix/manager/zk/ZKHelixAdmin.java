@@ -249,9 +249,10 @@ public class ZKHelixAdmin implements HelixAdmin {
         instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.SWAP_IN);
       }
 
-      // If the existing instance with the same logicalId does not have InstanceOperation set to SWAP_OUT, we cannot
-      // add this instance.
-      if (!foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceOperation()
+      // If the existing instance with the same logicalId does not have InstanceOperation set to SWAP_OUT and this instance
+      // is attempting to join as enabled, we cannot add this instance.
+      if (instanceConfig.getInstanceEnabled() && !foundInstanceConfigsWithMatchingLogicalId.get(0)
+          .getInstanceOperation()
           .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) {
         throw new HelixException(
             "Instance can only be added if the exising instance sharing the same logicalId has InstanceOperation"
@@ -466,6 +467,21 @@ public class ZKHelixAdmin implements HelixAdmin {
     logger.info("{} instance {} in cluster {}.", enabled ? "Enable" : "Disable", instanceName,
         clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+
+    // If enabled is set to true and InstanceOperation is SWAP_IN, we should fail if there is not a
+    // matching SWAP_OUT instance.
+    InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
+    if (enabled && instanceConfig.getInstanceOperation()
+        .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())) {
+      InstanceConfig matchingSwapInstance = findMatchingSwapInstance(clusterName, instanceConfig);
+      if (matchingSwapInstance == null || !matchingSwapInstance.getInstanceOperation()
+          .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) {
+        throw new HelixException("Instance cannot be enabled if InstanceOperation is set to "
+            + instanceConfig.getInstanceOperation() + " when there is no matching "
+            + InstanceConstants.InstanceOperation.SWAP_OUT.name() + " instance.");
+      }
+    }
+
     // Eventually we will have all instances' enable/disable information in clusterConfig. Now we
     // update both instanceConfig and clusterConfig in transition period.
     enableSingleInstance(clusterName, instanceName, enabled, baseAccessor, disabledType, reason);
@@ -492,13 +508,46 @@ public class ZKHelixAdmin implements HelixAdmin {
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
 
-    // InstanceOperation can only be set to SWAP_IN when the instance is added to the cluster.
+    // InstanceOperation can only be set to SWAP_IN when the instance is added to the cluster
+    // or if it is disabled.
     if (instanceOperation != null && instanceOperation.equals(
-        InstanceConstants.InstanceOperation.SWAP_IN)) {
+        InstanceConstants.InstanceOperation.SWAP_IN) && getInstanceConfig(clusterName,
+        instanceName).getInstanceEnabled()) {
       throw new HelixException("InstanceOperation should only be set to "
           + InstanceConstants.InstanceOperation.SWAP_IN.name()
           + " when an instance joins the cluster for the first time(when "
-          + "creating the InstanceConfig).");
+          + "creating the InstanceConfig) or is disabled.");
+    }
+
+    // InstanceOperation cannot be set to null if there is an instance with the same logicalId in
+    // the cluster which does not have InstanceOperation set to SWAP_IN or SWAP_OUT.
+    if (instanceOperation == null) {
+      InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
+      String logicalIdKey = ClusterTopologyConfig.createFromClusterConfig(
+          _configAccessor.getClusterConfig(clusterName)).getEndNodeType();
+
+      HelixConfigScope instanceConfigScope =
+          new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT,
+              clusterName).build();
+      List<String> existingInstanceIds = getConfigKeys(instanceConfigScope);
+      List<InstanceConfig> matchingInstancesWithNonSwappingInstanceOperation =
+          existingInstanceIds.parallelStream()
+              .map(existingInstanceId -> getInstanceConfig(clusterName, existingInstanceId)).filter(
+                  existingInstanceConfig ->
+                      !existingInstanceConfig.getInstanceName().equals(instanceName)
+                          && existingInstanceConfig.getLogicalId(logicalIdKey)
+                          .equals(instanceConfig.getLogicalId(logicalIdKey))
+                          && !existingInstanceConfig.getInstanceOperation()
+                          .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
+                          && !existingInstanceConfig.getInstanceOperation()
+                          .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name()))
+              .collect(Collectors.toList());
+
+      if (!matchingInstancesWithNonSwappingInstanceOperation.isEmpty()) {
+        throw new HelixException("InstanceOperation cannot be set to null for " + instanceName
+            + " if there are other instances with the same logicalId in the cluster that do not have"
+            + " InstanceOperation set to SWAP_IN or SWAP_OUT.");
+      }
     }
 
     if (!baseAccessor.exists(path, 0)) {

@@ -908,7 +908,7 @@ public class TestInstanceOperation extends ZkTestBase {
   @Test(dependsOnMethods = "testNodeSwapAfterEMM")
   public void testNodeSwapWithSwapOutInstanceDisabled() throws Exception {
     System.out.println(
-        "START TestInstanceOperation.testNodeSwapWithSwapInstancesOutOffline() at " + new Date(
+        "START TestInstanceOperation.testNodeSwapWithSwapOutInstanceDisabled() at " + new Date(
             System.currentTimeMillis()));
 
     resetInstances();

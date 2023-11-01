@@ -199,6 +199,66 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  @Test
+  public void testInstanceStoppable_crosszonebased_with_selectedchecklist() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // Select instances with cross zone based and perform all checks
+    String content =
+        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\"]}",
+            InstancesAccessor.InstancesProperties.selection_base.name(),
+            InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+            InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
+            "instance2", "instance3", "instance4", "instance5", "invalidInstance",
+            InstancesAccessor.InstancesProperties.stoppable_check_list.name(), "ALL");
+    Response response =
+        new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable").format(
+            STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+    Assert.assertFalse(
+        jsonNode.withArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name())
+            .elements().hasNext());
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance0"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance1"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
+            "HELIX:INSTANCE_NOT_STABLE"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance2"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance3"),
+        ImmutableSet.of("HELIX:HAS_DISABLED_PARTITION", "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance4"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ALIVE",
+            "HELIX:INSTANCE_NOT_STABLE"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"), ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+
+    // Select instances with cross zone based and perform a subset of checks
+    content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\",\"%s\"], \"%s\":[\"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
+        "instance2", "instance3", "instance4", "instance5", "invalidInstance",
+        InstancesAccessor.InstancesProperties.zone_order.name(), "zone2", "zone1",
+        InstancesAccessor.InstancesProperties.stoppable_check_list.name(), "EMPTY_RESOURCE_ASSIGNMENT", "INSTANCE_NOT_ALIVE");
+    response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+    nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance5"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ALIVE"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance4"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ALIVE"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance1"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
 
   @Test(dependsOnMethods = "testInstanceStoppableZoneBasedWithToBeStoppedInstances")
   public void testInstanceStoppable_zoneBased_zoneOrder() throws IOException {

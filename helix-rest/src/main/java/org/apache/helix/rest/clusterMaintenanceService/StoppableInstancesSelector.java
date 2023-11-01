@@ -66,7 +66,7 @@ public class StoppableInstancesSelector {
    * reasons for non-stoppability.
    *
    * @param instances A list of instance to be evaluated.
-   * @param toBeStoppedInstances A list of instances presumed to be are already stopped
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
@@ -97,7 +97,7 @@ public class StoppableInstancesSelector {
    * non-stoppability.
    *
    * @param instances A list of instance to be evaluated.
-   * @param toBeStoppedInstances A list of instances presumed to be are already stopped
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and

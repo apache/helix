@@ -20,12 +20,12 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -40,13 +40,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.rest.client.CustomRestClientFactory;
+import org.apache.helix.rest.clusterMaintenanceService.HealthCheck;
 import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService;
+import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementServiceBuilder;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.clusterMaintenanceService.StoppableInstancesSelector;
 import org.apache.helix.rest.server.filters.ClusterAuth;
@@ -63,6 +67,11 @@ import org.slf4j.LoggerFactory;
 @Path("/clusters/{clusterId}/instances")
 public class InstancesAccessor extends AbstractHelixResource {
   private final static Logger _logger = LoggerFactory.getLogger(InstancesAccessor.class);
+  // This parameter indicates the users would like perform all existing helix checks on the
+  // given instances list.
+  private final static String SELECT_ALL_STOPPABLE_CHECKS = "ALL";
+  private final static List<String> ALL_STOPPABLE_CHECK_LIST =
+      ImmutableList.of(SELECT_ALL_STOPPABLE_CHECKS);
   public enum InstancesProperties {
     instances,
     online,
@@ -70,6 +79,7 @@ public class InstancesAccessor extends AbstractHelixResource {
     selection_base,
     zone_order,
     to_be_stopped_instances,
+    stoppable_check_list,
     customized_values,
     instance_stoppable_parallel,
     instance_not_stoppable_with_reasons
@@ -228,6 +238,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       List<String> orderOfZone = null;
       String customizedInput = null;
       List<String> toBeStoppedInstances = Collections.emptyList();
+      List<HealthCheck> stoppableCheckList = null;
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
         customizedInput =
             node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
@@ -260,10 +271,44 @@ public class InstancesAccessor extends AbstractHelixResource {
         }
       }
 
+      if (node.get(InstancesProperties.stoppable_check_list.name()) != null) {
+        List<String> list = OBJECT_MAPPER.readValue(
+            node.get(InstancesProperties.stoppable_check_list.name()).toString(),
+            OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
+
+        if (ALL_STOPPABLE_CHECK_LIST.equals(list)) {
+          stoppableCheckList = HealthCheck.STOPPABLE_CHECK_LIST;
+        } else {
+          try {
+            stoppableCheckList =
+                list.stream().map(HealthCheck::valueOf).collect(Collectors.toList());
+          } catch (IllegalArgumentException e) {
+            String message =
+                "'stoppable_check_list' has invalid check names: " + list
+                    + ". Supported checks: " + HealthCheck.STOPPABLE_CHECK_LIST;
+            _logger.error(message, e);
+            return badRequest(message);
+          }
+        }
+      } else {
+        // By default, if stoppable_check_list is unset, all checks are performed to maintain
+        // backward compatibility with existing clients.
+        stoppableCheckList = HealthCheck.STOPPABLE_CHECK_LIST;
+      }
+
+      String namespace = getNamespace();
       MaintenanceManagementService maintenanceService =
-          new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
-              getConfigAccessor(), skipZKRead, continueOnFailures, skipHealthCheckCategories,
-              getNamespace());
+          new MaintenanceManagementServiceBuilder()
+              .setDataAccessor((ZKHelixDataAccessor) getDataAccssor(clusterId))
+              .setConfigAccessor(getConfigAccessor())
+              .setSkipZKRead(skipZKRead)
+              .setContinueOnFailure(continueOnFailures)
+              .setCustomRestClient(CustomRestClientFactory.get())
+              .setSkipHealthCheckCategories(skipHealthCheckCategories)
+              .setNamespace(namespace)
+              .setStoppableHealthCheckList(stoppableCheckList)
+              .createMaintenanceManagementService();
+
       ClusterService clusterService =
           new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);

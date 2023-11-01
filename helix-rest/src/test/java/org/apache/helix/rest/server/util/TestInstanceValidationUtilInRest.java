@@ -30,18 +30,21 @@ import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestInstanceValidationUtilInRest{
   private static final String RESOURCE_NAME = "TestResource";
   private static final String TEST_CLUSTER = "TestCluster";
+  private static final PropertyKey.Builder BUILDER = new PropertyKey.Builder(TEST_CLUSTER);
 
   @Test
   public void testPartitionLevelCheck() {
@@ -49,12 +52,11 @@ public class TestInstanceValidationUtilInRest{
     Mock mock = new Mock();
     HelixDataAccessor accessor = mock.dataAccessor;
 
-    when(mock.dataAccessor.keyBuilder())
-        .thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
-    when(mock.dataAccessor
-        .getProperty(new PropertyKey.Builder(TEST_CLUSTER).stateModelDef(MasterSlaveSMD.name)))
+    when(mock.dataAccessor.keyBuilder()).thenReturn(BUILDER);
+    when(mock.dataAccessor.getProperty(BUILDER.stateModelDef(MasterSlaveSMD.name)))
         .thenReturn(mock.stateModel);
     when(mock.stateModel.getTopState()).thenReturn("MASTER");
+    setDefaultInstanceConfigs(mock);
     Map<String, List<String>> failedPartitions = InstanceValidationUtil
         .perPartitionHealthCheck(externalViews, preparePartitionStateMap(), "h2", accessor);
 
@@ -68,13 +70,12 @@ public class TestInstanceValidationUtilInRest{
     Mock mock = new Mock();
     HelixDataAccessor accessor = mock.dataAccessor;
 
-    when(mock.dataAccessor.keyBuilder())
-        .thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
-    when(mock.dataAccessor
-        .getProperty(new PropertyKey.Builder(TEST_CLUSTER).stateModelDef(MasterSlaveSMD.name)))
+    when(mock.dataAccessor.keyBuilder()).thenReturn(BUILDER);
+    when(mock.dataAccessor.getProperty(BUILDER.stateModelDef(MasterSlaveSMD.name)))
         .thenReturn(mock.stateModel);
     when(mock.stateModel.getTopState()).thenReturn("MASTER");
     when(mock.stateModel.getInitialState()).thenReturn("OFFLINE");
+    setDefaultInstanceConfigs(mock);
 
     Map<String, Map<String, Boolean>> partitionStateMap = new HashMap<>();
     partitionStateMap.put("h1", new HashMap<>());
@@ -111,13 +112,12 @@ public class TestInstanceValidationUtilInRest{
     Mock mock = new Mock();
     HelixDataAccessor accessor = mock.dataAccessor;
 
-    when(mock.dataAccessor.keyBuilder())
-        .thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
-    when(mock.dataAccessor
-        .getProperty(new PropertyKey.Builder(TEST_CLUSTER).stateModelDef(MasterSlaveSMD.name)))
+    when(mock.dataAccessor.keyBuilder()).thenReturn(BUILDER);
+    when(mock.dataAccessor.getProperty(BUILDER.stateModelDef(MasterSlaveSMD.name)))
         .thenReturn(mock.stateModel);
     when(mock.stateModel.getTopState()).thenReturn("MASTER");
     when(mock.stateModel.getInitialState()).thenReturn("OFFLINE");
+    setDefaultInstanceConfigs(mock);
 
     Map<String, Map<String, Boolean>> partitionStateMap = new HashMap<>();
     partitionStateMap.put("h1", new HashMap<>());
@@ -225,6 +225,21 @@ public class TestInstanceValidationUtilInRest{
     externalView.setState("p2", "h3", "SLAVE");
 
     return externalView;
+  }
+
+  private void setDefaultInstanceConfigs(Mock mock) {
+    InstanceConfig instanceConfig1 = new InstanceConfig("h1");
+    doReturn(instanceConfig1).when(mock.dataAccessor)
+        .getProperty(BUILDER.instanceConfig("h1"));
+    InstanceConfig instanceConfig2 = new InstanceConfig("h2");
+    doReturn(instanceConfig2).when(mock.dataAccessor)
+        .getProperty(BUILDER.instanceConfig("h2"));
+    InstanceConfig instanceConfig3 = new InstanceConfig("h3");
+    doReturn(instanceConfig3).when(mock.dataAccessor)
+        .getProperty(BUILDER.instanceConfig("h3"));
+    InstanceConfig instanceConfig4 = new InstanceConfig("h4");
+    doReturn(instanceConfig4).when(mock.dataAccessor)
+        .getProperty(BUILDER.instanceConfig("h4"));
   }
 
   private final class Mock {

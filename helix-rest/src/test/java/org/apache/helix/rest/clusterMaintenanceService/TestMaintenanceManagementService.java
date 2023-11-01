@@ -39,6 +39,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LeaderStandbySMD;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.RESTConfig;
@@ -60,6 +61,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -219,7 +221,8 @@ public class TestMaintenanceManagementService {
     when(_dataAccessorWrapper.getAllPartitionsHealthOnLiveInstance(any(), anyMap(),
         anyBoolean())).thenReturn(Collections.emptyMap());
     when(_dataAccessorWrapper.getProperty((PropertyKey) any())).thenReturn(new LeaderStandbySMD());
-    when(_dataAccessorWrapper.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
+    PropertyKey.Builder builder = new PropertyKey.Builder(TEST_CLUSTER);
+    when(_dataAccessorWrapper.keyBuilder()).thenReturn(builder);
     when(_dataAccessorWrapper.getChildValues(any(), anyBoolean())).thenReturn(
         Arrays.asList(externalView));
     MockMaintenanceManagementService service =
@@ -227,6 +230,14 @@ public class TestMaintenanceManagementService {
             _customRestClient, false, false,
             new HashSet<>(Arrays.asList(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)),
             HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+
+    // set default instance config
+    InstanceConfig instanceConfig1 = new InstanceConfig(TEST_INSTANCE);
+    doReturn(instanceConfig1).when(_dataAccessorWrapper)
+        .getProperty(builder.instanceConfig(TEST_INSTANCE));
+    InstanceConfig instanceConfig2 = new InstanceConfig("sibling_instance");
+    doReturn(instanceConfig2).when(_dataAccessorWrapper)
+        .getProperty(builder.instanceConfig("sibling_instance"));
 
     StoppableCheck actual = service.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, "");
     List<String> expectedFailedChecks = Arrays.asList(
@@ -310,6 +321,14 @@ public class TestMaintenanceManagementService {
         AccessOption.PERSISTENT, 1, 0)).thenReturn(Arrays.asList(externalView.getRecord()));
     when(mockAccessor.get(zkHelixDataAccessor.keyBuilder().stateModelDef("MasterSlave").getPath(), new Stat(),
         AccessOption.PERSISTENT)).thenReturn(MasterSlaveSMD.build().getRecord());
+
+    // set default instance config
+    InstanceConfig instanceConfig1 = new InstanceConfig(TEST_INSTANCE);
+    when(mockAccessor.get(zkHelixDataAccessor.keyBuilder().instanceConfig(TEST_INSTANCE).getPath(),
+        new Stat(), AccessOption.PERSISTENT)).thenReturn(instanceConfig1.getRecord());
+    InstanceConfig instanceConfig2 = new InstanceConfig(siblingInstance);
+    when(mockAccessor.get(zkHelixDataAccessor.keyBuilder().instanceConfig(siblingInstance).getPath(),
+        new Stat(), AccessOption.PERSISTENT)).thenReturn(instanceConfig2.getRecord());
 
     // Valid data only from ZK, pass the check
     MockMaintenanceManagementService instanceServiceReadZK =

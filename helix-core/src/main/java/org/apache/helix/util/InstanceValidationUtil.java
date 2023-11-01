@@ -32,6 +32,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -240,6 +241,23 @@ public class InstanceValidationUtil {
   }
 
   /**
+   * Checks if the specified instance is marked for an ongoing instance operation. Currently,
+   * this method only checks for evacuation.
+   *
+   * @param dataAccessor The accessor for retrieving Helix data properties.
+   * @param instanceName An instance to be evaluated.
+   * @return
+   */
+  public static boolean isOperationSetForInstance(HelixDataAccessor dataAccessor,
+      String instanceName) {
+    PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
+    InstanceConfig instanceConfig =
+        dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instanceName));
+    return InstanceConstants.InstanceOperation.EVACUATE.name()
+        .equals(instanceConfig.getInstanceOperation());
+  }
+
+  /**
    * Get the problematic partitions on the to-be-stop instance
    * Requirement:
    *  If the instance gets stopped and the partitions on the instance are OFFLINE,
@@ -295,9 +313,14 @@ public class InstanceValidationUtil {
         if (stateMap.containsKey(instanceToBeStop)
             && stateMap.get(instanceToBeStop).equals(stateModelDefinition.getTopState())) {
           for (String siblingInstance : stateMap.keySet()) {
-            // Skip this self check
+            // Skip this self check and instances we assume to be already stopped
             if (siblingInstance.equals(instanceToBeStop) || (toBeStoppedInstances != null
                 && toBeStoppedInstances.contains(siblingInstance))) {
+              continue;
+            }
+
+            // If the node is in the evacuating state, we skip this partition health check.
+            if (isOperationSetForInstance(dataAccessor, siblingInstance)) {
               continue;
             }
 
@@ -451,9 +474,11 @@ public class InstanceValidationUtil {
         if (stateByInstanceMap.containsKey(instanceName)) {
           int numHealthySiblings = 0;
           for (Map.Entry<String, String> entry : stateByInstanceMap.entrySet()) {
-            if (!entry.getKey().equals(instanceName) && (toBeStoppedInstances == null
-                || !toBeStoppedInstances.contains(entry.getKey())) && !unhealthyStates.contains(
-                entry.getValue())) {
+            String siblingInstanceName = entry.getKey();
+            if (!siblingInstanceName.equals(instanceName) && (toBeStoppedInstances == null
+                || !toBeStoppedInstances.contains(siblingInstanceName))
+                && !unhealthyStates.contains(entry.getValue()) && !isOperationSetForInstance(
+                dataAccessor, siblingInstanceName)) {
               numHealthySiblings++;
             }
           }

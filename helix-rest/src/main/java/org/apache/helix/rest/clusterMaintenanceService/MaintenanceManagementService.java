@@ -93,6 +93,10 @@ public class MaintenanceManagementService {
   private final HelixDataAccessorWrapper _dataAccessor;
   private final Set<String> _nonBlockingHealthChecks;
   private final Set<StoppableCheck.Category> _skipHealthCheckCategories;
+  // Set the default value of _stoppableHealthCheckList to be the list of all stoppable checks to
+  // maintain the backward compatibility with users who don't use MaintenanceManagementServiceBuilder
+  // to create the MaintenanceManagementService object.
+  private List<HealthCheck> _stoppableHealthCheckList = HealthCheck.STOPPABLE_CHECK_LIST;
 
   public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, boolean skipZKRead, String namespace) {
@@ -142,6 +146,26 @@ public class MaintenanceManagementService {
     _skipHealthCheckCategories =
         skipHealthCheckCategories != null ? skipHealthCheckCategories : Collections.emptySet();
     _namespace = namespace;
+  }
+
+  @VisibleForTesting
+  MaintenanceManagementService(MaintenanceManagementServiceBuilder builder) {
+    _dataAccessor =
+        new HelixDataAccessorWrapper(builder.getDataAccessor(), builder.getCustomRestClient(),
+            builder.getNamespace());
+    _configAccessor = builder.getConfigAccessor();
+    _customRestClient = builder.getCustomRestClient();
+    _skipZKRead = builder.isSkipZKRead();
+    _nonBlockingHealthChecks =
+        builder.isContinueOnFailure() ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
+            : Collections.emptySet();
+    _skipHealthCheckCategories =
+        builder.getSkipHealthCheckCategories() == null ? Collections.emptySet()
+            : builder.getSkipHealthCheckCategories();
+    _stoppableHealthCheckList =
+        builder.getStoppableHealthCheckList() == null ? Collections.emptyList()
+            : builder.getStoppableHealthCheckList();
+    _namespace = builder.getNamespace();
   }
 
   /**
@@ -613,7 +637,7 @@ public class MaintenanceManagementService {
       Set<String> toBeStoppedInstances) {
     LOG.info("Perform helix own custom health checks for {}/{}", clusterId, instanceName);
     Map<String, Boolean> helixStoppableCheck =
-        getInstanceHealthStatus(clusterId, instanceName, HealthCheck.STOPPABLE_CHECK_LIST,
+        getInstanceHealthStatus(clusterId, instanceName, _stoppableHealthCheckList,
             toBeStoppedInstances);
 
     return new StoppableCheck(helixStoppableCheck, StoppableCheck.Category.HELIX_OWN_CHECK);

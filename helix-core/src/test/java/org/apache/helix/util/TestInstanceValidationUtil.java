@@ -33,7 +33,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
-import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -46,7 +45,6 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.argThat;
@@ -399,9 +397,6 @@ public class TestInstanceValidationUtil {
     doReturn(stateModelDefinition).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
 
-    // set up default instances config
-    setDefaultInstanceConfigs(mock);
-
     boolean result =
         InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
 
@@ -434,9 +429,6 @@ public class TestInstanceValidationUtil {
     when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
     doReturn(stateModelDefinition).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
-
-    // set default instance config
-    setDefaultInstanceConfigs(mock);
 
     Set<String> toBeStoppedInstances = new HashSet<>();
     toBeStoppedInstances.add("instance3");
@@ -477,9 +469,6 @@ public class TestInstanceValidationUtil {
     doReturn(stateModelDefinition).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
 
-    // set default instance config
-    setDefaultInstanceConfigs(mock);
-
     Set<String> toBeStoppedInstances = new HashSet<>();
     toBeStoppedInstances.add("instance1");
     toBeStoppedInstances.add("instance2");
@@ -487,59 +476,6 @@ public class TestInstanceValidationUtil {
         InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, toBeStoppedInstances);
 
     Assert.assertFalse(result);
-  }
-
-  @Test
-  public void TestSiblingNodesActiveReplicaCheckFailsWithEvacuatingInstance() {
-    String resource = "resource";
-    Mock mock = new Mock();
-    doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
-        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
-    // set ideal state
-    IdealState idealState = mock(IdealState.class);
-    when(idealState.isEnabled()).thenReturn(true);
-    when(idealState.isValid()).thenReturn(true);
-    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
-    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
-
-    // set external view
-    ExternalView externalView = mock(ExternalView.class);
-    when(externalView.getMinActiveReplicas()).thenReturn(2);
-    when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
-    when(externalView.getPartitionSet()).thenReturn(ImmutableSet.of("db0"));
-    when(externalView.getStateMap("db0")).thenReturn(ImmutableMap.of(TEST_INSTANCE, "Master",
-        "instance1", "Slave", "instance2", "Slave", "instance3", "Slave"));
-    doReturn(externalView).when(mock.dataAccessor)
-        .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
-    StateModelDefinition stateModelDefinition = mock(StateModelDefinition.class);
-    when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
-    doReturn(stateModelDefinition).when(mock.dataAccessor)
-        .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
-
-    // Set instance operation to be EVACUATE for instance2
-    InstanceConfig instanceConfig2 = new InstanceConfig("instance2");
-    InstanceConfig instanceConfig3 = new InstanceConfig("instance3");
-    instanceConfig2.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
-    doReturn(instanceConfig2).when(mock.dataAccessor)
-        .getProperty(BUILDER.instanceConfig("instance2"));
-    doReturn(instanceConfig3).when(mock.dataAccessor)
-        .getProperty(BUILDER.instanceConfig("instance3"));
-
-    // Add instance1 to toBeStoppedInstances
-    Set<String> toBeStoppedInstances = new HashSet<>();
-    toBeStoppedInstances.add("instance1");
-    boolean result =
-        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, toBeStoppedInstances);
-    Assert.assertFalse(result);
-
-    // Remove instance1 from toBeStoppedInstances and add its config
-    InstanceConfig instanceConfig1 = new InstanceConfig("instance1");
-    doReturn(instanceConfig1).when(mock.dataAccessor)
-        .getProperty(BUILDER.instanceConfig("instance1"));
-    toBeStoppedInstances = new HashSet<>();
-    result  =
-        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE, toBeStoppedInstances);
-    Assert.assertTrue(result);
   }
 
   @Test
@@ -567,9 +503,6 @@ public class TestInstanceValidationUtil {
     when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
     doReturn(stateModelDefinition).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
-
-    // set default instance config
-    setDefaultInstanceConfigs(mock);
 
     boolean result =
         InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
@@ -617,19 +550,6 @@ public class TestInstanceValidationUtil {
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
 
     InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
-  }
-
-  private void setDefaultInstanceConfigs(Mock mock) {
-    // set default instance config
-    InstanceConfig instanceConfig1 = new InstanceConfig("instance1");
-    doReturn(instanceConfig1).when(mock.dataAccessor)
-        .getProperty(BUILDER.instanceConfig("instance1"));
-    InstanceConfig instanceConfig2 = new InstanceConfig("instance2");
-    doReturn(instanceConfig2).when(mock.dataAccessor)
-        .getProperty(BUILDER.instanceConfig("instance2"));
-    InstanceConfig instanceConfig3 = new InstanceConfig("instance3");
-    doReturn(instanceConfig3).when(mock.dataAccessor)
-        .getProperty(BUILDER.instanceConfig("instance3"));
   }
 
   private class Mock {

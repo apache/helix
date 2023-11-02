@@ -241,23 +241,6 @@ public class InstanceValidationUtil {
   }
 
   /**
-   * Checks if the specified instance is marked for an ongoing instance operation. Currently,
-   * this method only checks for evacuation.
-   *
-   * @param dataAccessor The accessor for retrieving Helix data properties.
-   * @param instanceName An instance to be evaluated.
-   * @return
-   */
-  public static boolean isOperationSetForInstance(HelixDataAccessor dataAccessor,
-      String instanceName) {
-    PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
-    InstanceConfig instanceConfig =
-        dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instanceName));
-    return InstanceConstants.InstanceOperation.EVACUATE.name()
-        .equals(instanceConfig.getInstanceOperation());
-  }
-
-  /**
    * Get the problematic partitions on the to-be-stop instance
    * Requirement:
    *  If the instance gets stopped and the partitions on the instance are OFFLINE,
@@ -316,11 +299,6 @@ public class InstanceValidationUtil {
             // Skip this self check and instances we assume to be already stopped
             if (siblingInstance.equals(instanceToBeStop) || (toBeStoppedInstances != null
                 && toBeStoppedInstances.contains(siblingInstance))) {
-              continue;
-            }
-
-            // If the node is in the evacuating state, we skip this partition health check.
-            if (isOperationSetForInstance(dataAccessor, siblingInstance)) {
               continue;
             }
 
@@ -477,8 +455,7 @@ public class InstanceValidationUtil {
             String siblingInstanceName = entry.getKey();
             if (!siblingInstanceName.equals(instanceName) && (toBeStoppedInstances == null
                 || !toBeStoppedInstances.contains(siblingInstanceName))
-                && !unhealthyStates.contains(entry.getValue()) && !isOperationSetForInstance(
-                dataAccessor, siblingInstanceName)) {
+                && !unhealthyStates.contains(entry.getValue())) {
               numHealthySiblings++;
             }
           }

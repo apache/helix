@@ -148,24 +148,26 @@ public class MaintenanceManagementService {
     _namespace = namespace;
   }
 
-  @VisibleForTesting
-  MaintenanceManagementService(MaintenanceManagementServiceBuilder builder) {
+  private MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
+      ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
+      boolean continueOnFailure, Set<StoppableCheck.Category> skipHealthCheckCategories,
+      List<HealthCheck> stoppableHealthCheckList, String namespace) {
     _dataAccessor =
-        new HelixDataAccessorWrapper(builder.getDataAccessor(), builder.getCustomRestClient(),
-            builder.getNamespace());
-    _configAccessor = builder.getConfigAccessor();
-    _customRestClient = builder.getCustomRestClient();
-    _skipZKRead = builder.isSkipZKRead();
+        new HelixDataAccessorWrapper(dataAccessor, customRestClient,
+            namespace);
+    _configAccessor = configAccessor;
+    _customRestClient = customRestClient;
+    _skipZKRead = skipZKRead;
     _nonBlockingHealthChecks =
-        builder.isContinueOnFailure() ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
+        continueOnFailure ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
             : Collections.emptySet();
     _skipHealthCheckCategories =
-        builder.getSkipHealthCheckCategories() == null ? Collections.emptySet()
-            : builder.getSkipHealthCheckCategories();
+        skipHealthCheckCategories == null ? Collections.emptySet()
+            : skipHealthCheckCategories;
     _stoppableHealthCheckList =
-        builder.getStoppableHealthCheckList() == null ? Collections.emptyList()
-            : builder.getStoppableHealthCheckList();
-    _namespace = builder.getNamespace();
+       stoppableHealthCheckList == null ? Collections.emptyList()
+            : stoppableHealthCheckList;
+    _namespace = namespace;
   }
 
   /**
@@ -794,5 +796,87 @@ public class MaintenanceManagementService {
     }
 
     return healthStatus;
+  }
+
+  public static class MaintenanceManagementServiceBuilder {
+    private ConfigAccessor _configAccessor;
+    private boolean _skipZKRead;
+    private String _namespace;
+    private ZKHelixDataAccessor _dataAccessor;
+    private CustomRestClient _customRestClient;
+    private boolean _continueOnFailure;
+    private Set<StoppableCheck.Category> _skipHealthCheckCategories = Collections.emptySet();
+    private List<HealthCheck> _stoppableHealthCheckList = Collections.emptyList();
+
+    public MaintenanceManagementServiceBuilder setConfigAccessor(ConfigAccessor configAccessor) {
+      _configAccessor = configAccessor;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setSkipZKRead(boolean skipZKRead) {
+      _skipZKRead = skipZKRead;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setNamespace(String namespace) {
+      _namespace = namespace;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setDataAccessor(
+        ZKHelixDataAccessor dataAccessor) {
+      _dataAccessor = dataAccessor;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setCustomRestClient(
+        CustomRestClient customRestClient) {
+      _customRestClient = customRestClient;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setContinueOnFailure(boolean continueOnFailure) {
+      _continueOnFailure = continueOnFailure;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setSkipHealthCheckCategories(
+        Set<StoppableCheck.Category> skipHealthCheckCategories) {
+      _skipHealthCheckCategories = skipHealthCheckCategories;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setStoppableHealthCheckList(
+        List<HealthCheck> stoppableHealthCheckList) {
+      _stoppableHealthCheckList = stoppableHealthCheckList;
+      return this;
+    }
+
+    public MaintenanceManagementService build() {
+      validate();
+      return new MaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient,
+          _skipZKRead, _continueOnFailure, _skipHealthCheckCategories, _stoppableHealthCheckList,
+          _namespace);
+    }
+
+    private void validate() throws IllegalArgumentException {
+      List<String> msg = new ArrayList<>();
+      if (_configAccessor == null) {
+        msg.add("'configAccessor' can't be null.");
+      }
+      if (_namespace == null) {
+        msg.add("'namespace' can't be null.");
+      }
+      if (_dataAccessor == null) {
+        msg.add("'_dataAccessor' can't be null.");
+      }
+      if (_customRestClient == null) {
+        msg.add("'customRestClient' can't be null.");
+      }
+      if (msg.size() != 0) {
+        throw new IllegalArgumentException(
+            "One or more mandatory arguments are not set " + msg);
+      }
+    }
   }
 }

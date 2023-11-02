@@ -233,7 +233,7 @@ public class Topology {
             return instanceTopologyMap;
           }
         }
-        if (numOfMatchedKeys != domainAsMap.size()) {
+        if (numOfMatchedKeys < clusterTopologyConfig.getTopologyKeyDefaultValue().size()) {
           logger.warn(
               "Key-value pairs in InstanceConfig.Domain {} do not align with keys in ClusterConfig.Topology "
                   + "{}, using default domain value instead", instanceConfig.getDomainAsString(),

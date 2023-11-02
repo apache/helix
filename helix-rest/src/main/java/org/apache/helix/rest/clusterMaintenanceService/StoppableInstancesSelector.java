@@ -258,7 +258,7 @@ public class StoppableInstancesSelector {
   }
 
   /**
-   * Collect instances marked for evacuation in the current topology and add them into given the set
+   * Collect instances marked for evacuation in the current topology and add them into the given set
    *
    * @param toBeStoppedInstances A set of instances we presume to be stopped.
    */

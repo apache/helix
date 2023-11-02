@@ -61,6 +61,8 @@ import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService.ALL_HEALTH_CHECK_NONBLOCK;
+
 @ClusterAuth
 @Path("/clusters/{clusterId}/instances")
 public class InstancesAccessor extends AbstractHelixResource {
@@ -289,7 +291,8 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setDataAccessor((ZKHelixDataAccessor) getDataAccssor(clusterId))
               .setConfigAccessor(getConfigAccessor())
               .setSkipZKRead(skipZKRead)
-              .setContinueOnFailure(continueOnFailures)
+              .setNonBlockingHealthChecks(
+                  continueOnFailures ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK) : null)
               .setCustomRestClient(CustomRestClientFactory.get())
               .setSkipHealthCheckCategories(skipHealthCheckCategories)
               .setNamespace(namespace)

@@ -55,7 +55,6 @@ public class TestInstanceValidationUtilInRest{
         .getProperty(new PropertyKey.Builder(TEST_CLUSTER).stateModelDef(MasterSlaveSMD.name)))
         .thenReturn(mock.stateModel);
     when(mock.stateModel.getTopState()).thenReturn("MASTER");
-
     Map<String, List<String>> failedPartitions = InstanceValidationUtil
         .perPartitionHealthCheck(externalViews, preparePartitionStateMap(), "h2", accessor);
 
@@ -76,7 +75,6 @@ public class TestInstanceValidationUtilInRest{
         .thenReturn(mock.stateModel);
     when(mock.stateModel.getTopState()).thenReturn("MASTER");
     when(mock.stateModel.getInitialState()).thenReturn("OFFLINE");
-
 
     Map<String, Map<String, Boolean>> partitionStateMap = new HashMap<>();
     partitionStateMap.put("h1", new HashMap<>());

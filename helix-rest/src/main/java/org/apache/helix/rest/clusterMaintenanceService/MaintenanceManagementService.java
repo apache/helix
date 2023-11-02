@@ -150,7 +150,7 @@ public class MaintenanceManagementService {
 
   private MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
-      boolean continueOnFailure, Set<StoppableCheck.Category> skipHealthCheckCategories,
+      Set<String> nonBlockingHealthChecks, Set<StoppableCheck.Category> skipHealthCheckCategories,
       List<HealthCheck> stoppableHealthCheckList, String namespace) {
     _dataAccessor =
         new HelixDataAccessorWrapper(dataAccessor, customRestClient,
@@ -159,13 +159,10 @@ public class MaintenanceManagementService {
     _customRestClient = customRestClient;
     _skipZKRead = skipZKRead;
     _nonBlockingHealthChecks =
-        continueOnFailure ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
-            : Collections.emptySet();
+        nonBlockingHealthChecks == null ? Collections.emptySet() : nonBlockingHealthChecks;
     _skipHealthCheckCategories =
-        skipHealthCheckCategories == null ? Collections.emptySet()
-            : skipHealthCheckCategories;
-    _stoppableHealthCheckList =
-       stoppableHealthCheckList == null ? Collections.emptyList()
+        skipHealthCheckCategories == null ? Collections.emptySet() : skipHealthCheckCategories;
+    _stoppableHealthCheckList = stoppableHealthCheckList == null ? HealthCheck.STOPPABLE_CHECK_LIST
             : stoppableHealthCheckList;
     _namespace = namespace;
   }
@@ -804,7 +801,7 @@ public class MaintenanceManagementService {
     private String _namespace;
     private ZKHelixDataAccessor _dataAccessor;
     private CustomRestClient _customRestClient;
-    private boolean _continueOnFailure;
+    private Set<String> _nonBlockingHealthChecks;
     private Set<StoppableCheck.Category> _skipHealthCheckCategories = Collections.emptySet();
     private List<HealthCheck> _stoppableHealthCheckList = Collections.emptyList();
 
@@ -835,8 +832,9 @@ public class MaintenanceManagementService {
       return this;
     }
 
-    public MaintenanceManagementServiceBuilder setContinueOnFailure(boolean continueOnFailure) {
-      _continueOnFailure = continueOnFailure;
+    public MaintenanceManagementServiceBuilder setNonBlockingHealthChecks(
+        Set<String> nonBlockingHealthChecks) {
+      _nonBlockingHealthChecks = nonBlockingHealthChecks;
       return this;
     }
 
@@ -855,8 +853,8 @@ public class MaintenanceManagementService {
     public MaintenanceManagementService build() {
       validate();
       return new MaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient,
-          _skipZKRead, _continueOnFailure, _skipHealthCheckCategories, _stoppableHealthCheckList,
-          _namespace);
+          _skipZKRead, _nonBlockingHealthChecks, _skipHealthCheckCategories,
+          _stoppableHealthCheckList, _namespace);
     }
 
     private void validate() throws IllegalArgumentException {

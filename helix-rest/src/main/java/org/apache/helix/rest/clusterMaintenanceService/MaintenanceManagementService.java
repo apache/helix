@@ -486,7 +486,10 @@ public class MaintenanceManagementService {
       return instances;
     }
     RESTConfig restConfig = _configAccessor.getRESTConfig(clusterId);
-    if (restConfig == null) {
+    if (restConfig == null && (
+        !_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)
+            || !_skipHealthCheckCategories.contains(
+            StoppableCheck.Category.CUSTOM_PARTITION_CHECK))) {
       String errorMessage = String.format(
           "The cluster %s hasn't enabled client side health checks yet, "
               + "thus the stoppable check result is inaccurate", clusterId);

@@ -211,7 +211,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
             InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
             InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
             "instance2", "instance3", "instance4", "instance5", "invalidInstance",
-            InstancesAccessor.InstancesProperties.stoppable_check_list.name(), "DUMMY_TEST_NO_EXISTS");
+            InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "DUMMY_TEST_NO_EXISTS");
 
     new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable").format(STOPPABLE_CLUSTER)
         .isBodyReturnExpected(true)
@@ -226,7 +226,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
         InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
         "instance2", "instance3", "instance4", "instance5", "invalidInstance",
         InstancesAccessor.InstancesProperties.zone_order.name(), "zone2", "zone1",
-        InstancesAccessor.InstancesProperties.stoppable_check_list.name(), "EMPTY_RESOURCE_ASSIGNMENT", "INSTANCE_NOT_ALIVE");
+        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ENABLED", "INSTANCE_NOT_STABLE");
     Response response = new JerseyUriRequestBuilder(
         "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
         STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));

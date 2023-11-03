@@ -75,7 +75,7 @@ public class InstancesAccessor extends AbstractHelixResource {
     selection_base,
     zone_order,
     to_be_stopped_instances,
-    stoppable_check_list,
+    skip_stoppable_check_list,
     customized_values,
     instance_stoppable_parallel,
     instance_not_stoppable_with_reasons
@@ -234,9 +234,9 @@ public class InstancesAccessor extends AbstractHelixResource {
       List<String> orderOfZone = null;
       String customizedInput = null;
       List<String> toBeStoppedInstances = Collections.emptyList();
-      // By default, if stoppable_check_list is unset, all checks are performed to maintain
+      // By default, if skip_stoppable_check_list is unset, all checks are performed to maintain
       // backward compatibility with existing clients.
-      List<HealthCheck> stoppableCheckList = HealthCheck.STOPPABLE_CHECK_LIST;
+      List<HealthCheck> skipStoppableCheckList = Collections.emptyList();
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
         customizedInput =
             node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
@@ -269,16 +269,16 @@ public class InstancesAccessor extends AbstractHelixResource {
         }
       }
 
-      if (node.get(InstancesProperties.stoppable_check_list.name()) != null) {
+      if (node.get(InstancesProperties.skip_stoppable_check_list.name()) != null) {
         List<String> list = OBJECT_MAPPER.readValue(
-            node.get(InstancesProperties.stoppable_check_list.name()).toString(),
+            node.get(InstancesProperties.skip_stoppable_check_list.name()).toString(),
             OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
         try {
-          stoppableCheckList =
+          skipStoppableCheckList =
               list.stream().map(HealthCheck::valueOf).collect(Collectors.toList());
         } catch (IllegalArgumentException e) {
           String message =
-              "'stoppable_check_list' has invalid check names: " + list
+              "'skip_stoppable_check_list' has invalid check names: " + list
                   + ". Supported checks: " + HealthCheck.STOPPABLE_CHECK_LIST;
           _logger.error(message, e);
           return badRequest(message);
@@ -296,7 +296,7 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setCustomRestClient(CustomRestClientFactory.get())
               .setSkipHealthCheckCategories(skipHealthCheckCategories)
               .setNamespace(namespace)
-              .setStoppableHealthCheckList(stoppableCheckList)
+              .setSkipStoppableHealthCheckList(skipStoppableCheckList)
               .build();
 
       ClusterService clusterService =

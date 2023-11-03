@@ -93,10 +93,10 @@ public class MaintenanceManagementService {
   private final HelixDataAccessorWrapper _dataAccessor;
   private final Set<String> _nonBlockingHealthChecks;
   private final Set<StoppableCheck.Category> _skipHealthCheckCategories;
-  // Set the default value of _stoppableHealthCheckList to be the list of all stoppable checks to
+  // Set the default value of _skipStoppableHealthCheckList to be an empty list to
   // maintain the backward compatibility with users who don't use MaintenanceManagementServiceBuilder
   // to create the MaintenanceManagementService object.
-  private List<HealthCheck> _stoppableHealthCheckList = HealthCheck.STOPPABLE_CHECK_LIST;
+  private List<HealthCheck> _skipStoppableHealthCheckList = Collections.emptyList();
 
   public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, boolean skipZKRead, String namespace) {
@@ -151,7 +151,7 @@ public class MaintenanceManagementService {
   private MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
       Set<String> nonBlockingHealthChecks, Set<StoppableCheck.Category> skipHealthCheckCategories,
-      List<HealthCheck> stoppableHealthCheckList, String namespace) {
+      List<HealthCheck> skipStoppableHealthCheckList, String namespace) {
     _dataAccessor =
         new HelixDataAccessorWrapper(dataAccessor, customRestClient,
             namespace);
@@ -162,8 +162,8 @@ public class MaintenanceManagementService {
         nonBlockingHealthChecks == null ? Collections.emptySet() : nonBlockingHealthChecks;
     _skipHealthCheckCategories =
         skipHealthCheckCategories == null ? Collections.emptySet() : skipHealthCheckCategories;
-    _stoppableHealthCheckList = stoppableHealthCheckList == null ? HealthCheck.STOPPABLE_CHECK_LIST
-            : stoppableHealthCheckList;
+    _skipStoppableHealthCheckList = skipStoppableHealthCheckList == null ? Collections.emptyList()
+            : skipStoppableHealthCheckList;
     _namespace = namespace;
   }
 
@@ -635,8 +635,10 @@ public class MaintenanceManagementService {
   private StoppableCheck performHelixOwnInstanceCheck(String clusterId, String instanceName,
       Set<String> toBeStoppedInstances) {
     LOG.info("Perform helix own custom health checks for {}/{}", clusterId, instanceName);
+    List<HealthCheck> healthChecksToExecute = new ArrayList<>(HealthCheck.STOPPABLE_CHECK_LIST);
+    healthChecksToExecute.removeAll(_skipStoppableHealthCheckList);
     Map<String, Boolean> helixStoppableCheck =
-        getInstanceHealthStatus(clusterId, instanceName, _stoppableHealthCheckList,
+        getInstanceHealthStatus(clusterId, instanceName, healthChecksToExecute,
             toBeStoppedInstances);
 
     return new StoppableCheck(helixStoppableCheck, StoppableCheck.Category.HELIX_OWN_CHECK);
@@ -803,7 +805,7 @@ public class MaintenanceManagementService {
     private CustomRestClient _customRestClient;
     private Set<String> _nonBlockingHealthChecks;
     private Set<StoppableCheck.Category> _skipHealthCheckCategories = Collections.emptySet();
-    private List<HealthCheck> _stoppableHealthCheckList = Collections.emptyList();
+    private List<HealthCheck> _skipStoppableHealthCheckList = Collections.emptyList();
 
     public MaintenanceManagementServiceBuilder setConfigAccessor(ConfigAccessor configAccessor) {
       _configAccessor = configAccessor;
@@ -844,9 +846,9 @@ public class MaintenanceManagementService {
       return this;
     }
 
-    public MaintenanceManagementServiceBuilder setStoppableHealthCheckList(
-        List<HealthCheck> stoppableHealthCheckList) {
-      _stoppableHealthCheckList = stoppableHealthCheckList;
+    public MaintenanceManagementServiceBuilder setSkipStoppableHealthCheckList(
+        List<HealthCheck> skipStoppableHealthCheckList) {
+      _skipStoppableHealthCheckList = skipStoppableHealthCheckList;
       return this;
     }
 
@@ -854,7 +856,7 @@ public class MaintenanceManagementService {
       validate();
       return new MaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient,
           _skipZKRead, _nonBlockingHealthChecks, _skipHealthCheckCategories,
-          _stoppableHealthCheckList, _namespace);
+          _skipStoppableHealthCheckList, _namespace);
     }
 
     private void validate() throws IllegalArgumentException {

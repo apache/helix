@@ -153,7 +153,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             int idleScore1 = busyInstances.contains(instanceName1) ? 0 : 1;
             int idleScore2 = busyInstances.contains(instanceName2) ? 0 : 1;
             return idleScore1 != idleScore2 ? (idleScore1 - idleScore2)
-                : -instanceName1.compareTo(instanceName2);
+                : -nodeEntry1.getKey().compareTo(nodeEntry2.getKey());
           } else {
             return scoreCompareResult;
           }
@@ -193,7 +193,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           .containsKey(replica.getResourceName());
       _isInBaselineAssignment =
           clusterModel.getContext().getBaselineAssignment().containsKey(replica.getResourceName());
-      _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet());
+      _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableLogicalIds());
       computeScore(overallClusterRemainingCapacityMap);
     }
 

@@ -34,6 +34,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   // Immutable Instance Properties
   private final String _instanceName;
+  private final String _logicaId;
   private final String _faultZone;
   // maximum number of the partitions that can be assigned to the instance.
   private final int _maxPartition;
@@ -72,8 +74,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * ResourceConfig could
    * subject to change. If the assumption is no longer true, this function should become private.
    */
-  AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName) {
+  AssignableNode(ClusterConfig clusterConfig, ClusterTopologyConfig clusterTopologyConfig,
+      InstanceConfig instanceConfig, String instanceName) {
     _instanceName = instanceName;
+    _logicaId = clusterTopologyConfig != null ? instanceConfig.getLogicalId(
+        clusterTopologyConfig.getEndNodeType())
+            : instanceName;
     Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = ImmutableSet.copyOf(instanceConfig.getTags());
@@ -84,6 +90,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _remainingTopStateCapacity = new HashMap<>(instanceCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
     _currentAssignedReplicaMap = new HashMap<>();
+  }
+
+  AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName) {
+    this(clusterConfig, null, instanceConfig, instanceName);
   }
 
   /**
@@ -272,6 +282,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
     return _instanceName;
   }
 
+  public String getLogicalId() {
+    return _logicaId;
+  }
+
   public Set<String> getInstanceTags() {
     return _instanceTags;
   }
@@ -368,7 +382,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   @Override
   public int compareTo(AssignableNode o) {
-    return _instanceName.compareTo(o.getInstanceName());
+    return _logicaId.compareTo(o.getLogicalId());
   }
 
   @Override

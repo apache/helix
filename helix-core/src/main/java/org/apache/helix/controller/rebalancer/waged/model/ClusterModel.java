@@ -37,6 +37,7 @@ public class ClusterModel {
   // Note that the identical replicas are deduped in the index.
   private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
   private final Map<String, AssignableNode> _assignableNodeMap;
+  private final Set<String> _assignableNodeLogicalIds;
 
   /**
    * @param clusterContext         The initialized cluster context.
@@ -60,6 +61,9 @@ public class ClusterModel {
 
     _assignableNodeMap = assignableNodes.parallelStream()
         .collect(Collectors.toMap(AssignableNode::getInstanceName, node -> node));
+    _assignableNodeLogicalIds =
+        assignableNodes.parallelStream().map(AssignableNode::getLogicalId)
+            .collect(Collectors.toSet());
   }
 
   public ClusterContext getContext() {
@@ -68,6 +72,10 @@ public class ClusterModel {
 
   public Map<String, AssignableNode> getAssignableNodes() {
     return _assignableNodeMap;
+  }
+
+  public Set<String> getAssignableLogicalIds() {
+    return _assignableNodeLogicalIds;
   }
 
   public Map<String, Set<AssignableReplica>> getAssignableReplicaMap() {

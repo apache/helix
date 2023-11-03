@@ -46,10 +46,12 @@ import org.apache.helix.common.caches.InstanceMessagesCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.common.caches.TaskCurrentStateCache;
 import org.apache.helix.common.controllers.ControlContextProvider;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -116,6 +118,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private Map<String, Map<String, String>> _idealStateRuleMap;
   private final Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private final Set<String> _disabledInstanceSet = new HashSet<>();
+  private final Map<String, String> _swapOutInstanceNameToSwapInInstanceName = new HashMap<>();
+  private final Set<String> _enabledLiveSwapInInstanceNames = new HashSet<>();
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
   private final Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
   private Map<String, LiveInstance> _liveInstanceExcludeTimedOutForMaintenance = new HashMap<>();
@@ -437,6 +441,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
     updateIdealRuleMap(getClusterConfig());
     updateDisabledInstances(getInstanceConfigMap().values(), getClusterConfig());
+    updateSwappingInstances(getInstanceConfigMap().values(), getEnabledLiveInstances(),
+        getClusterConfig());
 
     return refreshedTypes;
   }
@@ -471,6 +477,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     refreshAbnormalStateResolverMap(_clusterConfig);
     updateIdealRuleMap(_clusterConfig);
     updateDisabledInstances(getInstanceConfigMap().values(), _clusterConfig);
+    updateSwappingInstances(getInstanceConfigMap().values(), getEnabledLiveInstances(),
+        _clusterConfig);
   }
 
   @Override
@@ -617,6 +625,24 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return Collections.unmodifiableSet(_disabledInstanceSet);
   }
 
+  /**
+   * Get all swapping instance pairs.
+   *
+   * @return a map of SWAP_OUT instanceNames and their corresponding SWAP_IN instanceNames.
+   */
+  public Map<String, String> getSwapOutToSwapInInstancePairs() {
+    return Collections.unmodifiableMap(_swapOutInstanceNameToSwapInInstanceName);
+  }
+
+  /**
+   * Get all the enabled and live SWAP_IN instances.
+   *
+   * @return a set of SWAP_IN instanceNames that have a corresponding SWAP_OUT instance.
+   */
+  public Set<String> getEnabledLiveSwapInInstanceNames() {
+    return Collections.unmodifiableSet(_enabledLiveSwapInInstanceNames);
+  }
+
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
     _liveInstanceCache.setPropertyMap(HelixProperty.convertListToMap(liveInstances));
     _updateInstanceOfflineTime = true;
@@ -750,6 +776,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   public void setInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
     _instanceConfigCache.setPropertyMap(instanceConfigMap);
     updateDisabledInstances(instanceConfigMap.values(), getClusterConfig());
+    updateSwappingInstances(instanceConfigMap.values(), getEnabledLiveInstances(),
+        getClusterConfig());
   }
 
   /**
@@ -856,6 +884,49 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         }
       }
     }
+  }
+
+  private void updateSwappingInstances(Collection<InstanceConfig> instanceConfigs,
+      Set<String> liveEnabledInstances, ClusterConfig clusterConfig) {
+    _swapOutInstanceNameToSwapInInstanceName.clear();
+    _enabledLiveSwapInInstanceNames.clear();
+
+    if (clusterConfig == null) {
+      logger.warn("Skip refreshing swapping instances because clusterConfig is null.");
+      return;
+    }
+
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
+
+    Map<String, String> swapOutLogicalIdsByInstanceName = new HashMap<>();
+    Map<String, String> swapInInstancesByLogicalId = new HashMap<>();
+    instanceConfigs.forEach(instanceConfig -> {
+      if (instanceConfig == null) {
+        return;
+      }
+      if (instanceConfig.getInstanceOperation()
+          .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) {
+        swapOutLogicalIdsByInstanceName.put(instanceConfig.getInstanceName(),
+            instanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType()));
+      }
+      if (instanceConfig.getInstanceOperation()
+          .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())) {
+        swapInInstancesByLogicalId.put(
+            instanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType()),
+            instanceConfig.getInstanceName());
+      }
+    });
+
+    swapOutLogicalIdsByInstanceName.forEach((swapOutInstanceName, value) -> {
+      String swapInInstanceName = swapInInstancesByLogicalId.get(value);
+      if (swapInInstanceName != null) {
+        _swapOutInstanceNameToSwapInInstanceName.put(swapOutInstanceName, swapInInstanceName);
+        if (liveEnabledInstances.contains(swapInInstanceName)) {
+          _enabledLiveSwapInInstanceNames.add(swapInInstanceName);
+        }
+      }
+    });
   }
 
   /*

@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
@@ -302,8 +304,15 @@ public interface HelixAdmin {
    */
   void enableInstance(String clusterName, List<String> instances, boolean enabled);
 
-  void setInstanceOperation(String clusterName, String instance,
-      InstanceConstants.InstanceOperation instanceOperation);
+  /**
+   * Set the instanceOperation field.
+   *
+   * @param clusterName       The cluster name
+   * @param instanceName      The instance name
+   * @param instanceOperation The instance operation
+   */
+  void setInstanceOperation(String clusterName, String instanceName,
+      @Nullable InstanceConstants.InstanceOperation instanceOperation);
 
   /**
    * Disable or enable a resource
@@ -746,6 +755,26 @@ public interface HelixAdmin {
    * @return Return true if there is no current state nor pending message on the instance.
    */
   boolean isEvacuateFinished(String clusterName, String instancesNames);
+
+  /**
+   * Check to see if swapping between two instances can be completed. Either the swapOut or
+   * swapIn instance can be passed in.
+   * @param clusterName  The cluster name
+   * @param instanceName The instance that is being swapped out or swapped in
+   * @return True if the swap is ready to be completed, false otherwise.
+   */
+  boolean canCompleteSwap(String clusterName, String instanceName);
+
+  /**
+   * Check to see if swapping between two instances is ready to be completed and complete it if
+   * possible. Either the swapOut or swapIn instance can be passed in.
+   *
+   * @param clusterName  The cluster name
+   * @param instanceName The instance that is being swapped out or swapped in
+   * @return True if the swap is ready to be completed and was completed successfully, false
+   * otherwise.
+   */
+  boolean completeSwapIfPossible(String clusterName, String instanceName);
 
   /**
    * Return if instance is ready for preparing joining cluster. The instance should have no current state,

@@ -898,24 +898,28 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       InstanceConfig instanceConfig = new InstanceConfig(instanceName);
       instanceConfig.setHostName(hostname);
       instanceConfig.setPort(port);
-      if (i == 40) {
-        instanceConfig.setDomain(String
-            .format("invaliddomain=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2, "myzone" + i % 4,
-                "myrack" + i % 4, hostname));
-      } else if (i == 41) {
-        instanceConfig.setDomain("invaliddomain");
-      } else {
-        String domain = String
-            .format("group=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2, "myzone" + i % 4,
-                "myrack" + i % 4, hostname);
-        instanceConfig.setDomain(domain);
-      }
+
+      String domain =
+          String.format("group=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2, "myzone" + i % 4,
+              "myrack" + i % 4, hostname);
+      instanceConfig.setDomain(domain);
+
       LiveInstance liveInstance = new LiveInstance(instanceName);
       liveInstance.setSessionId(UUID.randomUUID().toString());
       liveInstance.setHelixVersion(UUID.randomUUID().toString());
       accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
       admin.addInstance(clusterName, instanceConfig);
       admin.enableInstance(clusterName, instanceName, true);
+
+      if (i == 40) {
+        instanceConfig.setDomain(
+            String.format("invaliddomain=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2,
+                "myzone" + i % 4, "myrack" + i % 4, hostname));
+        admin.setInstanceConfig(clusterName, instanceName, instanceConfig);
+      } else if (i == 41) {
+        instanceConfig.setDomain("invaliddomain");
+        admin.setInstanceConfig(clusterName, instanceName, instanceConfig);
+      }
     }
 
     ClusterTopology clusterTopology = admin.getClusterTopology(clusterName);

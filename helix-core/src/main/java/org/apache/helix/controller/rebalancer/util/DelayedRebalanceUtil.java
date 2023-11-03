@@ -34,12 +34,14 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.InstanceValidationUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,6 +139,92 @@ public class DelayedRebalanceUtil {
             .getInstanceOperation()
             .equals(InstanceConstants.InstanceOperation.EVACUATE.name())))
         .collect(Collectors.toSet());
+  }
+
+  /**
+   * Filter out instances with duplicate logical IDs. If there are duplicates, the instance with
+   * InstanceOperation SWAP_OUT will be chosen over the instance with SWAP_IN. SWAP_IN is not
+   * assignable. If there are duplicates with one node having no InstanceOperation and the other
+   * having SWAP_OUT, the node with no InstanceOperation will be chosen. This signifies SWAP
+   * completion, therefore making the node assignable.
+   * TODO: Eventually when we refactor DataProvider to have getAssignableInstances() and
+   * TODO: getAssignableEnabledLiveInstances() this will not need to be called in the rebalancer.
+   * @param clusterTopologyConfig the cluster topology configuration
+   * @param instanceConfigMap     the map of instance name to corresponding InstanceConfig
+   * @param instances             the set of instances to filter out duplicate logicalIDs for
+   * @return the set of instances with duplicate logicalIDs filtered out, there will only be one
+   * instance per logicalID
+   */
+  public static Set<String> filterOutInstancesWithDuplicateLogicalIds(
+      ClusterTopologyConfig clusterTopologyConfig, Map<String, InstanceConfig> instanceConfigMap,
+      Set<String> instances) {
+    Set<String> filteredNodes = new HashSet<>();
+    Map<String, String> filteredInstancesByLogicalId = new HashMap<>();
+
+    instances.forEach(node -> {
+      InstanceConfig thisInstanceConfig = instanceConfigMap.get(node);
+      if (thisInstanceConfig == null) {
+        return;
+      }
+      String thisLogicalId =
+          thisInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
+
+      if (filteredInstancesByLogicalId.containsKey(thisLogicalId)) {
+        InstanceConfig filteredDuplicateInstanceConfig =
+            instanceConfigMap.get(filteredInstancesByLogicalId.get(thisLogicalId));
+        if ((filteredDuplicateInstanceConfig.getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
+            && thisInstanceConfig.getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name()))
+            || thisInstanceConfig.getInstanceOperation().isEmpty()) {
+          // If the already filtered instance is SWAP_IN and this instance is in SWAP_OUT, then replace the filtered
+          // instance with this instance. If this instance has no InstanceOperation, then replace the filtered instance
+          // with this instance. This is the case where the SWAP_IN node has been marked as complete or SWAP_IN exists and
+          // SWAP_OUT does not. There can never be a case where both have no InstanceOperation set.
+          filteredNodes.remove(filteredInstancesByLogicalId.get(thisLogicalId));
+          filteredNodes.add(node);
+          filteredInstancesByLogicalId.put(thisLogicalId, node);
+        }
+      } else {
+        filteredNodes.add(node);
+        filteredInstancesByLogicalId.put(thisLogicalId, node);
+      }
+    });
+
+    return filteredNodes;
+  }
+
+  /**
+   * Look through the provided mapping and add corresponding SWAP_IN node if a SWAP_OUT node exists
+   * in the partition's preference list.
+   *
+   * @param mapping                      the mapping to be updated (IdealState ZNRecord)
+   * @param swapOutToSwapInInstancePairs the map of SWAP_OUT to SWAP_IN instances
+   */
+  public static void addSwapInInstanceToPreferenceListsIfSwapOutInstanceExists(ZNRecord mapping,
+      Map<String, String> swapOutToSwapInInstancePairs, Set<String> enabledLiveSwapInInstances) {
+    Map<String, List<String>> preferenceListsByPartition = mapping.getListFields();
+    for (String partition : preferenceListsByPartition.keySet()) {
+      List<String> preferenceList = preferenceListsByPartition.get(partition);
+      if (preferenceList == null) {
+        continue;
+      }
+      List<String> newInstancesToAdd = new ArrayList<>();
+      for (String instanceName : preferenceList) {
+        if (swapOutToSwapInInstancePairs.containsKey(instanceName)
+            && enabledLiveSwapInInstances.contains(
+            swapOutToSwapInInstancePairs.get(instanceName))) {
+          String swapInInstanceName = swapOutToSwapInInstancePairs.get(instanceName);
+          if (!preferenceList.contains(swapInInstanceName) && !newInstancesToAdd.contains(
+              swapInInstanceName)) {
+            newInstancesToAdd.add(swapInInstanceName);
+          }
+        }
+      }
+      if (!newInstancesToAdd.isEmpty()) {
+        preferenceList.addAll(newInstancesToAdd);
+      }
+    }
   }
 
   /**

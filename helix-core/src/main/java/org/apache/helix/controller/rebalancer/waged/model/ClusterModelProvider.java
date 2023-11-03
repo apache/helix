@@ -34,6 +34,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
@@ -530,9 +531,12 @@ public class ClusterModelProvider {
    */
   private static Set<AssignableNode> getAllAssignableNodes(ClusterConfig clusterConfig,
       Map<String, InstanceConfig> instanceConfigMap, Set<String> activeInstances) {
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
     return activeInstances.parallelStream()
         .filter(instanceConfigMap::containsKey).map(
-            instanceName -> new AssignableNode(clusterConfig, instanceConfigMap.get(instanceName),
+            instanceName -> new AssignableNode(clusterConfig, clusterTopologyConfig,
+                instanceConfigMap.get(instanceName),
                 instanceName)).collect(Collectors.toSet());
   }
 

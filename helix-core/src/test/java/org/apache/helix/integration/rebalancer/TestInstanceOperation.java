@@ -121,9 +121,26 @@ public class TestInstanceOperation extends ZkTestBase {
     clusterConfig.stateTransitionCancelEnabled(true);
     clusterConfig.setDelayRebalaceEnabled(true);
     clusterConfig.setRebalanceDelayTime(1800000L);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+  }
+
+  private void enabledTopologyAwareRebalance() {
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setTopology(TOPOLOGY);
     clusterConfig.setFaultZoneType(ZONE);
     clusterConfig.setTopologyAwareEnabled(true);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+  }
+
+  private void disableTopologyAwareRebalance() {
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setTopologyAwareEnabled(false);
+    clusterConfig.setTopology(null);
+    clusterConfig.setFaultZoneType(null);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -456,6 +473,7 @@ public class TestInstanceOperation extends ZkTestBase {
         "START TestInstanceOperation.testAddingNodeWithSwapOutInstanceOperation() at " + new Date(
             System.currentTimeMillis()));
 
+    enabledTopologyAwareRebalance();
     resetInstances();
 
     // Set instance's InstanceOperation to SWAP_OUT
@@ -565,14 +583,8 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testNodeSwapNoTopologySetup() throws Exception {
     System.out.println("START TestInstanceOperation.testNodeSwapNoTopologySetup() at " + new Date(
         System.currentTimeMillis()));
+    disableTopologyAwareRebalance();
     resetInstances();
-
-    // Disable topology aware rebalancing and remove TOPOLOGY.
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-    clusterConfig.setTopologyAwareEnabled(false);
-    clusterConfig.setTopology(null);
-    clusterConfig.setFaultZoneType(null);
-    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     // Set instance's InstanceOperation to SWAP_OUT
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
@@ -594,8 +606,8 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testNodeSwapWrongFaultZone() throws Exception {
     System.out.println("START TestInstanceOperation.testNodeSwapWrongFaultZone() at " + new Date(
         System.currentTimeMillis()));
-    // Reset clusterConfig to re-enable topology aware rebalancing and set TOPOLOGY.
-    setupClusterConfig();
+    // Re-enable topology aware rebalancing and set TOPOLOGY.
+    enabledTopologyAwareRebalance();
     resetInstances();
 
     // Set instance's InstanceOperation to SWAP_OUT
@@ -1260,7 +1272,8 @@ public class TestInstanceOperation extends ZkTestBase {
           expectedStateMap.remove(swapOutInstance);
         }
       }
-      Assert.assertEquals(actual.getStateMap(partition), expectedStateMap);
+      Assert.assertEquals(actual.getStateMap(partition), expectedStateMap, "Error for partition " + partition
+          + " in resource " + actual.getResourceName());
     }
   }
 

@@ -193,7 +193,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           .containsKey(replica.getResourceName());
       _isInBaselineAssignment =
           clusterModel.getContext().getBaselineAssignment().containsKey(replica.getResourceName());
-      _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet());
+      _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableLogicalIds());
       computeScore(overallClusterRemainingCapacityMap);
     }
 

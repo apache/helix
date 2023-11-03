@@ -702,6 +702,18 @@ public class InstanceConfig extends HelixProperty {
     return _record.getId();
   }
 
+  /**
+   * Get the logicalId of this instance. If it does not exist or is not set,
+   * return the instance name.
+   * @param logicalIdKey the key for the DOMAIN field containing the logicalId
+   * @return the logicalId of this instance
+   */
+  public String getLogicalId(String logicalIdKey) {
+    // TODO: Consider caching DomainMap, parsing the DOMAIN string every time
+    // getLogicalId is called can become expensive if called too frequently.
+    return getDomainAsMap().getOrDefault(logicalIdKey, getInstanceName());
+  }
+
   @Override
   public boolean isValid() {
     // HELIX-65: remove check for hostname/port existence
@@ -772,6 +784,7 @@ public class InstanceConfig extends HelixProperty {
     private int _weight = WEIGHT_NOT_SET;
     private List<String> _tags = new ArrayList<>();
     private boolean _instanceEnabled = HELIX_ENABLED_DEFAULT_VALUE;
+    private InstanceConstants.InstanceOperation _instanceOperation;
     private Map<String, String> _instanceInfoMap;
     private Map<String, Integer> _instanceCapacityMap;
 
@@ -817,6 +830,10 @@ public class InstanceConfig extends HelixProperty {
 
       if (_instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
         instanceConfig.setInstanceEnabled(_instanceEnabled);
+      }
+
+      if (_instanceOperation != null) {
+        instanceConfig.setInstanceOperation(_instanceOperation);
       }
 
       if (_instanceInfoMap != null) {
@@ -887,6 +904,17 @@ public class InstanceConfig extends HelixProperty {
      */
     public Builder setInstanceEnabled(boolean instanceEnabled) {
       _instanceEnabled = instanceEnabled;
+      return this;
+    }
+
+    /**
+     * Set the instance operation for this instance
+     *
+     * @param instanceOperation the instance operation.
+     * @return InstanceConfig.Builder
+     */
+    public Builder setInstanceOperation(InstanceConstants.InstanceOperation instanceOperation) {
+      _instanceOperation = instanceOperation;
       return this;
     }
 

@@ -427,57 +427,63 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           }
           admin.resetPartition(clusterId, instanceName,
               node.get(PerInstanceProperties.resource.name()).textValue(),
-              (List<String>) OBJECT_MAPPER
-                  .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
-                    OBJECT_MAPPER.getTypeFactory()
-                        .constructCollectionType(List.class, String.class)));
-        break;
-      case setInstanceOperation:
-         admin.setInstanceOperation(clusterId, instanceName, state);
-         break;
+              (List<String>) OBJECT_MAPPER.readValue(
+                  node.get(PerInstanceProperties.partitions.name()).toString(),
+                  OBJECT_MAPPER.getTypeFactory()
+                      .constructCollectionType(List.class, String.class)));
+          break;
+        case setInstanceOperation:
+          admin.setInstanceOperation(clusterId, instanceName, state);
+          break;
+        case canCompleteSwap:
+          if (!admin.canCompleteSwap(clusterId, instanceName)) {
+            return badRequest("Swap is not ready to be completed!");
+          }
+          break;
         case completeSwapIfPossible:
           if (!admin.completeSwapIfPossible(clusterId, instanceName)) {
             return badRequest("Swap is not ready to be completed!");
           }
           break;
-      case addInstanceTag:
-        if (!validInstance(node, instanceName)) {
-          return badRequest("Instance names are not match!");
-        }
-        for (String tag : (List<String>) OBJECT_MAPPER
-            .readValue(node.get(PerInstanceProperties.instanceTags.name()).toString(),
-                OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
-          admin.addInstanceTag(clusterId, instanceName, tag);
-        }
-        break;
-      case removeInstanceTag:
-        if (!validInstance(node, instanceName)) {
-          return badRequest("Instance names are not match!");
-        }
-        for (String tag : (List<String>) OBJECT_MAPPER
-            .readValue(node.get(PerInstanceProperties.instanceTags.name()).toString(),
-                OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
-          admin.removeInstanceTag(clusterId, instanceName, tag);
-        }
-        break;
-      case enablePartitions:
-        admin.enablePartition(true, clusterId, instanceName,
-            node.get(PerInstanceProperties.resource.name()).textValue(),
-            (List<String>) OBJECT_MAPPER
-                .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
-                    OBJECT_MAPPER.getTypeFactory()
-                        .constructCollectionType(List.class, String.class)));
-        break;
-      case disablePartitions:
-        admin.enablePartition(false, clusterId, instanceName,
-            node.get(PerInstanceProperties.resource.name()).textValue(),
-            (List<String>) OBJECT_MAPPER
-                .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
-                    OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class)));
-        break;
-      default:
-        LOG.error("Unsupported command :" + command);
-        return badRequest("Unsupported command :" + command);
+        case addInstanceTag:
+          if (!validInstance(node, instanceName)) {
+            return badRequest("Instance names are not match!");
+          }
+          for (String tag : (List<String>) OBJECT_MAPPER.readValue(
+              node.get(PerInstanceProperties.instanceTags.name()).toString(),
+              OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
+            admin.addInstanceTag(clusterId, instanceName, tag);
+          }
+          break;
+        case removeInstanceTag:
+          if (!validInstance(node, instanceName)) {
+            return badRequest("Instance names are not match!");
+          }
+          for (String tag : (List<String>) OBJECT_MAPPER.readValue(
+              node.get(PerInstanceProperties.instanceTags.name()).toString(),
+              OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
+            admin.removeInstanceTag(clusterId, instanceName, tag);
+          }
+          break;
+        case enablePartitions:
+          admin.enablePartition(true, clusterId, instanceName,
+              node.get(PerInstanceProperties.resource.name()).textValue(),
+              (List<String>) OBJECT_MAPPER.readValue(
+                  node.get(PerInstanceProperties.partitions.name()).toString(),
+                  OBJECT_MAPPER.getTypeFactory()
+                      .constructCollectionType(List.class, String.class)));
+          break;
+        case disablePartitions:
+          admin.enablePartition(false, clusterId, instanceName,
+              node.get(PerInstanceProperties.resource.name()).textValue(),
+              (List<String>) OBJECT_MAPPER.readValue(
+                  node.get(PerInstanceProperties.partitions.name()).toString(),
+                  OBJECT_MAPPER.getTypeFactory()
+                      .constructCollectionType(List.class, String.class)));
+          break;
+        default:
+          LOG.error("Unsupported command :" + command);
+          return badRequest("Unsupported command :" + command);
       }
     } catch (Exception e) {
       LOG.error("Failed in updating instance : " + instanceName, e);

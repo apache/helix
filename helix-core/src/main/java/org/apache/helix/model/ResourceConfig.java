@@ -28,6 +28,7 @@ import java.util.TreeMap;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.RebalanceConfig;
@@ -448,7 +449,7 @@ public class ResourceConfig extends HelixProperty {
             String.format("Capacity Data contains a negative value:%s", capacities.toString()));
       }
       newCapacityRecord.put(partition, _objectMapper.writeValueAsString(capacities));
-      newDeserializedPartitionCapacityMap.put(partition, Map.copyOf(capacities));
+      newDeserializedPartitionCapacityMap.put(partition, ImmutableMap.copyOf(capacities));
     }
 
     _record.setMapField(ResourceConfigProperty.PARTITION_CAPACITY_MAP.name(), newCapacityRecord);

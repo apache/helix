@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
@@ -113,7 +114,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(dependsOnMethods = "testInstanceStoppableZoneBasedWithToBeStoppedInstances")
   public void testInstanceStoppableZoneBasedWithoutZoneOrder() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String content = String.format(
@@ -144,7 +145,8 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dataProvider = "generatePayloadCrossZoneStoppableCheckWithZoneOrder")
+  @Test(dataProvider = "generatePayloadCrossZoneStoppableCheckWithZoneOrder",
+      dependsOnMethods = "testInstanceStoppableZoneBasedWithoutZoneOrder")
   public void testCrossZoneStoppableWithZoneOrder(String content) throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     Response response = new JerseyUriRequestBuilder(
@@ -166,7 +168,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(dependsOnMethods = "testCrossZoneStoppableWithZoneOrder")
   public void testCrossZoneStoppableWithoutZoneOrder() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String content = String.format(
@@ -199,8 +201,97 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  @Test(dependsOnMethods = "testCrossZoneStoppableWithoutZoneOrder")
+  public void testInstanceStoppableCrossZoneBasedWithSelectedCheckList() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // Select instances with cross zone based and perform all checks
+    String content =
+        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\"]}",
+            InstancesAccessor.InstancesProperties.selection_base.name(),
+            InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+            InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
+            "instance2", "instance3", "instance4", "instance5", "invalidInstance",
+            InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "DUMMY_TEST_NO_EXISTS");
 
-  @Test(dependsOnMethods = "testInstanceStoppableZoneBasedWithToBeStoppedInstances")
+    new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable").format(STOPPABLE_CLUSTER)
+        .isBodyReturnExpected(true)
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode())
+        .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+
+    // Select instances with cross zone based and perform a subset of checks
+    content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\",\"%s\"], \"%s\":[\"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
+        "instance2", "instance3", "instance4", "instance5", "invalidInstance",
+        InstancesAccessor.InstancesProperties.zone_order.name(), "zone2", "zone1",
+        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ENABLED", "INSTANCE_NOT_STABLE");
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance5"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ALIVE"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance4"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ALIVE"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance1"),
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testInstanceStoppableCrossZoneBasedWithSelectedCheckList")
+  public void testInstanceStoppableCrossZoneBasedWithEvacuatingInstances() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\", \"%s\", \"%s\", \"%s\",\"%s\", \"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1", "instance3",
+        "instance6", "instance9", "instance10", "instance11", "instance12", "instance13",
+        "instance14", "invalidInstance");
+
+    // Change instance config of instance1 & instance0 to be evacuating
+    String instance0 = "instance0";
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance0);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance0, instanceConfig);
+    String instance1 = "instance1";
+    InstanceConfig instanceConfig1 = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance1);
+    instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance1, instanceConfig1);
+    // It takes time to reflect the changes.
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER2).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    Set<String> stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertTrue(stoppableSet.contains("instance12")
+        && stoppableSet.contains("instance11") && stoppableSet.contains("instance10"));
+
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance13"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance14"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testInstanceStoppableCrossZoneBasedWithEvacuatingInstances")
   public void testInstanceStoppable_zoneBased_zoneOrder() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Select instances with zone based

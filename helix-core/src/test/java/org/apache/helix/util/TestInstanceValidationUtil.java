@@ -375,7 +375,7 @@ public class TestInstanceValidationUtil {
     String resource = "resource";
     Mock mock = new Mock();
     doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
-        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
     // set ideal state
     IdealState idealState = mock(IdealState.class);
     when(idealState.isEnabled()).thenReturn(true);

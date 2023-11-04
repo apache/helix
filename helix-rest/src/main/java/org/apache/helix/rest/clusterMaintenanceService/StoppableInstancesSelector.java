@@ -34,6 +34,10 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.constants.InstanceConstants;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
@@ -48,15 +52,17 @@ public class StoppableInstancesSelector {
   private final String _customizedInput;
   private final MaintenanceManagementService _maintenanceService;
   private final ClusterTopology _clusterTopology;
+  private final ZKHelixDataAccessor _dataAccessor;
 
-  public StoppableInstancesSelector(String clusterId, List<String> orderOfZone,
+  private StoppableInstancesSelector(String clusterId, List<String> orderOfZone,
       String customizedInput, MaintenanceManagementService maintenanceService,
-      ClusterTopology clusterTopology) {
+      ClusterTopology clusterTopology, ZKHelixDataAccessor dataAccessor) {
     _clusterId = clusterId;
     _orderOfZone = orderOfZone;
     _customizedInput = customizedInput;
     _maintenanceService = maintenanceService;
     _clusterTopology = clusterTopology;
+    _dataAccessor = dataAccessor;
   }
 
   /**
@@ -66,7 +72,7 @@ public class StoppableInstancesSelector {
    * reasons for non-stoppability.
    *
    * @param instances A list of instance to be evaluated.
-   * @param toBeStoppedInstances A list of instances presumed to be are already stopped
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
@@ -81,6 +87,7 @@ public class StoppableInstancesSelector {
     ObjectNode failedStoppableInstances = result.putObject(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
     Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
+    collectEvacuatingInstances(toBeStoppedInstancesSet);
 
     List<String> zoneBasedInstance =
         getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
@@ -97,7 +104,7 @@ public class StoppableInstancesSelector {
    * non-stoppability.
    *
    * @param instances A list of instance to be evaluated.
-   * @param toBeStoppedInstances A list of instances presumed to be are already stopped
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
@@ -112,6 +119,7 @@ public class StoppableInstancesSelector {
     ObjectNode failedStoppableInstances = result.putObject(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
     Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
+    collectEvacuatingInstances(toBeStoppedInstancesSet);
 
     Map<String, Set<String>> zoneMapping = _clusterTopology.toZoneMapping();
     for (String zone : _orderOfZone) {
@@ -249,12 +257,31 @@ public class StoppableInstancesSelector {
                 (existing, replacement) -> existing, LinkedHashMap::new));
   }
 
+  /**
+   * Collect instances marked for evacuation in the current topology and add them into the given set
+   *
+   * @param toBeStoppedInstances A set of instances we presume to be stopped.
+   */
+  private void collectEvacuatingInstances(Set<String> toBeStoppedInstances) {
+    Set<String> allInstances = _clusterTopology.getAllInstances();
+    for (String instance : allInstances) {
+      PropertyKey.Builder propertyKeyBuilder = _dataAccessor.keyBuilder();
+      InstanceConfig instanceConfig =
+          _dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instance));
+      if (InstanceConstants.InstanceOperation.EVACUATE.name()
+          .equals(instanceConfig.getInstanceOperation())) {
+        toBeStoppedInstances.add(instance);
+      }
+    }
+  }
+
   public static class StoppableInstancesSelectorBuilder {
     private String _clusterId;
     private List<String> _orderOfZone;
     private String _customizedInput;
     private MaintenanceManagementService _maintenanceService;
     private ClusterTopology _clusterTopology;
+    private ZKHelixDataAccessor _dataAccessor;
 
     public StoppableInstancesSelectorBuilder setClusterId(String clusterId) {
       _clusterId = clusterId;
@@ -282,9 +309,14 @@ public class StoppableInstancesSelector {
       return this;
     }
 
+    public StoppableInstancesSelectorBuilder setDataAccessor(ZKHelixDataAccessor dataAccessor) {
+      _dataAccessor = dataAccessor;
+      return this;
+    }
+
     public StoppableInstancesSelector build() {
       return new StoppableInstancesSelector(_clusterId, _orderOfZone, _customizedInput,
-          _maintenanceService, _clusterTopology);
+          _maintenanceService, _clusterTopology, _dataAccessor);
     }
   }
 }

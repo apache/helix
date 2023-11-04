@@ -93,6 +93,10 @@ public class MaintenanceManagementService {
   private final HelixDataAccessorWrapper _dataAccessor;
   private final Set<String> _nonBlockingHealthChecks;
   private final Set<StoppableCheck.Category> _skipHealthCheckCategories;
+  // Set the default value of _skipStoppableHealthCheckList to be an empty list to
+  // maintain the backward compatibility with users who don't use MaintenanceManagementServiceBuilder
+  // to create the MaintenanceManagementService object.
+  private List<HealthCheck> _skipStoppableHealthCheckList = Collections.emptyList();
 
   public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, boolean skipZKRead, String namespace) {
@@ -141,6 +145,25 @@ public class MaintenanceManagementService {
     _nonBlockingHealthChecks = nonBlockingHealthChecks;
     _skipHealthCheckCategories =
         skipHealthCheckCategories != null ? skipHealthCheckCategories : Collections.emptySet();
+    _namespace = namespace;
+  }
+
+  private MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
+      ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
+      Set<String> nonBlockingHealthChecks, Set<StoppableCheck.Category> skipHealthCheckCategories,
+      List<HealthCheck> skipStoppableHealthCheckList, String namespace) {
+    _dataAccessor =
+        new HelixDataAccessorWrapper(dataAccessor, customRestClient,
+            namespace);
+    _configAccessor = configAccessor;
+    _customRestClient = customRestClient;
+    _skipZKRead = skipZKRead;
+    _nonBlockingHealthChecks =
+        nonBlockingHealthChecks == null ? Collections.emptySet() : nonBlockingHealthChecks;
+    _skipHealthCheckCategories =
+        skipHealthCheckCategories == null ? Collections.emptySet() : skipHealthCheckCategories;
+    _skipStoppableHealthCheckList = skipStoppableHealthCheckList == null ? Collections.emptyList()
+            : skipStoppableHealthCheckList;
     _namespace = namespace;
   }
 
@@ -463,7 +486,10 @@ public class MaintenanceManagementService {
       return instances;
     }
     RESTConfig restConfig = _configAccessor.getRESTConfig(clusterId);
-    if (restConfig == null) {
+    if (restConfig == null && (
+        !_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)
+            || !_skipHealthCheckCategories.contains(
+            StoppableCheck.Category.CUSTOM_PARTITION_CHECK))) {
       String errorMessage = String.format(
           "The cluster %s hasn't enabled client side health checks yet, "
               + "thus the stoppable check result is inaccurate", clusterId);
@@ -612,8 +638,10 @@ public class MaintenanceManagementService {
   private StoppableCheck performHelixOwnInstanceCheck(String clusterId, String instanceName,
       Set<String> toBeStoppedInstances) {
     LOG.info("Perform helix own custom health checks for {}/{}", clusterId, instanceName);
+    List<HealthCheck> healthChecksToExecute = new ArrayList<>(HealthCheck.STOPPABLE_CHECK_LIST);
+    healthChecksToExecute.removeAll(_skipStoppableHealthCheckList);
     Map<String, Boolean> helixStoppableCheck =
-        getInstanceHealthStatus(clusterId, instanceName, HealthCheck.STOPPABLE_CHECK_LIST,
+        getInstanceHealthStatus(clusterId, instanceName, healthChecksToExecute,
             toBeStoppedInstances);
 
     return new StoppableCheck(helixStoppableCheck, StoppableCheck.Category.HELIX_OWN_CHECK);
@@ -770,5 +798,88 @@ public class MaintenanceManagementService {
     }
 
     return healthStatus;
+  }
+
+  public static class MaintenanceManagementServiceBuilder {
+    private ConfigAccessor _configAccessor;
+    private boolean _skipZKRead;
+    private String _namespace;
+    private ZKHelixDataAccessor _dataAccessor;
+    private CustomRestClient _customRestClient;
+    private Set<String> _nonBlockingHealthChecks;
+    private Set<StoppableCheck.Category> _skipHealthCheckCategories = Collections.emptySet();
+    private List<HealthCheck> _skipStoppableHealthCheckList = Collections.emptyList();
+
+    public MaintenanceManagementServiceBuilder setConfigAccessor(ConfigAccessor configAccessor) {
+      _configAccessor = configAccessor;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setSkipZKRead(boolean skipZKRead) {
+      _skipZKRead = skipZKRead;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setNamespace(String namespace) {
+      _namespace = namespace;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setDataAccessor(
+        ZKHelixDataAccessor dataAccessor) {
+      _dataAccessor = dataAccessor;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setCustomRestClient(
+        CustomRestClient customRestClient) {
+      _customRestClient = customRestClient;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setNonBlockingHealthChecks(
+        Set<String> nonBlockingHealthChecks) {
+      _nonBlockingHealthChecks = nonBlockingHealthChecks;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setSkipHealthCheckCategories(
+        Set<StoppableCheck.Category> skipHealthCheckCategories) {
+      _skipHealthCheckCategories = skipHealthCheckCategories;
+      return this;
+    }
+
+    public MaintenanceManagementServiceBuilder setSkipStoppableHealthCheckList(
+        List<HealthCheck> skipStoppableHealthCheckList) {
+      _skipStoppableHealthCheckList = skipStoppableHealthCheckList;
+      return this;
+    }
+
+    public MaintenanceManagementService build() {
+      validate();
+      return new MaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient,
+          _skipZKRead, _nonBlockingHealthChecks, _skipHealthCheckCategories,
+          _skipStoppableHealthCheckList, _namespace);
+    }
+
+    private void validate() throws IllegalArgumentException {
+      List<String> msg = new ArrayList<>();
+      if (_configAccessor == null) {
+        msg.add("'configAccessor' can't be null.");
+      }
+      if (_namespace == null) {
+        msg.add("'namespace' can't be null.");
+      }
+      if (_dataAccessor == null) {
+        msg.add("'_dataAccessor' can't be null.");
+      }
+      if (_customRestClient == null) {
+        msg.add("'customRestClient' can't be null.");
+      }
+      if (msg.size() != 0) {
+        throw new IllegalArgumentException(
+            "One or more mandatory arguments are not set " + msg);
+      }
+    }
   }
 }

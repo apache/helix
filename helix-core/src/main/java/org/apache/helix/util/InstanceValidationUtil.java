@@ -295,7 +295,7 @@ public class InstanceValidationUtil {
         if (stateMap.containsKey(instanceToBeStop)
             && stateMap.get(instanceToBeStop).equals(stateModelDefinition.getTopState())) {
           for (String siblingInstance : stateMap.keySet()) {
-            // Skip this self check
+            // Skip this self check and instances we assume to be already stopped
             if (siblingInstance.equals(instanceToBeStop) || (toBeStoppedInstances != null
                 && toBeStoppedInstances.contains(siblingInstance))) {
               continue;
@@ -451,9 +451,10 @@ public class InstanceValidationUtil {
         if (stateByInstanceMap.containsKey(instanceName)) {
           int numHealthySiblings = 0;
           for (Map.Entry<String, String> entry : stateByInstanceMap.entrySet()) {
-            if (!entry.getKey().equals(instanceName) && (toBeStoppedInstances == null
-                || !toBeStoppedInstances.contains(entry.getKey())) && !unhealthyStates.contains(
-                entry.getValue())) {
+            String siblingInstanceName = entry.getKey();
+            if (!siblingInstanceName.equals(instanceName) && (toBeStoppedInstances == null
+                || !toBeStoppedInstances.contains(siblingInstanceName))
+                && !unhealthyStates.contains(entry.getValue())) {
               numHealthySiblings++;
             }
           }

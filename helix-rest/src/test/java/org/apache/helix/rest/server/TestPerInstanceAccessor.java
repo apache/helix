@@ -501,6 +501,26 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
     Assert.assertEquals(
         instanceConfig.getInstanceOperation(), "");
+
+    // test canCompleteSwap
+    Response canCompleteSwapResponse =
+        new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=canCompleteSwap").format(
+            CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    Assert.assertEquals(canCompleteSwapResponse.getStatus(), Response.Status.OK.getStatusCode());
+    Map<String, Object> responseMap =
+        OBJECT_MAPPER.readValue(canCompleteSwapResponse.readEntity(String.class), Map.class);
+    Assert.assertFalse((boolean) responseMap.get("successful"));
+
+    // test completeSwapIfPossible
+    Response completeSwapIfPossibleResponse = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}?command=completeSwapIfPossible").format(CLUSTER_NAME,
+        INSTANCE_NAME).post(this, entity);
+    Assert.assertEquals(completeSwapIfPossibleResponse.getStatus(),
+        Response.Status.OK.getStatusCode());
+    responseMap =
+        OBJECT_MAPPER.readValue(completeSwapIfPossibleResponse.readEntity(String.class), Map.class);
+    Assert.assertFalse((boolean) responseMap.get("successful"));
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

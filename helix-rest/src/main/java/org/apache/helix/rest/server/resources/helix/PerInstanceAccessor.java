@@ -436,15 +436,11 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           admin.setInstanceOperation(clusterId, instanceName, state);
           break;
         case canCompleteSwap:
-          if (!admin.canCompleteSwap(clusterId, instanceName)) {
-            return badRequest("Swap is not ready to be completed!");
-          }
-          break;
+          return OK(OBJECT_MAPPER.writeValueAsString(
+              Map.of("successful", admin.canCompleteSwap(clusterId, instanceName))));
         case completeSwapIfPossible:
-          if (!admin.completeSwapIfPossible(clusterId, instanceName)) {
-            return badRequest("Swap is not ready to be completed!");
-          }
-          break;
+          return OK(OBJECT_MAPPER.writeValueAsString(
+              Map.of("successful", admin.completeSwapIfPossible(clusterId, instanceName))));
         case addInstanceTag:
           if (!validInstance(node, instanceName)) {
             return badRequest("Instance names are not match!");

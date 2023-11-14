@@ -477,6 +477,16 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                   OBJECT_MAPPER.getTypeFactory()
                       .constructCollectionType(List.class, String.class)));
           break;
+        case isEvacuateFinished:
+          boolean evacuateFinished;
+          try {
+            evacuateFinished = admin.isEvacuateFinished(clusterId, instanceName);
+          } catch (HelixException e) {
+            LOG.error(String.format("Encountered error when checking if evacuation finished for cluster: "
+                + "{}, instance: {}", clusterId, instanceName), e);
+            return serverError(e);
+          }
+          return OK(OBJECT_MAPPER.writeValueAsString(Map.of("successful", evacuateFinished)));
         default:
           LOG.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);

@@ -29,6 +29,8 @@ import org.testng.annotations.Test;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 
 public class TestMaxCapacityUsageInstanceConstraint {
   private AssignableReplica _testReplica;
@@ -45,13 +47,27 @@ public class TestMaxCapacityUsageInstanceConstraint {
 
   @Test
   public void testGetNormalizedScore() {
-    when(_testNode.getGeneralProjectedHighestUtilization(anyMap())).thenReturn(0.8f);
+    when(_testNode.getGeneralProjectedHighestUtilization(anyMap(), any())).thenReturn(0.8f);
     when(_clusterContext.getEstimatedMaxUtilization()).thenReturn(1f);
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     // Convert to float so as to compare with equal.
     Assert.assertEquals((float) score,0.8f);
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertTrue(normalizedScore > 0.99);
+  }
+
+  @Test
+  public void testGetNormalizedScoreWithPreferredScoringKey() {
+    String preferredScoringkey = "CU";
+    when(_testNode.getGeneralProjectedHighestUtilization(anyMap(), eq(preferredScoringkey))).thenReturn(0.5f);
+    when(_clusterContext.getPreferredScoringKey()).thenReturn(preferredScoringkey);
+    when(_clusterContext.getEstimatedMaxUtilization()).thenReturn(1f);
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    // Convert to float so as to compare with equal.
+    Assert.assertEquals((float) score,0.5f);
+    double normalizedScore =
+            _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertTrue(normalizedScore > 0.99);
   }
 }

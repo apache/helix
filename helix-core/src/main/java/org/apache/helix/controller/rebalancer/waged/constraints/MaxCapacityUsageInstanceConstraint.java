@@ -22,6 +22,8 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The constraint evaluates the score by checking the max used capacity key out of all the capacity
@@ -31,13 +33,17 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * It is a greedy approach since it evaluates only on the most used capacity key.
  */
 class MaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
+  private static final Logger LOG = LoggerFactory.getLogger(MaxCapacityUsageInstanceConstraint.class.getName());
 
   @Override
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     float estimatedMaxUtilization = clusterContext.getEstimatedMaxUtilization();
     float projectedHighestUtilization =
-        node.getGeneralProjectedHighestUtilization(replica.getCapacity());
-    return computeUtilizationScore(estimatedMaxUtilization, projectedHighestUtilization);
+            node.getGeneralProjectedHighestUtilization(replica.getCapacity(), clusterContext.getPreferredScoringKey());
+    double utilizationScore = computeUtilizationScore(estimatedMaxUtilization, projectedHighestUtilization);
+    LOG.info("[DEPEND-29018] clusterName: {}, node: {}, replica partition: {}, estimatedMaxUtilization: {}, projectedHighestUtilization: {}, utilizationScore: {}, preferredScoringKey: {}",
+            clusterContext.getClusterName(), node.getInstanceName(), replica.getPartitionName(),estimatedMaxUtilization, projectedHighestUtilization, utilizationScore, clusterContext.getPreferredScoringKey());
+    return utilizationScore;
   }
 }

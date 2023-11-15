@@ -26,10 +26,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.model.ClusterConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TestClusterContext extends AbstractTestClusterModel {
@@ -93,5 +96,47 @@ public class TestClusterContext extends AbstractTestClusterModel {
     // Insert again and trigger the error.
     context
         .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));
+  }
+
+  @DataProvider(name = "preferredScoringKey")
+  public static Object[][] preferredScoringKey() {
+    return new Object[][]{
+            {"item1"},//valid key
+            {"item3"},//valid key
+            {"item-x"},//invalid key
+            {null}
+    };
+  }
+
+  @Test(dataProvider = "preferredScoringKey")
+  public void testEstimateMaxUtilization(String preferredScoringKey) throws IOException {
+    ResourceControllerDataProvider testCache = setupClusterDataCache();
+    Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
+    ClusterConfig clusterConfig = testCache.getClusterConfig();
+    clusterConfig.setPreferredScoringKey(preferredScoringKey);
+    ClusterContext context =
+            new ClusterContext(assignmentSet, generateNodes(testCache), new HashMap<>(),
+                    new HashMap<>(), clusterConfig);
+    /**
+     * Total Capacity and Total Usage values calculated from nodeSet and replicaSet above are as follows:
+     * TotalCapacity : {"item1",20, "item2",40, "item3",30}
+     * TotalUsage : {"item1",16, "item2",32, "item3",0}
+     * Using these values to validate the results of estimateMaxUtilization.
+     */
+
+    validateResult(ImmutableMap.of("item1", 20, "item2", 40, "item3", 30),
+            ImmutableMap.of("item1", 16, "item2", 32, "item3", 0),
+            preferredScoringKey, context.getEstimatedMaxUtilization());
+  }
+
+  private void validateResult(Map<String, Integer> totalCapacity, Map<String, Integer> totalUsage,
+                              String preferredScoringKey, float actualEstimatedMaxUtilization) {
+    if (preferredScoringKey == null || !totalCapacity.keySet().contains(preferredScoringKey)) {
+      //estimatedMaxUtilization calculated from all capacity keys
+      Assert.assertEquals(actualEstimatedMaxUtilization, 0.8f);
+      return;
+    }
+    //estimatedMaxUtilization calculated using preferredScoringKey only.
+    Assert.assertEquals(actualEstimatedMaxUtilization, (float) totalUsage.get(preferredScoringKey) / totalCapacity.get(preferredScoringKey));
   }
 }

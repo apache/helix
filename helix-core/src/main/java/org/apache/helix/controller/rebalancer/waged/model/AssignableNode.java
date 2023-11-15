@@ -63,6 +63,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Map<String, Integer> _remainingCapacity;
   private Map<String, Integer> _remainingTopStateCapacity;
 
+  private String _clusterName;
+
   /**
    * Update the node with a ClusterDataCache. This resets the current assignment and recalculates
    * currentCapacity.
@@ -84,6 +86,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _remainingTopStateCapacity = new HashMap<>(instanceCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
     _currentAssignedReplicaMap = new HashMap<>();
+    _clusterName = clusterConfig.getClusterName();
   }
 
   /**
@@ -195,7 +198,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   Set<String> getAssignedTopStatePartitionsByResource(String resource) {
     return _currentAssignedReplicaMap.getOrDefault(resource, Collections.emptyMap()).entrySet()
         .stream().filter(partitionEntry -> partitionEntry.getValue().isReplicaTopState())
-        .map(partitionEntry -> partitionEntry.getKey()).collect(Collectors.toSet());
+        .map(Map.Entry::getKey).collect(Collectors.toSet());
   }
 
   /**
@@ -239,7 +242,27 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getGeneralProjectedHighestUtilization(Map<String, Integer> newUsage) {
-    return getProjectedHighestUtilization(newUsage, _remainingCapacity);
+    return getProjectedHighestUtilization(newUsage, _remainingCapacity, null);
+  }
+
+  /**
+   * Return the most concerning capacity utilization number for evenly partition assignment.
+   * The method dynamically calculates the projected highest utilization number among all the
+   * capacity categories assuming the new capacity usage is added to the node.
+   *
+   * If the preferredScoringKey is specified then utilization number is computed based op the
+   * specified capacity category (key) only.
+   *
+   * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}, preferredScoringKey: CPU
+   * Then this call shall return 0.9.
+   *
+   * @param newUsage            the proposed new additional capacity usage.
+   * @param preferredScoringKey if provided, the capacity utilization will be calculated based on
+   *                            the supplied key only, else across all capacity categories.
+   * @return The highest utilization number of the node among the specified capacity category.
+   */
+  public float getGeneralProjectedHighestUtilization(Map<String, Integer> newUsage, String preferredScoringKey) {
+    return getProjectedHighestUtilization(newUsage, _remainingCapacity, preferredScoringKey);
   }
 
   /**
@@ -253,18 +276,46 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getTopStateProjectedHighestUtilization(Map<String, Integer> newUsage) {
-    return getProjectedHighestUtilization(newUsage, _remainingTopStateCapacity);
+    return getProjectedHighestUtilization(newUsage, _remainingTopStateCapacity, null);
+  }
+
+  /**
+   * Return the most concerning capacity utilization number for evenly partition assignment.
+   * The method dynamically calculates the projected highest utilization number among all the
+   * capacity categories assuming the new capacity usage is added to the node.
+   *
+   * If the preferredScoringKey is specified then utilization number is computed based op the
+   * specified capacity category (key) only.
+   *
+   * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}, preferredScoringKey: CPU
+   * Then this call shall return 0.9.
+   *
+   * This function returns projected highest utilization for only top state partitions.
+   *
+   * @param newUsage            the proposed new additional capacity usage.
+   * @param preferredScoringKey if provided, the capacity utilization will be calculated based on
+   *                            the supplied key only, else across all capacity categories.
+   * @return The highest utilization number of the node among all the capacity category.
+   */
+  public float getTopStateProjectedHighestUtilization(Map<String, Integer> newUsage, String preferredScoringKey) {
+    return getProjectedHighestUtilization(newUsage, _remainingTopStateCapacity, preferredScoringKey);
   }
 
   private float getProjectedHighestUtilization(Map<String, Integer> newUsage,
-      Map<String, Integer> remainingCapacity) {
+      Map<String, Integer> remainingCapacity, String preferredScoringKey) {
+    Set<String> capacityKeySet = _maxAllowedCapacity.keySet();
+    if (preferredScoringKey != null && capacityKeySet.contains(preferredScoringKey)) {
+      capacityKeySet = ImmutableSet.of(preferredScoringKey);
+    }
     float highestCapacityUtilization = 0;
-    for (String capacityKey : _maxAllowedCapacity.keySet()) {
+    for (String capacityKey : capacityKeySet) {
       float capacityValue = _maxAllowedCapacity.get(capacityKey);
       float utilization = (capacityValue - remainingCapacity.get(capacityKey) + newUsage
           .getOrDefault(capacityKey, 0)) / capacityValue;
       highestCapacityUtilization = Math.max(highestCapacityUtilization, utilization);
     }
+    LOG.info("[DEPEND-29018] clusterName: {}, node: {}, newUsage: {}, remainingCapacity: {}, preferredScoringKey: {}, highestCapacityUtilization: {}",
+            _clusterName, this.getInstanceName(), newUsage, remainingCapacity, preferredScoringKey, highestCapacityUtilization);
     return highestCapacityUtilization;
   }
 

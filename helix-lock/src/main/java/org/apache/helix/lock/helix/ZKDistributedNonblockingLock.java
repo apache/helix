@@ -312,8 +312,12 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
         return _record;
       }
 
-      // higher priority lock request will try to  preempt current lock owner
-      if (!isCurrentOwner(curLockInfo) && _priority > curLockInfo.getPriority()) {
+      LockInfo unlockOrLockRequestLockInfo = new LockInfo(_record);
+      int unlockOrLockRequestPriority = unlockOrLockRequestLockInfo.getPriority();
+      // higher priority lock request will try to  preempt current lock owner. And any unlock request
+      // from non-lock owners will always be blocked because the default priority of unlock request
+      // is 0. And it would always be less than or equal to the priority value of the current lock.
+      if (!isCurrentOwner(curLockInfo) && unlockOrLockRequestPriority > curLockInfo.getPriority()) {
         // if requestor field is empty, fill the field with requestor's id
         if (curLockInfo.getRequestorId().equals(LockConstants.DEFAULT_USER_ID)) {
           _pendingTimeout =
@@ -321,7 +325,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
                   : _waitingTimeout;
         } // If the requestor field is not empty, and the coming lock request has an even higher
         // priority. The new request will replace current requestor field of the lock
-        else if (_priority > curLockInfo.getRequestorPriority()) {
+        else if (unlockOrLockRequestPriority > curLockInfo.getRequestorPriority()) {
           long remainingCleanupTime =
               curLockInfo.getCleanupTimeout() - (System.currentTimeMillis() - curLockInfo
                   .getRequestingTimestamp());

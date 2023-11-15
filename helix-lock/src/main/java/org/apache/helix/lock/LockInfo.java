@@ -168,7 +168,7 @@ public class LockInfo {
 
   /**
    * Get the value for PRIORITY attribute of the lock
-   * @return the priority of the lock, -1 if there is no priority set
+   * @return the priority of the lock, 0 if there is no priority set
    */
   public Integer getPriority() {
     return _record
@@ -204,7 +204,7 @@ public class LockInfo {
 
   /**
    * Get the value for REQUESTOR_PRIORITY attribute of the lock
-   * @return the requestor priority of the lock, -1 if there is no requestor priority set
+   * @return the requestor priority of the lock, 0 if there is no requestor priority set
    */
   public int getRequestorPriority() {
     return _record.getIntField(LockInfoAttribute.REQUESTOR_PRIORITY.name(),

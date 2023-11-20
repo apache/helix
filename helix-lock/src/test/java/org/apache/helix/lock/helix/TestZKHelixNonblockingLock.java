@@ -172,8 +172,9 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     Assert.assertFalse(_lock.isCurrentOwner());
     // Since _lock with _userId is not the locker owner anymore, its unlock() should fail.
     Assert.assertFalse(_lock.unlock());
+    // trylock will return false since both users have default priority of 0
+    Assert.assertFalse(_lock.tryLock());
   }
-
 
   @Test
   public void testSimultaneousAcquire() {

@@ -182,29 +182,6 @@ class GlobalRebalanceRunner implements AutoCloseable {
         _assignmentMetadataStore != null && _assignmentMetadataStore.isBaselineChanged(newBaseline);
     // Write the new baseline to metadata store
     if (isBaselineChanged) {
-      System.out.println("Baseline has changed: Persisting the new baseline assignment.");
-
-      System.out.println("All Assignable Instances: " + allAssignableInstances);
-
-      Map<String, ResourceAssignment> oldBaseline = _assignmentMetadataStore.getBaseline();
-
-//      System.out.println("Old Baseline: " + _assignmentMetadataStore.getBaseline());
-//      System.out.println("New Baseline: " + newBaseline);
-
-      for (String resource : newBaseline.keySet()) {
-        ResourceAssignment oldAssignment = oldBaseline.get(resource);
-        if (oldAssignment == null) {
-          System.out.println("Resource " + resource + " is new.");
-          continue;
-        }
-        ResourceAssignment assignment = newBaseline.get(resource);
-        for (Partition partition : assignment.getMappedPartitions()) {
-          Map<String, String> oldPartitionMap = oldAssignment.getReplicaMap(partition);
-          Map<String, String> newPartitionMap = assignment.getReplicaMap(partition);
-          printMapDifferences(oldPartitionMap, newPartitionMap);
-        }
-      }
-
       try {
         _writeLatency.startMeasuringLatency();
         _assignmentMetadataStore.persistBaseline(newBaseline);
@@ -225,37 +202,6 @@ class GlobalRebalanceRunner implements AutoCloseable {
     if (isBaselineChanged && shouldTriggerMainPipeline) {
       LOG.info("Schedule a new rebalance after the new baseline calculation has finished.");
       RebalanceUtil.scheduleOnDemandPipeline(clusterData.getClusterName(), 0L, false);
-    }
-  }
-
-  private static void printMapDifferences(Map<String, String> map1, Map<String, String> map2) {
-    // StringBuilder to concatenate differences
-    StringBuilder diffBuilder = new StringBuilder();
-
-    // Iterate over the keys in map1
-    for (String key : map1.keySet()) {
-      String value1 = map1.get(key);
-      String value2 = map2.get(key);
-
-      // Compare values and append differences to the StringBuilder
-      if (!value1.equals(value2)) {
-        diffBuilder.append(key).append(": old: ").append(value1).append(", new: ").append(value2)
-            .append(" | ");
-      }
-    }
-
-    // Check for keys present in map2 but not in map1
-    for (String key : map2.keySet()) {
-      if (!map1.containsKey(key)) {
-        diffBuilder.append(key).append(": old: null").append(", new: ").append(map2.get(key))
-            .append(" | ");
-      }
-    }
-
-    // Print the differences on one line
-    String diffResult = diffBuilder.toString().trim();
-    if (!diffResult.isEmpty()) {
-      System.out.println("Differences: " + diffResult);
     }
   }
 

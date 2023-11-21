@@ -90,40 +90,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
 
-    // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
-    Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
-    // 2. Get all enabled and live SWAP_IN instances in the cluster.
-    Set<String> enabledLiveSwapInInstances = cache.getEnabledLiveSwapInInstanceNames();
-    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
-    // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
-    // swap occurring.
-    if (!enabledLiveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
-      bestPossibleStateOutput.getResourceStatesMap()
-          .forEach((resourceName, partitionStateAssignment) -> {
-            partitionStateAssignment.getStateMap().forEach((partition, stateMap) -> {
-              Set<String> commonInstances = new HashSet<>(stateMap.keySet());
-              commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
-
-              if (commonInstances.isEmpty()) {
-                return;
-              }
-
-              List<String> preferenceList = bestPossibleStateOutput.getPreferenceLists(resourceName)
-                  .get(partition.getPartitionName());
-              for (String swapOutInstance : commonInstances) {
-                if (!preferenceList.contains(swapOutToSwapInInstancePairs.get(swapOutInstance))) {
-                  preferenceList.add(swapOutToSwapInInstancePairs.get(swapOutInstance));
-                }
-              }
-              AbstractRebalancer.assignStatesToInstances(preferenceList,
-                  cache.getStateModelDef(cache.getIdealState(resourceName).getStateModelDefRef()),
-                  new HashMap<>(stateMap), cache.getLiveInstances().keySet(),
-                  Collections.emptySet(), stateMap);
-              bestPossibleStateOutput.getResourceStatesMap().get(resourceName)
-                  .setState(partition, stateMap);
-            });
-          });
-    }
+    // Add swap-in instances to bestPossibleStateOutput.
+    // We do this after computing the best possible state output because rebalance algorithms should not
+    // to be aware of swap-in instances. We simply add the swap-in instances to the end of the
+    // preference list of the corresponding swap-out instances and compute the correct state.
+    addSwapInInstancesToBestPossibleState(bestPossibleStateOutput, cache);
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
@@ -158,6 +129,43 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
       return null;
     });
+  }
+
+  private void addSwapInInstancesToBestPossibleState(BestPossibleStateOutput bestPossibleStateOutput, ResourceControllerDataProvider cache) {
+    // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
+    Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
+    // 2. Get all enabled and live SWAP_IN instances in the cluster.
+    Set<String> enabledLiveSwapInInstances = cache.getEnabledLiveSwapInInstanceNames();
+    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
+    // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
+    // swap occurring.
+    if (!enabledLiveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
+      bestPossibleStateOutput.getResourceStatesMap()
+          .forEach((resourceName, partitionStateAssignment) -> {
+            partitionStateAssignment.getStateMap().forEach((partition, stateMap) -> {
+              Set<String> commonInstances = new HashSet<>(stateMap.keySet());
+              commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
+
+              if (commonInstances.isEmpty()) {
+                return;
+              }
+
+              List<String> preferenceList = bestPossibleStateOutput.getPreferenceLists(resourceName)
+                  .get(partition.getPartitionName());
+              for (String swapOutInstance : commonInstances) {
+                if (!preferenceList.contains(swapOutToSwapInInstancePairs.get(swapOutInstance))) {
+                  preferenceList.add(swapOutToSwapInInstancePairs.get(swapOutInstance));
+                }
+              }
+              AbstractRebalancer.assignStatesToInstances(preferenceList,
+                  cache.getStateModelDef(cache.getIdealState(resourceName).getStateModelDefRef()),
+                  new HashMap<>(stateMap), cache.getLiveInstances().keySet(),
+                  Collections.emptySet(), stateMap);
+              bestPossibleStateOutput.getResourceStatesMap().get(resourceName)
+                  .setState(partition, stateMap);
+            });
+          });
+    }
   }
 
   private void reportResourceState(ClusterStatusMonitor clusterStatusMonitor,

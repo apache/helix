@@ -62,7 +62,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
     public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
         CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
       testRebalancerInvoked = true;
-      List<String> liveNodes = Lists.newArrayList(clusterData.getLiveInstances().keySet());
+      List<String> liveNodes = Lists.newArrayList(clusterData.getAssignableLiveInstances().keySet());
       int i = 0;
       for (String partition : currentIdealState.getPartitionSet()) {
         int index = i++ % liveNodes.size();
@@ -139,13 +139,13 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
         int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
         String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
         int instances = 0;
-        for (String liveInstanceName : cache.getLiveInstances().keySet()) {
-          if (cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
+        for (String liveInstanceName : cache.getAssignableLiveInstances().keySet()) {
+          if (cache.getAssignableInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
             instances++;
           }
         }
         if (instances == 0) {
-          instances = cache.getLiveInstances().size();
+          instances = cache.getAssignableLiveInstances().size();
         }
         return verifyBalanceExternalView(
             accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),

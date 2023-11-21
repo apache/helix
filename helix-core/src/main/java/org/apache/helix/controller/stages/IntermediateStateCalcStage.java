@@ -656,10 +656,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // Generate a state mapping, state -> required numbers based on the live and enabled instances for this partition
     // preference list
     if (preferenceList != null) {
-      return stateModelDefinition.getStateCountMap((int) preferenceList.stream().filter(i -> resourceControllerDataProvider.getEnabledLiveInstances().contains(i))
+      return stateModelDefinition.getStateCountMap((int) preferenceList.stream().filter(
+              i -> resourceControllerDataProvider.getAssignableEnabledLiveInstances().contains(i))
           .count(), requiredNumReplica); // StateModelDefinition's counts
     }
-    return stateModelDefinition.getStateCountMap(resourceControllerDataProvider.getEnabledLiveInstances().size(),
+    return stateModelDefinition.getStateCountMap(
+        resourceControllerDataProvider.getAssignableEnabledLiveInstances().size(),
         requiredNumReplica); // StateModelDefinition's counts
   }
 

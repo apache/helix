@@ -295,7 +295,7 @@ public final class HelixUtil {
       // For LiveInstances, we must preserve the existing session IDs
       // So read LiveInstance objects from the cluster and do a "retainAll" on them
       // liveInstanceMap is an unmodifiableMap instances, so we filter using a stream
-      Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
+      Map<String, LiveInstance> liveInstanceMap = dataProvider.getAssignableLiveInstances();
       List<LiveInstance> filteredLiveInstances = liveInstanceMap.entrySet().stream()
           .filter(entry -> liveInstances.contains(entry.getKey())).map(Map.Entry::getValue)
           .collect(Collectors.toList());

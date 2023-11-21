@@ -72,13 +72,13 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
       LOG.error("State Model Definition null for resource: " + resourceName);
       throw new HelixException("State Model Definition null for resource: " + resourceName);
     }
-    Map<String, LiveInstance> liveInstance = clusterData.getLiveInstances();
+    Map<String, LiveInstance> liveInstance = clusterData.getAssignableLiveInstances();
     int replicas = currentIdealState.getReplicaCount(liveInstance.size());
 
     LinkedHashMap<String, Integer> stateCountMap = stateModelDef
         .getStateCountMap(liveInstance.size(), replicas);
     List<String> liveNodes = new ArrayList<>(liveInstance.keySet());
-    List<String> allNodes = new ArrayList<>(clusterData.getAllInstances());
+    List<String> allNodes = new ArrayList<>(clusterData.getAssignableInstances());
     allNodes.removeAll(clusterData.getDisabledInstances());
     liveNodes.retainAll(allNodes);
 
@@ -90,7 +90,7 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
     Set<String> taggedLiveNodes = new HashSet<String>();
     if (currentIdealState.getInstanceGroupTag() != null) {
       for (String instanceName : allNodes) {
-        if (clusterData.getInstanceConfigMap().get(instanceName)
+        if (clusterData.getAssignableInstanceConfigMap().get(instanceName)
             .containsTag(currentIdealState.getInstanceGroupTag())) {
           taggedNodes.add(instanceName);
           if (liveInstance.containsKey(instanceName)) {

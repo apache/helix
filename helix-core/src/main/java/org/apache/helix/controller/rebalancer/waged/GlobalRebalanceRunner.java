@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import com.google.common.collect.ImmutableSet;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -30,12 +31,12 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
-import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterTopologyConfig;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.MetricCollector;
@@ -111,6 +112,7 @@ class GlobalRebalanceRunner implements AutoCloseable {
     _changeDetector.updateSnapshots(clusterData);
     // Get all the changed items' information. Filter for the items that have content changed.
     final Map<HelixConstants.ChangeType, Set<String>> clusterChanges = _changeDetector.getAllChanges();
+    Set<String> allAssignableInstances = clusterData.getAssignableInstances();
 
     if (clusterChanges.keySet().stream().anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
       final boolean waitForGlobalRebalance = !_asyncGlobalRebalanceEnabled;
@@ -120,8 +122,8 @@ class GlobalRebalanceRunner implements AutoCloseable {
           // If the synchronous thread does not wait for the baseline to be calculated, the synchronous thread should
           // be triggered again after baseline is finished.
           // Set shouldTriggerMainPipeline to be !waitForGlobalRebalance
-          doGlobalRebalance(clusterData, resourceMap, algorithm, currentStateOutput, !waitForGlobalRebalance,
-              clusterChanges);
+          doGlobalRebalance(clusterData, resourceMap, allAssignableInstances, algorithm,
+              currentStateOutput, !waitForGlobalRebalance, clusterChanges);
         } catch (HelixRebalanceException e) {
           if (_asyncGlobalRebalanceEnabled) {
             _rebalanceFailureCount.increment(1L);
@@ -150,9 +152,11 @@ class GlobalRebalanceRunner implements AutoCloseable {
    * @param shouldTriggerMainPipeline True if the call should trigger a following main pipeline rebalance
    *                                   so the new Baseline could be applied to cluster.
    */
-  private void doGlobalRebalance(ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
+  private void doGlobalRebalance(ResourceControllerDataProvider clusterData,
+      Map<String, Resource> resourceMap, Set<String> allAssignableInstances,
       RebalanceAlgorithm algorithm, CurrentStateOutput currentStateOutput, boolean shouldTriggerMainPipeline,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges) throws HelixRebalanceException {
+      Map<HelixConstants.ChangeType, Set<String>> clusterChanges)
+      throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
     _baselineCalcCounter.increment(1L);
     _baselineCalcLatency.startMeasuringLatency();
@@ -162,18 +166,12 @@ class GlobalRebalanceRunner implements AutoCloseable {
     // 1. Ignore node status (disable/offline).
     // 2. Use the previous Baseline as the only parameter about the previous assignment.
     Map<String, ResourceAssignment> currentBaseline =
+        // TODO: Look into use of currentStateOutput here.
         _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
     ClusterModel clusterModel;
     try {
       clusterModel = ClusterModelProvider.generateClusterModelForBaseline(clusterData, resourceMap,
-          // Dedupe and select correct node if there is more than one with the same logical id.
-          // We should be calculating a new baseline only after a swap operation is complete and the SWAP_IN node is selected
-          // by deduping. This ensures that adding the SWAP_IN node to the cluster does not cause new baseline to be calculated
-          // with both the SWAP_OUT and SWAP_IN node.
-          DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-              ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-              clusterData.getInstanceConfigMap(), clusterData.getAllInstances()),
-              clusterChanges, currentBaseline);
+          allAssignableInstances, clusterChanges, currentBaseline);
     } catch (Exception ex) {
       throw new HelixRebalanceException("Failed to generate cluster model for global rebalance.",
           HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
@@ -184,6 +182,29 @@ class GlobalRebalanceRunner implements AutoCloseable {
         _assignmentMetadataStore != null && _assignmentMetadataStore.isBaselineChanged(newBaseline);
     // Write the new baseline to metadata store
     if (isBaselineChanged) {
+      System.out.println("Baseline has changed: Persisting the new baseline assignment.");
+
+      System.out.println("All Assignable Instances: " + allAssignableInstances);
+
+      Map<String, ResourceAssignment> oldBaseline = _assignmentMetadataStore.getBaseline();
+
+//      System.out.println("Old Baseline: " + _assignmentMetadataStore.getBaseline());
+//      System.out.println("New Baseline: " + newBaseline);
+
+      for (String resource : newBaseline.keySet()) {
+        ResourceAssignment oldAssignment = oldBaseline.get(resource);
+        if (oldAssignment == null) {
+          System.out.println("Resource " + resource + " is new.");
+          continue;
+        }
+        ResourceAssignment assignment = newBaseline.get(resource);
+        for (Partition partition : assignment.getMappedPartitions()) {
+          Map<String, String> oldPartitionMap = oldAssignment.getReplicaMap(partition);
+          Map<String, String> newPartitionMap = assignment.getReplicaMap(partition);
+          printMapDifferences(oldPartitionMap, newPartitionMap);
+        }
+      }
+
       try {
         _writeLatency.startMeasuringLatency();
         _assignmentMetadataStore.persistBaseline(newBaseline);
@@ -193,6 +214,9 @@ class GlobalRebalanceRunner implements AutoCloseable {
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     } else {
+      System.out.println("No Baseline change detected.");
+
+      System.out.println("All Assignable Instances: " + allAssignableInstances);
       LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
     }
     _baselineCalcLatency.endMeasuringLatency();
@@ -201,6 +225,37 @@ class GlobalRebalanceRunner implements AutoCloseable {
     if (isBaselineChanged && shouldTriggerMainPipeline) {
       LOG.info("Schedule a new rebalance after the new baseline calculation has finished.");
       RebalanceUtil.scheduleOnDemandPipeline(clusterData.getClusterName(), 0L, false);
+    }
+  }
+
+  private static void printMapDifferences(Map<String, String> map1, Map<String, String> map2) {
+    // StringBuilder to concatenate differences
+    StringBuilder diffBuilder = new StringBuilder();
+
+    // Iterate over the keys in map1
+    for (String key : map1.keySet()) {
+      String value1 = map1.get(key);
+      String value2 = map2.get(key);
+
+      // Compare values and append differences to the StringBuilder
+      if (!value1.equals(value2)) {
+        diffBuilder.append(key).append(": old: ").append(value1).append(", new: ").append(value2)
+            .append(" | ");
+      }
+    }
+
+    // Check for keys present in map2 but not in map1
+    for (String key : map2.keySet()) {
+      if (!map1.containsKey(key)) {
+        diffBuilder.append(key).append(": old: null").append(", new: ").append(map2.get(key))
+            .append(" | ");
+      }
+    }
+
+    // Print the differences on one line
+    String diffResult = diffBuilder.toString().trim();
+    if (!diffResult.isEmpty()) {
+      System.out.println("Differences: " + diffResult);
     }
   }
 

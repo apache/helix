@@ -82,10 +82,10 @@ class ResourceChangeSnapshot {
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
 
     _instanceConfigMap = ignoreNonTopologyChange ?
-        dataProvider.getInstanceConfigMap().entrySet().parallelStream().collect(Collectors
+        dataProvider.getAssignableInstanceConfigMap().entrySet().parallelStream().collect(Collectors
             .toMap(e -> e.getKey(),
                 e -> InstanceConfigTrimmer.getInstance().trimProperty(e.getValue()))) :
-        new HashMap<>(dataProvider.getInstanceConfigMap());
+        new HashMap<>(dataProvider.getAssignableInstanceConfigMap());
     _idealStateMap = ignoreNonTopologyChange ?
         dataProvider.getIdealStates().entrySet().parallelStream().collect(Collectors
             .toMap(e -> e.getKey(),
@@ -99,7 +99,7 @@ class ResourceChangeSnapshot {
     _clusterConfig = ignoreNonTopologyChange ?
         ClusterConfigTrimmer.getInstance().trimProperty(dataProvider.getClusterConfig()) :
         dataProvider.getClusterConfig();
-    _liveInstances = new HashMap<>(dataProvider.getLiveInstances());
+    _liveInstances = new HashMap<>(dataProvider.getAssignableLiveInstances());
   }
 
   /**

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -39,7 +40,6 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
  * can be in s1.
  */
 public class ResourceAssignment extends HelixProperty {
-
   /**
    * Initialize an empty mapping
    * @param resourceName the resource being mapped

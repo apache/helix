@@ -20,7 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -108,17 +108,17 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       _instances.add(instanceName);
       // 1. Set up the default instance information with capacity configuration.
       InstanceConfig testInstanceConfig = createMockInstanceConfig(instanceName);
-      Map<String, InstanceConfig> instanceConfigMap = testCache.getInstanceConfigMap();
+      Map<String, InstanceConfig> instanceConfigMap = testCache.getAssignableInstanceConfigMap();
       instanceConfigMap.put(instanceName, testInstanceConfig);
-      when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+      when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
       // 2. Mock the live instance node for the default instance.
       LiveInstance testLiveInstance = createMockLiveInstance(instanceName);
-      Map<String, LiveInstance> liveInstanceMap = testCache.getLiveInstances();
+      Map<String, LiveInstance> liveInstanceMap = testCache.getAssignableLiveInstances();
       liveInstanceMap.put(instanceName, testLiveInstance);
-      when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
-      when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
-      when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
-      when(testCache.getAllInstances()).thenReturn(_instances);
+      when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
+      when(testCache.getAssignableEnabledInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getAssignableEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getAssignableInstances()).thenReturn(_instances);
     }
 
     return testCache;
@@ -370,7 +370,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         Collectors.toMap(resourceName -> resourceName, Resource::new));
     try {
       rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
-          clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
+          clusterData.getAssignableEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
@@ -434,7 +434,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Calculation will fail
     try {
       rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
-          clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), badAlgorithm);
+          clusterData.getAssignableEnabledLiveInstances(), new CurrentStateOutput(), badAlgorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
@@ -649,13 +649,13 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Set<String> instances = new HashSet<>(_instances);
     String offlineInstance = "offlineInstance";
     instances.add(offlineInstance);
-    when(clusterData.getAllInstances()).thenReturn(instances);
+    when(clusterData.getAssignableInstances()).thenReturn(instances);
     Map<String, Long> instanceOfflineTimeMap = new HashMap<>();
     instanceOfflineTimeMap.put(offlineInstance, System.currentTimeMillis() + Integer.MAX_VALUE);
     when(clusterData.getInstanceOfflineTimeMap()).thenReturn(instanceOfflineTimeMap);
-    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     instanceConfigMap.put(offlineInstance, createMockInstanceConfig(offlineInstance));
-    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     // Set minActiveReplica to 0 so that requireRebalanceOverwrite returns false
     Map<String, IdealState> isMap = new HashMap<>();
@@ -737,16 +737,16 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // force create a fake offlineInstance that's in delay window
     Set<String> instances = new HashSet<>(_instances);
     instances.add(offlineInstance);
-    when(clusterData.getAllInstances()).thenReturn(instances);
-    when(clusterData.getEnabledInstances()).thenReturn(instances);
-    when(clusterData.getEnabledLiveInstances()).thenReturn(
+    when(clusterData.getAssignableInstances()).thenReturn(instances);
+    when(clusterData.getAssignableEnabledInstances()).thenReturn(instances);
+    when(clusterData.getAssignableEnabledLiveInstances()).thenReturn(
         new HashSet<>(Arrays.asList(instance0, instance1, instance2)));
     Map<String, Long> instanceOfflineTimeMap = new HashMap<>();
     instanceOfflineTimeMap.put(offlineInstance, System.currentTimeMillis() + Integer.MAX_VALUE);
     when(clusterData.getInstanceOfflineTimeMap()).thenReturn(instanceOfflineTimeMap);
-    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     instanceConfigMap.put(offlineInstance, createMockInstanceConfig(offlineInstance));
-    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     Map<String, IdealState> isMap = new HashMap<>();
     for (String resource : _resourceNames) {
@@ -881,11 +881,11 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // force create a fake offlineInstance that's in delay window
     Set<String> instances = new HashSet<>(_instances);
-    when(clusterData.getAllInstances()).thenReturn(instances);
-    when(clusterData.getEnabledInstances()).thenReturn(instances);
-    when(clusterData.getEnabledLiveInstances()).thenReturn(instances);
-    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
-    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(clusterData.getAssignableInstances()).thenReturn(instances);
+    when(clusterData.getAssignableEnabledInstances()).thenReturn(instances);
+    when(clusterData.getAssignableEnabledLiveInstances()).thenReturn(instances);
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
+    when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     Map<String, IdealState> isMap = new HashMap<>();
     for (String resource : _resourceNames) {

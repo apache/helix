@@ -47,7 +47,6 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -303,18 +302,12 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       final CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
 
-    Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-        ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-        clusterData.getInstanceConfigMap(), clusterData.getAllInstances());
-    // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
-    // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
-    Set<String> liveEnabledNodesDeduped = clusterData.getEnabledLiveInstances();
-    liveEnabledNodesDeduped.retainAll(allNodesDeduped);
-
     Set<String> activeNodes =
-        DelayedRebalanceUtil.getActiveNodes(allNodesDeduped, liveEnabledNodesDeduped,
-            clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-            clusterData.getInstanceConfigMap(), clusterData.getClusterConfig());
+        DelayedRebalanceUtil.getActiveNodes(clusterData.getAssignableInstances(),
+            clusterData.getAssignableEnabledLiveInstances(),
+            clusterData.getInstanceOfflineTimeMap(),
+            clusterData.getAssignableLiveInstances().keySet(),
+            clusterData.getAssignableInstanceConfigMap(), clusterData.getClusterConfig());
 
     // Schedule (or unschedule) delayed rebalance according to the delayed rebalance config.
     delayedRebalanceSchedule(clusterData, activeNodes, resourceMap.keySet());
@@ -369,19 +362,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         newIdealState.setPreferenceLists(
             getPreferenceLists(assignments.get(resourceName), statePriorityMap));
 
-        // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
-        Map<String, String> swapOutToSwapInInstancePairs =
-            clusterData.getSwapOutToSwapInInstancePairs();
-        // 2. Get all enabled and live SWAP_IN instances in the cluster.
-        Set<String> enabledLiveSwapInInstances = clusterData.getEnabledLiveSwapInInstanceNames();
-        // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
-        // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
-        // swap occurring.
-        if (!clusterData.getEnabledLiveSwapInInstanceNames().isEmpty()) {
-          DelayedRebalanceUtil.addSwapInInstanceToPreferenceListsIfSwapOutInstanceExists(
-              newIdealState.getRecord(), swapOutToSwapInInstancePairs, enabledLiveSwapInInstances);
-        }
-
         // Note the state mapping in the new assignment won't directly propagate to the map fields.
         // The rebalancer will calculate for the final state mapping considering the current states.
         finalIdealStateMap.put(resourceName, newIdealState);
@@ -419,15 +399,12 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       Set<String> activeNodes,
       Map<String, ResourceAssignment> currentResourceAssignment,
       RebalanceAlgorithm algorithm) throws HelixRebalanceException {
+
     // the "real" live nodes at the time
-    // TODO: this is a hacky way to filter our on operation instance. We should consider redesign `getEnabledLiveInstances()`.
-    final Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-        ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-        clusterData.getInstanceConfigMap(), clusterData.getAllInstances());
-    final Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
-    // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
-    // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
-    enabledLiveInstances.retainAll(allNodesDeduped);
+    // TODO: Move evacuation into BaseControllerDataProvider assignableNode logic.
+    final Set<String> enabledLiveInstances = DelayedRebalanceUtil.filterOutEvacuatingInstances(
+        clusterData.getAssignableInstanceConfigMap(),
+        clusterData.getAssignableEnabledLiveInstances()); // TODO: May need to pass in enabled live instances because race condition
 
     if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment
@@ -622,12 +599,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       ClusterConfig clusterConfig = clusterData.getClusterConfig();
       boolean delayedRebalanceEnabled = DelayedRebalanceUtil.isDelayRebalanceEnabled(clusterConfig);
       Set<String> offlineOrDisabledInstances = new HashSet<>(delayedActiveNodes);
-      offlineOrDisabledInstances.removeAll(clusterData.getEnabledLiveInstances());
+      offlineOrDisabledInstances.removeAll(clusterData.getAssignableEnabledLiveInstances());
       for (String resource : resourceSet) {
         DelayedRebalanceUtil
             .setRebalanceScheduler(resource, delayedRebalanceEnabled, offlineOrDisabledInstances,
-                clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-                clusterData.getInstanceConfigMap(), clusterConfig.getRebalanceDelayTime(),
+                clusterData.getInstanceOfflineTimeMap(),
+                clusterData.getAssignableLiveInstances().keySet(),
+                clusterData.getAssignableInstanceConfigMap(), clusterConfig.getRebalanceDelayTime(),
                 clusterConfig, _manager);
       }
     } else {
@@ -642,13 +620,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       String resourceName = resourceAssignment.getResourceName();
       IdealState currentIdealState = clusterData.getIdealState(resourceName);
 
-      Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-          ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-          clusterData.getInstanceConfigMap(), clusterData.getAllInstances());
-      Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
-      // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
-      // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
-      enabledLiveInstances.retainAll(allNodesDeduped);
+      // TODO: Move evacuation into BaseControllerDataProvider assignableNode logic.
+      Set<String> enabledLiveInstances = DelayedRebalanceUtil.filterOutEvacuatingInstances(
+          clusterData.getAssignableInstanceConfigMap(),
+          clusterData.getAssignableEnabledLiveInstances());
 
       int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
       int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig

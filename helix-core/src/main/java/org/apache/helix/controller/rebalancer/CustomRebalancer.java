@@ -127,7 +127,7 @@ public class CustomRebalancer extends AbstractRebalancer<ResourceControllerDataP
       return instanceStateMap;
     }
 
-    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
+    Map<String, LiveInstance> liveInstancesMap = cache.getAssignableLiveInstances();
     for (String instance : idealStateMap.keySet()) {
       boolean notInErrorState = currentStateMap != null
           && !HelixDefinedState.ERROR.toString().equals(currentStateMap.get(instance));

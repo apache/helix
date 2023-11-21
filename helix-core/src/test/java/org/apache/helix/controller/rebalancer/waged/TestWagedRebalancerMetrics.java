@@ -256,17 +256,17 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
       _instances.add(instanceName);
       // 1. Set up the default instance information with capacity configuration.
       InstanceConfig testInstanceConfig = createMockInstanceConfig(instanceName);
-      Map<String, InstanceConfig> instanceConfigMap = testCache.getInstanceConfigMap();
+      Map<String, InstanceConfig> instanceConfigMap = testCache.getAssignableInstanceConfigMap();
       instanceConfigMap.put(instanceName, testInstanceConfig);
-      when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+      when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
       // 2. Mock the live instance node for the default instance.
       LiveInstance testLiveInstance = createMockLiveInstance(instanceName);
-      Map<String, LiveInstance> liveInstanceMap = testCache.getLiveInstances();
+      Map<String, LiveInstance> liveInstanceMap = testCache.getAssignableLiveInstances();
       liveInstanceMap.put(instanceName, testLiveInstance);
-      when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
-      when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
-      when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
-      when(testCache.getAllInstances()).thenReturn(_instances);
+      when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
+      when(testCache.getAssignableEnabledInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getAssignableEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getAssignableInstances()).thenReturn(_instances);
     }
 
     return testCache;

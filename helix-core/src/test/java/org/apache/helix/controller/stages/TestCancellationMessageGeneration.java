@@ -28,7 +28,6 @@ import java.util.Map;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.common.PartitionStateMap;
-import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.LiveInstance;
@@ -82,7 +81,7 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
     when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
     when(liveInstances.values()).thenReturn(Arrays.asList(mockLiveInstance));
-    when(cache.getLiveInstances()).thenReturn(liveInstances);
+    when(cache.getAssignableLiveInstances()).thenReturn(liveInstances);
     ClusterConfig clusterConfig = mock(ClusterConfig.class);
     when(cache.getClusterConfig()).thenReturn(clusterConfig);
     when(clusterConfig.isStateTransitionCancelEnabled()).thenReturn(true);
@@ -178,7 +177,7 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
     when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
     when(liveInstances.values()).thenReturn(Collections.singletonList(mockLiveInstance));
-    when(cache.getLiveInstances()).thenReturn(liveInstances);
+    when(cache.getAssignableLiveInstances()).thenReturn(liveInstances);
     ClusterConfig clusterConfig = mock(ClusterConfig.class);
     when(cache.getClusterConfig()).thenReturn(clusterConfig);
     when(clusterConfig.isStateTransitionCancelEnabled()).thenReturn(true);

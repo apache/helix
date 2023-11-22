@@ -119,7 +119,7 @@ public class ResourceChangeDetector implements ChangeDetector {
     case RESOURCE_CONFIG:
       return snapshot.getResourceConfigMap();
     case LIVE_INSTANCE:
-      return snapshot.getLiveInstances();
+      return snapshot.getAssignableLiveInstances();
     case CLUSTER_CONFIG:
       ClusterConfig config = snapshot.getClusterConfig();
       if (config == null) {

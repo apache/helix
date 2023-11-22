@@ -54,7 +54,8 @@ class ResourceChangeSnapshot {
   private Map<String, InstanceConfig> _assignableInstanceConfigMap;
   private Map<String, IdealState> _idealStateMap;
   private Map<String, ResourceConfig> _resourceConfigMap;
-  private Map<String, LiveInstance> _liveInstances;
+  private Map<String, LiveInstance> _allLiveInstances;
+  private Map<String, LiveInstance> _assignableLiveInstances;
   private ClusterConfig _clusterConfig;
 
   /**
@@ -66,7 +67,8 @@ class ResourceChangeSnapshot {
     _assignableInstanceConfigMap = new HashMap<>();
     _idealStateMap = new HashMap<>();
     _resourceConfigMap = new HashMap<>();
-    _liveInstances = new HashMap<>();
+    _allLiveInstances = new HashMap<>();
+    _assignableLiveInstances = new HashMap<>();
     _clusterConfig = null;
   }
 
@@ -105,7 +107,8 @@ class ResourceChangeSnapshot {
     _clusterConfig = ignoreNonTopologyChange ?
         ClusterConfigTrimmer.getInstance().trimProperty(dataProvider.getClusterConfig()) :
         dataProvider.getClusterConfig();
-    _liveInstances = new HashMap<>(dataProvider.getAssignableLiveInstances());
+    _allLiveInstances = new HashMap<>(dataProvider.getLiveInstances());
+    _assignableLiveInstances = new HashMap<>(dataProvider.getAssignableLiveInstances());
   }
 
   /**
@@ -118,7 +121,8 @@ class ResourceChangeSnapshot {
     _assignableInstanceConfigMap = new HashMap<>(snapshot._assignableInstanceConfigMap);
     _idealStateMap = new HashMap<>(snapshot._idealStateMap);
     _resourceConfigMap = new HashMap<>(snapshot._resourceConfigMap);
-    _liveInstances = new HashMap<>(snapshot._liveInstances);
+    _allLiveInstances = new HashMap<>(snapshot._allLiveInstances);
+    _assignableLiveInstances = new HashMap<>(snapshot._assignableLiveInstances);
     _clusterConfig = snapshot._clusterConfig;
   }
 
@@ -143,7 +147,11 @@ class ResourceChangeSnapshot {
   }
 
   Map<String, LiveInstance> getLiveInstances() {
-    return _liveInstances;
+    return _allLiveInstances;
+  }
+
+  Map<String, LiveInstance> getAssignableLiveInstances() {
+    return _assignableLiveInstances;
   }
 
   ClusterConfig getClusterConfig() {

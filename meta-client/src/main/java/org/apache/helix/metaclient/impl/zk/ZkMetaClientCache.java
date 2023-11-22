@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.metaclient.api.ChildChangeListener;
 import org.apache.helix.metaclient.api.MetaClientCacheInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
@@ -118,7 +119,7 @@ public class ZkMetaClientCache<T> extends ZkMetaClient<T> implements MetaClientC
                 LOG.debug("Children not found in cache for key: {}. This could be because the cache is still being populated.", key);
                 return null;
             }
-            return List.copyOf(node.getChildren().keySet());
+            return ImmutableList.copyOf(node.getChildren().keySet());
         }
         return super.getDirectChildrenKeys(key);
     }

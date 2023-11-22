@@ -58,21 +58,18 @@ public class TestCloudEventCallbackProperty {
   }
 
   @AfterTest
-  public void afterTest() {
+  public void cleanupCallbackProperty() {
     _helixManager.disconnect();
-    _cloudProperty.getCloudEventCallbackProperty()
-        .setHelixOperationEnabled(HelixOperation.ENABLE_DISABLE_INSTANCE, false);
-    _cloudProperty.getCloudEventCallbackProperty()
-        .setHelixOperationEnabled(HelixOperation.MAINTENANCE_MODE, false);
-    _cloudProperty.getCloudEventCallbackProperty()
-        .unregisterUserDefinedCallback(UserDefinedCallbackType.PRE_ON_PAUSE);
-    _cloudProperty.getCloudEventCallbackProperty()
-        .unregisterUserDefinedCallback(UserDefinedCallbackType.POST_ON_PAUSE);
-    _cloudProperty.getCloudEventCallbackProperty()
-        .unregisterUserDefinedCallback(UserDefinedCallbackType.PRE_ON_RESUME);
-    _cloudProperty.getCloudEventCallbackProperty()
-        .unregisterUserDefinedCallback(UserDefinedCallbackType.POST_ON_RESUME);
+    CloudEventCallbackProperty callbackProperty = _cloudProperty.getCloudEventCallbackProperty();
     MockCloudEventCallbackImpl.triggeredOperation.clear();
+    if (callbackProperty != null) {
+      callbackProperty.setHelixOperationEnabled(HelixOperation.ENABLE_DISABLE_INSTANCE, false);
+      callbackProperty.setHelixOperationEnabled(HelixOperation.MAINTENANCE_MODE, false);
+      callbackProperty.unregisterUserDefinedCallback(UserDefinedCallbackType.PRE_ON_PAUSE);
+      callbackProperty.unregisterUserDefinedCallback(UserDefinedCallbackType.POST_ON_PAUSE);
+      callbackProperty.unregisterUserDefinedCallback(UserDefinedCallbackType.PRE_ON_RESUME);
+      callbackProperty.unregisterUserDefinedCallback(UserDefinedCallbackType.POST_ON_RESUME);
+    }
   }
 
   @Test
@@ -134,7 +131,7 @@ public class TestCloudEventCallbackProperty {
 
   @Test
   public void testUserDefinedCallback() throws Exception {
-    afterTest();
+    cleanupCallbackProperty();
     // Cloud event callback property
     CloudEventCallbackProperty property = new CloudEventCallbackProperty(Collections
         .singletonMap(CloudEventCallbackProperty.UserArgsInputKey.CALLBACK_IMPL_CLASS_NAME,

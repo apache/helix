@@ -102,9 +102,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   // Property caches
   private final PropertyCache<ResourceConfig> _resourceConfigCache;
-  private final PropertyCache<InstanceConfig> _instanceConfigCache;
+  private final PropertyCache<InstanceConfig> _allInstanceConfigCache;
   private final Map<String, InstanceConfig> _assignableInstanceConfigMap = new HashMap<>();
-  private final PropertyCache<LiveInstance> _liveInstanceCache;
+  private final PropertyCache<LiveInstance> _allLiveInstanceCache;
   private final Map<String, LiveInstance> _assignableLiveInstancesMap = new HashMap<>();
   private final PropertyCache<IdealState> _idealStateCache;
   private final PropertyCache<ClusterConstraints> _clusterConstraintsCache;
@@ -157,7 +157,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         return obj.getResourceName();
       }
     }, true);
-    _liveInstanceCache = new PropertyCache<>(this, "LiveInstance", new PropertyCache.PropertyCacheKeyFuncs<LiveInstance>() {
+    _allLiveInstanceCache = new PropertyCache<>(this, "LiveInstance", new PropertyCache.PropertyCacheKeyFuncs<LiveInstance>() {
       @Override
       public PropertyKey getRootKey(HelixDataAccessor accessor) {
         return accessor.keyBuilder().liveInstances();
@@ -173,7 +173,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         return obj.getInstanceName();
       }
     }, true);
-    _instanceConfigCache = new PropertyCache<>(this, "InstanceConfig", new PropertyCache.PropertyCacheKeyFuncs<InstanceConfig>() {
+    _allInstanceConfigCache = new PropertyCache<>(this, "InstanceConfig", new PropertyCache.PropertyCacheKeyFuncs<InstanceConfig>() {
       @Override
       public PropertyKey getRootKey(HelixDataAccessor accessor) {
         return accessor.keyBuilder().instanceConfigs();
@@ -313,7 +313,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private void refreshLiveInstances(final HelixDataAccessor accessor,
       Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE).getAndSet(false)) {
-      _liveInstanceCache.refresh(accessor);
+      _allLiveInstanceCache.refresh(accessor);
       _updateInstanceOfflineTime = true;
       refreshedType.add(HelixConstants.ChangeType.LIVE_INSTANCE);
     } else {
@@ -326,10 +326,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private void refreshInstanceConfigs(final HelixDataAccessor accessor,
       Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.INSTANCE_CONFIG).getAndSet(false)) {
-      _instanceConfigCache.refresh(accessor);
+      _allInstanceConfigCache.refresh(accessor);
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("Reloaded InstanceConfig for cluster %s, %s pipeline. Keys: %s", _clusterName,
-              getPipelineName(), _instanceConfigCache.getPropertyMap().keySet()));
+              getPipelineName(), _allInstanceConfigCache.getPropertyMap().keySet()));
       refreshedType.add(HelixConstants.ChangeType.INSTANCE_CONFIG);
     } else {
       LogUtil.logInfo(logger, getClusterEventId(), String
@@ -342,6 +342,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * Refreshes the assignable instances and SWAP related caches. This should be called after
    * liveInstance and instanceConfig caches are refreshed. To determine what instances are
    * assignable and live, it takes a combination of both the all instanceConfigs and liveInstances.
+   * TODO: Add EVACUATE InstanceOperation to be filtered out in assignable nodes.
    *
    * @param instanceConfigMap InstanceConfig map from instanceConfig cache
    * @param liveInstancesMap  LiveInstance map from liveInstance cache
@@ -524,7 +525,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     refreshIdealState(accessor, refreshedTypes);
     refreshLiveInstances(accessor, refreshedTypes);
     refreshInstanceConfigs(accessor, refreshedTypes);
-    updateInstanceSets(_instanceConfigCache.getPropertyMap(), _liveInstanceCache.getPropertyMap(),
+    updateInstanceSets(_allInstanceConfigCache.getPropertyMap(), _allLiveInstanceCache.getPropertyMap(),
         _clusterConfig);
     refreshResourceConfig(accessor, refreshedTypes);
     _stateModelDefinitionCache.refresh(accessor);
@@ -538,12 +539,12 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // Refresh derived data
     // Must use _liveInstanceCache instead of _assignableLiveInstancesMap because we need to
     // know about the messages and current state of all instances including the SWAP_IN ones.
-    _instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
-    _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
+    _instanceMessagesCache.refresh(accessor, _allLiveInstanceCache.getPropertyMap());
+    _currentStateCache.refresh(accessor, _allLiveInstanceCache.getPropertyMap());
 
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.
-    _instanceMessagesCache.updateRelayMessages(_liveInstanceCache.getPropertyMap(),
+    _instanceMessagesCache.updateRelayMessages(_allLiveInstanceCache.getPropertyMap(),
         _currentStateCache.getParticipantStatesMap());
 
     updateIdealRuleMap(getClusterConfig());
@@ -583,7 +584,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _clusterConfig = clusterConfig;
     refreshAbnormalStateResolverMap(_clusterConfig);
     updateIdealRuleMap(_clusterConfig);
-    updateInstanceSets(_instanceConfigCache.getPropertyMap(), _liveInstanceCache.getPropertyMap(),
+    updateInstanceSets(_allInstanceConfigCache.getPropertyMap(), _allLiveInstanceCache.getPropertyMap(),
         _clusterConfig);
     updateDisabledInstances(getInstanceConfigMap().values(),
         getAssignableInstanceConfigMap().values(),
@@ -657,7 +658,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @return A map of LiveInstances to their instance names
    */
   public Map<String, LiveInstance> getLiveInstances() {
-    return _liveInstanceCache.getPropertyMap();
+    return _allLiveInstanceCache.getPropertyMap();
   }
 
   /**
@@ -674,7 +675,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @return A new set contains instance name
    */
   public Set<String> getAllInstances() {
-    return _instanceConfigCache.getPropertyMap().keySet();
+    return _allInstanceConfigCache.getPropertyMap().keySet();
   }
 
   /**
@@ -762,7 +763,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   public Set<String> getAssignableInstancesWithTag(String instanceTag) {
     Set<String> taggedInstances = new HashSet<>();
     for (String instance : _assignableInstanceConfigMap.keySet()) {
-      InstanceConfig instanceConfig = _instanceConfigCache.getPropertyByName(instance);
+      InstanceConfig instanceConfig = _allInstanceConfigCache.getPropertyByName(instance);
       if (instanceConfig != null && instanceConfig.containsTag(instanceTag)) {
         taggedInstances.add(instance);
       }
@@ -778,7 +779,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   public Set<String> getInstancesWithTag(String instanceTag) {
     Set<String> taggedInstances = new HashSet<>();
     for (String instance : _assignableInstanceConfigMap.keySet()) {
-      InstanceConfig instanceConfig = _instanceConfigCache.getPropertyByName(instance);
+      InstanceConfig instanceConfig = _allInstanceConfigCache.getPropertyByName(instance);
       if (instanceConfig != null && instanceConfig.containsTag(instanceTag)) {
         taggedInstances.add(instance);
       }
@@ -841,8 +842,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
-    _liveInstanceCache.setPropertyMap(HelixProperty.convertListToMap(liveInstances));
-    updateInstanceSets(_instanceConfigCache.getPropertyMap(), _liveInstanceCache.getPropertyMap(),
+    _allLiveInstanceCache.setPropertyMap(HelixProperty.convertListToMap(liveInstances));
+    updateInstanceSets(_allInstanceConfigCache.getPropertyMap(), _allLiveInstanceCache.getPropertyMap(),
         _clusterConfig);
     _updateInstanceOfflineTime = true;
   }
@@ -974,7 +975,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @return a map of instance name to instance config
    */
   public Map<String, InstanceConfig> getInstanceConfigMap() {
-    return _instanceConfigCache.getPropertyMap();
+    return _allInstanceConfigCache.getPropertyMap();
   }
 
   /**
@@ -982,8 +983,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @param instanceConfigMap
    */
   public void setInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
-    _instanceConfigCache.setPropertyMap(instanceConfigMap);
-    updateInstanceSets(_instanceConfigCache.getPropertyMap(), _liveInstanceCache.getPropertyMap(),
+    _allInstanceConfigCache.setPropertyMap(instanceConfigMap);
+    updateInstanceSets(_allInstanceConfigCache.getPropertyMap(), _allLiveInstanceCache.getPropertyMap(),
         getClusterConfig());
     updateDisabledInstances(getInstanceConfigMap().values(),
         getAssignableInstanceConfigMap().values(),
@@ -1049,8 +1050,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     if (!_updateInstanceOfflineTime) {
       return;
     }
-    List<String> offlineNodes = new ArrayList<>(_instanceConfigCache.getPropertyMap().keySet());
-    offlineNodes.removeAll(_liveInstanceCache.getPropertyMap().keySet());
+    List<String> offlineNodes = new ArrayList<>(_allInstanceConfigCache.getPropertyMap().keySet());
+    offlineNodes.removeAll(_allLiveInstanceCache.getPropertyMap().keySet());
     _instanceOfflineTimeMap = new HashMap<>();
 
     for (String instance : offlineNodes) {
@@ -1271,13 +1272,13 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   protected StringBuilder genCacheContentStringBuilder() {
     StringBuilder sb = new StringBuilder();
-    sb.append(String.format("liveInstaceMap: %s", _liveInstanceCache.getPropertyMap()))
+    sb.append(String.format("liveInstaceMap: %s", _allLiveInstanceCache.getPropertyMap()))
         .append("\n");
     sb.append(String.format("assignableLiveInstaceMap: %s", _assignableLiveInstancesMap))
         .append("\n");
     sb.append(String.format("idealStateMap: %s", _idealStateCache.getPropertyMap())).append("\n");
     sb.append(String.format("stateModelDefMap: %s",  _stateModelDefinitionCache.getPropertyMap())).append("\n");
-    sb.append(String.format("instanceConfigMap: %s", _instanceConfigCache.getPropertyMap()))
+    sb.append(String.format("instanceConfigMap: %s", _allInstanceConfigCache.getPropertyMap()))
         .append("\n");
     sb.append(String.format("assignableInstanceConfigMap: %s", _assignableInstanceConfigMap))
         .append("\n");
@@ -1289,7 +1290,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   protected PropertyCache<LiveInstance> getLiveInstanceCache() {
-    return _liveInstanceCache;
+    return _allLiveInstanceCache;
   }
 
   @Override

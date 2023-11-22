@@ -159,8 +159,8 @@ public class TestInstanceOperation extends ZkTestBase {
     for (int i = 0; i < _participants.size(); i++) {
       String participantName = _participantNames.get(i);
       if (!_originalParticipantNames.contains(participantName)) {
-        _participants.get(i).syncStop();
         _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, participantName, false);
+        _participants.get(i).syncStop();
         _gSetupTool.getClusterManagementTool()
             .dropInstance(CLUSTER_NAME, _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, participantName));
         droppedParticipants.add(participantName);
@@ -398,7 +398,7 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(PARTICIPANT_PREFIX + "_" + (START_PORT + NUM_NODE));
 
 
-    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Map<String, ExternalView> assignment = getEVs();
     for (String resource : _allDBs) {
       Assert.assertFalse(getParticipantsInEv(assignment.get(resource)).contains(_participantNames.get(NUM_NODE)));
@@ -875,7 +875,7 @@ public class TestInstanceOperation extends ZkTestBase {
         InstanceConstants.InstanceOperation.SWAP_OUT);
 
     // Validate that the assignment has not changed since setting the InstanceOperation to SWAP_OUT
-    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), Collections.emptySet());
 

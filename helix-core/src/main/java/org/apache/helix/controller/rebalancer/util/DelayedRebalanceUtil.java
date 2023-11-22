@@ -343,8 +343,8 @@ public class DelayedRebalanceUtil {
 
       // keep all current assignment and add to allocated replicas
       resourceAssignment.getMappedPartitions().forEach(partition ->
-          resourceAssignment.getReplicaMap(partition).forEach((instance, state) ->
-              allocatedReplicas.computeIfAbsent(instance, key -> new HashSet<>())
+          resourceAssignment.getReplicaMap(partition).forEach((logicalId, state) ->
+              allocatedReplicas.computeIfAbsent(logicalId, key -> new HashSet<>())
                   .add(new AssignableReplica(clusterData.getClusterConfig(), mergedResourceConfig,
                       partition.getPartitionName(), state, statePriorityMap.get(state)))));
       // only proceed for resource requiring delayed rebalance overwrites

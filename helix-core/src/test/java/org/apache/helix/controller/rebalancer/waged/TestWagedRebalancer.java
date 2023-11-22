@@ -111,14 +111,19 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Map<String, InstanceConfig> instanceConfigMap = testCache.getAssignableInstanceConfigMap();
       instanceConfigMap.put(instanceName, testInstanceConfig);
       when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+      when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
       // 2. Mock the live instance node for the default instance.
       LiveInstance testLiveInstance = createMockLiveInstance(instanceName);
       Map<String, LiveInstance> liveInstanceMap = testCache.getAssignableLiveInstances();
       liveInstanceMap.put(instanceName, testLiveInstance);
       when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
+      when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
       when(testCache.getAssignableEnabledInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getAssignableEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getAssignableInstances()).thenReturn(_instances);
+      when(testCache.getAllInstances()).thenReturn(_instances);
     }
 
     return testCache;
@@ -601,6 +606,11 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     String offlinePartition = _partitionNames.get(0);
     String offlineState = "MASTER";
     String offlineInstance = "offlineInstance";
+    InstanceConfig offlineInstanceConfig = createMockInstanceConfig(offlineInstance);
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
+    instanceConfigMap.put(offlineInstance, offlineInstanceConfig);
+    when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
     for (Partition partition : bestPossibleAssignment.get(offlineResource).getMappedPartitions()) {
       if (partition.getPartitionName().equals(offlinePartition)) {
         bestPossibleAssignment.get(offlineResource)
@@ -656,6 +666,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     instanceConfigMap.put(offlineInstance, createMockInstanceConfig(offlineInstance));
     when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     // Set minActiveReplica to 0 so that requireRebalanceOverwrite returns false
     Map<String, IdealState> isMap = new HashMap<>();
@@ -747,6 +758,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     instanceConfigMap.put(offlineInstance, createMockInstanceConfig(offlineInstance));
     when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     Map<String, IdealState> isMap = new HashMap<>();
     for (String resource : _resourceNames) {

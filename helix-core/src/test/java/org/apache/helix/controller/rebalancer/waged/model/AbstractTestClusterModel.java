@@ -104,6 +104,7 @@ public abstract class AbstractTestClusterModel {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     // 2. Set up the basic cluster configuration.
     ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");

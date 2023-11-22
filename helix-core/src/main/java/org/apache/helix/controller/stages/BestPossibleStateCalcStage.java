@@ -94,7 +94,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // We do this after computing the best possible state output because rebalance algorithms should not
     // to be aware of swap-in instances. We simply add the swap-in instances to the
     // stateMap where the swap-out instance is and compute the correct state.
-    addSwapInInstancesToBestPossibleState(bestPossibleStateOutput, cache);
+    addSwapInInstancesToBestPossibleState(resourceMap, bestPossibleStateOutput, cache);
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
@@ -131,7 +131,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     });
   }
 
-  private void addSwapInInstancesToBestPossibleState(BestPossibleStateOutput bestPossibleStateOutput, ResourceControllerDataProvider cache) {
+  private void addSwapInInstancesToBestPossibleState(Map<String, Resource> resourceMap,
+      BestPossibleStateOutput bestPossibleStateOutput, ResourceControllerDataProvider cache) {
     // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
     Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
     // 2. Get all enabled and live SWAP_IN instances in the cluster.
@@ -140,11 +141,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
     // swap occurring.
     if (!enabledLiveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
-      bestPossibleStateOutput.getResourceStatesMap()
-          .forEach((resourceName, partitionStateAssignment) -> {
-            StateModelDefinition stateModelDef =
-                cache.getStateModelDef(cache.getIdealState(resourceName).getStateModelDefRef());
-            partitionStateAssignment.getStateMap().forEach((partition, stateMap) -> {
+      resourceMap.forEach((resourceName, resource) -> {
+        StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
+        bestPossibleStateOutput.getResourceStatesMap().get(resourceName).getStateMap()
+            .forEach((partition, stateMap) -> {
               Set<String> commonInstances = new HashSet<>(stateMap.keySet());
               commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
 
@@ -168,7 +168,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                     swapInInstanceState);
               }
             });
-          });
+      });
     }
   }
 

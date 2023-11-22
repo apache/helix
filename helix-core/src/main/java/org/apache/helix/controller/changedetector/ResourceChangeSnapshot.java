@@ -50,7 +50,8 @@ import org.apache.helix.model.ResourceConfig;
 class ResourceChangeSnapshot {
 
   private Set<HelixConstants.ChangeType> _changedTypes;
-  private Map<String, InstanceConfig> _instanceConfigMap;
+  private Map<String, InstanceConfig> _allInstanceConfigMap;
+  private Map<String, InstanceConfig> _assignableInstanceConfigMap;
   private Map<String, IdealState> _idealStateMap;
   private Map<String, ResourceConfig> _resourceConfigMap;
   private Map<String, LiveInstance> _liveInstances;
@@ -61,7 +62,8 @@ class ResourceChangeSnapshot {
    */
   ResourceChangeSnapshot() {
     _changedTypes = new HashSet<>();
-    _instanceConfigMap = new HashMap<>();
+    _allInstanceConfigMap = new HashMap<>();
+    _assignableInstanceConfigMap = new HashMap<>();
     _idealStateMap = new HashMap<>();
     _resourceConfigMap = new HashMap<>();
     _liveInstances = new HashMap<>();
@@ -80,8 +82,12 @@ class ResourceChangeSnapshot {
   ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider,
       boolean ignoreNonTopologyChange) {
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
-
-    _instanceConfigMap = ignoreNonTopologyChange ?
+    _allInstanceConfigMap = ignoreNonTopologyChange ?
+        dataProvider.getInstanceConfigMap().entrySet().parallelStream().collect(Collectors
+            .toMap(e -> e.getKey(),
+                e -> InstanceConfigTrimmer.getInstance().trimProperty(e.getValue()))) :
+        new HashMap<>(dataProvider.getInstanceConfigMap());
+    _assignableInstanceConfigMap = ignoreNonTopologyChange ?
         dataProvider.getAssignableInstanceConfigMap().entrySet().parallelStream().collect(Collectors
             .toMap(e -> e.getKey(),
                 e -> InstanceConfigTrimmer.getInstance().trimProperty(e.getValue()))) :
@@ -108,7 +114,8 @@ class ResourceChangeSnapshot {
    */
   ResourceChangeSnapshot(ResourceChangeSnapshot snapshot) {
     _changedTypes = new HashSet<>(snapshot._changedTypes);
-    _instanceConfigMap = new HashMap<>(snapshot._instanceConfigMap);
+    _allInstanceConfigMap = new HashMap<>(snapshot._allInstanceConfigMap);
+    _assignableInstanceConfigMap = new HashMap<>(snapshot._assignableInstanceConfigMap);
     _idealStateMap = new HashMap<>(snapshot._idealStateMap);
     _resourceConfigMap = new HashMap<>(snapshot._resourceConfigMap);
     _liveInstances = new HashMap<>(snapshot._liveInstances);
@@ -120,7 +127,11 @@ class ResourceChangeSnapshot {
   }
 
   Map<String, InstanceConfig> getInstanceConfigMap() {
-    return _instanceConfigMap;
+    return _allInstanceConfigMap;
+  }
+
+  Map<String, InstanceConfig> getAssignableInstanceConfigMap() {
+    return _assignableInstanceConfigMap;
   }
 
   Map<String, IdealState> getIdealStateMap() {

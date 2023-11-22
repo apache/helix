@@ -82,6 +82,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
       Map<String, InstanceConfig> instanceConfigMap = testCache.getAssignableInstanceConfigMap();
       instanceConfigMap.put(instanceName, testInstanceConfig);
       when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+      when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
       // 2. Mock the live instance node for the default instance.
       LiveInstance testLiveInstance = createMockLiveInstance(instanceName);
       Map<String, LiveInstance> liveInstanceMap = testCache.getAssignableLiveInstances();

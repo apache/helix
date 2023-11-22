@@ -259,14 +259,19 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
       Map<String, InstanceConfig> instanceConfigMap = testCache.getAssignableInstanceConfigMap();
       instanceConfigMap.put(instanceName, testInstanceConfig);
       when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+      when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
       // 2. Mock the live instance node for the default instance.
       LiveInstance testLiveInstance = createMockLiveInstance(instanceName);
       Map<String, LiveInstance> liveInstanceMap = testCache.getAssignableLiveInstances();
       liveInstanceMap.put(instanceName, testLiveInstance);
       when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
+      when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
       when(testCache.getAssignableEnabledInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getAssignableEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getAssignableInstances()).thenReturn(_instances);
+      when(testCache.getAllInstances()).thenReturn(_instances);
     }
 
     return testCache;

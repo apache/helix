@@ -404,7 +404,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     // TODO: Move evacuation into BaseControllerDataProvider assignableNode logic.
     final Set<String> enabledLiveInstances = DelayedRebalanceUtil.filterOutEvacuatingInstances(
         clusterData.getAssignableInstanceConfigMap(),
-        clusterData.getAssignableEnabledLiveInstances()); // TODO: May need to pass in enabled live instances because race condition
+        clusterData.getAssignableEnabledLiveInstances());
 
     if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment

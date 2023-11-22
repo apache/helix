@@ -92,8 +92,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     // Add swap-in instances to bestPossibleStateOutput.
     // We do this after computing the best possible state output because rebalance algorithms should not
-    // to be aware of swap-in instances. We simply add the swap-in instances to the end of the
-    // preference list of the corresponding swap-out instances and compute the correct state.
+    // to be aware of swap-in instances. We simply add the swap-in instances to the
+    // stateMap where the swap-out instance is and compute the correct state.
     addSwapInInstancesToBestPossibleState(bestPossibleStateOutput, cache);
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
@@ -142,6 +142,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     if (!enabledLiveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
       bestPossibleStateOutput.getResourceStatesMap()
           .forEach((resourceName, partitionStateAssignment) -> {
+            StateModelDefinition stateModelDef =
+                cache.getStateModelDef(cache.getIdealState(resourceName).getStateModelDefRef());
             partitionStateAssignment.getStateMap().forEach((partition, stateMap) -> {
               Set<String> commonInstances = new HashSet<>(stateMap.keySet());
               commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
@@ -150,19 +152,21 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                 return;
               }
 
-              List<String> preferenceList = bestPossibleStateOutput.getPreferenceLists(resourceName)
-                  .get(partition.getPartitionName());
               for (String swapOutInstance : commonInstances) {
-                if (!preferenceList.contains(swapOutToSwapInInstancePairs.get(swapOutInstance))) {
-                  preferenceList.add(swapOutToSwapInInstancePairs.get(swapOutInstance));
+                String swapInInstanceState;
+                // If the swap-out instance's replica is a topState and the StateModel allows for
+                // another replica with the topState to be added, set the swap-in instance's replica
+                // to the topState. Otherwise, set the swap-in instance's replica to the secondTopState.
+                if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState()) &&
+                    AbstractRebalancer.getStateCount(stateModelDef.getTopState(), stateModelDef,
+                        stateMap.size() + 1, stateMap.size() + 1) > stateMap.size()) {
+                  swapInInstanceState = stateModelDef.getTopState();
+                } else {
+                  swapInInstanceState = stateModelDef.getSecondTopStates().iterator().next();
                 }
+                stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                    swapInInstanceState);
               }
-              AbstractRebalancer.assignStatesToInstances(preferenceList,
-                  cache.getStateModelDef(cache.getIdealState(resourceName).getStateModelDefRef()),
-                  new HashMap<>(stateMap), cache.getLiveInstances().keySet(),
-                  Collections.emptySet(), stateMap);
-              bestPossibleStateOutput.getResourceStatesMap().get(resourceName)
-                  .setState(partition, stateMap);
             });
           });
     }

@@ -81,7 +81,7 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
     when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
     when(liveInstances.values()).thenReturn(Arrays.asList(mockLiveInstance));
-    when(cache.getAssignableLiveInstances()).thenReturn(liveInstances);
+    when(cache.getLiveInstances()).thenReturn(liveInstances);
     ClusterConfig clusterConfig = mock(ClusterConfig.class);
     when(cache.getClusterConfig()).thenReturn(clusterConfig);
     when(clusterConfig.isStateTransitionCancelEnabled()).thenReturn(true);
@@ -177,7 +177,7 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
     when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
     when(liveInstances.values()).thenReturn(Collections.singletonList(mockLiveInstance));
-    when(cache.getAssignableLiveInstances()).thenReturn(liveInstances);
+    when(cache.getLiveInstances()).thenReturn(liveInstances);
     ClusterConfig clusterConfig = mock(ClusterConfig.class);
     when(cache.getClusterConfig()).thenReturn(clusterConfig);
     when(clusterConfig.isStateTransitionCancelEnabled()).thenReturn(true);

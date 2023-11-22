@@ -191,7 +191,7 @@ public class ClusterModelProvider {
       Map<String, ResourceAssignment> currentAssignment, RebalanceScopeType scopeType) {
     // Construct all the assignable nodes and initialize with the allocated replicas.
     Set<AssignableNode> assignableNodes =
-        getAllAssignableNodes(dataProvider.getClusterConfig(), dataProvider.getInstanceConfigMap(),
+        getAllAssignableNodes(dataProvider.getClusterConfig(), dataProvider.getAssignableInstanceConfigMap(),
             activeInstances);
 
     // Generate replica objects for all the resource partitions.
@@ -206,7 +206,7 @@ public class ClusterModelProvider {
     switch (scopeType) {
       case GLOBAL_BASELINE:
         toBeAssignedReplicas = findToBeAssignedReplicasByClusterChanges(replicaMap, activeInstances,
-            dataProvider.getLiveInstances().keySet(), clusterChanges, currentAssignment,
+            dataProvider.getAssignableLiveInstances().keySet(), clusterChanges, currentAssignment,
             allocatedReplicas);
         break;
       case PARTIAL:
@@ -241,7 +241,7 @@ public class ClusterModelProvider {
         generateResourceAssignmentMapLogicalIdView(idealAssignment, clusterTopologyConfig,
             dataProvider.getAssignableInstanceConfigMap());
     Map<String, ResourceAssignment> logicalIdCurrentAssignment =
-        generateResourceAssignmentMapLogicalIdView(idealAssignment, clusterTopologyConfig,
+        generateResourceAssignmentMapLogicalIdView(currentAssignment, clusterTopologyConfig,
             dataProvider.getAssignableInstanceConfigMap());
 
     // Construct and initialize cluster context.

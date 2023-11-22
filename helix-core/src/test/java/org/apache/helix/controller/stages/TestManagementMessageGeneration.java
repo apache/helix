@@ -104,7 +104,7 @@ public class TestManagementMessageGeneration extends ManagementMessageGeneration
     when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
     when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
     when(liveInstances.values()).thenReturn(Collections.singletonList(mockLiveInstance));
-    when(cache.getAssignableLiveInstances()).thenReturn(liveInstances);
+    when(cache.getLiveInstances()).thenReturn(liveInstances);
     ClusterConfig clusterConfig = mock(ClusterConfig.class);
     when(cache.getClusterConfig()).thenReturn(clusterConfig);
     when(clusterConfig.isStateTransitionCancelEnabled()).thenReturn(cancelPendingST);

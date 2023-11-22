@@ -400,7 +400,7 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * @param disabledInstancesForPartition Set of disabled instances for the partition
    * @param bestPossibleStateMap Output map of <instance: state> for the partition
    */
-  public static void assignStatesToInstances(final List<String> preferenceList,
+  public void assignStatesToInstances(final List<String> preferenceList,
       final StateModelDefinition stateModelDef, final Map<String, String> currentStateMap,
       final Set<String> liveInstances, final Set<String> disabledInstancesForPartition,
       Map<String, String> bestPossibleStateMap) {
@@ -485,7 +485,7 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * @return The alternative instance, or the original proposed instance if adjustment is not
    * necessary.
    */
-  private static String adjustInstanceIfNecessary(String requestedState, String proposedInstance,
+  private String adjustInstanceIfNecessary(String requestedState, String proposedInstance,
       String currentState, StateModelDefinition stateModelDef, Set<String> assignedInstances,
       int remainCandidateCount, int remainRequestCount,
       Iterator<String> currentStatePrioritizedInstanceIter) {

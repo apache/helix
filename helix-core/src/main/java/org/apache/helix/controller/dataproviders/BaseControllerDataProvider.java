@@ -842,6 +842,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
     _liveInstanceCache.setPropertyMap(HelixProperty.convertListToMap(liveInstances));
+    updateInstanceSets(_instanceConfigCache.getPropertyMap(), _liveInstanceCache.getPropertyMap(),
+        _clusterConfig);
     _updateInstanceOfflineTime = true;
   }
 
@@ -1083,7 +1085,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
       if (!InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
         _disabledInstanceSet.add(config.getInstanceName());
-        // TODO: Make sure this contains works
         if (assignableInstanceConfigs.contains(config)) {
           _assignableDisabledInstanceSet.add(config.getInstanceName());
         }

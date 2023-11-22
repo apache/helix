@@ -886,6 +886,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     when(clusterData.getAssignableEnabledLiveInstances()).thenReturn(instances);
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     Map<String, IdealState> isMap = new HashMap<>();
     for (String resource : _resourceNames) {

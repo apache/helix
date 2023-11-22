@@ -400,7 +400,7 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * @param disabledInstancesForPartition Set of disabled instances for the partition
    * @param bestPossibleStateMap Output map of <instance: state> for the partition
    */
-  public void assignStatesToInstances(final List<String> preferenceList,
+  private void assignStatesToInstances(final List<String> preferenceList,
       final StateModelDefinition stateModelDef, final Map<String, String> currentStateMap,
       final Set<String> liveInstances, final Set<String> disabledInstancesForPartition,
       Map<String, String> bestPossibleStateMap) {

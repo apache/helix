@@ -266,7 +266,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
               LogUtil.logError(logger, _eventId, String.format(
                   "An invalid message was generated! Discarding this message. sessionIdMap: %s, CurrentStateMap: %s, InstanceStateMap: %s, AllInstances: %s, LiveInstances: %s, Message: %s",
                   sessionIdMap, currentStateOutput.getCurrentStateMap(resourceName, partition),
-                  instanceStateMap, cache.getAssignableInstances(),
+                  instanceStateMap, cache.getAllInstances(),
                   cache.getLiveInstances().keySet(),
                   message));
               continue; // Do not add this message

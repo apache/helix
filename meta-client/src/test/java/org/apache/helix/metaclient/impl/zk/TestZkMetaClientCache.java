@@ -49,10 +49,10 @@ public class TestZkMetaClientCache extends ZkMetaClientTestBase {
             zkMetaClientCache.create(key, "test");
             zkMetaClientCache.create(key + DATA_PATH, DATA_VALUE);
             // Get data for DATA_PATH and cache it
-            String data = zkMetaClientCache.get(key + DATA_PATH);
-            Assert.assertEquals(data, zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH));
             Assert.assertTrue(MetaClientTestUtil.verify(() ->
-                    (Objects.equals(zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH), data)), MetaClientTestUtil.WAIT_DURATION));
+                (Objects.equals(zkMetaClientCache.get(key+DATA_PATH), DATA_VALUE)), MetaClientTestUtil.WAIT_DURATION));
+            Assert.assertTrue(MetaClientTestUtil.verify(() ->
+                (Objects.equals(zkMetaClientCache.getDataCacheMap().get(key + DATA_PATH), DATA_VALUE)), MetaClientTestUtil.WAIT_DURATION));
 
             // Update data for DATA_PATH
             String newData = zkMetaClientCache.update(key + DATA_PATH, currentData -> currentData + "1");

@@ -207,18 +207,15 @@ public class ClusterModelProvider {
                 dataProvider);
 
     // Get the set of active logical ids.
-    Set<String> activeLogicalIds = activeInstances.parallelStream().map(instanceName -> {
-      InstanceConfig instanceConfig =
-          dataProvider.getAssignableInstanceConfigMap().get(instanceName);
-      return instanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
-    }).collect(Collectors.toSet());
+    Set<String> activeLogicalIds = activeInstances.parallelStream().map(
+        instanceName -> dataProvider.getAssignableInstanceConfigMap().get(instanceName)
+            .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
+    Set<String> assignableLiveInstanceNames = dataProvider.getAssignableLiveInstances().keySet();
     Set<String> assignableLiveInstanceLogicalIds =
-        dataProvider.getAssignableLiveInstances().keySet().parallelStream().map(instanceName -> {
-          InstanceConfig instanceConfig =
-              dataProvider.getAssignableInstanceConfigMap().get(instanceName);
-          return instanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
-        }).collect(Collectors.toSet());
+        assignableLiveInstanceNames.parallelStream().map(
+            instanceName -> dataProvider.getAssignableInstanceConfigMap().get(instanceName)
+                .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
     // Generate replica objects for all the resource partitions.
     // <resource, replica set>

@@ -551,6 +551,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       messagesThrottled.add(messageToThrottle.getId());
       return;
     }
+    // TODO: Currently throttling is applied for messages that are targeting all instances including those not considered as
+    //  assignable. They all share the same configured limits. After discussion, there was agreement that this is the proper
+    //  behavior. In addition to this, we should consider adding priority based on whether the instance is assignable and whether
+    //  the message is bringing replica count to configured replicas or above configured replicas.
     throttleStateTransitionsForReplica(throttleController, resource.getResourceName(), partition,
         messageToThrottle, messagesThrottled, RebalanceType.LOAD_BALANCE, cache,
         resourceMessageMap);

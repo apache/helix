@@ -62,7 +62,8 @@ public class TestInstanceOperation extends ZkTestBase {
   protected static final String HOST = "host";
   protected static final String LOGICAL_ID = "logicalId";
   protected static final String TOPOLOGY = String.format("%s/%s/%s", ZONE, HOST, LOGICAL_ID);
-
+  protected static final ImmutableSet<String> TOP_STATE_SET =
+      ImmutableSet.of("MASTER");
   protected static final ImmutableSet<String> SECONDARY_STATE_SET =
       ImmutableSet.of("SLAVE", "STANDBY");
   protected static final ImmutableSet<String> ACCEPTABLE_STATE_SET =
@@ -969,11 +970,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions as the SWAP_OUT instance in second top state.
     Map<String, String> swapInInstancePartitionsAndStates =
         getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapInName);
-    Assert.assertTrue(
-        swapInInstancePartitionsAndStates.keySet().containsAll(swapOutInstanceOriginalPartitions));
-    Set<String> swapInInstanceStates = new HashSet<>(swapInInstancePartitionsAndStates.values());
-    swapInInstanceStates.removeAll(SECONDARY_STATE_SET);
-    Assert.assertEquals(swapInInstanceStates.size(), 0);
+    Assert.assertEquals(swapInInstancePartitionsAndStates.keySet().size(), 0);
 
     // Assert canSwapBeCompleted is false because SWAP_OUT instance is disabled.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
@@ -985,20 +982,19 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
-    // Assert completeSwapIfPossible is true
-    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
-
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance originally
-    // had. Validate they are in second top state because initially disabling SWAP_OUT instance
-    // caused all topStates to be handed off to next replica in the preference list.
+    // had. Validate they are in second top state.
     swapInInstancePartitionsAndStates =
         getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapInName);
     Assert.assertTrue(
         swapInInstancePartitionsAndStates.keySet().containsAll(swapOutInstanceOriginalPartitions));
-    swapInInstanceStates = new HashSet<>(swapInInstancePartitionsAndStates.values());
+    Set<String> swapInInstanceStates = new HashSet<>(swapInInstancePartitionsAndStates.values());
     swapInInstanceStates.removeAll(SECONDARY_STATE_SET);
     Assert.assertEquals(swapInInstanceStates.size(), 0);
+
+    // Assert completeSwapIfPossible is true
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 

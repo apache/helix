@@ -103,9 +103,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   // Property caches
   private final PropertyCache<ResourceConfig> _resourceConfigCache;
   private final PropertyCache<InstanceConfig> _allInstanceConfigCache;
-  private final Map<String, InstanceConfig> _assignableInstanceConfigMap = new HashMap<>();
   private final PropertyCache<LiveInstance> _allLiveInstanceCache;
-  private final Map<String, LiveInstance> _assignableLiveInstancesMap = new HashMap<>();
   private final PropertyCache<IdealState> _idealStateCache;
   private final PropertyCache<ClusterConstraints> _clusterConstraintsCache;
   private final PropertyCache<StateModelDefinition> _stateModelDefinitionCache;
@@ -120,6 +118,11 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private Map<String, Map<String, String>> _idealStateRuleMap;
   private final Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private final Set<String> _disabledInstanceSet = new HashSet<>();
+
+  // Assignable instances are instances will contain at most one instance with a given logicalId.
+  // This is used for SWAP related operations where there can be two instances with the same logicalId.
+  private final Map<String, InstanceConfig> _assignableInstanceConfigMap = new HashMap<>();
+  private final Map<String, LiveInstance> _assignableLiveInstancesMap = new HashMap<>();
   private final Set<String> _assignableDisabledInstanceSet = new HashSet<>();
   private final Map<String, String> _swapOutInstanceNameToSwapInInstanceName = new HashMap<>();
   private final Set<String> _enabledLiveSwapInInstanceNames = new HashSet<>();
@@ -562,16 +565,17 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       LogUtil.logDebug(logger, getClusterEventId(),
           "# of ConstraintMap read from zk: " + getConstraintMap().size());
       LogUtil.logDebug(logger, getClusterEventId(),
-          "LiveInstances: " + getAssignableLiveInstances().keySet());
+          "AssignableLiveInstances: " + getAssignableLiveInstances().keySet());
       for (LiveInstance instance : getAssignableLiveInstances().values()) {
         LogUtil.logDebug(logger, getClusterEventId(),
-            "live instance: " + instance.getInstanceName() + " " + instance.getEphemeralOwner());
+            "assignable live instance: " + instance.getInstanceName() + " "
+                + instance.getEphemeralOwner());
       }
       LogUtil.logDebug(logger, getClusterEventId(), "IdealStates: " + getIdealStates().keySet());
       LogUtil.logDebug(logger, getClusterEventId(),
           "ResourceConfigs: " + getResourceConfigMap().keySet());
       LogUtil.logDebug(logger, getClusterEventId(),
-          "InstanceConfigs: " + getAssignableInstanceConfigMap().keySet());
+          "AssignableInstanceConfigs: " + getAssignableInstanceConfigMap().keySet());
       LogUtil.logDebug(logger, getClusterEventId(), "ClusterConfigs: " + getClusterConfig());
     }
   }
@@ -644,7 +648,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Map<String, LiveInstance> getAssignableLiveInstances() {
     if (isMaintenanceModeEnabled()) {
-      return _liveInstanceExcludeTimedOutForMaintenance;
+      return Collections.unmodifiableMap(_liveInstanceExcludeTimedOutForMaintenance);
     }
 
     return Collections.unmodifiableMap(_assignableLiveInstancesMap);

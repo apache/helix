@@ -148,25 +148,30 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
               Set<String> commonInstances = new HashSet<>(stateMap.keySet());
               commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
 
-              if (commonInstances.isEmpty()) {
-                return;
-              }
-
-              for (String swapOutInstance : commonInstances) {
-                String swapInInstanceState;
-                // If the swap-out instance's replica is a topState and the StateModel allows for
-                // another replica with the topState to be added, set the swap-in instance's replica
-                // to the topState. Otherwise, set the swap-in instance's replica to the secondTopState.
-                if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState()) &&
-                    AbstractRebalancer.getStateCount(stateModelDef.getTopState(), stateModelDef,
-                        stateMap.size() + 1, stateMap.size() + 1) > stateMap.size()) {
-                  swapInInstanceState = stateModelDef.getTopState();
-                } else {
-                  swapInInstanceState = stateModelDef.getSecondTopStates().iterator().next();
+              commonInstances.forEach(swapOutInstance -> {
+                if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState())) {
+                  if (AbstractRebalancer.getStateCount(stateModelDef.getTopState(), stateModelDef,
+                      stateMap.size() + 1, stateMap.size() + 1) > stateMap.size()) {
+                    // If the swap-out instance's replica is a topState and the StateModel allows for
+                    // another replica with the topState to be added, set the swap-in instance's replica
+                    // to the topState.
+                    stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                        stateModelDef.getTopState());
+                  } else {
+                    // If the swap-out instance's replica is a topState and the StateModel does not allow for
+                    // another replica with the topState to be added, set the swap-in instance's replica
+                    // to the secondTopState.
+                    stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                        stateModelDef.getSecondTopStates().iterator().next());
+                  }
+                } else if (stateModelDef.getSecondTopStates()
+                    .contains(stateMap.get(swapOutInstance))) {
+                  // If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
+                  // to the same secondTopState.
+                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                      stateMap.get(swapOutInstance));
                 }
-                stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                    swapInInstanceState);
-              }
+              });
             });
       });
     }

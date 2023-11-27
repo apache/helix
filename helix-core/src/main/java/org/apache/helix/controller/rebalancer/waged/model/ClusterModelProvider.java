@@ -189,9 +189,10 @@ public class ClusterModelProvider {
       Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
       Map<String, ResourceAssignment> idealAssignment,
       Map<String, ResourceAssignment> currentAssignment, RebalanceScopeType scopeType) {
+    Map<String, InstanceConfig> assignableInstanceConfigMap = dataProvider.getAssignableInstanceConfigMap();
     // Construct all the assignable nodes and initialize with the allocated replicas.
     Set<AssignableNode> assignableNodes =
-        getAllAssignableNodes(dataProvider.getClusterConfig(), dataProvider.getAssignableInstanceConfigMap(),
+        getAllAssignableNodes(dataProvider.getClusterConfig(), assignableInstanceConfigMap,
             activeInstances);
 
     // Generate the logical view of the ideal assignment and the current assignment.
@@ -208,13 +209,13 @@ public class ClusterModelProvider {
 
     // Get the set of active logical ids.
     Set<String> activeLogicalIds = activeInstances.parallelStream().map(
-        instanceName -> dataProvider.getAssignableInstanceConfigMap().get(instanceName)
+        instanceName -> assignableInstanceConfigMap.get(instanceName)
             .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
     Set<String> assignableLiveInstanceNames = dataProvider.getAssignableLiveInstances().keySet();
     Set<String> assignableLiveInstanceLogicalIds =
-        assignableLiveInstanceNames.parallelStream().map(
-            instanceName -> dataProvider.getAssignableInstanceConfigMap().get(instanceName)
+        assignableLiveInstanceNames.stream().map(
+            instanceName -> assignableInstanceConfigMap.get(instanceName)
                 .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
     // Generate replica objects for all the resource partitions.

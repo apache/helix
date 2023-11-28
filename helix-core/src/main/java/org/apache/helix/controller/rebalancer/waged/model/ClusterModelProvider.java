@@ -208,7 +208,7 @@ public class ClusterModelProvider {
                 dataProvider);
 
     // Get the set of active logical ids.
-    Set<String> activeLogicalIds = activeInstances.parallelStream().map(
+    Set<String> activeLogicalIds = activeInstances.stream().map(
         instanceName -> assignableInstanceConfigMap.get(instanceName)
             .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 

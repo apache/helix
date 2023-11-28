@@ -45,7 +45,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TestInstancesAccessor extends AbstractTestClass {
-  private final static String CLUSTER_NAME = "TestCluster_0";
+  private final static String CLUSTER_NAME = "TestCluster_4";
 
   @DataProvider
   public Object[][] generatePayloadCrossZoneStoppableCheckWithZoneOrder() {

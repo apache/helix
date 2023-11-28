@@ -174,7 +174,7 @@ public class TestWagedNodeSwap extends ZkTestBase {
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newParticipantName);
     InstanceConfig newConfig = configAccessor.getInstanceConfig(CLUSTER_NAME, newParticipantName);
     String zone = instanceConfig.getDomainAsMap().get("zone");
-    String domain = String.format("zone=%s,instance=%s", zone, newParticipantName);
+    String domain = String.format("zone=%s,instance=%s", zone, oldParticipantName);
     newConfig.setDomain(domain);
     _gSetupTool.getClusterManagementTool()
         .setInstanceConfig(CLUSTER_NAME, newParticipantName, newConfig);

@@ -643,16 +643,22 @@ public class ZKHelixAdmin implements HelixAdmin {
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    // 1. Check that both instances are alive.
+    // 1. Check that both instances are alive and enabled.
     LiveInstance swapOutLiveInstance =
         accessor.getProperty(keyBuilder.liveInstance(swapOutInstanceName));
     LiveInstance swapInLiveInstance =
         accessor.getProperty(keyBuilder.liveInstance(swapInInstanceName));
-    if (swapOutLiveInstance == null || swapInLiveInstance == null) {
+    InstanceConfig swapOutInstanceConfig = getInstanceConfig(clusterName, swapOutInstanceName);
+    InstanceConfig swapInInstanceConfig = getInstanceConfig(clusterName, swapInInstanceName);
+    if (swapOutLiveInstance == null || swapInLiveInstance == null
+        || !swapOutInstanceConfig.getInstanceEnabled()
+        || !swapInInstanceConfig.getInstanceEnabled()) {
       logger.warn(
-          "SwapOutInstance {} is {} and SwapInInstance {} is {} for cluster {}. Swap will not complete unless both instances are ONLINE.",
+          "SwapOutInstance {} is {} + {} and SwapInInstance {} is {} + {} for cluster {}. Swap will not complete unless both instances are ONLINE.",
           swapOutInstanceName, swapOutLiveInstance != null ? "ONLINE" : "OFFLINE",
-          swapInInstanceName, swapInLiveInstance != null ? "ONLINE" : "OFFLINE", clusterName);
+          swapOutInstanceConfig.getInstanceEnabled() ? "ENABLED" : "DISABLED", swapInInstanceName,
+          swapInLiveInstance != null ? "ONLINE" : "OFFLINE",
+          swapInInstanceConfig.getInstanceEnabled() ? "ENABLED" : "DISABLED", clusterName);
       return false;
     }
 

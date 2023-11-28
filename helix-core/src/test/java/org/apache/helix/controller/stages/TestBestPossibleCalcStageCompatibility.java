@@ -49,8 +49,9 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
       "testResourceName"
     };
     setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.AUTO);
-    setupLiveInstances(5);
     setupStateModel();
+    setupInstances(5);
+    setupLiveInstances(5);
 
     Map<String, Resource> resourceMap = getResourceMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();

@@ -80,7 +80,8 @@ public class ClusterModelProvider {
       Set<String> activeInstances,
       Map<String, ResourceAssignment> resourceAssignment) {
     return generateClusterModel(dataProvider, resourceMap, activeInstances, Collections.emptyMap(),
-        Collections.emptyMap(), resourceAssignment, RebalanceScopeType.DELAYED_REBALANCE_OVERWRITES);
+        Collections.emptyMap(), resourceAssignment,
+        RebalanceScopeType.DELAYED_REBALANCE_OVERWRITES);
   }
 
   /**
@@ -162,8 +163,9 @@ public class ClusterModelProvider {
   public static ClusterModel generateClusterModelFromExistingAssignment(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       Map<String, ResourceAssignment> currentStateAssignment) {
-    return generateClusterModel(dataProvider, resourceMap, dataProvider.getEnabledLiveInstances(),
-        Collections.emptyMap(), Collections.emptyMap(), currentStateAssignment,
+    return generateClusterModel(dataProvider, resourceMap,
+        dataProvider.getAssignableEnabledLiveInstances(), Collections.emptyMap(),
+        Collections.emptyMap(), currentStateAssignment,
         RebalanceScopeType.GLOBAL_BASELINE);
   }
 
@@ -187,10 +189,34 @@ public class ClusterModelProvider {
       Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
       Map<String, ResourceAssignment> idealAssignment,
       Map<String, ResourceAssignment> currentAssignment, RebalanceScopeType scopeType) {
+    Map<String, InstanceConfig> assignableInstanceConfigMap = dataProvider.getAssignableInstanceConfigMap();
     // Construct all the assignable nodes and initialize with the allocated replicas.
     Set<AssignableNode> assignableNodes =
-        getAllAssignableNodes(dataProvider.getClusterConfig(), dataProvider.getInstanceConfigMap(),
+        getAllAssignableNodes(dataProvider.getClusterConfig(), assignableInstanceConfigMap,
             activeInstances);
+
+    // Generate the logical view of the ideal assignment and the current assignment.
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(dataProvider.getClusterConfig());
+    Map<String, ResourceAssignment> logicalIdIdealAssignment =
+        idealAssignment.isEmpty() ? idealAssignment
+            : generateResourceAssignmentMapLogicalIdView(idealAssignment, clusterTopologyConfig,
+                dataProvider);
+    Map<String, ResourceAssignment> logicalIdCurrentAssignment =
+        currentAssignment.isEmpty() ? currentAssignment
+            : generateResourceAssignmentMapLogicalIdView(currentAssignment, clusterTopologyConfig,
+                dataProvider);
+
+    // Get the set of active logical ids.
+    Set<String> activeLogicalIds = activeInstances.stream().map(
+        instanceName -> assignableInstanceConfigMap.get(instanceName)
+            .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
+
+    Set<String> assignableLiveInstanceNames = dataProvider.getAssignableLiveInstances().keySet();
+    Set<String> assignableLiveInstanceLogicalIds =
+        assignableLiveInstanceNames.stream().map(
+            instanceName -> assignableInstanceConfigMap.get(instanceName)
+                .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
     // Generate replica objects for all the resource partitions.
     // <resource, replica set>
@@ -203,27 +229,28 @@ public class ClusterModelProvider {
     Set<AssignableReplica> toBeAssignedReplicas;
     switch (scopeType) {
       case GLOBAL_BASELINE:
-        toBeAssignedReplicas = findToBeAssignedReplicasByClusterChanges(replicaMap, activeInstances,
-            dataProvider.getLiveInstances().keySet(), clusterChanges, currentAssignment,
+        toBeAssignedReplicas =
+            findToBeAssignedReplicasByClusterChanges(replicaMap, activeLogicalIds,
+                assignableLiveInstanceLogicalIds, clusterChanges, logicalIdCurrentAssignment,
             allocatedReplicas);
         break;
       case PARTIAL:
         // Filter to remove the replicas that do not exist in the ideal assignment given but exist
         // in the replicaMap. This is because such replicas are new additions that do not need to be
         // rebalanced right away.
-        retainExistingReplicas(replicaMap, idealAssignment);
+        retainExistingReplicas(replicaMap, logicalIdIdealAssignment);
         toBeAssignedReplicas =
-            findToBeAssignedReplicasByComparingWithIdealAssignment(replicaMap, activeInstances,
-                idealAssignment, currentAssignment, allocatedReplicas);
+            findToBeAssignedReplicasByComparingWithIdealAssignment(replicaMap, activeLogicalIds,
+                logicalIdIdealAssignment, logicalIdCurrentAssignment, allocatedReplicas);
         break;
       case EMERGENCY:
-        toBeAssignedReplicas = findToBeAssignedReplicasOnDownInstances(replicaMap, activeInstances,
-            currentAssignment, allocatedReplicas);
+        toBeAssignedReplicas = findToBeAssignedReplicasOnDownInstances(replicaMap, activeLogicalIds,
+            logicalIdCurrentAssignment, allocatedReplicas);
         break;
       case DELAYED_REBALANCE_OVERWRITES:
         toBeAssignedReplicas =
             DelayedRebalanceUtil.findToBeAssignedReplicasForMinActiveReplica(dataProvider, replicaMap.keySet(),
-                activeInstances, currentAssignment, allocatedReplicas);
+                activeLogicalIds, logicalIdCurrentAssignment, allocatedReplicas);
         break;
       default:
         throw new HelixException("Unknown rebalance scope type: " + scopeType);
@@ -231,16 +258,54 @@ public class ClusterModelProvider {
 
     // Update the allocated replicas to the assignable nodes.
     assignableNodes.parallelStream().forEach(node -> node.assignInitBatch(
-        allocatedReplicas.getOrDefault(node.getInstanceName(), Collections.emptySet())));
+        allocatedReplicas.getOrDefault(node.getLogicalId(), Collections.emptySet())));
 
     // Construct and initialize cluster context.
     ClusterContext context = new ClusterContext(
         replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()),
-        assignableNodes, idealAssignment, currentAssignment);
+        assignableNodes, logicalIdIdealAssignment, logicalIdCurrentAssignment);
+
     // Initial the cluster context with the allocated assignments.
     context.setAssignmentForFaultZoneMap(mapAssignmentToFaultZone(assignableNodes));
 
     return new ClusterModel(context, toBeAssignedReplicas, assignableNodes);
+  }
+
+  private static Map<String, ResourceAssignment> generateResourceAssignmentMapLogicalIdView(
+      Map<String, ResourceAssignment> resourceAssignmentMap,
+      ClusterTopologyConfig clusterTopologyConfig, ResourceControllerDataProvider dataProvider) {
+
+    Map<String, InstanceConfig> allInstanceConfigMap = dataProvider.getInstanceConfigMap();
+
+    return resourceAssignmentMap.entrySet().parallelStream()
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
+          String resourceName = entry.getKey();
+          ResourceAssignment instanceNameResourceAssignment = entry.getValue();
+          ResourceAssignment logicalIdResourceAssignment = new ResourceAssignment(resourceName);
+
+          StateModelDefinition stateModelDefinition = dataProvider.getStateModelDef(
+              dataProvider.getIdealState(resourceName).getStateModelDefRef());
+
+          instanceNameResourceAssignment.getMappedPartitions().forEach(partition -> {
+            Map<String, String> logicalIdStateMap = new HashMap<>();
+
+            instanceNameResourceAssignment.getReplicaMap(partition)
+                .forEach((instanceName, state) -> {
+                  if (allInstanceConfigMap.containsKey(instanceName)) {
+                    String logicalId = allInstanceConfigMap.get(instanceName)
+                        .getLogicalId(clusterTopologyConfig.getEndNodeType());
+                    if (!logicalIdStateMap.containsKey(logicalId) || state.equals(
+                        stateModelDefinition.getTopState())) {
+                      logicalIdStateMap.put(logicalId, state);
+                    }
+                  }
+                });
+
+            logicalIdResourceAssignment.addReplicaMap(partition, logicalIdStateMap);
+          });
+
+          return logicalIdResourceAssignment;
+        }));
   }
 
   // Filter the replicas map so only the replicas that have been allocated in the existing
@@ -399,8 +464,11 @@ public class ClusterModelProvider {
     Set<String> newlyConnectedNodes = clusterChanges
         .getOrDefault(HelixConstants.ChangeType.LIVE_INSTANCE, Collections.emptySet());
     newlyConnectedNodes.retainAll(liveInstances);
-    if (clusterChanges.containsKey(HelixConstants.ChangeType.CLUSTER_CONFIG) || clusterChanges
-        .containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG) || !newlyConnectedNodes.isEmpty()) {
+
+    if (clusterChanges.containsKey(HelixConstants.ChangeType.CLUSTER_CONFIG)
+        || clusterChanges.containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG)
+        || !newlyConnectedNodes.isEmpty()) {
+
       // 1. If the cluster topology has been modified, need to reassign all replicas.
       // 2. If any node was newly connected, need to rebalance all replicas for the evenness of
       // distribution.
@@ -419,7 +487,7 @@ public class ClusterModelProvider {
             .getOrDefault(HelixConstants.ChangeType.IDEAL_STATE, Collections.emptySet())
             .contains(resourceName) || !currentAssignment.containsKey(resourceName)) {
           toBeAssignedReplicas.addAll(replicas);
-          continue; // go to check next resource
+          // go to check next resource
         } else {
           // check for every replica assignment to identify if the related replicas need to be reassigned.
           // <partition, <state, instances list>>
@@ -433,16 +501,15 @@ public class ClusterModelProvider {
             if (validInstances.isEmpty()) {
               // 3. if no such an instance in the current assignment, need to reassign the replica
               toBeAssignedReplicas.add(replica);
-              continue; // go to check the next replica
             } else {
               Iterator<String> iter = validInstances.iterator();
               // Remove the instance from the current allocation record after processing so that it
               // won't be double-processed as we loop through all replicas
-              String instanceName = iter.next();
+              String logicalId = iter.next();
               iter.remove();
               // the current assignment for this replica is valid,
               // add to the allocated replica list.
-              allocatedReplicas.computeIfAbsent(instanceName, key -> new HashSet<>()).add(replica);
+              allocatedReplicas.computeIfAbsent(logicalId, key -> new HashSet<>()).add(replica);
             }
           }
         }

@@ -53,6 +53,7 @@ public class TestPartitionMovementConstraint {
     when(_testReplica.getResourceName()).thenReturn(RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(PARTITION);
     when(_testNode.getInstanceName()).thenReturn(INSTANCE);
+    when(_testNode.getLogicalId()).thenReturn(INSTANCE);
   }
 
   @Test
@@ -104,6 +105,7 @@ public class TestPartitionMovementConstraint {
 
     // when the replica's state matches with best possible, allocation matches with baseline
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameA);
+    when(testAssignableNode.getLogicalId()).thenReturn(instanceNameA);
     when(_testReplica.getReplicaState()).thenReturn("Master");
     verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
         0.5, 0.5);
@@ -112,6 +114,7 @@ public class TestPartitionMovementConstraint {
 
     // when the replica's allocation matches with best possible only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameB);
+    when(testAssignableNode.getLogicalId()).thenReturn(instanceNameB);
     when(_testReplica.getReplicaState()).thenReturn("Master");
     verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
         0.0, 0.0);
@@ -120,6 +123,7 @@ public class TestPartitionMovementConstraint {
 
     // when the replica's state matches with baseline only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameC);
+    when(testAssignableNode.getLogicalId()).thenReturn(instanceNameC);
     when(_testReplica.getReplicaState()).thenReturn("Master");
     verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
         1.0, 1.0);
@@ -128,6 +132,7 @@ public class TestPartitionMovementConstraint {
 
     // when the replica's allocation matches with baseline only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameC);
+    when(testAssignableNode.getLogicalId()).thenReturn(instanceNameC);
     when(_testReplica.getReplicaState()).thenReturn("Slave");
     verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
         0.5, 0.5);

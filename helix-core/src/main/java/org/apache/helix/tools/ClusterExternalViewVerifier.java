@@ -146,7 +146,7 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
     cache.refresh(_accessor);
 
     List<String> liveInstances = new ArrayList<String>();
-    liveInstances.addAll(cache.getLiveInstances().keySet());
+    liveInstances.addAll(cache.getAssignableLiveInstances().keySet());
     boolean success = verifyLiveNodes(liveInstances);
     if (!success) {
       LOG.info("liveNodes not match, expect: " + _expectSortedLiveNodes + ", actual: "

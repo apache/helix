@@ -192,7 +192,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   private void verifyP2PDisabled() {
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
     dataCache.refresh(_accessor);
-    Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();
+    Map<String, LiveInstance> liveInstanceMap = dataCache.getAssignableLiveInstances();
 
     for (LiveInstance instance : liveInstanceMap.values()) {
       Map<String, CurrentState> currentStateMap =
@@ -218,7 +218,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   private void verifyP2PEnabled(long startTime) {
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
     dataCache.refresh(_accessor);
-    Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();
+    Map<String, LiveInstance> liveInstanceMap = dataCache.getAssignableLiveInstances();
 
     for (LiveInstance instance : liveInstanceMap.values()) {
       Map<String, CurrentState> currentStateMap =

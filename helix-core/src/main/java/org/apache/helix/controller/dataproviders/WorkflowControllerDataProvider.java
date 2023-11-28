@@ -26,7 +26,6 @@ import java.util.Set;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.common.caches.TaskCurrentStateCache;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
@@ -164,7 +163,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
    */
   public void resetActiveTaskCount(CurrentStateOutput currentStateOutput) {
     // init participant map
-    for (String liveInstance : getLiveInstances().keySet()) {
+    for (String liveInstance : getAssignableLiveInstances().keySet()) {
       _participantActiveTaskCount.put(liveInstance, 0);
     }
     // Active task == init and running tasks

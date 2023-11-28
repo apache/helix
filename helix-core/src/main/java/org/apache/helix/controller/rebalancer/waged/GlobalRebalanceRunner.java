@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import com.google.common.collect.ImmutableSet;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -30,12 +31,12 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
-import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterTopologyConfig;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.MetricCollector;
@@ -111,6 +112,7 @@ class GlobalRebalanceRunner implements AutoCloseable {
     _changeDetector.updateSnapshots(clusterData);
     // Get all the changed items' information. Filter for the items that have content changed.
     final Map<HelixConstants.ChangeType, Set<String>> clusterChanges = _changeDetector.getAllChanges();
+    Set<String> allAssignableInstances = clusterData.getAssignableInstances();
 
     if (clusterChanges.keySet().stream().anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
       final boolean waitForGlobalRebalance = !_asyncGlobalRebalanceEnabled;
@@ -120,8 +122,8 @@ class GlobalRebalanceRunner implements AutoCloseable {
           // If the synchronous thread does not wait for the baseline to be calculated, the synchronous thread should
           // be triggered again after baseline is finished.
           // Set shouldTriggerMainPipeline to be !waitForGlobalRebalance
-          doGlobalRebalance(clusterData, resourceMap, algorithm, currentStateOutput, !waitForGlobalRebalance,
-              clusterChanges);
+          doGlobalRebalance(clusterData, resourceMap, allAssignableInstances, algorithm,
+              currentStateOutput, !waitForGlobalRebalance, clusterChanges);
         } catch (HelixRebalanceException e) {
           if (_asyncGlobalRebalanceEnabled) {
             _rebalanceFailureCount.increment(1L);
@@ -150,9 +152,11 @@ class GlobalRebalanceRunner implements AutoCloseable {
    * @param shouldTriggerMainPipeline True if the call should trigger a following main pipeline rebalance
    *                                   so the new Baseline could be applied to cluster.
    */
-  private void doGlobalRebalance(ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
+  private void doGlobalRebalance(ResourceControllerDataProvider clusterData,
+      Map<String, Resource> resourceMap, Set<String> allAssignableInstances,
       RebalanceAlgorithm algorithm, CurrentStateOutput currentStateOutput, boolean shouldTriggerMainPipeline,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges) throws HelixRebalanceException {
+      Map<HelixConstants.ChangeType, Set<String>> clusterChanges)
+      throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
     _baselineCalcCounter.increment(1L);
     _baselineCalcLatency.startMeasuringLatency();
@@ -166,14 +170,7 @@ class GlobalRebalanceRunner implements AutoCloseable {
     ClusterModel clusterModel;
     try {
       clusterModel = ClusterModelProvider.generateClusterModelForBaseline(clusterData, resourceMap,
-          // Dedupe and select correct node if there is more than one with the same logical id.
-          // We should be calculating a new baseline only after a swap operation is complete and the SWAP_IN node is selected
-          // by deduping. This ensures that adding the SWAP_IN node to the cluster does not cause new baseline to be calculated
-          // with both the SWAP_OUT and SWAP_IN node.
-          DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-              ClusterTopologyConfig.createFromClusterConfig(clusterData.getClusterConfig()),
-              clusterData.getInstanceConfigMap(), clusterData.getAllInstances()),
-              clusterChanges, currentBaseline);
+          allAssignableInstances, clusterChanges, currentBaseline);
     } catch (Exception ex) {
       throw new HelixRebalanceException("Failed to generate cluster model for global rebalance.",
           HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);

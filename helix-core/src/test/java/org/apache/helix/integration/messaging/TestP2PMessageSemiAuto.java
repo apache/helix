@@ -208,7 +208,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
     dataCache.refresh(_accessor);
 
-    Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();
+    Map<String, LiveInstance> liveInstanceMap = dataCache.getAssignableLiveInstances();
     LiveInstance liveInstance = liveInstanceMap.get(instance);
 
     Map<String, CurrentState> currentStateMap =

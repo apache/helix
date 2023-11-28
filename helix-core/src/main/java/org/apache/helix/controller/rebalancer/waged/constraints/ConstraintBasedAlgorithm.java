@@ -148,10 +148,10 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           if (scoreCompareResult == 0) {
             // If the evaluation scores of 2 nodes are the same, the algorithm assigns the replica
             // to the idle node first.
-            String instanceName1 = nodeEntry1.getKey().getInstanceName();
-            String instanceName2 = nodeEntry2.getKey().getInstanceName();
-            int idleScore1 = busyInstances.contains(instanceName1) ? 0 : 1;
-            int idleScore2 = busyInstances.contains(instanceName2) ? 0 : 1;
+            String logicalId1 = nodeEntry1.getKey().getLogicalId();
+            String logicalId2 = nodeEntry2.getKey().getLogicalId();
+            int idleScore1 = busyInstances.contains(logicalId1) ? 0 : 1;
+            int idleScore2 = busyInstances.contains(logicalId2) ? 0 : 1;
             return idleScore1 != idleScore2 ? (idleScore1 - idleScore2)
                 : -nodeEntry1.getKey().compareTo(nodeEntry2.getKey());
           } else {
@@ -271,7 +271,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
   /**
    * @param assignments A collection of resource replicas assignment.
-   * @return A set of instance names that have at least one replica assigned in the input assignments.
+   * @return A set of logicalIds that have at least one replica assigned in the input assignments.
    */
   private Set<String> getBusyInstances(Collection<ResourceAssignment> assignments) {
     return assignments.stream().flatMap(

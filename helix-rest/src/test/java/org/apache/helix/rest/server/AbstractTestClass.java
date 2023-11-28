@@ -322,7 +322,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   }
 
   protected void setupHelixResources() throws Exception {
-    _clusters = createClusters(4);
+    _clusters = createClusters(5);
     _gSetupTool.addCluster(_superCluster, true);
     _gSetupTool.addCluster(TASK_TEST_CLUSTER, true);
     _clusters.add(_superCluster);

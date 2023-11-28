@@ -647,7 +647,8 @@ public abstract class AbstractTaskDispatcher {
       int jobCfgLimitation =
           jobCfg.getNumConcurrentTasksPerInstance() - assignedPartitions.get(instance).size();
       // 2. throttled by participant capacity
-      int participantCapacity = cache.getInstanceConfigMap().get(instance).getMaxConcurrentTask();
+      int participantCapacity =
+          cache.getAssignableInstanceConfigMap().get(instance).getMaxConcurrentTask();
       if (participantCapacity == InstanceConfig.MAX_CONCURRENT_TASK_NOT_SET) {
         participantCapacity = cache.getClusterConfig().getMaxConcurrentTaskPerInstance();
       }

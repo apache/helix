@@ -102,9 +102,10 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       Set<String> disabledInstancesForPartition =
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState,
-          Collections.unmodifiableSet(cache.getLiveInstances().keySet()));
+          Collections.unmodifiableSet(cache.getAssignableLiveInstances().keySet()));
       Map<String, String> bestStateForPartition =
-          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef,
+          computeBestPossibleStateForPartition(cache.getAssignableLiveInstances().keySet(),
+              stateModelDef,
               preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
               cache.getClusterConfig(), partition,
               cache.getAbnormalStateResolver(stateModelDefName), cache);
@@ -392,6 +393,12 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * transition to the top-state, which could minimize the impact to the application's availability.
    * To achieve that, we sort the preferenceList based on CurrentState, by treating top-state and
    * second-states with same priority and rely on the fact that Collections.sort() is stable.
+   * @param preferenceList List of instances the replica will be placed on
+   * @param stateModelDef State model definition
+   * @param currentStateMap Current state of each replica <instance: state>
+   * @param liveInstances Set of live instances
+   * @param disabledInstancesForPartition Set of disabled instances for the partition
+   * @param bestPossibleStateMap Output map of <instance: state> for the partition
    */
   private void assignStatesToInstances(final List<String> preferenceList,
       final StateModelDefinition stateModelDef, final Map<String, String> currentStateMap,

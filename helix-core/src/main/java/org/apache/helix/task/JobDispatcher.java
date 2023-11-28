@@ -141,8 +141,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Will contain the list of partitions that must be explicitly dropped from the ideal state that
     // is stored in zk.
     Set<String> liveInstances =
-        jobCfg.getInstanceGroupTag() == null ? _dataProvider.getEnabledLiveInstances()
-            : _dataProvider.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
+        jobCfg.getInstanceGroupTag() == null ? _dataProvider.getAssignableEnabledLiveInstances()
+            : _dataProvider.getAssignableEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
       LOG.error("No available instance found for job: {}", jobName);
@@ -163,7 +163,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       if (jobTgtState == TargetState.STOP) {
         // If the assigned instance is no longer live, so mark it as DROPPED in the context
         markPartitionsWithoutLiveInstance(jobCtx, liveInstances);
-        
+
         if (jobState != TaskState.NOT_STARTED && TaskUtil.checkJobStopped(jobCtx)) {
           workflowCtx.setJobState(jobName, TaskState.STOPPED);
         } else {

@@ -111,11 +111,11 @@ public class TestHelixPropoertyTimmer {
     ResourceControllerDataProvider dataProvider =
         Mockito.mock(ResourceControllerDataProvider.class);
     when(dataProvider.getRefreshedChangeTypes()).thenReturn(changeTypes);
-    when(dataProvider.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(dataProvider.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
     when(dataProvider.getIdealStates()).thenReturn(idealStateMap);
     when(dataProvider.getResourceConfigMap()).thenReturn(resourceConfigMap);
     when(dataProvider.getClusterConfig()).thenReturn(clusterConfig);
-    when(dataProvider.getLiveInstances()).thenReturn(Collections.emptyMap());
+    when(dataProvider.getAssignableLiveInstances()).thenReturn(Collections.emptyMap());
     return dataProvider;
   }
 

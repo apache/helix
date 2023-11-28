@@ -63,7 +63,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(TEST_INSTANCE_ID_1, testInstanceConfig1);
     instanceConfigMap.put(TEST_INSTANCE_ID_2, testInstanceConfig2);
-    when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
     Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 

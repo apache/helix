@@ -40,14 +40,14 @@ public class PartitionMovementConstraint extends AbstractPartitionMovementConstr
         getStateMap(replica, clusterContext.getBestPossibleAssignment());
     Map<String, String> baselineAssignment =
         getStateMap(replica, clusterContext.getBaselineAssignment());
-    String nodeName = node.getInstanceName();
+    String logicalId = node.getLogicalId();
     String state = replica.getReplicaState();
 
     if (bestPossibleAssignment.isEmpty()) {
       // if best possible is missing, it means the replica belongs to a newly added resource, so
       // baseline assignment should be used instead.
-      return calculateAssignmentScore(nodeName, state, baselineAssignment);
+      return calculateAssignmentScore(logicalId, state, baselineAssignment);
     }
-    return calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
+    return calculateAssignmentScore(logicalId, state, bestPossibleAssignment);
   }
 }

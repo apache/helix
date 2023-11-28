@@ -222,7 +222,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       try {
         return verifyBalanceExternalView(
             accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
-            numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
+            numberOfPartitions, masterValue, replicas, cache.getAssignableLiveInstances().size(),
             cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
       } catch (Exception e) {
         LOG.debug("Verify failed", e);

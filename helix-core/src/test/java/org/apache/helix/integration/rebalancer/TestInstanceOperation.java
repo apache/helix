@@ -41,6 +41,7 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -61,7 +62,8 @@ public class TestInstanceOperation extends ZkTestBase {
   protected static final String HOST = "host";
   protected static final String LOGICAL_ID = "logicalId";
   protected static final String TOPOLOGY = String.format("%s/%s/%s", ZONE, HOST, LOGICAL_ID);
-
+  protected static final ImmutableSet<String> TOP_STATE_SET =
+      ImmutableSet.of("MASTER");
   protected static final ImmutableSet<String> SECONDARY_STATE_SET =
       ImmutableSet.of("SLAVE", "STANDBY");
   protected static final ImmutableSet<String> ACCEPTABLE_STATE_SET =
@@ -73,6 +75,7 @@ public class TestInstanceOperation extends ZkTestBase {
   List<String> _participantNames = new ArrayList<>();
   private Set<String> _allDBs = new HashSet<>();
   private ZkHelixClusterVerifier _clusterVerifier;
+  private ZkHelixClusterVerifier _bestPossibleClusterVerifier;
   private ConfigAccessor _configAccessor;
   private long _stateModelDelay = 3L;
 
@@ -102,6 +105,10 @@ public class TestInstanceOperation extends ZkTestBase {
         .setResources(_allDBs)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
+    _bestPossibleClusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        .setResources(_allDBs)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     _configAccessor = new ConfigAccessor(_gZkClient);
     _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
@@ -122,6 +129,7 @@ public class TestInstanceOperation extends ZkTestBase {
     clusterConfig.setDelayRebalaceEnabled(true);
     clusterConfig.setRebalanceDelayTime(1800000L);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    enabledTopologyAwareRebalance();
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
@@ -152,8 +160,8 @@ public class TestInstanceOperation extends ZkTestBase {
     for (int i = 0; i < _participants.size(); i++) {
       String participantName = _participantNames.get(i);
       if (!_originalParticipantNames.contains(participantName)) {
-        _participants.get(i).syncStop();
         _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, participantName, false);
+        _participants.get(i).syncStop();
         _gSetupTool.getClusterManagementTool()
             .dropInstance(CLUSTER_NAME, _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, participantName));
         droppedParticipants.add(participantName);
@@ -389,6 +397,7 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, null,
         null);
     addParticipant(PARTICIPANT_PREFIX + "_" + (START_PORT + NUM_NODE));
+
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Map<String, ExternalView> assignment = getEVs();
@@ -680,7 +689,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // and adding the SWAP_IN instance to the cluster.
     // Check that the SWAP_IN instance has the same partitions as the SWAP_OUT instance
     // but none of them are in a top state.
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
@@ -747,7 +756,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // and adding the SWAP_IN instance to the cluster.
     // Check that the SWAP_IN instance has the same partitions as the SWAP_OUT instance
     // but none of them are in a top state.
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
@@ -793,7 +802,7 @@ public class TestInstanceOperation extends ZkTestBase {
         InstanceConstants.InstanceOperation.SWAP_OUT);
 
     // Validate that the assignment has not changed since setting the InstanceOperation to SWAP_OUT
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), Collections.emptySet());
 
@@ -808,7 +817,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // and adding the SWAP_IN instance to the cluster.
     // Check that the SWAP_IN instance has the same partitions as the SWAP_OUT instance
     // but none of them are in a top state.
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
@@ -880,7 +889,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Validate that the assignment has not changed since adding the SWAP_IN node.
     // During MM, the cluster should not compute new assignment.
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), Collections.emptySet());
 
@@ -892,7 +901,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that partitions on SWAP_OUT instance does not change after exiting MM
     // Check that the SWAP_IN instance has the same partitions as the SWAP_OUT instance
     // but none of them are in a top state.
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
@@ -956,16 +965,12 @@ public class TestInstanceOperation extends ZkTestBase {
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
         InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Validate that the SWAP_IN instance has the same partitions as the SWAP_OUT instance in second top state.
     Map<String, String> swapInInstancePartitionsAndStates =
         getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapInName);
-    Assert.assertTrue(
-        swapInInstancePartitionsAndStates.keySet().containsAll(swapOutInstanceOriginalPartitions));
-    Set<String> swapInInstanceStates = new HashSet<>(swapInInstancePartitionsAndStates.values());
-    swapInInstanceStates.removeAll(SECONDARY_STATE_SET);
-    Assert.assertEquals(swapInInstanceStates.size(), 0);
+    Assert.assertEquals(swapInInstancePartitionsAndStates.keySet().size(), 0);
 
     // Assert canSwapBeCompleted is false because SWAP_OUT instance is disabled.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
@@ -975,22 +980,21 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, instanceToSwapOutName, true);
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    // Assert completeSwapIfPossible is true
-    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance originally
-    // had. Validate they are in second top state because initially disabling SWAP_OUT instance
-    // caused all topStates to be handed off to next replica in the preference list.
+    // had. Validate they are in second top state.
     swapInInstancePartitionsAndStates =
         getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapInName);
     Assert.assertTrue(
         swapInInstancePartitionsAndStates.keySet().containsAll(swapOutInstanceOriginalPartitions));
-    swapInInstanceStates = new HashSet<>(swapInInstancePartitionsAndStates.values());
+    Set<String> swapInInstanceStates = new HashSet<>(swapInInstancePartitionsAndStates.values());
     swapInInstanceStates.removeAll(SECONDARY_STATE_SET);
     Assert.assertEquals(swapInInstanceStates.size(), 0);
+
+    // Assert completeSwapIfPossible is true
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -1036,7 +1040,7 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, false, -1);
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Enable the SWAP_IN instance before we have set the SWAP_OUT instance.
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceToSwapInName, true);
@@ -1059,7 +1063,7 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE), null, false, -1);
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Try to remove the InstanceOperation from the SWAP_IN instance before the SWAP_OUT instance is set.
     // This should throw exception because we cannot ever have two instances with the same logicalId and both have InstanceOperation
@@ -1108,7 +1112,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // and adding the SWAP_IN instance to the cluster.
     // Check that the SWAP_IN instance has the same partitions as the SWAP_OUT instance
     // but none of them are in a top state.
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 

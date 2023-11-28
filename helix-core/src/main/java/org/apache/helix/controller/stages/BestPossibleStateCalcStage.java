@@ -22,9 +22,11 @@ package org.apache.helix.controller.stages;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -35,6 +37,7 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.CustomRebalancer;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
@@ -86,9 +89,16 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
+
+    // Add swap-in instances to bestPossibleStateOutput.
+    // We do this after computing the best possible state output because rebalance algorithms should not
+    // to be aware of swap-in instances. We simply add the swap-in instances to the
+    // stateMap where the swap-out instance is and compute the correct state.
+    addSwapInInstancesToBestPossibleState(resourceMap, bestPossibleStateOutput, cache);
+
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
-    final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
+    final Map<String, InstanceConfig> allInstanceConfigMap = cache.getInstanceConfigMap();
     final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
     final Map<String, IdealState> idealStateMap = cache.getIdealStates();
     final Map<String, ExternalView> externalViewMap = cache.getExternalViews();
@@ -96,8 +106,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     asyncExecute(cache.getAsyncTasksThreadPool(), () -> {
       try {
         if (clusterStatusMonitor != null) {
-          clusterStatusMonitor
-              .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap, resourceMap,
+          clusterStatusMonitor.setPerInstanceResourceStatus(bestPossibleStateOutput,
+              allInstanceConfigMap, resourceMap,
                   stateModelDefMap);
 
           for (String resourceName : idealStateMap.keySet()) {
@@ -119,6 +129,52 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
       return null;
     });
+  }
+
+  private void addSwapInInstancesToBestPossibleState(Map<String, Resource> resourceMap,
+      BestPossibleStateOutput bestPossibleStateOutput, ResourceControllerDataProvider cache) {
+    // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
+    Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
+    // 2. Get all enabled and live SWAP_IN instances in the cluster.
+    Set<String> enabledLiveSwapInInstances = cache.getEnabledLiveSwapInInstanceNames();
+    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
+    // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
+    // swap occurring.
+    if (!enabledLiveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
+      resourceMap.forEach((resourceName, resource) -> {
+        StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
+        bestPossibleStateOutput.getResourceStatesMap().get(resourceName).getStateMap()
+            .forEach((partition, stateMap) -> {
+              Set<String> commonInstances = new HashSet<>(stateMap.keySet());
+              commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
+
+              commonInstances.forEach(swapOutInstance -> {
+                if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState())) {
+                  if (AbstractRebalancer.getStateCount(stateModelDef.getTopState(), stateModelDef,
+                      stateMap.size() + 1, stateMap.size() + 1) > stateMap.size()) {
+                    // If the swap-out instance's replica is a topState and the StateModel allows for
+                    // another replica with the topState to be added, set the swap-in instance's replica
+                    // to the topState.
+                    stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                        stateModelDef.getTopState());
+                  } else {
+                    // If the swap-out instance's replica is a topState and the StateModel does not allow for
+                    // another replica with the topState to be added, set the swap-in instance's replica
+                    // to the secondTopState.
+                    stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                        stateModelDef.getSecondTopStates().iterator().next());
+                  }
+                } else if (stateModelDef.getSecondTopStates()
+                    .contains(stateMap.get(swapOutInstance))) {
+                  // If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
+                  // to the same secondTopState.
+                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                      stateMap.get(swapOutInstance));
+                }
+              });
+            });
+      });
+    }
   }
 
   private void reportResourceState(ClusterStatusMonitor clusterStatusMonitor,
@@ -239,7 +295,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       final HelixManager manager) {
     int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
     if (maxOfflineInstancesAllowed >= 0) {
-      int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
+      int offlineCount =
+          cache.getAssignableInstances().size() - cache.getAssignableEnabledLiveInstances().size();
       if (offlineCount > maxOfflineInstancesAllowed) {
         String errMsg = String.format(
             "Offline Instances count %d greater than allowed count %d. Put cluster %s into "

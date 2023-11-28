@@ -72,15 +72,15 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
       LOG.error("State Model Definition null for resource: " + resourceName);
       throw new HelixException("State Model Definition null for resource: " + resourceName);
     }
-    Map<String, LiveInstance> liveInstance = clusterData.getLiveInstances();
-    int replicas = currentIdealState.getReplicaCount(liveInstance.size());
+    Map<String, LiveInstance> assignableLiveInstance = clusterData.getAssignableLiveInstances();
+    int replicas = currentIdealState.getReplicaCount(assignableLiveInstance.size());
 
     LinkedHashMap<String, Integer> stateCountMap = stateModelDef
-        .getStateCountMap(liveInstance.size(), replicas);
-    List<String> liveNodes = new ArrayList<>(liveInstance.keySet());
-    List<String> allNodes = new ArrayList<>(clusterData.getAllInstances());
-    allNodes.removeAll(clusterData.getDisabledInstances());
-    liveNodes.retainAll(allNodes);
+        .getStateCountMap(assignableLiveInstance.size(), replicas);
+    List<String> assignableLiveNodes = new ArrayList<>(assignableLiveInstance.keySet());
+    List<String> assignableNodes = new ArrayList<>(clusterData.getAssignableInstances());
+    assignableNodes.removeAll(clusterData.getDisabledInstances());
+    assignableLiveNodes.retainAll(assignableNodes);
 
     Map<String, Map<String, String>> currentMapping =
         currentMapping(currentStateOutput, resourceName, partitions, stateCountMap);
@@ -89,11 +89,11 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
     Set<String> taggedNodes = new HashSet<String>();
     Set<String> taggedLiveNodes = new HashSet<String>();
     if (currentIdealState.getInstanceGroupTag() != null) {
-      for (String instanceName : allNodes) {
-        if (clusterData.getInstanceConfigMap().get(instanceName)
+      for (String instanceName : assignableNodes) {
+        if (clusterData.getAssignableInstanceConfigMap().get(instanceName)
             .containsTag(currentIdealState.getInstanceGroupTag())) {
           taggedNodes.add(instanceName);
-          if (liveInstance.containsKey(instanceName)) {
+          if (assignableLiveInstance.containsKey(instanceName)) {
             taggedLiveNodes.add(instanceName);
           }
         }
@@ -114,25 +114,25 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
         LOG.warn("Resource " + resourceName + " has tag " + currentIdealState.getInstanceGroupTag()
             + " but no live participants have this tag");
       }
-      allNodes = new ArrayList<>(taggedNodes);
-      liveNodes = new ArrayList<>(taggedLiveNodes);
+      assignableNodes = new ArrayList<>(taggedNodes);
+      assignableLiveNodes = new ArrayList<>(taggedLiveNodes);
     }
 
     // sort node lists to ensure consistent preferred assignments
-    Collections.sort(allNodes);
-    Collections.sort(liveNodes);
+    Collections.sort(assignableNodes);
+    Collections.sort(assignableLiveNodes);
 
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
     _rebalanceStrategy =
         getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitions, resourceName,
             stateCountMap, maxPartition);
     ZNRecord newMapping = _rebalanceStrategy
-        .computePartitionAssignment(allNodes, liveNodes, currentMapping, clusterData);
+        .computePartitionAssignment(assignableNodes, assignableLiveNodes, currentMapping, clusterData);
 
     LOG.debug("currentMapping: {}", currentMapping);
     LOG.debug("stateCountMap: {}", stateCountMap);
-    LOG.debug("liveNodes: {}", liveNodes);
-    LOG.debug("allNodes: {}", allNodes);
+    LOG.debug("assignableLiveNodes: {}", assignableLiveNodes);
+    LOG.debug("assignableNodes: {}", assignableNodes);
     LOG.debug("maxPartition: {}", maxPartition);
     LOG.debug("newMapping: {}", newMapping);
 

@@ -19,12 +19,10 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixProperty;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;

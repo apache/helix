@@ -39,7 +39,6 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
  * can be in s1.
  */
 public class ResourceAssignment extends HelixProperty {
-
   /**
    * Initialize an empty mapping
    * @param resourceName the resource being mapped

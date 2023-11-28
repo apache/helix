@@ -142,92 +142,6 @@ public class DelayedRebalanceUtil {
   }
 
   /**
-   * Filter out instances with duplicate logical IDs. If there are duplicates, the instance with
-   * InstanceOperation SWAP_OUT will be chosen over the instance with SWAP_IN. SWAP_IN is not
-   * assignable. If there are duplicates with one node having no InstanceOperation and the other
-   * having SWAP_OUT, the node with no InstanceOperation will be chosen. This signifies SWAP
-   * completion, therefore making the node assignable.
-   * TODO: Eventually when we refactor DataProvider to have getAssignableInstances() and
-   * TODO: getAssignableEnabledLiveInstances() this will not need to be called in the rebalancer.
-   * @param clusterTopologyConfig the cluster topology configuration
-   * @param instanceConfigMap     the map of instance name to corresponding InstanceConfig
-   * @param instances             the set of instances to filter out duplicate logicalIDs for
-   * @return the set of instances with duplicate logicalIDs filtered out, there will only be one
-   * instance per logicalID
-   */
-  public static Set<String> filterOutInstancesWithDuplicateLogicalIds(
-      ClusterTopologyConfig clusterTopologyConfig, Map<String, InstanceConfig> instanceConfigMap,
-      Set<String> instances) {
-    Set<String> filteredNodes = new HashSet<>();
-    Map<String, String> filteredInstancesByLogicalId = new HashMap<>();
-
-    instances.forEach(node -> {
-      InstanceConfig thisInstanceConfig = instanceConfigMap.get(node);
-      if (thisInstanceConfig == null) {
-        return;
-      }
-      String thisLogicalId =
-          thisInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
-
-      if (filteredInstancesByLogicalId.containsKey(thisLogicalId)) {
-        InstanceConfig filteredDuplicateInstanceConfig =
-            instanceConfigMap.get(filteredInstancesByLogicalId.get(thisLogicalId));
-        if ((filteredDuplicateInstanceConfig.getInstanceOperation()
-            .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
-            && thisInstanceConfig.getInstanceOperation()
-            .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name()))
-            || thisInstanceConfig.getInstanceOperation().isEmpty()) {
-          // If the already filtered instance is SWAP_IN and this instance is in SWAP_OUT, then replace the filtered
-          // instance with this instance. If this instance has no InstanceOperation, then replace the filtered instance
-          // with this instance. This is the case where the SWAP_IN node has been marked as complete or SWAP_IN exists and
-          // SWAP_OUT does not. There can never be a case where both have no InstanceOperation set.
-          filteredNodes.remove(filteredInstancesByLogicalId.get(thisLogicalId));
-          filteredNodes.add(node);
-          filteredInstancesByLogicalId.put(thisLogicalId, node);
-        }
-      } else {
-        filteredNodes.add(node);
-        filteredInstancesByLogicalId.put(thisLogicalId, node);
-      }
-    });
-
-    return filteredNodes;
-  }
-
-  /**
-   * Look through the provided mapping and add corresponding SWAP_IN node if a SWAP_OUT node exists
-   * in the partition's preference list.
-   *
-   * @param mapping                      the mapping to be updated (IdealState ZNRecord)
-   * @param swapOutToSwapInInstancePairs the map of SWAP_OUT to SWAP_IN instances
-   */
-  public static void addSwapInInstanceToPreferenceListsIfSwapOutInstanceExists(ZNRecord mapping,
-      Map<String, String> swapOutToSwapInInstancePairs, Set<String> enabledLiveSwapInInstances) {
-    Map<String, List<String>> preferenceListsByPartition = mapping.getListFields();
-    for (String partition : preferenceListsByPartition.keySet()) {
-      List<String> preferenceList = preferenceListsByPartition.get(partition);
-      if (preferenceList == null) {
-        continue;
-      }
-      List<String> newInstancesToAdd = new ArrayList<>();
-      for (String instanceName : preferenceList) {
-        if (swapOutToSwapInInstancePairs.containsKey(instanceName)
-            && enabledLiveSwapInInstances.contains(
-            swapOutToSwapInInstancePairs.get(instanceName))) {
-          String swapInInstanceName = swapOutToSwapInInstancePairs.get(instanceName);
-          if (!preferenceList.contains(swapInInstanceName) && !newInstancesToAdd.contains(
-              swapInInstanceName)) {
-            newInstancesToAdd.add(swapInInstanceName);
-          }
-        }
-      }
-      if (!newInstancesToAdd.isEmpty()) {
-        preferenceList.addAll(newInstancesToAdd);
-      }
-    }
-  }
-
-  /**
    * Return the time when an offline or disabled instance should be treated as inactive. Return -1
    * if it is inactive now or forced to be rebalanced by an on-demand rebalance.
    *
@@ -429,8 +343,8 @@ public class DelayedRebalanceUtil {
 
       // keep all current assignment and add to allocated replicas
       resourceAssignment.getMappedPartitions().forEach(partition ->
-          resourceAssignment.getReplicaMap(partition).forEach((instance, state) ->
-              allocatedReplicas.computeIfAbsent(instance, key -> new HashSet<>())
+          resourceAssignment.getReplicaMap(partition).forEach((logicalId, state) ->
+              allocatedReplicas.computeIfAbsent(logicalId, key -> new HashSet<>())
                   .add(new AssignableReplica(clusterData.getClusterConfig(), mergedResourceConfig,
                       partition.getPartitionName(), state, statePriorityMap.get(state)))));
       // only proceed for resource requiring delayed rebalance overwrites
@@ -505,7 +419,7 @@ public class DelayedRebalanceUtil {
       ResourceAssignment resourceAssignment) {
     String resourceName = resourceAssignment.getResourceName();
     IdealState currentIdealState = clusterData.getIdealState(resourceName);
-    Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+    Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
     int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
     int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
         .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),
@@ -526,7 +440,7 @@ public class DelayedRebalanceUtil {
 
   private static int getMinActiveReplica(ResourceControllerDataProvider clusterData, String resourceName) {
     IdealState currentIdealState = clusterData.getIdealState(resourceName);
-    Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
+    Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
     int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
     return DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
         .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),

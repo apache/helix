@@ -57,8 +57,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   @Test
   public void testDuplicateMsg() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_dup";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
 
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    admin.addCluster(clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     refreshClusterConfig(clusterName, accessor);
@@ -82,10 +84,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0
     }, resourceGroups, 1, 1);
+    setupStateModel(clusterName);
+    setupInstances(clusterName, new int[]{0});
     List<LiveInstance> liveInstances = setupLiveInstances(clusterName, new int[] {
         0
     });
-    setupStateModel(clusterName);
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -321,10 +324,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0
     }, resourceGroups, 1, 1);
+    setupStateModel(clusterName);
+    setupInstances(clusterName, new int[]{0});
     List<LiveInstance> liveInstances = setupLiveInstances(clusterName, new int[] {
         0
     });
-    setupStateModel(clusterName);
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -395,8 +399,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   @Test
   public void testMasterXfer() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_xfer";
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    admin.addCluster(clusterName);
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -417,10 +423,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
+    setupStateModel(clusterName);
+    setupInstances(clusterName, new int[]{0, 1});
     List<LiveInstance> liveInstances = setupLiveInstances(clusterName, new int[] {
         1
     });
-    setupStateModel(clusterName);
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -474,8 +481,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   @Test
   public void testNoDuplicatedMaster() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_no_duplicated_master";
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    admin.addCluster(clusterName);
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -496,10 +505,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
+    setupStateModel(clusterName);
+    setupInstances(clusterName, new int[]{0, 1});
     List<LiveInstance> liveInstances = setupLiveInstances(clusterName, new int[] {
         0, 1
     });
-    setupStateModel(clusterName);
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -553,6 +563,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   public void testNoMessageSentOnControllerLeadershipLoss() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = _className + "_" + methodName;
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+
+    admin.addCluster(clusterName);
 
     final String resourceName = "testResource_" + methodName;
     final String partitionName = resourceName + "_0";
@@ -565,10 +578,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0
     }, resourceGroups, 1, 1);
+    setupStateModel(clusterName);
+    setupInstances(clusterName, new int[]{0});
     List<LiveInstance> liveInstances = setupLiveInstances(clusterName, new int[] {
         0
     });
-    setupStateModel(clusterName);
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));

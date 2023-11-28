@@ -40,7 +40,6 @@ import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -95,51 +94,46 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       }
     }
 
-    Set<String> liveEnabledNodes;
-    Set<String> allNodes;
+    Set<String> assignableLiveEnabledNodes;
+    Set<String> assignableNodes;
 
     String instanceTag = currentIdealState.getInstanceGroupTag();
     if (instanceTag != null) {
-      liveEnabledNodes = clusterData.getEnabledLiveInstancesWithTag(instanceTag);
-      allNodes = clusterData.getInstancesWithTag(instanceTag);
+      assignableLiveEnabledNodes = clusterData.getAssignableEnabledLiveInstancesWithTag(instanceTag);
+      assignableNodes = clusterData.getAssignableInstancesWithTag(instanceTag);
 
       if (LOG.isInfoEnabled()) {
         LOG.info(String.format(
             "Found the following participants with tag %s for %s: "
                 + "instances: %s, liveEnabledInstances: %s",
-            currentIdealState.getInstanceGroupTag(), resourceName, allNodes, liveEnabledNodes));
+            currentIdealState.getInstanceGroupTag(), resourceName, assignableNodes, assignableLiveEnabledNodes));
       }
     } else {
-      liveEnabledNodes = clusterData.getEnabledLiveInstances();
-      allNodes = clusterData.getAllInstances();
+      assignableLiveEnabledNodes = clusterData.getAssignableEnabledLiveInstances();
+      assignableNodes = clusterData.getAssignableInstances();
     }
 
-    Set<String> allNodesDeduped = DelayedRebalanceUtil.filterOutInstancesWithDuplicateLogicalIds(
-        ClusterTopologyConfig.createFromClusterConfig(clusterConfig),
-        clusterData.getInstanceConfigMap(), allNodes);
-    // Remove the non-selected instances with duplicate logicalIds from liveEnabledNodes
-    // This ensures the same duplicate instance is kept in both allNodesDeduped and liveEnabledNodes
-    liveEnabledNodes.retainAll(allNodesDeduped);
-
     long delay = DelayedRebalanceUtil.getRebalanceDelay(currentIdealState, clusterConfig);
-    Set<String> activeNodes = DelayedRebalanceUtil
-        .getActiveNodes(allNodesDeduped, currentIdealState, liveEnabledNodes,
-            clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-            clusterData.getInstanceConfigMap(), delay, clusterConfig);
+    Set<String> activeNodes =
+        DelayedRebalanceUtil.getActiveNodes(assignableNodes, currentIdealState, assignableLiveEnabledNodes,
+            clusterData.getInstanceOfflineTimeMap(),
+            clusterData.getAssignableLiveInstances().keySet(),
+            clusterData.getAssignableInstanceConfigMap(), delay, clusterConfig);
     if (delayRebalanceEnabled) {
       Set<String> offlineOrDisabledInstances = new HashSet<>(activeNodes);
-      offlineOrDisabledInstances.removeAll(liveEnabledNodes);
+      offlineOrDisabledInstances.removeAll(assignableLiveEnabledNodes);
       DelayedRebalanceUtil.setRebalanceScheduler(currentIdealState.getResourceName(), true,
           offlineOrDisabledInstances, clusterData.getInstanceOfflineTimeMap(),
-          clusterData.getLiveInstances().keySet(), clusterData.getInstanceConfigMap(), delay,
+          clusterData.getAssignableLiveInstances().keySet(),
+          clusterData.getAssignableInstanceConfigMap(), delay,
           clusterConfig, _manager);
     }
 
-    if (allNodesDeduped.isEmpty() || activeNodes.isEmpty()) {
+    if (assignableNodes.isEmpty() || activeNodes.isEmpty()) {
       LOG.error(String.format(
           "No instances or active instances available for resource %s, "
-              + "allInstances: %s, liveInstances: %s, activeInstances: %s",
-          resourceName, allNodesDeduped, liveEnabledNodes, activeNodes));
+              + "allInstances: %s, liveInstances: %s, activeInstances: %s", resourceName, assignableNodes,
+          assignableLiveEnabledNodes, activeNodes));
       return generateNewIdealState(resourceName, currentIdealState,
           emptyMapping(currentIdealState));
     }
@@ -165,14 +159,15 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), allPartitions, resourceName,
             stateCountMap, maxPartition);
 
-    List<String> allNodeList = new ArrayList<>(allNodesDeduped);
+    List<String> allNodeList = new ArrayList<>(assignableNodes);
 
     // TODO: Currently we have 2 groups of instances and compute preference list twice and merge.
     // Eventually we want to have exclusive groups of instance for different instance tag.
     List<String> liveEnabledAssignableNodeList = new ArrayList<>(
         // We will not assign partitions to instances with EVACUATE InstanceOperation.
-        DelayedRebalanceUtil.filterOutEvacuatingInstances(clusterData.getInstanceConfigMap(),
-            liveEnabledNodes));
+        DelayedRebalanceUtil.filterOutEvacuatingInstances(
+            clusterData.getAssignableInstanceConfigMap(),
+            assignableLiveEnabledNodes));
     // sort node lists to ensure consistent preferred assignments
     Collections.sort(allNodeList);
     Collections.sort(liveEnabledAssignableNodeList);
@@ -194,29 +189,16 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
           _rebalanceStrategy.computePartitionAssignment(allNodeList, activeNodeList, currentMapping,
               clusterData);
       finalMapping = getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping,
-          liveEnabledNodes, replicaCount, minActiveReplicas);
+          assignableLiveEnabledNodes, replicaCount, minActiveReplicas);
     }
 
     finalMapping.getListFields().putAll(userDefinedPreferenceList);
 
-    // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
-    Map<String, String> swapOutToSwapInInstancePairs =
-        clusterData.getSwapOutToSwapInInstancePairs();
-    // 2. Get all enabled and live SWAP_IN instances in the cluster.
-    Set<String> enabledLiveSwapInInstances = clusterData.getEnabledLiveSwapInInstanceNames();
-    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
-    // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
-    // swap occurring.
-    if (!clusterData.getEnabledLiveSwapInInstanceNames().isEmpty()) {
-      DelayedRebalanceUtil.addSwapInInstanceToPreferenceListsIfSwapOutInstanceExists(finalMapping,
-          swapOutToSwapInInstancePairs, enabledLiveSwapInInstances);
-    }
-
     LOG.debug("currentMapping: {}", currentMapping);
     LOG.debug("stateCountMap: {}", stateCountMap);
-    LOG.debug("liveEnabledNodes: {}", liveEnabledNodes);
+    LOG.debug("assignableLiveEnabledNodes: {}", assignableLiveEnabledNodes);
     LOG.debug("activeNodes: {}", activeNodes);
-    LOG.debug("allNodes: {}", allNodesDeduped);
+    LOG.debug("assignableNodes: {}", assignableNodes);
     LOG.debug("maxPartition: {}", maxPartition);
     LOG.debug("newIdealMapping: {}", newIdealMapping);
     LOG.debug("finalMapping: {}", finalMapping);
@@ -274,14 +256,15 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
 
-    Set<String> allNodes = cache.getEnabledInstances();
-    Set<String> liveNodes = cache.getLiveInstances().keySet();
+    Set<String> allNodes = cache.getAssignableEnabledInstances();
+    Set<String> liveNodes = cache.getAssignableLiveInstances().keySet();
 
     ClusterConfig clusterConfig = cache.getClusterConfig();
     long delayTime = DelayedRebalanceUtil.getRebalanceDelay(idealState, clusterConfig);
     Set<String> activeNodes = DelayedRebalanceUtil
         .getActiveNodes(allNodes, idealState, liveNodes, cache.getInstanceOfflineTimeMap(),
-            cache.getLiveInstances().keySet(), cache.getInstanceConfigMap(), delayTime,
+            cache.getAssignableLiveInstances().keySet(), cache.getAssignableInstanceConfigMap(),
+            delayTime,
             clusterConfig);
 
     String stateModelDefName = idealState.getStateModelDefRef();

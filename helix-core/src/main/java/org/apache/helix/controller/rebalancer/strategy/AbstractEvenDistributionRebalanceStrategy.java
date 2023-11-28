@@ -87,7 +87,7 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
       ResourceControllerDataProvider clusterData) {
     // validate the instance configs
-    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     if (instanceConfigMap == null || !instanceConfigMap.keySet().containsAll(allNodes)) {
       throw new HelixException(String.format("Config for instances %s is not found!",
               allNodes.removeAll(instanceConfigMap.keySet())));
@@ -116,7 +116,8 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
     if (!origPartitionMap.isEmpty()) {
       Map<String, List<Node>> finalPartitionMap = null;
       Topology allNodeTopo =
-              new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(), clusterData.getClusterConfig());
+          new Topology(allNodes, allNodes, clusterData.getAssignableInstanceConfigMap(),
+              clusterData.getClusterConfig());
       // Transform current assignment to instance->partitions map, and get total partitions
       Map<Node, List<String>> nodeToPartitionMap =
           convertPartitionMap(origPartitionMap, allNodeTopo);

@@ -64,16 +64,16 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
     return assignment.get(resourceName).getReplicaMap(new Partition(partitionName));
   }
 
-  protected double calculateAssignmentScore(String nodeName, String state,
+  protected double calculateAssignmentScore(String logicalId, String state,
       Map<String, String> instanceToStateMap) {
-    if (instanceToStateMap.containsKey(nodeName)) {
+    if (instanceToStateMap.containsKey(logicalId)) {
       // The score when the proposed allocation partially matches the assignment plan but will
       // require a state transition.
       double scoreWithStateTransitionCost =
           MIN_SCORE + (MAX_SCORE - MIN_SCORE) * STATE_TRANSITION_COST_FACTOR;
       // if state matches, no state transition required for the proposed assignment; if state does
       // not match, then the proposed assignment requires state transition.
-      return state.equals(instanceToStateMap.get(nodeName)) ? MAX_SCORE
+      return state.equals(instanceToStateMap.get(logicalId)) ? MAX_SCORE
           : scoreWithStateTransitionCost;
     }
     return MIN_SCORE;

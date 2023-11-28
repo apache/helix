@@ -68,7 +68,7 @@ public class TestCustomRebalancer {
     when(cache.getStateModelDef(stateModelName)).thenReturn(stateModelDef);
     when(cache.getDisabledInstancesForPartition(resource.getResourceName(), partitionName))
         .thenReturn(ImmutableSet.of(instanceName));
-    when(cache.getLiveInstances())
+    when(cache.getAssignableLiveInstances())
         .thenReturn(ImmutableMap.of(instanceName, new LiveInstance(instanceName)));
 
     CurrentStateOutput currOutput = new CurrentStateOutput();

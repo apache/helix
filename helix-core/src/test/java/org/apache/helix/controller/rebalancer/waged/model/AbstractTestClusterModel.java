@@ -103,6 +103,7 @@ public abstract class AbstractTestClusterModel {
     testInstanceConfig.setInstanceEnabledForPartition("TestResource", "TestPartition", false);
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
+    when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     // 2. Set up the basic cluster configuration.
@@ -121,7 +122,7 @@ public abstract class AbstractTestClusterModel {
     LiveInstance testLiveInstance = createMockLiveInstance(_testInstanceId);
     Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
     liveInstanceMap.put(_testInstanceId, testLiveInstance);
-    when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
+    when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
 
     // 4. Mock two resources, each with 2 partitions on the default instance.
     // The instance will have the following partitions assigned
@@ -288,7 +289,7 @@ public abstract class AbstractTestClusterModel {
 
   protected Set<AssignableNode> generateNodes(ResourceControllerDataProvider testCache) {
     Set<AssignableNode> nodeSet = new HashSet<>();
-    testCache.getInstanceConfigMap().values().forEach(config -> nodeSet
+    testCache.getAssignableInstanceConfigMap().values().forEach(config -> nodeSet
         .add(new AssignableNode(testCache.getClusterConfig(), config, config.getInstanceName())));
     return nodeSet;
   }

@@ -50,6 +50,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
         BuiltInStateModelDefinitions.MasterSlave.name());
     setupLiveInstances(5);
     setupStateModel();
+    setupInstances(5);
 
     Map<String, Resource> resourceMap =
         getResourceMap(resources, numPartition, BuiltInStateModelDefinitions.MasterSlave.name());

@@ -243,7 +243,7 @@ public class TestAutoRebalanceStrategy {
           }
         }
         Map<String, String> assignment = new AutoRebalancer()
-            .computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), _stateModelDef,
+            .computeBestPossibleStateForPartition(cache.getAssignableLiveInstances().keySet(), _stateModelDef,
                 preferenceList, currentStateOutput, disabled, is, clusterConfig, p,
                 MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER);
         mapResult.put(partition, assignment);

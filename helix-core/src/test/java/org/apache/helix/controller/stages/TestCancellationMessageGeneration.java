@@ -28,7 +28,6 @@ import java.util.Map;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.common.PartitionStateMap;
-import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.LiveInstance;

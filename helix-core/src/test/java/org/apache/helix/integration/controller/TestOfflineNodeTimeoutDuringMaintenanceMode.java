@@ -208,15 +208,15 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         new ResourceControllerDataProvider(CLUSTER_NAME);
     resourceControllerDataProvider.refresh(_helixDataAccessor);
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance3));
+        .assertFalse(resourceControllerDataProvider.getAssignableLiveInstances().containsKey(instance3));
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance4));
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance5));
+        .assertFalse(resourceControllerDataProvider.getAssignableLiveInstances().containsKey(instance4));
+    Assert.assertTrue(resourceControllerDataProvider.getAssignableLiveInstances().containsKey(instance5));
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance6));
+        .assertFalse(resourceControllerDataProvider.getAssignableLiveInstances().containsKey(instance6));
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance7));
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance8));
+        .assertFalse(resourceControllerDataProvider.getAssignableLiveInstances().containsKey(instance7));
+    Assert.assertTrue(resourceControllerDataProvider.getAssignableLiveInstances().containsKey(instance8));
   }
 
   /**

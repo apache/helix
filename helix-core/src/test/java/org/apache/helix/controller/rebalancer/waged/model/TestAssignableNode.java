@@ -64,7 +64,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     expectedCapacityMap.put("item3", 30);
 
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
-        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+        testCache.getAssignableInstanceConfigMap().get(_testInstanceId), _testInstanceId);
     assignableNode.assignInitBatch(assignmentSet);
     Assert.assertEquals(assignableNode.getAssignedPartitionsMap(), expectedAssignment);
     Assert.assertEquals(assignableNode.getAssignedReplicaCount(), 4);
@@ -177,7 +177,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
 
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
-        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+        testCache.getAssignableInstanceConfigMap().get(_testInstanceId), _testInstanceId);
     AssignableReplica removingReplica = new AssignableReplica(testCache.getClusterConfig(),
         testCache.getResourceConfig(_resourceNames.get(1)), _partitionNames.get(2) + "non-exist",
         "MASTER", 1);
@@ -192,7 +192,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
-        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+        testCache.getAssignableInstanceConfigMap().get(_testInstanceId), _testInstanceId);
     assignableNode.assignInitBatch(assignmentSet);
     AssignableReplica duplicateReplica = new AssignableReplica(testCache.getClusterConfig(),
         testCache.getResourceConfig(_resourceNames.get(0)), _partitionNames.get(0), "SLAVE", 2);
@@ -213,10 +213,10 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     testInstanceConfig.setDomain("instance=testInstance");
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
-    when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     AssignableNode node = new AssignableNode(testCache.getClusterConfig(),
-        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+        testCache.getAssignableInstanceConfigMap().get(_testInstanceId), _testInstanceId);
     Assert.assertEquals(node.getFaultZone(), "Helix_default_zone");
   }
 
@@ -234,10 +234,10 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     testInstanceConfig.setDomain("zone=2, instance=testInstance");
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
-    when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
-        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+        testCache.getAssignableInstanceConfigMap().get(_testInstanceId), _testInstanceId);
 
     Assert.assertEquals(assignableNode.getFaultZone(), "2");
 
@@ -251,10 +251,10 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     testInstanceConfig.setDomain("zone=2, instance=testInstance");
     instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
-    when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
 
     assignableNode = new AssignableNode(testCache.getClusterConfig(),
-        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+        testCache.getAssignableInstanceConfigMap().get(_testInstanceId), _testInstanceId);
 
     Assert.assertEquals(assignableNode.getFaultZone(), "2/testInstance");
 
@@ -268,10 +268,10 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     testInstanceConfig.setDomain("rack=3, zone=2, instance=testInstanceConfigId");
     instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
-    when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(testCache.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
     when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
     assignableNode = new AssignableNode(testCache.getClusterConfig(),
-        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+        testCache.getAssignableInstanceConfigMap().get(_testInstanceId), _testInstanceId);
     Assert.assertEquals(assignableNode.getFaultZone(), "3/2");
   }
 

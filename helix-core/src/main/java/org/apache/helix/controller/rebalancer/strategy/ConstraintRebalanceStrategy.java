@@ -154,7 +154,7 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
     // Since instance weight will be replaced by constraint evaluation, record it in advance to avoid
     // overwriting.
     Map<String, Integer> instanceWeightRecords = new HashMap<>();
-    for (InstanceConfig instanceConfig : clusterData.getInstanceConfigMap().values()) {
+    for (InstanceConfig instanceConfig : clusterData.getAssignableInstanceConfigMap().values()) {
       if (instanceConfig.getWeight() != InstanceConfig.WEIGHT_NOT_SET) {
         instanceWeightRecords.put(instanceConfig.getInstanceName(), instanceConfig.getWeight());
       }
@@ -163,7 +163,7 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
     List<String> candidates = new ArrayList<>(allNodes);
     // Only calculate for configured nodes.
     // Remove all non-configured nodes.
-    candidates.retainAll(clusterData.getAllInstances());
+    candidates.retainAll(clusterData.getAssignableInstances());
 
     // For generating the IdealState ZNRecord
     Map<String, List<String>> preferenceList = new HashMap<>();
@@ -207,7 +207,7 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
 
     // recover the original weight
     for (String instanceName : instanceWeightRecords.keySet()) {
-      clusterData.getInstanceConfigMap().get(instanceName)
+      clusterData.getAssignableInstanceConfigMap().get(instanceName)
           .setWeight(instanceWeightRecords.get(instanceName));
     }
 
@@ -297,7 +297,7 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
     }
     // Limit the weight to be at least MIN_INSTANCE_WEIGHT
     for (int i = 0; i < instancePriority.length; i++) {
-      clusterData.getInstanceConfigMap().get(qualifiedNodes.get(i))
+      clusterData.getAssignableInstanceConfigMap().get(qualifiedNodes.get(i))
           .setWeight(instancePriority[i] - baseline + MIN_INSTANCE_WEIGHT);
     }
 

@@ -572,6 +572,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     setupIdealState(numOfLiveInstances, resources, numOfLiveInstances, numOfReplicas,
         IdealState.RebalanceMode.FULL_AUTO, "OnlineOffline");
     setupStateModel();
+    setupInstances(numOfLiveInstances);
     setupLiveInstances(numOfLiveInstances);
 
     // Set up cluster configs

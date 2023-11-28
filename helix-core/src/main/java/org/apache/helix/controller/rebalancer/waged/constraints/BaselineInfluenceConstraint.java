@@ -44,7 +44,7 @@ public class BaselineInfluenceConstraint extends AbstractPartitionMovementConstr
 
     Map<String, String> baselineAssignment =
         getStateMap(replica, clusterContext.getBaselineAssignment());
-    return calculateAssignmentScore(node.getInstanceName(), replica.getReplicaState(),
+    return calculateAssignmentScore(node.getLogicalId(), replica.getReplicaState(),
         baselineAssignment);
   }
 }

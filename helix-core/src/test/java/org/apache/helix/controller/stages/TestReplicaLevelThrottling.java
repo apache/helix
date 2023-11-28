@@ -71,7 +71,7 @@ public class TestReplicaLevelThrottling extends BaseStageTest {
     when(mock.cache.getClusterConfig()).thenReturn((ClusterConfig) cacheMap.get(CacheKeys.clusterConfig.name()));
     when(mock.cache.getStateModelDef((String) cacheMap.get(CacheKeys.stateModelName.name()))).thenReturn(
         (StateModelDefinition) cacheMap.get(CacheKeys.stateModelDef.name()));
-    when(mock.cache.getEnabledLiveInstances()).thenReturn(new HashSet<>(
+    when(mock.cache.getAssignableEnabledLiveInstances()).thenReturn(new HashSet<>(
         ((Map<String, List<String>>) cacheMap.get(CacheKeys.preferenceList.name())).values().iterator().next()));
     when(mock.cache.getLiveInstances()).thenReturn(new HashSet<>(
         ((Map<String, List<String>>) cacheMap.get(CacheKeys.preferenceList.name())).values().iterator().next()).stream()

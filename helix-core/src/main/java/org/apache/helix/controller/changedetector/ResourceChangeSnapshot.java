@@ -50,10 +50,12 @@ import org.apache.helix.model.ResourceConfig;
 class ResourceChangeSnapshot {
 
   private Set<HelixConstants.ChangeType> _changedTypes;
-  private Map<String, InstanceConfig> _instanceConfigMap;
+  private Map<String, InstanceConfig> _allInstanceConfigMap;
+  private Map<String, InstanceConfig> _assignableInstanceConfigMap;
   private Map<String, IdealState> _idealStateMap;
   private Map<String, ResourceConfig> _resourceConfigMap;
-  private Map<String, LiveInstance> _liveInstances;
+  private Map<String, LiveInstance> _allLiveInstances;
+  private Map<String, LiveInstance> _assignableLiveInstances;
   private ClusterConfig _clusterConfig;
 
   /**
@@ -61,10 +63,12 @@ class ResourceChangeSnapshot {
    */
   ResourceChangeSnapshot() {
     _changedTypes = new HashSet<>();
-    _instanceConfigMap = new HashMap<>();
+    _allInstanceConfigMap = new HashMap<>();
+    _assignableInstanceConfigMap = new HashMap<>();
     _idealStateMap = new HashMap<>();
     _resourceConfigMap = new HashMap<>();
-    _liveInstances = new HashMap<>();
+    _allLiveInstances = new HashMap<>();
+    _assignableLiveInstances = new HashMap<>();
     _clusterConfig = null;
   }
 
@@ -80,12 +84,16 @@ class ResourceChangeSnapshot {
   ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider,
       boolean ignoreNonTopologyChange) {
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
-
-    _instanceConfigMap = ignoreNonTopologyChange ?
+    _allInstanceConfigMap = ignoreNonTopologyChange ?
         dataProvider.getInstanceConfigMap().entrySet().parallelStream().collect(Collectors
             .toMap(e -> e.getKey(),
                 e -> InstanceConfigTrimmer.getInstance().trimProperty(e.getValue()))) :
         new HashMap<>(dataProvider.getInstanceConfigMap());
+    _assignableInstanceConfigMap = ignoreNonTopologyChange ?
+        dataProvider.getAssignableInstanceConfigMap().entrySet().parallelStream().collect(Collectors
+            .toMap(e -> e.getKey(),
+                e -> InstanceConfigTrimmer.getInstance().trimProperty(e.getValue()))) :
+        new HashMap<>(dataProvider.getAssignableInstanceConfigMap());
     _idealStateMap = ignoreNonTopologyChange ?
         dataProvider.getIdealStates().entrySet().parallelStream().collect(Collectors
             .toMap(e -> e.getKey(),
@@ -99,7 +107,8 @@ class ResourceChangeSnapshot {
     _clusterConfig = ignoreNonTopologyChange ?
         ClusterConfigTrimmer.getInstance().trimProperty(dataProvider.getClusterConfig()) :
         dataProvider.getClusterConfig();
-    _liveInstances = new HashMap<>(dataProvider.getLiveInstances());
+    _allLiveInstances = new HashMap<>(dataProvider.getLiveInstances());
+    _assignableLiveInstances = new HashMap<>(dataProvider.getAssignableLiveInstances());
   }
 
   /**
@@ -108,10 +117,12 @@ class ResourceChangeSnapshot {
    */
   ResourceChangeSnapshot(ResourceChangeSnapshot snapshot) {
     _changedTypes = new HashSet<>(snapshot._changedTypes);
-    _instanceConfigMap = new HashMap<>(snapshot._instanceConfigMap);
+    _allInstanceConfigMap = new HashMap<>(snapshot._allInstanceConfigMap);
+    _assignableInstanceConfigMap = new HashMap<>(snapshot._assignableInstanceConfigMap);
     _idealStateMap = new HashMap<>(snapshot._idealStateMap);
     _resourceConfigMap = new HashMap<>(snapshot._resourceConfigMap);
-    _liveInstances = new HashMap<>(snapshot._liveInstances);
+    _allLiveInstances = new HashMap<>(snapshot._allLiveInstances);
+    _assignableLiveInstances = new HashMap<>(snapshot._assignableLiveInstances);
     _clusterConfig = snapshot._clusterConfig;
   }
 
@@ -120,7 +131,11 @@ class ResourceChangeSnapshot {
   }
 
   Map<String, InstanceConfig> getInstanceConfigMap() {
-    return _instanceConfigMap;
+    return _allInstanceConfigMap;
+  }
+
+  Map<String, InstanceConfig> getAssignableInstanceConfigMap() {
+    return _assignableInstanceConfigMap;
   }
 
   Map<String, IdealState> getIdealStateMap() {
@@ -132,7 +147,11 @@ class ResourceChangeSnapshot {
   }
 
   Map<String, LiveInstance> getLiveInstances() {
-    return _liveInstances;
+    return _allLiveInstances;
+  }
+
+  Map<String, LiveInstance> getAssignableLiveInstances() {
+    return _assignableLiveInstances;
   }
 
   ClusterConfig getClusterConfig() {

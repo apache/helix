@@ -113,13 +113,13 @@ public class ResourceChangeDetector implements ChangeDetector {
       HelixConstants.ChangeType changeType, ResourceChangeSnapshot snapshot) {
     switch (changeType) {
     case INSTANCE_CONFIG:
-      return snapshot.getInstanceConfigMap();
+      return snapshot.getAssignableInstanceConfigMap();
     case IDEAL_STATE:
       return snapshot.getIdealStateMap();
     case RESOURCE_CONFIG:
       return snapshot.getResourceConfigMap();
     case LIVE_INSTANCE:
-      return snapshot.getLiveInstances();
+      return snapshot.getAssignableLiveInstances();
     case CLUSTER_CONFIG:
       ClusterConfig config = snapshot.getClusterConfig();
       if (config == null) {

@@ -2103,12 +2103,13 @@ public class ZKHelixAdmin implements HelixAdmin {
           throw new HelixException("Invalid or unsupported state model definition");
         }
         masterStateValue = state;
-      } else if (count.equalsIgnoreCase("R")) {
+      } else if (count.equalsIgnoreCase(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
         if (slaveStateValue != null) {
           throw new HelixException("Invalid or unsupported state model definition");
         }
         slaveStateValue = state;
-      } else if (count.equalsIgnoreCase("N")) {
+      } else if (count.equalsIgnoreCase(
+          StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)) {
         if (!(masterStateValue == null && slaveStateValue == null)) {
           throw new HelixException("Invalid or unsupported state model definition");
         }

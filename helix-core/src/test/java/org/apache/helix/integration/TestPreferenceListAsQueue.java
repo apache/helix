@@ -266,7 +266,8 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
         .addState("ONLINE", 1).addState("OFFLINE").addState("DROPPED").addState("ERROR")
         .initialState("OFFLINE").addTransition("ERROR", "OFFLINE", 1)
         .addTransition("ONLINE", "OFFLINE", 2).addTransition("OFFLINE", "DROPPED", 3)
-        .addTransition("OFFLINE", "ONLINE", 4).dynamicUpperBound("ONLINE", "R")
+        .addTransition("OFFLINE", "ONLINE", 4)
+        .dynamicUpperBound("ONLINE", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)
         .upperBound("OFFLINE", -1).upperBound("DROPPED", -1).upperBound("ERROR", -1);
     return builder.build();
   }

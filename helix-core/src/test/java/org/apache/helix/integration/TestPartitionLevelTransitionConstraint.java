@@ -230,7 +230,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
     // static constraint
     builder.upperBound("MASTER", 1);
     // dynamic constraint, R means it should be derived based on the replication factor.
-    builder.dynamicUpperBound("SLAVE", "R");
+    builder.dynamicUpperBound("SLAVE", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
 
     StateModelDefinition statemodelDefinition = builder.build();
 

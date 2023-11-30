@@ -67,7 +67,8 @@ public final class OnlineOfflineWithBootstrapSMD extends StateModelDefinition {
     builder.addTransition(States.OFFLINE.name(), HelixDefinedState.DROPPED.name());
 
     // bounds
-    builder.dynamicUpperBound(States.ONLINE.name(), "R");
+    builder.dynamicUpperBound(States.ONLINE.name(),
+        StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
 
     return new OnlineOfflineWithBootstrapSMD(builder.build().getRecord());
   }

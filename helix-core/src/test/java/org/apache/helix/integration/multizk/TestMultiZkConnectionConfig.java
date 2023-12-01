@@ -646,6 +646,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
       // Clean up
       clusterConfig = new ClusterConfig(cluster);
       configAccessorMultiZk.setClusterConfig(cluster, clusterConfig);
+      configAccessorSingleZk.close();
     });
   }
 

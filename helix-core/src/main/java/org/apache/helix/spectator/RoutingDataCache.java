@@ -62,8 +62,8 @@ class RoutingDataCache extends BasicClusterDataCache {
   // propertyCache, this hardcoded list of fields won't be necessary.
   private Map<String, CustomizedViewCache> _customizedViewCaches;
   private TargetExternalViewCache _targetExternalViewCache;
-  private Map<String, LiveInstance> _routableLiveInstancesMap;
-  private Map<String, InstanceConfig> _routableInstanceConfigsMap;
+  private Map<String, LiveInstance> _routableLiveInstanceMap;
+  private Map<String, InstanceConfig> _routableInstanceConfigMap;
 
   public RoutingDataCache(String clusterName, PropertyType sourceDataType) {
     this (clusterName, ImmutableMap.of(sourceDataType, Collections.emptyList()));
@@ -83,8 +83,8 @@ class RoutingDataCache extends BasicClusterDataCache {
         .forEach(customizedStateType -> _customizedViewCaches.put(customizedStateType,
             new CustomizedViewCache(clusterName, customizedStateType)));
     _targetExternalViewCache = new TargetExternalViewCache(clusterName);
-    _routableInstanceConfigsMap = new HashMap<>();
-    _routableLiveInstancesMap = new HashMap<>();
+    _routableInstanceConfigMap = new HashMap<>();
+    _routableLiveInstanceMap = new HashMap<>();
     requireFullRefresh();
   }
 
@@ -113,10 +113,10 @@ class RoutingDataCache extends BasicClusterDataCache {
     super.refresh(accessor);
 
     if (refreshRoutableInstanceConfigs) {
-      updateRoutableInstanceConfigs(_instanceConfigPropertyCache.getPropertyMap());
+      updateRoutableInstanceConfigMap(_instanceConfigPropertyCache.getPropertyMap());
     }
     if (refreshRoutableLiveInstances) {
-      updateRoutableLiveInstances(getRoutableInstanceConfigMap(),
+      updateRoutableLiveInstanceMap(getRoutableInstanceConfigMap(),
           _liveInstancePropertyCache.getPropertyMap());
     }
 
@@ -181,16 +181,16 @@ class RoutingDataCache extends BasicClusterDataCache {
     }
   }
 
-  private void updateRoutableInstanceConfigs(Map<String, InstanceConfig> instanceConfigMap) {
-    _routableInstanceConfigsMap = instanceConfigMap.entrySet().stream().filter(
+  private void updateRoutableInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
+    _routableInstanceConfigMap = instanceConfigMap.entrySet().stream().filter(
             (instanceConfigEntry) -> !NON_ROUTABLE_INSTANCE_OPERATIONS.contains(
                 instanceConfigEntry.getValue().getInstanceOperation()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  private void updateRoutableLiveInstances(Map<String, InstanceConfig> instanceConfigMap,
+  private void updateRoutableLiveInstanceMap(Map<String, InstanceConfig> instanceConfigMap,
       Map<String, LiveInstance> liveInstanceMap) {
-    _routableLiveInstancesMap = liveInstanceMap.entrySet().stream().filter(
+    _routableLiveInstanceMap = liveInstanceMap.entrySet().stream().filter(
             (liveInstanceEntry) -> instanceConfigMap.containsKey(liveInstanceEntry.getKey())
                 && !NON_ROUTABLE_INSTANCE_OPERATIONS.contains(
                 instanceConfigMap.get(liveInstanceEntry.getKey()).getInstanceOperation()))
@@ -204,7 +204,7 @@ class RoutingDataCache extends BasicClusterDataCache {
    * @return a map of LiveInstances
    */
   public Map<String, LiveInstance> getRoutableLiveInstances() {
-    return Collections.unmodifiableMap(_routableLiveInstancesMap);
+    return Collections.unmodifiableMap(_routableLiveInstanceMap);
   }
 
   /**
@@ -213,7 +213,7 @@ class RoutingDataCache extends BasicClusterDataCache {
    * @return a map of InstanceConfigs
    */
   public Map<String, InstanceConfig> getRoutableInstanceConfigMap() {
-    return Collections.unmodifiableMap(_routableInstanceConfigsMap);
+    return Collections.unmodifiableMap(_routableInstanceConfigMap);
   }
 
   /**

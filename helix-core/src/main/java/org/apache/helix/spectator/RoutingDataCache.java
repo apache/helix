@@ -145,6 +145,8 @@ class RoutingDataCache extends BasicClusterDataCache {
            * TODO: logic.
            **/
           _liveInstancePropertyCache.refresh(accessor);
+          updateRoutableLiveInstanceMap(getRoutableInstanceConfigMap(),
+              _liveInstancePropertyCache.getPropertyMap());
           Map<String, LiveInstance> liveInstanceMap = getRoutableLiveInstances();
           _currentStateCache.refresh(accessor, liveInstanceMap);
           LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");

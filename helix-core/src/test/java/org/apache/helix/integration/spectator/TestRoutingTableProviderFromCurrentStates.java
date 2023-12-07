@@ -263,7 +263,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testRoutingTableWithCurrentStates")
-  public void TestInconsistentStateEventProcessing() throws Exception {
+  public void testInconsistentStateEventProcessing() throws Exception {
     // This test requires an additional HelixManager since one of the provider event processing will
     // be blocked.
     HelixManager helixManager = HelixManagerFactory
@@ -305,10 +305,10 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       IdealState idealState =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       String targetPartitionName = idealState.getPartitionSet().iterator().next();
-      // Wait until the routingtable is updated.
+      // Wait until the routing table is updated.
       BlockingCurrentStateRoutingTableProvider finalRoutingTableCS = routingTableCS;
       Assert.assertTrue(TestHelper.verify(
-          () -> finalRoutingTableCS.getInstances(db, targetPartitionName, "MASTER").size() > 0,
+          () -> !finalRoutingTableCS.getInstances(db, targetPartitionName, "MASTER").isEmpty(),
           2000));
       String targetNodeName =
           routingTableCS.getInstances(db, targetPartitionName, "MASTER").get(0).getInstanceName();
@@ -352,7 +352,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
     }
   }
 
-  @Test(dependsOnMethods = { "TestInconsistentStateEventProcessing" })
+  @Test(dependsOnMethods = {"testInconsistentStateEventProcessing"})
   public void testWithSupportSourceDataType() {
     new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW).shutdown();
     new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW).shutdown();

@@ -124,7 +124,7 @@ public class Quickstart {
     builder.upperBound(LEADER, 1);
     // dynamic constraint, R means it should be derived based on the replication
     // factor.
-    builder.dynamicUpperBound(STANDBY, "R");
+    builder.dynamicUpperBound(STANDBY, StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
 
     StateModelDefinition statemodelDefinition = builder.build();
     return statemodelDefinition;

@@ -37,7 +37,6 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.CustomRebalancer;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
@@ -150,8 +149,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
               commonInstances.forEach(swapOutInstance -> {
                 if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState())) {
-                  if (AbstractRebalancer.getStateCount(stateModelDef.getTopState(), stateModelDef,
-                      stateMap.size() + 1, stateMap.size() + 1) > stateMap.size()) {
+
+                  String topStateCount =
+                      stateModelDef.getNumInstancesPerState(stateModelDef.getTopState());
+                  if (topStateCount.equals(
+                      StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)
+                      || topStateCount.equals(
+                      StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
                     // If the swap-out instance's replica is a topState and the StateModel allows for
                     // another replica with the topState to be added, set the swap-in instance's replica
                     // to the topState.

@@ -122,7 +122,8 @@ public class StateModelDefinitionValidator {
       try {
         Integer.parseInt(count);
       } catch (NumberFormatException e) {
-        if (!count.equals("N") && !count.equals("R")) {
+        if (!count.equals(StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)
+            && !count.equals(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
           _logger.error("State " + state + " has invalid count " + count + ", state model: "
               + _stateModelDef.getId());
           return false;

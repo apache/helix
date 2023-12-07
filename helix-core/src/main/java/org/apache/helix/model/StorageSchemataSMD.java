@@ -63,7 +63,8 @@ public final class StorageSchemataSMD extends StateModelDefinition {
     builder.addTransition(States.OFFLINE.name(), HelixDefinedState.DROPPED.name());
 
     // bounds
-    builder.dynamicUpperBound(States.MASTER.name(), "N");
+    builder.dynamicUpperBound(States.MASTER.name(),
+        StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES);
 
     return builder.build();
   }
@@ -88,7 +89,7 @@ public final class StorageSchemataSMD extends StateModelDefinition {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
       if (state.equals("MASTER")) {
-        metadata.put("count", "N");
+        metadata.put("count", StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES);
         record.setMapField(key, metadata);
       } else if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");

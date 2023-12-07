@@ -49,6 +49,8 @@ public class StateModelDefinition extends HelixProperty {
   }
 
   public static final int TOP_STATE_PRIORITY = 1;
+  public static final String STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES = "N";
+  public static final String STATE_REPLICA_COUNT_ALL_REPLICAS = "R";
 
   /**
    * state model's initial state
@@ -200,7 +202,7 @@ public class StateModelDefinition extends HelixProperty {
   /**
    * Number of instances that can be in each state
    * @param state the state name
-   * @return maximum instance count per state, can be "N" or "R"
+   * @return maximum instance count per state, can be STATE_REPLICA_COUNT_ALL_NODES or STATE_REPLICA_COUNT_ALL_REPLICAS
    */
   public String getNumInstancesPerState(String state) {
     return _statesCountMap.get(state);
@@ -449,11 +451,11 @@ public class StateModelDefinition extends HelixProperty {
       if (candidateNodeNum <= 0) {
         break;
       }
-      if ("N".equals(num)) {
+      if (STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES.equals(num)) {
         stateCountMap.put(state, candidateNodeNum);
         replicas -= candidateNodeNum;
         break;
-      } else if ("R".equals(num)) {
+      } else if (STATE_REPLICA_COUNT_ALL_REPLICAS.equals(num)) {
         // wait until we get the counts for all other states
         continue;
       } else {
@@ -475,7 +477,7 @@ public class StateModelDefinition extends HelixProperty {
     // get state count for R
     for (String state : statesPriorityList) {
       String num = getNumInstancesPerState(state);
-      if ("R".equals(num)) {
+      if (STATE_REPLICA_COUNT_ALL_REPLICAS.equals(num)) {
         if (candidateNodeNum > 0 && replicas > 0) {
           stateCountMap.put(state, replicas < candidateNodeNum ? replicas : candidateNodeNum);
         }

@@ -68,7 +68,8 @@ public final class LeaderStandbySMD extends StateModelDefinition {
 
     // bounds
     builder.upperBound(States.LEADER.name(), 1);
-    builder.dynamicUpperBound(States.STANDBY.name(), "R");
+    builder.dynamicUpperBound(States.STANDBY.name(),
+        StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
 
     return builder.build();
   }
@@ -97,7 +98,7 @@ public final class LeaderStandbySMD extends StateModelDefinition {
         record.setMapField(key, metadata);
       }
       if (state.equals("STANDBY")) {
-        metadata.put("count", "R");
+        metadata.put("count", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
         record.setMapField(key, metadata);
       }
       if (state.equals("OFFLINE")) {

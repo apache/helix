@@ -230,7 +230,7 @@ public class TestStateModelValidity {
         .upperBound("MASTER", 1)
 
         // R indicates an upper bound of number of replicas for each partition
-        .dynamicUpperBound("SLAVE", "R")
+        .dynamicUpperBound("SLAVE", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)
 
         // Add some high-priority transitions
         .addTransition("SLAVE", "MASTER", 1).addTransition("OFFLINE", "SLAVE", 2)

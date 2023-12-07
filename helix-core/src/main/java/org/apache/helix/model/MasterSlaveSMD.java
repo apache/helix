@@ -69,7 +69,8 @@ public final class MasterSlaveSMD extends StateModelDefinition {
 
     // bounds
     builder.upperBound(States.MASTER.name(), 1);
-    builder.dynamicUpperBound(States.SLAVE.name(), "R");
+    builder.dynamicUpperBound(States.SLAVE.name(),
+        StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
 
     return builder.build();
   }
@@ -98,7 +99,7 @@ public final class MasterSlaveSMD extends StateModelDefinition {
         metadata.put("count", "1");
         record.setMapField(key, metadata);
       } else if (state.equals("SLAVE")) {
-        metadata.put("count", "R");
+        metadata.put("count", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
         record.setMapField(key, metadata);
       } else if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");

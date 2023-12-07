@@ -262,9 +262,9 @@ public class MessageSelectionStage extends AbstractBaseStage {
     for (String state : statePriorityList) {
       String numInstancesPerState = stateModelDefinition.getNumInstancesPerState(state);
       int max = -1;
-      if ("N".equals(numInstancesPerState)) {
+      if (StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES.equals(numInstancesPerState)) {
         max = cache.getLiveInstances().size();
-      } else if ("R".equals(numInstancesPerState)) {
+      } else if (StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS.equals(numInstancesPerState)) {
         // idealState is null when resource has been dropped,
         // R can't be evaluated and ignore state constraints
         //if (idealState != null) {

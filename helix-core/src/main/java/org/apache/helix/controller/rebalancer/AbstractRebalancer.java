@@ -329,9 +329,9 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       int preferenceListSize) {
     String num = stateModelDef.getNumInstancesPerState(state);
     int stateCount = -1;
-    if ("N".equals(num)) {
+    if (StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES.equals(num)) {
       stateCount = liveAndEnabledSize;
-    } else if ("R".equals(num)) {
+    } else if (StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS.equals(num)) {
       stateCount = preferenceListSize;
     } else {
       try {

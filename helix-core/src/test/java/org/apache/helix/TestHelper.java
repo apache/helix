@@ -693,7 +693,7 @@ public class TestHelper {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
       if (state.equals("ONLINE")) {
-        metadata.put("count", "R");
+        metadata.put("count", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
         record.setMapField(key, metadata);
       } else if (state.equals("BOOTSTRAP")) {
         metadata.put("count", "-1");

@@ -63,7 +63,8 @@ public final class OnlineOfflineSMD extends StateModelDefinition {
     builder.addTransition(States.OFFLINE.name(), HelixDefinedState.DROPPED.name());
 
     // bounds
-    builder.dynamicUpperBound(States.ONLINE.name(), "R");
+    builder.dynamicUpperBound(States.ONLINE.name(),
+        StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
 
     return builder.build();
   }
@@ -87,7 +88,7 @@ public final class OnlineOfflineSMD extends StateModelDefinition {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
       if (state.equals("ONLINE")) {
-        metadata.put("count", "R");
+        metadata.put("count", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
         record.setMapField(key, metadata);
       }
       if (state.equals("OFFLINE")) {

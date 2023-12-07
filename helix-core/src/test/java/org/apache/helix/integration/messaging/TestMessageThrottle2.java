@@ -186,7 +186,7 @@ public class TestMessageThrottle2 extends ZkTestBase {
         record.setMapField(key, metadata);
         break;
       case "SLAVE":
-        metadata.put("count", "R");
+        metadata.put("count", StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
         record.setMapField(key, metadata);
         break;
       case "OFFLINE":

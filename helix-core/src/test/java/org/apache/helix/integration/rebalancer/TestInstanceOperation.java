@@ -1,6 +1,8 @@
 package org.apache.helix.integration.rebalancer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,8 +18,12 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixRollbackException;
+import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.constants.InstanceConstants;
@@ -41,10 +47,12 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -70,6 +78,10 @@ public class TestInstanceOperation extends ZkTestBase {
       ImmutableSet.of("MASTER", "LEADER", "SLAVE", "STANDBY");
   private int REPLICA = 3;
   protected ClusterControllerManager _controller;
+  private HelixManager _spectator;
+  private RoutingTableProvider _routingTableProviderDefault;
+  private RoutingTableProvider _routingTableProviderEV;
+  private RoutingTableProvider _routingTableProviderCS;
   List<MockParticipantManager> _participants = new ArrayList<>();
   private List<String> _originalParticipantNames = new ArrayList<>();
   List<String> _participantNames = new ArrayList<>();
@@ -113,6 +125,15 @@ public class TestInstanceOperation extends ZkTestBase {
     _configAccessor = new ConfigAccessor(_gZkClient);
     _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
 
+    // start spectator
+    _spectator =
+        HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "spectator", InstanceType.SPECTATOR,
+            ZK_ADDR);
+    _spectator.connect();
+    _routingTableProviderDefault = new RoutingTableProvider(_spectator);
+    _routingTableProviderEV = new RoutingTableProvider(_spectator, PropertyType.EXTERNALVIEW);
+    _routingTableProviderCS = new RoutingTableProvider(_spectator, PropertyType.CURRENTSTATES);
+
     setupClusterConfig();
 
     createTestDBs(DEFAULT_RESOURCE_DELAY_TIME);
@@ -120,6 +141,18 @@ public class TestInstanceOperation extends ZkTestBase {
     setUpWagedBaseline();
 
     _admin = new ZKHelixAdmin(_gZkClient);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    for (MockParticipantManager p : _participants) {
+      p.syncStop();
+    }
+    _controller.syncStop();
+    _routingTableProviderDefault.shutdown();
+    _routingTableProviderEV.shutdown();
+    _routingTableProviderCS.shutdown();
+    _spectator.disconnect();
   }
 
   private void setupClusterConfig() {
@@ -696,11 +729,20 @@ public class TestInstanceOperation extends ZkTestBase {
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
+
+    // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, false);
+
     // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Validate that the SWAP_IN instance is now in the routing tables.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, true);
+
 
     // Assert that SWAP_OUT instance is disabled and has no partitions assigned to it.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
@@ -759,6 +801,10 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
+
+    // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, false);
 
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -821,6 +867,10 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
+    // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, false);
+
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
@@ -831,6 +881,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Wait for cluster to converge.
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, false);
 
     // Validate there are no partitions on the SWAP_IN instance.
     Assert.assertEquals(getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapInName).size(), 0);
@@ -905,6 +959,10 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
+    // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, false);
+
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
@@ -913,6 +971,9 @@ public class TestInstanceOperation extends ZkTestBase {
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Validate that the SWAP_IN instance is now in the routing tables.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, true);
 
     // Assert that SWAP_OUT instance is disabled and has no partitions assigned to it.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
@@ -1116,6 +1177,10 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Set.of(instanceToSwapInName), Collections.emptySet());
 
+    // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, false);
+
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
@@ -1124,6 +1189,9 @@ public class TestInstanceOperation extends ZkTestBase {
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName));
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Validate that the SWAP_IN instance is now in the routing tables.
+    validateRoutingTablesInstance(getEVs(), instanceToSwapInName, true);
 
     // Assert that SWAP_OUT instance is disabled and has no partitions assigned to it.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
@@ -1244,6 +1312,47 @@ public class TestInstanceOperation extends ZkTestBase {
     }
 
     return instancePartitions;
+  }
+
+  private Map<String, Map<String, String>> getResourcePartitionStateOnInstance(
+      Map<String, ExternalView> evs, String instanceName) {
+    Map<String, Map<String, String>> stateByPartitionByResource = new HashMap<>();
+    for (String resourceEV : evs.keySet()) {
+      for (String partition : evs.get(resourceEV).getPartitionSet()) {
+        if (evs.get(resourceEV).getStateMap(partition).containsKey(instanceName)) {
+          if (!stateByPartitionByResource.containsKey(resourceEV)) {
+            stateByPartitionByResource.put(resourceEV, new HashMap<>());
+          }
+          stateByPartitionByResource.get(resourceEV)
+              .put(partition, evs.get(resourceEV).getStateMap(partition).get(instanceName));
+        }
+      }
+    }
+
+    return stateByPartitionByResource;
+  }
+
+  private Set<String> getInstanceNames(Collection<InstanceConfig> instanceConfigs) {
+    return instanceConfigs.stream().map(InstanceConfig::getInstanceName)
+        .collect(Collectors.toSet());
+  }
+
+  private void validateRoutingTablesInstance(Map<String, ExternalView> evs, String instanceName,
+      boolean shouldContain) {
+    RoutingTableProvider[] routingTableProviders =
+        new RoutingTableProvider[]{_routingTableProviderDefault, _routingTableProviderEV, _routingTableProviderCS};
+    getResourcePartitionStateOnInstance(evs, instanceName).forEach((resource, partitions) -> {
+      partitions.forEach((partition, state) -> {
+        Arrays.stream(routingTableProviders).forEach(rtp -> Assert.assertEquals(
+            getInstanceNames(rtp.getInstancesForResource(resource, partition, state)).contains(
+                instanceName), shouldContain));
+      });
+    });
+
+    Arrays.stream(routingTableProviders).forEach(rtp -> {
+      Assert.assertEquals(getInstanceNames(rtp.getInstanceConfigs()).contains(instanceName),
+          shouldContain);
+    });
   }
 
   private void validateEVCorrect(ExternalView actual, ExternalView original,

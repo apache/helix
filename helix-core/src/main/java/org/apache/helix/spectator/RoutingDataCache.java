@@ -23,8 +23,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -34,9 +36,11 @@ import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.common.caches.CurrentStateSnapshot;
 import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.TargetExternalViewCache;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +51,10 @@ import org.slf4j.LoggerFactory;
 class RoutingDataCache extends BasicClusterDataCache {
   private static Logger LOG = LoggerFactory.getLogger(RoutingDataCache.class.getName());
 
+  // When an instance has any of these instance operations, it should not be routable.
+  private static final ImmutableSet<String> NON_ROUTABLE_INSTANCE_OPERATIONS =
+      ImmutableSet.of(InstanceConstants.InstanceOperation.SWAP_IN.name());
+
   private final Map<PropertyType, List<String>> _sourceDataTypeMap;
 
   private CurrentStateCache _currentStateCache;
@@ -54,6 +62,8 @@ class RoutingDataCache extends BasicClusterDataCache {
   // propertyCache, this hardcoded list of fields won't be necessary.
   private Map<String, CustomizedViewCache> _customizedViewCaches;
   private TargetExternalViewCache _targetExternalViewCache;
+  private Map<String, LiveInstance> _routableLiveInstanceMap;
+  private Map<String, InstanceConfig> _routableInstanceConfigMap;
 
   public RoutingDataCache(String clusterName, PropertyType sourceDataType) {
     this (clusterName, ImmutableMap.of(sourceDataType, Collections.emptyList()));
@@ -73,6 +83,8 @@ class RoutingDataCache extends BasicClusterDataCache {
         .forEach(customizedStateType -> _customizedViewCaches.put(customizedStateType,
             new CustomizedViewCache(clusterName, customizedStateType)));
     _targetExternalViewCache = new TargetExternalViewCache(clusterName);
+    _routableInstanceConfigMap = new HashMap<>();
+    _routableLiveInstanceMap = new HashMap<>();
     requireFullRefresh();
   }
 
@@ -88,7 +100,26 @@ class RoutingDataCache extends BasicClusterDataCache {
     LOG.info("START: RoutingDataCache.refresh() for cluster " + _clusterName);
     long startTime = System.currentTimeMillis();
 
+    // Store whether a refresh for routable instances is necessary, as the super.refresh() call will
+    // set the _propertyDataChangedMap values for the instance config and live instance change types to false.
+    boolean refreshRoutableInstanceConfigs =
+        _propertyDataChangedMap.getOrDefault(HelixConstants.ChangeType.INSTANCE_CONFIG, false);
+    // If there is an InstanceConfig change, update the routable instance configs and live instances.
+    // Must also do live instances because whether and instance is routable is based off of the instance config.
+    boolean refreshRoutableLiveInstances =
+        _propertyDataChangedMap.getOrDefault(HelixConstants.ChangeType.LIVE_INSTANCE, false)
+            || refreshRoutableInstanceConfigs;
+
     super.refresh(accessor);
+
+    if (refreshRoutableInstanceConfigs) {
+      updateRoutableInstanceConfigMap(_instanceConfigPropertyCache.getPropertyMap());
+    }
+    if (refreshRoutableLiveInstances) {
+      updateRoutableLiveInstanceMap(getRoutableInstanceConfigMap(),
+          _liveInstancePropertyCache.getPropertyMap());
+    }
+
     for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
       long start = System.currentTimeMillis();
       switch (propertyType) {
@@ -114,7 +145,9 @@ class RoutingDataCache extends BasicClusterDataCache {
            * TODO: logic.
            **/
           _liveInstancePropertyCache.refresh(accessor);
-          Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
+          updateRoutableLiveInstanceMap(getRoutableInstanceConfigMap(),
+              _liveInstancePropertyCache.getPropertyMap());
+          Map<String, LiveInstance> liveInstanceMap = getRoutableLiveInstances();
           _currentStateCache.refresh(accessor, liveInstanceMap);
           LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");
         }
@@ -148,6 +181,41 @@ class RoutingDataCache extends BasicClusterDataCache {
             _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
       }
     }
+  }
+
+  private void updateRoutableInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
+    _routableInstanceConfigMap = instanceConfigMap.entrySet().stream().filter(
+            (instanceConfigEntry) -> !NON_ROUTABLE_INSTANCE_OPERATIONS.contains(
+                instanceConfigEntry.getValue().getInstanceOperation()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  private void updateRoutableLiveInstanceMap(Map<String, InstanceConfig> instanceConfigMap,
+      Map<String, LiveInstance> liveInstanceMap) {
+    _routableLiveInstanceMap = liveInstanceMap.entrySet().stream().filter(
+            (liveInstanceEntry) -> instanceConfigMap.containsKey(liveInstanceEntry.getKey())
+                && !NON_ROUTABLE_INSTANCE_OPERATIONS.contains(
+                instanceConfigMap.get(liveInstanceEntry.getKey()).getInstanceOperation()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  /**
+   * Returns the LiveInstances for each of the routable instances that are currently up and
+   * running.
+   *
+   * @return a map of LiveInstances
+   */
+  public Map<String, LiveInstance> getRoutableLiveInstances() {
+    return Collections.unmodifiableMap(_routableLiveInstanceMap);
+  }
+
+  /**
+   * Returns the instance config map for all the routable instances that are in the cluster.
+   *
+   * @return a map of InstanceConfigs
+   */
+  public Map<String, InstanceConfig> getRoutableInstanceConfigMap() {
+    return Collections.unmodifiableMap(_routableInstanceConfigMap);
   }
 
   /**

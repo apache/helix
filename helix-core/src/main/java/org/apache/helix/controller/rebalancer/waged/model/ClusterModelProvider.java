@@ -209,13 +209,15 @@ public class ClusterModelProvider {
 
     // Get the set of active logical ids.
     Set<String> activeLogicalIds = activeInstances.stream().map(
-        instanceName -> assignableInstanceConfigMap.get(instanceName)
+        instanceName -> assignableInstanceConfigMap.getOrDefault(instanceName,
+                new InstanceConfig(instanceName))
             .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
     Set<String> assignableLiveInstanceNames = dataProvider.getAssignableLiveInstances().keySet();
     Set<String> assignableLiveInstanceLogicalIds =
         assignableLiveInstanceNames.stream().map(
-            instanceName -> assignableInstanceConfigMap.get(instanceName)
+            instanceName -> assignableInstanceConfigMap.getOrDefault(instanceName,
+                    new InstanceConfig(instanceName))
                 .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
     // Generate replica objects for all the resource partitions.

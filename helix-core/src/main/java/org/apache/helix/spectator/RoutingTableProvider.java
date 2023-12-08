@@ -923,14 +923,16 @@ public class RoutingTableProvider
           case EXTERNALVIEW: {
             String keyReference = generateReferenceKey(propertyType.name(), DEFAULT_STATE_TYPE);
             refreshExternalView(_dataCache.getExternalViews().values(),
-                _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values(),
+                _dataCache.getRoutableInstanceConfigMap().values(),
+                _dataCache.getRoutableLiveInstances().values(),
                 keyReference);
           }
             break;
           case TARGETEXTERNALVIEW: {
             String keyReference = generateReferenceKey(propertyType.name(), DEFAULT_STATE_TYPE);
             refreshExternalView(_dataCache.getTargetExternalViews().values(),
-                _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values(),
+                _dataCache.getRoutableInstanceConfigMap().values(),
+                _dataCache.getRoutableLiveInstances().values(),
                 keyReference);
           }
               break;
@@ -938,13 +940,15 @@ public class RoutingTableProvider
               for (String customizedStateType : _sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
                 String keyReference = generateReferenceKey(propertyType.name(),  customizedStateType);
                 refreshCustomizedView(_dataCache.getCustomizedView(customizedStateType).values(),
-                    _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values(), keyReference);
+                    _dataCache.getRoutableInstanceConfigMap().values(),
+                    _dataCache.getRoutableLiveInstances().values(), keyReference);
               }
               break;
             case CURRENTSTATES: {
               String keyReference = generateReferenceKey(propertyType.name(),  DEFAULT_STATE_TYPE);;
-              refreshCurrentState(_dataCache.getCurrentStatesMap(), _dataCache.getInstanceConfigMap().values(),
-                  _dataCache.getLiveInstances().values(), keyReference);
+              refreshCurrentState(_dataCache.getCurrentStatesMap(),
+                  _dataCache.getRoutableInstanceConfigMap().values(),
+                  _dataCache.getRoutableLiveInstances().values(), keyReference);
               recordPropagationLatency(System.currentTimeMillis(), _dataCache.getCurrentStateSnapshot());
             }
               break;

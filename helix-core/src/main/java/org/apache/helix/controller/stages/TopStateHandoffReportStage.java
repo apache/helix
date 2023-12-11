@@ -22,7 +22,6 @@ package org.apache.helix.controller.stages;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -48,6 +47,8 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
   private static final long DEFAULT_HANDOFF_USER_LATENCY = 0L;
   private static Logger LOG = LoggerFactory.getLogger(TopStateHandoffReportStage.class);
   public static final long TIMESTAMP_NOT_RECORDED = -1L;
+
+  private Map<String, Long> _failingPartitionsInfoMap = new HashMap<>();
 
   @Override
   public AsyncWorkerType getAsyncWorkerType() {
@@ -107,7 +108,7 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
       }
 
       String resourceName = resource.getResourceName();
-      ImmutableMap.Builder<String, Long> failingPartitionsInfoCollector = ImmutableMap.builder();
+      _failingPartitionsInfoMap.clear();
 
       for (Partition partition : resource.getPartitions()) {
         String currentTopStateInstance =
@@ -123,13 +124,12 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
           reportTopStateMissing(cache, resourceName,
               partition, stateModelDef.getTopState(), currentStateOutput);
           reportTopStateHandoffFailIfNecessary(cache, resourceName, partition, durationThreshold,
-              clusterStatusMonitor, failingPartitionsInfoCollector);
+              clusterStatusMonitor);
         }
       }
 
-      ImmutableMap<String, Long> failingPartitionInfoMap = failingPartitionsInfoCollector.build();
-      if (!failingPartitionInfoMap.isEmpty()) {
-        LogUtil.logInfo(LOG, _eventId, String.format("Missing top state for partitions: %s", failingPartitionInfoMap));
+      if (!_failingPartitionsInfoMap.isEmpty()) {
+        LogUtil.logInfo(LOG, _eventId, String.format("Missing top state for partitions: %s", _failingPartitionsInfoMap));
       }
     }
 
@@ -326,8 +326,7 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
    * @param clusterStatusMonitor monitor object
    */
   private void reportTopStateHandoffFailIfNecessary(ResourceControllerDataProvider cache, String resourceName,
-      Partition partition, long durationThreshold, ClusterStatusMonitor clusterStatusMonitor,
-      ImmutableMap.Builder<String, Long> failingPartitionsInfoCollector) {
+      Partition partition, long durationThreshold, ClusterStatusMonitor clusterStatusMonitor) {
     Map<String, Map<String, MissingTopStateRecord>> missingTopStateMap =
         cache.getMissingTopStateMap();
     String partitionName = partition.getPartitionName();
@@ -342,7 +341,7 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
       LogUtil.logDebug(LOG, _eventId, String.format(
           "Missing top state for partition %s beyond %s time. Graceful: %s",
           partitionName, missingDuration, false));
-      failingPartitionsInfoCollector.put(partitionName, missingDuration);
+      _failingPartitionsInfoMap.put(partitionName, missingDuration);
 
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L,

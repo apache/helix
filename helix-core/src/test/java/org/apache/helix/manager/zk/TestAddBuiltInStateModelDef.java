@@ -41,7 +41,6 @@ public class TestAddBuiltInStateModelDef extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.addCluster(clusterName);
     admin.addStateModelDef(clusterName, BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition().getId(),
@@ -78,6 +77,5 @@ public class TestAddBuiltInStateModelDef extends ZkUnitTestBase {
     Assert.assertTrue(ret);
     controller.syncStop();
     admin.dropCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

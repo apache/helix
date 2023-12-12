@@ -63,8 +63,6 @@ public class TestResourceAccessor extends AbstractTestClass {
 
   @Test
   public void testGetResources() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body = get("clusters/" + CLUSTER_NAME + "/resources", null,
         Response.Status.OK.getStatusCode(), true);
 
@@ -77,12 +75,10 @@ public class TestResourceAccessor extends AbstractTestClass {
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
     Assert.assertEquals(resources, _resourcesMap.get("TestCluster_0"), "Resources from response: "
         + resources + " vs clusters actually: " + _resourcesMap.get("TestCluster_0"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetResources")
   public void testGetResource() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME, null,
         Response.Status.OK.getStatusCode(), true);
 
@@ -93,12 +89,10 @@ public class TestResourceAccessor extends AbstractTestClass {
     IdealState originIdealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, RESOURCE_NAME);
     Assert.assertEquals(idealState, originIdealState);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetResource")
   public void testAddResources() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String newResourceName = "newResource";
     IdealState idealState = new IdealState(newResourceName);
     idealState.getRecord().getSimpleFields().putAll(_gSetupTool.getClusterManagementTool()
@@ -125,48 +119,37 @@ public class TestResourceAccessor extends AbstractTestClass {
         .setRebalanceStrategy("DEFAULT").build();
     Assert.assertEquals(queryIdealState, _gSetupTool.getClusterManagementTool()
         .getResourceIdealState(CLUSTER_NAME, newResourceName + "0"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddResources")
   public void testResourceConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs", null,
         Response.Status.OK.getStatusCode(), true);
     ResourceConfig resourceConfig = new ResourceConfig(toZNRecord(body));
     Assert.assertEquals(resourceConfig,
         _configAccessor.getResourceConfig(CLUSTER_NAME, RESOURCE_NAME));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testResourceConfig")
   public void testIdealState() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/idealState",
         null, Response.Status.OK.getStatusCode(), true);
     IdealState idealState = new IdealState(toZNRecord(body));
     Assert.assertEquals(idealState,
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, RESOURCE_NAME));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testIdealState")
   public void testExternalView() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/externalView",
         null, Response.Status.OK.getStatusCode(), true);
     ExternalView externalView = new ExternalView(toZNRecord(body));
     Assert.assertEquals(externalView, _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, RESOURCE_NAME));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testExternalView")
   public void testCustomizedView() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     ZNRecord znRecord = new ZNRecord("test_customizedView");
     _baseAccessor
         .set(PropertyPathBuilder.customizedView(CLUSTER_NAME, CUSTOMIZED_STATE_TYPE, RESOURCE_NAME),
@@ -177,13 +160,10 @@ public class TestResourceAccessor extends AbstractTestClass {
     CustomizedView customizedView = new CustomizedView(toZNRecord(body));
     Assert.assertEquals(customizedView, _gSetupTool.getClusterManagementTool()
         .getResourceCustomizedView(CLUSTER_NAME, RESOURCE_NAME, CUSTOMIZED_STATE_TYPE));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testExternalView")
   public void testPartitionHealth() throws Exception {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String clusterName = "TestCluster_1";
     String resourceName = clusterName + "_db_0";
 
@@ -227,7 +207,6 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(healthStatus.get("p0"), "HEALTHY");
     Assert.assertEquals(healthStatus.get("p1"), "PARTIAL_HEALTHY");
     Assert.assertEquals(healthStatus.get("p2"), "UNHEALTHY");
-    System.out.println("End test :" + TestHelper.getTestMethodName());
 
     // Re-enable the cluster
     _gSetupTool.getClusterManagementTool().enableCluster(clusterName, true);
@@ -235,8 +214,6 @@ public class TestResourceAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testPartitionHealth")
   public void testResourceHealth() throws Exception {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String clusterName = "TestCluster_1";
     Map<String, String> idealStateParams = new HashMap<>();
     idealStateParams.put("MinActiveReplicas", "2");
@@ -316,7 +293,6 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(healthStatus.get(resourceNameHealthy), "HEALTHY");
     Assert.assertEquals(healthStatus.get(resourceNamePartiallyHealthy), "PARTIAL_HEALTHY");
     Assert.assertEquals(healthStatus.get(resourceNameUnhealthy), "UNHEALTHY");
-    System.out.println("End test :" + TestHelper.getTestMethodName());
 
     // Re-enable the cluster
     _gSetupTool.getClusterManagementTool().enableCluster(clusterName, true);
@@ -372,7 +348,6 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(record.getSimpleFields(), updatedConfig.getRecord().getSimpleFields());
     Assert.assertEquals(record.getListFields(), updatedConfig.getRecord().getListFields());
     Assert.assertEquals(record.getMapFields(), updatedConfig.getRecord().getMapFields());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -381,7 +356,6 @@ public class TestResourceAccessor extends AbstractTestClass {
    */
   @Test(dependsOnMethods = "updateResourceConfig")
   public void updateResourceConfigIDMissing() throws Exception {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // An invalid input which does not have any ID
     String dummyInput = "{\"simpleFields\":{}}";
 
@@ -395,7 +369,6 @@ public class TestResourceAccessor extends AbstractTestClass {
         _configAccessor.getResourceConfig(CLUSTER_NAME, dummyResourceName);
     // Since the id is missing in the input, the znode should not get created.
     Assert.assertNull(resourceConfig);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -437,7 +410,6 @@ public class TestResourceAccessor extends AbstractTestClass {
       Assert.assertFalse(configAfterDelete.getRecord().getListFields().containsKey(key));
       Assert.assertFalse(configAfterDelete.getRecord().getMapFields().containsKey(key));
     }
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -481,7 +453,6 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(record.getSimpleFields(), newRecord.getSimpleFields());
     Assert.assertEquals(record.getListFields(), newRecord.getListFields());
     Assert.assertEquals(record.getMapFields(), newRecord.getMapFields());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -543,7 +514,6 @@ public class TestResourceAccessor extends AbstractTestClass {
       Assert.assertFalse(recordAfterDelete.getListFields().containsKey(key));
       Assert.assertFalse(recordAfterDelete.getMapFields().containsKey(key));
     }
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "deleteFromResourceIdealState")
@@ -696,6 +666,5 @@ public class TestResourceAccessor extends AbstractTestClass {
     HelixDataAccessor helixDataAccessor = helixManager.getHelixDataAccessor();
     helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().externalView(resourceName),
         externalView);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

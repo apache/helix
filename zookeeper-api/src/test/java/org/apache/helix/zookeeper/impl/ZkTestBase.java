@@ -141,7 +141,7 @@ public class ZkTestBase {
 
     int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
-    System.out.println("Starting ZK server at " + zkAddress);
+    LOG.info("Starting ZK server at " + zkAddress);
     zkServer.start();
     return zkServer;
   }

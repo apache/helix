@@ -40,7 +40,6 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
@@ -108,7 +107,7 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
 
     // getChildNames
     List<String> childNames = accessor.getChildNames(extViewPath, 0);
-    // System.out.println(childNames);
+
     Assert.assertEquals(childNames.size(), 10, "Should contain only: TestDB0-9");
     for (int i = 0; i < 10; i++) {
       Assert.assertTrue(childNames.contains("TestDB" + i));
@@ -123,7 +122,6 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -131,7 +129,6 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
@@ -158,6 +155,5 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -28,6 +28,8 @@ import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.ZooDefs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -41,6 +43,8 @@ import java.util.Arrays;
  * server setup.
  */
 public class TestMultiInMultiZk extends MultiZkTestBase {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TestMultiInMultiZk.class);
 
     private static final String _className = TestHelper.getTestClassName();
 
@@ -59,9 +63,7 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
                             new RealmAwareZkClient.RealmAwareZkClientConfig());
             _zkClient.setZkSerializer(new ZNRecordSerializer());
         } catch (Exception ex) {
-            for (StackTraceElement elm : ex.getStackTrace()) {
-                System.out.println(elm);
-            }
+            LOG.info("exception while creating client", ex);
         }
     }
 
@@ -72,7 +74,6 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
     @Test
     public void testMultiDiffRealm() {
         String methodName = TestHelper.getTestMethodName();
-        System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
         List<Op> ops = Arrays.asList(
                 Op.create(CLUSTER_LIST.get(0), new byte[0],
@@ -92,6 +93,5 @@ public class TestMultiInMultiZk extends MultiZkTestBase {
             boolean pathExists = _zkClient.exists("/" + CLUSTER_LIST.get(0) + "/test");
             Assert.assertFalse(pathExists, "Path should not have been created.");
         }
-        System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
     }
 }

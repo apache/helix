@@ -44,7 +44,6 @@ public class TestMultiClientLeaderElection extends ZkMetaClientTestBase {
 
   @BeforeTest
   private void setUp() {
-    System.out.println("STARTING TestMultiClientLeaderElection");
     this._zkMetaClient = createZkMetaClient();
     this._zkMetaClient.connect();
     _zkMetaClient.create("/Parent", "");
@@ -64,7 +63,6 @@ public class TestMultiClientLeaderElection extends ZkMetaClientTestBase {
 
   @Test
   public void testLeaderElectionPuppy() {
-    System.out.println("Starting TestMultiClientLeaderElection.testLeaderElectionPuppy");
     PuppySpec puppySpec =
         new org.apache.helix.metaclient.puppy.PuppySpec(PuppyMode.REPEAT, 0.2f, new ExecDelay(5000, 0.1f), 5);
     LeaderElectionPuppy leaderElectionPuppy1 =
@@ -79,7 +77,5 @@ public class TestMultiClientLeaderElection extends ZkMetaClientTestBase {
     puppyManager.addPuppy(leaderElectionPuppy2);
 
     puppyManager.start(60);
-    System.out.println("Ending TestMultiClientLeaderElection.testLeaderElectionPuppy");
-
   }
 }

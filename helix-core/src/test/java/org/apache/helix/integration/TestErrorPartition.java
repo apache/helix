@@ -41,7 +41,6 @@ public class TestErrorPartition extends ZkTestBase {
     String clusterName = getShortClassName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
-    System.out.println("START testErrorPartition() at " + new Date(System.currentTimeMillis()));
     ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
@@ -124,6 +123,5 @@ public class TestErrorPartition extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END testErrorPartition() at " + new Date(System.currentTimeMillis()));
   }
 }

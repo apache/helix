@@ -23,10 +23,14 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.puppy.AbstractPuppy;
 import org.apache.helix.metaclient.puppy.PuppySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 
 public class SetPuppy extends AbstractPuppy {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SetPuppy.class);
 
   private final Random _random;
   private final String _parentPath = "/test";
@@ -43,18 +47,18 @@ public class SetPuppy extends AbstractPuppy {
       try {
         _metaclient.set("invalid", "test", -1);
       } catch (IllegalArgumentException e) {
-        System.out.println(Thread.currentThread().getName() + " intentionally called set on an invalid path" + " at time: " + System.currentTimeMillis());
+        LOG.info(Thread.currentThread().getName() + " intentionally called set on an invalid path" + " at time: " + System.currentTimeMillis());
       }
     } else {
       try {
-        System.out.println(Thread.currentThread().getName() + " is attempting to set node: " + randomNumber + " at time: " + System.currentTimeMillis());
+        LOG.info(Thread.currentThread().getName() + " is attempting to set node: " + randomNumber + " at time: " + System.currentTimeMillis());
         _metaclient.set(_parentPath + "/" + randomNumber, "test", -1);
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
-        System.out.println(
+        LOG.info(
             Thread.currentThread().getName() + " successfully set node " + randomNumber + " at time: "
                 + System.currentTimeMillis());
       } catch (MetaClientNoNodeException e) {
-        System.out.println(Thread.currentThread().getName() + " failed to set node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it does not exist");
+        LOG.info(Thread.currentThread().getName() + " failed to set node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it does not exist");
       }
     }
   }

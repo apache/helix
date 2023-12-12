@@ -52,8 +52,6 @@ public class TestDistControllerElection extends ZkUnitTestBase {
 
   @Test()
   public void testController() throws Exception {
-    System.out.println("START TestDistControllerElection at "
-        + new Date(System.currentTimeMillis()));
     String className = getShortClassName();
 
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testController";
@@ -107,8 +105,6 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       accessor.removeProperty(keyBuilder.controllerLeader());
       TestHelper.dropCluster(clusterName, _gZkClient);
     }
-
-    System.out.println("END TestDistControllerElection at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testController")

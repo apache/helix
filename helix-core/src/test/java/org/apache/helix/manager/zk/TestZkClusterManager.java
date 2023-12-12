@@ -54,8 +54,6 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
   @Test()
   public void testController() throws Exception {
-    System.out.println("START " + className + ".testController() at "
-        + new Date(System.currentTimeMillis()));
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_controller";
 
     // basic test
@@ -111,15 +109,10 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     AssertJUnit.assertFalse(controller.isConnected());
 
     deleteCluster(clusterName);
-
-    System.out.println("END " + className + ".testController() at "
-        + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testLiveInstanceInfoProvider() throws Exception {
-    System.out.println("START " + className + ".testLiveInstanceInfoProvider() at "
-        + new Date(System.currentTimeMillis()));
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_liveInstanceInfoProvider";
     class provider implements LiveInstanceInfoProvider {
       boolean _flag = false;
@@ -227,15 +220,10 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     manager.disconnect();
     manager2.disconnect();
     deleteCluster(clusterName);
-
-    System.out.println("END " + className + ".testLiveInstanceInfoProvider() at "
-        + new Date(System.currentTimeMillis()));
   }
 
   @Test()
   public void testAdministrator() throws Exception {
-    System.out.println("START " + className + ".testAdministrator() at "
-        + new Date(System.currentTimeMillis()));
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_admin";
 
     // basic test
@@ -270,8 +258,5 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     AssertJUnit.assertFalse(admin.isConnected());
 
     deleteCluster(clusterName);
-
-    System.out.println("END " + className + ".testAdministrator() at "
-        + new Date(System.currentTimeMillis()));
   }
 }

@@ -48,8 +48,6 @@ public class TestAddStateModelFactoryAfterConnect extends ZkTestBase {
     String clusterName = className + "_" + methodName;
     final int n = 5;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
@@ -131,8 +129,5 @@ public class TestAddStateModelFactoryAfterConnect extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 }

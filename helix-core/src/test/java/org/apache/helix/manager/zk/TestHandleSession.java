@@ -57,8 +57,6 @@ public class TestHandleSession extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = _className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -91,11 +89,8 @@ public class TestHandleSession extends ZkTestBase {
     }
 
     // Logger.getRootLogger().setLevel(Level.INFO);
-    System.out.println("Disconnecting ...");
     participant.syncStop();
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testHandleNewSession")

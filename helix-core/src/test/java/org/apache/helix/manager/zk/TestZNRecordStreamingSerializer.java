@@ -7,6 +7,8 @@ import java.util.Random;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -30,6 +32,9 @@ import org.testng.annotations.Test;
  */
 
 public class TestZNRecordStreamingSerializer {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestZNRecordStreamingSerializer.class);
+
   /**
    * Test the normal case of serialize/deserialize where ZNRecord is well-formed
    */
@@ -129,12 +134,12 @@ public class TestZNRecordStreamingSerializer {
     byte[] serializedBytes;
     serializedBytes = serializer.serialize(record);
     int uncompressedSize = serializedBytes.length;
-    System.out.println("raw serialized data length = " + serializedBytes.length);
+    LOG.info("raw serialized data length = " + serializedBytes.length);
     record.setSimpleField("enableCompression", "true");
     serializedBytes = serializer.serialize(record);
     int compressedSize = serializedBytes.length;
-    System.out.println("compressed serialized data length = " + serializedBytes.length);
-    System.out.printf("compression ratio: %.2f \n", (uncompressedSize * 1.0 / compressedSize));
+    LOG.info("compressed serialized data length = " + serializedBytes.length);
+    LOG.info("compression ratio: %.2f \n", (uncompressedSize * 1.0 / compressedSize));
     ZNRecord result = (ZNRecord) serializer.deserialize(serializedBytes);
     Assert.assertEquals(result, record);
   }
@@ -148,7 +153,7 @@ public class TestZNRecordStreamingSerializer {
       int numNodes = 100;
       Random random = new Random();
       ZNRecord record = new ZNRecord("testId");
-      System.out.println("Partitions:" + numPartitions);
+      LOG.info("Partitions:" + numPartitions);
       for (int p = 0; p < numPartitions; p++) {
         Map<String, String> map = new HashMap<String, String>();
         for (int r = 0; r < replicas; r++) {
@@ -161,7 +166,7 @@ public class TestZNRecordStreamingSerializer {
       record.setSimpleField("enableCompression", "true");
       serializedBytes = serializer.serialize(record);
       int compressedSize = serializedBytes.length;
-      System.out.println("compressed serialized data length = " + compressedSize);
+      LOG.info("compressed serialized data length = " + compressedSize);
       ZNRecord result = (ZNRecord) serializer.deserialize(serializedBytes);
       Assert.assertEquals(result, record);
       runId = runId + 1;

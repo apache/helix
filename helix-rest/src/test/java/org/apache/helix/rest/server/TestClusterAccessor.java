@@ -89,8 +89,6 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testGetClusters() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     _auditLogger.clearupLogs();
     String body = get("clusters", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -106,12 +104,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
     validateAuditLog(auditLog, HTTPMethods.GET.name(), "clusters",
         Response.Status.OK.getStatusCode(), body);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetClusters")
   public void testGetClusterTopology() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = "TestCluster_1";
     String instance = cluster + "localhost_12920";
     // set the fake zone id in instance configuration
@@ -129,12 +125,10 @@ public class TestClusterAccessor extends AbstractTestClass {
             + "\"allInstances\":[\"TestCluster_1localhost_12918\",\"TestCluster_1localhost_12919\",\"TestCluster_1localhost_12924\","
             + "\"TestCluster_1localhost_12925\",\"TestCluster_1localhost_12926\",\"TestCluster_1localhost_12927\",\"TestCluster_1localhost_12920\","
             + "\"TestCluster_1localhost_12921\",\"TestCluster_1localhost_12922\",\"TestCluster_1localhost_12923\"]}");
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetClusterTopology")
   public void testGetClusterTopologyAndFaultZoneMap() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String topologyMapUrlBase = "clusters/TestCluster_1/topologymap/";
     String faultZoneUrlBase = "clusters/TestCluster_1/faultzonemap/";
 
@@ -326,7 +320,6 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")
   public void testAddConfigFields() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     //Need to use TestCluster_1 here since other test may add unwanted key to listField. issue-1336
     String cluster = "TestCluster_1";
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
@@ -347,12 +340,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     oldConfig.getRecord().update(configDelta.getRecord());
     Assert.assertEquals(newConfig, oldConfig,
         "cluster config from response: " + newConfig + " vs cluster config actually: " + oldConfig);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddConfigFields")
   public void testUpdateConfigFields() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = "TestCluster_1";
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
@@ -386,12 +377,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     prevConfig.getRecord().update(config.getRecord());
     Assert.assertEquals(newConfig, prevConfig, "cluster config from response: " + newConfig
         + " vs cluster config actually: " + prevConfig);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testUpdateConfigFields")
   public void testDeleteConfigFields() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
@@ -426,12 +415,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     prevConfig.getRecord().subtract(config.getRecord());
     Assert.assertEquals(newConfig, prevConfig, "cluster config from response: " + newConfig
         + " vs cluster config actually: " + prevConfig);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testDeleteConfigFields")
   public void testCreateDeleteCluster() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // create an existing cluster should fail.
     _auditLogger.clearupLogs();
     String cluster = _clusters.iterator().next();
@@ -452,12 +439,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     // verify the cluster has been deleted.
     Assert.assertFalse(_baseAccessor.exists("/" + cluster, 0));
     validateAuditLogSize(3);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testCreateDeleteCluster")
   public void testEnableDisableCluster() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // disable a cluster.
     String cluster = _clusters.iterator().next();
     _auditLogger.clearupLogs();
@@ -477,22 +462,18 @@ public class TestClusterAccessor extends AbstractTestClass {
     // verify the cluster is paused.
     Assert.assertFalse(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
     validateAuditLogSize(2);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testEnableDisableCluster")
   public void testGetClusterConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     Response response = target("clusters/fakeCluster/configs").request().get();
     Assert.assertEquals(response.getStatus(), Response.Status.NOT_FOUND.getStatusCode());
     String cluster = _clusters.iterator().next();
     getClusterConfigFromRest(cluster);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetClusterConfig")
   public void testEnableDisableMaintenanceMode() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     String reasonValue = "Test reason";
     String reasonJSONString = "{\"reason\":\"" + reasonValue + "\"}";
@@ -520,12 +501,10 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     get("clusters/" + cluster + "/controller/maintenanceSignal", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testEnableDisableMaintenanceMode")
   public void testEmptyMaintenanceSignal() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
 
     // Create empty maintenance znode
@@ -546,13 +525,11 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertFalse(isMaintenanceModeEnabled(cluster));
     get("clusters/" + cluster + "/controller/maintenanceSignal", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
 
   }
 
   @Test(dependsOnMethods = "testEmptyMaintenanceSignal")
   public void testGetControllerLeadershipHistory() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
 
     // Get the leader controller name for the cluster
@@ -578,12 +555,10 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Check that the last entry contains the current leader name
     Assert.assertTrue(lastLeaderEntry.contains(leader));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetControllerLeadershipHistory")
   public void testGetMaintenanceHistory() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     String reason = TestHelper.getTestMethodName();
 
@@ -603,12 +578,10 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Check that the last entry contains the reason string
     Assert.assertTrue(lastMaintenanceEntry.contains(reason));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetMaintenanceHistory")
   public void testEnableDisableMaintenanceModeWithCustomFields() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     HelixDataAccessor accessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
 
@@ -629,12 +602,10 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
     Assert.assertFalse(
         accessor.getBaseDataAccessor().exists(accessor.keyBuilder().maintenance().getPath(), 0));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
   public void testPurgeOfflineParticipants() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     HelixDataAccessor accessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
 
@@ -674,13 +645,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     _gSetupTool.addInstanceToCluster(cluster, instance1);
     _gSetupTool.addInstanceToCluster(cluster, instance2);
     _gSetupTool.addInstanceToCluster(cluster, instance3);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
   public void testGetStateModelDef() throws IOException {
-
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = "TestCluster_1";
     String urlBase = "clusters/TestCluster_1/statemodeldefs/";
     Map<String, Object> defMap = getMapResponseFromRest(urlBase);
@@ -741,12 +709,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     String oneResult3 = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
     ZNRecord oneRecord3 = toZNRecord(oneResult3);
     Assert.assertEquals(oneRecord3, oneRecord);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetStateModelDef")
   public void testActivateSuperCluster() throws Exception {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     final String ACTIVATE_SUPER_CLUSTER = "RestSuperClusterActivationTest_SuperCluster";
     final String ACTIVATE_NORM_CLUSTER = "RestSuperClusterActivationTest_NormalCluster";
 
@@ -833,7 +799,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     }
     _gSetupTool.deleteCluster(ACTIVATE_NORM_CLUSTER);
     _gSetupTool.deleteCluster(ACTIVATE_SUPER_CLUSTER);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testActivateSuperCluster")
@@ -850,7 +815,6 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testEnableWagedRebalanceForAllResources")
   public void testCreateRESTConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     RESTConfig restConfigRest = new RESTConfig(cluster);
     restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:00");
@@ -861,12 +825,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(restConfigZK, restConfigRest,
         "rest config from response: " + restConfigRest + " vs rest config actually: "
             + restConfigZK);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testCreateRESTConfig")
   public void testUpdateRESTConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     RESTConfig restConfigRest = new RESTConfig(cluster);
     // Update an entry
@@ -900,17 +862,14 @@ public class TestClusterAccessor extends AbstractTestClass {
     post("clusters/" + wrongClusterId + "/restconfig",
         ImmutableMap.of("command", Command.update.name()), entity,
         Response.Status.NOT_FOUND.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testUpdateRESTConfig")
   public void testDeleteRESTConfig() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
     get("clusters/" + cluster + "/restconfig", null, Response.Status.NOT_FOUND.getStatusCode(), true);
     delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testActivateSuperCluster")
@@ -1053,7 +1012,6 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testAddClusterWithCloudConfigDisabledCloud")
   public void testAddCloudConfigNonExistedCluster() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String urlBase = "clusters/TestCloud/cloudconfig/";
     ZNRecord record = new ZNRecord("TestCloud");
     record.setBooleanField(CloudConfig.CloudConfigProperty.CLOUD_ENABLED.name(), true);
@@ -1070,12 +1028,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     put(urlBase, null,
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
         Response.Status.NOT_FOUND.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddCloudConfigNonExistedCluster")
   public void testAddCloudConfig() throws Exception {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestCloud", true);
     String urlBase = "clusters/TestCloud/cloudconfig/";
 
@@ -1128,13 +1084,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     List<String> listUrlFromRest = cloudConfigRest.getCloudInfoSources();
     Assert.assertEquals(listUrlFromRest.get(0), "TestURL");
     Assert.assertEquals(cloudConfigRest.getCloudInfoProcessorName(), "TestProcessorName");
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddCloudConfig")
   public void testDeleteCloudConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -1161,14 +1114,11 @@ public class TestClusterAccessor extends AbstractTestClass {
     _configAccessor = new ConfigAccessor(ZK_ADDR);
     cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNull(cloudConfigFromZk);
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
 
   @Test(dependsOnMethods = "testDeleteCloudConfig")
   public void testPartialDeleteCloudConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -1208,13 +1158,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertNull(cloudConfigFromZk.getCloudProvider());
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(),"TestProcessor");
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testPartialDeleteCloudConfig")
   public void testUpdateCloudConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestCloud", true);
     String urlBase = "clusters/TestCloud/cloudconfig/";
 
@@ -1267,13 +1214,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     List<String> listUrlFromRest = cloudConfigRest.getCloudInfoSources();
     Assert.assertEquals(listUrlFromRest.get(0), "TestURL");
     Assert.assertEquals(cloudConfigRest.getCloudInfoProcessorName(), "TestProcessorName");
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testUpdateCloudConfig")
   public void testAddCustomizedConfigNonExistedCluster() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String urlBase = "clusters/TestCluster/customizedstateconfig/";
     ZNRecord record = new ZNRecord("TestCustomizedStateConfig");
     List<String> testList = new ArrayList<String>();
@@ -1287,12 +1231,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     put(urlBase, null,
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
         Response.Status.NOT_FOUND.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddCustomizedConfigNonExistedCluster")
   public void testAddCustomizedConfig() throws Exception {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
     String urlBase = "clusters/TestClusterCustomized/customized-state-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateConfig");
@@ -1329,13 +1271,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     List<String> listUrlFromRest = customizedConfigRest.getAggregationEnabledTypes();
     Assert.assertEquals(listUrlFromRest.get(0), "mockType1");
     Assert.assertEquals(listUrlFromRest.get(1), "mockType2");
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddCustomizedConfig")
   public void testDeleteCustomizedConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
     String urlBase = "clusters/TestClusterCustomized/customized-state-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateConfig");
@@ -1359,13 +1298,10 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     customizedConfigFromZk = _configAccessor.getCustomizedStateConfig("TestClusterCustomized");
     Assert.assertNull(customizedConfigFromZk);
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testDeleteCustomizedConfig")
   public void testUpdateCustomizedConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
     String urlBase = "clusters/TestClusterCustomized/customized-state-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateConfig");
@@ -1412,12 +1348,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     listTypesFromZk = customizedConfigFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(listTypesFromZk.get(0), "mockType2");
     Assert.assertFalse(listTypesFromZk.contains("mockType1"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testUpdateCustomizedConfig")
   public void testOnDemandRebalance() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     long currentTime = System.currentTimeMillis();
     String cluster = "TestCluster_1";
     new JerseyUriRequestBuilder("clusters/{}?command=onDemandRebalance").format(cluster)
@@ -1432,7 +1366,6 @@ public class TestClusterAccessor extends AbstractTestClass {
         lastOnDemandRebalanceTime, currentTime));
     // restore the state
     config.setLastOnDemandRebalanceTimestamp(-1L);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test

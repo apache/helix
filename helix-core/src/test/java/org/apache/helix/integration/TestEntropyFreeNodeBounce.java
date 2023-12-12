@@ -66,7 +66,6 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // Set up cluster
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
@@ -135,7 +134,6 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
         participant.disconnect();
       }
       TestHelper.dropCluster(clusterName, _gZkClient);
-      System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
     }
   }
 

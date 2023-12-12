@@ -29,8 +29,13 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DummyParticipant {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DummyParticipant.class);
+
   // dummy master-slave state model
   @StateModelInfo(initialState = "OFFLINE", states = {
       "MASTER", "SLAVE", "ERROR"
@@ -40,47 +45,47 @@ public class DummyParticipant {
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
-      System.out.println(instanceName + " becomes SLAVE from OFFLINE for " + partitionName);
+      LOG.info(instanceName + " becomes SLAVE from OFFLINE for " + partitionName);
     }
 
     @Transition(to = "MASTER", from = "SLAVE")
     public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
-      System.out.println(instanceName + " becomes MASTER from SLAVE for " + partitionName);
+      LOG.info(instanceName + " becomes MASTER from SLAVE for " + partitionName);
     }
 
     @Transition(to = "SLAVE", from = "MASTER")
     public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
-      System.out.println(instanceName + " becomes SLAVE from MASTER for " + partitionName);
+      LOG.info(instanceName + " becomes SLAVE from MASTER for " + partitionName);
     }
 
     @Transition(to = "OFFLINE", from = "SLAVE")
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
-      System.out.println(instanceName + " becomes OFFLINE from SLAVE for " + partitionName);
+      LOG.info(instanceName + " becomes OFFLINE from SLAVE for " + partitionName);
     }
 
     @Transition(to = "DROPPED", from = "OFFLINE")
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
-      System.out.println(instanceName + " becomes DROPPED from OFFLINE for " + partitionName);
+      LOG.info(instanceName + " becomes DROPPED from OFFLINE for " + partitionName);
     }
 
     @Transition(to = "OFFLINE", from = "ERROR")
     public void onBecomeOfflineFromError(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
-      System.out.println(instanceName + " becomes OFFLINE from ERROR for " + partitionName);
+      LOG.info(instanceName + " becomes OFFLINE from ERROR for " + partitionName);
     }
 
     @Override
     public void reset() {
-      System.out.println("Default MockMSStateModel.reset() invoked");
+      LOG.info("Default MockMSStateModel.reset() invoked");
     }
   }
 

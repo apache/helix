@@ -84,8 +84,6 @@ public class TestDrop extends ZkTestBase {
     String clusterName = className + "_" + methodName;
     final int n = 5;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
@@ -126,7 +124,6 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -136,8 +133,6 @@ public class TestDrop extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 5;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -206,7 +201,6 @@ public class TestDrop extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -215,8 +209,6 @@ public class TestDrop extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 5;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -310,7 +302,6 @@ public class TestDrop extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -320,8 +311,6 @@ public class TestDrop extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 2;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -401,7 +390,6 @@ public class TestDrop extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -411,8 +399,6 @@ public class TestDrop extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 5;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -454,7 +440,6 @@ public class TestDrop extends ZkTestBase {
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop schemata resource group
-    // System.out.println("Dropping schemata resource group...");
     command = "--zkSvr " + ZK_ADDR + " --dropResource " + clusterName + " schemata";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     Assert.assertTrue(verifier.verifyByPolling());
@@ -470,6 +455,5 @@ public class TestDrop extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

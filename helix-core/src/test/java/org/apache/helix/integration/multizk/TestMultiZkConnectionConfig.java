@@ -85,6 +85,8 @@ import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -98,6 +100,9 @@ import org.testng.annotations.Test;
  * in system property
  */
 public class TestMultiZkConnectionConfig extends MultiZkTestBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestMultiZkConnectionConfig.class);
+
   protected ClusterSetup _clusterSetupZkAddr;
   protected ClusterSetup _clusterSetupBuilder;
   protected RealmAwareZkClient.RealmAwareZkConnectionConfig _invalidZkConnectionConfig;
@@ -120,7 +125,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
             .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name()).build(),
             new RealmAwareZkClient.RealmAwareZkClientConfig());
     _zkClient.setZkSerializer(new ZNRecordSerializer());
-    System.out.println("end start");
   }
 
   public void beforeApiClass() throws Exception {
@@ -134,7 +138,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     _zkClient =
         new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
             new RealmAwareZkClient.RealmAwareZkClientConfig());
-    System.out.println("end start");
   }
 
   /**
@@ -144,7 +147,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test
   public void testCreateClusters() {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     setupCluster();
 
@@ -159,8 +161,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
     _clusterSetupZkAddr.close();
     _clusterSetupBuilder.close();
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   public void setupCluster() {
@@ -207,7 +207,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testCreateClusters")
   public void testCreateParticipants() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     // Create two ClusterSetups using two different constructors
     // Note: ZK Address here could be anything because multiZk mode is on (it will be ignored)
@@ -267,8 +266,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     }
 
     helixAdminBuilder.close();
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   protected void createParticipantsAndVerify(HelixAdmin admin, int numParticipants,
@@ -312,7 +309,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testCreateParticipants")
   public void testZKHelixManager() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     String clusterName = "CLUSTER_1";
     String participantName = "HelixManager";
@@ -356,8 +352,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     managerParticipant.disconnect();
     managerAdministrator.disconnect();
     _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   protected void createZkConnectionConfigs(String clusterName) {
@@ -379,7 +373,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testZKHelixManager")
   public void testZKHelixManagerCloudConfig() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     String clusterName = "CLUSTER_1";
     String participantName = "HelixManager";
@@ -445,8 +438,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     // Clean up
     managerParticipant.disconnect();
     _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void setupApiCluster() {
@@ -467,7 +458,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test (dependsOnMethods = "testZKHelixManagerCloudConfig")
   public void testApiCreateClusters() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
     super.afterClass();
 
     beforeApiClass();
@@ -484,46 +474,35 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
     _clusterSetupZkAddr.close();
     _clusterSetupBuilder.close();
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testApiCreateClusters")
   public void testApiCreateParticipants() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
     testCreateParticipants();
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testApiCreateParticipants")
   public void testApiZKHelixManager() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
     testZKHelixManager();
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testApiZKHelixManager")
   public void testApiZKHelixManagerCloudConfig() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
     //todo
     testZKHelixManagerCloudConfig();
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testApiZKHelixManager")
   public void testZkUtil() {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     CLUSTER_LIST.forEach(cluster -> {
       _zkHelixAdmin.getInstancesInCluster(cluster).forEach(instance -> ZKUtil
           .isInstanceSetup("DummyZk", cluster, instance, InstanceType.PARTICIPANT));
     });
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -535,7 +514,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testZkUtil")
   public void testCreateAndRebalanceResources() {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     BaseDataAccessor<ZNRecord> dataAccessorZkAddr = new ZkBaseDataAccessor<>("DummyZk");
     BaseDataAccessor<ZNRecord> dataAccessorBuilder =
@@ -597,8 +575,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
     dataAccessorZkAddr.close();
     dataAccessorBuilder.close();
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -607,7 +583,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testCreateAndRebalanceResources")
   public void testConfigAccessor() {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     // Build two ConfigAccessors to read and write:
     // 1. ConfigAccessor using a deprecated constructor
@@ -620,8 +595,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
     configAccessorZkAddr.close();
     configAccessorBuilder.close();
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void setClusterConfigAndVerify(ConfigAccessor configAccessorMultiZk) {
@@ -658,7 +631,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testConfigAccessor")
   public void testTaskFramework() throws InterruptedException {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     // Note: TaskDriver is like HelixManager - it only operates on one designated
     // Create TaskDrivers for all clusters
@@ -690,8 +662,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
       // Compare the workflow state read from PropertyStore and TaskDriver
       Assert.assertEquals(context.getWorkflowState(), wfStateFromTaskDriver);
     }
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -700,11 +670,8 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testTaskFramework")
   public void testGetAllClusters() {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     Assert.assertEquals(new HashSet<>(_zkHelixAdmin.getClusters()), new HashSet<>(CLUSTER_LIST));
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -729,7 +696,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testGetAllClusters")
   public void testGenericBaseDataAccessorBuilder() {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     // Custom session timeout value is used to count active connections in SharedZkClientFactory
     int customSessionTimeout = 10000;
@@ -896,8 +862,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     } catch (NoSuchElementException e) {
       // Expected because the sharding key wouldn't be found
     }
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -913,7 +877,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testGenericBaseDataAccessorBuilder")
   public void testDifferentMsdsEndpointConfigs() throws IOException, InvalidRoutingDataException {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     final String zkAddress = ZK_SERVER_MAP.keySet().iterator().next();
     final Map<String, Collection<String>> secondRoutingData =
@@ -951,12 +914,9 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
       zkClient.close();
       secondMsds.stopServer();
     }
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void verifyHelixManagerMsdsEndpoint() {
-    System.out.println("Start " + TestHelper.getTestMethodName());
-
     // Mock participants are already created and started in the previous test.
     // The mock participant only connects to MSDS configured in system property,
     // but not the other.
@@ -967,13 +927,12 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     verifyMsdsZkRealm(CLUSTER_ONE, true,
         () -> manager.getZkClient().exists(formPath(manager.getClusterName())));
     if (manager.getZkClient() != null) {
-      System.out.println("zk client is not yet null2");
+      LOG.error("zk client is not yet null2");
     }
   }
 
   private void verifyBaseDataAccessorMsdsEndpoint(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
-    System.out.println("Start " + TestHelper.getTestMethodName());
     // MSDS endpoint is not configured in builder, so config in system property is used.
     BaseDataAccessor<ZNRecord> firstDataAccessor =
         new ZkBaseDataAccessor.Builder<ZNRecord>().build();
@@ -1015,8 +974,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
   private void verifyClusterSetupMsdsEndpoint(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
-    System.out.println("Start " + TestHelper.getTestMethodName());
-
     ClusterSetup firstClusterSetup = new ClusterSetup.Builder().build();
     ClusterSetup secondClusterSetup =
         new ClusterSetup.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
@@ -1037,7 +994,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   }
 
   private void verifyZkUtilMsdsEndpoint() {
-    System.out.println("Start " + TestHelper.getTestMethodName());
     String dummyZkAddress = "dummyZkAddress";
 
     // MSDS endpoint 1
@@ -1050,8 +1006,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
   private void verifyHelixAdminMsdsEndpoint(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
-    System.out.println("Start " + TestHelper.getTestMethodName());
-
     HelixAdmin firstHelixAdmin = new ZKHelixAdmin.Builder().build();
     HelixAdmin secondHelixAdmin =
         new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
@@ -1073,8 +1027,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
 
   private void verifyConfigAccessorMsdsEndpoint(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
-    System.out.println("Start " + TestHelper.getTestMethodName());
-
     ConfigAccessor firstConfigAccessor = new ConfigAccessor.Builder().build();
     ConfigAccessor secondConfigAccessor =
         new ConfigAccessor.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
@@ -1132,7 +1084,7 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
             e.getMessage());
       }
     } catch (IllegalStateException e) {
-        System.out.println("Exception: " + e);
+        LOG.error("Exception: " , e);
     }
   }
 
@@ -1152,7 +1104,6 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
   @Test(dependsOnMethods = "testDifferentMsdsEndpointConfigs")
   public void testZkRoutingDataSourceConfigs() {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
 
     // Set up routing data in ZK by connecting directly to ZK
     BaseDataAccessor<ZNRecord> accessor =
@@ -1210,7 +1161,5 @@ public class TestMultiZkConnectionConfig extends MultiZkTestBase {
     accessor.close();
     zkBasedAccessor.close();
     httpZkFallbackBasedAccessor.close();
-
-    System.out.println("END " + _className + "_" + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 }

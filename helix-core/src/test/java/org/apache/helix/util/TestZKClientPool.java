@@ -34,7 +34,6 @@ public class TestZKClientPool {
   @Test
   public void test() throws Exception {
     String testName = "TestZKClientPool";
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String zkAddr = "localhost:21891";
     ZkServer zkServer = TestHelper.startZkServer(zkAddr);
@@ -64,6 +63,5 @@ public class TestZKClientPool {
 
     zkClient.close();
     TestHelper.stopZkServer(zkServer);
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 }

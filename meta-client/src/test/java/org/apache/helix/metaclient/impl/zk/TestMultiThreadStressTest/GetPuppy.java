@@ -22,11 +22,15 @@ package org.apache.helix.metaclient.impl.zk.TestMultiThreadStressTest;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.puppy.AbstractPuppy;
 import org.apache.helix.metaclient.puppy.PuppySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Random;
 
 public class GetPuppy extends AbstractPuppy {
+
+  private static final Logger LOG = LoggerFactory.getLogger(GetPuppy.class);
 
   private final Random _random;
   private final String _parentPath = "/test";
@@ -44,15 +48,15 @@ public class GetPuppy extends AbstractPuppy {
         _metaclient.get("invalid");
         _unhandledErrorCounter++;
       } catch (IllegalArgumentException e) {
-        System.out.println(Thread.currentThread().getName() + " intentionally tried to read an invalid path" + " at time: " + System.currentTimeMillis());
+        LOG.info(Thread.currentThread().getName() + " intentionally tried to read an invalid path" + " at time: " + System.currentTimeMillis());
       }
     } else {
-      System.out.println(Thread.currentThread().getName() + " is attempting to read node: " + randomNumber + " at time: " + System.currentTimeMillis());
+      LOG.info(Thread.currentThread().getName() + " is attempting to read node: " + randomNumber + " at time: " + System.currentTimeMillis());
       String nodeValue = _metaclient.get(_parentPath + "/" + randomNumber);
       if (Objects.equals(nodeValue, null)) {
-        System.out.println(Thread.currentThread().getName() + " failed to read node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it does not exist");
+        LOG.info(Thread.currentThread().getName() + " failed to read node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it does not exist");
       } else {
-        System.out.println(Thread.currentThread().getName() + " successfully read node " + randomNumber + " at time: " + System.currentTimeMillis());
+        LOG.info(Thread.currentThread().getName() + " successfully read node " + randomNumber + " at time: " + System.currentTimeMillis());
       }
     }
   }

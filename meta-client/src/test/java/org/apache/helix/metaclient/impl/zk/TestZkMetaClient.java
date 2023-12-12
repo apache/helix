@@ -125,7 +125,6 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       Assert.fail("Should have failed due to node already created");
     } catch (MetaClientException e) {
       Assert.assertEquals(e.getMessage(), "org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException: org.apache.zookeeper.KeeperException$NodeExistsException: KeeperErrorCode = NodeExists for /Test/ZkMetaClient/_fullPath");
-      System.out.println(e.getMessage());
     }
 
   }

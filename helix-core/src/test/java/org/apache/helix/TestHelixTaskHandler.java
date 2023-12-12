@@ -41,7 +41,6 @@ public class TestHelixTaskHandler {
   @Test()
   public void testInvocation() throws Exception {
     HelixTaskExecutor executor = new HelixTaskExecutor();
-    System.out.println("START TestCMTaskHandler.testInvocation()");
     Message message = new Message(MessageType.STATE_TRANSITION, "Some unique id");
 
     message.setSrcName("cm-instance-0");
@@ -73,14 +72,10 @@ public class TestHelixTaskHandler {
     handler = new HelixTask(message, context, stHandler, executor);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
-    System.out.println("END TestCMTaskHandler.testInvocation() at "
-        + new Date(System.currentTimeMillis()));
   }
 
   @Test()
   public void testInvocationAnnotated() throws Exception {
-    System.out.println("START TestCMTaskHandler.testInvocationAnnotated() at "
-        + new Date(System.currentTimeMillis()));
     HelixTaskExecutor executor = new HelixTaskExecutor();
     Message message = new Message(MessageType.STATE_TRANSITION, "Some unique id");
     message.setSrcName("cm-instance-0");
@@ -127,8 +122,6 @@ public class TestHelixTaskHandler {
     HelixTask handler = new HelixTask(message, context, stHandler, executor);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
-    System.out.println("END TestCMTaskHandler.testInvocationAnnotated() at "
-        + new Date(System.currentTimeMillis()));
   }
 
 }

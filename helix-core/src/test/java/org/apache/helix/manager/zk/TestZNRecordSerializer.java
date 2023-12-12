@@ -47,6 +47,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZNRecordSerializer {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestZNRecordSerializer.class);
+
   /**
    * Test the normal case of serialize/deserialize where ZNRecord is well-formed
    */
@@ -96,27 +99,27 @@ public class TestZNRecordSerializer {
     for (int i = 0; i < loop; i++) {
       serializer1.serialize(record);
     }
-    System.out.println("ZNRecordSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
 
     byte[] data = serializer1.serialize(record);
     start = System.currentTimeMillis();
     for (int i = 0; i < loop; i++) {
       serializer1.deserialize(data);
     }
-    System.out.println("ZNRecordSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
 
 
     start = System.currentTimeMillis();
     for (int i = 0; i < loop; i++) {
       data = serializer2.serialize(record);
     }
-    System.out.println("ZNRecordStreamingSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordStreamingSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
 
     start = System.currentTimeMillis();
     for (int i = 0; i < loop; i++) {
       ZNRecord result = (ZNRecord) serializer2.deserialize(data);
     }
-    System.out.println("ZNRecordStreamingSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordStreamingSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
   }
 
 
@@ -150,25 +153,25 @@ public class TestZNRecordSerializer {
 
     long start = System.currentTimeMillis();
     batchSerialize(serializer1, executorService, loop, record);
-    System.out.println("ZNRecordSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
 
     byte[] data = serializer1.serialize(record);
     start = System.currentTimeMillis();
     batchSerialize(serializer2, executorService, loop, record);
-    System.out.println("ZNRecordSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
 
 
     start = System.currentTimeMillis();
     for (int i = 0; i < loop; i++) {
       data = serializer2.serialize(record);
     }
-    System.out.println("ZNRecordStreamingSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordStreamingSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
 
     start = System.currentTimeMillis();
     for (int i = 0; i < loop; i++) {
       ZNRecord result = (ZNRecord) serializer2.deserialize(data);
     }
-    System.out.println("ZNRecordStreamingSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+    LOG.info("ZNRecordStreamingSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
   }
 
 
@@ -241,12 +244,12 @@ public class TestZNRecordSerializer {
     byte[] serializedBytes;
     serializedBytes = serializer.serialize(record);
     int uncompressedSize = serializedBytes.length;
-    System.out.println("raw serialized data length = " + serializedBytes.length);
+    LOG.info("raw serialized data length = " + serializedBytes.length);
     record.setSimpleField("enableCompression", "true");
     serializedBytes = serializer.serialize(record);
     int compressedSize = serializedBytes.length;
-    System.out.println("compressed serialized data length = " + serializedBytes.length);
-    System.out.printf("compression ratio: %.2f \n", (uncompressedSize * 1.0 / compressedSize));
+    LOG.info("compressed serialized data length = " + serializedBytes.length);
+    LOG.info("compression ratio: %.2f \n", (uncompressedSize * 1.0 / compressedSize));
     ZNRecord result = (ZNRecord) serializer.deserialize(serializedBytes);
     Assert.assertEquals(result, record);
   }
@@ -260,7 +263,7 @@ public class TestZNRecordSerializer {
       int numNodes = 100;
       Random random = new Random();
       ZNRecord record = new ZNRecord("testId");
-      System.out.println("Partitions:" + numPartitions);
+      LOG.info("Partitions:" + numPartitions);
       for (int p = 0; p < numPartitions; p++) {
         Map<String, String> map = new HashMap<String, String>();
         for (int r = 0; r < replicas; r++) {
@@ -273,7 +276,7 @@ public class TestZNRecordSerializer {
       record.setSimpleField("enableCompression", "true");
       serializedBytes = serializer.serialize(record);
       int compressedSize = serializedBytes.length;
-      System.out.println("compressed serialized data length = " + compressedSize);
+      LOG.info("compressed serialized data length = " + compressedSize);
       ZNRecord result = (ZNRecord) serializer.deserialize(serializedBytes);
       Assert.assertEquals(result, record);
       runId = runId + 1;

@@ -161,8 +161,6 @@ public class TestDistributedCMMain extends ZkTestBase {
     }
 
     // clean up
-    // wait for all zk callbacks done
-    System.out.println("Cleaning up...");
     for (int i = 0; i < 2 * n; i++) {
       if (controllers[i] != null && controllers[i].isConnected()) {
         controllers[i].syncStop();
@@ -178,7 +176,5 @@ public class TestDistributedCMMain extends ZkTestBase {
     for (String cluster : _clusters) {
       deleteCluster(cluster);
     }
-
-    System.out.println("END " + clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
   }
 }

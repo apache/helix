@@ -77,7 +77,6 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
       String expectedWorkflowEndingStates) throws Exception {
     final String JOB_NAME = "test_job";
     final String WORKFLOW_NAME = TestHelper.getTestMethodName() + testNum++;
-    System.out.println("Test case comment: " + comment);
 
     Map<String, Map<String, String>> targetPartitionConfigs =
         createPartitionConfig(taskStates, expectedTaskEndingStates);

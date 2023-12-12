@@ -36,6 +36,8 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -45,6 +47,8 @@ import static org.apache.helix.model.BuiltInStateModelDefinitions.*;
 
 
 public class TestPipelinePerformance extends ZkTestBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestPipelinePerformance.class);
 
   private static final int NUM_NODE = 6;
   private static final int START_PORT = 12918;
@@ -136,7 +140,7 @@ public class TestPipelinePerformance extends ZkTestBase {
     long withoutComputationValue = (Long) _server.getAttribute(currentStateMbeanObjectName, "TotalDurationCounter");
     long durationWithoutComputation = withoutComputationValue - durationWithComputation;
     double pctDecrease = (durationWithComputation - durationWithoutComputation) * 100 / durationWithComputation;
-    System.out.println(String.format("durationWithComputation: %s, durationWithoutComputation: %s, pctDecrease: %s",
+    LOG.info(String.format("durationWithComputation: %s, durationWithoutComputation: %s, pctDecrease: %s",
         durationWithComputation, durationWithoutComputation, pctDecrease));
 
     Assert.assertTrue(durationWithComputation > durationWithoutComputation);

@@ -50,7 +50,6 @@ public class TestZkPathRecursiveWatcherTrie {
    */
   @org.testng.annotations.Test
   public void testAddRemoveGetWatcher() {
-    System.out.println("START testAddRemoveWatcher at " + new Date(System.currentTimeMillis()));
     _recursiveWatcherTrie.addRecursiveListener("/a/b/c/d", new Test());
     _recursiveWatcherTrie.addRecursiveListener("/a/b/c/d1", new Test());
     _recursiveWatcherTrie.addRecursiveListener("/a/b/c/d2", new Test());

@@ -59,8 +59,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
 
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
-    System.out.println("Starting " + TestFederatedZkClient.class.getSimpleName());
-
     // Feed the raw routing data into TrieRoutingData to construct an in-memory representation
     // of routing information.
     _realmAwareZkClient =
@@ -72,7 +70,6 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
   public void afterClass() {
     // Close it as it is created in before class.
     _realmAwareZkClient.close();
-    System.out.println("Ending " + TestFederatedZkClient.class.getSimpleName());
   }
 
   /*

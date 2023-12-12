@@ -34,18 +34,20 @@ import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
 public class TestConfigAccessor extends ZkUnitTestBase {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TestConfigAccessor.class);
   @Test
   public void testBasic() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
@@ -115,7 +117,7 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     Assert.assertEquals(keys.get(0), "clusterConfigKey");
 
     keys = configAccessor.getKeys(ConfigScopeProperty.PARTICIPANT, clusterName, "localhost_12918");
-    System.out.println((keys));
+    LOGGER.info(keys.toString());
     Assert.assertEquals(keys.size(), 3, "should be [HELIX_HOST, HELIX_PORT, participantConfigKey]");
     Assert.assertEquals(keys.get(2), "participantConfigKey");
 
@@ -167,7 +169,6 @@ public class TestConfigAccessor extends ZkUnitTestBase {
 
     configAccessor.close();
     configAccessorZkAddr.close();
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   // HELIX-25: set participant Config should check existence of instance
@@ -176,8 +177,6 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.addCluster(clusterName, true);
@@ -206,7 +205,6 @@ public class TestConfigAccessor extends ZkUnitTestBase {
 
     admin.dropCluster(clusterName);
     configAccessor.close();
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

@@ -24,11 +24,16 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "OFFLINE", "ONLINE"
 })
 public class Lock extends StateModel {
+
+  private static final Logger LOG = LoggerFactory.getLogger(Lock.class);
+
   private String lockName;
 
   public Lock(String lockName) {
@@ -37,12 +42,12 @@ public class Lock extends StateModel {
 
   @Transition(from = "OFFLINE", to = "ONLINE")
   public void lock(Message m, NotificationContext context) {
-    System.out.println(context.getManager().getInstanceName() + " acquired lock:" + lockName);
+    LOG.info(context.getManager().getInstanceName() + " acquired lock:" + lockName);
   }
 
   @Transition(from = "ONLINE", to = "OFFLINE")
   public void release(Message m, NotificationContext context) {
-    System.out.println(context.getManager().getInstanceName() + " releasing lock:" + lockName);
+    LOG.info(context.getManager().getInstanceName() + " releasing lock:" + lockName);
   }
 
 }

@@ -54,8 +54,6 @@ public class TestDisableResource extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -142,7 +140,6 @@ public class TestDisableResource extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -150,8 +147,6 @@ public class TestDisableResource extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -236,8 +231,6 @@ public class TestDisableResource extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -245,8 +238,6 @@ public class TestDisableResource extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -339,8 +330,6 @@ public class TestDisableResource extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void enableResource(String clusterName, boolean enabled) {

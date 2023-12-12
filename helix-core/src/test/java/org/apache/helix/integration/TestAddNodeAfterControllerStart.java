@@ -43,8 +43,6 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
   @Test
   public void testStandalone() throws Exception {
     String clusterName = className + "_standalone";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     final int nodeNr = 5;
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 20, nodeNr - 1,
@@ -87,14 +85,11 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testDistributed() throws Exception {
     String clusterName = className + "_distributed";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // setup grand cluster
     final String grandClusterName = "GRAND_" + clusterName;
@@ -157,7 +152,6 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     // check if controller_0 has message listener for localhost_12918
     String msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12918");
     int numberOfListeners = ZkTestHelper.numberOfListeners(ZK_ADDR, msgPath);
-    // System.out.println("numberOfListeners(" + msgPath + "): " + numberOfListeners);
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller
 
     _gSetupTool.addInstanceToCluster(clusterName, "localhost_12919");
@@ -170,7 +164,6 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     // check if controller_0 has message listener for localhost_12919
     msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12919");
     numberOfListeners = ZkTestHelper.numberOfListeners(ZK_ADDR, msgPath);
-    // System.out.println("numberOfListeners(" + msgPath + "): " + numberOfListeners);
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller
 
     // clean up
@@ -198,8 +191,6 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
 
     deleteCluster(clusterName);
     deleteCluster(grandClusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private boolean checkHandlers(List<CallbackHandler> handlers, String path) {

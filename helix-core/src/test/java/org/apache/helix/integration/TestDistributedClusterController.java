@@ -130,8 +130,6 @@ public class TestDistributedClusterController extends ZkTestBase {
     Assert.assertTrue(result, "second cluster NOT in ideal state");
 
     // clean up
-    // wait for all zk callbacks done
-    System.out.println("Cleaning up...");
     for (int i = 0; i < 5; i++) {
       Assert.assertTrue(ClusterStateVerifier
           .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, controllerClusterName)));

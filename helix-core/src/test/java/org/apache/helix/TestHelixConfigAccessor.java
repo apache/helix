@@ -38,8 +38,6 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
 
@@ -172,7 +170,6 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   // HELIX-25: set participant Config should check existence of instance
@@ -181,8 +178,6 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.addCluster(clusterName, true);
@@ -211,6 +206,5 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

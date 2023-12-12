@@ -38,7 +38,6 @@ public class TestZkCopy extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String fromPath = "/" + clusterName + "/from";
     _gZkClient.createPersistent(fromPath, true);
     for (int i = 0; i < 5; i++) {
@@ -67,7 +66,6 @@ public class TestZkCopy extends ZkUnitTestBase {
     }
 
     _gZkClient.deleteRecursively("/" + clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -76,7 +74,6 @@ public class TestZkCopy extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
 
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
     String srcClusterName = testName + "_src";
     String dstClusterName = testName + "_dst";
     int n = 5;
@@ -114,6 +111,5 @@ public class TestZkCopy extends ZkUnitTestBase {
 
     TestHelper.dropCluster(srcClusterName, _gZkClient);
     TestHelper.dropCluster(dstClusterName, _gZkClient);
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 }

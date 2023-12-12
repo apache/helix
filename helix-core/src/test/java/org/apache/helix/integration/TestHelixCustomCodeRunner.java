@@ -48,7 +48,6 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
     @Override
     public void onCallback(NotificationContext context) {
       _isCallbackInvoked = true;
-      // System.out.println(type + ": TestCallback invoked on " + manager.getInstanceName());
     }
 
   }
@@ -71,8 +70,6 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
 
   @Test
   public void testCustomCodeRunner() throws Exception {
-    System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
-
     int nodeNb = 5;
     int startPort = 12918;
     TestHelper.setupCluster(_clusterName, ZK_ADDR, startPort, "localhost", // participant name
@@ -121,7 +118,5 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
     }
     deleteLiveInstances(_clusterName);
     deleteCluster(_clusterName);
-
-    System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

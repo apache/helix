@@ -46,7 +46,6 @@ public class TestDisableResourceMbean extends ZkUnitTestBase {
   public void testDisableResourceMonitoring() throws Exception {
     final int NUM_PARTICIPANTS = 2;
     String clusterName = TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName();
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // Set up cluster
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
@@ -100,7 +99,6 @@ public class TestDisableResourceMbean extends ZkUnitTestBase {
       participant.syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void pollForMBeanExistance(final ObjectName objectName, boolean expectation)

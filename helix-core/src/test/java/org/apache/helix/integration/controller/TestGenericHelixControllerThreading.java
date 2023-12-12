@@ -37,7 +37,6 @@ public class TestGenericHelixControllerThreading extends ZkUnitTestBase {
   //    shutdown
   @Test(enabled = false)
   public void testGenericHelixControllerThreadCount() throws Exception {
-    System.out.println("testGenericHelixControllerThreadCount STARTs");
     final int numControllers = 100;
     ArrayList<GenericHelixController> controllers = createHelixControllers(numControllers);
     Assert.assertEquals(getThreadCountByNamePrefix(EVENT_PROCESS_THREAD_NAME_PREFIX), numControllers * 2);
@@ -49,7 +48,6 @@ public class TestGenericHelixControllerThreading extends ZkUnitTestBase {
       Assert.assertEquals(getThreadCountByNamePrefix(EVENT_PROCESS_THREAD_NAME_PREFIX),
           remainingExpectedEventProcessThreadsCount);
     }
-    System.out.println("testGenericHelixControllerThreadCount ENDs");
   }
 
   private ArrayList<GenericHelixController> createHelixControllers(int count) {

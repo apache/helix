@@ -41,11 +41,15 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestBatchMessage extends ZkTestBase {
   class TestZkChildListener implements IZkChildListener {
+    private final Logger LOG = LoggerFactory.getLogger(TestZkChildListener.class);
+
     int _maxNumberOfChildren = 0;
 
     @Override
@@ -53,7 +57,7 @@ public class TestBatchMessage extends ZkTestBase {
       if (currentChildren == null) {
         return;
       }
-      System.out.println(parentPath + " has " + currentChildren.size() + " messages");
+      LOG.info(parentPath + " has " + currentChildren.size() + " messages");
       if (currentChildren.size() > _maxNumberOfChildren) {
         _maxNumberOfChildren = currentChildren.size();
       }
@@ -63,13 +67,10 @@ public class TestBatchMessage extends ZkTestBase {
 
   @Test
   public void testBasic() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     int n = 2;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -125,8 +126,6 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   // a non-batch-message run followed by a batch-message-enabled run
@@ -137,8 +136,6 @@ public class TestBatchMessage extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     int n = 2;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -215,8 +212,6 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -227,8 +222,6 @@ public class TestBatchMessage extends ZkTestBase {
 
     final int n = 5;
     MockParticipantManager[] participants = new MockParticipantManager[n];
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, // resource#
         6, // partition#
@@ -298,8 +291,6 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -309,8 +300,6 @@ public class TestBatchMessage extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     int n = 2;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -384,7 +373,5 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

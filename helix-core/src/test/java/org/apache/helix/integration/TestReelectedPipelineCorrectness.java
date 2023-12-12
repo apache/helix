@@ -55,7 +55,6 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
 
@@ -159,6 +158,5 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
     deleteCluster(controllerCluster);
-    System.out.println("STOP " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

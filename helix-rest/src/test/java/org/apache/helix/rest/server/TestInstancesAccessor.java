@@ -47,7 +47,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
 
   @Test
   public void testInstanceStoppable_zoneBased_zoneOrder() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Select instances with zone based
     String content = String.format(
         "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\",\"%s\"]}",
@@ -70,12 +69,10 @@ public class TestInstancesAccessor extends AbstractTestClass {
             "HELIX:INSTANCE_NOT_STABLE"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
         ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInstanceStoppable_zoneBased_zoneOrder")
   public void testInstancesStoppable_zoneBased() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Select instances with zone based
     String content =
         String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"]}",
@@ -105,7 +102,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
         ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ALIVE",
             "HELIX:INSTANCE_NOT_STABLE"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"), ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInstancesStoppable_zoneBased")
@@ -143,12 +139,10 @@ public class TestInstancesAccessor extends AbstractTestClass {
 
     Assert.assertFalse(jsonResult.get("stoppable").asBoolean());
     Assert.assertEquals(getStringSet(jsonResult, "failedChecks"), ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInstancesStoppable_disableOneInstance")
   public void testGetAllInstances() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances").isBodyReturnExpected(true)
         .format(CLUSTER_NAME).get(this);
 
@@ -161,7 +155,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
     Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
         + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(enabled = false)
@@ -210,13 +203,10 @@ public class TestInstancesAccessor extends AbstractTestClass {
             "INSTANCE_NOT_DISABLED");
     Assert
         .assertNull(clusterConfig.getInstanceHelixDisabledReason(CLUSTER_NAME + "localhost_12918"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAllInstances")
   public void testValidateWeightForAllInstances() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     // Empty out ClusterConfig's weight key setting and InstanceConfig's capacity maps for testing
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.getRecord().setListField(
@@ -265,8 +255,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
     // Must have the results saying they are all valid (true) because capacity keys are set
     // in ClusterConfig
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   private Set<String> getStringSet(JsonNode jsonNode, String key) {

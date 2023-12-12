@@ -56,8 +56,6 @@ public class TestAssignableInstanceManager {
 
   @BeforeClass
   public void beforeClass() {
-    System.out.println(
-        "START " + this.getClass().getSimpleName() + " at " + new Date(System.currentTimeMillis()));
     _clusterConfig = new ClusterConfig(CLUSTER_NAME);
     _taskDataCache = new MockTaskDataCache(CLUSTER_NAME);
     _liveInstances = new HashMap<>();

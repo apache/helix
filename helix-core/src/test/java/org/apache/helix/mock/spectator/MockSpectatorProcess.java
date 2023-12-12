@@ -33,13 +33,17 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A MockSpectatorProcess to demonstrate the integration with cluster manager.
  * This uses Zookeeper in local mode and runs at port 2188
  */
 public class MockSpectatorProcess {
+
+  private static final Logger LOG = LoggerFactory.getLogger(MockSpectatorProcess.class);
+
   private static final int port = 2188;
   static long runId = System.currentTimeMillis();
   private static final String dataDir = "/tmp/zkDataDir-" + runId;
@@ -102,21 +106,21 @@ public class MockSpectatorProcess {
     List<InstanceConfig> slaves;
     masters = _routingTableProvider.getInstances(database, partition, "MASTER");
     if (masters != null && !masters.isEmpty()) {
-      System.out.println("Available masters to route request");
+      LOG.info("Available masters to route request");
       for (InstanceConfig config : masters) {
-        System.out.println("HostName:" + config.getHostName() + " Port:" + config.getPort());
+        LOG.info("HostName:" + config.getHostName() + " Port:" + config.getPort());
       }
     } else {
-      System.out.println("No masters available to route request");
+      LOG.info("No masters available to route request");
     }
     slaves = _routingTableProvider.getInstances(database, partition, "SLAVE");
     if (slaves != null && !slaves.isEmpty()) {
-      System.out.println("Available slaves to route request");
+      LOG.info("Available slaves to route request");
       for (InstanceConfig config : slaves) {
-        System.out.println("HostName:" + config.getHostName() + " Port:" + config.getPort());
+        LOG.info("HostName:" + config.getHostName() + " Port:" + config.getPort());
       }
     } else {
-      System.out.println("No slaves available to route request");
+      LOG.info("No slaves available to route request");
     }
   }
 

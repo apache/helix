@@ -76,8 +76,6 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
@@ -141,7 +139,6 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
   @Test(dataProvider = "rebalanceStrategies", enabled = true)
   public void test(String rebalanceStrategyName, String rebalanceStrategyClass) throws Exception {
-    System.out.println("Test " + rebalanceStrategyName);
     int i = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
@@ -212,7 +209,6 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   })
   public void testLackEnoughLiveInstances(String rebalanceStrategyName,
       String rebalanceStrategyClass) throws Exception {
-    System.out.println("TestLackEnoughLiveInstances " + rebalanceStrategyName);
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     // shutdown participants, keep only two left
@@ -260,7 +256,6 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   })
   public void testLackEnoughInstances(String rebalanceStrategyName, String rebalanceStrategyClass)
       throws Exception {
-    System.out.println("TestLackEnoughInstances " + rebalanceStrategyName);
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     // Drop instance from admin tools and controller sending message to the same instance are

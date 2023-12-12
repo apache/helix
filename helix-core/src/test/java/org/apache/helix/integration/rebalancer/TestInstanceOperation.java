@@ -66,8 +66,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NUM_NODE; i++) {
@@ -103,7 +101,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test
   public void testEvacuate() throws Exception {
-    System.out.println("START TestInstanceOperation.testEvacuate() at " + new Date(System.currentTimeMillis()));
     // EV should contain all participants, check resources one by one
     Map<String, ExternalView> assignment = getEV();
     for (String resource : _allDBs) {
@@ -134,7 +131,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testEvacuate")
   public void testRevertEvacuation() throws Exception {
-    System.out.println("START TestInstanceOperation.testRevertEvacuation() at " + new Date(System.currentTimeMillis()));
     // revert an evacuate instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
@@ -152,7 +148,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testRevertEvacuation")
   public void testAddingNodeWithEvacuationTag() throws Exception {
-    System.out.println("START TestInstanceOperation.testAddingNodeWithEvacuationTag() at " + new Date(System.currentTimeMillis()));
     // first disable and instance, and wait for all replicas to be moved out
     String mockNewInstance = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
@@ -202,7 +197,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testAddingNodeWithEvacuationTag")
   public void testEvacuateAndCancelBeforeBootstrapFinish() throws Exception {
-    System.out.println("START TestInstanceOperation.testEvacuateAndCancelBeforeBootstrapFinish() at " + new Date(System.currentTimeMillis()));
     // add a resource where downward state transition is slow
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB3_DELAYED_CRUSHED", "MasterSlave", PARTITIONS, REPLICA,
         REPLICA - 1, 200000, CrushEdRebalanceStrategy.class.getName());
@@ -264,8 +258,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testEvacuateAndCancelBeforeBootstrapFinish")
   public void testEvacuateAndCancelBeforeDropFinish() throws Exception {
-    System.out.println("START TestInstanceOperation.testEvacuateAndCancelBeforeDropFinish() at " + new Date(System.currentTimeMillis()));
-
     // set DROP ST delay to a large number
     _stateModelDelay = 10000L;
 
@@ -301,7 +293,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testEvacuateAndCancelBeforeDropFinish")
   public void testMarkEvacuationAfterEMM() throws Exception {
-    System.out.println("START TestInstanceOperation.testMarkEvacuationAfterEMM() at " + new Date(System.currentTimeMillis()));
     _stateModelDelay = 1000L;
     Assert.assertFalse(_gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME));
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, null,
@@ -346,7 +337,6 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testMarkEvacuationAfterEMM")
   public void testEvacuationWithOfflineInstancesInCluster() throws Exception {
-    System.out.println("START TestInstanceOperation.testEvacuationWithOfflineInstancesInCluster() at " + new Date(System.currentTimeMillis()));
     _participants.get(1).syncStop();
     _participants.get(2).syncStop();
 
@@ -430,7 +420,6 @@ public class TestInstanceOperation extends ZkTestBase {
       for (String partition : is.getPartitionSet()) {
         List<String> newPAssignedParticipants = is.getPreferenceList(partition);
         if (newPAssignedParticipants.contains(evacuateInstanceName)) {
-          System.out.println("partition " + partition + " assignment " + newPAssignedParticipants + " ev " + evacuateInstanceName);
           return false;
         }
       }

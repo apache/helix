@@ -24,35 +24,36 @@ import java.util.Date;
 import org.apache.helix.ExternalCommand;
 import org.apache.helix.ScriptTestHelper;
 import org.apache.helix.TestHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 public class TestFailOverPerf1kp {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestFailOverPerf1kp.class);
+
   // TODO: renable this test. disable it because the script is not running properly on apache
   // jenkins
   // @Test
   public void testFailOverPerf1kp() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     ExternalCommand cmd = ScriptTestHelper.runCommandLineTest("helix_random_kill_local_startzk.sh");
     String output = cmd.getStringOutput("UTF8");
     int i = getStateTransitionLatency(0, output);
     int j = output.indexOf("ms", i);
     long latency = Long.parseLong(output.substring(i, j));
-    System.out.println("startup latency: " + latency);
+    LOG.info("startup latency: " + latency);
 
     i = getStateTransitionLatency(i, output);
     j = output.indexOf("ms", i);
     latency = Long.parseLong(output.substring(i, j));
-    System.out.println("failover latency: " + latency);
+    LOG.info("failover latency: " + latency);
     Assert.assertTrue(latency < 800, "failover latency for 1k partition test should < 800ms");
 
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+    LOG.info("END " + testName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
@@ -60,7 +61,7 @@ public class TestFailOverPerf1kp {
     final String pattern = "state transition latency: ";
     int i = output.indexOf(pattern, start) + pattern.length();
     // String latencyStr = output.substring(i, j);
-    // System.out.println(latencyStr);
+    // LOG.info(latencyStr);
     return i;
   }
 }

@@ -81,8 +81,6 @@ public class TestEnablePartitionDuringDisable extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -132,7 +130,6 @@ public class TestEnablePartitionDuringDisable extends ZkTestBase {
       Thread.sleep(100);
     }
     long endT = System.currentTimeMillis();
-    System.out.println("1 disable and re-enable took: " + (endT - startT) + "ms");
     Assert.assertEquals(transition.slaveToOfflineCnt, 1, "should get 1 slaveToOffline transition");
     Assert.assertEquals(transition.offlineToSlave, 1, "should get 1 offlineToSlave transition");
 
@@ -143,7 +140,6 @@ public class TestEnablePartitionDuringDisable extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 }

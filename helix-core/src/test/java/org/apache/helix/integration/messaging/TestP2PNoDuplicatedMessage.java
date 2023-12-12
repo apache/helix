@@ -83,9 +83,6 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() {
-    System.out.println(
-        "START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
-
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
@@ -133,7 +130,6 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
       p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
-    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

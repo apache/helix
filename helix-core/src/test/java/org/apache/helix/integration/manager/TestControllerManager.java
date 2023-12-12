@@ -40,8 +40,6 @@ public class TestControllerManager extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     int n = 5;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -94,7 +92,6 @@ public class TestControllerManager extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -105,8 +102,6 @@ public class TestControllerManager extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
     int n = 5;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -157,6 +152,5 @@ public class TestControllerManager extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

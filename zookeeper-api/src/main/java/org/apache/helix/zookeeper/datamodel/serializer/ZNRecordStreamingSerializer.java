@@ -51,7 +51,7 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
       try {
         max = Integer.parseInt(maxStr);
       } catch (Exception e) {
-        LOG.error("IllegalNumberFormat for list field bound: " + maxStr);
+        LOG.error("IllegalNumberFormat for list field bound: " + maxStr, e);
       }
     }
     return max;
@@ -284,35 +284,34 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
     byte[] bytes = serializer.serialize(record);
-    System.out.println(new String(bytes));
+    LOG.info(new String(bytes));
     ZNRecord record2 = (ZNRecord) serializer.deserialize(bytes);
-    System.out.println(record2);
+    LOG.info(record2.toString());
 
     long start = System.currentTimeMillis();
     for (int i = 0; i < 100; i++) {
       bytes = serializer.serialize(record);
-      // System.out.println(new String(bytes));
+      // LOG.info(new String(bytes));
       record2 = (ZNRecord) serializer.deserialize(bytes);
-      // System.out.println(record2);
+      // LOG.info(record2);
     }
     long end = System.currentTimeMillis();
-    System.out.println("ZNRecordStreamingSerializer time used: " + (end - start));
+    LOG.info("ZNRecordStreamingSerializer time used: " + (end - start));
 
     ZNRecordSerializer serializer2 = new ZNRecordSerializer();
     bytes = serializer2.serialize(record);
-    // System.out.println(new String(bytes));
+    // LOG.info(new String(bytes));
     record2 = (ZNRecord) serializer2.deserialize(bytes);
-    // System.out.println(record2);
+    // LOG.info(record2);
 
     start = System.currentTimeMillis();
     for (int i = 0; i < 100; i++) {
       bytes = serializer2.serialize(record);
-      // System.out.println(new String(bytes));
+      // LOG.info(new String(bytes));
       record2 = (ZNRecord) serializer2.deserialize(bytes);
-      // System.out.println(record2);
+      // LOG.info(record2);
     }
     end = System.currentTimeMillis();
-    System.out.println("ZNRecordSerializer time used: " + (end - start));
-
+    LOG.info("ZNRecordSerializer time used: " + (end - start));
   }
 }

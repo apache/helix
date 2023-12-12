@@ -38,8 +38,6 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, PARTICIPANT_PREFIX, "TestDB", 1, 20, 5, 3,
         "MasterSlave", true);
 
@@ -62,12 +60,11 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     // participant session expiry
     MockParticipantManager participantToExpire = participants[1];
 
-    // System.out.println("Expire participant session");
     String oldSessionId = participantToExpire.getSessionId();
 
     ZkTestHelper.expireSession(participantToExpire.getZkClient());
     String newSessionId = participantToExpire.getSessionId();
-    // System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
+
     Assert.assertTrue(newSessionId.compareTo(oldSessionId) > 0,
         "Session id should be increased after expiry");
 
@@ -80,11 +77,9 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     Assert.assertTrue(result);
 
     // controller session expiry
-    // System.out.println("Expire controller session");
     oldSessionId = controller.getSessionId();
     ZkTestHelper.expireSession(controller.getZkClient());
     newSessionId = controller.getSessionId();
-    // System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
     Assert.assertTrue(newSessionId.compareTo(oldSessionId) > 0,
         "Session id should be increased after expiry");
 
@@ -96,13 +91,11 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     Assert.assertTrue(result);
 
     // clean up
-    System.out.println("Clean up ...");
     controller.syncStop();
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

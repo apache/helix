@@ -47,6 +47,8 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -60,6 +62,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestClusterSetup extends ZkUnitTestBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestClusterSetup.class);
   protected static final String CLUSTER_NAME = "TestClusterSetup";
   protected static final String TEST_DB = "TestDB";
   protected static final String INSTANCE_PREFIX = "instance_";
@@ -69,15 +73,11 @@ public class TestClusterSetup extends ZkUnitTestBase {
   private ClusterSetup _clusterSetup;
 
   private static String[] createArgs(String str) {
-    String[] split = str.split("[ ]+");
-    System.out.println(Arrays.toString(split));
-    return split;
+    return str.split("[ ]+");
   }
 
   @BeforeClass()
   public void beforeClass() throws Exception {
-    System.out
-        .println("START TestClusterSetup.beforeClass() " + new Date(System.currentTimeMillis()));
     _clusterSetup = new ClusterSetup(ZK_ADDR);
   }
 
@@ -85,7 +85,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
   public void afterClass() {
     deleteCluster(CLUSTER_NAME);
     _clusterSetup.close();
-    System.out.println("END TestClusterSetup.afterClass() " + new Date(System.currentTimeMillis()));
   }
 
   @BeforeMethod()
@@ -94,7 +93,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
       _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
       _clusterSetup.addCluster(CLUSTER_NAME, true);
     } catch (Exception e) {
-      System.out.println("@BeforeMethod TestClusterSetup exception:" + e);
+      LOG.info("@BeforeMethod TestClusterSetup exception:", e);
     }
   }
 
@@ -282,8 +281,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     _clusterSetup.addCluster(clusterName, true);
     _clusterSetup.addInstanceToCluster(clusterName, "localhost_0");
 
@@ -313,7 +310,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertNull(record.getSimpleField("key2"));
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
@@ -322,8 +318,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -353,8 +347,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // clean up
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
@@ -365,8 +357,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     String instanceAddress = "localhost:12918";
     String instanceName = "localhost_12918";
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -437,8 +427,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
         return true;
       }, TestHelper.WAIT_DURATION));
     }
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
@@ -446,7 +434,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -472,7 +460,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertTrue(idealState.isEnabled());
 
     TestHelper.dropCluster(clusterName, _gZkClient);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(expectedExceptions = HelixException.class)

@@ -58,7 +58,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
   @Test
   public void testIsInstanceStoppable() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     Map<String, String> params = ImmutableMap.of("client", "espresso");
     Entity entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
@@ -73,21 +72,17 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, Object> expectedMap =
         ImmutableMap.of("stoppable", false, "failedChecks", failedChecks);
     Assert.assertEquals(actualMap, expectedMap);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testIsInstanceStoppable")
   public void testTakeInstanceNegInput() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     post("clusters/TestCluster_0/instances/instance1/takeInstance", null,
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.BAD_REQUEST.getStatusCode(), true);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceNegInput")
   public void testTakeInstanceNegInput2() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
         .format(STOPPABLE_CLUSTER, "instance1").post(this, Entity.entity("{}", MediaType.APPLICATION_JSON_TYPE));
     String takeInstanceResult = response.readEntity(String.class);
@@ -97,12 +92,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, Object> expectedMap =
         ImmutableMap.of("successful", false, "messages", errorMsg, "operationResult", "");
     Assert.assertEquals(actualMap, expectedMap);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceNegInput2")
   public void testTakeInstanceHealthCheck() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"health_check_list\" : [\"HelixInstanceStoppableCheck\", \"CustomInstanceStoppableCheck\"],"
         + "\"health_check_config\" : { \"client\" : \"espresso\" }} ";
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
@@ -116,12 +109,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, Object> expectedMap =
         ImmutableMap.of("successful", false, "messages", errorMsg, "operationResult", "");
     Assert.assertEquals(actualMap, expectedMap);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceNegInput2")
   public void testTakeInstanceNonBlockingCheck() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"health_check_list\" : [\"HelixInstanceStoppableCheck\"],"
         + "\"health_check_config\" : { \"client\" : \"espresso\" , "
         + "\"continueOnFailures\" : [\"HELIX:EMPTY_RESOURCE_ASSIGNMENT\", \"HELIX:INSTANCE_NOT_ENABLED\","
@@ -137,12 +128,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, Object> expectedMap =
         ImmutableMap.of("successful", true, "messages", errorMsg, "operationResult", "");
     Assert.assertEquals(actualMap, expectedMap);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceHealthCheck")
   public void testTakeInstanceOperationSuccess() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload =
         "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"]} ";
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
@@ -154,12 +143,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, Object> expectedMap = ImmutableMap
         .of("successful", true, "messages", new ArrayList<>(), "operationResult", "DummyTakeOperationResult");
     Assert.assertEquals(actualMap, expectedMap);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceOperationSuccess")
   public void testFreeInstanceOperationSuccess() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload =
         "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"]} ";
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/freeInstance")
@@ -172,12 +159,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .of("successful", true, "messages", new ArrayList<>(), "operationResult",
             "DummyFreeOperationResult");
     Assert.assertEquals(actualMap, expectedMap);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testFreeInstanceOperationSuccess")
   public void testTakeInstanceOperationCheckFailure() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
         + "\"operation_config\": { \"org.apache.helix.rest.server.TestOperationImpl\" :"
         + " {\"instance0\": true, \"instance2\": true, "
@@ -190,12 +175,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
     Assert.assertFalse((boolean)actualMap.get("successful"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailure")
   public void testTakeInstanceOperationCheckFailureCommonInput() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
         + "\"operation_config\": { \"OperationConfigSharedInput\" :"
         + " {\"instance0\": true, \"instance2\": true, "
@@ -208,12 +191,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
     Assert.assertFalse((boolean)actualMap.get("successful"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailureCommonInput")
   public void testTakeInstanceOperationCheckFailureNonBlocking() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
         + "\"operation_config\": { \"org.apache.helix.rest.server.TestOperationImpl\" : "
         + "{\"instance0\": true, \"instance2\": true, "
@@ -224,19 +205,16 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(STOPPABLE_CLUSTER, "instance0")
         .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
     String takeInstanceResult = response.readEntity(String.class);
-    System.out.println("testTakeInstanceOperationCheckFailureNonBlocking" + takeInstanceResult);
 
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
     Assert.assertTrue((boolean)actualMap.get("successful"));
     Assert.assertEquals(actualMap.get("operationResult"), "DummyTakeOperationResult");
     // The non blocking test should generate msg but won't return failure status
     Assert.assertFalse(actualMap.get("messages").equals("[]"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailureNonBlocking")
   public void testTakeInstanceCheckOnly() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
         + "\"operation_config\": {\"performOperation\": false} } ";
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
@@ -247,12 +225,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
     Assert.assertTrue((boolean)actualMap.get("successful"));
     Assert.assertTrue(actualMap.get("operationResult").equals(""));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testTakeInstanceCheckOnly")
   public void testGetAllMessages() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String testInstance = CLUSTER_NAME + "localhost_12926"; //Non-live instance
 
     String messageId = "msg1";
@@ -273,13 +249,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 1);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAllMessages")
   public void testGetMessagesByStateModelDef() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String testInstance = CLUSTER_NAME + "localhost_12926"; //Non-live instance
     String messageId = "msg1";
     Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
@@ -311,12 +284,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 0);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetMessagesByStateModelDef")
   public void testGetAllInstances() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances").isBodyReturnExpected(true)
         .format(CLUSTER_NAME).get(this);
 
@@ -328,12 +299,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
     Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
         + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAllInstances")
   public void testGetInstanceById() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}").isBodyReturnExpected(true)
         .format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -345,12 +314,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     InstanceConfig instanceConfig = new InstanceConfig(toZNRecord(instancesCfg));
     Assert.assertEquals(instanceConfig,
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetInstanceById")
   public void testAddInstance() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     InstanceConfig instanceConfig = new InstanceConfig(INSTANCE_NAME + "TEST");
     Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(instanceConfig.getRecord()),
         MediaType.APPLICATION_JSON_TYPE);
@@ -360,21 +327,17 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     Assert.assertEquals(instanceConfig,
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME + "TEST"));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddInstance", expectedExceptions = HelixException.class)
   public void testDeleteInstance() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     delete("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "TEST",
         Response.Status.OK.getStatusCode());
     _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME + "TEST");
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testDeleteInstance")
   public void updateInstance() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Disable instance
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
 
@@ -501,7 +464,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
     Assert.assertEquals(
         instanceConfig.getInstanceOperation(), "");
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -510,7 +472,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
    */
   @Test(dependsOnMethods = "updateInstance")
   public void updateInstanceConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String instanceName = CLUSTER_NAME + "localhost_12918";
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName);
     ZNRecord record = instanceConfig.getRecord();
@@ -559,7 +520,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getListFields());
     Assert.assertEquals(record.getMapFields(),
         _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getMapFields());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -568,7 +528,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
    */
   @Test(dependsOnMethods = "updateInstanceConfig")
   public void deleteInstanceConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String instanceName = CLUSTER_NAME + "localhost_12918";
     ZNRecord record = new ZNRecord(instanceName);
 
@@ -606,7 +565,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
       Assert.assertFalse(_configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord()
           .getMapFields().containsKey(key));
     }
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -616,7 +574,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
    */
   @Test(dependsOnMethods = "deleteInstanceConfig")
   public void checkUpdateFails() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String instanceName = CLUSTER_NAME + "non_existent_instance";
     InstanceConfig instanceConfig = new InstanceConfig(INSTANCE_NAME + "TEST");
     ZNRecord record = instanceConfig.getRecord();
@@ -629,7 +586,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}/configs")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
         .format(CLUSTER_NAME, instanceName).post(this, entity);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -641,7 +597,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "checkUpdateFails")
   public void testValidateWeightForInstance()
       throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Empty out ClusterConfig's weight key setting and InstanceConfig's capacity maps for testing
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.getRecord()
@@ -695,7 +650,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     // Must have the results saying they are all valid (true) because capacity keys are set
     // in ClusterConfig
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -704,7 +658,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
    */
   @Test(dependsOnMethods = "testValidateWeightForInstance")
   public void testValidateDeltaInstanceConfigForUpdate() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Enable Topology aware for the cluster
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.getRecord()
@@ -745,13 +698,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         "clusters/{}/instances/{}/configs?command=update&doSanityCheck=true")
         .expectedReturnStatusCode(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testValidateDeltaInstanceConfigForUpdate")
-  public void testGetResourcesOnInstance() throws JsonProcessingException, InterruptedException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
+  public void testGetResourcesOnInstance() throws JsonProcessingException {
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources")
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -763,6 +713,5 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     // The below calls should successfully return
     body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources/{}")
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME, dbName).get(this);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

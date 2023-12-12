@@ -111,7 +111,6 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
   @Test
   public void testPrefetch() throws Exception {
     String methodName = TestHelper.getTestMethodName();
-    System.out.println("START " + methodName + " at " + new Date(System.currentTimeMillis()));
 
     PrefetchListener listener = new PrefetchListener();
     _manager.addInstanceConfigChangeListener(listener);
@@ -130,8 +129,6 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
     Assert.assertTrue(listener._containInstanceConfig);
     Assert.assertTrue(listener._idealStateChanged);
     Assert.assertTrue(listener._containIdealStates);
-
-    System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
 
@@ -156,8 +153,6 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
     Assert.assertFalse(listener._containInstanceConfig);
     Assert.assertTrue(listener._idealStateChanged);
     Assert.assertFalse(listener._containIdealStates);
-
-    System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
 
@@ -183,8 +178,6 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
     Assert.assertTrue(listener._containInstanceConfig);
     Assert.assertTrue(listener._idealStateChanged);
     Assert.assertFalse(listener._containIdealStates);
-
-    System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void updateInstanceConfig() {

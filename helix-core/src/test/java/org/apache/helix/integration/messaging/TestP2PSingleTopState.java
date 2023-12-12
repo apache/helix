@@ -73,9 +73,6 @@ public class TestP2PSingleTopState extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() {
-    System.out
-        .println("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
-
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
@@ -127,17 +124,15 @@ public class TestP2PSingleTopState extends ZkTestBase {
       p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
-    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testRollingUpgrade() throws InterruptedException {
     // rolling upgrade the cluster
     for (String ins : _instances) {
-      System.out.println("Disable " + ins);
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, false);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
-      System.out.println("Enable " + ins);
+
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, true);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
     }

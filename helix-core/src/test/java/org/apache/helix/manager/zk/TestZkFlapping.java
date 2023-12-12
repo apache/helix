@@ -69,8 +69,6 @@ public class TestZkFlapping extends ZkUnitTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     System.setProperty(SystemPropertyKeys.MAX_DISCONNECT_THRESHOLD,
         Integer.toString(_disconnectThreshold));
 
@@ -130,7 +128,6 @@ public class TestZkFlapping extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -141,8 +138,6 @@ public class TestZkFlapping extends ZkUnitTestBase {
     final HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     System.setProperty(SystemPropertyKeys.MAX_DISCONNECT_THRESHOLD,
         Integer.toString(_disconnectThreshold));
@@ -203,6 +198,5 @@ public class TestZkFlapping extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

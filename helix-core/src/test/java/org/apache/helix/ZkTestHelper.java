@@ -273,7 +273,7 @@ public class ZkTestHelper {
             String expectState = expectInstanceStateMap.get(expectInstance);
             boolean equals = expectState.equals(actualState);
             if (op.equals("==") && !equals || op.equals("!=") && equals) {
-              System.out.println(
+              LOG.info(
                   partition + "/" + instance + " state mismatch. actual state: " + actualState
                       + ", but expect: " + expectState + ", op: " + op);
               result = false;
@@ -464,7 +464,7 @@ public class ZkTestHelper {
         return true;
       }
       Thread.sleep(100);
-      System.out.println("pending zk-events in queue: " + queue);
+      LOG.info("pending zk-events in queue: " + queue);
     }
     return false;
   }

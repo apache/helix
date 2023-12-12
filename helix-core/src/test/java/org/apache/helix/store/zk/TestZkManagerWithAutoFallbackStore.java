@@ -38,8 +38,6 @@ public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     int n = 2;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -121,6 +119,5 @@ public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
 
     participants[0].syncStop();
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

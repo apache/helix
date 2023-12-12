@@ -61,8 +61,6 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
   @Override
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     // Cache references to mock participants for teardown
     _extraParticipants = new HashSet<>();
 

@@ -36,7 +36,6 @@ public class TestStrictMatchExternalViewVerifier {
   public void testComputeIdealMapping(String comment, String stateModelName,
       List<String> preferenceList, List<String> liveAndEnabledInstances,
       Map<String, String> expectedIdealMapping) {
-    System.out.println("Test case comment: " + comment);
     Map<String, String> idealMapping = HelixUtil.computeIdealMapping(preferenceList,
         BuiltInStateModelDefinitions.valueOf(stateModelName).getStateModelDefinition(),
         new HashSet<>(liveAndEnabledInstances));

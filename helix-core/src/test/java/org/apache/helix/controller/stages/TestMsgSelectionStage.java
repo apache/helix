@@ -59,8 +59,6 @@ public class TestMsgSelectionStage {
 
   @Test
   public void testMasterXfer() {
-    System.out.println("START testMasterXfer at " + new Date(System.currentTimeMillis()));
-
     Map<String, LiveInstance> liveInstances = new HashMap<String, LiveInstance>();
     liveInstances.put("localhost_0", new LiveInstance("localhost_0"));
     liveInstances.put("localhost_1", new LiveInstance("localhost_1"));
@@ -92,14 +90,10 @@ public class TestMsgSelectionStage {
 
     Assert.assertEquals(selectedMsg.size(), 1);
     Assert.assertEquals(selectedMsg.get(0).getMsgId(), "msgId_1");
-    System.out.println("END testMasterXfer at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testMasterXferAfterMasterResume() {
-    System.out.println("START testMasterXferAfterMasterResume at "
-        + new Date(System.currentTimeMillis()));
-
     Map<String, LiveInstance> liveInstances = new HashMap<String, LiveInstance>();
     liveInstances.put("localhost_0", new LiveInstance("localhost_0"));
     liveInstances.put("localhost_1", new LiveInstance("localhost_1"));
@@ -129,7 +123,5 @@ public class TestMsgSelectionStage {
             BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition(), false);
 
     Assert.assertEquals(selectedMsg.size(), 0);
-    System.out.println("END testMasterXferAfterMasterResume at "
-        + new Date(System.currentTimeMillis()));
   }
 }

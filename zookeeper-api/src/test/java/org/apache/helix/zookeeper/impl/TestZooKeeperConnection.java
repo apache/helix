@@ -11,11 +11,15 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
 public class TestZooKeeperConnection extends ZkTestBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestZooKeeperConnection.class);
   final int count = 100;
   final AtomicInteger[] get_count = {new AtomicInteger(0)};
   CountDownLatch countDownLatch = new CountDownLatch(count*2);
@@ -53,7 +57,7 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.writeData(path, ("datat"+i).getBytes(), -1);
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    System.out.println("testPersistWatcher: rafter register one time listener, original listener received event count: " + get_count[0]);
+    LOG.info("testPersistWatcher: rafter register one time listener, original listener received event count: " + get_count[0]);
     // total number of event is 400. We will miss event now
     Assert.assertTrue(TestHelper.verify(() -> {
       return (get_count[0].get() >= 202 & get_count[0].get() < 400);
@@ -88,7 +92,7 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.writeData(path, ("datat"+i).getBytes(), -1);
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    System.out.println("testRecursivePersistWatcherWithOneTimeWatcher: after register one time listener, original listener received event count: " + get_count[0]);
+    LOG.info("testRecursivePersistWatcherWithOneTimeWatcher: after register one time listener, original listener received event count: " + get_count[0]);
     // total number of event is 500. We will miss event now
     Assert.assertTrue(TestHelper.verify(() -> {
       return (get_count[0].get() >= 302 && get_count[0].get() < 500);

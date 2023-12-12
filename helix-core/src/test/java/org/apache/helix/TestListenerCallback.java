@@ -100,7 +100,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     _clusterName = TestHelper.getTestClassName();
-    System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -123,7 +122,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
       _manager.disconnect();
     }
     TestHelper.dropCluster(_clusterName, _gZkClient);
-    System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

@@ -68,8 +68,6 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NUM_NODE; i++) {
@@ -206,7 +204,6 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       participant.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
-    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void checkForRebalanceError(final boolean expectError) throws Exception {

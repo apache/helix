@@ -59,8 +59,6 @@ public class TestWorkflowAccessor extends AbstractTestClass {
 
   @Test
   public void testGetWorkflows() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body =
         get("clusters/" + CLUSTER_NAME + "/workflows", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -68,12 +66,10 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     Set<String> workflows = OBJECT_MAPPER.readValue(workflowsStr,
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
     Assert.assertEquals(workflows, _workflowMap.get(CLUSTER_NAME).keySet());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetWorkflows")
   public void testGetWorkflow() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME, null,
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -89,36 +85,27 @@ public class TestWorkflowAccessor extends AbstractTestClass {
         node.get(WorkflowAccessor.WorkflowProperties.WorkflowConfig.name()).get("WorkflowID")
             .textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetWorkflow")
   public void testGetWorkflowConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body = get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/configs", null,
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String workflowId = node.get("WorkflowID").textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetWorkflowConfig")
   public void testGetWorkflowContext() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body = get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/context", null,
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    Assert.assertEquals(node.get("STATE").textValue(),
-        TaskState.FAILED.name());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
+    Assert.assertEquals(node.get("STATE").textValue(), TaskState.FAILED.name());
   }
 
   @Test(dependsOnMethods = "testGetWorkflowContext")
   public void testCreateWorkflow() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);
 
     // Create one time workflow
@@ -144,12 +131,10 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     Assert.assertNotNull(workflowConfig);
     Assert.assertTrue(workflowConfig.isJobQueue());
     Assert.assertEquals(workflowConfig.getJobDag().getAllNodes().size(), 0);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testCreateWorkflow")
   public void testUpdateWorkflow() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);
 
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
@@ -162,12 +147,10 @@ public class TestWorkflowAccessor extends AbstractTestClass {
         ImmutableMap.of("command", "resume"), entity, Response.Status.OK.getStatusCode());
     Assert.assertEquals(driver.getWorkflowConfig(TEST_QUEUE_NAME).getTargetState(),
         TargetState.START);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testUpdateWorkflow")
   public void testGetAndUpdateWorkflowContentStore() throws IOException, InterruptedException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String workflowName = "Workflow_0";
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);
     // Wait for workflow to start processing
@@ -197,12 +180,10 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     body = get(uri, null, Response.Status.OK.getStatusCode(), true);
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
     Assert.assertEquals(contentStore, map1);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAndUpdateWorkflowContentStore")
   public void testInvalidGetAndUpdateWorkflowContentStore() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String validURI = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/userContent";
     String invalidURI = "clusters/" + CLUSTER_NAME + "/workflows/xxx/userContent"; // workflow not exist
     Entity validEntity = Entity.entity("{\"k1\":\"v1\"}", MediaType.APPLICATION_JSON_TYPE);
@@ -216,12 +197,10 @@ public class TestWorkflowAccessor extends AbstractTestClass {
 
     post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
     post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInvalidGetAndUpdateWorkflowContentStore")
   public void testDeleteWorkflow() throws InterruptedException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);
 
     int currentWorkflowNumbers = driver.getWorkflows().size();
@@ -233,6 +212,5 @@ public class TestWorkflowAccessor extends AbstractTestClass {
 
     Thread.sleep(500);
     Assert.assertEquals(driver.getWorkflows().size(), currentWorkflowNumbers - 2);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

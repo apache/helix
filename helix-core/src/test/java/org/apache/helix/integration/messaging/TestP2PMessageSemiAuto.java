@@ -68,8 +68,6 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
-    System.out
-        .println("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
 
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
@@ -116,7 +114,6 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
       p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
-    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

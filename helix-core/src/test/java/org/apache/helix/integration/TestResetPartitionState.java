@@ -69,8 +69,6 @@ public class TestResetPartitionState extends ZkTestBase {
     String clusterName = className + "_" + methodName;
     final int n = 5;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -176,9 +174,6 @@ public class TestResetPartitionState extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   private void clearStatusUpdate(String clusterName, String instance, String resource,

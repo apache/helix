@@ -32,10 +32,14 @@ import javax.management.ObjectName;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.WorkflowMonitor;
 import org.apache.helix.task.TaskState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestWorkflowMonitor {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestWorkflowMonitor.class);
   private static final String TEST_CLUSTER_NAME = "TestCluster";
   private static final String TEST_WORKFLOW_TYPE = "WorkflowTestType";
   private static final String TEST_WORKFLOW_MBEAN_NAME = String
@@ -139,10 +143,9 @@ public class TestWorkflowMonitor {
     }
 
     try {
-      System.out.println("Register MBean: " + name);
       beanServer.registerMBean(bean, name);
     } catch (Exception e) {
-      System.out.println("Could not register MBean: " + name + e.toString());
+      LOG.info("Could not register MBean: " + name, e);
     }
   }
 

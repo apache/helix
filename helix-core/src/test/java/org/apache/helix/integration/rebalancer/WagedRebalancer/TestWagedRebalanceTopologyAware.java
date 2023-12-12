@@ -39,8 +39,6 @@ public class TestWagedRebalanceTopologyAware extends TestWagedRebalanceFaultZone
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);

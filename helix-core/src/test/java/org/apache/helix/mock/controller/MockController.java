@@ -77,7 +77,7 @@ public class MockController {
     ObjectMapper mapper = new ObjectMapper();
     StringWriter sw = new StringWriter();
     mapper.writeValue(sw, message);
-    System.out.println(sw.toString());
+
     client.delete(path);
 
     Thread.sleep(10000);

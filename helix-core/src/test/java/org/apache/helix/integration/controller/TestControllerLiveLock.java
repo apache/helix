@@ -60,8 +60,6 @@ public class TestControllerLiveLock extends ZkUnitTestBase {
     final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -131,7 +129,5 @@ public class TestControllerLiveLock extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

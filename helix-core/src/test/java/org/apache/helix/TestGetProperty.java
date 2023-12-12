@@ -39,7 +39,6 @@ public class TestGetProperty {
       props.load(stream);
       version = props.getProperty("clustermanager.version");
       Assert.assertNotNull(version);
-      System.out.println("cluster-manager-version:" + version);
     } catch (IOException e) {
       // e.printStackTrace();
       Assert.fail("could not open cluster-manager-version.properties. ", e);

@@ -37,7 +37,6 @@ public class TestTaskAccessor extends AbstractTestClass {
 
   @Test
   public void testGetAddTaskUserContent() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/tasks/0/userContent";
     String uriTaskDoesNotExist = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/tasks/xxx/userContent";
 
@@ -76,12 +75,10 @@ public class TestTaskAccessor extends AbstractTestClass {
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {
     });
     Assert.assertEquals(contentStore, map1);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAddTaskUserContent")
   public void testInvalidGetAddTaskUserContent() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String validURI = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/Job_0/tasks/0/userContent";
     String invalidURI1 = "clusters/" + CLUSTER_NAME + "/workflows/xxx/jobs/Job_0/tasks/0/userContent"; // workflow not exist
     String invalidURI2 = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/xxx/tasks/0/userContent"; // job not exist
@@ -102,6 +99,5 @@ public class TestTaskAccessor extends AbstractTestClass {
 
     post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
     post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

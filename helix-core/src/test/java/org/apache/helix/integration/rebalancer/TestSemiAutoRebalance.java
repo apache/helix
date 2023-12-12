@@ -62,9 +62,6 @@ public class TestSemiAutoRebalance extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws InterruptedException {
-    System.out
-        .println("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
-
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, DB_NAME, PARTITION_NUMBER, STATE_MODEL,
@@ -109,7 +106,6 @@ public class TestSemiAutoRebalance extends ZkTestBase {
       p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
-    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

@@ -23,6 +23,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("rawtypes")
 public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> {
@@ -57,6 +59,9 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
   }
 
   public static class MasterSlaveStateModel extends StateModel {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MasterSlaveStateModel.class);
+
     int _transDelay = 0;
     String partitionName;
     String _instanceName = "";
@@ -78,7 +83,7 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
     }
 
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
+      LOG.info(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();
     }
@@ -87,35 +92,31 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
       try {
         Thread.sleep(_transDelay);
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Interrupted while Thread.sleep", e);
       }
     }
 
     public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
+      LOG.info(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();
-
     }
 
     public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
+      LOG.info(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();
-
     }
 
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
+      LOG.info(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();
-
     }
 
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " Dropping partition " + partitionName);
+      LOG.info(_instanceName + " Dropping partition " + partitionName);
       sleep();
-
     }
   }
 

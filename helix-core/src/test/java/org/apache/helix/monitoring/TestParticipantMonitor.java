@@ -114,7 +114,6 @@ public class TestParticipantMonitor {
       throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException,
              IOException, InterruptedException, MBeanException, AttributeNotFoundException,
              ReflectionException {
-    System.out.println("START TestParticipantStateTransitionMonitor");
     ParticipantStatusMonitor monitor = new ParticipantStatusMonitor(false, null);
 
     int monitorNum = 0;
@@ -172,8 +171,6 @@ public class TestParticipantMonitor {
 
     monitorListener2.disconnect();
     monitorListener.disconnect();
-
-    System.out.println("END TestParticipantStateTransitionMonitor");
   }
 
   @Test()
@@ -181,7 +178,6 @@ public class TestParticipantMonitor {
       throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException,
              IOException, InterruptedException, MBeanException, AttributeNotFoundException,
              ReflectionException {
-    System.out.println("START TestParticipantMessageMonitor");
     ParticipantStatusMonitor monitor = new ParticipantStatusMonitor(true, PARTICIPANT_NAME);
 
     Message message = new Message(Message.MessageType.NO_OP, "0");
@@ -240,7 +236,5 @@ public class TestParticipantMonitor {
             .toString()).get("PendingMessages"), 0L);
 
     monitorListener.disconnect();
-
-    System.out.println("END TestParticipantMessageMonitor");
   }
 }

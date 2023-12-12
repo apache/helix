@@ -33,8 +33,12 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BootstrapHandler extends StateModelFactory<StateModel> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(BootstrapHandler.class);
 
   @Override
   public StateModel createNewStateModel(String resourceName, String stateUnitKey) {
@@ -58,7 +62,6 @@ public class BootstrapHandler extends StateModelFactory<StateModel> {
 
     @Transition(from = "OFFLINE", to = "SLAVE")
     public void offlineToSlave(Message message, NotificationContext context) {
-      System.out.println("BootstrapProcess.BootstrapStateModel.offlineToSlave()");
       HelixManager manager = context.getManager();
       ClusterMessagingService messagingService = manager.getMessagingService();
       Message requestBackupUriRequest =
@@ -81,8 +84,8 @@ public class BootstrapHandler extends StateModelFactory<StateModel> {
       if (sentMessageCount == 0) {
         // could not find any other node hosting the partition
       } else if (responseHandler.getBootstrapUrl() != null) {
-        System.out.println("Got bootstrap url:" + responseHandler.getBootstrapUrl());
-        System.out.println("Got backup time:" + responseHandler.getBootstrapTime());
+        LOG.info("Got bootstrap url:" + responseHandler.getBootstrapUrl());
+        LOG.info("Got backup time:" + responseHandler.getBootstrapTime());
         // Got the url fetch it
       } else {
         // Either go to error state
@@ -93,12 +96,12 @@ public class BootstrapHandler extends StateModelFactory<StateModel> {
 
     @Transition(from = "SLAVE", to = "OFFLINE")
     public void slaveToOffline(Message message, NotificationContext context) {
-      System.out.println("BootstrapProcess.BootstrapStateModel.slaveToOffline()");
+      LOG.info("BootstrapProcess.BootstrapStateModel.slaveToOffline()");
     }
 
     @Transition(from = "SLAVE", to = "MASTER")
     public void slaveToMaster(Message message, NotificationContext context) {
-      System.out.println("BootstrapProcess.BootstrapStateModel.slaveToMaster()");
+      LOG.info("BootstrapProcess.BootstrapStateModel.slaveToMaster()");
     }
 
   }

@@ -40,12 +40,17 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZkBucketDataAccessor extends ZkTestBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestZkBucketDataAccessor.class);
+
   private static final String PATH = "/" + TestHelper.getTestClassName();
   private static final String NAME_KEY = TestHelper.getTestClassName();
   private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
@@ -180,14 +185,14 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     long before = System.currentTimeMillis();
     _bucketDataAccessor.compressedBucketWrite("/" + name, property);
     long after = System.currentTimeMillis();
-    System.out.println("Write took " + (after - before) + " ms");
+    LOG.info("Write took " + (after - before) + " ms");
 
     // Read it back
     before = System.currentTimeMillis();
     HelixProperty readRecord =
         _bucketDataAccessor.compressedBucketRead("/" + name, HelixProperty.class);
     after = System.currentTimeMillis();
-    System.out.println("Read took " + (after - before) + " ms");
+    LOG.info("Read took " + (after - before) + " ms");
 
     // Check against the original HelixProperty
     Assert.assertEquals(readRecord, property);

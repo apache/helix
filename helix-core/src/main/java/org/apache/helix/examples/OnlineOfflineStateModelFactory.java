@@ -23,6 +23,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel> {
   int _delay;
@@ -55,6 +57,9 @@ public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel
   }
 
   public static class OnlineOfflineStateModel extends StateModel {
+
+    private static final Logger LOG = LoggerFactory.getLogger(OnlineOfflineStateModel.class);
+
     int _transDelay = 0;
     String _instanceName = "";
 
@@ -67,7 +72,7 @@ public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel
     }
 
     public void onBecomeOnlineFromOffline(Message message, NotificationContext context) {
-      System.out.println(
+      LOG.info(
           "OnlineOfflineStateModelFactory.onBecomeOnlineFromOffline():" + _instanceName
               + " transitioning from " + message.getFromState() + " to " + message.getToState()
               + " for " + message.getResourceName() + " " + message.getPartitionName());
@@ -75,7 +80,7 @@ public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel
     }
 
     public void onBecomeOfflineFromOnline(Message message, NotificationContext context) {
-      System.out.println(
+      LOG.info(
           "OnlineOfflineStateModelFactory.onBecomeOfflineFromOnline():" + _instanceName
               + " transitioning from " + message.getFromState() + " to " + message.getToState()
               + " for " + message.getResourceName() + " " + message.getPartitionName());
@@ -83,7 +88,7 @@ public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel
     }
 
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
-      System.out.println(
+      LOG.info(
           "OnlineOfflineStateModelFactory.onBecomeDroppedFromOffline():" + _instanceName
               + " transitioning from " + message.getFromState() + " to " + message.getToState()
               + " for " + message.getResourceName() + " " + message.getPartitionName());
@@ -94,7 +99,7 @@ public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel
       try {
         Thread.sleep(_transDelay);
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Interrupted while Thread.sleep", e);
       }
     }
   }

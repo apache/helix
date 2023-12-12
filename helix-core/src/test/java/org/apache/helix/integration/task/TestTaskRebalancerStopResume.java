@@ -411,7 +411,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     final String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
-    System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
     WorkflowConfig wfCfg =
         new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES).build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
@@ -474,8 +473,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
       }
     }, 30 * 1000);
     Assert.assertTrue(result);
-
-    System.out.println("END " + queueName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

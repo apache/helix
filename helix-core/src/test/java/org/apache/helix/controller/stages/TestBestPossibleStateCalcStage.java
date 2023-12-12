@@ -35,10 +35,6 @@ import org.testng.annotations.Test;
 public class TestBestPossibleStateCalcStage extends BaseStageTest {
   @Test
   public void testSimple() {
-    System.out.println("START TestBestPossibleStateCalcStage at "
-        + new Date(System.currentTimeMillis()));
-    // List<IdealState> idealStates = new ArrayList<IdealState>();
-
     String[] resources = new String[] {
       "testResourceName"
     };
@@ -71,8 +67,6 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
       Assert.assertEquals("MASTER", output.getInstanceStateMap("testResourceName", resource)
           .get("localhost_" + (p + 1) % 5));
     }
-    System.out.println("END TestBestPossibleStateCalcStage at "
-        + new Date(System.currentTimeMillis()));
   }
 
   /*

@@ -257,7 +257,6 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     // All tasks stuck on the same instance
     Assert.assertTrue(checkTasksOnSameInstances());
     // Add a new instance, partition is rebalanced
-    System.out.println("Start new participant");
     startParticipant(_initialNumNodes);
     ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)

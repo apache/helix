@@ -39,7 +39,6 @@ public class TestHelixTaskExecutor {
 
   @Test()
   public void testCMTaskExecutor() throws Exception {
-    System.out.println("START TestCMTaskExecutor");
     String msgId = "TestMessageId";
     Message message = new Message(MessageType.TASK_REPLY, msgId);
 
@@ -90,7 +89,6 @@ public class TestHelixTaskExecutor {
       }
     }
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
-    System.out.println("END TestCMTaskExecutor");
   }
 
 }

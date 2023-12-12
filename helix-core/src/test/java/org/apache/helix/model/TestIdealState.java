@@ -41,7 +41,6 @@ public class TestIdealState {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     IdealState idealState = new IdealState("idealState");
     idealState.getRecord().setListField("TestDB_0", Arrays.asList("node_1", "node_2"));
@@ -71,8 +70,6 @@ public class TestIdealState {
 
     instances = idealState.getInstanceSet("TestDB_nonExist_custom");
     Assert.assertEquals(instances, Collections.emptySet(), "Should get empty set");
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

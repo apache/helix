@@ -59,8 +59,12 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MockCloudEventAwareHelixManager implements HelixManager {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(MockCloudEventAwareHelixManager.class);
   private final HelixManagerProperty _helixManagerProperty;
   private CloudEventListener _cloudEventListener;
 
@@ -83,7 +87,7 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
       if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
         _cloudEventListener =
             new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
-        System.out.println("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
+        LOGGER.info("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
         CloudEventHandlerFactory.getInstance(
             _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
             .registerCloudEventListener(_cloudEventListener);
@@ -99,8 +103,7 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
             _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
             .unregisterCloudEventListener(_cloudEventListener);
       } catch (Exception e) {
-        System.out.println("Failed to unregister cloudEventListener." );
-        e.printStackTrace();
+        LOGGER.error("Failed to unregister cloudEventListener.", e);
       }
     }
   }

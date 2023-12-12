@@ -50,9 +50,6 @@ public class TestGroupCommitAddBackData extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     String storageNodeName = PARTICIPANT_PREFIX + "_" + START_PORT;
@@ -86,8 +83,6 @@ public class TestGroupCommitAddBackData extends ZkTestBase {
         _gSetupTool.deleteCluster(CLUSTER_NAME);
       }
     }
-
-    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

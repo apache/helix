@@ -23,6 +23,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel> {
   int _delay;
@@ -59,6 +61,9 @@ public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel
   }
 
   public static class LeaderStandbyStateModel extends StateModel {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LeaderStandbyStateModel.class);
+
     int _transDelay = 0;
     String partitionName;
     String _instanceName = "";
@@ -81,35 +86,35 @@ public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel
     }
 
     public void onBecomeLeaderFromStandby(Message message, NotificationContext context) {
-      System.out.println("LeaderStandbyStateModel.onBecomeLeaderFromStandby():" + _instanceName
+      LOG.info("LeaderStandbyStateModel.onBecomeLeaderFromStandby():" + _instanceName
           + " transitioning from " + message.getFromState() + " to " + message.getToState()
           + " for " + message.getResourceName() + " " + message.getPartitionName());
       sleep();
     }
 
     public void onBecomeStandbyFromLeader(Message message, NotificationContext context) {
-      System.out.println("LeaderStandbyStateModel.onBecomeStandbyFromLeader():" + _instanceName
+      LOG.info("LeaderStandbyStateModel.onBecomeStandbyFromLeader():" + _instanceName
           + " transitioning from " + message.getFromState() + " to " + message.getToState()
           + " for " + message.getResourceName() + " " + message.getPartitionName());
       sleep();
     }
 
     public void onBecomeStandbyFromOffline(Message message, NotificationContext context) {
-      System.out.println("LeaderStandbyStateModel.onBecomeStandbyFromOffline():" + _instanceName
+      LOG.info("LeaderStandbyStateModel.onBecomeStandbyFromOffline():" + _instanceName
           + " transitioning from " + message.getFromState() + " to " + message.getToState()
           + " for " + message.getResourceName() + " " + message.getPartitionName());
       sleep();
     }
 
     public void onBecomeOfflineFromStandby(Message message, NotificationContext context) {
-      System.out.println("LeaderStandbyStateModel.onBecomeOfflineFromStandby():" + _instanceName
+      LOG.info("LeaderStandbyStateModel.onBecomeOfflineFromStandby():" + _instanceName
           + " transitioning from " + message.getFromState() + " to " + message.getToState()
           + " for " + message.getResourceName() + " " + message.getPartitionName());
       sleep();
     }
 
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
-      System.out.println("LeaderStandbyStateModel.onBecomeDroppedFromOffline():" + _instanceName
+      LOG.info("LeaderStandbyStateModel.onBecomeDroppedFromOffline():" + _instanceName
           + " transitioning from " + message.getFromState() + " to " + message.getToState()
           + " for " + message.getResourceName() + " " + message.getPartitionName());
       sleep();
@@ -120,7 +125,7 @@ public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel
       try {
         Thread.sleep(_transDelay);
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Interrupted while Thread.sleep", e);
       }
     }
   }

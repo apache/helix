@@ -25,10 +25,15 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.helix.model.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestAsyncCallback {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestAsyncCallback.class);
+
   class AsyncCallbackSample extends AsyncCallback {
     int _onTimeOutCalled = 0;
     int _onReplyMessageCalled = 0;
@@ -47,7 +52,6 @@ public class TestAsyncCallback {
 
   @Test()
   public void testAsyncCallback() throws Exception {
-    System.out.println("START TestAsyncCallback at " + new Date(System.currentTimeMillis()));
     AsyncCallbackSample callback = new AsyncCallbackSample();
     AssertJUnit.assertFalse(callback.isInterrupted());
     AssertJUnit.assertFalse(callback.isTimedOut());
@@ -104,14 +108,13 @@ public class TestAsyncCallback {
     sleep(1300);
     AssertJUnit.assertFalse(callback.isTimedOut());
     AssertJUnit.assertTrue(callback._onTimeOutCalled == 0);
-    System.out.println("END TestAsyncCallback at " + new Date(System.currentTimeMillis()));
   }
 
   void sleep(int time) {
     try {
       Thread.sleep(time);
     } catch (Exception e) {
-      System.out.println(e);
+      LOG.info(e.getMessage(), e);
     }
   }
 }

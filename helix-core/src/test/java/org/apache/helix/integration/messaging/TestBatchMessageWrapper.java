@@ -40,19 +40,18 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestBatchMessageWrapper extends ZkUnitTestBase {
+
   class MockBatchMsgWrapper extends BatchMessageWrapper {
     int _startCount = 0;
     int _endCount = 0;
 
     @Override
     public void start(Message batchMsg, NotificationContext context) {
-      // System.out.println("test batchMsg.start() invoked, " + batchMsg.getTgtName());
       _startCount++;
     }
 
     @Override
     public void end(Message batchMsg, NotificationContext context) {
-      // System.out.println("test batchMsg.end() invoked, " + batchMsg.getTgtName());
       _endCount++;
     }
   }
@@ -70,8 +69,6 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 2;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // startPort
         "localhost", // participantNamePrefix
@@ -121,18 +118,15 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
 
     // check batch-msg-wrapper counts
     MockBatchMsgWrapper wrapper = (MockBatchMsgWrapper) ftys[0].getBatchMessageWrapper("TestDB0");
-    // System.out.println("startCount: " + wrapper._startCount);
+
     Assert.assertEquals(wrapper._startCount, 3,
         "Expect 3 batch.start: O->S, S->M, and M->S for 1st participant");
-    // System.out.println("endCount: " + wrapper._endCount);
     Assert.assertEquals(wrapper._endCount, 3,
         "Expect 3 batch.end: O->S, S->M, and M->S for 1st participant");
 
     wrapper = (MockBatchMsgWrapper) ftys[1].getBatchMessageWrapper("TestDB0");
-    // System.out.println("startCount: " + wrapper._startCount);
     Assert.assertEquals(wrapper._startCount, 2,
         "Expect 2 batch.start: O->S and S->M for 2nd participant");
-    // System.out.println("endCount: " + wrapper._endCount);
     Assert.assertEquals(wrapper._startCount, 2,
         "Expect 2 batch.end: O->S and S->M for 2nd participant");
 
@@ -142,8 +136,6 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
 }

@@ -36,7 +36,6 @@ public class TestZNRecordBucketizer {
       int startBucketNb = i / bucketSize * bucketSize;
       int endBucketNb = startBucketNb + bucketSize - 1;
       String expectBucketName = "TestDB_p" + startBucketNb + "-p" + endBucketNb;
-      System.out.println("Expect: " + expectBucketName + ", actual: " + bucketName);
       Assert.assertEquals(expectBucketName, bucketName);
 
     }

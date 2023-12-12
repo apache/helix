@@ -50,7 +50,6 @@ public class TestDefaultMonitoringMbeans extends AbstractTestClass {
   @Test (enabled = false)
   public void testDefaultMonitoringMbeans()
       throws MBeanException, ReflectionException, InstanceNotFoundException, InterruptedException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     int listClusters = new Random().nextInt(10);
     for (int i = 0; i < listClusters; i++) {
       get("clusters", null, Response.Status.OK.getStatusCode(), true);
@@ -78,7 +77,6 @@ public class TestDefaultMonitoringMbeans extends AbstractTestClass {
     }
 
     Assert.assertTrue(correctReports);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test

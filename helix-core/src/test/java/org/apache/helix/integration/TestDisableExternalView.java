@@ -66,8 +66,6 @@ public class TestDisableExternalView extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     _admin = new ZKHelixAdmin(_gZkClient);
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {

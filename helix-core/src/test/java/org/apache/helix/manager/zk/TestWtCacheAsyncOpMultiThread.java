@@ -189,7 +189,6 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
@@ -244,6 +243,5 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -49,6 +49,8 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.ITestContext;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -56,6 +58,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 public class BaseStageTest {
+
+  private static final Logger LOG = LoggerFactory.getLogger(BaseStageTest.class);
+
   public final static String HOSTNAME_PREFIX = "localhost_";
   public final static String SESSION_PREFIX = "session_";
   private final static int MIN_ACTIVE_REPLICA_NOT_SET = -1;
@@ -69,14 +74,14 @@ public class BaseStageTest {
   @BeforeClass()
   public void beforeClass() {
     String className = this.getClass().getName();
-    System.out.println("START " + className.substring(className.lastIndexOf('.') + 1) + " at "
+    LOG.info("START " + className.substring(className.lastIndexOf('.') + 1) + " at "
         + new Date(System.currentTimeMillis()));
   }
 
   @AfterClass()
   public void afterClass() {
     String className = this.getClass().getName();
-    System.out.println("END " + className.substring(className.lastIndexOf('.') + 1) + " at "
+    LOG.info("END " + className.substring(className.lastIndexOf('.') + 1) + " at "
         + new Date(System.currentTimeMillis()));
   }
 
@@ -94,7 +99,7 @@ public class BaseStageTest {
   @BeforeMethod
   public void beforeTest(Method testMethod, ITestContext testContext){
     long startTime = System.currentTimeMillis();
-    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    LOG.info("START " + testMethod.getName() + " at " + new Date(startTime));
     testContext.setAttribute("StartTime", System.currentTimeMillis());
     setup();
   }
@@ -103,7 +108,7 @@ public class BaseStageTest {
   public void endTest(Method testMethod, ITestContext testContext) {
     Long startTime = (Long) testContext.getAttribute("StartTime");
     long endTime = System.currentTimeMillis();
-    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: " + (endTime - startTime) + "ms.");
+    LOG.info("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: " + (endTime - startTime) + "ms.");
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,

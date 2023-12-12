@@ -51,6 +51,8 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
@@ -58,14 +60,14 @@ import org.testng.annotations.Test;
 
 public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
+  private static final Logger LOG = LoggerFactory.getLogger(TestPartitionMovementThrottle.class);
+
   private ConfigAccessor _configAccessor;
   private Set<String> _dbs = new HashSet<>();
 
   @Override
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
@@ -304,8 +306,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     try {
       Assert.assertTrue(TestHelper.verify(() -> dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances()).isEmpty(), 1000));
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("There're live instances not cleaned up yet");
+      LOG.error("There're live instances not cleaned up yet", e);
       assert false;
     }
     DelayedTransition.clearThrottleRecord();
@@ -359,7 +360,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     for (String db : _dbs) {
       int maxInParallel =
           getMaxParallelTransitionCount(DelayedTransition.getResourcePatitionTransitionTimes(), db);
-      System.out.println("MaxInParallel: " + maxInParallel + " maxPendingTransition: " + 2);
+      LOG.info("MaxInParallel: " + maxInParallel + " maxPendingTransition: " + 2);
       Assert.assertTrue(maxInParallel <= 2, "Throttle condition does not meet for " + db);
     }
   }
@@ -374,7 +375,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     List<Long> startEndPoints = new ArrayList<>();
 
     if (pTimeList == null) {
-      System.out.println("no throttle result for :" + throttledItemName);
+      LOG.info("no throttle result for :" + throttledItemName);
       return -1;
     }
     pTimeList.sort((o1, o2) -> (int) (o1.start - o2.start));
@@ -411,8 +412,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       }
     }
 
-    System.out
-        .println("Max number of ST in parallel: " + maxInParallel + " for " + throttledItemName);
+    LOG.info("Max number of ST in parallel: " + maxInParallel + " for " + throttledItemName);
     return maxInParallel;
   }
 

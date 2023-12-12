@@ -29,7 +29,6 @@ public class MockHelixTaskExecutor extends HelixTaskExecutor {
   boolean completionInvoked = false;
 
   @Override public void finishTask(MessageTask task) {
-    System.out.println("Mocks.MockCMTaskExecutor.finishTask()");
     completionInvoked = true;
   }
 

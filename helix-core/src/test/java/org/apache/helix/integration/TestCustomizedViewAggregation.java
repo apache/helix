@@ -94,8 +94,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     String clusterName = TestHelper.getTestClassName();
     int n = 2;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix

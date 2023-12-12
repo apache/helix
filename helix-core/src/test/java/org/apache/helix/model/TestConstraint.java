@@ -42,7 +42,6 @@ public class TestConstraint extends ZkUnitTestBase {
   @Test
   public void testMsgConstraint() {
     String className = getShortClassName();
-    System.out.println("START testMsgConstraint() at " + new Date(System.currentTimeMillis()));
 
     String clusterName = "CLUSTER_" + className + "_msg";
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
@@ -114,7 +113,6 @@ public class TestConstraint extends ZkUnitTestBase {
         accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()))
             .getRecord();
     ClusterConstraints constraint = new ClusterConstraints(record);
-    // System.out.println("constraint: " + constraint);
 
     // message1
     Message msg1 =
@@ -123,7 +121,7 @@ public class TestConstraint extends ZkUnitTestBase {
 
     Map<ConstraintAttribute, String> msgAttr = ClusterConstraints.toConstraintAttributes(msg1);
     Set<ConstraintItem> matches = constraint.match(msgAttr);
-    System.out.println(msg1 + " matches(" + matches.size() + "): " + matches);
+
     Assert.assertEquals(matches.size(), 5);
     Assert.assertTrue(contains(matches, constraint0));
     Assert.assertTrue(contains(matches, constraint1));
@@ -138,21 +136,18 @@ public class TestConstraint extends ZkUnitTestBase {
 
     msgAttr = ClusterConstraints.toConstraintAttributes(msg2);
     matches = constraint.match(msgAttr);
-    System.out.println(msg2 + " matches(" + matches.size() + "): " + matches);
+
     Assert.assertEquals(matches.size(), 5);
     Assert.assertTrue(contains(matches, constraint0));
     Assert.assertTrue(contains(matches, constraint1));
     Assert.assertTrue(contains(matches, constraint2));
     Assert.assertTrue(contains(matches, constraint3));
     Assert.assertTrue(contains(matches, constraint4));
-
-    System.out.println("END testMsgConstraint() at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testStateConstraint() {
     String className = getShortClassName();
-    System.out.println("START testStateConstraint() at " + new Date(System.currentTimeMillis()));
 
     String clusterName = "CLUSTER_" + className + "_state";
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
@@ -192,7 +187,6 @@ public class TestConstraint extends ZkUnitTestBase {
         accessor.getProperty(keyBuilder.constraint(ConstraintType.STATE_CONSTRAINT.toString()))
             .getRecord();
     ClusterConstraints constraint = new ClusterConstraints(record);
-    // System.out.println("constraint: " + constraint);
 
     // state1: hit rule2
     Map<ConstraintAttribute, String> stateAttr1 = new HashMap<ConstraintAttribute, String>();
@@ -200,7 +194,6 @@ public class TestConstraint extends ZkUnitTestBase {
     stateAttr1.put(ConstraintAttribute.RESOURCE, "TestDB");
 
     Set<ConstraintItem> matches = constraint.match(stateAttr1);
-    System.out.println(stateAttr1 + " matches(" + matches.size() + "): " + matches);
     Assert.assertEquals(matches.size(), 3);
     Assert.assertTrue(contains(matches, constraint0));
     Assert.assertTrue(contains(matches, constraint1));
@@ -218,7 +211,6 @@ public class TestConstraint extends ZkUnitTestBase {
     stateAttr2.put(ConstraintAttribute.RESOURCE, "MyDB");
 
     matches = constraint.match(stateAttr2);
-    System.out.println(stateAttr2 + " matches(" + matches.size() + "): " + matches);
     Assert.assertEquals(matches.size(), 2);
     Assert.assertTrue(contains(matches, constraint0));
     Assert.assertTrue(contains(matches, constraint2));
@@ -230,7 +222,6 @@ public class TestConstraint extends ZkUnitTestBase {
     // Assert.assertTrue(contains(matches, constraint2));
 
     deleteCluster(clusterName);
-    System.out.println("END testStateConstraint() at " + new Date(System.currentTimeMillis()));
   }
 
   private boolean contains(Set<ConstraintItem> constraints, ConstraintItem constraint) {

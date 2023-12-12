@@ -40,6 +40,8 @@ import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.zookeeper.CreateMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -48,9 +50,11 @@ import org.testng.annotations.Test;
 
 public class TestDedicatedZkClient extends RealmAwareZkClientFactoryTestBase {
 
+  private static final Logger LOG = LoggerFactory.getLogger(TestDedicatedZkClient.class);
+
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
-    System.out.println("Starting " + TestDedicatedZkClient.class.getSimpleName());
+    LOG.info("Starting " + TestDedicatedZkClient.class.getSimpleName());
     super.beforeClass();
     // Set the factory to DedicatedZkClientFactory
     _realmAwareZkClientFactory = DedicatedZkClientFactory.getInstance();
@@ -60,7 +64,7 @@ public class TestDedicatedZkClient extends RealmAwareZkClientFactoryTestBase {
   public void afterClass() {
     super.afterClass();
     // Close it as it is created in before class.
-    System.out.println("Ending " + TestDedicatedZkClient.class.getSimpleName());
+    LOG.info("Ending " + TestDedicatedZkClient.class.getSimpleName());
   }
 
   /**

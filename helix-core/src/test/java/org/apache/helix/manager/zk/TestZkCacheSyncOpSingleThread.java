@@ -37,10 +37,15 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.store.HelixPropertyListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestZkCacheSyncOpSingleThread.class);
+
   class TestListener implements HelixPropertyListener {
     ConcurrentLinkedQueue<String> _deletePathQueue = new ConcurrentLinkedQueue<>();
     ConcurrentLinkedQueue<String> _createPathQueue = new ConcurrentLinkedQueue<>();
@@ -48,19 +53,16 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
 
     @Override
     public void onDataDelete(String path) {
-      // System.out.println(Thread.currentThread().getName() + ", onDelete: " + path);
       _deletePathQueue.add(path);
     }
 
     @Override
     public void onDataCreate(String path) {
-      // System.out.println(Thread.currentThread().getName() + ", onCreate: " + path);
       _createPathQueue.add(path);
     }
 
     @Override
     public void onDataChange(String path) {
-      // System.out.println(Thread.currentThread().getName() + ", onChange: " + path);
       _changePathQueue.add(path);
     }
 
@@ -76,7 +78,6 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init external base data accessor
     HelixZkClient zkclient = SharedZkClientFactory.getInstance()
@@ -114,9 +115,9 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
     boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, _gZkClient, true);
-    // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
-    System.out.println("createCnt: " + listener._createPathQueue.size());
+
+    LOG.info("createCnt: " + listener._createPathQueue.size());
     Assert.assertEquals(listener._createPathQueue.size(), 11, "Shall get 11 onCreate callbacks.");
 
     // verify each callback path
@@ -124,7 +125,6 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     List<String> createCallbackPaths = new ArrayList<>(listener._createPathQueue);
     Collections.sort(createPaths);
     Collections.sort(createCallbackPaths);
-    // System.out.println("createCallbackPaths: " + createCallbackPaths);
     Assert.assertEquals(createCallbackPaths, createPaths,
         "Should get create callbacks at " + createPaths + ", but was " + createCallbackPaths);
 
@@ -147,9 +147,9 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
     ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, _gZkClient, true);
-    // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
-    System.out.println("changeCnt: " + listener._changePathQueue.size());
+
+    LOG.info("changeCnt: " + listener._changePathQueue.size());
     Assert.assertEquals(listener._changePathQueue.size(), 100, "Shall get 100 onChange callbacks.");
 
     // verify each callback path
@@ -173,9 +173,9 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
     ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, _gZkClient, true);
-    // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
-    System.out.println("deleteCnt: " + listener._deletePathQueue.size());
+
+    LOG.info("deleteCnt: " + listener._deletePathQueue.size());
     Assert.assertTrue(listener._deletePathQueue.size() >= 10,
         "Shall get at least 10 onDelete callbacks.");
 
@@ -185,6 +185,5 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
         "Should get remove callbacks at " + removePaths + ", but was " + removeCallbackPaths);
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

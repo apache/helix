@@ -365,7 +365,7 @@ public class TestDriver {
 
       ZNRecord nextIS;
       int step = totalStep * percentage / 100;
-      System.out.println("Resource:" + dbName + ", totalSteps from initIS to destIS:" + totalStep
+      LOG.info("Resource:" + dbName + ", totalSteps from initIS to destIS:" + totalStep
           + ", walk " + step + " steps(" + percentage + "%)");
       nextIS = nextIdealState(initIS, destIS, step);
       // testInfo._idealStateMap.put(dbName, nextIS);

@@ -26,13 +26,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import org.apache.helix.controller.rebalancer.TestConstraintRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithmV2;
 import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -42,6 +46,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestCardDealingAdjustmentAlgorithmV2 {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TestCardDealingAdjustmentAlgorithmV2.class);
+
   private static int DEFAULT_REPLICA_COUNT = 3;
   private static int DEFAULT_RANDOM_SEED = 10;
   private static int NUMS_ZONES = 3;
@@ -63,8 +70,11 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
 
   @BeforeClass
   public void setUpTopology() {
+    java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
+    topJavaLogger.setLevel(Level.INFO);
+
     _topology = mock(Topology.class);
-    System.out.println("Default ZONES: " + Arrays.deepToString(DEFAULT_ZONES));
+    LOGGER.info("Default ZONES: " + Arrays.deepToString(DEFAULT_ZONES));
     when(_topology.getFaultZones()).thenReturn(createFaultZones(DEFAULT_ZONES));
   }
 
@@ -96,7 +106,6 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
 
   @Test(description = "Verify a few properties after algorithm object is created")
   public void testAlgorithmConstructor() {
-    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testAlgorithmConstructor");
     CardDealingAdjustmentAlgorithmV2Accessor algorithm =
         new CardDealingAdjustmentAlgorithmV2Accessor(_topology, DEFAULT_REPLICA_COUNT,
             CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS);
@@ -142,7 +151,6 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
       Assert.assertEquals(instanceNodes.size(), NUM_INSTANCES_PER_ZONE);
       Assert.assertEquals(actualInstanceIds, expectedInstanceIds);
     }
-    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testAlgorithmConstructor");
   }
 
   @DataProvider
@@ -193,7 +201,6 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
       dependsOnMethods = "testAlgorithmConstructor")
   public void testStableComputeMappingForMultipleTimes(int replica, int repeatTimes, int seed,
       boolean isEvennessPreferred) {
-    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testStableComputeMappingForMultipleTimes");
     CardDealingAdjustmentAlgorithmV2.Mode preference =
         isEvennessPreferred ? CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS
             : CardDealingAdjustmentAlgorithmV2.Mode.MINIMIZE_MOVEMENT;
@@ -210,8 +217,7 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
     Map<Long, Set<String>> oldSimpleMapping = getSimpleMapping(nodeToPartitions);
     Map<Long, Set<String>> lastCalculatedDifference = new HashMap<>();
     while (repeatTimes > 0) {
-      System.out.println(String.format("Round %s replica %s algorithm seed: %s preference: %s ",
-          repeatTimes, replica, seed, preference));
+      LOGGER.info("Round {} replica {} algorithm seed: {} preference: {}", repeatTimes, replica, seed, preference);
       // deep clone the original mapping
       Map<Node, List<String>> newMapping = new HashMap<>();
       for (Map.Entry<Node, List<String>> entry : nodeToPartitions.entrySet()) {
@@ -230,7 +236,6 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
       lastCalculatedDifference = newDifference;
       repeatTimes -= 1;
     }
-    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testStableComputeMappingForMultipleTimes");
   }
 
   @DataProvider
@@ -252,7 +257,6 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
 
   @Test(description = "Test performance given different replica count", dataProvider = "replicas",  dependsOnMethods = "testStableComputeMappingForMultipleTimes")
   public void testComputeMappingForDifferentReplicas(int replica) {
-    System.out.println("SATRT TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentReplicas");
     CardDealingAdjustmentAlgorithmV2Accessor algorithm =
         new CardDealingAdjustmentAlgorithmV2Accessor(_topology, replica,
             CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS);
@@ -279,13 +283,10 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
       Assert.fail(String.format("Total movements: %s != expected %s, replica: %s", totalMovements,
           expected.get(replica), replica));
     }
-    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentReplicas");
-
   }
 
   @Test(description = "Test performance given different preference (evenness or less movements)", dependsOnMethods = "testComputeMappingForDifferentReplicas")
   public void testComputeMappingForDifferentPreference() {
-    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentPreference");
     CardDealingAdjustmentAlgorithmV2Accessor algorithm1 =
         new CardDealingAdjustmentAlgorithmV2Accessor(_topology, DEFAULT_REPLICA_COUNT,
             CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS);
@@ -311,17 +312,16 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
     int movement1 = getTotalMovements(oldSimpleMapping, getSimpleMapping(nodeToPartitions));
     int movement2 = getTotalMovements(oldSimpleMapping, getSimpleMapping(newMapping));
 
-    System.out.println(String.format("Total movements: %s, isAllAssigned: %s, preference: %s",
+    LOGGER.info(String.format("Total movements: %s, isAllAssigned: %s, preference: %s",
         movement1, isAllAssigned1, CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS));
-    System.out.println(String.format("Total movements: %s, isAllAssigned: %s, preference: %s",
+    LOGGER.info(String.format("Total movements: %s, isAllAssigned: %s, preference: %s",
         movement2, isAllAssigned2, CardDealingAdjustmentAlgorithmV2.Mode.MINIMIZE_MOVEMENT));
     Assert.assertTrue(movement1 >= movement2);
-    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentPreference");
+    LOGGER.info("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingForDifferentPreference");
   }
 
   @Test (dependsOnMethods = "testComputeMappingForDifferentPreference")
   public void testComputeMappingWhenZeroWeightInstance() {
-    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightInstance");
     when(_topology.getFaultZones()).thenReturn(createFaultZones(new int[][] {
         {
             0, 1
@@ -348,15 +348,13 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
     boolean isAssigned = algorithm.computeMapping(nodeToPartitions, DEFAULT_RANDOM_SEED);
     Map<Long, Set<String>> newSimpleMapping = getSimpleMapping(nodeToPartitions);
 
-    System.out.println("old mapping" + oldSimpleMapping);
-    System.out.println("new mapping" + newSimpleMapping);
+    LOGGER.info("old mapping" + oldSimpleMapping);
+    LOGGER.info("new mapping" + newSimpleMapping);
     Assert.assertTrue(newSimpleMapping.get(0L).isEmpty());
-    System.out.println("END TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightInstance");
   }
 
   @Test (dependsOnMethods = "testComputeMappingWhenZeroWeightInstance")
   public void testComputeMappingWhenZeroWeightZone() {
-    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightZone");
     when(_topology.getFaultZones()).thenReturn(createFaultZones(new int[][] {
         {
             0
@@ -382,10 +380,9 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
     boolean isAssigned = algorithm.computeMapping(nodeToPartitions, DEFAULT_RANDOM_SEED);
     Map<Long, Set<String>> newSimpleMapping = getSimpleMapping(nodeToPartitions);
 
-    System.out.println("old mapping" + oldSimpleMapping);
-    System.out.println("new mapping" + newSimpleMapping);
+    LOGGER.info("old mapping" + oldSimpleMapping);
+    LOGGER.info("new mapping" + newSimpleMapping);
     Assert.assertTrue(newSimpleMapping.get(0L).isEmpty());
-    System.out.println("START TestCardDealingAdjustmentAlgorithmV2.testComputeMappingWhenZeroWeightZone");
   }
 
   private int getTotalMovements(Map<Long, Set<String>> oldSimpleMapping,

@@ -72,7 +72,6 @@ public class TestZkBasis extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
         HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
@@ -85,7 +84,6 @@ public class TestZkBasis extends ZkUnitTestBase {
     Assert.assertNotSame(newSessionId, oldSessionId);
     Assert.assertFalse(client.exists(path), "Ephemeral znode should be gone after session expiry");
     client.close();
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -93,7 +91,6 @@ public class TestZkBasis extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
         HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
@@ -103,7 +100,6 @@ public class TestZkBasis extends ZkUnitTestBase {
     client.close();
     Assert.assertFalse(_gZkClient.exists(path),
         "Ephemeral node: " + path + " should be removed after ZkClient#close()");
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -111,7 +107,6 @@ public class TestZkBasis extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     final CountDownLatch waitCallback = new CountDownLatch(1);
     final ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
@@ -135,9 +130,6 @@ public class TestZkBasis extends ZkUnitTestBase {
     waitCallback.await();
     Assert.assertFalse(_gZkClient.exists(path), "Ephemeral node: " + path
         + " should be removed after ZkClient#close() in its own event-thread");
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   /**

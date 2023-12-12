@@ -32,8 +32,12 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(MockBaseDataAccessor.class);
 
   class ZNode {
     private ZNRecord _record;
@@ -84,7 +88,7 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
     try {
       Thread.sleep(50);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOG.info(e.getMessage(), e);
     }
     return true;
   }
@@ -106,7 +110,7 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
     try {
       Thread.sleep(50);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOG.info(e.getMessage(), e);
     }
     return true;
   }
@@ -198,8 +202,8 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
             children.add(record);
           }
         } else {
-          System.out.println("keySplit:" + Arrays.toString(keySplit));
-          System.out.println("pathSplit:" + Arrays.toString(pathSplit));
+          LOG.info("keySplit:" + Arrays.toString(keySplit));
+          LOG.info("pathSplit:" + Arrays.toString(pathSplit));
         }
       }
     }

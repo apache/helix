@@ -51,7 +51,6 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
   @Test
   public void testMsgThrottleBasic() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_basic";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -119,13 +118,11 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test()
   public void testMsgThrottleConstraints() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_constraints";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -303,7 +300,6 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private boolean containsConstraint(Set<ConstraintItem> constraints, ConstraintItem constraint) {

@@ -30,6 +30,8 @@ import java.util.TreeSet;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.RebalanceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -37,6 +39,9 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 public class TestEspressoStorageClusterIdealState {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TestEspressoStorageClusterIdealState.class);
+
   @Test()
   public void testEspressoStorageClusterIdealState() throws Exception {
     List<String> instanceNames = new ArrayList<String>();
@@ -155,7 +160,7 @@ public class TestEspressoStorageClusterIdealState {
       }
     }
     // Master partition should be evenly distributed most of the time
-    System.out.println("Masters: max: " + maxMasters + " Min:" + minMasters);
+    LOGGER.info("Masters: max: " + maxMasters + " Min:" + minMasters);
     // Each master partition should occur only once
     for (int i = 0; i < partitions; i++) {
       AssertJUnit.assertTrue(masterCounterMap.get(i) == 1);
@@ -259,7 +264,7 @@ public class TestEspressoStorageClusterIdealState {
     }
 
     result[0] = 1.0 * commonMasters / partitions;
-    System.out.println(
+    LOGGER.info(
         commonMasters + " master partitions are kept, " + (partitions - commonMasters)
             + " moved, keep ratio:" + 1.0 * commonMasters / partitions);
 
@@ -291,7 +296,7 @@ public class TestEspressoStorageClusterIdealState {
       }
     }
     result[1] = 1.0 * commonSlaves / partitions / replicas;
-    System.out.println(
+    LOGGER.info(
         commonSlaves + " slave partitions are kept, " + (partitions * replicas - commonSlaves)
             + " moved. keep ratio:" + 1.0 * commonSlaves / partitions / replicas);
     return result;

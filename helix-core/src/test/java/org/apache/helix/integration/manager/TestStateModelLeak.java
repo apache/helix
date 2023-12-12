@@ -59,8 +59,6 @@ public class TestStateModelLeak extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     int n = 2;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -118,8 +116,6 @@ public class TestStateModelLeak extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -133,8 +129,6 @@ public class TestStateModelLeak extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     int n = 2;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -204,8 +198,6 @@ public class TestStateModelLeak extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**

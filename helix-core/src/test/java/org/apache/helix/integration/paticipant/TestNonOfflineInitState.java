@@ -39,7 +39,6 @@ public class TestNonOfflineInitState extends ZkTestBase {
 
   @Test
   public void testNonOfflineInitState() throws Exception {
-    System.out.println("START testNonOfflineInitState at " + new Date(System.currentTimeMillis()));
     String clusterName = getShortClassName();
 
     setupCluster(clusterName, ZK_ADDR, 12918, // participant port
@@ -81,8 +80,6 @@ public class TestNonOfflineInitState extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
-
-    System.out.println("END testNonOfflineInitState at " + new Date(System.currentTimeMillis()));
   }
 
   private static void setupCluster(String clusterName, String ZkAddr, int startPort,

@@ -53,8 +53,6 @@ public class TestDisable extends ZkTestBase {
     final int n = 5;
     String disableNode = "localhost_12918";
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
@@ -126,7 +124,6 @@ public class TestDisable extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -136,8 +133,6 @@ public class TestDisable extends ZkTestBase {
     String clusterName = className + "_" + methodName;
     final int n = 5;
     String disableNode = "localhost_12919";
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -204,7 +199,6 @@ public class TestDisable extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -214,8 +208,6 @@ public class TestDisable extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 5;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -293,7 +285,6 @@ public class TestDisable extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -303,8 +294,6 @@ public class TestDisable extends ZkTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 5;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -372,6 +361,5 @@ public class TestDisable extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

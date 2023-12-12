@@ -85,8 +85,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
 
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
-
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
     BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
@@ -96,8 +94,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZNRecord getRecord = _gZkClient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_0");
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -105,8 +101,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -154,8 +148,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
     Assert.assertNotNull(getRecord.getSimpleField("key0"));
     Assert.assertEquals(getRecord.getSimpleField("key0"), "value0");
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -163,8 +155,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s/%s", _rootPath, "msg_0", "submsg_0");
     ZNRecord record = new ZNRecord("submsg_0");
@@ -180,8 +170,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZNRecord getRecord = _gZkClient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "submsg_0");
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -189,8 +177,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s/%s", _rootPath, "msg_0", "submsg_0");
     ZNRecord record = new ZNRecord("submsg_0");
@@ -210,7 +196,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     } catch (ZkBadVersionException e) {
       // OK
     }
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -218,8 +203,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -237,8 +220,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     getRecord = _gZkClient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -247,8 +228,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -271,7 +250,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
 
     System.clearProperty("zookeeper.extendedTypesEnabled");
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -280,8 +258,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -301,7 +277,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
 
     System.clearProperty("zookeeper.extendedTypesEnabled");
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -309,10 +284,8 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
-
     ZkBaseDataAccessor defaultAccessor = new ZkBaseDataAccessor(ZK_ADDR);
 
     List<Integer> l0 = ImmutableList.of(1, 2, 3);
@@ -324,7 +297,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertTrue(createResult);
 
     defaultAccessor.close();
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -332,7 +304,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
 
@@ -345,7 +316,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertTrue(createResult);
 
     customDataAccessor.close();
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -353,7 +323,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
 
@@ -373,7 +342,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertEquals(data, l1);
 
     accessor.close();
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -381,8 +349,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -415,8 +381,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     getRecord = _gZkClient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -424,8 +388,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -460,8 +422,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     success = accessor.remove(path, 0);
     Assert.assertTrue(success);
     Assert.assertFalse(_gZkClient.exists(path));
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -499,8 +459,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -549,8 +507,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertNotNull(getRecord.getSimpleField("key1"));
     Assert.assertEquals(getRecord.getSimpleField("key1"), "value1");
     Assert.assertEquals(stat.getVersion(), 2);
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -558,8 +514,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -573,9 +527,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     success = accessor.exists(path, 0);
     Assert.assertTrue(success);
-
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
@@ -583,8 +534,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
@@ -601,15 +550,10 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertEquals(stat.getVersion(), 0);
     Assert.assertNotSame(stat.getEphemeralOwner(), 0);
 
-    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
   public void testAsyncZkBaseDataAccessor() {
-    System.out.println(
-        "START TestZkBaseDataAccessor.async at " + new Date(System.currentTimeMillis()));
-
     String root = _rootPath;
     _gZkClient.deleteRecursively("/" + root);
 
@@ -791,9 +735,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
       boolean pathExists = _gZkClient.exists(path);
       Assert.assertFalse(pathExists, "Should be removed " + msgId);
     }
-
-    System.out.println("END TestZkBaseDataAccessor.async at "
-        + new Date(System.currentTimeMillis()));
   }
 
 }

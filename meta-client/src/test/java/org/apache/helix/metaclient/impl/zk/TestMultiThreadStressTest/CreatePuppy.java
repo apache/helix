@@ -23,10 +23,14 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.puppy.AbstractPuppy;
 import org.apache.helix.metaclient.puppy.PuppySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 
 public class CreatePuppy extends AbstractPuppy {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CreatePuppy.class);
 
   private final Random _random;
   private final String _parentPath = "/test";
@@ -45,19 +49,19 @@ public class CreatePuppy extends AbstractPuppy {
         // Simulate an error by creating an invalid path
         _metaclient.create("invalid", "test");
       } catch (IllegalArgumentException e) { // Catch invalid exception
-        System.out.println(Thread.currentThread().getName() + " tried to create an invalid path" + " at time: " + System.currentTimeMillis());
+        LOG.info(Thread.currentThread().getName() + " tried to create an invalid path" + " at time: " + System.currentTimeMillis());
         // Expected exception
       }
     } else {
       // Normal behavior - create a new node
       try {
-        System.out.println(Thread.currentThread().getName() + " is attempting to create node: " + randomNumber + " at time: " + System.currentTimeMillis());
+        LOG.info(Thread.currentThread().getName() + " is attempting to create node: " + randomNumber + " at time: " + System.currentTimeMillis());
         _metaclient.create(_parentPath + "/" + randomNumber,"test");
-        System.out.println(Thread.currentThread().getName() + " successfully created node " + randomNumber + " at time: " + System.currentTimeMillis());
+        LOG.info(Thread.currentThread().getName() + " successfully created node " + randomNumber + " at time: " + System.currentTimeMillis());
         _eventChangeCounterMap.put(String.valueOf(randomNumber), _eventChangeCounterMap.getOrDefault(String.valueOf(randomNumber), 0) + 1);
       } catch (MetaClientNodeExistsException e) {
         // Expected exception
-        System.out.println(Thread.currentThread().getName() + " failed to create node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it already exists");
+        LOG.info(Thread.currentThread().getName() + " failed to create node " + randomNumber + " at time: " + System.currentTimeMillis() + ", it already exists");
       }
     }
   }

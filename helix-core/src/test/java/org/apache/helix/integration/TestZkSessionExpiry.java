@@ -80,7 +80,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     public MessageHandler createHandler(Message message, NotificationContext context) {
       return new DummyMessageHandler(message, context, _handledMsgSet);
     }
-    
+
     @Override
     public List<String> getMessageTypes() {
       return ImmutableList.of(DUMMY_MSG_TYPE);
@@ -99,8 +99,6 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     int n = 2;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -150,7 +148,6 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**

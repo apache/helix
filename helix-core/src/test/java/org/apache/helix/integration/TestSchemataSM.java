@@ -47,8 +47,6 @@ public class TestSchemataSM extends ZkTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start port
         "localhost", // participant name prefix
         "TestSchemata", // resource name prefix
@@ -111,6 +109,5 @@ public class TestSchemataSM extends ZkTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

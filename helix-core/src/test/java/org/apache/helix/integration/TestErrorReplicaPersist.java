@@ -51,9 +51,6 @@ import org.testng.annotations.Test;
 public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     int numNode = NODE_NR + 1;
     _participants = new MockParticipantManager[numNode];
     // setup storage cluster
@@ -103,7 +100,7 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setErrorPartitionThresholdForLoadBalance(100000);
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    
+
     for (int i = 0; i < (NODE_NR + 1) / 2; i++) {
       _participants[i].syncStop();
       Thread.sleep(2000);

@@ -48,8 +48,6 @@ public class SinglePartitionLeaderStandByTest extends ZkTestBase {
     String clusterName = TestHelper.getTestMethodName();
     int n = 4;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     // Thread.currentThread().join();
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -100,6 +98,5 @@ public class SinglePartitionLeaderStandByTest extends ZkTestBase {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -56,8 +56,6 @@ public class TestJobAccessor extends AbstractTestClass {
 
   @Test
   public void testGetJobs() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body = get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/jobs", null,
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -67,13 +65,10 @@ public class TestJobAccessor extends AbstractTestClass {
     Assert.assertEquals(jobs,
         _workflowMap.get(CLUSTER_NAME).get(WORKFLOW_NAME).getWorkflowConfig().getJobDag()
             .getAllNodes());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJobs")
   public void testGetJob() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body =
         get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/jobs/" + JOB_NAME, null,
             Response.Status.OK.getStatusCode(), true);
@@ -84,39 +79,30 @@ public class TestJobAccessor extends AbstractTestClass {
         node.get(JobAccessor.JobProperties.JobConfig.name()).get("simpleFields").get("WorkflowID")
             .textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJob")
   public void testGetJobConfig() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body =
         get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/jobs/" + JOB_NAME
             + "/configs", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String workflowId = node.get("simpleFields").get("WorkflowID").textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJobConfig")
   public void testGetJobContext() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     String body =
         get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/jobs/" + JOB_NAME
             + "/context", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     Assert.assertEquals(node.get("mapFields").get("0").get("STATE").textValue(),
         TaskPartitionState.COMPLETED.name());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJobContext")
   public void testCreateJob() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);
     // Create JobQueue
     JobQueue.Builder jobQueue = new JobQueue.Builder(TEST_QUEUE_NAME)
@@ -139,12 +125,10 @@ public class TestJobAccessor extends AbstractTestClass {
 
     WorkflowConfig workflowConfig = driver.getWorkflowConfig(TEST_QUEUE_NAME);
     Assert.assertTrue(workflowConfig.getJobDag().getAllNodes().contains(jobName));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testCreateJob")
   public void testGetAddJobContent() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/userContent";
 
     // Empty user content
@@ -172,12 +156,10 @@ public class TestJobAccessor extends AbstractTestClass {
     body = get(uri, null, Response.Status.OK.getStatusCode(), true);
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
     Assert.assertEquals(contentStore, map1);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAddJobContent")
   public void testInvalidGetAndUpdateJobContentStore() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String validURI = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/userContent";
     String invalidURI1 = "clusters/" + CLUSTER_NAME + "/workflows/xxx/jobs/JOB0/userContent"; // workflow not exist
     String invalidURI2 = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/xxx/userContent"; // job not exist
@@ -196,12 +178,10 @@ public class TestJobAccessor extends AbstractTestClass {
 
     post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
     post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInvalidGetAndUpdateJobContentStore")
   public void testDeleteJob() throws InterruptedException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);
     driver.waitToStop(TEST_QUEUE_NAME, 5000);
     delete("clusters/" + CLUSTER_NAME + "/workflows/" + TEST_QUEUE_NAME + "/jobs/" + TEST_JOB_NAME,
@@ -214,6 +194,5 @@ public class TestJobAccessor extends AbstractTestClass {
 
     WorkflowConfig workflowConfig = driver.getWorkflowConfig(TEST_QUEUE_NAME);
     Assert.assertTrue(!workflowConfig.getJobDag().getAllNodes().contains(jobName));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

@@ -50,8 +50,6 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   @Test
   public void testZNRecordSizeLimitUseZNRecordSerializer() {
     String className = getShortClassName();
-    System.out.println("START testZNRecordSizeLimitUseZNRecordSerializer at " + new Date(
-        System.currentTimeMillis()));
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
 
@@ -162,7 +160,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 900; i < 1024; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    // System.out.println("record: " + idealState.getRecord());
+
     succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB1"), idealState);
     Assert.assertTrue(succeed);
     recordNew = accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
@@ -173,16 +171,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     } catch (ZkMarshallingError e) {
       Assert.fail(ASSERTION_MESSAGE + e);
     }
-
-    System.out.println("END testZNRecordSizeLimitUseZNRecordSerializer at " + new Date(
-        System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testZNRecordSizeLimitUseZNRecordSerializer")
   public void testZNRecordSizeLimitUseZNRecordStreamingSerializer() {
     String className = getShortClassName();
-    System.out.println("START testZNRecordSizeLimitUseZNRecordStreamingSerializer at " + new Date(
-        System.currentTimeMillis()));
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
     HelixZkClient zkClient = SharedZkClientFactory.getInstance()
@@ -298,7 +291,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       for (int i = 900; i < 1024; i++) {
         idealState.getRecord().setSimpleField(i + "", bufStr);
       }
-      // System.out.println("record: " + idealState.getRecord());
+
       succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB_2"), idealState);
       Assert.assertTrue(succeed);
       recordNew = accessor.getProperty(keyBuilder.idealStates("TestDB_2")).getRecord();
@@ -312,9 +305,6 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     } finally {
       zkClient.close();
     }
-
-    System.out.println("END testZNRecordSizeLimitUseZNRecordStreamingSerializer at " + new Date(
-        System.currentTimeMillis()));
   }
 
   /*

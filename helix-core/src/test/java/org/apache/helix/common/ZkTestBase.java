@@ -122,20 +122,20 @@ public class ZkTestBase {
     com.sun.management.OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean)
         java.lang.management.ManagementFactory.getOperatingSystemMXBean();
     long physicalMemorySize = os.getTotalPhysicalMemorySize();
-    System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
+    LOG.info("************ SYSTEM Physical Memory:"  + physicalMemorySize);
 
     long MB = 1024 * 1024;
     Runtime runtime = Runtime.getRuntime();
     long free = runtime.freeMemory()/MB;
     long total = runtime.totalMemory()/MB;
-    System.out.println("************ total memory:" + total + " free memory:" + free);
+    LOG.info("************ total memory:" + total + " free memory:" + free);
   }
 
   @BeforeSuite
   public void beforeSuite() throws Exception {
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
-    topJavaLogger.setLevel(Level.WARNING);
+    topJavaLogger.setLevel(Level.INFO);
 
     // Due to ZOOKEEPER-2693 fix, we need to specify whitelist for execute zk commends
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
@@ -605,7 +605,6 @@ public class ZkTestBase {
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
 
-      // System.out.println(idealState);
       accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
     }
     return idealStates;
@@ -614,7 +613,7 @@ public class ZkTestBase {
   @AfterClass
   public void cleanupLiveInstanceOwners() throws InterruptedException {
     String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " called.");
+    LOG.info("AfterClass: " + testClassName + " called.");
     for (String cluster : _liveInstanceOwners.keySet()) {
       Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(cluster);
       for (HelixZkClient client : clientMap.values()) {

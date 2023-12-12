@@ -19,7 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,9 +51,7 @@ public class TestZKCallback extends ZkUnitTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
 
   private static String[] createArgs(String str) {
-    String[] split = str.split("[ ]+");
-    System.out.println(Arrays.toString(split));
-    return split;
+    return str.split("[ ]+");
   }
 
   public class TestCallbackListener implements MessageListener, LiveInstanceChangeListener,

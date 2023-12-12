@@ -81,8 +81,6 @@ public class TestClusterStatusMonitor {
     String clusterName = className + "_" + methodName;
     int n = 5;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
     monitor.active();
     ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
@@ -172,8 +170,6 @@ public class TestClusterStatusMonitor {
 
     Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
         "Failed to unregister ClusterStatusMonitor.");
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test()
@@ -182,8 +178,6 @@ public class TestClusterStatusMonitor {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     int n = 5;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
     monitor.active();
@@ -251,8 +245,6 @@ public class TestClusterStatusMonitor {
       Assert.assertTrue(pastdueMsgCount instanceof Long);
       Assert.assertEquals((long) pastdueMsgCount, 15L);
     }
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -260,8 +252,6 @@ public class TestClusterStatusMonitor {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
     monitor.active();

@@ -426,7 +426,6 @@ public class ZkTestHelper {
         return true;
       }
       Thread.sleep(100);
-      System.out.println("pending zk-events in queue: " + queue);
     }
     return false;
   }

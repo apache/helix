@@ -26,14 +26,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExampleHelper {
 
-  public static ZkServer startZkServer(String zkAddr) {
-    System.out.println("Start zookeeper at " + zkAddr + " in thread "
-        + Thread.currentThread().getName());
+  private static final Logger LOG = LoggerFactory.getLogger(ExampleHelper.class);
 
+  public static ZkServer startZkServer(String zkAddr) {
     String zkDir = zkAddr.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
     final String dataDir = "/tmp/" + zkDir + "/dataDir";
@@ -41,8 +41,7 @@ public class ExampleHelper {
       FileUtils.deleteDirectory(new File(dataDir));
       FileUtils.deleteDirectory(new File(logDir));
     } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("error while starting the ZK server", e);
     }
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
@@ -62,7 +61,7 @@ public class ExampleHelper {
   public static void stopZkServer(ZkServer zkServer) {
     if (zkServer != null) {
       zkServer.shutdown();
-      System.out.println("Shut down zookeeper at port " + zkServer.getPort() + " in thread "
+      LOG.info("Shut down zookeeper at port " + zkServer.getPort() + " in thread "
           + Thread.currentThread().getName());
     }
   }

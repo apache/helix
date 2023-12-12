@@ -59,14 +59,12 @@ public class TestConnectStateChangeListenerAndRetry  {
 
   @BeforeTest
   public void prepare() {
-    System.out.println("START TestConnectStateChangeListenerAndRetry at " + new Date(System.currentTimeMillis()));
     // start local zookeeper server
     _zkServer = ZkMetaClientTestBase.startZkServer(ZK_ADDR);
   }
 
   @Test
   public void testConnectState() {
-    System.out.println("STARTING TestConnectStateChangeListenerAndRetry.testConnectState at " + new Date(System.currentTimeMillis()));
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClientReconnectTest()) {
       zkMetaClient.connect();
       zkMetaClient.connect();
@@ -75,13 +73,11 @@ public class TestConnectStateChangeListenerAndRetry  {
       Assert.assertTrue(ex instanceof IllegalStateException);
       Assert.assertEquals(ex.getMessage(), "ZkClient is not in init state. connect() has already been called.");
     }
-    System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectState at " + new Date(System.currentTimeMillis()));
   }
 
   // test mock zkclient event
   @Test(dependsOnMethods = "testConnectState")
   public void testReConnectSucceed() throws InterruptedException {
-    System.out.println("STARTING TestConnectStateChangeListenerAndRetry.testReConnectSucceed at " + new Date(System.currentTimeMillis()));
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClientReconnectTest()) {
       CountDownLatch countDownLatch = new CountDownLatch(1);
 
@@ -106,12 +102,10 @@ public class TestConnectStateChangeListenerAndRetry  {
       zkMetaClient.create("/key", "value");
       Assert.assertEquals(zkMetaClient.get("/key"), "value");
     }
-    System.out.println("END TestConnectStateChangeListenerAndRetry.testReConnectSucceed at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(dependsOnMethods = "testReConnectSucceed")
   public void testConnectStateChangeListener() throws Exception {
-    System.out.println("START TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
     try (ZkMetaClient<String> zkMetaClient = createZkMetaClientReconnectTest()) {
       CountDownLatch countDownLatch = new CountDownLatch(1);
       final MetaClientInterface.ConnectState[] connectState =
@@ -149,7 +143,6 @@ public class TestConnectStateChangeListenerAndRetry  {
       }
       zkMetaClient.unsubscribeConnectStateChanges(listener);
     }
-    System.out.println("END TestConnectStateChangeListenerAndRetry.testConnectStateChangeListener at " + new Date(System.currentTimeMillis()));
   }
 
   static ZkMetaClient<String> createZkMetaClientReconnectTest() {

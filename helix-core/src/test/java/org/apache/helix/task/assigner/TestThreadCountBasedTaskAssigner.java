@@ -34,10 +34,14 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.TaskConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestThreadCountBasedTaskAssigner.class);
 
   @Test
   public void testSuccessfulAssignment() {
@@ -143,7 +147,6 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
     int instanceCount = 1000;
     int taskCount = 50000;
     for (int batchSize : new int[] {10000, 5000, 2000, 1000, 500, 100}) {
-      System.out.println("testing batch size: " + batchSize);
       profileAssigner(batchSize, instanceCount, taskCount);
     }
   }
@@ -214,7 +217,7 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
         }
       }
     }
-    System.out.println("Average time: " + totalTime / trail + "ms");
+    LOG.info("Average time: " + totalTime / trail + "ms");
   }
 
   private void assertAssignmentResults(Iterable<TaskAssignResult> results, boolean expected) {

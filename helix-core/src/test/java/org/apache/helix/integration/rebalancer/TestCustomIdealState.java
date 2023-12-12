@@ -38,7 +38,6 @@ public class TestCustomIdealState extends ZkTestBase {
 
     String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
         + "_n" + numInstance + "_r" + replica + "_basic";
-    System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
         numPartitionsPerResource, numInstance, replica);
@@ -54,7 +53,6 @@ public class TestCustomIdealState extends ZkTestBase {
     TestDriver.stopCluster(uniqClusterName);
 
     deleteCluster(uniqClusterName);
-    System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -66,7 +64,6 @@ public class TestCustomIdealState extends ZkTestBase {
 
     String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
         + "_n" + numInstance + "_r" + replica + "_nonalive";
-    System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
         numPartitionsPerResource, numInstance, replica);
@@ -91,7 +88,6 @@ public class TestCustomIdealState extends ZkTestBase {
     TestDriver.stopCluster(uniqClusterName);
 
     deleteCluster(uniqClusterName);
-    System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test()
@@ -104,7 +100,6 @@ public class TestCustomIdealState extends ZkTestBase {
     String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
         + "_n" + numInstance + "_r" + replica + "_drop";
 
-    System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
         numPartitionsPerResource, numInstance, replica);
 
@@ -126,6 +121,5 @@ public class TestCustomIdealState extends ZkTestBase {
 
     TestDriver.stopCluster(uniqClusterName);
     deleteCluster(uniqClusterName);
-    System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

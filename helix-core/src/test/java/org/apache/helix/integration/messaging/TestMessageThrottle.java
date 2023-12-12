@@ -51,8 +51,6 @@ public class TestMessageThrottle extends ZkTestBase {
     String clusterName = getShortClassName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start
                                                          // port
         "localhost", // participant name prefix
@@ -143,7 +141,5 @@ public class TestMessageThrottle extends ZkTestBase {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

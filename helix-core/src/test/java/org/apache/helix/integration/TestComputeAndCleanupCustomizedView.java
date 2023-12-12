@@ -63,8 +63,6 @@ public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     int n = 2;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -259,7 +257,6 @@ public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
         keyBuilder.currentState(INSTANCE_NAME2, CUSTOMIZED_STATE_NAME1, RESOURCE_NAME));
 
     // re-enable controller shall remove orphan external view
-    // System.out.println("re-enabling controller");
     admin.enableCluster(clusterName, true);
 
     result = TestHelper.verify(new TestHelper.Verifier() {
@@ -285,7 +282,5 @@ public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

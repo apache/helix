@@ -53,8 +53,6 @@ public class TestAddClusterV2 extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     // setup CONTROLLER_CLUSTER
     _gSetupTool.addCluster(CONTROLLER_CLUSTER, true);
     for (int i = 0; i < NODE_NR; i++) {
@@ -104,8 +102,6 @@ public class TestAddClusterV2 extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    System.out.println("AFTERCLASS " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
     /**
      * shutdown order:
      * 1) pause the leader (optional)
@@ -136,7 +132,6 @@ public class TestAddClusterV2 extends ZkTestBase {
       deleteCluster(clusterName);
     }
     deleteCluster(CONTROLLER_CLUSTER);
-    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**

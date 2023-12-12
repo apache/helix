@@ -89,7 +89,7 @@ public class IdealStateCalculatorForEspressoRelay {
       }
       result.getRecord().getMapFields().put(snName, mapField);
     }
-    System.out.println();
+
     return result;
   }
 

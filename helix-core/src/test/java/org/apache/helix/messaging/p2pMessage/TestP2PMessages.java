@@ -123,8 +123,6 @@ public class TestP2PMessages extends BaseStageTest {
 
   @BeforeMethod  // just to overide the per-test setup in base class.
   public void beforeTest(Method testMethod, ITestContext testContext) {
-    long startTime = System.currentTimeMillis();
-    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
     testContext.setAttribute("StartTime", System.currentTimeMillis());
   }
 

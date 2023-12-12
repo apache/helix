@@ -173,7 +173,6 @@ public class TestClusterVerifier extends ZkUnitTestBase {
 
     // Semi-Auto ExternalView matching
     for (String resource : SEMI_AUTO_RESOURCES) {
-      System.out.println("Verify resource: " + resource);
       strictMatchVerifier =
           new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
               .setResources(Sets.newHashSet(resource)).setDeactivatedNodeAwareness(true)

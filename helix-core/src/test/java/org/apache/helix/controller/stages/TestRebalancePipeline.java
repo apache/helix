@@ -57,7 +57,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   @Test
   public void testDuplicateMsg() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_dup";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -168,13 +167,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
     executorService.shutdown();
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testMsgTriggeredRebalance() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_msgTrigger";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -291,7 +288,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     }
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -299,7 +295,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     String clusterName = "CLUSTER_" + _className + "_pending";
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     admin.addCluster(clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -389,14 +384,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testMasterXfer() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_xfer";
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -468,14 +460,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testNoDuplicatedMaster() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_no_duplicated_master";
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
@@ -539,7 +528,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /*

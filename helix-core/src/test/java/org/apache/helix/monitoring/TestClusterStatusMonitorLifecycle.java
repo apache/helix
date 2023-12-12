@@ -135,7 +135,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    System.out.println("Cleaning up...");
     cleanupControllers();
     for (MockParticipantManager participant : _participants) {
       if (participant != null) {
@@ -147,8 +146,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     for (String cluster : _clusters) {
       TestHelper.dropCluster(cluster, _gZkClient);
     }
-
-    System.out.println("END " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -165,9 +162,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
                 .build();
         Assert.assertTrue(controllerClusterVerifier.verifyByPolling(),
             "Controller cluster NOT in ideal state");
-        System.out.println(String.format("Disconnecting controller %s from cluster %s at %s",
-            controller.getInstanceName(), controller.getClusterName(),
-            new Date(System.currentTimeMillis())));
         controller.syncStop();
         _controllers[i] = null;
       }

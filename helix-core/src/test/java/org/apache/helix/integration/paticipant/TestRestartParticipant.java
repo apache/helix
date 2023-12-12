@@ -55,9 +55,6 @@ public class TestRestartParticipant extends ZkTestBase {
 
   @Test()
   public void testRestartParticipant() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-    System.out.println("START testRestartParticipant at " + new Date(System.currentTimeMillis()));
-
     String clusterName = getShortClassName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
@@ -112,8 +109,5 @@ public class TestRestartParticipant extends ZkTestBase {
     }
     participant.syncStop();
     deleteCluster(clusterName);
-
-    System.out.println("START testRestartParticipant at " + new Date(System.currentTimeMillis()));
-
   }
 }

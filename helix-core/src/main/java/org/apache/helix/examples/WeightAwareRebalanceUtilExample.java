@@ -41,9 +41,13 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.WeightAwareRebalanceUtil;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WeightAwareRebalanceUtilExample {
+
+  private static final Logger LOG = LoggerFactory.getLogger(WeightAwareRebalanceUtilExample.class);
+
   private static String ZK_ADDRESS = "localhost:2199";
   private static String CLUSTER_NAME = "RebalanceUtilExampleCluster";
   private static HelixAdmin admin;
@@ -65,10 +69,10 @@ public class WeightAwareRebalanceUtilExample {
   final static List<InstanceConfig> instanceConfigs = new ArrayList<>();
 
   private static void printAssignmentInfo(ResourcesStateMap assignment) {
-    System.out.println("The result assignment is: ");
+    LOG.info("The result assignment is: ");
     Map<String, Integer> instanceLoad = new HashMap<>();
     for (String resource : assignment.getResourceStatesMap().keySet()) {
-      System.out.println(resource + ": " + assignment.getPartitionStateMap(resource).toString());
+      LOG.info(resource + ": " + assignment.getPartitionStateMap(resource).toString());
       for (Map<String, String> stateMap : assignment.getPartitionStateMap(resource).getStateMap().values()) {
         for (String instance : stateMap.keySet()) {
           if (!instanceLoad.containsKey(instance)) {
@@ -78,11 +82,11 @@ public class WeightAwareRebalanceUtilExample {
         }
       }
     }
-    System.out.println("Instance load: " + instanceLoad + "\n");
+    LOG.info("Instance load: " + instanceLoad + "\n");
   }
 
   private static void rebalanceUtilUsage() {
-    System.out.println(String.format("Start rebalancing using WeightAwareRebalanceUtil for %d resources.", nResources));
+    LOG.info(String.format("Start rebalancing using WeightAwareRebalanceUtil for %d resources.", nResources));
 
     /**
      * Init providers with resource weight and participant capacity.
@@ -139,12 +143,12 @@ public class WeightAwareRebalanceUtilExample {
     ResourcesStateMap assignment = util.buildIncrementalRebalanceAssignment(resourceConfigs, null,
         Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
         Collections.<AbstractRebalanceSoftConstraint>singletonList(evenConstraint));
-    System.out.println(String.format("Finished rebalancing using WeightAwareRebalanceUtil for %d resources.", nResources));
+    LOG.info(String.format("Finished rebalancing using WeightAwareRebalanceUtil for %d resources.", nResources));
     printAssignmentInfo(assignment);
   }
 
   private static void rebalanceUtilUsageWithZkBasedDataProvider() {
-    System.out.println(String.format("Start rebalancing using WeightAwareRebalanceUtil and ZK based Capacity/Weight data providers for %d resources.", nResources));
+    LOG.info(String.format("Start rebalancing using WeightAwareRebalanceUtil and ZK based Capacity/Weight data providers for %d resources.", nResources));
 
     // Init a zkserver & cluster nodes for this example
     ZkServer zkServer = ExampleHelper.startZkServer(ZK_ADDRESS);
@@ -219,12 +223,12 @@ public class WeightAwareRebalanceUtilExample {
 
     ExampleHelper.stopZkServer(zkServer);
 
-    System.out.println(String.format("Finished rebalancing using WeightAwareRebalanceUtil and ZK based Capacity/Weight data providers for %d resources.", nResources));
+    LOG.info(String.format("Finished rebalancing using WeightAwareRebalanceUtil and ZK based Capacity/Weight data providers for %d resources.", nResources));
     printAssignmentInfo(assignment);
   }
 
   private static void rebalanceWithFaultZone() {
-    System.out.println(String.format("Start rebalancing using WeightAwareRebalanceUtil for %d resources in a topology aware cluster.", nResources));
+    LOG.info(String.format("Start rebalancing using WeightAwareRebalanceUtil for %d resources in a topology aware cluster.", nResources));
 
     /**
      * Setup cluster config and instance configs for topology information
@@ -248,7 +252,7 @@ public class WeightAwareRebalanceUtilExample {
       String domainStr = String.format("Rack=%s,Host=%s", i % (nParticipants / 3), instance);
       config.setDomain(domainStr);
       instanceConfigs.add(config);
-      System.out.println(String.format("Set instance %s domain to be %s.", instance, domainStr));
+      LOG.info(String.format("Set instance %s domain to be %s.", instance, domainStr));
     }
 
     /**
@@ -285,7 +289,7 @@ public class WeightAwareRebalanceUtilExample {
         Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
         Collections.<AbstractRebalanceSoftConstraint>singletonList(evenConstraint));
 
-    System.out.println(String.format("Finished rebalancing using WeightAwareRebalanceUtil for %d resources in a topology aware cluster with %d fault zones.", nResources, nParticipants / 3));
+    LOG.info(String.format("Finished rebalancing using WeightAwareRebalanceUtil for %d resources in a topology aware cluster with %d fault zones.", nResources, nParticipants / 3));
     printAssignmentInfo(assignment);
   }
 

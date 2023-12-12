@@ -40,7 +40,6 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
@@ -157,7 +156,6 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -165,7 +163,6 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
@@ -201,12 +198,10 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // create same 10 current states again, should fail on NodeExists
     success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
-    // System.out.println(Arrays.toString(success));
     for (int i = 0; i < 10; i++) {
       Assert.assertFalse(success[i], "Should fail on create: " + paths.get(i));
     }
 
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

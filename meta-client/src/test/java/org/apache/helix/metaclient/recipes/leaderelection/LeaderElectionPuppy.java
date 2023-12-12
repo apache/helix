@@ -26,10 +26,15 @@ import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.puppy.AbstractPuppy;
 import org.apache.helix.metaclient.puppy.PuppySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 
 public class LeaderElectionPuppy extends AbstractPuppy {
+
+  private static final Logger LOG = LoggerFactory.getLogger(LeaderElectionPuppy.class);
+
   String _leaderGroup;
   String _participant;
   private final Random _random;
@@ -52,7 +57,7 @@ public class LeaderElectionPuppy extends AbstractPuppy {
   @Override
   protected void bark() throws Exception {
     int randomNumber = _random.nextInt((int) TimeUnit.SECONDS.toMillis(5));
-    System.out.println("LeaderElectionPuppy " + _participant + " Joining");
+    LOG.info("LeaderElectionPuppy " + _participant + " Joining");
     _leaderElectionClient.joinLeaderElectionParticipantPool(_leaderGroup);
 
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
@@ -66,7 +71,7 @@ public class LeaderElectionPuppy extends AbstractPuppy {
     }, MetaClientTestUtil.WAIT_DURATION));
 
     Thread.sleep(randomNumber);
-    System.out.println("LeaderElectionPuppy " +  _participant + " Leaving");
+    LOG.info("LeaderElectionPuppy " +  _participant + " Leaving");
     _leaderElectionClient.exitLeaderElectionParticipantPool(_leaderGroup);
     Assert.assertTrue(MetaClientTestUtil.verify(() -> {
       return (_leaderElectionClient.getParticipantInfo(_leaderGroup, _participant) == null);
@@ -78,7 +83,7 @@ public class LeaderElectionPuppy extends AbstractPuppy {
   @Override
   protected void cleanup() {
     try {
-      System.out.println("Cleaning - LeaderElectionPuppy " +  _participant + " Leaving");
+      LOG.info("Cleaning - LeaderElectionPuppy " +  _participant + " Leaving");
       _leaderElectionClient.exitLeaderElectionParticipantPool(_leaderGroup);
     } catch (MetaClientException ignore) {
       // already leave the pool. OK to throw exception.
@@ -86,6 +91,7 @@ public class LeaderElectionPuppy extends AbstractPuppy {
       try {
         _leaderElectionClient.close();
       } catch (Exception e) {
+        LOG.error(e.getMessage(), e);
       }
     }
   }

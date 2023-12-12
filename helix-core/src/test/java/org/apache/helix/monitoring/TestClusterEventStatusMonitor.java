@@ -39,10 +39,14 @@ import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestClusterEventStatusMonitor {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestClusterEventStatusMonitor.class);
   private static final int TEST_SLIDING_WINDOW_MS = 2000; // 2s window for testing
 
   private class ClusterStatusMonitorForTest extends ClusterStatusMonitor {
@@ -60,7 +64,6 @@ public class TestClusterEventStatusMonitor {
       throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException,
       IOException, InterruptedException, MBeanException, AttributeNotFoundException,
       ReflectionException{
-    System.out.println("START TestClusterEventStatusMonitor");
     String clusterName = "TestCluster";
     ClusterStatusMonitorForTest monitor = new ClusterStatusMonitorForTest(clusterName);
 
@@ -119,7 +122,7 @@ public class TestClusterEventStatusMonitor {
       Assert.assertTrue(Math.abs(stddev - 158.0) < 0.2);
     }
 
-    System.out.println("\nWaiting for time window to expire\n");
+    LOG.info("Waiting for time window to expire");
     Thread.sleep(TEST_SLIDING_WINDOW_MS);
 
     // Since sliding window has expired, just make sure histograms have its values reset
@@ -144,8 +147,6 @@ public class TestClusterEventStatusMonitor {
         _server.queryMBeans(
             new ObjectName("ClusterStatus:cluster=TestCluster,eventName=ClusterEvent,*"), null);
     Assert.assertEquals(mbeans.size(), 0);
-
-    System.out.println("END TestParticipantMonitor");
   }
 
   private void addTestEventMonitor(ClusterStatusMonitorForTest monitor, String phaseName) throws

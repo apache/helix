@@ -48,6 +48,8 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(TopStateHandoffReportStage.class);
   public static final long TIMESTAMP_NOT_RECORDED = -1L;
 
+  private Map<String, Long> _failingPartitionsInfoMap = new HashMap<>();
+
   @Override
   public AsyncWorkerType getAsyncWorkerType() {
     return AsyncWorkerType.TopStateHandoffReportWorker;
@@ -106,6 +108,7 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
       }
 
       String resourceName = resource.getResourceName();
+      _failingPartitionsInfoMap.clear();
 
       for (Partition partition : resource.getPartitions()) {
         String currentTopStateInstance =
@@ -123,6 +126,10 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
           reportTopStateHandoffFailIfNecessary(cache, resourceName, partition, durationThreshold,
               clusterStatusMonitor);
         }
+      }
+
+      if (!_failingPartitionsInfoMap.isEmpty()) {
+        LogUtil.logInfo(LOG, _eventId, String.format("Missing top state for partitions: %s", _failingPartitionsInfoMap));
       }
     }
 
@@ -334,6 +341,8 @@ public class TopStateHandoffReportStage extends AbstractAsyncBaseStage {
       LogUtil.logDebug(LOG, _eventId, String.format(
           "Missing top state for partition %s beyond %s time. Graceful: %s",
           partitionName, missingDuration, false));
+      _failingPartitionsInfoMap.put(partitionName, missingDuration);
+
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, 0L,
             false, false);

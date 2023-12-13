@@ -62,7 +62,7 @@ public class TestInstanceOperation extends ZkTestBase {
   private final int ZONE_COUNT = 4;
   protected final int NUM_NODE = 10;
   protected static final int START_PORT = 12918;
-  protected static final int PARTITIONS = 30;
+  protected static final int PARTITIONS = 20;
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
@@ -211,11 +211,13 @@ public class TestInstanceOperation extends ZkTestBase {
       // If instance is not connected to ZK, replace it
       if (!_participants.get(i).isConnected()) {
         // Drop bad instance from the cluster.
+        InstanceConfig toDropInstanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, _participantNames.get(i));
+        _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, _participantNames.get(i), false);
         _gSetupTool.getClusterManagementTool()
-            .dropInstance(CLUSTER_NAME, _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, _participantNames.get(i)));
+            .dropInstance(CLUSTER_NAME, toDropInstanceConfig);
         _participants.set(i,
-            createParticipant(_participantNames.get(i), UUID.randomUUID().toString(),
-                "zone_" + i % ZONE_COUNT, null, true, -1));
+            createParticipant(_participantNames.get(i), toDropInstanceConfig.getLogicalId(LOGICAL_ID),
+                toDropInstanceConfig.getDomainAsMap().get(ZONE), null, true, -1));
         _participants.get(i).syncStart();
         continue;
       }
@@ -1210,9 +1212,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
   private MockParticipantManager createParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
-    UUID host = UUID.randomUUID();
     InstanceConfig config = new InstanceConfig.Builder().setDomain(
-            String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, host, LOGICAL_ID,
+            String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
                 logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
         .build(participantName);
     if (capacity >= 0) {

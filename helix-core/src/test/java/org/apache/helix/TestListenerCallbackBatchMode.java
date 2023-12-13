@@ -19,10 +19,11 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.Date;
+import java.time.Duration;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.lang3.ThreadUtils;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.listeners.BatchMode;
 import org.apache.helix.model.IdealState;
@@ -55,11 +56,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
         NotificationContext context) {
       if (context.getType().equals(NotificationContext.Type.CALLBACK)) {
         _instanceConfigChangedCount++;
-        try {
-          Thread.sleep(200);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+        TestHelper.sleepQuietly(Duration.ofMillis(2));
       }
     }
 
@@ -191,7 +188,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
     addListeners(mixedListener);
     updateConfigs();
 
-    Thread.sleep(4000);
+    TestHelper.sleepQuietly(Duration.ofMillis(2));
     boolean result = (mixedListener._instanceConfigChangedCount == _numNode) && (
         mixedListener._idealStateChangedCount < _numResource/2);
 
@@ -210,14 +207,12 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
       }
     }, 12000);
 
-    Thread.sleep(50);
     Assert.assertTrue(result,
         "instance callbacks: " + listener._instanceConfigChangedCount + ", idealstate callbacks "
             + listener._idealStateChangedCount + "\ninstance count: " + _numNode + ", idealstate counts: " + _numResource);
   }
 
   private void verifyBatchedListeners(Listener batchListener) throws InterruptedException {
-    Thread.sleep(3000);
     boolean result = (batchListener._instanceConfigChangedCount < _numNode) && (
         batchListener._idealStateChangedCount < _numResource);
 
@@ -239,7 +234,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
         .removeListener(new PropertyKey.Builder(_manager.getClusterName()).idealStates(), listener);
   }
 
-  private void updateConfigs() throws InterruptedException {
+  private void updateConfigs() {
     final Random r = new Random(System.currentTimeMillis());
     // test change content
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -249,7 +244,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
       InstanceConfig value = accessor.getProperty(keyBuilder.instanceConfig(instance));
       value._record.setLongField("TimeStamp", System.currentTimeMillis());
       accessor.setProperty(keyBuilder.instanceConfig(instance), value);
-      Thread.sleep(50);
+      TestHelper.sleepQuietly(Duration.ofMillis(50));
     }
 
     final List<String> resources = accessor.getChildNames(keyBuilder.idealStates());
@@ -257,7 +252,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
       IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
       idealState.setNumPartitions(r.nextInt(100));
       accessor.setProperty(keyBuilder.idealStates(idealState.getId()), idealState);
-      Thread.sleep(20); // wait zk callback
+      TestHelper.sleepQuietly(Duration.ofMillis(50)); // wait zk callback
     }
   }
 }

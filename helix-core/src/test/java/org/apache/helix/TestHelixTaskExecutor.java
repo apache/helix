@@ -83,11 +83,7 @@ public class TestHelixTaskExecutor {
 
     HelixTask task = new HelixTask(message, context, handler, executor);
     executor.scheduleTask(task);
-    for (int i = 0; i < 10; i++) {
-      if (!executor.isDone(task.getTaskId())) {
-        Thread.sleep(500);
-      }
-    }
+    TestHelper.verify(() -> executor.isDone(task.getTaskId()), 1000L);
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }
 

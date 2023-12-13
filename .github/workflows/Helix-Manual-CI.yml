@@ -43,3 +43,10 @@ jobs:
           name: Tests Results
           path: './**/target/surefire-reports/TEST-TestSuite.xml'
           reporter: java-junit
+      - name: Upload unit test results
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: surefire-reports
+          path: ./**/target/surefire-reports/
+          if-no-files-found: ignore

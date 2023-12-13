@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -277,8 +278,7 @@ public class TestHelper {
     HelixZkClient zkClient = createZkClient(zkAddr);
     try {
       if (zkClient.exists("/" + clusterName)) {
-        LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
-        zkClient.deleteRecursively("/" + clusterName);
+        throw new RuntimeException(clusterName + " cluster already exists!");
       }
 
       ClusterSetup setupTool = new ClusterSetup(zkAddr);
@@ -805,7 +805,7 @@ public class TestHelper {
         }
         return result;
       }
-      Thread.sleep(50);
+      TestHelper.sleepQuietly(Duration.ofMillis(2));
     } while (true);
   }
 
@@ -866,5 +866,13 @@ public class TestHelper {
         .setSessionTimeout(1000);
 
     return DedicatedZkClientFactory.getInstance().buildZkClient(zkConnectionConfig, clientConfig);
+  }
+
+  public static void sleepQuietly(Duration duration) {
+    try {
+      Thread.sleep(duration.toMillis());
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 }

@@ -58,9 +58,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     String className = TestHelper.getTestClassName();
     _clusterNamePrefix = className;
 
-    System.out
-        .println("START " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
-
     // setup 10 clusters
     for (int i = 0; i < clusterNb; i++) {
       String clusterName = _clusterNamePrefix + "0_" + i;

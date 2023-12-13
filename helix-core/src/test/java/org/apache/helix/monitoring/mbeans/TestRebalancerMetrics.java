@@ -47,8 +47,6 @@ public class TestRebalancerMetrics extends BaseStageTest {
 
   @Test
   public void testRecoveryRebalanceMetrics() {
-    System.out
-        .println("START testRecoveryRebalanceMetrics at " + new Date(System.currentTimeMillis()));
     String resource = "testResourceName";
 
     int numPartition = 100;
@@ -90,15 +88,10 @@ public class TestRebalancerMetrics extends BaseStageTest {
         numPartition * numReplica - resourceMonitor.getNumPendingLoadRebalanceReplicas());
     Assert.assertEquals(resourceMonitor.getNumRecoveryRebalanceThrottledReplicas(),
         numPartition * numReplica - resourceMonitor.getNumPendingLoadRebalanceReplicas() - maxPending);
-
-    System.out
-        .println("END testRecoveryRebalanceMetrics at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testLoadBalanceMetrics() {
-    System.out
-        .println("START testLoadBalanceMetrics at " + new Date(System.currentTimeMillis()));
     String resource = "testResourceName";
 
     int numPartition = 100;
@@ -150,9 +143,6 @@ public class TestRebalancerMetrics extends BaseStageTest {
     long numPendingLoadBalance = resourceMonitor.getNumPendingLoadRebalanceReplicas();
     Assert.assertTrue(numPendingLoadBalance > 0);
     Assert.assertEquals(resourceMonitor.getNumLoadRebalanceThrottledReplicas(), numPendingLoadBalance - maxPending);
-
-    System.out
-        .println("END testLoadBalanceMetrics at " + new Date(System.currentTimeMillis()));
   }
 
   private void setupThrottleConfig(ClusterConfig clusterConfig,

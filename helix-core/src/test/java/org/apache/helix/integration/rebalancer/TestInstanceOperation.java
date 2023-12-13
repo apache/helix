@@ -147,6 +147,13 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
+    // Drop all DBs
+    for (String db : _allDBs) {
+      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, db);
+    }
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
     for (MockParticipantManager p : _participants) {
       p.syncStop();
     }
@@ -210,16 +217,9 @@ public class TestInstanceOperation extends ZkTestBase {
     for (int i = 0; i < _participants.size(); i++) {
       // If instance is not connected to ZK, replace it
       if (!_participants.get(i).isConnected()) {
-        // Drop bad instance from the cluster.
-        InstanceConfig toDropInstanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, _participantNames.get(i));
-        _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, _participantNames.get(i), false);
-        _gSetupTool.getClusterManagementTool()
-            .dropInstance(CLUSTER_NAME, toDropInstanceConfig);
-        _participants.set(i,
-            createParticipant(_participantNames.get(i), toDropInstanceConfig.getLogicalId(LOGICAL_ID),
-                toDropInstanceConfig.getDomainAsMap().get(ZONE), null, true, -1));
+        // Replace the stopped participant with a new one and inherit the old instance config.
+        _participants.set(i, createParticipant(_participantNames.get(i)));
         _participants.get(i).syncStart();
-        continue;
       }
       _gSetupTool.getClusterManagementTool()
           .setInstanceOperation(CLUSTER_NAME, _participantNames.get(i), null);
@@ -1210,17 +1210,7 @@ public class TestInstanceOperation extends ZkTestBase {
         Collections.emptySet(), Set.of(instanceToSwapInName));
   }
 
-  private MockParticipantManager createParticipant(String participantName, String logicalId, String zone,
-      InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
-    InstanceConfig config = new InstanceConfig.Builder().setDomain(
-            String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
-                logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
-        .build(participantName);
-    if (capacity >= 0) {
-      config.setInstanceCapacityMap(Map.of(TEST_CAPACITY_KEY, capacity));
-    }
-    _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
-
+  private MockParticipantManager createParticipant(String participantName) {
     // start dummy participants
     MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName);
     StateMachineEngine stateMachine = participant.getStateMachineEngine();
@@ -1232,8 +1222,17 @@ public class TestInstanceOperation extends ZkTestBase {
 
   private void addParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
-    MockParticipantManager participant = createParticipant(participantName, logicalId, zone,
-        instanceOperation, enabled, capacity);
+    InstanceConfig config = new InstanceConfig.Builder().setDomain(
+            String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
+                logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
+        .build(participantName);
+
+    if (capacity >= 0) {
+      config.setInstanceCapacityMap(Map.of(TEST_CAPACITY_KEY, capacity));
+    }
+    _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
+
+    MockParticipantManager participant = createParticipant(participantName);
 
     participant.syncStart();
     _participants.add(participant);

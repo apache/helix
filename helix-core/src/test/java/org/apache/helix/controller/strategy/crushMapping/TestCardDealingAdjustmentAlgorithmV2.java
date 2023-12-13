@@ -30,7 +30,6 @@ import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import org.apache.helix.controller.rebalancer.TestConstraintRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithmV2;
 import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
@@ -70,9 +69,6 @@ public class TestCardDealingAdjustmentAlgorithmV2 {
 
   @BeforeClass
   public void setUpTopology() {
-    java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
-    topJavaLogger.setLevel(Level.INFO);
-
     _topology = mock(Topology.class);
     LOGGER.info("Default ZONES: " + Arrays.deepToString(DEFAULT_ZONES));
     when(_topology.getFaultZones()).thenReturn(createFaultZones(DEFAULT_ZONES));

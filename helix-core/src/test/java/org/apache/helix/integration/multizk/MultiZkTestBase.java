@@ -77,9 +77,7 @@ public class MultiZkTestBase {
         for (int i = 0; i < NUM_ZK; i++) {
             String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
             ZK_SERVER_MAP.put(zkAddress, TestHelper.startZkServer(zkAddress));
-            ZK_CLIENT_MAP.put(zkAddress, DedicatedZkClientFactory.getInstance()
-                    .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-                            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer())));
+            ZK_CLIENT_MAP.put(zkAddress, TestHelper.createZkClient(zkAddress));
 
             // One cluster per ZkServer created
             _rawRoutingData.put(zkAddress, Collections.singletonList("/" + CLUSTER_LIST.get(i)));

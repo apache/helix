@@ -187,7 +187,7 @@ public class ZkTestBase {
   private static synchronized void startZooKeeper(int i) {
     String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
     _zkServerMap.computeIfAbsent(zkAddress, ZkTestBase::createZookeeperServer);
-    _helixZkClientMap.computeIfAbsent(zkAddress, ZkTestBase::createZkClient);
+    _helixZkClientMap.computeIfAbsent(zkAddress, TestHelper::createZkClient);
     _clusterSetupMap.computeIfAbsent(zkAddress, key -> new ClusterSetup(_helixZkClientMap.get(key)));
     _baseDataAccessorMap.computeIfAbsent(zkAddress, key -> new ZkBaseDataAccessor(_helixZkClientMap.get(key)));
   }
@@ -198,13 +198,6 @@ public class ZkTestBase {
     } catch (Exception e) {
       throw new IllegalArgumentException("Failed to start zookeeper server at " + zkAddress, e);
     }
-  }
-
-  private static HelixZkClient createZkClient(String zkAddress) {
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig.setZkSerializer(new ZNRecordSerializer());
-    return DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
   }
 
   @AfterSuite
@@ -767,8 +760,7 @@ public class ZkTestBase {
       _clusterName = clusterName;
       _resourceName = resourceName;
 
-      _zkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+      _zkClient = TestHelper.createZkClient(ZK_ADDR);
       _zkClient.setZkSerializer(new ZNRecordSerializer());
     }
 

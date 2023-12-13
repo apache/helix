@@ -178,8 +178,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     String className = getShortClassName();
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+    HelixZkClient zkClient = TestHelper.createZkClient(ZK_ADDR);
 
     try {
       zkClient.setZkSerializer(serializer);
@@ -471,8 +470,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
         System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+    HelixZkClient zkClient = TestHelper.createZkClient(ZK_ADDR);
 
     try {
       zkClient.setZkSerializer(serializer);

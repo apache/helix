@@ -80,9 +80,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
 
     // init external base data accessor
-    HelixZkClient zkclient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
-    zkclient.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkclient = TestHelper.createZkClient(ZK_ADDR);
     ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<>(zkclient);
 
     // init zkCacheDataAccessor

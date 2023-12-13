@@ -61,6 +61,7 @@ import org.apache.helix.util.ZKClientPool;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
@@ -218,9 +219,7 @@ public class TestHelper {
 
   public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceName,
       Set<String> instanceNames, String zkAddr) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkClient = createZkClient(zkAddr);
 
     try {
       ZKHelixDataAccessor accessor =
@@ -275,8 +274,7 @@ public class TestHelper {
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    HelixZkClient zkClient = createZkClient(zkAddr);
     try {
       if (zkClient.exists("/" + clusterName)) {
         LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
@@ -336,9 +334,7 @@ public class TestHelper {
    */
   public static void verifyState(String clusterName, String zkAddr,
       Map<String, Set<String>> stateMap, String state) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkClient = createZkClient(zkAddr);
 
     try {
       ZKHelixDataAccessor accessor =
@@ -858,5 +854,17 @@ public class TestHelper {
       }
     }
     LOG.info("}");
+  }
+
+  public static HelixZkClient createZkClient(String zkAddress) {
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig()
+        .setZkSerializer(new org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer())
+        .setConnectInitTimeout(1000L)
+        .setOperationRetryTimeout(1000L);
+
+    HelixZkClient.ZkConnectionConfig zkConnectionConfig = new HelixZkClient.ZkConnectionConfig(zkAddress)
+        .setSessionTimeout(1000);
+
+    return DedicatedZkClientFactory.getInstance().buildZkClient(zkConnectionConfig, clientConfig);
   }
 }

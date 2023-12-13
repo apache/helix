@@ -71,8 +71,7 @@ public class TestZkConnectionLost extends TaskTestBase {
   public void beforeClass() throws Exception {
     ZkServer zkServer = TestHelper.startZkServer(_zkAddr);
     _zkServerRef.set(zkServer);
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr));
+    _zkClient = TestHelper.createZkClient(_zkAddr);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     _setupTool = new ClusterSetup(_zkClient);
     _participants = new MockParticipantManager[_numNodes];

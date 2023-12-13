@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -55,8 +56,7 @@ public class MockController {
   public MockController(String src, String zkServer, String cluster) {
     srcName = src;
     clusterName = cluster;
-    client = DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkServer));
+    client = TestHelper.createZkClient(zkServer);
     client.setZkSerializer(new ZNRecordSerializer());
   }
 

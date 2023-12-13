@@ -215,17 +215,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       // TODO: use logging.properties file to config java.util.logging.Logger levels
       java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
       topJavaLogger.setLevel(Level.WARNING);
-
-      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-
-      clientConfig.setZkSerializer(new ZNRecordSerializer());
-      _gZkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig);
-
-      clientConfig.setZkSerializer(new ZNRecordSerializer());
-      _gZkClientTestNS = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddrTestNS), clientConfig);
-
+      _gZkClient = TestHelper.createZkClient(ZK_ADDR);
+      _gZkClientTestNS = TestHelper.createZkClient(_zkAddrTestNS);
       _gSetupTool = new ClusterSetup(_gZkClient);
       _configAccessor = new ConfigAccessor(_gZkClient);
       _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);

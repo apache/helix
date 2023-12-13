@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -58,9 +59,10 @@ import org.testng.annotations.Test;
 
 
 public class TestInstanceOperation extends ZkTestBase {
-  protected final int NUM_NODE = 6;
+  private final int ZONE_COUNT = 4;
+  protected final int NUM_NODE = 10;
   protected static final int START_PORT = 12918;
-  protected static final int PARTITIONS = 20;
+  protected static final int PARTITIONS = 30;
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
@@ -211,8 +213,9 @@ public class TestInstanceOperation extends ZkTestBase {
         // Drop bad instance from the cluster.
         _gSetupTool.getClusterManagementTool()
             .dropInstance(CLUSTER_NAME, _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, _participantNames.get(i)));
-        _participants.set(i, createParticipant(_participantNames.get(i), Integer.toString(i),
-            "zone_" + i, null, true, -1));
+        _participants.set(i,
+            createParticipant(_participantNames.get(i), UUID.randomUUID().toString(),
+                "zone_" + i % ZONE_COUNT, null, true, -1));
         _participants.get(i).syncStart();
         continue;
       }
@@ -1207,8 +1210,9 @@ public class TestInstanceOperation extends ZkTestBase {
 
   private MockParticipantManager createParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
+    UUID host = UUID.randomUUID();
     InstanceConfig config = new InstanceConfig.Builder().setDomain(
-            String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
+            String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, host, LOGICAL_ID,
                 logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
         .build(participantName);
     if (capacity >= 0) {
@@ -1236,8 +1240,8 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   private void addParticipant(String participantName) {
-    addParticipant(participantName, Integer.toString(_participants.size()),
-        "zone_" + _participants.size(), null, true, -1);
+    addParticipant(participantName, UUID.randomUUID().toString(),
+        "zone_" + _participants.size() % ZONE_COUNT, null, true, -1);
   }
 
    private void createTestDBs(long delayTime) throws InterruptedException {

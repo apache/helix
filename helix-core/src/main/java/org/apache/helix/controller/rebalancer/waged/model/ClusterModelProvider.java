@@ -213,7 +213,10 @@ public class ClusterModelProvider {
                 new InstanceConfig(instanceName))
             .getLogicalId(clusterTopologyConfig.getEndNodeType())).collect(Collectors.toSet());
 
-    Set<String> assignableLiveInstanceNames = dataProvider.getAssignableLiveInstances().keySet();
+    // TODO: Figure out why streaming the keySet directly in rare cases causes ConcurrentModificationException
+    //  In theory, this should not be happening since cache refresh is at beginning of the pipeline, so could be some other reason.
+    //  For now, we just copy the keySet to a new HashSet to avoid the exception.
+    Set<String> assignableLiveInstanceNames = new HashSet<>(dataProvider.getAssignableLiveInstances().keySet());
     Set<String> assignableLiveInstanceLogicalIds =
         assignableLiveInstanceNames.stream().map(
             instanceName -> assignableInstanceConfigMap.getOrDefault(instanceName,

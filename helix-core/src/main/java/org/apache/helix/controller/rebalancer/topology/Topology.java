@@ -23,6 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +58,19 @@ public class Topology {
   private final Map<String, InstanceConfig> _instanceConfigMap;
   private final ClusterTopologyConfig _clusterTopologyConfig;
 
+  /**
+   * Create a Topology for a cluster.
+   *
+   * @param allNodes           allNodes of the given cluster.
+   * @param liveNodes          liveNodes of the given cluster.
+   * @param instanceConfigMap  instanceConfigMap of the given cluster.
+   * @param clusterConfig      clusterConfig of the given cluster.
+   * @param faultZoneLevelOnly whether to include additional non-faultZone level nodes in the
+   *                           topology tree above the end-nodes.
+   */
   public Topology(final List<String> allNodes, final List<String> liveNodes,
-      final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
+      final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig,
+      boolean faultZoneLevelOnly) {
     try {
       _md = MessageDigest.getInstance("SHA-1");
     } catch (NoSuchAlgorithmException ex) {
@@ -73,7 +85,20 @@ public class Topology {
           _allInstances.removeAll(_instanceConfigMap.keySet())));
     }
     _clusterTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
-    _root = createClusterTree(clusterConfig);
+    _root = createClusterTree(clusterConfig, faultZoneLevelOnly);
+  }
+
+  /**
+   * Create a Topology for a cluster. faultZoneLevelOnly is set to false by default.
+   *
+   * @param allNodes          allNodes of the given cluster.
+   * @param liveNodes         liveNodes of the given cluster.
+   * @param instanceConfigMap instanceConfigMap of the given cluster.
+   * @param clusterConfig     clusterConfig of the given cluster.
+   */
+  public Topology(final List<String> allNodes, final List<String> liveNodes,
+      final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
+    this(allNodes, liveNodes, instanceConfigMap, clusterConfig, false);
   }
 
   public String getEndNodeType() {
@@ -149,12 +174,17 @@ public class Topology {
     return newRoot;
   }
 
-  private Node createClusterTree(ClusterConfig clusterConfig) {
+  private Node createClusterTree(ClusterConfig clusterConfig, boolean faultZoneLevelOnly) {
     // root
     Node root = new Node();
     root.setName("root");
     root.setId(computeId("root"));
     root.setType(Types.ROOT.name());
+
+    Set<String> unnecessaryTopoKeys =
+        new HashSet<>(_clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+    unnecessaryTopoKeys.remove(_clusterTopologyConfig.getFaultZoneType());
+    unnecessaryTopoKeys.remove(_clusterTopologyConfig.getEndNodeType());
 
     // TODO: Currently we add disabled instance to the topology tree. Since they are not considered
     // TODO: in rebalance, maybe we should skip adding them to the tree for consistence.
@@ -166,6 +196,12 @@ public class Topology {
         int weight = insConfig.getWeight();
         if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
           weight = DEFAULT_NODE_WEIGHT;
+        }
+
+        if (faultZoneLevelOnly) {
+          // Remove unnecessary keys from the topology map. We do not need to use these to build more layers in
+          // the topology tree. The topology tree only requires FaultZoneType and EndNodeType.
+          unnecessaryTopoKeys.forEach(instanceTopologyMap::remove);
         }
         addEndNode(root, instanceName, instanceTopologyMap, weight, _liveInstances);
       } catch (IllegalArgumentException e) {

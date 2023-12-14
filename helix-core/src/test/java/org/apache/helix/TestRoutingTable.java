@@ -174,7 +174,7 @@ public class TestRoutingTable {
   }
 
   @Test()
-  public void testStateUnitGroupDeletion() throws InterruptedException {
+  public void testStateUnitGroupDeletion() {
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
 
@@ -193,7 +193,6 @@ public class TestRoutingTable {
 
       externalViewList.remove(0);
       routingTable.onExternalViewChange(externalViewList, changeContext);
-      Thread.sleep(100);
       instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
       AssertJUnit.assertNotNull(instances);
       AssertJUnit.assertEquals(instances.size(), 0);

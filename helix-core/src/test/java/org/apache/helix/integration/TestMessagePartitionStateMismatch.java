@@ -26,6 +26,7 @@ import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
@@ -84,7 +85,7 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
         }
       }
     }
-    Thread.sleep(3000);
+
     ExternalView ev2 = accessor.getProperty(kb.externalView(TEST_DB));
     Assert.assertTrue(ev.equals(ev2));
   }

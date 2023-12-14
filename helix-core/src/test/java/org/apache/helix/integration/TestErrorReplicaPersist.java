@@ -103,7 +103,6 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
 
     for (int i = 0; i < (NODE_NR + 1) / 2; i++) {
       _participants[i].syncStop();
-      Thread.sleep(2000);
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       MockParticipantManager participant =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);

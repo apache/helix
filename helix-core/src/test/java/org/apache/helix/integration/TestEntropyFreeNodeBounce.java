@@ -100,7 +100,6 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
 
     // do the test
     try {
-      Thread.sleep(1000);
       // ensure that the external view coalesces
       boolean result =
           ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
@@ -114,17 +113,16 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
         HelixManager participant = participants[i];
         helixAdmin.enableCluster(clusterName, false);
         participant.disconnect();
-        Thread.sleep(1000);
+
         participant = createParticipant(clusterName, participant.getInstanceName());
         participantToClose.add(participant);
         participant.connect();
         participants[i] = participant;
-        Thread.sleep(1000);
+
         helixAdmin.enableCluster(clusterName, true);
-        Thread.sleep(1000);
-        result =
-            ClusterStateVerifier.verifyByZkCallback(new MatchingExternalViewVerifier(
-                stableExternalView, clusterName));
+
+        result = ClusterStateVerifier.verifyByZkCallback(new MatchingExternalViewVerifier(
+            stableExternalView, clusterName), 3000);
         Assert.assertTrue(result);
       }
     } finally {

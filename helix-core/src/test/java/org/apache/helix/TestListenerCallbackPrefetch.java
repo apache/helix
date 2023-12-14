@@ -158,8 +158,6 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
 
   @Test
   public void testMixed() throws Exception {
-    String methodName = TestHelper.getTestMethodName();
-
     MixedPrefetchListener listener = new MixedPrefetchListener();
     _manager.addInstanceConfigChangeListener(listener);
     _manager.addIdealStateChangeListener(listener);

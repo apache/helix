@@ -84,7 +84,6 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     // Start the controller
     _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     _controller.syncStart();
-    Thread.sleep(1000);
   }
 
   @AfterMethod
@@ -111,10 +110,9 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
   }
 
   @Test
-  public void testResourceSubset() throws InterruptedException {
+  public void testResourceSubset() {
     // Ensure that this passes even when one resource is down
     _admin.enableInstance(_clusterName, "localhost_12918", false);
-    Thread.sleep(1000);
     _admin.enableCluster(_clusterName, false);
     _admin.enableInstance(_clusterName, "localhost_12918", true);
     BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR,

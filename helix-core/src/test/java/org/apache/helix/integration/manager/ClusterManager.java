@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = LoggerFactory.getLogger(ClusterControllerManager.class);
-  private static final int DISCONNECT_WAIT_TIME_MS = 3000;
+  private static final int DISCONNECT_WAIT_TIME_MS = 300;
 
   private static AtomicLong UID = new AtomicLong(10000);
   private long _uid;
@@ -50,6 +51,12 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
   protected boolean _started = false;
 
   protected Thread _watcher;
+
+  static {
+    System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, String.valueOf(100L));
+    System.setProperty(SystemPropertyKeys.ZK_CONNECTION_TIMEOUT, String.valueOf(100L));
+    System.setProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT, String.valueOf(100L));
+  }
 
   protected ClusterManager(String zkAddr, String clusterName, String instanceName,
       InstanceType type) {

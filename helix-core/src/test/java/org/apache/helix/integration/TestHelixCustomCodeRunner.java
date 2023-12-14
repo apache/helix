@@ -98,7 +98,6 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
     Assert.assertTrue(result);
 
-    Thread.sleep(1000); // wait for the INIT type callback to finish
     Assert.assertTrue(_callback._isCallbackInvoked);
     _callback._isCallbackInvoked = false;
 
@@ -108,8 +107,9 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
     setupInstances(_clusterName, newLiveInstance);
     setupLiveInstances(_clusterName, newLiveInstance);
 
-    Thread.sleep(1000); // wait for the CALLBACK type callback to finish
-    Assert.assertTrue(_callback._isCallbackInvoked);
+    // wait for the CALLBACK type callback to finish
+    Assert.assertTrue(TestHelper.verify(() -> _callback._isCallbackInvoked, 1000));
+    Thread.sleep(1000);
 
     // clean up
     controller.syncStop();

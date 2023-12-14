@@ -32,6 +32,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.TestHelper;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -214,37 +215,32 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     listener.reset();
     setNodes(_gZkClient, subRoot, 'a', true);
     int expectCreateNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
-    Thread.sleep(500);
 
     LOG.info("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertEquals(expectCreateNodes, listener._createKeys.size(),
+    Assert.assertTrue(
+        TestHelper.verify(() -> expectCreateNodes == listener._createKeys.size(), 500),
         "Should receive " + expectCreateNodes + " create callbacks");
 
     // test change callbacks
     listener.reset();
     setNodes(_gZkClient, subRoot, 'b', true);
     int expectChangeNodes = firstLevelNr * secondLevelNr;
-    for (int i = 0; i < 10; i++) {
-      if (listener._changeKeys.size() >= expectChangeNodes)
-        break;
-      Thread.sleep(500);
-    }
 
     LOG.info("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertTrue(listener._changeKeys.size() >= expectChangeNodes,
+    Assert.assertTrue(TestHelper.verify(() -> listener._changeKeys.size() >= expectChangeNodes, 500),
         "Should receive at least " + expectChangeNodes + " change callbacks");
 
     // test delete callbacks
     listener.reset();
     int expectDeleteNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
     _gZkClient.deleteRecursively(subRoot);
-    Thread.sleep(1000);
 
     LOG.info("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertEquals(expectDeleteNodes, listener._deleteKeys.size(),
+    Assert.assertTrue(
+        TestHelper.verify(() -> expectDeleteNodes == listener._deleteKeys.size(), 500),
         "Should receive " + expectDeleteNodes + " delete callbacks");
 
     store.stop();

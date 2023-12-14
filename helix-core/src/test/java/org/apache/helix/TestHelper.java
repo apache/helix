@@ -38,6 +38,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
@@ -78,8 +79,11 @@ import org.testng.Assert;
 
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
-  public static final long WAIT_DURATION = 60 * 1000L; // 60 seconds
-  public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1500;
+  public static final long WAIT_DURATION = 10 * 1000L; // 10 seconds
+  public static final long POLL_DURATION = 10L;        // 10 milli-seconds
+  public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1000;
+  public static final AtomicInteger PORT_COUNTER = new AtomicInteger(13000);
+
   /**
    * Returns a unused random port.
    */
@@ -276,31 +280,28 @@ public class TestHelper {
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance) {
     HelixZkClient zkClient = createZkClient(zkAddr);
-    try {
-      if (zkClient.exists("/" + clusterName)) {
-        throw new RuntimeException(clusterName + " cluster already exists!");
-      }
+    if (zkClient.exists("/" + clusterName)) {
+      throw new RuntimeException(clusterName + " cluster already exists!");
+    }
 
-      ClusterSetup setupTool = new ClusterSetup(zkAddr);
-      setupTool.addCluster(clusterName, true);
+    ClusterSetup setupTool = new ClusterSetup(zkAddr);
+    System.out.println("Add Cluster");
+    timeIt(() -> setupTool.addCluster(clusterName, false));
 
-      for (int i = 0; i < nodesNb; i++) {
-        int port = startPort + i;
-        setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
-      }
+    for (int i = 0; i < nodesNb; i++) {
+      int port = startPort + i;
+      setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
+    }
 
-      for (int i = 0; i < resourceNb; i++) {
-        String resourceName = resourceNamePrefix + i;
-        setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef,
-            mode.name(),
-            mode == RebalanceMode.FULL_AUTO ? CrushEdRebalanceStrategy.class.getName()
-                : RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
-        if (doRebalance) {
-          setupTool.rebalanceStorageCluster(clusterName, resourceName, replica);
-        }
+    for (int i = 0; i < resourceNb; i++) {
+      String resourceName = resourceNamePrefix + i;
+      setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef,
+          mode.name(),
+          mode == RebalanceMode.FULL_AUTO ? CrushEdRebalanceStrategy.class.getName()
+              : RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
+      if (doRebalance) {
+        setupTool.rebalanceStorageCluster(clusterName, resourceName, replica);
       }
-    } finally {
-      zkClient.close();
     }
   }
 
@@ -317,7 +318,6 @@ public class TestHelper {
       } catch (Exception ex) {
         // Failed to delete, give some more time for connections to drop
         try {
-          Thread.sleep(3000L);
           setup.deleteCluster(clusterName);
         } catch (Exception ignored) {
           // OK - just ignore
@@ -805,7 +805,7 @@ public class TestHelper {
         }
         return result;
       }
-      TestHelper.sleepQuietly(Duration.ofMillis(2));
+      TestHelper.sleepQuietly(Duration.ofMillis(POLL_DURATION));
     } while (true);
   }
 
@@ -875,4 +875,20 @@ public class TestHelper {
       e.printStackTrace();
     }
   }
+
+  public static Integer accquireOpenPort() {
+    return PORT_COUNTER.getAndAdd(1);
+  }
+
+  public static void timeIt(Runnable runnable) {
+    long startTime = System.currentTimeMillis();
+    try {
+      runnable.run();
+    } catch (Exception e) {
+      throw e;
+    } finally {
+      System.out.println(" -- time taken: " + (System.currentTimeMillis() - startTime) + "ms");
+    }
+  }
+
 }

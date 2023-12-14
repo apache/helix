@@ -107,7 +107,7 @@ public class ZkTestBase {
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
   protected final String CONTROLLER_PREFIX = "controller";
   protected final String PARTICIPANT_PREFIX = "localhost";
-  private static final long MANUAL_GC_PAUSE = 4000L;
+  private static final long MANUAL_GC_PAUSE = 1000L;
 
   /*
    * Multiple ZK references
@@ -730,7 +730,7 @@ public class ZkTestBase {
    */
   protected <T extends HelixProperty> T pollForProperty(Class<T> clazz, HelixDataAccessor accessor,
       PropertyKey key, boolean shouldExist) throws InterruptedException {
-    final int POLL_TIMEOUT = 5000;
+    final int POLL_TIMEOUT = 2000;
     final int POLL_INTERVAL = 50;
     T property = accessor.getProperty(key);
     int timeWaited = 0;

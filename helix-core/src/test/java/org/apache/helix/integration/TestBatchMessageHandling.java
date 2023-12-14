@@ -86,12 +86,11 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
       IdealState is =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
       if (!idealState.equals(is)) {
-        Thread.sleep(1000L);
+        Thread.sleep(500L);
       }
     }
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    Thread.sleep(2000L);
 
     result = TestHelper.verify(() -> {
       int numOfOnlines = 0;
@@ -108,7 +107,7 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
       }
       if (numOfErrors == 4 && numOfOnlines == 6) {
         return true;
-      } 
+      }
       return false;
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);

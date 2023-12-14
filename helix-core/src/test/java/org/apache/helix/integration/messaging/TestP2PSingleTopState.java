@@ -54,7 +54,6 @@ public class TestP2PSingleTopState extends ZkTestBase {
   final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
   static final int PARTICIPANT_NUMBER = 24;
-  static final int PARTICIPANT_START_PORT = 12918;
 
   static final int DB_COUNT = 2;
 
@@ -77,17 +76,14 @@ public class TestP2PSingleTopState extends ZkTestBase {
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < PARTICIPANT_NUMBER / 2; i++) {
-      String instance = PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + i);
-      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instance);
+      String instance = PARTICIPANT_PREFIX + "_" + TestHelper.accquireOpenPort();
+      TestHelper.timeIt(() -> _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instance));
       _instances.add(instance);
-    }
 
-    // start dummy participants
-    for (int i = 0; i < PARTICIPANT_NUMBER / 2; i++) {
       MockParticipantManager participant =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _instances.get(i));
       participant.setTransition(new DelayedTransitionBase(100));
-      participant.syncStart();
+      TestHelper.timeIt(() -> participant.syncStart());
       participant.setTransition(new TestTransition(participant.getInstanceName()));
       _participants.add(participant);
     }
@@ -95,19 +91,19 @@ public class TestP2PSingleTopState extends ZkTestBase {
     _configAccessor = new ConfigAccessor(_gZkClient);
     _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
 
-    enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true, 1000000);
+    enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true, 1000);
     // enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
 
     // start controller
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, _controllerName);
-    _controller.syncStart();
+    TestHelper.timeIt(() -> _controller.syncStart());
 
     for (int i = 0; i < DB_COUNT; i++) {
       createResourceWithDelayedRebalance(CLUSTER_NAME, "TestDB_" + i,
           BuiltInStateModelDefinitions.MasterSlave.name(), PARTITION_NUMBER, REPLICA_NUMBER,
-          REPLICA_NUMBER - 1, 1000000L, CrushEdRebalanceStrategy.class.getName());
+          REPLICA_NUMBER - 1, 1000, CrushEdRebalanceStrategy.class.getName());
     }
 
     _clusterVerifier =
@@ -127,7 +123,7 @@ public class TestP2PSingleTopState extends ZkTestBase {
   }
 
   @Test
-  public void testRollingUpgrade() throws InterruptedException {
+  public void testRollingUpgrade() {
     // rolling upgrade the cluster
     for (String ins : _instances) {
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, false);
@@ -141,19 +137,18 @@ public class TestP2PSingleTopState extends ZkTestBase {
     Assert.assertFalse(TestTransition.duplicatedPartitionsSnapshot.keys().hasMoreElements());
   }
 
-  @Test
-  public void testAddInstances() throws InterruptedException {
+  @Test(dependsOnMethods = "testRollingUpgrade")
+  public void testAddInstances() {
     for (int i = PARTICIPANT_NUMBER / 2; i < PARTICIPANT_NUMBER; i++) {
-      String instance = PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + i);
+      String instance = PARTICIPANT_PREFIX + "_" + TestHelper.accquireOpenPort();
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instance);
       _instances.add(instance);
-      MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _instances.get(i));
+
+      MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance);
       participant.setTransition(new DelayedTransitionBase(100));
       participant.syncStart();
       participant.setTransition(new TestTransition(participant.getInstanceName()));
       _participants.add(participant);
-      Thread.sleep(100);
     }
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

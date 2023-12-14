@@ -196,17 +196,17 @@ public class TestZnodeModify extends ZkUnitTestBase {
         RebalanceMode.SEMI_AUTO.toString());
     ZnodeOpArg arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.ZNODE, "+", recordNew);
     TestCommand command1 =
-        new TestCommand(CommandType.MODIFY, new TestTrigger(0, 8000, record), arg1);
+        new TestCommand(CommandType.MODIFY, new TestTrigger(0, 2000, record), arg1);
     commandList.add(command1);
 
     arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.ZNODE, "==");
-    command1 = new TestCommand(CommandType.VERIFY, new TestTrigger(9000, 500, recordNew), arg1);
+    command1 = new TestCommand(CommandType.VERIFY, new TestTrigger(2000, 500, recordNew), arg1);
     commandList.add(command1);
 
     // start a separate thread to change znode at pathChild1
     new Thread(() -> {
       try {
-        Thread.sleep(3000);
+        Thread.sleep(1000);
         _gZkClient.createPersistent(pathChild1, true);
         _gZkClient.writeData(pathChild1, record);
       } catch (InterruptedException e) {

@@ -84,9 +84,9 @@ public class SinglePartitionLeaderStandByTest extends ZkTestBase {
         .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
 
     Assert.assertTrue(result);
-    //stop the first participatn
+    //stop the first participant
     participants[0].syncStop();
-    Thread.sleep(10000);
+
     for (int i = 0; i < 1; i++) {
       String instanceName = "localhost_" + (12918 + i);
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);

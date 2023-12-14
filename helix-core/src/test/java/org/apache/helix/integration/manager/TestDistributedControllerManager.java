@@ -79,8 +79,6 @@ public class TestDistributedControllerManager extends ZkTestBase {
     // disconnect first distributed-controller, and verify second takes leadership
     distributedControllers[0].disconnect();
 
-    Thread.sleep(100);
-
     // verify leader changes to localhost_12919
     result = verifier.verifyByZkCallback();
     Assert.assertTrue(result);

@@ -91,9 +91,6 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     clusterConfig.stateTransitionCancelEnabled(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
-    // Wait for assignment done
-    Thread.sleep(2000);
-
     // Disable the resource
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME,
         WorkflowGenerator.DEFAULT_TGT_DB, false);
@@ -160,8 +157,6 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     MockParticipantManager[] newParticipants = new MockParticipantManager[numNodesToStart];
     registerParticipants(newParticipants, numNodesToStart, _startPort + _numNodes, 1000, -3000000L);
 
-    // Wait for pipeline reaching final stage
-    Thread.sleep(2000L);
     int numOfMasters = 0;
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
@@ -291,10 +286,6 @@ public class TestStateTransitionCancellation extends TaskTestBase {
       stateMach.registerStateModelFactory(MASTER_SLAVE_STATE_MODEL, delayFactory);
 
       participants[i].syncStart();
-
-      if (sleepTime > 0) {
-        Thread.sleep(sleepTime);
-      }
     }
   }
 }

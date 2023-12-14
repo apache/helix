@@ -28,7 +28,7 @@ import org.apache.zookeeper.ZooKeeper.States;
 
 public class ZKClientPool {
   static final Map<String, ZkClient> _zkClientMap = new ConcurrentHashMap<>();
-  static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
+  static final int DEFAULT_SESSION_TIMEOUT = 3 * 1000;
 
   public static ZkClient getZkClient(String zkServer) {
     // happy path that we cache the zkclient and it's still connected

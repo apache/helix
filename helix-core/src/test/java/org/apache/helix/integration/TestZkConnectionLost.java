@@ -225,10 +225,8 @@ public class TestZkConnectionLost extends TaskTestBase {
     for (int i = 0; i < 4; i++) {
       Executors.newSingleThreadExecutor().submit(() -> {
         try {
-          Thread.sleep(300);
           LOG.info(System.currentTimeMillis() + ": Shutdown ZK server.");
           TestHelper.stopZkServer(_zkServerRef.get());
-          Thread.sleep(300);
           LOG.info("Restart ZK server");
           _zkServerRef.set(TestHelper.startZkServer(_zkAddr, null, false));
         } catch (Exception e) {

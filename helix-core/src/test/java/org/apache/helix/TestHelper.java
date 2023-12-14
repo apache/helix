@@ -124,7 +124,7 @@ public class TestHelper {
       FileUtils.deleteDirectory(new File(dataDir));
       FileUtils.deleteDirectory(new File(logDir));
     }
-    ZKClientPool.reset();
+//    ZKClientPool.reset();
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
@@ -145,7 +145,7 @@ public class TestHelper {
 
     int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
-    zkServer.start();
+    timeIt(() -> zkServer.start());
 
     return zkServer;
   }

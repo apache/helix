@@ -117,7 +117,7 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
       Map<String, List<Node>> finalPartitionMap = null;
       Topology allNodeTopo =
           new Topology(allNodes, allNodes, clusterData.getAssignableInstanceConfigMap(),
-              clusterData.getClusterConfig());
+              clusterData.getClusterConfig(), true);
       // Transform current assignment to instance->partitions map, and get total partitions
       Map<Node, List<String>> nodeToPartitionMap =
           convertPartitionMap(origPartitionMap, allNodeTopo);

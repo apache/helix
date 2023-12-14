@@ -77,7 +77,7 @@ public class CrushRebalanceStrategy implements RebalanceStrategy<ResourceControl
       ResourceControllerDataProvider clusterData) throws HelixException {
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     _clusterTopo =
-        new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig());
+        new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig(), true);
     Node topNode = _clusterTopo.getRootNode();
 
     // for log only

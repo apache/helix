@@ -37,12 +37,13 @@ jobs:
       - name: Run All Tests
         run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ github.event.inputs.mvnOpts }} ${{ github.event.inputs.goals }}
       - name: Test Report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
+        uses: mikepenz/action-junit-report@v3
+        if: always()
         with:
           name: Tests Results
           path: './**/target/surefire-reports/TEST-TestSuite.xml'
-          reporter: java-junit
+          include_passed: true
+          detailed_summary: true
       - name: Upload unit test results
         if: failure()
         uses: actions/upload-artifact@v2

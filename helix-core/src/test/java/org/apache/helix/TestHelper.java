@@ -48,8 +48,8 @@ import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -64,7 +64,6 @@ import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -124,7 +123,7 @@ public class TestHelper {
       FileUtils.deleteDirectory(new File(dataDir));
       FileUtils.deleteDirectory(new File(logDir));
     }
-//    ZKClientPool.reset();
+    ZKClientPool.reset();
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
@@ -145,7 +144,7 @@ public class TestHelper {
 
     int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
-    timeIt(() -> zkServer.start());
+    zkServer.start();
 
     return zkServer;
   }
@@ -286,7 +285,7 @@ public class TestHelper {
 
     ClusterSetup setupTool = new ClusterSetup(zkAddr);
     System.out.println("Add Cluster");
-    timeIt(() -> setupTool.addCluster(clusterName, false));
+    setupTool.addCluster(clusterName, BuiltInStateModelDefinitions.valueOf(stateModelDef), false);
 
     for (int i = 0; i < nodesNb; i++) {
       int port = startPort + i;

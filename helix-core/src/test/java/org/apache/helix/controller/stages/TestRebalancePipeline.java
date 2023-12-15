@@ -237,7 +237,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     }, TestHelper.WAIT_DURATION));
 
     // After another purge delay, controller should cleanup messages and continue to rebalance
-    // Thread.sleep(MSG_PURGE_DELAY);
+     Thread.sleep(MSG_PURGE_DELAY);
     // Manually trigger another rebalance by touching current state
     List<Message> allMsgs = new ArrayList<>();
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0",

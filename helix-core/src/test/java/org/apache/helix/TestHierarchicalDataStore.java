@@ -32,7 +32,7 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase {
   @Test(groups = { "unitTest"
   })
 
-  public void testHierarchicalDataStore() {
+  public void testHierarchicalDataStore() throws InterruptedException {
     _zkClient = TestHelper.createZkClient(ZK_ADDR);
 
     String path = "/tmp/testHierarchicalDataStore";

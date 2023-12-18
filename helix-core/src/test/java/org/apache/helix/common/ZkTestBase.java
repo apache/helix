@@ -139,7 +139,7 @@ public class ZkTestBase {
 
     // Due to ZOOKEEPER-2693 fix, we need to specify whitelist for execute zk commends
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
-    System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "3000");
+    System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "1000");
 
     // Start in-memory ZooKeepers
     // If multi-ZooKeeper is enabled, start more ZKs. Otherwise, just set up one ZK

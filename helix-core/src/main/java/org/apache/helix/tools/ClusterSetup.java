@@ -261,6 +261,10 @@ public class ClusterSetup {
     addCluster(clusterName, Arrays.asList(stateModelDef), overwritePrevious, null);
   }
 
+  public void addCluster(String clusterName, List<BuiltInStateModelDefinitions> stateModelDefs, boolean overwritePrevious) {
+    addCluster(clusterName, stateModelDefs, overwritePrevious, null);
+  }
+
   public void activateCluster(String clusterName, String grandCluster, boolean enable) {
     if (enable) {
       _admin.addClusterToGrandCluster(clusterName, grandCluster);

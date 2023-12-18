@@ -54,11 +54,10 @@ public class TestSchemataSM extends ZkTestBase {
         1, // partitions per resource
         n, // number of nodes
         0, // replicas
-        "STORAGE_DEFAULT_SM_SCHEMATA", false); // don't rebalance
+        "MasterSlave", false); // don't rebalance
 
     // rebalance ideal-state to use ANY_LIVEINSTANCE for preference list
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey key = keyBuilder.idealStates("TestSchemata0");
     IdealState idealState = accessor.getProperty(key);
@@ -99,7 +98,7 @@ public class TestSchemataSM extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
       Assert.assertNotNull(stateMap.get(instanceName));
-      Assert.assertEquals(stateMap.get(instanceName), "MASTER");
+      Assert.assertEquals(stateMap.get(instanceName), i == 0 ? "MASTER" : "SLAVE");
     }
 
     // clean up

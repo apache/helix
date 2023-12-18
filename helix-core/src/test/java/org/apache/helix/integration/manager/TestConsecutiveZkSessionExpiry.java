@@ -180,8 +180,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
-      distributedControllers[i] =
-          new ClusterDistributedController(ZK_ADDR, clusterName, contrllerName);
+      distributedControllers[i] = new ClusterDistributedController(ZK_ADDR, clusterName, contrllerName);
       distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
           new MockMSModelFactory());
       if (i == 0) {

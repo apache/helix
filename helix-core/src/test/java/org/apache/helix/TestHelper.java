@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -40,6 +41,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -284,8 +286,10 @@ public class TestHelper {
     }
 
     ClusterSetup setupTool = new ClusterSetup(zkAddr);
-    System.out.println("Add Cluster");
-    setupTool.addCluster(clusterName, BuiltInStateModelDefinitions.valueOf(stateModelDef), false);
+    List<BuiltInStateModelDefinitions> stateModelDefinitions = Objects.isNull(stateModelDef)
+        ? (resourceNb == 0 ? Collections.emptyList() : Arrays.asList(BuiltInStateModelDefinitions.values()))
+        : Arrays.asList(BuiltInStateModelDefinitions.valueOf(stateModelDef));
+    setupTool.addCluster(clusterName, stateModelDefinitions, false);
 
     for (int i = 0; i < nodesNb; i++) {
       int port = startPort + i;

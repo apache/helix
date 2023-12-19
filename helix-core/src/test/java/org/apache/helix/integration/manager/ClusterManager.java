@@ -52,12 +52,6 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
 
   protected Thread _watcher;
 
-  static {
-    System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, String.valueOf(100L));
-    System.setProperty(SystemPropertyKeys.ZK_CONNECTION_TIMEOUT, String.valueOf(100L));
-    System.setProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT, String.valueOf(100L));
-  }
-
   protected ClusterManager(String zkAddr, String clusterName, String instanceName,
       InstanceType type) {
     super(clusterName, instanceName, type, zkAddr);

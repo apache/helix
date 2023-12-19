@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: '0 */12 * * *'
 
+permissions: write-all
+
 jobs:
   Merge_PR_CI:
 
@@ -25,10 +27,24 @@ jobs:
     - name: Upload to Codecov
       run: bash <(curl -s https://codecov.io/bash)
       if: ${{ github.repository == 'apache/helix' && github.event_name == 'push' && (success() || failure()) }}
+    - name: Generate Test Report
+      uses: dorny/test-reporter@v1
+      if: ${{ success() || failure() }}
+      with:
+        name: Tests Results
+        path: './**/target/surefire-reports/TEST-TestSuite.xml'
+        reporter: java-junit
+    - name: Upload Unit Test Results as Artifacts
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: surefire-reports
+        path: ./**/target/surefire-reports/
+        if-no-files-found: ignore
     - name: Print Tests Results
       run: .github/scripts/printTestResult.sh
       if: ${{ success() || failure() }}
-    - name: Report Tests Results
+    - name: Report Failed Tests as GitHub Issues
       uses: actions/github-script@v4
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}

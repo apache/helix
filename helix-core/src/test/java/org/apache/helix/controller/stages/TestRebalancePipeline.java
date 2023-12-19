@@ -19,7 +19,6 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -53,8 +52,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestRebalancePipeline extends ZkUnitTestBase {
-
-  private static final Long MSG_PURGE_DELAY = Duration.ofSeconds(1).toMillis();
   private final String _className = getShortClassName();
 
   @Test
@@ -198,6 +195,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         0, 1
     });
 
+    long msgPurgeDelay = MessageGenerationPhase.DEFAULT_OBSELETE_MSG_PURGE_DELAY;
+
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
@@ -225,6 +224,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "SLAVE", true);
 
     // Controller has timeout > 1sec, so within 1s, controller should not have GCed message
+    Assert.assertTrue(msgPurgeDelay > 1000);
     Assert.assertFalse(TestHelper.verify(() -> {
       for (LiveInstance liveInstance : liveInstances) {
         List<String> messages =
@@ -237,7 +237,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     }, TestHelper.WAIT_DURATION));
 
     // After another purge delay, controller should cleanup messages and continue to rebalance
-     Thread.sleep(MSG_PURGE_DELAY);
+    Thread.sleep(msgPurgeDelay);
     // Manually trigger another rebalance by touching current state
     List<Message> allMsgs = new ArrayList<>();
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0",
@@ -259,6 +259,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     // controller will clean it up
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
         "MASTER", true);
+    Thread.sleep(msgPurgeDelay);
     // touch current state to trigger rebalance
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
         "MASTER", false);

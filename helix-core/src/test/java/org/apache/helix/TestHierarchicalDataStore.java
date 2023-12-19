@@ -23,6 +23,7 @@ import java.io.FileFilter;
 
 import org.apache.helix.controller.HierarchicalDataHolder;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -32,8 +33,9 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase {
   @Test(groups = { "unitTest"
   })
 
-  public void testHierarchicalDataStore() throws InterruptedException {
-    _zkClient = TestHelper.createZkClient(ZK_ADDR);
+  public void testHierarchicalDataStore() {
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
 
     String path = "/tmp/testHierarchicalDataStore";
     FileFilter filter = null;

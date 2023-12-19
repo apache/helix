@@ -19,6 +19,7 @@ package org.apache.helix.tools;
  * under the License.
  */
 
+import java.time.Duration;
 import java.util.Arrays;
 
 import com.google.common.collect.Sets;
@@ -113,6 +114,7 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
   public void testResourceSubset() {
     // Ensure that this passes even when one resource is down
     _admin.enableInstance(_clusterName, "localhost_12918", false);
+    TestHelper.sleepQuietly(Duration.ofMillis(1000));
     _admin.enableCluster(_clusterName, false);
     _admin.enableInstance(_clusterName, "localhost_12918", true);
     BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR,

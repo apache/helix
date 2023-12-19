@@ -41,7 +41,7 @@ jobs:
         if: always()
         with:
           name: Tests Results
-          path: './**/target/surefire-reports/TEST-TestSuite.xml'
+          path: './**/target/surefire-reports/junitreports/TEST-*.xml'
           include_passed: true
           detailed_summary: true
       - name: Upload unit test results

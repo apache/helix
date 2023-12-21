@@ -142,23 +142,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
   }
 
   @Test
-  public void testNonLockOwnerUnlockPriorityLock() {
-    // Fake condition when the lock owner is not current user
-    String fakeUserID = UUID.randomUUID().toString();
-    ZNRecord fakeRecord = new ZNRecord(fakeUserID);
-    fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), fakeUserID);
-    fakeRecord
-        .setSimpleField(LockInfo.LockInfoAttribute.TIMEOUT.name(), String.valueOf(Long.MAX_VALUE));
-    fakeRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(), 0);
-    _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
-
-    // Verify the current user is not a lock owner
-    Assert.assertFalse(_lock.isCurrentOwner());
-    // Since _lock with _userId is not the locker owner anymore, its unlock() should fail.
-    Assert.assertFalse(_lock.unlock());
-  }
-
-  @Test
   public void testNonLockOwnerUnlockNoPriorityLock() {
     // Fake condition when the lock owner is not current user
     String fakeUserID = UUID.randomUUID().toString();
@@ -170,10 +153,9 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
     // Verify the current user is not a lock owner
     Assert.assertFalse(_lock.isCurrentOwner());
-    // Since _lock with _userId is not the locker owner anymore, its unlock() should fail.
-    Assert.assertFalse(_lock.unlock());
-    // trylock will return false since both users have default priority of 0
+    // trylock and unlock will return false since both users have default priority of 0
     Assert.assertFalse(_lock.tryLock());
+    Assert.assertFalse(_lock.unlock());
   }
 
   @Test

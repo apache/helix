@@ -55,6 +55,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   private final long _cleanupTimeout;
   private final int _priority;
   private final boolean _isForceful;
+  private final boolean _canUnlockNotOwnedLock;
   private final LockListener _lockListener;
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
   private LockConstants.LockStatus _lockStatus;
@@ -72,7 +73,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long leaseTimeout,
       String lockMsg, String userId) {
     this(scope.getPath(), leaseTimeout, lockMsg, userId, 0, Integer.MAX_VALUE, 0, false, null,
-        new ZkBaseDataAccessor<ZNRecord>(zkAddress));
+        new ZkBaseDataAccessor<ZNRecord>(zkAddress), true);
   }
 
   /**
@@ -105,7 +106,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
       String lockMsg, String userId, int priority, long waitingTimeout, long cleanupTimeout,
       boolean isForceful, LockListener lockListener) {
     this(scope.getPath(), leaseTimeout, lockMsg, userId, priority, waitingTimeout, cleanupTimeout,
-        isForceful, lockListener, new ZkBaseDataAccessor<ZNRecord>(zkAddress));
+        isForceful, lockListener, new ZkBaseDataAccessor<ZNRecord>(zkAddress), true);
   }
 
   /**
@@ -123,10 +124,12 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
    *                   lock encountered an exception during preempting lower priority lock
    * @param lockListener the listener associated to the lock
    * @param baseDataAccessor baseDataAccessor instance to do I/O against ZK with
+   * @param canUnlockNotOwnedLock whether non-owners can unlock the lock
    */
   private ZKDistributedNonblockingLock(String lockPath, Long leaseTimeout, String lockMsg,
       String userId, int priority, long waitingTimeout, long cleanupTimeout, boolean isForceful,
-      LockListener lockListener, BaseDataAccessor<ZNRecord> baseDataAccessor) {
+      LockListener lockListener, BaseDataAccessor<ZNRecord> baseDataAccessor,
+      boolean canUnlockNotOwnedLock) {
     _lockPath = lockPath;
     if (leaseTimeout < 0 || waitingTimeout < 0 || cleanupTimeout < 0) {
       throw new IllegalArgumentException("Timeout cannot be negative.");
@@ -143,6 +146,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     _cleanupTimeout = cleanupTimeout;
     _lockListener = lockListener;
     _isForceful = isForceful;
+    _canUnlockNotOwnedLock = canUnlockNotOwnedLock;
     validateInput();
   }
 
@@ -313,8 +317,9 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
       }
 
       LockInfo unlockOrLockRequestLockInfo = new LockInfo(_record);
-      // Any unlock request from non-lock owners is blocked.
-      if (unlockOrLockRequestLockInfo.getOwner().equals(LockConstants.DEFAULT_USER_ID)) {
+      // Any unlock request from non-lock owners is blocked if canUnlockNotOwnedLock is false.
+      if (!_canUnlockNotOwnedLock && unlockOrLockRequestLockInfo.getOwner()
+          .equals(LockConstants.DEFAULT_USER_ID)) {
         LOG.error("User {} is not the lock owner and cannot release lock at Lock path {}.", _userId,
             _lockPath);
         throw new HelixException(
@@ -466,6 +471,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     private long _cleanupTimeout;
     private boolean _isForceful;
     private LockListener _lockListener;
+    private boolean _canUnlockNotOwnedLock = true; // default to unlock not owned lock
 
     public Builder() {
     }
@@ -515,6 +521,11 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
       return this;
     }
 
+    public Builder setCanUnlockNotOwnedLock(boolean canUnlockNotOwnedLock) {
+      _canUnlockNotOwnedLock = canUnlockNotOwnedLock;
+      return this;
+    }
+
     public ZKDistributedNonblockingLock build() {
       // Resolve which way we want to create BaseDataAccessor instance
       BaseDataAccessor<ZNRecord> baseDataAccessor;
@@ -532,7 +543,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
       // Return a ZKDistributedNonblockingLock instance
       return new ZKDistributedNonblockingLock(_lockScope.getPath(), _timeout, _lockMsg, _userId,
           _priority, _waitingTimeout, _cleanupTimeout, _isForceful, _lockListener,
-          baseDataAccessor);
+          baseDataAccessor, _canUnlockNotOwnedLock);
     }
   }
 

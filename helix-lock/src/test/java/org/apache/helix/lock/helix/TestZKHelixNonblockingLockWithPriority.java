@@ -82,7 +82,7 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
   }
 
   @Test
-  public void testNonLockOwnerUnlock() throws Exception {
+  public void testNonLockOwnerUnlockFail() throws Exception {
     ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
     lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
         .setLockMsg("higher priority lock").setUserId("user1").setPriority(0)
@@ -101,10 +101,10 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
     t.join();
     Assert.assertTrue(lock.isCurrentOwner());
 
-    lockBuilder.setUserId("user2").setPriority(5);
+    lockBuilder.setUserId("user2").setPriority(5).setCanUnlockNotOwnedLock(false);
     ZKDistributedNonblockingLock lock2 = lockBuilder.build();
-    // unlock should fail because even if user2 has higher priority, user2 can't unlock a lock
-    // which is owned by user1. If user2 wants to grab the lock, it should do tryLock().
+    // unlock should fail because even if user2 has higher priority because user2 set can unlock
+    // not owned lock to false.
     Assert.assertFalse(lock2.unlock());
     t = new Thread() {
       @Override
@@ -118,6 +118,40 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
     lock2.unlock();
     lock2.close();
     lock.close();
+  }
+
+  @Test
+  public void testNonLockOwnerUnlockSuccess() throws Exception {
+    ZKLockConfig.Builder builder = new ZKLockConfig.Builder();
+    builder.setLockScope(_participantScope).setZkAdress(ZK_ADDR).setLeaseTimeout(3600000L)
+        .setLockMsg("original lock").setUserId("original_lock").setPriority(0)
+        .setWaitingTimeout(1000).setCleanupTimeout(25000).setIsForceful(false)
+        .setLockListener(_lockListener);
+    ZKLockConfig zkLockConfig = builder.build();
+    ZKDistributedNonblockingLock lock = new ZKDistributedNonblockingLock(zkLockConfig);
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        lock.tryLock();
+      }
+    };
+    t.start();
+    t.join();
+    Assert.assertTrue(lock.isCurrentOwner());
+
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("higher priority lock").setUserId("user2").setPriority(5)
+        .setWaitingTimeout(30000).setCleanupTimeout(10000).setIsForceful(false)
+        .setLockListener(createLockListener());
+    ZKDistributedNonblockingLock higherLock = lockBuilder.build();
+    // unlock should pass because higherLock has higher priority and canUnlockNotOwnedLock
+    // is true by default
+    Assert.assertTrue(higherLock.unlock());
+    Assert.assertFalse(higherLock.isCurrentOwner());
+    lock.unlock();
+    lock.close();
+    higherLock.close();
   }
 
   @Test

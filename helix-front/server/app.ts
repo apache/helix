@@ -58,7 +58,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   session({
     store: SESSION_STORE,
-    secret: 'helix',
+    secret: process.env.SECRET_TOKEN,
     resave: true,
     saveUninitialized: true,
     cookie: { expires: new Date(2147483647000) },

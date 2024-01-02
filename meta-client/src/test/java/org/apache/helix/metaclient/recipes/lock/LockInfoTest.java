@@ -46,16 +46,15 @@ public class LockInfoTest {
   @Test
   public void testLockInfo() {
     LockInfo lockInfo =
-        new LockInfo(LOCK_ID, OWNER_ID, CLIENT_ID, CLIENT_DATA, GRANT_TIME,
-            LAST_RENEWAL_TIME, TIMEOUT);
+        new LockInfo(LOCK_ID, OWNER_ID, CLIENT_ID, CLIENT_DATA);
 
     Assert.assertEquals(LOCK_ID, lockInfo.getLockId());
     Assert.assertEquals(OWNER_ID, lockInfo.getOwnerId());
     Assert.assertEquals(CLIENT_ID, lockInfo.getClientId());
     Assert.assertEquals(CLIENT_DATA, lockInfo.getClientData());
-    Assert.assertEquals(GRANT_TIME, (long) lockInfo.getGrantedAt());
-    Assert.assertEquals(LAST_RENEWAL_TIME, (long) lockInfo.getLastRenewedAt());
-    Assert.assertEquals(TIMEOUT, lockInfo.getTimeout());
+    Assert.assertEquals(DEFAULT_GRANTED_AT_LONG, (long) lockInfo.getGrantedAt());
+    Assert.assertEquals(DEFAULT_LAST_RENEWED_AT_LONG, (long) lockInfo.getLastRenewedAt());
+    Assert.assertEquals(DEFAULT_TIMEOUT_DURATION, lockInfo.getTimeout());
 
     DataRecord dataRecord = new DataRecord("dataRecord");
     LockInfo lockInfo1 = new LockInfo(dataRecord);

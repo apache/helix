@@ -50,9 +50,6 @@ public class LockClientTest extends ZkMetaClientTestBase {
     lockInfo.setClientId(CLIENT_ID);
     lockInfo.setClientData(CLIENT_DATA);
     lockInfo.setLockId(LOCK_ID);
-    lockInfo.setGrantedAt(GRANT_TIME);
-    lockInfo.setLastRenewedAt(LAST_RENEWAL_TIME);
-    lockInfo.setTimeout(TIMEOUT);
     return lockInfo;
   }
 
@@ -110,7 +107,7 @@ public class LockClientTest extends ZkMetaClientTestBase {
     Assert.assertEquals(lockClient.retrieveLock(key).getClientId(), CLIENT_ID);
     Assert.assertEquals(lockClient.retrieveLock(key).getClientData(), CLIENT_DATA);
     Assert.assertEquals(lockClient.retrieveLock(key).getLockId(), LOCK_ID);
-    Assert.assertEquals(lockClient.retrieveLock(key).getTimeout(), TIMEOUT);
+    Assert.assertEquals(lockClient.retrieveLock(key).getTimeout(), -1);
     Assert.assertNull(lockClient.retrieveLock(TEST_INVALID_PATH));
   }
 

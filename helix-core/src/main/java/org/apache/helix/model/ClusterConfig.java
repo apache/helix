@@ -895,7 +895,7 @@ public class ClusterConfig extends HelixProperty {
    * Set the default instance capacity information with an Integer mapping.
    * This information is required by the global rebalancer.
    * @see <a href="Rebalance Algorithm">
-   * https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
+   * https://github.com/apache/helix/wiki/Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
    * </a>
    * If the instance capacity is not configured in either Instance Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.
@@ -921,7 +921,7 @@ public class ClusterConfig extends HelixProperty {
    * Set the default partition weight information with an Integer mapping.
    * This information is required by the global rebalancer.
    * @see <a href="Rebalance Algorithm">
-   * https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
+   * https://github.com/apache/helix/wiki/Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
    * </a>
    * If the partition weight is not configured in either Resource Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.

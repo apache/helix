@@ -47,7 +47,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
   private final String PARTITION_NAME1 = "testPartition1";
   private final String PARTITION_NAME2 = "testPartition2";
   private final String RESOURCE_NAME1 = "testResource1";
-  private final String RESOURCE_NAME2 = "testResurce2";
+  private final String RESOURCE_NAME2 = "testResource2";
   private final String PARTITION_STATE = "partitionState";
   private static CustomizedStateProvider _mockProvider;
   private PropertyKey _propertyKey;
@@ -188,6 +188,26 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     // test deleting customized states for entire resource
     _mockProvider.deleteResourceCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME1);
     Assert.assertNull(_mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME1));
+
+    // test delete for resource that does not exist - should not throw error
+    String mock_resource_name = "foobar_resource";
+    String mock_customized_state_name = "foobar_state";
+    try {
+      Assert.assertNull(_mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, mock_resource_name));
+      _mockProvider.deleteResourceCustomizedState(CUSTOMIZE_STATE_NAME, mock_resource_name);
+    } catch (Exception e) {
+      Assert.fail(String.format("Exception should not have been thrown - %s", e));
+    }
+
+    // test delete for customizedState that does not exist - should not throw error
+    try {
+      PropertyKey key = _dataAccessor.keyBuilder()
+          .customizedStates(_participants[0].getInstanceName(), mock_customized_state_name);
+      Assert.assertNull(_dataAccessor.getPropertyStat(key));
+      _mockProvider.deleteResourceCustomizedState(mock_customized_state_name, mock_resource_name);
+    } catch (Exception e) {
+      Assert.fail(String.format("Exception should not have been thrown - %s", e));
+    }
   }
 
   @Test
@@ -215,6 +235,28 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     _mockProvider.deleteAllResourcesCustomizedStates(CUSTOMIZE_STATE_NAME);
     Assert.assertNull(_mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME1));
     Assert.assertNull(_mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME2));
+
+    // test delete when no resources exist - should not throw error
+    try {
+      PropertyKey key = _dataAccessor.keyBuilder()
+          .customizedStates(_participants[0].getInstanceName(), CUSTOMIZE_STATE_NAME);
+      Assert.assertTrue(_dataAccessor.getChildNames(key).isEmpty());
+      _mockProvider.deleteAllResourcesCustomizedStates(CUSTOMIZE_STATE_NAME);
+    } catch (Exception e) {
+      Assert.fail(String.format("Exception should not have been thrown - %s", e));
+    }
+
+    // test delete for customizedState that does not exist - should not throw error
+    String mock_customized_state_name = "foobar_state";
+    try {
+      PropertyKey key = _dataAccessor.keyBuilder()
+          .customizedStates(_participants[0].getInstanceName(), mock_customized_state_name);
+      Assert.assertNull(_dataAccessor.getPropertyStat(key));
+      _mockProvider.deleteAllResourcesCustomizedStates(mock_customized_state_name);
+    } catch (Exception e) {
+      Assert.fail(String.format("Exception should not have been thrown - %s", e));
+    }
+
   }
 
   @Test

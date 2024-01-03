@@ -133,7 +133,11 @@ public class CustomizedStateProvider {
     HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
     PropertyKey resourceCustomizedStateKey =
         accessor.keyBuilder().customizedState(_instanceName, customizedStateName, resourceName);
-    accessor.removeProperty(resourceCustomizedStateKey);
+    if (!accessor.removeProperty(resourceCustomizedStateKey)) {
+      throw new HelixException(String.format(
+          "Failed to delete customized state %s in ZooKeeper for instance %s, resource %s",
+          customizedStateName, _instanceName, resourceName));
+    }
   }
 
   /**

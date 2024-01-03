@@ -125,4 +125,27 @@ public class CustomizedStateProvider {
               + "partition %s", customizedStateName, _instanceName, resourceName, partitionName));
     }
   }
+
+  /**
+   * Deletes the specified customized state for an entire resource on this instance
+   */
+  public void deleteResourceCustomizedState(String customizedStateName, String resourceName) {
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey resourceCustomizedStateKey =
+        accessor.keyBuilder().customizedState(_instanceName, customizedStateName, resourceName);
+    accessor.removeProperty(resourceCustomizedStateKey);
+  }
+
+  /**
+   * Deletes the specified customized state for all resources on this instance
+   */
+  public void deleteAllResourcesCustomizedStates(String customizedStateName) {
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey customizedStateKey =
+        accessor.keyBuilder().customizedStates(_instanceName, customizedStateName);
+    List<String> resourceNames = accessor.getChildNames(customizedStateKey);
+    for (String resourceName : resourceNames) {
+      deleteResourceCustomizedState(customizedStateName, resourceName);
+    }
+  }
 }

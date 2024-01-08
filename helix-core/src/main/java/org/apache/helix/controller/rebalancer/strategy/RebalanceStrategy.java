@@ -35,10 +35,11 @@ public interface RebalanceStrategy<T extends BaseControllerDataProvider> {
   /**
    * Perform the necessary initialization for the rebalance strategy object.
    *
-   * @param resourceName
-   * @param partitions
-   * @param states
-   * @param maximumPerNode
+   * @param resourceName      The resource for assignment mapping computation.
+   * @param partitions        The partition names of the resource.
+   * @param states            The state -> required state count mapping for the resource, ordered by
+   *                          priority.
+   * @param maximumPerNode    The maximum number of partitions that can be assigned to a node.
    */
   void init(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states, int maximumPerNode);
@@ -46,10 +47,13 @@ public interface RebalanceStrategy<T extends BaseControllerDataProvider> {
   /**
    * Compute the preference lists and (optional partition-state mapping) for the given resource.
    *
-   * @param liveNodes
-   * @param currentMapping
-   * @param allNodes
-   * @return
+   * @param liveNodes          The list of live nodes names.
+   * @param currentMapping     The current mapping of partition->state->instance.
+   * @param allNodes           The list of all node names. This could be filtered for evacuation
+   *                           and swap operations.
+   * @param clusterData        The cache of the cluster data snapshot from Zookeeper.
+   * @return                   The computed IdealState with ListFields for preference lists (optional)
+   *                           and MapFields for partition->state->instance mapping (required).
    */
   ZNRecord computePartitionAssignment(final List<String> allNodes, final List<String> liveNodes,
       final Map<String, Map<String, String>> currentMapping,

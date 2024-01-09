@@ -40,6 +40,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.Criteria;
@@ -276,7 +277,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /** Dedicated Thread pool can be provided in configuration or by client.
    *  This method is to check it and update the thread pool if necessary.
    */
-  private void updateStateTransitionMessageThreadPool(Message message, HelixManager manager) {
+  @VisibleForTesting
+  void updateStateTransitionMessageThreadPool(Message message, HelixManager manager) {
     if (!message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
       return;
     }
@@ -344,7 +346,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       final String key = msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE);
       if (threadpoolSize > 0) {
         _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize,
-            r -> new Thread(r, "GerenricHelixController-message_handle_" + key)));
+            r -> new Thread(r, "GenericHelixController-message_handle_" + key)));
         LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: " + threadpoolSize);
       } else {
         // if threadpool is not configured
@@ -488,10 +490,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               "Message handling task already sheduled for " + taskId, manager);
         }
       }
-    } catch (Exception e) {
-      LOG.error("Error while executing task. " + message, e);
+    } catch (Throwable t) {
+      LOG.error("Error while executing task. " + message, t);
       _statusUpdateUtil
-          .logError(message, HelixTaskExecutor.class, e, "Error while executing task " + e,
+          .logError(message, HelixTaskExecutor.class, t, "Error while executing task " + t,
               manager);
     }
     return false;

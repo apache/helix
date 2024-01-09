@@ -62,6 +62,7 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.*;
@@ -1230,4 +1231,50 @@ public class TestHelixTaskExecutor {
 
     System.out.println("END " + TestHelper.getTestMethodName());
   }
+
+  @Test(dataProvider = "throwableClass")
+  public void testHandleThrowableErrors(Class throwable) throws InterruptedException {
+    System.out.println("START " + TestHelper.getTestMethodName());
+    HelixTaskExecutor executor = spy(new HelixTaskExecutor());
+    doThrow(throwable).when(executor).updateStateTransitionMessageThreadPool(any(), any());
+
+    HelixManager manager = new MockClusterManager();
+
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
+    for (String type : factory.getMessageTypes()) {
+      executor.registerMessageHandlerFactory(type, factory);
+    }
+    NotificationContext changeContext = new NotificationContext(manager);
+
+    List<Message> msgList = new ArrayList<Message>();
+
+    // Test the case that the message are executed for the second time
+    int nMsgs = 2;
+    for (int i = 0; i < nMsgs; i++) {
+      Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
+      msg.setTgtSessionId("*");
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setExecutionTimeout((i + 1) * 600);
+      msg.setRetryCount(1);
+      msgList.add(msg);
+    }
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+    executor.onMessage("someInstance", msgList, changeContext);
+
+    Thread.sleep(1000);
+
+    AssertJUnit.assertTrue(executor._taskMap.size() == 0);
+    verify(executor, times(2)).updateStateTransitionMessageThreadPool(any(), any());
+    System.out.println("END " + TestHelper.getTestMethodName());
+  }
+
+  @DataProvider(name = "throwableClass")
+  public static Object[][] throwableClass() {
+    return new Object[][] {
+        { OutOfMemoryError.class },
+        { IllegalStateException.class }
+    };
+  }
+
 }

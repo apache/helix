@@ -610,7 +610,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     // Remove all weight configs in InstanceConfig for testing
-    for (String instance : _instancesMap.get(CLUSTER_NAME)) {
+    for (String instance : _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME)) {
       InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
       instanceConfig.setInstanceCapacityMap(Collections.emptyMap());
       _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
@@ -625,7 +625,7 @@ public class TestResourceAccessor extends AbstractTestClass {
 
     // Add back weight configurations to all instance configs
     Map<String, Integer> instanceCapacityMap = ImmutableMap.of("FOO", 1000, "BAR", 1000);
-    for (String instance : _instancesMap.get(CLUSTER_NAME)) {
+    for (String instance : _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME)) {
       InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
       instanceConfig.setInstanceCapacityMap(instanceCapacityMap);
       _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);

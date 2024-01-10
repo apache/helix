@@ -31,6 +31,7 @@ import java.util.Set;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.helix.TestHelper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
@@ -108,9 +109,7 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
     _httpClient = HttpClients.createDefault();
 
     // Start zkclient to verify leader election behavior
-    _zkClient = DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddrTestNS),
-            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    _zkClient = TestHelper.createZkClient(_zkAddrTestNS);
   }
 
   @AfterClass

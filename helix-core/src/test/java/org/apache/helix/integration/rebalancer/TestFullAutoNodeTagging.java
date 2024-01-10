@@ -351,8 +351,7 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
       _taggedNodes = taggedNodes;
       _isEmptyAllowed = isEmptyAllowed;
 
-      _zkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+      _zkClient = TestHelper.createZkClient(ZK_ADDR);
       _zkClient.setZkSerializer(new ZNRecordSerializer());
     }
 

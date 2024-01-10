@@ -221,14 +221,19 @@ public class ClusterSetup {
     close();
   }
 
-  public void addCluster(String clusterName, boolean overwritePrevious, CloudConfig cloudConfig)
+  public void addCluster(String clusterName, boolean overwritePrevious, CloudConfig cloudConfig) {
+    addCluster(clusterName, Arrays.asList(BuiltInStateModelDefinitions.values()), overwritePrevious, cloudConfig);
+  }
+
+  public void addCluster(
+      String clusterName, List<BuiltInStateModelDefinitions> stateModelDefs, boolean overwritePrevious, CloudConfig cloudConfig)
       throws HelixException {
     if (!_admin.addCluster(clusterName, overwritePrevious)) {
       String error = "Cluster creation failed for " + clusterName;
       _logger.error(error);
       throw new HelixException(error);
     }
-    for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
+    for (BuiltInStateModelDefinitions def : stateModelDefs) {
       addStateModelDef(clusterName, def.getStateModelDefinition().getId(),
           def.getStateModelDefinition(), overwritePrevious);
     }
@@ -250,6 +255,14 @@ public class ClusterSetup {
 
   public void addCluster(String clusterName, boolean overwritePrevious) {
     addCluster(clusterName, overwritePrevious, null);
+  }
+
+  public void addCluster(String clusterName, BuiltInStateModelDefinitions stateModelDef, boolean overwritePrevious) {
+    addCluster(clusterName, Arrays.asList(stateModelDef), overwritePrevious, null);
+  }
+
+  public void addCluster(String clusterName, List<BuiltInStateModelDefinitions> stateModelDefs, boolean overwritePrevious) {
+    addCluster(clusterName, stateModelDefs, overwritePrevious, null);
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable) {

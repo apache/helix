@@ -291,10 +291,6 @@ public class TestStateTransitionCancellation extends TaskTestBase {
       stateMach.registerStateModelFactory(MASTER_SLAVE_STATE_MODEL, delayFactory);
 
       participants[i].syncStart();
-
-      if (sleepTime > 0) {
-        Thread.sleep(sleepTime);
-      }
     }
   }
 }

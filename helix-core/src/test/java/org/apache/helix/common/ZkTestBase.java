@@ -107,7 +107,7 @@ public class ZkTestBase {
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
   protected final String CONTROLLER_PREFIX = "controller";
   protected final String PARTICIPANT_PREFIX = "localhost";
-  private static final long MANUAL_GC_PAUSE = 4000L;
+  private static final long MANUAL_GC_PAUSE = 1000L;
 
   /*
    * Multiple ZK references
@@ -139,7 +139,7 @@ public class ZkTestBase {
 
     // Due to ZOOKEEPER-2693 fix, we need to specify whitelist for execute zk commends
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
-    System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "3000");
+    System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "1000");
 
     // Start in-memory ZooKeepers
     // If multi-ZooKeeper is enabled, start more ZKs. Otherwise, just set up one ZK
@@ -187,7 +187,7 @@ public class ZkTestBase {
   private static synchronized void startZooKeeper(int i) {
     String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
     _zkServerMap.computeIfAbsent(zkAddress, ZkTestBase::createZookeeperServer);
-    _helixZkClientMap.computeIfAbsent(zkAddress, ZkTestBase::createZkClient);
+    _helixZkClientMap.computeIfAbsent(zkAddress, TestHelper::createZkClient);
     _clusterSetupMap.computeIfAbsent(zkAddress, key -> new ClusterSetup(_helixZkClientMap.get(key)));
     _baseDataAccessorMap.computeIfAbsent(zkAddress, key -> new ZkBaseDataAccessor(_helixZkClientMap.get(key)));
   }
@@ -198,13 +198,6 @@ public class ZkTestBase {
     } catch (Exception e) {
       throw new IllegalArgumentException("Failed to start zookeeper server at " + zkAddress, e);
     }
-  }
-
-  private static HelixZkClient createZkClient(String zkAddress) {
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig.setZkSerializer(new ZNRecordSerializer());
-    return DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
   }
 
   @AfterSuite
@@ -738,7 +731,7 @@ public class ZkTestBase {
    */
   protected <T extends HelixProperty> T pollForProperty(Class<T> clazz, HelixDataAccessor accessor,
       PropertyKey key, boolean shouldExist) throws InterruptedException {
-    final int POLL_TIMEOUT = 5000;
+    final int POLL_TIMEOUT = 2000;
     final int POLL_INTERVAL = 50;
     T property = accessor.getProperty(key);
     int timeWaited = 0;
@@ -768,8 +761,7 @@ public class ZkTestBase {
       _clusterName = clusterName;
       _resourceName = resourceName;
 
-      _zkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+      _zkClient = TestHelper.createZkClient(ZK_ADDR);
       _zkClient.setZkSerializer(new ZNRecordSerializer());
     }
 

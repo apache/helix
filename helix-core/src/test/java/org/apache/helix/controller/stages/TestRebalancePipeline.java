@@ -157,7 +157,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertTrue(messages.get(0).getFromState().equalsIgnoreCase("SLAVE"));
     Assert.assertTrue(messages.get(0).getToState().equalsIgnoreCase("MASTER"));
 
-    Thread.sleep(2 * MessageGenerationPhase.DEFAULT_OBSELETE_MSG_PURGE_DELAY);
     runPipeline(event, dataRefresh, false);
 
     // Verify the stale message should be deleted

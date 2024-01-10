@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = LoggerFactory.getLogger(ClusterControllerManager.class);
-  private static final int DISCONNECT_WAIT_TIME_MS = 3000;
+  private static final int DISCONNECT_WAIT_TIME_MS = 300;
 
   private static AtomicLong UID = new AtomicLong(10000);
   private long _uid;

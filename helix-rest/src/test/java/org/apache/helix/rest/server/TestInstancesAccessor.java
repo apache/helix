@@ -81,6 +81,141 @@ public class TestInstancesAccessor extends AbstractTestClass {
   }
 
   @Test
+  public void testInstanceStoppableZoneBasedWithExceedingMaxOfflineInstances() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\",\"%s\"], \"%s\":[\"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1",
+        "instance2", "instance3", "instance4", "instance5", "invalidInstance",
+        InstancesAccessor.InstancesProperties.zone_order.name(), "zone2", "zone1",
+        InstancesAccessor.InstancesProperties.to_be_stopped_instances.name(), "invalidInstance1");
+
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK"
+            + "&notExceedMaxOfflineInstances=true").format(
+        STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    Set<String> stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertEquals(stoppableSet.size(), STOPPABLE_CLUSTER_MAX_OFFLINE_INSTANCES);
+    // If not setting notExceedMaxOfflineInstances=true, instance5 will be included in tbe result.
+    Assert.assertTrue(stoppableSet.contains("instance4") && stoppableSet.contains("instance3") && stoppableSet.contains("instance5"));
+
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+
+
+    content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\",\"%s\"], \"%s\":[\"%s\", \"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1",
+        "instance2", "instance3", "instance4", "instance5", "invalidInstance",
+        InstancesAccessor.InstancesProperties.zone_order.name(), "zone2", "zone1",
+        InstancesAccessor.InstancesProperties.to_be_stopped_instances.name(), "instance0", "instance6", "invalidInstance1");
+
+    response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK"
+            + "&notExceedMaxOfflineInstances=true").format(
+        STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertEquals(stoppableSet.size(), 1);
+    // If not setting notExceedMaxOfflineInstances=true, instance5 will be included in tbe result.
+    Assert.assertTrue(stoppableSet.contains("instance4"));
+
+    nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    //  "StoppableTestCluster2_db_0_3" : { "instance0" : "MASTER", "instance13" : "SLAVE", "instance5" : "SLAVE"}.
+    //  Since instance0 is to_be_stopped and MIN_ACTIVE_REPLICA is 2, instance5 is not stoppable.
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance5"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES", "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance3"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testInstanceStoppableZoneBasedWithExceedingMaxOfflineInstances")
+  public void testCrossZoneStoppableWithExceedingMaxOfflineInstances() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\",\"%s\"], \"%s\":[\"%s\", \"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1",
+        "instance2", "instance3", "instance4", "instance5", "invalidInstance",
+        InstancesAccessor.InstancesProperties.zone_order.name(), "zone2", "zone1",
+        InstancesAccessor.InstancesProperties.to_be_stopped_instances.name(), "instance0", "instance6", "invalidInstance1");
+
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK"
+            + "&notExceedMaxOfflineInstances=true").format(
+        STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    Set<String> stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertEquals(stoppableSet.size(), 1);
+    // If not setting notExceedMaxOfflineInstances=true, instance5 will be included in tbe result.
+    Assert.assertTrue(stoppableSet.contains("instance4"));
+
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    //  "StoppableTestCluster2_db_0_3" : { "instance0" : "MASTER", "instance13" : "SLAVE", "instance5" : "SLAVE"}.
+    //  Since instance0 is to_be_stopped and MIN_ACTIVE_REPLICA is 2, instance5 is not stoppable.
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance5"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES", "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance3"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance1"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES", "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance2"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+
+
+    response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK"
+            + "&notExceedMaxOfflineInstances=true&continueOnFailures=true").format(
+        STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertEquals(stoppableSet.size(), 1);
+    // If not setting notExceedMaxOfflineInstances=true, instance5 will be included in tbe result.
+    Assert.assertTrue(stoppableSet.contains("instance4"));
+
+    nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    //  "StoppableTestCluster2_db_0_3" : { "instance0" : "MASTER", "instance13" : "SLAVE", "instance5" : "SLAVE"}.
+    //  Since instance0 is to_be_stopped and MIN_ACTIVE_REPLICA is 2, instance5 is not stoppable.
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance5"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES", "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance3"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance1"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES", "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance2"),
+        ImmutableSet.of("HELIX:EXCEED_MAX_OFFLINE_INSTANCES"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testCrossZoneStoppableWithExceedingMaxOfflineInstances")
   public void testInstanceStoppableZoneBasedWithToBeStoppedInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

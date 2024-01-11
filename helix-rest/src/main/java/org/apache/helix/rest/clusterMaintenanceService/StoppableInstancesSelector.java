@@ -47,22 +47,29 @@ public class StoppableInstancesSelector {
   // to HealthCheck enum, it could introduce more unnecessary check step since the InstanceServiceImpl
   // loops all the types to do corresponding checks.
   private final static String INSTANCE_NOT_EXIST = "HELIX:INSTANCE_NOT_EXIST";
+  private final static String EXCEED_MAX_OFFLINE_INSTANCES =
+      "HELIX:EXCEED_MAX_OFFLINE_INSTANCES";
   private final String _clusterId;
   private List<String> _orderOfZone;
   private final String _customizedInput;
   private final MaintenanceManagementService _maintenanceService;
   private final ClusterTopology _clusterTopology;
   private final ZKHelixDataAccessor _dataAccessor;
+  private final int _maxAdditionalOfflineInstances;
+  private final boolean _continueOnFailure;
 
   private StoppableInstancesSelector(String clusterId, List<String> orderOfZone,
       String customizedInput, MaintenanceManagementService maintenanceService,
-      ClusterTopology clusterTopology, ZKHelixDataAccessor dataAccessor) {
+      ClusterTopology clusterTopology, ZKHelixDataAccessor dataAccessor,
+      int maxAdditionalOfflineInstances, boolean continueOnFailure) {
     _clusterId = clusterId;
     _orderOfZone = orderOfZone;
     _customizedInput = customizedInput;
     _maintenanceService = maintenanceService;
     _clusterTopology = clusterTopology;
     _dataAccessor = dataAccessor;
+    _maxAdditionalOfflineInstances = maxAdditionalOfflineInstances;
+    _continueOnFailure = continueOnFailure;
   }
 
   /**
@@ -92,7 +99,7 @@ public class StoppableInstancesSelector {
     List<String> zoneBasedInstance =
         getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
     populateStoppableInstances(zoneBasedInstance, toBeStoppedInstancesSet, stoppableInstances,
-        failedStoppableInstances);
+        failedStoppableInstances, _maxAdditionalOfflineInstances - toBeStoppedInstancesSet.size());
     processNonexistentInstances(instances, failedStoppableInstances);
 
     return result;
@@ -129,15 +136,17 @@ public class StoppableInstancesSelector {
       if (instanceSet.isEmpty()) {
         continue;
       }
-      populateStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstancesSet, stoppableInstances,
-          failedStoppableInstances);
+      populateStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstancesSet,
+          stoppableInstances, failedStoppableInstances,
+          _maxAdditionalOfflineInstances - toBeStoppedInstancesSet.size());
     }
     processNonexistentInstances(instances, failedStoppableInstances);
     return result;
   }
 
   private void populateStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances,
-      ArrayNode stoppableInstances, ObjectNode failedStoppableInstances) throws IOException {
+      ArrayNode stoppableInstances, ObjectNode failedStoppableInstances,
+      int allowedOfflineInstances) throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,
             _customizedInput, toBeStoppedInstances);
@@ -145,16 +154,35 @@ public class StoppableInstancesSelector {
     for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
       String instance = instanceStoppableCheck.getKey();
       StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
-      if (!stoppableCheck.isStoppable()) {
-        ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
-        for (String failedReason : stoppableCheck.getFailedChecks()) {
-          failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
-        }
-      } else {
+      if (stoppableCheck.isStoppable() && allowedOfflineInstances > 0) {
         stoppableInstances.add(instance);
         // Update the toBeStoppedInstances set with the currently identified stoppable instance.
         // This ensures that subsequent checks in other zones are aware of this instance's stoppable status.
         toBeStoppedInstances.add(instance);
+        allowedOfflineInstances--;
+        continue;
+      }
+      ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
+      boolean failedHelixOwnChecks = false;
+      if (allowedOfflineInstances <= 0) {
+        failedReasonsNode.add(JsonNodeFactory.instance.textNode(EXCEED_MAX_OFFLINE_INSTANCES));
+        failedHelixOwnChecks = true;
+      }
+
+      if (!stoppableCheck.isStoppable()) {
+        for (String failedReason : stoppableCheck.getFailedChecks()) {
+          // HELIX_OWN_CHECK can always be added to the failedReasonsNode.
+          if (failedReason.startsWith(StoppableCheck.Category.HELIX_OWN_CHECK.getPrefix())) {
+            failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
+            failedHelixOwnChecks = true;
+            continue;
+          }
+          // CUSTOM_INSTANCE_CHECK and CUSTOM_PARTITION_CHECK can only be added to the failedReasonsNode
+          // if continueOnFailure is true and there is no failed Helix_OWN_CHECKS.
+          if (_continueOnFailure && !failedHelixOwnChecks) {
+            failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
+          }
+        }
       }
     }
   }
@@ -282,6 +310,8 @@ public class StoppableInstancesSelector {
     private MaintenanceManagementService _maintenanceService;
     private ClusterTopology _clusterTopology;
     private ZKHelixDataAccessor _dataAccessor;
+    private int _maxAdditionalOfflineInstances = Integer.MAX_VALUE;
+    private boolean _continueOnFailure;
 
     public StoppableInstancesSelectorBuilder setClusterId(String clusterId) {
       _clusterId = clusterId;
@@ -314,9 +344,20 @@ public class StoppableInstancesSelector {
       return this;
     }
 
+    public StoppableInstancesSelectorBuilder setMaxAdditionalOfflineInstances(int maxAdditionalOfflineInstances) {
+      _maxAdditionalOfflineInstances = maxAdditionalOfflineInstances;
+      return this;
+    }
+
+    public StoppableInstancesSelectorBuilder setContinueOnFailure(boolean continueOnFailure) {
+      _continueOnFailure = continueOnFailure;
+      return this;
+    }
+
     public StoppableInstancesSelector build() {
       return new StoppableInstancesSelector(_clusterId, _orderOfZone, _customizedInput,
-          _maintenanceService, _clusterTopology, _dataAccessor);
+          _maintenanceService, _clusterTopology, _dataAccessor, _maxAdditionalOfflineInstances,
+          _continueOnFailure);
     }
   }
 }

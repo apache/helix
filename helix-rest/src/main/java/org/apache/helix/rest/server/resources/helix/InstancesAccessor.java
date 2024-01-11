@@ -20,6 +20,7 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -158,7 +159,9 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
-      @DefaultValue("false") @QueryParam("random") boolean random, String content) {
+      @DefaultValue("false") @QueryParam("random") boolean random,
+      @DefaultValue("false") @QueryParam("notExceedMaxOfflineInstances") boolean notExceedMaxOfflineInstances,
+      String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -203,7 +206,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           break;
         case stoppable:
           return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures,
-              skipHealthCheckCategorySet, random);
+              skipHealthCheckCategorySet, random, notExceedMaxOfflineInstances);
         default:
           _logger.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);
@@ -221,7 +224,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
       boolean continueOnFailures, Set<StoppableCheck.Category> skipHealthCheckCategories,
-      boolean random) throws IOException {
+      boolean random, boolean notExceedingMaxOfflineInstances) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -233,7 +236,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
       List<String> orderOfZone = null;
       String customizedInput = null;
-      List<String> toBeStoppedInstances = Collections.emptyList();
+      List<String> toBeStoppedInstances = new ArrayList<>();
       // By default, if skip_stoppable_check_list is unset, all checks are performed to maintain
       // backward compatibility with existing clients.
       List<HealthCheck> skipStoppableCheckList = Collections.emptyList();
@@ -302,7 +305,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       ClusterService clusterService =
           new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
-      StoppableInstancesSelector stoppableInstancesSelector =
+      StoppableInstancesSelector.StoppableInstancesSelectorBuilder builder =
           new StoppableInstancesSelector.StoppableInstancesSelectorBuilder()
               .setClusterId(clusterId)
               .setOrderOfZone(orderOfZone)
@@ -310,8 +313,28 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setMaintenanceService(maintenanceService)
               .setClusterTopology(clusterTopology)
               .setDataAccessor((ZKHelixDataAccessor) getDataAccssor(clusterId))
-              .build();
+              .setContinueOnFailure(continueOnFailures);
+
+      if (notExceedingMaxOfflineInstances) {
+        ClusterConfig clusterConfig = getConfigAccessor().getClusterConfig(clusterId);
+        if (clusterConfig == null) {
+          String message =
+              "Invalid cluster name: " + clusterId + ". Cluster config does not exist.";
+          _logger.error(message);
+          return badRequest(message);
+        }
+        // If maxOfflineInstancesAllowed is not set, it means there is no limit on the number of offline instances.
+        // Therefore, builder sets the maxOfflineInstancesAllowed to the default value, Integer.MAX_VALUE.
+        if (clusterConfig.getMaxOfflineInstancesAllowed() != -1) {
+          builder.setMaxAdditionalOfflineInstances(clusterConfig.getMaxOfflineInstancesAllowed());
+        }
+      }
+
+      StoppableInstancesSelector stoppableInstancesSelector = builder.build();
       stoppableInstancesSelector.calculateOrderOfZone(instances, random);
+      Set<String> invalidInstances = new HashSet<>(toBeStoppedInstances);
+      invalidInstances.removeAll(clusterTopology.getAllInstances());
+      toBeStoppedInstances.removeAll(invalidInstances);
       ObjectNode result;
       switch (selectionBase) {
         case zone_based:

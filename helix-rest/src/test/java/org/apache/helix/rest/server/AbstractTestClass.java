@@ -138,6 +138,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       Arrays.asList("instance0", "instance1", "instance2", "instance3", "instance4", "instance5",
           "instance6", "instance7", "instance8", "instance9", "instance10", "instance11",
           "instance12", "instance13", "instance14");
+  protected static final int STOPPABLE_CLUSTER_MAX_OFFLINE_INSTANCES = 3;
 
   protected static Set<String> _clusters;
   protected static String _superCluster = "superCluster";
@@ -620,6 +621,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     clusterConfig.setFaultZoneType("helixZoneId");
     clusterConfig.setPersistIntermediateAssignment(true);
+    clusterConfig.setMaxOfflineInstancesAllowed(STOPPABLE_CLUSTER_MAX_OFFLINE_INSTANCES);
     _configAccessor.setClusterConfig(clusterName, clusterConfig);
     // Create instance configs
     List<InstanceConfig> instanceConfigs = new ArrayList<>();

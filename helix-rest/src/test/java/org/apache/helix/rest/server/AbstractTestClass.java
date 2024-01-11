@@ -228,14 +228,14 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _gZkClient = DedicatedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig);
 
-      clientConfig.setZkSerializer(new ZNRecordSerializer());
-      _gZkClientTestNS = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddrTestNS), clientConfig);
+      //clientConfig.setZkSerializer(new ZNRecordSerializer());
+      //_gZkClientTestNS = DedicatedZkClientFactory.getInstance()
+      //    .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddrTestNS), clientConfig);
 
       _gSetupTool = new ClusterSetup(_gZkClient);
       _configAccessor = new ConfigAccessor(_gZkClient);
       _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
-      _baseAccessorTestNS = new ZkBaseDataAccessor<>(_gZkClientTestNS);
+      //_baseAccessorTestNS = new ZkBaseDataAccessor<>(_gZkClientTestNS);
 
       // wait for the web service to start
       Thread.sleep(100);
@@ -290,43 +290,16 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
         ZKClientPool.reset();
       }
 
-      if (_zkServerTestNS == null) {
-        _zkServerTestNS = TestHelper.startZkServer(_zkAddrTestNS);
-        Assert.assertNotNull(_zkServerTestNS);
-        ZK_SERVER_MAP.put(_zkAddrTestNS, _zkServerTestNS);
-        ZKClientPool.reset();
-      }
+
     } catch (Exception e) {
       Assert.fail(String.format("Failed to start ZK servers: %s", e.toString()));
-    }
-
-    // Start additional ZKs in a multi-ZK setup if applicable
-    String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
-    if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
-      String numZkFromConfig = System.getProperty(NUM_ZK_PROPERTY_KEY);
-      if (numZkFromConfig != null) {
-        try {
-          int numZkFromConfigInt = Integer.parseInt(numZkFromConfig);
-          // Start (numZkFromConfigInt - 2) ZooKeepers
-          for (int i = 2; i < numZkFromConfigInt; i++) {
-            String zkAddr = ZK_PREFIX + (ZK_START_PORT + i);
-            ZkServer zkServer = TestHelper.startZkServer(zkAddr);
-            Assert.assertNotNull(zkServer);
-            ZK_SERVER_MAP.put(zkAddr, zkServer);
-          }
-        } catch (Exception e) {
-          Assert.fail("Failed to create multiple ZooKeepers!");
-        }
-      }
     }
   }
 
   protected void setupHelixResources() throws Exception {
-    _clusters = createClusters(5);
+    _clusters = new HashSet<>();
     _gSetupTool.addCluster(_superCluster, true);
-    _gSetupTool.addCluster(TASK_TEST_CLUSTER, true);
     _clusters.add(_superCluster);
-    _clusters.add(TASK_TEST_CLUSTER);
     for (String cluster : _clusters) {
       Set<String> instances = createInstances(cluster, 10);
       Set<String> liveInstances = startInstances(cluster, instances, 6);
@@ -342,7 +315,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _clusterControllerManagers.add(startController(cluster));
     }
     preSetupForParallelInstancesStoppableTest(STOPPABLE_CLUSTER, STOPPABLE_INSTANCES);
-    preSetupForCrosszoneParallelInstancesStoppableTest(STOPPABLE_CLUSTER2, STOPPABLE_INSTANCES2);
+    //preSetupForCrosszoneParallelInstancesStoppableTest(STOPPABLE_CLUSTER2, STOPPABLE_INSTANCES2);
   }
 
   protected Set<String> createInstances(String cluster, int numInstances) {

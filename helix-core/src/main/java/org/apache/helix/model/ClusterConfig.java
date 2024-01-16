@@ -154,7 +154,10 @@ public class ClusterConfig extends HelixProperty {
     HELIX_DISABLED_TYPE,
 
     // The last time when the on-demand rebalance is triggered.
-    LAST_ON_DEMAND_REBALANCE_TIMESTAMP
+    LAST_ON_DEMAND_REBALANCE_TIMESTAMP,
+
+    // List of Preferred scoring keys used in evenness score computation
+    PREFERRED_SCORING_KEYS
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -1197,5 +1200,26 @@ public class ClusterConfig extends HelixProperty {
   public void setLastOnDemandRebalanceTimestamp(long rebalanceTimestamp) {
     _record.setLongField(ClusterConfigProperty.LAST_ON_DEMAND_REBALANCE_TIMESTAMP.name(),
         rebalanceTimestamp);
+  }
+
+  /**
+   * Get the list of preferred scoring keys if set.
+   *
+   * @return PreferredScoringKeys that is used in computation of evenness score
+   */
+  public List<String> getPreferredScoringKeys() {
+    return _record.getListField(ClusterConfigProperty.PREFERRED_SCORING_KEYS.name());
+  }
+
+  /**
+   * Set list of preferred scoring keys for cluster.
+   * preferredScoringKeys is set as a List to make it generic and accommodate any future use case.
+   * preferredScoringKeys will be a singleton list for current use case.
+   *
+   * @param preferredScoringKeys value used in evenness score computation
+   */
+  public void setPreferredScoringKeys(List<String> preferredScoringKeys) {
+    _record.setListField(ClusterConfigProperty.PREFERRED_SCORING_KEYS.name(),
+        preferredScoringKeys);
   }
 }

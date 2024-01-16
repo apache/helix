@@ -249,7 +249,27 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getGeneralProjectedHighestUtilization(Map<String, Integer> newUsage) {
-    return getProjectedHighestUtilization(newUsage, _remainingCapacity);
+    return getProjectedHighestUtilization(newUsage, _remainingCapacity, null);
+  }
+
+  /**
+   * Return the most concerning capacity utilization number for evenly partition assignment.
+   * The method dynamically calculates the projected highest utilization number among all the
+   * capacity categories assuming the new capacity usage is added to the node.
+   *
+   * If the list of preferredScoringKeys is specified then utilization number is computed based op the
+   * specified capacity category (keys) in the list only.
+   *
+   * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}, preferredScoringKeys: [ CPU ]
+   * Then this call shall return 0.9.
+   *
+   * @param newUsage            the proposed new additional capacity usage.
+   * @param preferredScoringKeys if provided, the capacity utilization will be calculated based on
+   *                            the supplied keys only, else across all capacity categories.
+   * @return The highest utilization number of the node among the specified capacity category.
+   */
+  public float getGeneralProjectedHighestUtilization(Map<String, Integer> newUsage, List<String> preferredScoringKeys) {
+    return getProjectedHighestUtilization(newUsage, _remainingCapacity, preferredScoringKeys);
   }
 
   /**
@@ -263,13 +283,39 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getTopStateProjectedHighestUtilization(Map<String, Integer> newUsage) {
-    return getProjectedHighestUtilization(newUsage, _remainingTopStateCapacity);
+    return getProjectedHighestUtilization(newUsage, _remainingTopStateCapacity, null);
+  }
+
+  /**
+   * Return the most concerning capacity utilization number for evenly partition assignment.
+   * The method dynamically calculates the projected highest utilization number among all the
+   * capacity categories assuming the new capacity usage is added to the node.
+   *
+   * If the list of preferredScoringKeys is specified then utilization number is computed based op the
+   * specified capacity category (keys) in the list only.
+   *
+   * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}, preferredScoringKeys: [ CPU ]
+   * Then this call shall return 0.9.
+   *
+   * This function returns projected highest utilization for only top state partitions.
+   *
+   * @param newUsage            the proposed new additional capacity usage.
+   * @param preferredScoringKeys if provided, the capacity utilization will be calculated based on
+   *                            the supplied keys only, else across all capacity categories.
+   * @return The highest utilization number of the node among all the capacity category.
+   */
+  public float getTopStateProjectedHighestUtilization(Map<String, Integer> newUsage, List<String> preferredScoringKeys) {
+    return getProjectedHighestUtilization(newUsage, _remainingTopStateCapacity, preferredScoringKeys);
   }
 
   private float getProjectedHighestUtilization(Map<String, Integer> newUsage,
-      Map<String, Integer> remainingCapacity) {
+      Map<String, Integer> remainingCapacity, List<String> preferredScoringKeys) {
+    Set<String> capacityKeySet = _maxAllowedCapacity.keySet();
+    if (preferredScoringKeys != null && preferredScoringKeys.size() != 0 && capacityKeySet.contains(preferredScoringKeys.get(0))) {
+      capacityKeySet = preferredScoringKeys.stream().collect(Collectors.toSet());
+    }
     float highestCapacityUtilization = 0;
-    for (String capacityKey : _maxAllowedCapacity.keySet()) {
+    for (String capacityKey : capacityKeySet) {
       float capacityValue = _maxAllowedCapacity.get(capacityKey);
       float utilization = (capacityValue - remainingCapacity.get(capacityKey) + newUsage
           .getOrDefault(capacityKey, 0)) / capacityValue;

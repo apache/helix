@@ -77,7 +77,13 @@ public class AssignmentMetadataStore {
     return _globalBaseline;
   }
 
-  public boolean hasPersistedLatestBestPossibleAssignment() {
+  /**
+   * Check to see if the latest persisted version of best possible assignment in the cache has been
+   * persisted to metadata store.
+   *
+   * @return true if the latest version has been persisted, false otherwise.
+   */
+  protected boolean hasPersistedLatestBestPossibleAssignment() {
     return _lastPersistedBestPossibleVersion == _bestPossibleVersion;
   }
 

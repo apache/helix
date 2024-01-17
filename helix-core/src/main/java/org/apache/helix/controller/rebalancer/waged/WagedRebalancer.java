@@ -572,6 +572,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
   private void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment)
       throws HelixRebalanceException {
+    // It is only persisted if the assignment is different from the currently cached assignment or the
+    // matching version of this assignment is not yet persisted. Partial Rebalance will not directly persist
+    // the assignment to the metadata store, it will only be cached. Instead, it will be persisted by the
+    // main thread on the next pipeline run, hence the check isBestPossibleChanged will be false.
     if (_assignmentMetadataStore != null && (
         _assignmentMetadataStore.isBestPossibleChanged(bestPossibleAssignment)
             || !_assignmentMetadataStore.hasPersistedLatestBestPossibleAssignment())) {

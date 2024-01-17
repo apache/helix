@@ -153,7 +153,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     Assert.assertEquals(partitionMap2.get("PREVIOUS_STATE"), "STARTED");
     Assert.assertEquals(partitionMap2.get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
 
-    // test delete customized state for a partition
+    // test deletePerPartitionCustomizedState -- operates on a per partition level
     _mockProvider
         .deletePerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME1, PARTITION_NAME1);
     customizedState = _mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME1);
@@ -169,6 +169,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     Assert.assertNull(customizedState);
   }
 
+  // Testing deleteResourceCustomizedState -- operates on the resource level
   @Test
   public void testDeleteResourceCustomizedState() {
     // Set up tests by adding customized states
@@ -210,6 +211,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     }
   }
 
+  // Testing deleteAllResourcesCustomizedStates method -- operates on the customizedState level
   @Test
   public void testDeleteAllResourcesCustomizedState() {
     // Set up test by adding customized states for both resources

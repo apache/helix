@@ -52,6 +52,7 @@ public class AssignmentMetadataStore {
   protected volatile Map<String, ResourceAssignment> _globalBaseline;
   protected volatile Map<String, ResourceAssignment> _bestPossibleAssignment;
   protected volatile int _bestPossibleVersion = 0;
+  protected volatile int _lastPersistedBestPossibleVersion = 0;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
@@ -74,6 +75,10 @@ public class AssignmentMetadataStore {
       }
     }
     return _globalBaseline;
+  }
+
+  public boolean hasPersistedLatestBestPossibleAssignment() {
+    return _lastPersistedBestPossibleVersion == _bestPossibleVersion;
   }
 
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
@@ -141,6 +146,7 @@ public class AssignmentMetadataStore {
     getBestPossibleAssignment().clear();
     getBestPossibleAssignment().putAll(bestPossibleAssignment);
     _bestPossibleVersion++;
+    _lastPersistedBestPossibleVersion = _bestPossibleVersion;
   }
 
   /**

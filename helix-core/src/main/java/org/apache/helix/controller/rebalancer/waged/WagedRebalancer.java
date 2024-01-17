@@ -572,7 +572,9 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
   private void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment)
       throws HelixRebalanceException {
-    if (_assignmentMetadataStore != null && _assignmentMetadataStore.isBestPossibleChanged(bestPossibleAssignment)) {
+    if (_assignmentMetadataStore != null && (
+        _assignmentMetadataStore.isBestPossibleChanged(bestPossibleAssignment)
+            || !_assignmentMetadataStore.hasPersistedLatestBestPossibleAssignment())) {
       try {
         _writeLatency.startMeasuringLatency();
         _assignmentMetadataStore.persistBestPossibleAssignment(bestPossibleAssignment);

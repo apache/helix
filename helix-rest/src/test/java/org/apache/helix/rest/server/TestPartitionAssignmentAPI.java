@@ -130,9 +130,11 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     // Stop and remove all instances
     for (MockParticipantManager participant : _participants) {
       participant.syncStop();
-      _gSetupTool.getClusterManagementTool().dropInstance(CLUSTER_NAME,
-          _gSetupTool.getClusterManagementTool()
-              .getInstanceConfig(CLUSTER_NAME, participant.getInstanceName()));
+      InstanceConfig instanceConfig = _helixDataAccessor.getProperty(
+          _helixDataAccessor.keyBuilder().instanceConfig(participant.getInstanceName()));
+      if (instanceConfig != null) {
+        _gSetupTool.getClusterManagementTool().dropInstance(CLUSTER_NAME, instanceConfig);
+      }
     }
     _participants.clear();
 

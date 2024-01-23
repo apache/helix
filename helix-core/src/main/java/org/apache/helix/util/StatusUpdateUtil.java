@@ -397,7 +397,7 @@ public class StatusUpdateUtil {
     logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo, additionalInfo, manager);
   }
 
-  public void logError(Message message, Class classInfo, Exception e, String additionalInfo,
+  public void logError(Message message, Class classInfo, Throwable e, String additionalInfo,
       HelixManager manager) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);

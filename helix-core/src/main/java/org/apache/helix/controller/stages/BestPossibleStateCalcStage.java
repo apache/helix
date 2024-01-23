@@ -44,6 +44,7 @@ import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
+import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
@@ -355,7 +356,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       WagedRebalancer wagedRebalancer, ResourceControllerDataProvider cache,
       CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap,
       BestPossibleStateOutput output, List<String> failureResources) {
-    if (cache.isMaintenanceModeEnabled()) {
+    // Allow calculation for readOnlyWagedRebalancer as it is used by partitionAssignment API
+    if (cache.isMaintenanceModeEnabled() && !(wagedRebalancer instanceof ReadOnlyWagedRebalancer)) {
       // The WAGED rebalancer won't be used while maintenance mode is enabled.
       return Collections.emptyMap();
     }

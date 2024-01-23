@@ -350,10 +350,10 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     // If the cluster is in Maintenance mode, throw an exception
     // TODO: we should return the partitionAssignment regardless of the cluster is in Maintenance
     // mode or not
-    if (getHelixAdmin().isInMaintenanceMode(clusterId)) {
-      throw new UnsupportedOperationException(
-          "Can not query potential Assignment when cluster is in Maintenance mode.");
-    }
+    // if (getHelixAdmin().isInMaintenanceMode(clusterId)) {
+    //   throw new UnsupportedOperationException(
+    //       "Can not query potential Assignment when cluster is in Maintenance mode.");
+    // }
 
     // Use getTargetAssignmentForWagedFullAuto for Waged resources.
     ConfigAccessor cfgAccessor = getConfigAccessor();

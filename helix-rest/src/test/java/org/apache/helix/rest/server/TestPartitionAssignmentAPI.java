@@ -35,6 +35,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -352,5 +354,115 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     _gSetupTool.rebalanceResource(CLUSTER_NAME, db, REPLICAS);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+  }
+
+  private void createCrushedResource(String db, int numPartition, int minActiveReplica, long delay) {
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, numPartition, "LeaderStandby",
+        IdealState.RebalanceMode.FULL_AUTO + "", null);
+    _resources.add(db);
+
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+    idealState.setMinActiveReplicas(minActiveReplica);
+    idealState.setDelayRebalanceEnabled(true);
+    idealState.setRebalanceDelay(delay);
+    idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
+    idealState.setRebalanceStrategy(CrushEdRebalanceStrategy.class.getName());
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, idealState);
+
+    ResourceConfig resourceConfig = new ResourceConfig(db);
+    _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
+    _gSetupTool.rebalanceResource(CLUSTER_NAME, db, REPLICAS);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+  }
+  @Test
+  private void testComputePartitionAssignmentMaintenanceMode() throws Exception {
+
+    // Create 5 WAGED resources
+    String wagedResourcePrefix = "TEST_WAGED_DB_";
+    int wagedResourceCount = 5;
+    for (int i = 0; i < wagedResourceCount; i++) {
+      createWagedResource(wagedResourcePrefix + i,
+          DEFAULT_INSTANCE_CAPACITY * DEFAULT_INSTANCE_COUNT / REPLICAS / wagedResourceCount,
+          MIN_ACTIVE_REPLICAS, 100000L);
+    }
+
+    String crushedResourcePrefix = "TEST_CRUSHED_DB_";
+    int crushedResourceCount = 3;
+    for (int i = 0; i < crushedResourceCount; i++) {
+      createCrushedResource(crushedResourcePrefix + i,
+          DEFAULT_INSTANCE_CAPACITY * DEFAULT_INSTANCE_COUNT / REPLICAS / crushedResourceCount,
+          MIN_ACTIVE_REPLICA, 100000L);
+    }
+
+    // Wait for cluster to converge after adding resources
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Enter the cluster into MM
+    _gSetupTool.getClusterManagementTool()
+        .enableMaintenanceMode(CLUSTER_NAME, true,
+            "testComputePartitionAssignmentMaintenanceMode enters cluster into MM.");
+
+    // Add instance to cluster as enabled
+    String toAddInstanceName = "dummyInstance";
+    InstanceConfig toAddInstanceConfig = new InstanceConfig(toAddInstanceName);
+    toAddInstanceConfig.setInstanceCapacityMap(
+        Collections.singletonMap(INSTANCE_CAPACITY_KEY, DEFAULT_INSTANCE_CAPACITY));
+    _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, toAddInstanceConfig);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, toAddInstanceName, true);
+
+    // Actually create the live instance
+    MockParticipantManager toAddParticipant = createParticipant(toAddInstanceName);
+    toAddParticipant.syncStart();
+
+    // Choose participant to simulate killing in API call
+    MockParticipantManager participantToKill = _participants.get(0);
+
+    // Use partition assignment API to simulate adding and killing separate instances
+    // returns idealStates for all resources in cluster
+    String payload = "{\"InstanceChange\" : { \"ActivateInstances\" : [\"" + toAddInstanceName
+        + "\"], \"DeactivateInstances\" : [\"" + participantToKill.getInstanceName() + "\"] }, "
+        + "\"Options\" : { \"ReturnFormat\" : \"IdealStateFormat\" }}";
+    Response response = post(getPartitionAssignmentPath(), null,
+        Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode(),
+        true);
+    String body = response.readEntity(String.class);
+    Map<String, Map<String, Map<String, String>>> partitionAssignmentIdealStates =
+        OBJECT_MAPPER.readValue(body,
+            // Map of resources --> map of partitions --> MAP of instances --> state
+            new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
+            });
+
+    // Kill the instance we simulated in partitionAssignment API and wait for delay window
+    participantToKill.syncStop();
+    Thread.sleep(3000L);
+
+    // Exit the cluster from MM
+    _gSetupTool.getClusterManagementTool()
+        .enableMaintenanceMode(CLUSTER_NAME, false,
+            "testComputePartitionAssignmentMaintenanceMode exits cluster out of MM.");
+
+    // Wait for cluster to converge after exiting maintenance mode
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert that all resource idealStates calculated by the partitionAssignment API during MM
+      // is identical to the idealStates calculated by the controller after it exits MM
+    Assert.assertTrue(TestHelper.verify(() -> {
+      try {
+        Map<String, Map<String, Map<String, String>>> idealStatesMap = new HashMap<>();
+
+
+        for (String resource : _resources) {
+          IdealState idealState = _helixDataAccessor.getProperty(_helixDataAccessor.keyBuilder().idealStates(resource));
+          idealStatesMap.put(resource, idealState.getRecord().getMapFields());
+        }
+        Assert.assertEquals(partitionAssignmentIdealStates, idealStatesMap);
+      } catch (AssertionError e) {
+        LOG.error("Ideal state does not match partition assignment", e);
+        return false;
+      }
+      return true;
+    }, 30000));
   }
 }

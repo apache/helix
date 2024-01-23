@@ -401,10 +401,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       RebalanceAlgorithm algorithm) throws HelixRebalanceException {
 
     // the "real" live nodes at the time
-    // TODO: Move evacuation into BaseControllerDataProvider assignableNode logic.
-    final Set<String> enabledLiveInstances = DelayedRebalanceUtil.filterOutEvacuatingInstances(
-        clusterData.getAssignableInstanceConfigMap(),
-        clusterData.getAssignableEnabledLiveInstances());
+    final Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
 
     if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment
@@ -626,10 +623,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       String resourceName = resourceAssignment.getResourceName();
       IdealState currentIdealState = clusterData.getIdealState(resourceName);
 
-      // TODO: Move evacuation into BaseControllerDataProvider assignableNode logic.
-      Set<String> enabledLiveInstances = DelayedRebalanceUtil.filterOutEvacuatingInstances(
-          clusterData.getAssignableInstanceConfigMap(),
-          clusterData.getAssignableEnabledLiveInstances());
+      Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
 
       int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
       int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig

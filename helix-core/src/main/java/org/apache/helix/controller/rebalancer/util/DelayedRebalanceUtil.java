@@ -85,28 +85,28 @@ public class DelayedRebalanceUtil {
   }
 
   /**
-   * @return all active nodes (live nodes not marked as evacuate plus offline-yet-active nodes)
+   * @return all active nodes (live nodes plus offline-yet-active nodes)
    * while considering cluster delay rebalance configurations.
    */
   public static Set<String> getActiveNodes(Set<String> allNodes, Set<String> liveEnabledNodes,
       Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
     if (!isDelayRebalanceEnabled(clusterConfig)) {
-      return filterOutEvacuatingInstances(instanceConfigMap, liveEnabledNodes);
+      return liveEnabledNodes;
     }
     return getActiveNodes(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
         instanceConfigMap, clusterConfig.getRebalanceDelayTime(), clusterConfig);
   }
 
   /**
-   * @return all active nodes (live nodes not marked as evacuate plus offline-yet-active nodes)
+   * @return all active nodes (live nodes plus offline-yet-active nodes)
    * while considering cluster delay rebalance configurations.
    */
   public static Set<String> getActiveNodes(Set<String> allNodes, IdealState idealState,
       Set<String> liveEnabledNodes, Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
-      return filterOutEvacuatingInstances(instanceConfigMap, liveEnabledNodes);
+      return liveEnabledNodes;
     }
     return getActiveNodes(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
         instanceConfigMap, delay, clusterConfig);
@@ -128,17 +128,7 @@ public class DelayedRebalanceUtil {
         activeNodes.add(ins);
       }
     }
-    // TODO: change this after merging operation and helix-enable field.
-    return filterOutEvacuatingInstances(instanceConfigMap, activeNodes);
-  }
-
-  public static Set<String> filterOutEvacuatingInstances(Map<String, InstanceConfig> instanceConfigMap,
-      Set<String> nodes) {
-    return nodes.stream()
-        .filter(instance -> (instanceConfigMap.get(instance) != null && !instanceConfigMap.get(instance)
-            .getInstanceOperation()
-            .equals(InstanceConstants.InstanceOperation.EVACUATE.name())))
-        .collect(Collectors.toSet());
+    return activeNodes;
   }
 
   /**

@@ -344,7 +344,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * Refreshes the assignable instances and SWAP related caches. This should be called after
    * liveInstance and instanceConfig caches are refreshed. To determine what instances are
    * assignable and live, it takes a combination of both the all instanceConfigs and liveInstances.
-   * TODO: Add EVACUATE InstanceOperation to be filtered out in assignable nodes.
    *
    * @param instanceConfigMap InstanceConfig map from instanceConfig cache
    * @param liveInstancesMap  LiveInstance map from liveInstance cache
@@ -404,7 +403,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
           _assignableInstanceConfigMap.put(node, currentInstanceConfig);
           filteredInstancesByLogicalId.put(currentInstanceLogicalId, node);
         }
-      } else {
+      } else if (!currentInstanceConfig.getInstanceOperation()
+          .equals(InstanceConstants.InstanceOperation.EVACUATE.name())) {
+        // EVACUATE instances are not considered to be assignable.
         _assignableInstanceConfigMap.put(node, currentInstanceConfig);
         filteredInstancesByLogicalId.put(currentInstanceLogicalId, node);
       }

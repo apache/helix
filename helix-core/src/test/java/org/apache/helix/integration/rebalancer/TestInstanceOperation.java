@@ -262,7 +262,17 @@ public class TestInstanceOperation extends ZkTestBase {
     // Drop semi-auto DBs
     _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, semiAutoDB);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-  }
+
+    // Disable, stop, and drop the instance from the cluster.
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceToEvacuate, false);
+    _participants.get(0).syncStop();
+    removeOfflineOrDisabledOrSwapInInstances();
+
+    // Compare the current ev with the previous one, it should be exactly the same since the baseline should not change
+    // after the instance is dropped.
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertEquals(getEVs(), assignment);
+}
 
   @Test(dependsOnMethods = "testEvacuate")
   public void testRevertEvacuation() throws Exception {
@@ -1155,7 +1165,7 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertTrue(getParticipantsInEv(assignment.get(resource)).contains(instanceToEvacuate));
     }
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // exit MM
     _gSetupTool.getClusterManagementTool()

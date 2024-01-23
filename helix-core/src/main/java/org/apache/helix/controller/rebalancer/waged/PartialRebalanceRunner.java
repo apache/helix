@@ -177,6 +177,9 @@ class PartialRebalanceRunner implements AutoCloseable {
 
     boolean bestPossibleUpdateSuccessful = false;
     if (_assignmentMetadataStore != null && _assignmentMetadataStore.isBestPossibleChanged(newAssignment)) {
+      // This will not persist the new Best Possible Assignment into ZK. It will only update the in-memory cache.
+      // If this is done successfully, the new Best Possible Assignment will be persisted into ZK the next time that
+      // the pipeline is triggered. We schedule the pipeline to run below.
       bestPossibleUpdateSuccessful = _assignmentMetadataStore.asyncUpdateBestPossibleAssignmentCache(newAssignment,
           newBestPossibleAssignmentVersion);
     } else {

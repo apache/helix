@@ -123,7 +123,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   // This is used for SWAP related operations where there can be two instances with the same logicalId.
   private final Map<String, InstanceConfig> _assignableInstanceConfigMap = new HashMap<>();
   private final Map<String, LiveInstance> _assignableLiveInstancesMap = new HashMap<>();
-  private final Set<String> _assignableDisabledInstanceSet = new HashSet<>();
   private final Map<String, String> _swapOutInstanceNameToSwapInInstanceName = new HashMap<>();
   private final Set<String> _enabledLiveSwapInInstanceNames = new HashSet<>();
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
@@ -552,7 +551,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
     updateIdealRuleMap(getClusterConfig());
     updateDisabledInstances(getInstanceConfigMap().values(),
-        getAssignableInstanceConfigMap().values(),
         getClusterConfig());
 
     return refreshedTypes;
@@ -591,7 +589,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     updateInstanceSets(_allInstanceConfigCache.getPropertyMap(), _allLiveInstanceCache.getPropertyMap(),
         _clusterConfig);
     updateDisabledInstances(getInstanceConfigMap().values(),
-        getAssignableInstanceConfigMap().values(),
         _clusterConfig);
   }
 
@@ -700,7 +697,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Set<String> getEnabledLiveInstances() {
     Set<String> enabledLiveInstances = new HashSet<>(getLiveInstances().keySet());
-    enabledLiveInstances.removeAll(getAssignableDisabledInstances());
+    enabledLiveInstances.removeAll(getDisabledInstances());
 
     return enabledLiveInstances;
   }
@@ -723,7 +720,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Set<String> getEnabledInstances() {
     Set<String> enabledNodes = new HashSet<>(getAllInstances());
-    enabledNodes.removeAll(getAssignableDisabledInstances());
+    enabledNodes.removeAll(getDisabledInstances());
 
     return enabledNodes;
   }
@@ -816,15 +813,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Set<String> getDisabledInstances() {
     return Collections.unmodifiableSet(_disabledInstanceSet);
-  }
-
-  /**
-   * This method allows one to fetch the set of nodes that are disabled
-   *
-   * @return
-   */
-  public Set<String> getAssignableDisabledInstances() {
-    return Collections.unmodifiableSet(_assignableDisabledInstanceSet);
   }
 
   /**
@@ -991,7 +979,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     updateInstanceSets(_allInstanceConfigCache.getPropertyMap(), _allLiveInstanceCache.getPropertyMap(),
         getClusterConfig());
     updateDisabledInstances(getInstanceConfigMap().values(),
-        getAssignableInstanceConfigMap().values(),
         getClusterConfig());
   }
 
@@ -1082,7 +1069,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   private void updateDisabledInstances(Collection<InstanceConfig> allInstanceConfigs,
-      Collection<InstanceConfig> assignableInstanceConfigs, ClusterConfig clusterConfig) {
+      ClusterConfig clusterConfig) {
     // Move the calculating disabled instances to refresh
     _disabledInstanceForPartitionMap.clear();
     _disabledInstanceSet.clear();
@@ -1090,9 +1077,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
       if (!InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
         _disabledInstanceSet.add(config.getInstanceName());
-        if (assignableInstanceConfigs.contains(config)) {
-          _assignableDisabledInstanceSet.add(config.getInstanceName());
-        }
       }
       for (String resource : disabledPartitionMap.keySet()) {
         _disabledInstanceForPartitionMap.putIfAbsent(resource, new HashMap<>());

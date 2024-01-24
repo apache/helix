@@ -376,6 +376,7 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
+
   @Test
   private void testComputePartitionAssignmentMaintenanceMode() throws Exception {
 
@@ -447,7 +448,7 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Assert that all resource idealStates calculated by the partitionAssignment API during MM
-      // is identical to the idealStates calculated by the controller after it exits MM
+    // is identical to the idealStates calculated by the controller after it exits MM.
     Assert.assertTrue(TestHelper.verify(() -> {
       try {
         Map<String, Map<String, Map<String, String>>> idealStatesMap = new HashMap<>();

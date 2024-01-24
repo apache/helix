@@ -127,7 +127,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private final Set<String> _enabledLiveSwapInInstanceNames = new HashSet<>();
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
   private final Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
-  private Map<String, LiveInstance> _liveInstanceExcludeTimedOutForMaintenance = new HashMap<>();
+  private Map<String, LiveInstance> _allLiveInstanceExcludeTimedOutForMaintenance = new HashMap<>();
+  private Map<String, LiveInstance> _assignableLiveInstanceExcludeTimedOutForMaintenance =
+      new HashMap<>();
 
   public BaseControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER, AbstractDataCache.UNKNOWN_PIPELINE);
@@ -469,7 +471,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // If maintenance mode has exited, clear cached timed-out nodes
     if (!_isMaintenanceModeEnabled) {
       _timedOutInstanceDuringMaintenance.clear();
-      _liveInstanceExcludeTimedOutForMaintenance.clear();
+      _allLiveInstanceExcludeTimedOutForMaintenance.clear();
+      _assignableLiveInstanceExcludeTimedOutForMaintenance.clear();
     }
   }
 
@@ -481,21 +484,26 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       timeOutWindow = clusterConfig.getOfflineNodeTimeOutForMaintenanceMode();
     }
     if (timeOutWindow >= 0 && isMaintenanceModeEnabled) {
-      for (String instance : _assignableLiveInstancesMap.keySet()) {
+      for (String instance : _allLiveInstanceCache.getPropertyMap().keySet()) {
         // 1. Check timed-out cache and don't do repeated work;
         // 2. Check for nodes that didn't exist in the last iteration, because it has been checked;
         // 3. For all other nodes, check if it's timed-out.
         // When maintenance mode is first entered, all nodes will be checked as a result.
         if (!_timedOutInstanceDuringMaintenance.contains(instance)
-            && !_liveInstanceExcludeTimedOutForMaintenance.containsKey(instance)
+            && !_allLiveInstanceExcludeTimedOutForMaintenance.containsKey(instance)
             && isInstanceTimedOutDuringMaintenance(accessor, instance, timeOutWindow)) {
           _timedOutInstanceDuringMaintenance.add(instance);
         }
       }
     }
     if (isMaintenanceModeEnabled) {
-      _liveInstanceExcludeTimedOutForMaintenance = _assignableLiveInstancesMap.entrySet().stream()
-          .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
+      _allLiveInstanceExcludeTimedOutForMaintenance =
+          _allLiveInstanceCache.getPropertyMap().entrySet().stream()
+              .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      _assignableLiveInstanceExcludeTimedOutForMaintenance =
+          _assignableLiveInstancesMap.entrySet().stream()
+              .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
   }
@@ -646,7 +654,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Map<String, LiveInstance> getAssignableLiveInstances() {
     if (isMaintenanceModeEnabled()) {
-      return Collections.unmodifiableMap(_liveInstanceExcludeTimedOutForMaintenance);
+      return Collections.unmodifiableMap(_assignableLiveInstanceExcludeTimedOutForMaintenance);
     }
 
     return Collections.unmodifiableMap(_assignableLiveInstancesMap);
@@ -660,6 +668,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @return A map of LiveInstances to their instance names
    */
   public Map<String, LiveInstance> getLiveInstances() {
+    if (isMaintenanceModeEnabled()) {
+      return Collections.unmodifiableMap(_allLiveInstanceExcludeTimedOutForMaintenance);
+    }
+
     return _allLiveInstanceCache.getPropertyMap();
   }
 

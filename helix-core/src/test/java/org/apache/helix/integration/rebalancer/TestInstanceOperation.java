@@ -685,6 +685,8 @@ public class TestInstanceOperation extends ZkTestBase {
     // Cancel SWAP by disabling the SWAP_IN instance and remove SWAP_OUT InstanceOperation from SWAP_OUT instance.
     _gSetupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, instanceToSwapInName, false);
+    // Stop the participant
+    _participants.get(_participants.size() - 1).syncStop();
 
     // Wait for cluster to converge.
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

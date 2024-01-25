@@ -576,7 +576,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public boolean isEvacuateFinished(String clusterName, String instanceName) {
-    if (!instanceHasCurrentStateOrMessage(clusterName, instanceName)) {
+    if (!instanceHasFullAutoCurrentStateOrMessage(clusterName, instanceName)) {
       InstanceConfig config = getInstanceConfig(clusterName, instanceName);
       return config != null && config.getInstanceOperation().equals(InstanceConstants.InstanceOperation.EVACUATE.name());
     }
@@ -838,7 +838,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public boolean isReadyForPreparingJoiningCluster(String clusterName, String instanceName) {
-    if (!instanceHasCurrentStateOrMessage(clusterName, instanceName)) {
+    if (!instanceHasFullAutoCurrentStateOrMessage(clusterName, instanceName)) {
       InstanceConfig config = getInstanceConfig(clusterName, instanceName);
       return config != null && DelayedAutoRebalancer.INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(
           config.getInstanceOperation());
@@ -853,7 +853,8 @@ public class ZKHelixAdmin implements HelixAdmin {
    * @param instanceName
    * @return
    */
-  private boolean instanceHasCurrentStateOrMessage(String clusterName, String instanceName) {
+  private boolean instanceHasFullAutoCurrentStateOrMessage(String clusterName,
+      String instanceName) {
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
@@ -892,7 +893,13 @@ public class ZKHelixAdmin implements HelixAdmin {
       return true;
     }
 
-    return !currentStates.isEmpty();
+    // Get set of FULL_AUTO resources
+    List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates(), true);
+    Set<String> fullAutoResources = idealStates != null ? idealStates.stream()
+        .filter(idealState -> idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO)
+        .map(IdealState::getResourceName).collect(Collectors.toSet()) : Collections.emptySet();
+
+    return currentStates.stream().anyMatch(fullAutoResources::contains);
   }
 
   @Override

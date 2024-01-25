@@ -34,6 +34,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -223,6 +224,14 @@ public class TestInstanceOperation extends ZkTestBase {
   @Test
   public void testEvacuate() throws Exception {
     System.out.println("START TestInstanceOperation.testEvacuate() at " + new Date(System.currentTimeMillis()));
+
+    // Add semi-auto DBs
+    String semiAutoDB = "SemiAutoTestDB_1";
+    createDBInSemiAuto(_gSetupTool, CLUSTER_NAME, semiAutoDB,
+        _participants.stream().map(ZKHelixManager::getInstanceName).collect(Collectors.toList()),
+        BuiltInStateModelDefinitions.OnlineOffline.name(), 1, _participants.size());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
     // EV should contain all participants, check resources one by one
     Map<String, ExternalView> assignment = getEVs();
     for (String resource : _allDBs) {
@@ -249,6 +258,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_admin.isEvacuateFinished(CLUSTER_NAME, instanceToEvacuate));
     Assert.assertTrue(_admin.isReadyForPreparingJoiningCluster(CLUSTER_NAME, instanceToEvacuate));
+
+    // Drop semi-auto DBs
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, semiAutoDB);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @Test(dependsOnMethods = "testEvacuate")

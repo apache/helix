@@ -36,18 +36,23 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -522,6 +527,29 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertFalse((boolean) responseMap.get("successful"));
 
     // test isEvacuateFinished on instance with EVACUATE but has currentState
+    // Enable persist best possible assignment for cluster verifier
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setPersistBestPossibleAssignment(true);
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    Set<String> resources = _resourcesMap.get(CLUSTER_NAME);
+    ZkHelixClusterVerifier clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        .setDeactivatedNodeAwareness(true)
+        .setResources(resources)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    // Make the DBs FULL_AUTO and wait because EVACUATE is only supported for FULL_AUTO resources
+    for (String resource : resources) {
+      IdealState idealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resource);
+      idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+      idealState.setDelayRebalanceEnabled(true);
+      idealState.setRebalanceDelay(360000);
+      _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, resource, idealState);
+    }
+
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
+
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
@@ -533,6 +561,19 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Map<String, Boolean> evacuateFinishedresult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
     Assert.assertFalse(evacuateFinishedresult.get("successful"));
+
+    // Make all resources SEMI_AUTO again
+    for (String resource : resources) {
+      IdealState idealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resource);
+      idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
+      idealState.setDelayRebalanceEnabled(false);
+      idealState.setRebalanceDelay(0);
+      _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, resource, idealState);
+    }
+
+    // Wait for the cluster to be stable again
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     // test isEvacuateFinished on instance with EVACUATE and no currentState
     // Create new instance so no currentState or messages assigned to it

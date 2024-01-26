@@ -409,11 +409,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
       for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
         String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
-        // We do not want to drop a SWAP_IN node if it is at the end of the preferenceList,
-        // because partitions are actively being added on this node to prepare for SWAP completion.
-        if (cache == null || !cache.getEnabledLiveSwapInInstanceNames().contains(instanceToDrop)) {
-          bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
-        }
+        bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
       }
     }
 

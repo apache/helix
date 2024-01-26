@@ -124,7 +124,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private final Map<String, InstanceConfig> _assignableInstanceConfigMap = new HashMap<>();
   private final Map<String, LiveInstance> _assignableLiveInstancesMap = new HashMap<>();
   private final Map<String, String> _swapOutInstanceNameToSwapInInstanceName = new HashMap<>();
-  private final Set<String> _enabledLiveSwapInInstanceNames = new HashSet<>();
+  private final Set<String> _liveSwapInInstanceNames = new HashSet<>();
+  private final Set<String> _enabledSwapInInstanceNames = new HashSet<>();
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
   private final Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
   private Map<String, LiveInstance> _liveInstanceExcludeTimedOutForMaintenance = new HashMap<>();
@@ -365,7 +366,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _assignableInstanceConfigMap.clear();
     _assignableLiveInstancesMap.clear();
     _swapOutInstanceNameToSwapInInstanceName.clear();
-    _enabledLiveSwapInInstanceNames.clear();
+    _liveSwapInInstanceNames.clear();
+    _enabledSwapInInstanceNames.clear();
 
     Map<String, String> filteredInstancesByLogicalId = new HashMap<>();
     Map<String, String> swapOutLogicalIdsByInstanceName = new HashMap<>();
@@ -433,10 +435,12 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       String swapInInstanceName = swapInInstancesByLogicalId.get(value);
       if (swapInInstanceName != null) {
         _swapOutInstanceNameToSwapInInstanceName.put(swapOutInstanceName, swapInInstanceName);
-        if (liveInstancesMap.containsKey(swapInInstanceName)
-            && InstanceValidationUtil.isInstanceEnabled(instanceConfigMap.get(swapInInstanceName),
+        if (liveInstancesMap.containsKey(swapInInstanceName)) {
+          _liveSwapInInstanceNames.add(swapInInstanceName);
+        }
+        if (InstanceValidationUtil.isInstanceEnabled(instanceConfigMap.get(swapInInstanceName),
             clusterConfig)) {
-          _enabledLiveSwapInInstanceNames.add(swapInInstanceName);
+          _enabledSwapInInstanceNames.add(swapInInstanceName);
         }
       }
     });
@@ -825,12 +829,21 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
-   * Get all the enabled and live SWAP_IN instances.
+   * Get all the live SWAP_IN instances.
    *
    * @return a set of SWAP_IN instanceNames that have a corresponding SWAP_OUT instance.
    */
-  public Set<String> getEnabledLiveSwapInInstanceNames() {
-    return Collections.unmodifiableSet(_enabledLiveSwapInInstanceNames);
+  public Set<String> getLiveSwapInInstanceNames() {
+    return Collections.unmodifiableSet(_liveSwapInInstanceNames);
+  }
+
+  /**
+   * Get all the enabled SWAP_IN instances.
+   *
+   * @return a set of SWAP_IN instanceNames that have a corresponding SWAP_OUT instance.
+   */
+  public Set<String> getEnabledSwapInInstanceNames() {
+    return Collections.unmodifiableSet(_enabledSwapInInstanceNames);
   }
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {

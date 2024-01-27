@@ -24,17 +24,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceAssignment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * This class tracks the rebalance-related global cluster status.
  */
 public class ClusterContext {
+  private static final Logger LOG = LoggerFactory.getLogger(ClusterContext.class.getName());
   // This estimation helps to ensure global partition count evenness
   private final int _estimatedMaxPartitionCount;
   // This estimation helps to ensure global top state replica count evenness
@@ -57,20 +62,29 @@ public class ClusterContext {
   private final Map<String, Integer> _estimateUtilizationMap;
   // Cluster total capacity. Used to compute score when sorting replicas.
   private final Map<String, Integer> _clusterCapacityMap;
-
+  private final List<String> _preferredScoringKeys;
+  private final String _clusterName;
   /**
    * Construct the cluster context based on the current instance status.
    * @param replicaSet All the partition replicas that are managed by the rebalancer
    * @param nodeSet All the active nodes that are managed by the rebalancer
    */
   ClusterContext(Set<AssignableReplica> replicaSet, Set<AssignableNode> nodeSet,
-      Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
+                 Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
+    this(replicaSet, nodeSet, baselineAssignment, bestPossibleAssignment, null);
+  }
+
+  ClusterContext(Set<AssignableReplica> replicaSet, Set<AssignableNode> nodeSet,
+                 Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment,
+                 ClusterConfig clusterConfig) {
     int instanceCount = nodeSet.size();
     int totalReplicas = 0;
     int totalTopStateReplicas = 0;
     Map<String, Integer> totalUsage = new HashMap<>();
     Map<String, Integer> totalTopStateUsage = new HashMap<>();
     Map<String, Integer> totalCapacity = new HashMap<>();
+    _preferredScoringKeys = Optional.ofNullable(clusterConfig).map(ClusterConfig::getPreferredScoringKeys).orElse(null);
+    _clusterName = Optional.ofNullable(clusterConfig).map(ClusterConfig::getClusterName).orElse(null);
 
     for (Map.Entry<String, List<AssignableReplica>> entry : replicaSet.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName))
@@ -103,15 +117,29 @@ public class ClusterContext {
       _estimateUtilizationMap = Collections.emptyMap();
       _clusterCapacityMap = Collections.emptyMap();
     } else {
-      _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage);
-      _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage);
+      _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage, _preferredScoringKeys);
+      _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage, _preferredScoringKeys);
       _estimateUtilizationMap = estimateUtilization(totalCapacity, totalUsage);
       _clusterCapacityMap = Collections.unmodifiableMap(totalCapacity);
     }
+    LOG.info(
+        "clusterName: {}, preferredScoringKeys: {}, estimatedMaxUtilization: {}, estimatedTopStateMaxUtilization: {}",
+        _clusterName, _preferredScoringKeys, _estimatedMaxUtilization,
+        _estimatedTopStateMaxUtilization);
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
     _baselineAssignment = baselineAssignment;
     _bestPossibleAssignment = bestPossibleAssignment;
+  }
+
+
+  /**
+   * Get List of preferred scoring keys if set.
+   *
+   * @return PreferredScoringKeys which is used in computation of evenness score
+   */
+  public List<String> getPreferredScoringKeys() {
+    return _preferredScoringKeys;
   }
 
   public Map<String, ResourceAssignment> getBaselineAssignment() {
@@ -190,10 +218,31 @@ public class ClusterContext {
     return (int) Math.floor((float) replicaCount / instanceCount);
   }
 
+  /**
+   * Estimates the max utilization number from all capacity categories and their usages.
+   * If the list of preferredScoringKeys is specified then max utilization number is computed based op the
+   * specified capacity category (keys) in the list only.
+   *
+   * For example, if totalCapacity is {CPU: 0.6, MEM: 0.7, DISK: 0.9}, totalUsage is {CPU: 0.1, MEM: 0.2, DISK: 0.3},
+   * preferredScoringKeys: [ CPU ]. Then this call shall return 0.16. If preferredScoringKeys
+   * is not specified, this call returns 0.33 which would be the max utilization for the DISK.
+   *
+   * @param totalCapacity        Sum total of max capacity of all active nodes managed by a rebalancer
+   * @param totalUsage           Sum total of capacity usage of all partition replicas that are managed by the rebalancer
+   * @param preferredScoringKeys if provided, the max utilization will be calculated based on
+   *                             the supplied keys only, else across all capacity categories.
+   * @return The max utilization number from the specified capacity categories.
+   */
+
   private static float estimateMaxUtilization(Map<String, Integer> totalCapacity,
-      Map<String, Integer> totalUsage) {
+                                              Map<String, Integer> totalUsage,
+                                              List<String> preferredScoringKeys) {
     float estimatedMaxUsage = 0;
-    for (String capacityKey : totalCapacity.keySet()) {
+    Set<String> capacityKeySet = totalCapacity.keySet();
+    if (preferredScoringKeys != null && preferredScoringKeys.size() != 0 && capacityKeySet.contains(preferredScoringKeys.get(0))) {
+      capacityKeySet = preferredScoringKeys.stream().collect(Collectors.toSet());
+    }
+    for (String capacityKey : capacityKeySet) {
       int maxCapacity = totalCapacity.get(capacityKey);
       int usage = totalUsage.getOrDefault(capacityKey, 0);
       float utilization = (maxCapacity == 0) ? 1 : (float) usage / maxCapacity;

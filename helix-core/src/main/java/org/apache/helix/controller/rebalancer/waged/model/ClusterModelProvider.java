@@ -268,7 +268,7 @@ public class ClusterModelProvider {
     // Construct and initialize cluster context.
     ClusterContext context = new ClusterContext(
         replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()),
-        assignableNodes, logicalIdIdealAssignment, logicalIdCurrentAssignment);
+        assignableNodes, logicalIdIdealAssignment, logicalIdCurrentAssignment, dataProvider.getClusterConfig());
 
     // Initial the cluster context with the allocated assignments.
     context.setAssignmentForFaultZoneMap(mapAssignmentToFaultZone(assignableNodes));

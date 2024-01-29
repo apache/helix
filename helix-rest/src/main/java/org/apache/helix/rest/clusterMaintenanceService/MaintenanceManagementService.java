@@ -67,10 +67,17 @@ import org.slf4j.LoggerFactory;
 
 
 public class MaintenanceManagementService {
+  private static class MaintenanceExecutorService {
+    static final int totalInstance = 1000;
+    static final int faultZones = 20;
+    public static ExecutorService getExecutorPool() {
+      return Executors.newFixedThreadPool(totalInstance / faultZones);
+    }
+  }
 
   private static final Logger LOG = LoggerFactory.getLogger(MaintenanceManagementService.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final ExecutorService POOL = Executors.newCachedThreadPool();
+  private static final ExecutorService POOL = MaintenanceExecutorService.getExecutorPool();
 
   // Metric names for custom instance check
   private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL =

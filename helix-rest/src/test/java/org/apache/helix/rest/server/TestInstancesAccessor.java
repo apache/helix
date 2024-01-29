@@ -82,7 +82,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testInstancesStoppableWithMax() throws IOException {
+  public void testInstancesStoppableWithOfflineInstancesInTopology() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
     String content = String.format(
@@ -156,7 +156,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(dependsOnMethods = "testInstancesStoppableWithOfflineInstancesInTopology")
   public void testInstanceStoppableCrossZoneWithMaxOfflineCheckViolated() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(STOPPABLE_CLUSTER2);
@@ -214,7 +214,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(dependsOnMethods = "testInstanceStoppableCrossZoneWithMaxOfflineCheckViolated")
   public void testInstanceStoppableZoneBasedWithExceedingMaxOfflineInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

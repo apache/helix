@@ -146,7 +146,7 @@ public class StoppableInstancesSelector {
 
   private void populateStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances,
       ArrayNode stoppableInstances, ObjectNode failedStoppableInstances,
-      int allowedOfflineInstances) throws IOException {
+      int allowedOfflineCount) throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,
             _customizedInput, toBeStoppedInstances);
@@ -154,34 +154,39 @@ public class StoppableInstancesSelector {
     for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
       String instance = instanceStoppableCheck.getKey();
       StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
-      if (stoppableCheck.isStoppable() && allowedOfflineInstances > 0) {
+      if (stoppableCheck.isStoppable() && allowedOfflineCount > 0) {
         stoppableInstances.add(instance);
         // Update the toBeStoppedInstances set with the currently identified stoppable instance.
         // This ensures that subsequent checks in other zones are aware of this instance's stoppable status.
         toBeStoppedInstances.add(instance);
-        allowedOfflineInstances--;
+        allowedOfflineCount--;
         continue;
       }
       ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
-      boolean failedHelixOwnChecks = false;
-      if (allowedOfflineInstances <= 0) {
-        failedReasonsNode.add(JsonNodeFactory.instance.textNode(EXCEED_MAX_OFFLINE_INSTANCES));
-        failedHelixOwnChecks = true;
-      }
+      consolidateResult(stoppableCheck, failedReasonsNode, allowedOfflineCount);
+    }
+  }
 
-      if (!stoppableCheck.isStoppable()) {
-        for (String failedReason : stoppableCheck.getFailedChecks()) {
-          // HELIX_OWN_CHECK can always be added to the failedReasonsNode.
-          if (failedReason.startsWith(StoppableCheck.Category.HELIX_OWN_CHECK.getPrefix())) {
-            failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
-            failedHelixOwnChecks = true;
-            continue;
-          }
-          // CUSTOM_INSTANCE_CHECK and CUSTOM_PARTITION_CHECK can only be added to the failedReasonsNode
-          // if continueOnFailure is true and there is no failed Helix_OWN_CHECKS.
-          if (_continueOnFailure && !failedHelixOwnChecks) {
-            failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
-          }
+  private void consolidateResult(StoppableCheck stoppableCheck,
+      ArrayNode failedReasonsNode, int allowedOfflineCount) {
+    boolean failedHelixOwnChecks = false;
+    if (allowedOfflineCount <= 0) {
+      failedReasonsNode.add(JsonNodeFactory.instance.textNode(EXCEED_MAX_OFFLINE_INSTANCES));
+      failedHelixOwnChecks = true;
+    }
+
+    if (!stoppableCheck.isStoppable()) {
+      for (String failedReason : stoppableCheck.getFailedChecks()) {
+        // HELIX_OWN_CHECK can always be added to the failedReasonsNode.
+        if (failedReason.startsWith(StoppableCheck.Category.HELIX_OWN_CHECK.getPrefix())) {
+          failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
+          failedHelixOwnChecks = true;
+          continue;
+        }
+        // CUSTOM_INSTANCE_CHECK and CUSTOM_PARTITION_CHECK can only be added to the failedReasonsNode
+        // if continueOnFailure is true and there is no failed Helix_OWN_CHECKS.
+        if (_continueOnFailure && !failedHelixOwnChecks) {
+          failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
         }
       }
     }

@@ -166,7 +166,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), fakeUserID);
     fakeRecord
         .setSimpleField(LockInfo.LockInfoAttribute.TIMEOUT.name(), String.valueOf(Long.MAX_VALUE));
-    fakeRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(), 0);
     _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
 
     ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();

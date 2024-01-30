@@ -159,6 +159,30 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
   }
 
   @Test
+  public void testNonLockOwnerUnlockNoPriorityLockFail() {
+    // Fake condition when the lock owner is not current user
+    String fakeUserID = UUID.randomUUID().toString();
+    ZNRecord fakeRecord = new ZNRecord(fakeUserID);
+    fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), fakeUserID);
+    fakeRecord
+        .setSimpleField(LockInfo.LockInfoAttribute.TIMEOUT.name(), String.valueOf(Long.MAX_VALUE));
+    fakeRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(), 0);
+    _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
+
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("higher priority lock").setUserId("user1").setPriority(5)
+        .setWaitingTimeout(30000).setCleanupTimeout(10000).setIsForceful(false);
+    ZKDistributedNonblockingLock lock = lockBuilder.build();
+    // Verify the current user is not a lock owner
+    Assert.assertFalse(lock.isCurrentOwner());
+    // Since _lock with _userId is not the locker owner anymore, its unlock() should fail.
+    Assert.assertFalse(lock.unlock());
+    lock.close();
+  }
+
+
+  @Test
   public void testSimultaneousAcquire() {
     List<Callable<Boolean>> threads = new ArrayList<>();
     for (int i = 0; i < 2; i++) {

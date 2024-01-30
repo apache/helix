@@ -162,6 +162,8 @@ public class StoppableInstancesSelector {
         allowedOfflineCount--;
         continue;
       }
+      // TODO: If the maxOffline limit is reached, we should give previous non-stoppable instances a failed reason
+      //  of "EXCEED_MAX_OFFLINE_INSTANCES"
       ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
       consolidateResult(stoppableCheck, failedReasonsNode, allowedOfflineCount);
     }

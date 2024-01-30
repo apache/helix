@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -315,7 +316,7 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setDataAccessor((ZKHelixDataAccessor) getDataAccssor(clusterId))
               .setContinueOnFailure(continueOnFailures);
 
-      Set<String> currentOfflineInstances = Collections.emptySet();
+      Set<String> currentDisabledOrOfflineInstances = Collections.emptySet();
       if (notExceedingMaxOfflineInstances) {
         // If the clusterConfig or maxOfflineInstancesAllowed is not set, this is an invalid request.
         ClusterConfig clusterConfig = getConfigAccessor().getClusterConfig(clusterId);
@@ -334,21 +335,28 @@ public class InstancesAccessor extends AbstractHelixResource {
         }
 
         HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+        ConfigAccessor configAccessor = getConfigAccessor();
         List<String> liveInstances =
             dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances());
-        currentOfflineInstances = clusterTopology.getAllInstances().stream()
-            .filter(instance -> !liveInstances.contains(instance)).collect(Collectors.toSet());
-        maxOfflineAllowed = Math.max(0, maxOfflineAllowed - currentOfflineInstances.size());
+        currentDisabledOrOfflineInstances =
+            clusterTopology.getAllInstances().stream().filter(instance -> {
+              // return instances that are disabled and not live.
+              return !configAccessor.getInstanceConfig(clusterId, instance).getInstanceEnabled()
+                  || !liveInstances.contains(instance);
+            }).collect(Collectors.toSet());
+        maxOfflineAllowed =
+            Math.max(0, maxOfflineAllowed - currentDisabledOrOfflineInstances.size());
         builder.setMaxAdditionalOfflineInstances(maxOfflineAllowed);
       }
 
       StoppableInstancesSelector stoppableInstancesSelector = builder.build();
       stoppableInstancesSelector.calculateOrderOfZone(instances, random);
-      Set<String> finalCurrentOfflineInstances = currentOfflineInstances;
+      Set<String> finalCurrentDisabledOfflineInstances = currentDisabledOrOfflineInstances;
       // Since maxOfflineAllowed is set, we need to filter out the instances that are already offline.
       toBeStoppedInstances = toBeStoppedInstances.stream().filter(
-          instance -> clusterTopology.getAllInstances().contains(instance)
-              && !finalCurrentOfflineInstances.contains(instance)).collect(Collectors.toList());
+              instance -> clusterTopology.getAllInstances().contains(instance)
+                  && !finalCurrentDisabledOfflineInstances.contains(instance))
+          .collect(Collectors.toList());
       ObjectNode result;
       switch (selectionBase) {
         case zone_based:

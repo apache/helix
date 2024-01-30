@@ -121,6 +121,8 @@ public class ZKHelixAdmin implements HelixAdmin {
   private static final int DEFAULT_SUPERCLUSTER_REPLICA = 3;
   private static final ImmutableSet<String> ALLOWED_INSTANCE_OPERATIONS_FOR_ADD_INSTANCE =
       ImmutableSet.of("", InstanceConstants.InstanceOperation.SWAP_IN.name());
+  private static final ImmutableSet<String> INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT =
+      ImmutableSet.of(InstanceConstants.InstanceOperation.EVACUATE.name());
 
   private final RealmAwareZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
@@ -840,7 +842,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public boolean isReadyForPreparingJoiningCluster(String clusterName, String instanceName) {
     if (!instanceHasFullAutoCurrentStateOrMessage(clusterName, instanceName)) {
       InstanceConfig config = getInstanceConfig(clusterName, instanceName);
-      return config != null && DelayedAutoRebalancer.INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(
+      return config != null && INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(
           config.getInstanceOperation());
     }
     return false;

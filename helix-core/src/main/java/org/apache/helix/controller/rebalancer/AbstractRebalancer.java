@@ -104,7 +104,7 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       List<String> preferenceList = getPreferenceList(partition, idealState,
           Collections.unmodifiableSet(cache.getAssignableLiveInstances().keySet()));
       Map<String, String> bestStateForPartition =
-          computeBestPossibleStateForPartition(cache.getAssignableLiveInstances().keySet(),
+          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(),
               stateModelDef,
               preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
               cache.getClusterConfig(), partition,

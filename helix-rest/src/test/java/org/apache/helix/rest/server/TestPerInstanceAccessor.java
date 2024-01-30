@@ -527,18 +527,12 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertFalse((boolean) responseMap.get("successful"));
 
     // test isEvacuateFinished on instance with EVACUATE but has currentState
-    // Enable persist best possible assignment for cluster verifier
-    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
-    clusterConfig.setPersistBestPossibleAssignment(true);
-    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    Set<String> resources = _resourcesMap.get(CLUSTER_NAME);
-    ZkHelixClusterVerifier clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setDeactivatedNodeAwareness(true)
-        .setResources(resources)
-        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-        .build();
+    // Put the cluster in MM so no assignment is calculated
+    _gSetupTool.getClusterManagementTool()
+        .enableMaintenanceMode(CLUSTER_NAME, true, "Change resource to full-auto");
+
     // Make the DBs FULL_AUTO and wait because EVACUATE is only supported for FULL_AUTO resources
+    Set<String> resources = _resourcesMap.get(CLUSTER_NAME);
     for (String resource : resources) {
       IdealState idealState =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resource);
@@ -548,8 +542,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
       _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, resource, idealState);
     }
 
-    Assert.assertTrue(clusterVerifier.verifyByPolling());
-
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
@@ -558,9 +550,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
-    Map<String, Boolean> evacuateFinishedresult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
+    Map<String, Boolean> evacuateFinishedResult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-    Assert.assertFalse(evacuateFinishedresult.get("successful"));
+    // Returns false because the node still contains full-auto resources
+    Assert.assertFalse(evacuateFinishedResult.get("successful"));
 
     // Make all resources SEMI_AUTO again
     for (String resource : resources) {
@@ -572,8 +565,16 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
       _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, resource, idealState);
     }
 
-    // Wait for the cluster to be stable again
-    Assert.assertTrue(clusterVerifier.verifyByPolling());
+    // Exit MM
+    _gSetupTool.getClusterManagementTool()
+        .enableMaintenanceMode(CLUSTER_NAME, false, "Change resource to full-auto");
+
+    // Because the resources are now all semi-auto, is EvacuateFinished should return true
+    response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    evacuateFinishedResult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
+    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+    Assert.assertTrue(evacuateFinishedResult.get("successful"));
 
     // test isEvacuateFinished on instance with EVACUATE and no currentState
     // Create new instance so no currentState or messages assigned to it
@@ -592,9 +593,9 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")
         .format(CLUSTER_NAME, test_instance_name).post(this, entity);
-    evacuateFinishedresult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
+    evacuateFinishedResult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-    Assert.assertTrue(evacuateFinishedresult.get("successful"));
+    Assert.assertTrue(evacuateFinishedResult.get("successful"));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

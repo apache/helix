@@ -119,7 +119,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private final Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private final Set<String> _disabledInstanceSet = new HashSet<>();
 
-  private static class DerivedInstanceCache {
+  private static final class DerivedInstanceCache {
     // Assignable instances are instances will contain at most one instance with a given logicalId.
     // This is used for SWAP related operations where there can be two instances with the same logicalId.
     private final Map<String, InstanceConfig> _assignableInstanceConfigMap;
@@ -128,7 +128,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     private final Set<String> _liveSwapInInstanceNames;
     private final Set<String> _enabledSwapInInstanceNames;
 
-    private DerivedInstanceCache(Map<String, InstanceConfig> assignableInstanceConfigMap,
+    DerivedInstanceCache(Map<String, InstanceConfig> assignableInstanceConfigMap,
         Map<String, LiveInstance> assignableLiveInstancesMap,
         Map<String, String> swapOutInstanceNameToSwapInInstanceName,
         Set<String> liveSwapInInstanceNames, Set<String> enabledSwapInInstanceNames) {

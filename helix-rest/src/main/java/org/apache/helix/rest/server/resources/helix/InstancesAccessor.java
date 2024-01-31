@@ -20,6 +20,7 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +41,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -158,7 +160,9 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
-      @DefaultValue("false") @QueryParam("random") boolean random, String content) {
+      @DefaultValue("false") @QueryParam("random") boolean random,
+      @DefaultValue("false") @QueryParam("notExceedMaxOfflineInstances") boolean notExceedMaxOfflineInstances,
+      String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -203,7 +207,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           break;
         case stoppable:
           return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures,
-              skipHealthCheckCategorySet, random);
+              skipHealthCheckCategorySet, random, notExceedMaxOfflineInstances);
         default:
           _logger.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);
@@ -221,7 +225,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
       boolean continueOnFailures, Set<StoppableCheck.Category> skipHealthCheckCategories,
-      boolean random) throws IOException {
+      boolean random, boolean notExceedingMaxOfflineInstances) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -233,7 +237,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
       List<String> orderOfZone = null;
       String customizedInput = null;
-      List<String> toBeStoppedInstances = Collections.emptyList();
+      List<String> toBeStoppedInstances = new ArrayList<>();
       // By default, if skip_stoppable_check_list is unset, all checks are performed to maintain
       // backward compatibility with existing clients.
       List<HealthCheck> skipStoppableCheckList = Collections.emptyList();
@@ -302,7 +306,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       ClusterService clusterService =
           new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
-      StoppableInstancesSelector stoppableInstancesSelector =
+      StoppableInstancesSelector.StoppableInstancesSelectorBuilder builder =
           new StoppableInstancesSelector.StoppableInstancesSelectorBuilder()
               .setClusterId(clusterId)
               .setOrderOfZone(orderOfZone)
@@ -310,8 +314,49 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setMaintenanceService(maintenanceService)
               .setClusterTopology(clusterTopology)
               .setDataAccessor((ZKHelixDataAccessor) getDataAccssor(clusterId))
-              .build();
+              .setContinueOnFailure(continueOnFailures);
+
+      Set<String> currentDisabledOrOfflineInstances = Collections.emptySet();
+      if (notExceedingMaxOfflineInstances) {
+        // If the clusterConfig or maxOfflineInstancesAllowed is not set, this is an invalid request.
+        ClusterConfig clusterConfig = getConfigAccessor().getClusterConfig(clusterId);
+        if (clusterConfig == null) {
+          String message =
+              "Invalid cluster name: " + clusterId + ". Cluster config does not exist.";
+          _logger.error(message);
+          return badRequest(message);
+        }
+        int maxOfflineAllowed = clusterConfig.getMaxOfflineInstancesAllowed();
+        if (maxOfflineAllowed == -1) {
+          String message =
+              "Invalid cluster config: " + clusterId + ". maxOfflineInstancesAllowed is not set.";
+          _logger.error(message);
+          return badRequest(message);
+        }
+
+        HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+        ConfigAccessor configAccessor = getConfigAccessor();
+        List<String> liveInstances =
+            dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances());
+        currentDisabledOrOfflineInstances =
+            clusterTopology.getAllInstances().stream().filter(instance -> {
+              // return instances that are disabled and not live.
+              return !configAccessor.getInstanceConfig(clusterId, instance).getInstanceEnabled()
+                  || !liveInstances.contains(instance);
+            }).collect(Collectors.toSet());
+        maxOfflineAllowed =
+            Math.max(0, maxOfflineAllowed - currentDisabledOrOfflineInstances.size());
+        builder.setMaxAdditionalOfflineInstances(maxOfflineAllowed);
+      }
+
+      StoppableInstancesSelector stoppableInstancesSelector = builder.build();
       stoppableInstancesSelector.calculateOrderOfZone(instances, random);
+      Set<String> finalCurrentDisabledOfflineInstances = currentDisabledOrOfflineInstances;
+      // Since maxOfflineAllowed is set, we need to filter out the instances that are already offline.
+      toBeStoppedInstances = toBeStoppedInstances.stream().filter(
+              instance -> clusterTopology.getAllInstances().contains(instance)
+                  && !finalCurrentDisabledOfflineInstances.contains(instance))
+          .collect(Collectors.toList());
       ObjectNode result;
       switch (selectionBase) {
         case zone_based:

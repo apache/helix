@@ -27,7 +27,7 @@ public class LockConstants {
   public static final String DEFAULT_USER_ID = "NONE";
   public static final String DEFAULT_MESSAGE_TEXT = "NONE";
   public static final long DEFAULT_TIMEOUT_LONG = -1;
-  public static final int DEFAULT_PRIORITY_INT = -1;
+  public static final int DEFAULT_PRIORITY_INT = 0;
   public static final long DEFAULT_WAITING_TIMEOUT_LONG = -1;
   public static final long DEFAULT_CLEANUP_TIMEOUT_LONG = -1;
   public static final long DEFAULT_REQUESTING_TIMESTAMP_LONG = -1;

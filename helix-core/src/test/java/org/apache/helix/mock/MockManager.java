@@ -33,6 +33,7 @@ import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.MockAccessor;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
@@ -336,6 +337,12 @@ public class MockManager implements HelixManager {
 
   @Override
   public void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception {
+
+  }
+
+  @Override
+  public void addIndividualInstanceConfigChangeListener(
+      IndividualInstanceConfigChangeListener listener, String instanceName) throws Exception {
 
   }
 

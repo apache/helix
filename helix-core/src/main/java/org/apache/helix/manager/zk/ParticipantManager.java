@@ -39,6 +39,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.cloud.CloudInstanceInformation;
@@ -167,6 +168,19 @@ public class ParticipantManager {
      * setup message listener
      */
     setupMsgHandler();
+
+    // If the manager property has a callback for its instance config change, register it.
+    if (_helixManagerProperty != null
+        && _helixManagerProperty.getIndividualInstanceConfigChangeListener() != null) {
+      _manager.addIndividualInstanceConfigChangeListener(
+          _helixManagerProperty.getIndividualInstanceConfigChangeListener(), _instanceName);
+      // call the callback to handle the initial instance config
+      NotificationContext changeContext = new NotificationContext(_manager);
+      changeContext.setType(NotificationContext.Type.INIT);
+      _helixManagerProperty.getIndividualInstanceConfigChangeListener()
+          .onIndividualInstanceConfigChange(
+              _configAccessor.getInstanceConfig(_clusterName, _instanceName), changeContext);
+    }
   }
 
   private boolean shouldCarryOver() {
@@ -499,6 +513,10 @@ public class ParticipantManager {
     _stateMachineEngine.registerStateModelFactory(
         DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
     _messagingService.onConnected();
+  }
+
+  private void setupInstanceConfigChangeHandler() throws Exception {
+
   }
 
   private ParticipantHistory getHistory() {

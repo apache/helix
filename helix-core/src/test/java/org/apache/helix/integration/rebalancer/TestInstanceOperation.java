@@ -21,11 +21,13 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -545,12 +547,16 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), Collections.emptySet());
 
+    CustomIndividualInstanceConfigChangeListener instanceToSwapInInstanceConfigListener =
+        new CustomIndividualInstanceConfigChangeListener();
     // Add instance with InstanceOperation set to SWAP_IN
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, true, -1);
+        InstanceConstants.InstanceOperation.SWAP_IN, true, -1, instanceToSwapInInstanceConfigListener);
+
+    Assert.assertFalse(instanceToSwapInInstanceConfigListener.isThrottlesEnabled());
 
     // Validate that partitions on SWAP_OUT instance does not change after setting the InstanceOperation to SWAP_OUT
     // and adding the SWAP_IN instance to the cluster.
@@ -581,6 +587,9 @@ public class TestInstanceOperation extends ZkTestBase {
     // Assert that SWAP_OUT instance is disabled and has no partitions assigned to it.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceEnabled());
+
+    // Check to make sure the throttle was enabled again after the swap was completed.
+    Assert.assertTrue(instanceToSwapInInstanceConfigListener.isThrottlesEnabled());
 
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
     // swap was completed.
@@ -1425,9 +1434,38 @@ public class TestInstanceOperation extends ZkTestBase {
     }, timeout));
   }
 
-  private MockParticipantManager createParticipant(String participantName) {
+  private static class CustomIndividualInstanceConfigChangeListener implements IndividualInstanceConfigChangeListener {
+    private boolean throttlesEnabled;
+
+    public CustomIndividualInstanceConfigChangeListener() {
+      throttlesEnabled = true;
+    }
+
+    public boolean isThrottlesEnabled() {
+      return throttlesEnabled;
+    }
+
+    @Override
+    public void onIndividualInstanceConfigChange(InstanceConfig instanceConfig,
+        NotificationContext context) {
+      if (instanceConfig.getInstanceOperation()
+          .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())) {
+        throttlesEnabled = false;
+      } else if (instanceConfig.getInstanceOperation().isEmpty()) {
+        throttlesEnabled = true;
+      }
+    }
+  }
+
+  private MockParticipantManager createParticipant(String participantName,
+      IndividualInstanceConfigChangeListener listener) {
     // start dummy participants
-    MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName);
+    HelixManagerProperty helixManagerProperty = listener != null
+        ? new HelixManagerProperty.Builder().setIndividualInstanceConfigChangeListenerCallback(
+        listener).build() : new HelixManagerProperty.Builder().build();
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName, 10, null,
+            helixManagerProperty);
     StateMachineEngine stateMachine = participant.getStateMachineEngine();
     // Using a delayed state model
     StDelayMSStateModelFactory delayFactory = new StDelayMSStateModelFactory();
@@ -1435,8 +1473,19 @@ public class TestInstanceOperation extends ZkTestBase {
     return participant;
   }
 
+  private void addParticipant(String participantName) {
+    addParticipant(participantName, UUID.randomUUID().toString(),
+        "zone_" + _participants.size() % ZONE_COUNT, null, true, -1);
+  }
+
   private void addParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
+    addParticipant(participantName, logicalId, zone, instanceOperation, enabled, capacity, null);
+  }
+
+  private void addParticipant(String participantName, String logicalId, String zone,
+      InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity,
+      IndividualInstanceConfigChangeListener listener) {
     InstanceConfig config = new InstanceConfig.Builder().setDomain(
             String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
                 logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
@@ -1447,17 +1496,12 @@ public class TestInstanceOperation extends ZkTestBase {
     }
     _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
-    MockParticipantManager participant = createParticipant(participantName);
+    MockParticipantManager participant = createParticipant(participantName, listener);
 
     participant.syncStart();
     _participants.add(participant);
     _participantNames.add(participantName);
     _nextStartPort++;
-  }
-
-  private void addParticipant(String participantName) {
-    addParticipant(participantName, UUID.randomUUID().toString(),
-        "zone_" + _participants.size() % ZONE_COUNT, null, true, -1);
   }
 
    private void createTestDBs(long delayTime) throws InterruptedException {

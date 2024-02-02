@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.util.Properties;
 
+import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -39,6 +40,7 @@ public class HelixManagerProperty {
   private InstanceConfig.Builder _defaultInstanceConfigBuilder;
   private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
   private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
+  private IndividualInstanceConfigChangeListener _individualInstanceConfigChangeListener;
 
   /**
    * ** Deprecated - HelixManagerProperty should be a general property/config object used for
@@ -59,13 +61,15 @@ public class HelixManagerProperty {
   private HelixManagerProperty(String version, long healthReportLatency,
       HelixCloudProperty helixCloudProperty, InstanceConfig.Builder defaultInstanceConfig,
       RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
+      RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig,
+      IndividualInstanceConfigChangeListener individualInstanceConfigChangeListener) {
     _version = version;
     _healthReportLatency = healthReportLatency;
     _helixCloudProperty = helixCloudProperty;
     _defaultInstanceConfigBuilder = defaultInstanceConfig;
     _zkConnectionConfig = zkConnectionConfig;
     _zkClientConfig = zkClientConfig;
+    _individualInstanceConfigChangeListener = individualInstanceConfigChangeListener;
   }
 
   public HelixCloudProperty getHelixCloudProperty() {
@@ -94,6 +98,10 @@ public class HelixManagerProperty {
     return _zkConnectionConfig;
   }
 
+  public IndividualInstanceConfigChangeListener getIndividualInstanceConfigChangeListener() {
+    return _individualInstanceConfigChangeListener;
+  }
+
   public RealmAwareZkClient.RealmAwareZkClientConfig getZkClientConfig() {
     return _zkClientConfig;
   }
@@ -105,13 +113,15 @@ public class HelixManagerProperty {
     private InstanceConfig.Builder _defaultInstanceConfigBuilder;
     private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
     private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
+    private IndividualInstanceConfigChangeListener _individualInstanceConfigChangeListener;
 
     public Builder() {
     }
 
     public HelixManagerProperty build() {
       return new HelixManagerProperty(_version, _healthReportLatency, _helixCloudProperty,
-          _defaultInstanceConfigBuilder, _zkConnectionConfig, _zkClientConfig);
+          _defaultInstanceConfigBuilder, _zkConnectionConfig, _zkClientConfig,
+          _individualInstanceConfigChangeListener);
     }
 
     public Builder setVersion(String version) {
@@ -144,6 +154,12 @@ public class HelixManagerProperty {
     public Builder setRealmAwareZkClientConfig(
         RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
       _zkClientConfig = zkClientConfig;
+      return this;
+    }
+
+    public Builder setIndividualInstanceConfigChangeListenerCallback(
+        IndividualInstanceConfigChangeListener individualInstanceConfigChangeListener) {
+      _individualInstanceConfigChangeListener = individualInstanceConfigChangeListener;
       return this;
     }
   }

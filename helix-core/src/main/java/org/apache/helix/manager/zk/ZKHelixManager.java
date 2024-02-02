@@ -66,6 +66,7 @@ import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
@@ -488,6 +489,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     addListener(listener, new Builder(_clusterName).instanceConfigs(), ChangeType.INSTANCE_CONFIG,
         new EventType[] { EventType.NodeChildrenChanged
         });
+  }
+
+  @Override
+  public void addIndividualInstanceConfigChangeListener(
+      IndividualInstanceConfigChangeListener listener, String instanceName) throws Exception {
+    addListener(listener, new Builder(_clusterName).instanceConfig(instanceName),
+        ChangeType.INSTANCE_CONFIG, new EventType[]{EventType.NodeDataChanged});
   }
 
   @Deprecated

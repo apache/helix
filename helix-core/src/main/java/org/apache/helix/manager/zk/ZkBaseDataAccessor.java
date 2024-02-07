@@ -720,11 +720,16 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean remove(String path, int options) {
+    return remove(path, -1, options);
+  }
+
+  @Override
+  public boolean remove(String path, int expectedVersion, int options) {
     try {
       // operation will not throw exception when path successfully deleted or does not exist
       // despite real error, operation will throw exception when path not empty, and in this
       // case, we try to delete recursively
-      _zkClient.delete(path);
+      _zkClient.delete(path, expectedVersion);
     } catch (ZkException e) {
       LOG.debug("Failed to delete {} with opts {}, err: {}. Try recursive delete", path, options,
           e.getMessage());

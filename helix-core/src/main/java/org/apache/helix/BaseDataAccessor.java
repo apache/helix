@@ -99,6 +99,13 @@ public interface BaseDataAccessor<T> {
    */
   boolean remove(String path, int options);
 
+  // TODO: gspencer implement
+  // ZKBaseDataAccessor
+  // ZKCacheBaseDataAccessor
+  // MockBaseDataAccessor
+  // AutoFallbackProperty store
+  boolean remove(String path, int expectedVersion, int options);
+
   /**
    * Use it when creating children under a parent node. This will use async api for better
    * performance. If the child already exists it will return false.

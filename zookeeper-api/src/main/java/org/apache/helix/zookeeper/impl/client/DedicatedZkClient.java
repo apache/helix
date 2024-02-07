@@ -385,6 +385,11 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public boolean delete(String path) {
+    return delete(path, -1);
+  }
+
+  @Override
+  public boolean delete(String path, int expectedVersion) {
     checkIfPathContainsShardingKey(path);
     return _rawZkClient.delete(path);
   }

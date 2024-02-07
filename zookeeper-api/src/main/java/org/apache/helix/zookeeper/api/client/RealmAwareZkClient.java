@@ -254,6 +254,13 @@ public interface RealmAwareZkClient {
 
   boolean delete(final String path);
 
+  // TODO: gspencer add to:
+  // ZKClient -- done
+  // DedicatedZKClient -- done
+  // SharedZKClient -- done
+  // FederatedZKClient
+  boolean delete(final String path, final int expectedVersion);
+
   <T extends Object> T readData(String path);
 
   <T extends Object> T readData(String path, boolean returnNullIfPathNotExists);

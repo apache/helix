@@ -2158,6 +2158,10 @@ public class ZkClient implements Watcher {
    * @return true if path is successfully deleted, false if path does not exist
    */
   public boolean delete(final String path) {
+    return delete(path, -1);
+  }
+
+  public boolean delete(final String path, final int expectedVersion) {
     long startT = System.currentTimeMillis();
     boolean success;
     try {
@@ -2166,7 +2170,7 @@ public class ZkClient implements Watcher {
 
           @Override
           public Object call() throws Exception {
-            getConnection().delete(path);
+            getConnection().delete(path, expectedVersion);
             return null;
           }
         });
@@ -2174,6 +2178,9 @@ public class ZkClient implements Watcher {
       } catch (ZkNoNodeException e) {
         success = false;
         LOG.debug("zkclient {}, Failed to delete path {}, znode does not exist!", _uid, path, e);
+      } catch (ZkBadVersionException e) {
+        success = false;
+        LOG.debug("zkclient {}, Failed to delete path {}, znode version mismatch!", _uid, path, e);
       }
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {

@@ -515,10 +515,6 @@ public class ParticipantManager {
     _messagingService.onConnected();
   }
 
-  private void setupInstanceConfigChangeHandler() throws Exception {
-
-  }
-
   private ParticipantHistory getHistory() {
     PropertyKey propertyKey = _keyBuilder.participantHistory(_instanceName);
     ParticipantHistory history = _dataAccessor.getProperty(propertyKey);

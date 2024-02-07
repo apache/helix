@@ -771,10 +771,11 @@ public interface HelixAdmin {
    *
    * @param clusterName  The cluster name
    * @param instanceName The instance that is being swapped out or swapped in
+   * @param forceComplete Whether to force complete the swap without checking if it is ready
    * @return True if the swap is ready to be completed and was completed successfully, false
    * otherwise.
    */
-  boolean completeSwapIfPossible(String clusterName, String instanceName);
+  boolean completeSwapIfPossible(String clusterName, String instanceName, boolean forceComplete);
 
   /**
    * Return if instance is ready for preparing joining cluster. The instance should have no current state,

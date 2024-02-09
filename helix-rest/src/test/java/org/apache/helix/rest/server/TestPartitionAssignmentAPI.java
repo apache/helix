@@ -32,6 +32,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
@@ -88,7 +89,7 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     clusterConfig.setPersistBestPossibleAssignment(true);
     clusterConfig.setDefaultInstanceCapacityMap(
         Collections.singletonMap(INSTANCE_CAPACITY_KEY, DEFAULT_INSTANCE_CAPACITY));
-    clusterConfig.setInstanceCapacityKeys(List.of(INSTANCE_CAPACITY_KEY));
+    clusterConfig.setInstanceCapacityKeys(ImmutableList.of(INSTANCE_CAPACITY_KEY));
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
     _controller = startController(CLUSTER_NAME);
 

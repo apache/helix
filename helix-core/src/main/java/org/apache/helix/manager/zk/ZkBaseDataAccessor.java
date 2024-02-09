@@ -730,6 +730,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       // despite real error, operation will throw exception when path not empty, and in this
       // case, we try to delete recursively
       _zkClient.delete(path, expectedVersion);
+    } catch (ZkBadVersionException e) {
+      LOG.error("Failed to delete {} recursively, znode version mismatch!", path, e);
+      return false;
+      // TODO: gspencer - can we do this? Or will this still allow for race condition where znode
+      // updated after this fails due another exception, then we call deleteRecursively, ignoring
+      // znode version but then the node has already been updated and so we don't respect version?
+      // Do we need to create a deleteRecursively that takes expected version for the intial parent node?
     } catch (ZkException e) {
       LOG.debug("Failed to delete {} with opts {}, err: {}. Try recursive delete", path, options,
           e.getMessage());

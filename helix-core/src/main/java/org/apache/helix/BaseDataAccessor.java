@@ -99,11 +99,6 @@ public interface BaseDataAccessor<T> {
    */
   boolean remove(String path, int options);
 
-  // TODO: gspencer implement
-  // ZKBaseDataAccessor
-  // ZKCacheBaseDataAccessor
-  // MockBaseDataAccessor
-  // AutoFallbackProperty store
   boolean remove(String path, int expectedVersion, int options);
 
   /**

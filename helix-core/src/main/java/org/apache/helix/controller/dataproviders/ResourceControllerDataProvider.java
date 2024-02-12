@@ -36,6 +36,7 @@ import org.apache.helix.common.caches.CustomizedStateCache;
 import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.common.CapacityNode;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
 import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
@@ -81,6 +82,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // Maintain a set of all ChangeTypes for change detection
   private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
   private Set<String> _aggregationEnabledTypes = new HashSet<>();
+  private Set<CapacityNode> _simpleCapacitySet;
+
 
   // CrushEd strategy needs to have a stable partition list input. So this cached list persist the
   // previous seen partition lists. If the members in a list are not modified, the old list will be
@@ -171,6 +174,10 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // TODO: remove the workaround once we are able to apply the simple fix without majorly
     // TODO: impacting user's clusters.
     refreshStablePartitionList(getIdealStates());
+
+    if (getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1) {
+      buildSimpleCapacityMap(getClusterConfig().getGlobalMaxPartitionAllowedPerInstance());
+    }
 
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
         "END: ResourceControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
@@ -520,5 +527,18 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    */
   public WagedInstanceCapacity getWagedInstanceCapacity() {
     return _wagedInstanceCapacity;
+  }
+
+  private void buildSimpleCapacityMap(int globalMaxPartitionAllowedPerInstance) {
+    _simpleCapacitySet = new HashSet<>();
+    for (String instance : getEnabledLiveInstances()) {
+      CapacityNode capacityNode = new CapacityNode(instance);
+      capacityNode.setCapacity(globalMaxPartitionAllowedPerInstance);
+      _simpleCapacitySet.add(capacityNode);
+    }
+  }
+
+  public Set<CapacityNode> getSimpleCapacitySet() {
+    return _simpleCapacitySet;
   }
 }

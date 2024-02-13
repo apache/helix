@@ -138,8 +138,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // 2. Get all enabled and live SWAP_IN instances in the cluster.
     Set<String> liveSwapInInstances = cache.getLiveSwapInInstanceNames();
     Set<String> enabledSwapInInstances = cache.getEnabledSwapInInstanceNames();
-    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
-    // Skipping this when there are not SWAP_IN instances that are alive will reduce computation time.
+    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to
+    // the stateMap with the correct state.
+    // Skipping this when there are no SWAP_IN instances that are alive will reduce computation time.
     if (!liveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
       resourceMap.forEach((resourceName, resource) -> {
         StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
@@ -147,7 +148,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             .forEach((partition, stateMap) -> {
               // We use the preferenceList for the case where the swapOutInstance goes offline.
               // We do not want to drop the replicas that may have been bootstrapped on the swapInInstance
-              // in the case that the swapOutInstance goes offline.
+              // in the case that the swapOutInstance goes offline and no longer has an entry in the stateMap.
               Set<String> commonInstances = new HashSet<>(
                   bestPossibleStateOutput.getPreferenceList(resourceName,
                       partition.getPartitionName()));
@@ -173,8 +174,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                 // 1. If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
                 // to the same secondTopState.
                 // 2. If the swap-out instance's replica is any other state and is in the preferenceList,
-                // set the swap-in instance's replica to the topState if the StateModel allows for another replica with the topState
-                // to be added. We can make this assumption because if there is assignment to the swapOutInstance, it must be either
+                // set the swap-in instance's replica to the topState if the StateModel allows another to be added.
+                // If not, set the swap-in instance's replica to the secondTopState.
+                // We can make this assumption because if there is assignment to the swapOutInstance, it must be either
                 // a topState or a secondTopState.
                 if (stateMap.containsKey(swapOutInstance) && stateModelDef.getSecondTopStates()
                     .contains(stateMap.get(swapOutInstance))) {
@@ -183,7 +185,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                   stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
                       stateMap.get(swapOutInstance));
                 } else {
-
+                  // If the swap-out instance's replica is any other state in the stateMap or not present in the
+                  // stateMap, set the swap-in instance's replica to the topState if the StateModel allows another
+                  // to be added. If not, set the swap-in to the secondTopState.
                   String topStateCount =
                       stateModelDef.getNumInstancesPerState(stateModelDef.getTopState());
                   if (topStateCount.equals(
@@ -195,7 +199,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                     stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
                         stateModelDef.getTopState());
                   } else {
-                    // If StateModel does not allow another topState replica with the topState to be
+                    // If StateModel does not allow another topState replica to be
                     // added, set the swap-in instance's replica to the secondTopState.
                     stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
                         stateModelDef.getSecondTopStates().iterator().next());

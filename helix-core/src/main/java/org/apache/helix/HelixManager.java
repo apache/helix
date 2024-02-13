@@ -241,8 +241,7 @@ public interface HelixManager {
   }
 
   /**
-
-   * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, NotificationContext)
+   * @see CustomizedStateRootChangeListener#(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */

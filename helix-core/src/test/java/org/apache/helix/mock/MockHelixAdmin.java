@@ -24,12 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.status.ClusterManagementMode;
@@ -50,8 +47,7 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.zkclient.DataUpdater;
-
+import org.apache.helix.HelixManager;
 
 public class MockHelixAdmin implements HelixAdmin {
 
@@ -562,7 +558,7 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public boolean completeSwapIfPossible(String clusterName, String instanceName) {
+  public boolean completeSwapIfPossible(String clusterName, String instanceName, boolean forceComplete) {
     return false;
   }
 

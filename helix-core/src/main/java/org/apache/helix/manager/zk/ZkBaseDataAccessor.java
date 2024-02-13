@@ -720,11 +720,16 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean remove(String path, int options) {
-    return remove(path, -1, options);
+    return remove(path, options, -1);
   }
 
+  /**
+   * Sync remove with expected version. It tries to remove the ZNode if the ZNode's version matches
+   * the provided expectedVersion and all its descendants if any. Node does not exist is regarded as
+   * success. If expectedVersion is set to -1, then the ZNode version match is not enforced.
+   */
   @Override
-  public boolean remove(String path, int expectedVersion, int options) {
+  public boolean remove(String path, int options, int expectedVersion) {
     try {
       // operation will not throw exception when path successfully deleted or does not exist
       // despite real error, operation will throw exception when path not empty, and in this
@@ -733,10 +738,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     } catch (ZkBadVersionException e) {
       LOG.error("Failed to delete {} recursively, znode version mismatch!", path, e);
       return false;
-      // TODO: gspencer - can we do this? Or will this still allow for race condition where znode
-      // updated after this fails due another exception, then we call deleteRecursively, ignoring
-      // znode version but then the node has already been updated and so we don't respect version?
-      // Do we need to create a deleteRecursively that takes expected version for the intial parent node?
     } catch (ZkException e) {
       LOG.debug("Failed to delete {} with opts {}, err: {}. Try recursive delete", path, options,
           e.getMessage());

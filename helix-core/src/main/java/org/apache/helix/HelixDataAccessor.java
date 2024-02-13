@@ -112,7 +112,6 @@ public interface HelixDataAccessor {
    * @return true if removal was successful or node does not exist. false if the
    *         node existed and failed to remove it
    */
-  // TODO: gspencer -- add expectedVersion here too?
   boolean removeProperty(PropertyKey key);
 
   /**

@@ -40,6 +40,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.testng.Assert;
@@ -289,10 +290,33 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     Assert.assertFalse(_realmAwareZkClient.exists(TEST_REALM_ONE_VALID_PATH));
   }
 
+  /**
+   * Tests that delete() works on version match and fails on version mismatch
+   */
+  @Test(dependsOnMethods = "testDelete")
+  public void testDeleteExpectedVersion() {
+    // Create a ZNode for testing
+    _realmAwareZkClient.createPersistent(TEST_VALID_PATH, true);
+    Assert.assertTrue(_realmAwareZkClient.exists(TEST_VALID_PATH));
+    int expectedVersion = _realmAwareZkClient.getStat(TEST_VALID_PATH).getVersion();
+
+    // Test delete with invalid version, should fail to delete
+    try {
+      _realmAwareZkClient.delete(TEST_VALID_PATH, expectedVersion + 100);
+      Assert.fail("Should hvae thrown bad version exception");
+    } catch (ZkBadVersionException expectedException) {
+      // Expected exception, continue
+    }
+
+    // Assert delete with expected version successful
+    Assert.assertTrue(_realmAwareZkClient.delete(TEST_VALID_PATH, expectedVersion));
+    Assert.assertFalse(_realmAwareZkClient.exists(TEST_VALID_PATH));
+  }
+
   /*
    * Tests that multi-realm feature.
    */
-  @Test(dependsOnMethods = "testDelete")
+  @Test(dependsOnMethods = "testDeleteExpectedVersion")
   public void testMultiRealmCRUD() {
     ZNRecord realmOneZnRecord = new ZNRecord("realmOne");
     realmOneZnRecord.setSimpleField("realmOne", "Value");

@@ -89,15 +89,15 @@ public class AutoFallbackPropertyStore<T> extends ZkHelixPropertyStore<T> {
 
   @Override
   public boolean remove(String path, int options) {
-    return remove(path, -1, options);
+    return remove(path, options, -1);
   }
 
   @Override
-  public boolean remove(String path, int expectedVersion, int options) {
+  public boolean remove(String path, int options, int expectedVersion) {
     if (_fallbackStore != null) {
-      _fallbackStore.remove(path, expectedVersion, options);
+      _fallbackStore.remove(path, options, expectedVersion);
     }
-    return super.remove(path, expectedVersion, options);
+    return super.remove(path, options, expectedVersion);
   }
 
   @Override

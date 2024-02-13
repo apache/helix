@@ -99,7 +99,16 @@ public interface BaseDataAccessor<T> {
    */
   boolean remove(String path, int options);
 
-  boolean remove(String path, int expectedVersion, int options);
+  /**
+   * This will remove the ZNode and all its descendants if any, if the ZNode's version matches
+   * the provided expectedVersion.
+   * @param path Path to the ZNode to update
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
+   * @param expectedVersion the expected version of the node to be removed, -1 means match any
+   * version
+   * @return true if the removal succeeded, false otherwise
+   */
+  boolean remove(String path, int options, int expectedVersion);
 
   /**
    * Use it when creating children under a parent node. This will use async api for better

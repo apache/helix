@@ -445,7 +445,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     // and remove() should return false.
     RealmAwareZkClient mockZkClient = Mockito.mock(RealmAwareZkClient.class);
     Mockito.doThrow(new ZkException("Failed to delete " + path)).when(mockZkClient)
-        .delete(path);
+        .delete(path, -1);
     Mockito.doThrow(new ZkClientException("Failed to recursively delete " + path)).when(mockZkClient)
         .deleteRecursively(path);
     ZkBaseDataAccessor<ZNRecord> accessorMock =
@@ -462,6 +462,35 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertFalse(_gZkClient.exists(path));
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  /**
+   * Test that remove with expected version will fail on version mismatch. Succeed on version match.
+   */
+  @Test
+  public void testRemoveWithExpectedVersion() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+    ZNRecord record = new ZNRecord("msg_0");
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+
+    // Create node
+    boolean success = accessor.create(path, record, AccessOption.PERSISTENT);
+    Assert.assertTrue(success);
+
+    // Delete with wrong expected version. Should fail
+    int currentVersion = accessor.getStat(path, 0).getVersion();
+    success = accessor.remove(path, 0, currentVersion+100);
+    Assert.assertFalse(success);
+
+    // Delete with correct expected version. Should succeed
+    success = accessor.remove(path, 0, currentVersion);
+    Assert.assertTrue(success);
   }
 
   @Test

@@ -333,11 +333,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   @Override
   public boolean remove(String path, int options) {
-    return remove(path, -1, options);
+    return remove(path, options, -1);
   }
 
   @Override
-  public boolean remove(String path, int expectedVersion, int options) {
+  public boolean remove(String path, int options, int expectedVersion) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
@@ -346,7 +346,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       try {
         cache.lockWrite();
 
-        boolean success = _baseAccessor.remove(serverPath, expectedVersion, options);
+        boolean success = _baseAccessor.remove(serverPath, options, expectedVersion);
         if (success) {
           cache.purgeRecursive(serverPath);
         }
@@ -358,7 +358,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
 
     // no cache
-    return _baseAccessor.remove(serverPath, expectedVersion, options);
+    return _baseAccessor.remove(serverPath, options, expectedVersion);
   }
 
   @Override

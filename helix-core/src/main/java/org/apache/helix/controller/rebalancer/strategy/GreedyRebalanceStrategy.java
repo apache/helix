@@ -65,23 +65,26 @@ public class GreedyRebalanceStrategy implements RebalanceStrategy<ResourceContro
       return znRecord;
     }
 
+    // Sort the assignable nodes by id
     List<CapacityNode> assignableNodes = new ArrayList<>(clusterData.getSimpleCapacitySet());
     Collections.sort(assignableNodes, Comparator.comparing(CapacityNode::getId));
 
+    // Assign partitions to node by order.
     for (int i = 0, index = 0; i < _partitions.size(); i++) {
       int startIndex = index;
       List<String> preferenceList = new ArrayList<>();
       for (int j = 0; j < numReplicas; j++) {
-        if (index - startIndex >= assignableNodes.size()) {
-          logger.warn("No enough assignable nodes for resource: " + _resourceName);
-          break;
-        }
         while (index - startIndex < assignableNodes.size()) {
           CapacityNode node = assignableNodes.get(index++ % assignableNodes.size());
           if (node.canAdd(_resourceName, _partitions.get(i))) {
             preferenceList.add(node.getId());
             break;
           }
+        }
+
+        if (index - startIndex >= assignableNodes.size()) {
+          // If the all nodes have been tried out, then no node can be assigned.
+          logger.warn("No enough assignable nodes for resource: " + _resourceName);
         }
       }
       znRecord.setListField(_partitions.get(i), preferenceList);

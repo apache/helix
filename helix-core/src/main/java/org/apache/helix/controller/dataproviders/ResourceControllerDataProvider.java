@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
@@ -38,6 +39,7 @@ import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.CapacityNode;
 import org.apache.helix.controller.pipeline.Pipeline;
+import org.apache.helix.controller.rebalancer.strategy.GreedyRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
 import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
@@ -177,6 +179,14 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
     if (getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1) {
       buildSimpleCapacityMap(getClusterConfig().getGlobalMaxPartitionAllowedPerInstance());
+      // Remove all cached IdealState because it is a global computation cannot partially be
+      // performed for some resources. The computation is simple as well not taking too much resource
+      // to recompute the assignments.
+      Set<String> cachedGreedyIdealStates = _idealMappingCache.values().stream().filter(
+              record -> record.getSimpleField(IdealState.IdealStateProperty.REBALANCE_STRATEGY.name())
+                  .equals(GreedyRebalanceStrategy.class.getName())).map(ZNRecord::getId)
+          .collect(Collectors.toSet());
+      _idealMappingCache.keySet().removeAll(cachedGreedyIdealStates);
     }
 
     LogUtil.logInfo(logger, getClusterEventId(), String.format(

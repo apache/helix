@@ -390,7 +390,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @PathParam("instanceName") String instanceName, @QueryParam("command") String command,
       @QueryParam("instanceOperation") InstanceConstants.InstanceOperation state,
       @QueryParam("instanceDisabledType") String disabledType,
-      @QueryParam("instanceDisabledReason") String disabledReason, String content) {
+      @QueryParam("instanceDisabledReason") String disabledReason,
+      @QueryParam("force") boolean force, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);

@@ -312,7 +312,17 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
         return _record;
       }
 
-      // higher priority lock request will try to  preempt current lock owner
+      LockInfo unlockOrLockRequestLockInfo = new LockInfo(_record);
+      // Any unlock request from non-lock owners is blocked.
+      if (unlockOrLockRequestLockInfo.getOwner().equals(LockConstants.DEFAULT_USER_ID)) {
+        LOG.error("User {} is not the lock owner and cannot release lock at Lock path {}.", _userId,
+            _lockPath);
+        throw new HelixException(
+            String.format("User %s is not the lock owner and cannot release lock at Lock path %s.",
+                _userId, _lockPath));
+      }
+
+      // higher priority lock request will try to  preempt current lock owner.
       if (!isCurrentOwner(curLockInfo) && _priority > curLockInfo.getPriority()) {
         // if requestor field is empty, fill the field with requestor's id
         if (curLockInfo.getRequestorId().equals(LockConstants.DEFAULT_USER_ID)) {

@@ -44,6 +44,7 @@ import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
+import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
@@ -135,45 +136,74 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
     Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
     // 2. Get all enabled and live SWAP_IN instances in the cluster.
-    Set<String> enabledLiveSwapInInstances = cache.getEnabledLiveSwapInInstanceNames();
-    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to the end.
-    // Skipping this when there are not SWAP_IN instances ready(enabled and live) will reduce computation time when there is not an active
-    // swap occurring.
-    if (!enabledLiveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
+    Set<String> liveSwapInInstances = cache.getLiveSwapInInstanceNames();
+    Set<String> enabledSwapInInstances = cache.getEnabledSwapInInstanceNames();
+    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to
+    // the stateMap with the correct state.
+    // Skipping this when there are no SWAP_IN instances that are alive will reduce computation time.
+    if (!liveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
       resourceMap.forEach((resourceName, resource) -> {
         StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
         bestPossibleStateOutput.getResourceStatesMap().get(resourceName).getStateMap()
             .forEach((partition, stateMap) -> {
-              Set<String> commonInstances = new HashSet<>(stateMap.keySet());
+              // We use the preferenceList for the case where the swapOutInstance goes offline.
+              // We do not want to drop the replicas that may have been bootstrapped on the swapInInstance
+              // in the case that the swapOutInstance goes offline and no longer has an entry in the stateMap.
+              Set<String> commonInstances = new HashSet<>(
+                  bestPossibleStateOutput.getPreferenceList(resourceName,
+                      partition.getPartitionName()));
               commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
 
               commonInstances.forEach(swapOutInstance -> {
-                if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState())) {
+                // If the corresponding swap-in instance is not live, skip assigning to it.
+                if (!liveSwapInInstances.contains(
+                    swapOutToSwapInInstancePairs.get(swapOutInstance))) {
+                  return;
+                }
 
+                // If the corresponding swap-in instance is not enabled, assign replicas with
+                // initial state.
+                if (!enabledSwapInInstances.contains(
+                    swapOutToSwapInInstancePairs.get(swapOutInstance))) {
+                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                      stateModelDef.getInitialState());
+                  return;
+                }
+
+                // If the swap-in node is live and enabled, do assignment with the following logic:
+                // 1. If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
+                // to the same secondTopState.
+                // 2. If the swap-out instance's replica is any other state and is in the preferenceList,
+                // set the swap-in instance's replica to the topState if the StateModel allows another to be added.
+                // If not, set the swap-in instance's replica to the secondTopState.
+                // We can make this assumption because if there is assignment to the swapOutInstance, it must be either
+                // a topState or a secondTopState.
+                if (stateMap.containsKey(swapOutInstance) && stateModelDef.getSecondTopStates()
+                    .contains(stateMap.get(swapOutInstance))) {
+                  // If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
+                  // to the same secondTopState.
+                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                      stateMap.get(swapOutInstance));
+                } else {
+                  // If the swap-out instance's replica is any other state in the stateMap or not present in the
+                  // stateMap, set the swap-in instance's replica to the topState if the StateModel allows another
+                  // to be added. If not, set the swap-in to the secondTopState.
                   String topStateCount =
                       stateModelDef.getNumInstancesPerState(stateModelDef.getTopState());
                   if (topStateCount.equals(
                       StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)
                       || topStateCount.equals(
                       StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
-                    // If the swap-out instance's replica is a topState and the StateModel allows for
-                    // another replica with the topState to be added, set the swap-in instance's replica
-                    // to the topState.
+                    // If the StateModel allows for another replica with the topState to be added,
+                    // set the swap-in instance's replica to the topState.
                     stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
                         stateModelDef.getTopState());
                   } else {
-                    // If the swap-out instance's replica is a topState and the StateModel does not allow for
-                    // another replica with the topState to be added, set the swap-in instance's replica
-                    // to the secondTopState.
+                    // If StateModel does not allow another topState replica to be
+                    // added, set the swap-in instance's replica to the secondTopState.
                     stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
                         stateModelDef.getSecondTopStates().iterator().next());
                   }
-                } else if (stateModelDef.getSecondTopStates()
-                    .contains(stateMap.get(swapOutInstance))) {
-                  // If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
-                  // to the same secondTopState.
-                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                      stateMap.get(swapOutInstance));
                 }
               });
             });
@@ -355,7 +385,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       WagedRebalancer wagedRebalancer, ResourceControllerDataProvider cache,
       CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap,
       BestPossibleStateOutput output, List<String> failureResources) {
-    if (cache.isMaintenanceModeEnabled()) {
+    // Allow calculation for readOnlyWagedRebalancer as it is used by partitionAssignment API
+    if (cache.isMaintenanceModeEnabled() && !(wagedRebalancer instanceof ReadOnlyWagedRebalancer)) {
       // The WAGED rebalancer won't be used while maintenance mode is enabled.
       return Collections.emptyMap();
     }

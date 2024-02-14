@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,7 +32,6 @@ import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
-import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
@@ -55,8 +53,6 @@ import org.slf4j.LoggerFactory;
  */
 public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedAutoRebalancer.class);
-  public static ImmutableSet<String> INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT =
-      ImmutableSet.of(InstanceConstants.InstanceOperation.EVACUATE.name());
 
   @Override
   public IdealState computeNewIdealState(String resourceName,
@@ -160,14 +156,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
             stateCountMap, maxPartition);
 
     List<String> allNodeList = new ArrayList<>(assignableNodes);
+    List<String> liveEnabledAssignableNodeList = new ArrayList<>(assignableLiveEnabledNodes);
 
-    // TODO: Currently we have 2 groups of instances and compute preference list twice and merge.
-    // Eventually we want to have exclusive groups of instance for different instance tag.
-    List<String> liveEnabledAssignableNodeList = new ArrayList<>(
-        // We will not assign partitions to instances with EVACUATE InstanceOperation.
-        DelayedRebalanceUtil.filterOutEvacuatingInstances(
-            clusterData.getAssignableInstanceConfigMap(),
-            assignableLiveEnabledNodes));
     // sort node lists to ensure consistent preferred assignments
     Collections.sort(allNodeList);
     Collections.sort(liveEnabledAssignableNodeList);
@@ -276,7 +266,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition =
-          computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList,
+          // We use cache.getLiveInstances().keySet() to make sure we gracefully handle n -> n + 1 replicas if possible
+          // when the one of the current nodes holding the replica is no longer considered assignable. (ex: EVACUATE)
+          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef, preferenceList,
               currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
               partition, cache.getAbnormalStateResolver(stateModelDefName), cache);
 
@@ -404,16 +396,12 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     // If the load-balance finishes (all replica are migrated to new instances),
     // we should drop all partitions from previous assigned instances.
-    if (!currentMapWithPreferenceList.values().contains(HelixDefinedState.ERROR.name())
+    if (!currentMapWithPreferenceList.containsValue(HelixDefinedState.ERROR.name())
         && bestPossibleStateMap.size() > numReplicas && readyToDrop(currentStateMap,
         bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
       for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
         String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
-        // We do not want to drop a SWAP_IN node if it is at the end of the preferenceList,
-        // because partitions are actively being added on this node to prepare for SWAP completion.
-        if (cache == null || !cache.getEnabledLiveSwapInInstanceNames().contains(instanceToDrop)) {
-          bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
-        }
+        bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
       }
     }
 

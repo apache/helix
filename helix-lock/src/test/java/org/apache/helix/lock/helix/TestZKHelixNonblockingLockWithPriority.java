@@ -82,6 +82,46 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
   }
 
   @Test
+  public void testNonLockOwnerUnlockFail() throws Exception {
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("higher priority lock").setUserId("user1").setPriority(0)
+        .setWaitingTimeout(30000).setCleanupTimeout(10000).setIsForceful(false)
+        .setLockListener(createLockListener());
+    ZKDistributedNonblockingLock lock = lockBuilder.build();
+
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        lock.tryLock();
+      }
+    };
+
+    t.start();
+    t.join();
+    Assert.assertTrue(lock.isCurrentOwner());
+
+    lockBuilder.setUserId("user2").setPriority(5);
+    ZKDistributedNonblockingLock lock2 = lockBuilder.build();
+    // unlock should fail because even if user2 has higher priority because user2 set can unlock
+    // not owned lock to false.
+    Assert.assertFalse(lock2.unlock());
+    t = new Thread() {
+      @Override
+      public void run() {
+        lock2.tryLock();
+      }
+    };
+    t.start();
+    t.join();
+    Assert.assertTrue(lock2.isCurrentOwner());
+    lock2.unlock();
+    lock2.close();
+    lock.close();
+  }
+
+
+  @Test
   public void testLowerPriorityRequestRejected() throws Exception {
     ZKDistributedNonblockingLock lock = createLockWithConfig();
     ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();

@@ -70,6 +70,10 @@ public class ClusterConfig extends HelixProperty {
 
     // The following concerns maintenance mode
     MAX_PARTITIONS_PER_INSTANCE,
+    // The maximum number of partitions that an instance can serve in this cluster.
+    // This only works for GreedyRebalanceStrategy.
+    // TODO: if we want to support this for other rebalancers, we need to implement that logic
+    GLOBAL_MAX_PARTITIONS_ALLOWED_PER_INSTANCE,
     // The following two include offline AND disabled instances
     MAX_OFFLINE_INSTANCES_ALLOWED,
     NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT, // For auto-exiting maintenance mode
@@ -154,7 +158,10 @@ public class ClusterConfig extends HelixProperty {
     HELIX_DISABLED_TYPE,
 
     // The last time when the on-demand rebalance is triggered.
-    LAST_ON_DEMAND_REBALANCE_TIMESTAMP
+    LAST_ON_DEMAND_REBALANCE_TIMESTAMP,
+
+    // List of Preferred scoring keys used in evenness score computation
+    PREFERRED_SCORING_KEYS
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -506,6 +513,26 @@ public class ClusterConfig extends HelixProperty {
    */
   public int getMaxPartitionsPerInstance() {
     return _record.getIntField(ClusterConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(), -1);
+  }
+
+  /**
+   * Set the maximum number of partitions allowed to assign to an instance in this cluster.
+   *
+   * @param globalMaxPartitionAllowedPerInstance the maximum number of partitions allowed
+   */
+  public void setGlobalMaxPartitionAllowedPerInstance(int globalMaxPartitionAllowedPerInstance) {
+    _record.setIntField(ClusterConfigProperty.GLOBAL_MAX_PARTITIONS_ALLOWED_PER_INSTANCE.name(),
+        globalMaxPartitionAllowedPerInstance);
+  }
+
+  /**
+   * Get the maximum number of partitions allowed to assign to an instance in this cluster.
+   *
+   * @return the maximum number of partitions allowed, or Integer.MAX_VALUE
+   */
+  public int getGlobalMaxPartitionAllowedPerInstance() {
+    return _record.getIntField(
+        ClusterConfigProperty.GLOBAL_MAX_PARTITIONS_ALLOWED_PER_INSTANCE.name(), -1);
   }
 
   /**
@@ -1197,5 +1224,26 @@ public class ClusterConfig extends HelixProperty {
   public void setLastOnDemandRebalanceTimestamp(long rebalanceTimestamp) {
     _record.setLongField(ClusterConfigProperty.LAST_ON_DEMAND_REBALANCE_TIMESTAMP.name(),
         rebalanceTimestamp);
+  }
+
+  /**
+   * Get the list of preferred scoring keys if set.
+   *
+   * @return PreferredScoringKeys that is used in computation of evenness score
+   */
+  public List<String> getPreferredScoringKeys() {
+    return _record.getListField(ClusterConfigProperty.PREFERRED_SCORING_KEYS.name());
+  }
+
+  /**
+   * Set list of preferred scoring keys for cluster.
+   * preferredScoringKeys is set as a List to make it generic and accommodate any future use case.
+   * preferredScoringKeys will be a singleton list for current use case.
+   *
+   * @param preferredScoringKeys value used in evenness score computation
+   */
+  public void setPreferredScoringKeys(List<String> preferredScoringKeys) {
+    _record.setListField(ClusterConfigProperty.PREFERRED_SCORING_KEYS.name(),
+        preferredScoringKeys);
   }
 }

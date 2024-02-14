@@ -99,8 +99,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     Set<String> clusters = OBJECT_MAPPER.readValue(clustersStr,
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
-    Assert.assertEquals(clusters, _clusters,
-        "clusters from response: " + clusters + " vs clusters actually: " + _clusters);
+    Assert.assertEquals(clusters, _clusters);
 
     validateAuditLogSize(1);
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);

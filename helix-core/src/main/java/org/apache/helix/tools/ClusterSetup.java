@@ -221,10 +221,18 @@ public class ClusterSetup {
     close();
   }
 
+  /**
+   * Function that creates the cluster loading all the state-model defs, and overwriting if cluster
+   * with same clusterName already exists.
+   */
   public void addCluster(String clusterName, boolean overwritePrevious, CloudConfig cloudConfig) {
     addCluster(clusterName, Arrays.asList(BuiltInStateModelDefinitions.values()), overwritePrevious, cloudConfig);
   }
 
+  /**
+   * Function that creates the cluster by selectively loading all the state-model defs, and
+   * overwriting if cluster with same clusterName already exists.
+   */
   public void addCluster(
       String clusterName, List<BuiltInStateModelDefinitions> stateModelDefs, boolean overwritePrevious, CloudConfig cloudConfig)
       throws HelixException {

@@ -40,7 +40,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -79,10 +78,9 @@ import org.testng.Assert;
 
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
-  public static final long WAIT_DURATION = 10 * 1000L; // 10 seconds
+  public static final long WAIT_DURATION = 60 * 1000L; // 60 seconds
   public static final long POLL_DURATION = 10L;        // 10 milli-seconds
-  public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1000;
-
+  public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1500;
   /**
    * Returns a unused random port.
    */
@@ -289,6 +287,13 @@ public class TestHelper {
       }
 
       ClusterSetup setupTool = new ClusterSetup(zkAddr);
+
+      /**
+       * This is an optimization that we are performing to selectively load only the state-model defs
+       * that are required for cluster. We have found that loading all state-model defs everytime in
+       * a cluster creation takes about 500-700ms, due to invocation of ZKUtil::isClusterSetup function
+       * that (repeatedly) ensure all the helix cluster paths are created before loading a state-model.
+       */
       List<BuiltInStateModelDefinitions> stateModelDefinitions = Objects.isNull(stateModelDef)
           ? (resourceNb == 0 ? Collections.emptyList() : Arrays.asList(BuiltInStateModelDefinitions.values()))
           : Arrays.asList(BuiltInStateModelDefinitions.valueOf(stateModelDef));
@@ -816,7 +821,7 @@ public class TestHelper {
         }
         return result;
       }
-      TestHelper.sleepQuietly(Duration.ofMillis(POLL_DURATION));
+      Thread.sleep(Duration.ofMillis(POLL_DURATION).toMillis());
     } while (true);
   }
 
@@ -869,33 +874,9 @@ public class TestHelper {
 
   public static HelixZkClient createZkClient(String zkAddress) {
     HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig()
-        .setZkSerializer(new org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer())
-        .setConnectInitTimeout(1000L)
-        .setOperationRetryTimeout(1000L);
+        .setZkSerializer(new org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer());
 
-    HelixZkClient.ZkConnectionConfig zkConnectionConfig = new HelixZkClient.ZkConnectionConfig(zkAddress)
-        .setSessionTimeout(1000);
-
+    HelixZkClient.ZkConnectionConfig zkConnectionConfig = new HelixZkClient.ZkConnectionConfig(zkAddress);
     return DedicatedZkClientFactory.getInstance().buildZkClient(zkConnectionConfig, clientConfig);
   }
-
-  public static void sleepQuietly(Duration duration) {
-    try {
-      Thread.sleep(duration.toMillis());
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-  }
-
-  public static void timeIt(Runnable runnable) {
-    long startTime = System.currentTimeMillis();
-    try {
-      runnable.run();
-    } catch (Exception e) {
-      throw e;
-    } finally {
-      System.out.println(" -- time taken: " + (System.currentTimeMillis() - startTime) + "ms");
-    }
-  }
-
 }

@@ -36,7 +36,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -76,15 +75,15 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     _admin = _setupTool.getClusterManagementTool();
     _setupTool.addCluster(_clusterName, Arrays.asList(MasterSlave, OnlineOffline),true);
     _setupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS,
-        MasterSlave.name(), RebalanceMode.SEMI_AUTO.toString());
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.SEMI_AUTO.toString());
     _setupTool.addResourceToCluster(_clusterName, RESOURCES[1], NUM_PARTITIONS,
-        OnlineOffline.name(), RebalanceMode.SEMI_AUTO.toString());
+        BuiltInStateModelDefinitions.OnlineOffline.name(), RebalanceMode.SEMI_AUTO.toString());
 
     _setupTool.addResourceToCluster(_clusterName, RESOURCES[2], NUM_PARTITIONS,
-        MasterSlave.name(), RebalanceMode.FULL_AUTO.toString(),
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.toString(),
         CrushEdRebalanceStrategy.class.getName());
     _setupTool.addResourceToCluster(_clusterName, RESOURCES[3], NUM_PARTITIONS,
-        OnlineOffline.name(), RebalanceMode.FULL_AUTO.toString(),
+        BuiltInStateModelDefinitions.OnlineOffline.name(), RebalanceMode.FULL_AUTO.toString(),
         CrushEdRebalanceStrategy.class.getName());
 
     // Enable persist best possible assignment

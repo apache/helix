@@ -44,8 +44,6 @@ import org.apache.helix.rest.server.filters.CORSFilter;
 import org.apache.helix.rest.server.mock.MockMetadataStoreDirectoryAccessor;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPut;

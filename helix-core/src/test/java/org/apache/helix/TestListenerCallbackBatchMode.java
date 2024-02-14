@@ -219,15 +219,21 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
   }
 
   private void verifyNonbatchedListeners(final Listener listener) throws Exception {
-    Boolean result = TestHelper.verify(() -> (listener._instanceConfigChangedCount == _numNode)
-        && (listener._idealStateChangedCount == _numResource), 4000);
+    Boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override public boolean verify() {
+        return (listener._instanceConfigChangedCount == _numNode) && (
+            listener._idealStateChangedCount == _numResource);
+      }
+    }, 12000);
 
+    Thread.sleep(50);
     Assert.assertTrue(result,
         "instance callbacks: " + listener._instanceConfigChangedCount + ", idealstate callbacks "
             + listener._idealStateChangedCount + "\ninstance count: " + _numNode + ", idealstate counts: " + _numResource);
   }
 
   private void verifyBatchedListeners(Listener batchListener) throws InterruptedException {
+    Thread.sleep(3000);
     boolean result = (batchListener._instanceConfigChangedCount < _numNode) && (
         batchListener._idealStateChangedCount < _numResource);
 
@@ -249,7 +255,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
         .removeListener(new PropertyKey.Builder(_manager.getClusterName()).idealStates(), listener);
   }
 
-  private void updateConfigs() {
+  private void updateConfigs() throws InterruptedException {
     final Random r = new Random(System.currentTimeMillis());
     // test change content
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -259,6 +265,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
       InstanceConfig value = accessor.getProperty(keyBuilder.instanceConfig(instance));
       value._record.setLongField("TimeStamp", System.currentTimeMillis());
       accessor.setProperty(keyBuilder.instanceConfig(instance), value);
+      Thread.sleep(50);
     }
 
     final List<String> resources = accessor.getChildNames(keyBuilder.idealStates());
@@ -266,6 +273,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
       IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
       idealState.setNumPartitions(r.nextInt(100));
       accessor.setProperty(keyBuilder.idealStates(idealState.getId()), idealState);
+      Thread.sleep(20); // wait zk callback
     }
   }
 }

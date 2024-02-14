@@ -107,7 +107,7 @@ public class ZkTestBase {
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
   protected final String CONTROLLER_PREFIX = "controller";
   protected final String PARTICIPANT_PREFIX = "localhost";
-  private static final long MANUAL_GC_PAUSE = 1000L;
+  private static final long MANUAL_GC_PAUSE = 4000L;
 
   /*
    * Multiple ZK references

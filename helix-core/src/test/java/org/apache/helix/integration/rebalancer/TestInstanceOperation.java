@@ -1033,7 +1033,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
     // swap was completed.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")
@@ -1077,7 +1077,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
 
     // Assert isEvacuateFinished is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -1091,7 +1091,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Validate that dropping the instance has not changed the assignment
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")

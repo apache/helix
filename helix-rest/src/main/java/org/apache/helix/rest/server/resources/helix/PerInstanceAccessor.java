@@ -442,7 +442,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
               ImmutableMap.of("successful", admin.canCompleteSwap(clusterId, instanceName))));
         case completeSwapIfPossible:
           return OK(OBJECT_MAPPER.writeValueAsString(
-              ImmutableMap.of("successful", admin.completeSwapIfPossible(clusterId, instanceName))));
+              ImmutableMap.of("successful", admin.completeSwapIfPossible(clusterId, instanceName, force))));
         case addInstanceTag:
           if (!validInstance(node, instanceName)) {
             return badRequest("Instance names are not match!");

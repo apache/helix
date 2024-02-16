@@ -378,7 +378,7 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
   }
 
   @Test
-  private void testComputePartitionAssignmentMaintenanceMode() throws Exception {
+  public void testComputePartitionAssignmentMaintenanceMode() throws Exception {
 
     // Create 5 WAGED resources
     String wagedResourcePrefix = "TEST_WAGED_DB_";

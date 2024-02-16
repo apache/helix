@@ -29,6 +29,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The higher the maximum usage value for the capacity key, the lower the score will be, implying
  * that it is that much less desirable to assign anything on the given node.
  * It is a greedy approach since it evaluates only on the most used capacity key.
+ * If capacity has not been defined for both the instance and the resource, then we evaluate the
+ * proposed assignment according to the top state replication count on the instance.
  */
 class TopStateMaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
   @Override
@@ -39,6 +41,14 @@ class TopStateMaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
       // So return zero on any assignable node candidate.
       return 0;
     }
+
+    // No node or replica capacity defined, we default to just looking at # top state
+    if (node.getMaxCapacity().isEmpty() && replica.getCapacity().isEmpty()) {
+      int curTopPartitionCountForResource = node.getAssignedTopStatePartitionsCount();
+      int estimatedMaxTopStateCount = clusterContext.getEstimatedMaxTopStateCount();
+      return computeUtilizationScore(estimatedMaxTopStateCount, curTopPartitionCountForResource);
+    }
+
     float estimatedTopStateMaxUtilization = clusterContext.getEstimatedTopStateMaxUtilization();
     float projectedHighestUtilization =
         node.getTopStateProjectedHighestUtilization(replica.getCapacity(), clusterContext.getPreferredScoringKeys());

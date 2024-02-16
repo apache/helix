@@ -51,6 +51,9 @@ public class TestTopStateMaxCapacityUsageInstanceConstraint {
 
   @Test
   public void testGetNormalizedScore() {
+    // Node and Replica capacities are defined
+    when(_testNode.getMaxCapacity()).thenReturn(Collections.singletonMap("foo", 1));
+    when(_testReplica.getCapacity()).thenReturn(Collections.singletonMap("foo", 1));
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getTopStateProjectedHighestUtilization(anyMap(), any())).thenReturn(0.8f);
     when(_clusterContext.getEstimatedTopStateMaxUtilization()).thenReturn(1f);
@@ -62,9 +65,11 @@ public class TestTopStateMaxCapacityUsageInstanceConstraint {
     Assert.assertTrue(normalizedScore > 0.99);
   }
 
-
   @Test
   public void testGetNormalizedScoreWithPreferredScoringKey() {
+    // Node and Replica capacities are defined
+    when(_testNode.getMaxCapacity()).thenReturn(Collections.singletonMap("foo", 1));
+    when(_testReplica.getCapacity()).thenReturn(Collections.singletonMap("foo", 1));
     List<String> preferredScoringKeys = Collections.singletonList("CU");
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getTopStateProjectedHighestUtilization(anyMap(),
@@ -76,6 +81,23 @@ public class TestTopStateMaxCapacityUsageInstanceConstraint {
     Assert.assertEquals((float) score,0.5f);
     double normalizedScore =
             _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertTrue(normalizedScore > 0.99);
+  }
+
+  @Test
+  public void testGetNormalizedScoreNoCapacityKeysDefined() {
+    // Node and Replica capacities are NOT defined
+    when(_testNode.getMaxCapacity()).thenReturn(Collections.emptyMap());
+    when(_testReplica.getCapacity()).thenReturn(Collections.emptyMap());
+    when(_testReplica.isReplicaTopState()).thenReturn(true);
+
+    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(1);
+    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(2);
+
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals((float) score,0.5f);
+    double normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertTrue(normalizedScore > 0.99);
   }
 }

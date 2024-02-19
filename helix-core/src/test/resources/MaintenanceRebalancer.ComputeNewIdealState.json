@@ -1,0 +1,67 @@
+[
+  {
+    "comment": "[Handles 100] Leader - Follower (A, B, C) -> (A, B, C)",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lor1-app20330.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932"
+    ],
+    "currentStateMap": {
+      "lor1-app4217.prod.linkedin.com_11932" : "SLAVE",
+      "lor1-app20330.prod.linkedin.com_11932" : "MASTER",
+      "lor1-app21726.prod.linkedin.com_11932" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "lor1-app20330.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932"
+    ]
+  },
+  {
+    "comment": "[Handles 100] Leader - Follower (A, B, C) -> (A, C, B)",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lor1-app20330.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932"
+    ],
+    "currentStateMap": {
+      "lor1-app4217.prod.linkedin.com_11932" : "SLAVE",
+      "lor1-app20330.prod.linkedin.com_11932" : "MASTER",
+      "lor1-app21726.prod.linkedin.com_11932" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "lor1-app20330.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932"
+    ]
+  },
+  {
+    "comment": "[Handles 100] Leader - Follower (A, C, B) -> (A, C, B)",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lor1-app20330.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932"
+    ],
+    "currentStateMap": {
+      "lor1-app4217.prod.linkedin.com_11932" : "SLAVE",
+      "lor1-app20330.prod.linkedin.com_11932" : "MASTER",
+      "lor1-app21726.prod.linkedin.com_11932" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "lor1-app20330.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932"
+    ]
+  },
+  {
+    "comment": "[Handles 0] Leader - Offline - Follower (Offline should go to end)",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lor1-app21646.prod.linkedin.com_11932", "lor1-app4495.prod.linkedin.com_11932", "lor1-app4138.prod.linkedin.com_11932"
+    ],
+    "currentStateMap": {
+      "lor1-app21646.prod.linkedin.com_11932" : "MASTER",
+      "lor1-app4495.prod.linkedin.com_11932" : "OFFLINE",
+      "lor1-app4138.prod.linkedin.com_11932" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "lor1-app21646.prod.linkedin.com_11932", "lor1-app4138.prod.linkedin.com_11932", "lor1-app4495.prod.linkedin.com_11932"
+    ]
+  }
+
+]

@@ -1,6 +1,6 @@
 [
   {
-    "comment": "[Handles 100] Leader - Follower (A, B, C) -> (A, B, C)",
+    "comment": "[Handles 100] Leader - Follower (A, B, C) -> (A, C, B)",
     "stateModel": "MasterSlave",
     "liveInstances": [],
     "preferenceList": [
@@ -12,7 +12,7 @@
       "lor1-app21726.prod.linkedin.com_11932" : "SLAVE"
     },
     "expectedPreferenceList": [
-      "lor1-app20330.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932"
+      "lor1-app20330.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932"
     ]
   },
   {

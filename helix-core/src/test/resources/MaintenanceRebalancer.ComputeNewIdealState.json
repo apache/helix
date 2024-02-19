@@ -1,6 +1,6 @@
 [
   {
-    "comment": "[Handles 100] Leader - Follower (A, B, C) -> (A, C, B)",
+    "comment": "[Case 1] Leader - Follower (A, B, C) -> (A, C, B)",
     "stateModel": "MasterSlave",
     "liveInstances": [],
     "preferenceList": [
@@ -16,35 +16,51 @@
     ]
   },
   {
-    "comment": "[Handles 100] Leader - Follower (A, B, C) -> (A, C, B)",
+    "comment": "[Case 2] Leader - Follower (A, B, C) -> (A, C, B)",
     "stateModel": "MasterSlave",
     "liveInstances": [],
     "preferenceList": [
-      "lor1-app20330.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932"
+      "lor1-app20171.prod.linkedin.com_11932", "lor1-app19760.prod.linkedin.com_11932", "lor1-app4298.prod.linkedin.com_11932"
     ],
     "currentStateMap": {
-      "lor1-app4217.prod.linkedin.com_11932" : "SLAVE",
-      "lor1-app20330.prod.linkedin.com_11932" : "MASTER",
-      "lor1-app21726.prod.linkedin.com_11932" : "SLAVE"
+      "lor1-app20171.prod.linkedin.com_11932" : "MASTER",
+      "lor1-app4298.prod.linkedin.com_11932" : "SLAVE",
+      "lor1-app19760.prod.linkedin.com_11932" : "SLAVE"
     },
     "expectedPreferenceList": [
-      "lor1-app20330.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932"
+      "lor1-app20171.prod.linkedin.com_11932", "lor1-app4298.prod.linkedin.com_11932", "lor1-app19760.prod.linkedin.com_11932"
     ]
   },
   {
-    "comment": "[Handles 100] Leader - Follower (A, C, B) -> (A, C, B)",
+    "comment": "[Case 3] Leader - Follower (A, B, C) -> (A, C, B)",
     "stateModel": "MasterSlave",
     "liveInstances": [],
     "preferenceList": [
-      "lor1-app20330.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932"
+      "lor1-app19760.prod.linkedin.com_11932", "lor1-app4086.prod.linkedin.com_11932", "lor1-app4196.prod.linkedin.com_11932"
     ],
     "currentStateMap": {
-      "lor1-app4217.prod.linkedin.com_11932" : "SLAVE",
-      "lor1-app20330.prod.linkedin.com_11932" : "MASTER",
-      "lor1-app21726.prod.linkedin.com_11932" : "SLAVE"
+      "lor1-app4086.prod.linkedin.com_11932" : "SLAVE",
+      "lor1-app4196.prod.linkedin.com_11932" : "SLAVE",
+      "lor1-app19760.prod.linkedin.com_11932" : "MASTER"
     },
     "expectedPreferenceList": [
-      "lor1-app20330.prod.linkedin.com_11932", "lor1-app4217.prod.linkedin.com_11932", "lor1-app21726.prod.linkedin.com_11932"
+      "lor1-app19760.prod.linkedin.com_11932", "lor1-app4196.prod.linkedin.com_11932", "lor1-app4086.prod.linkedin.com_11932"
+    ]
+  },
+  {
+    "comment": "[Case 4] Leader - Follower (A, B, C) -> (A, C, B)",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lor1-app4119.prod.linkedin.com_11932", "lor1-app4481.prod.linkedin.com_11932", "lor1-app7528.prod.linkedin.com_11932"
+    ],
+    "currentStateMap": {
+      "lor1-app7528.prod.linkedin.com_11932" : "SLAVE",
+      "lor1-app4119.prod.linkedin.com_11932" : "MASTER",
+      "lor1-app4481.prod.linkedin.com_11932" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "lor1-app4119.prod.linkedin.com_11932", "lor1-app7528.prod.linkedin.com_11932", "lor1-app4481.prod.linkedin.com_11932"
     ]
   },
   {

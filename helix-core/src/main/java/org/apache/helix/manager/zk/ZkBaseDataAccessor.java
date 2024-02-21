@@ -727,6 +727,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * Sync remove with expected version. It tries to remove the ZNode if the ZNode's version matches
    * the provided expectedVersion and all its descendants if any. Node does not exist is regarded as
    * success. If expectedVersion is set to -1, then the ZNode version match is not enforced.
+   * This method calls delete and checks the expected version, if the expectedVersion check passes
+   * but the delete call fails due to the node having children, it will call deleteRecursively,
+   * which does not enforce an expectedVersion check.
    */
   @Override
   public boolean remove(String path, int options, int expectedVersion) {

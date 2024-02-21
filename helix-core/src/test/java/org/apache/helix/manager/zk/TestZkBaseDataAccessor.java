@@ -483,12 +483,16 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     boolean success = accessor.create(path, record, AccessOption.PERSISTENT);
     Assert.assertTrue(success);
 
-    // Delete with wrong expected version. Should fail
+    // Create child node
+    success = accessor.create(path + "/child", record, AccessOption.PERSISTENT);
+    Assert.assertTrue(success);
+
+    // Delete parent with wrong expected version. Should fail
     int currentVersion = accessor.getStat(path, 0).getVersion();
     success = accessor.remove(path, 0, currentVersion+100);
     Assert.assertFalse(success);
 
-    // Delete with correct expected version. Should succeed
+    // Delete parent with correct expected version. Should succeed
     success = accessor.remove(path, 0, currentVersion);
     Assert.assertTrue(success);
   }

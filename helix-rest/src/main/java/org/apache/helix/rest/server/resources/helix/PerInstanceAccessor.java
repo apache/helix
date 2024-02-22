@@ -44,6 +44,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -438,10 +439,10 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           break;
         case canCompleteSwap:
           return OK(OBJECT_MAPPER.writeValueAsString(
-              Map.of("successful", admin.canCompleteSwap(clusterId, instanceName))));
+              ImmutableMap.of("successful", admin.canCompleteSwap(clusterId, instanceName))));
         case completeSwapIfPossible:
           return OK(OBJECT_MAPPER.writeValueAsString(
-              Map.of("successful", admin.completeSwapIfPossible(clusterId, instanceName, force))));
+              ImmutableMap.of("successful", admin.completeSwapIfPossible(clusterId, instanceName, force))));
         case addInstanceTag:
           if (!validInstance(node, instanceName)) {
             return badRequest("Instance names are not match!");
@@ -487,7 +488,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                 + "{}, instance: {}", clusterId, instanceName), e);
             return serverError(e);
           }
-          return OK(OBJECT_MAPPER.writeValueAsString(Map.of("successful", evacuateFinished)));
+          return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", evacuateFinished)));
         default:
           LOG.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);

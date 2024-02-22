@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -558,7 +559,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // but none of them are in a top state.
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Set.of(instanceToSwapInName), Collections.emptySet());
+        ImmutableSet.of(instanceToSwapInName), Collections.emptySet());
 
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -585,7 +586,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
     // swap was completed.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(dependsOnMethods = "testNodeSwap")
@@ -624,7 +625,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // but none of them are in a top state.
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Set.of(instanceToSwapInName), Collections.emptySet());
+        ImmutableSet.of(instanceToSwapInName), Collections.emptySet());
 
     // Assert canSwapBeCompleted is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -676,7 +677,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
     // swap was completed.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(dependsOnMethods = "testNodeSwapDisableAndReenable")
@@ -723,7 +724,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // but none of them are in a top state.
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Set.of(instanceToSwapInName), Collections.emptySet());
+        ImmutableSet.of(instanceToSwapInName), Collections.emptySet());
 
     // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
     validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
@@ -745,7 +746,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
     // swap was completed.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(dependsOnMethods = "testNodeSwapSwapInNodeNoInstanceOperationDisabled")
@@ -786,7 +787,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // but none of them are in a top state.
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Set.of(instanceToSwapInName), Collections.emptySet());
+        ImmutableSet.of(instanceToSwapInName), Collections.emptySet());
 
     // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
     validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
@@ -877,7 +878,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // but none of them are in a top state.
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Set.of(instanceToSwapInName), Collections.emptySet());
+        ImmutableSet.of(instanceToSwapInName), Collections.emptySet());
 
     // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
     validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
@@ -902,7 +903,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
     // swap was completed.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(dependsOnMethods = "testNodeSwapAfterEMM")
@@ -1032,7 +1033,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had before
     // swap was completed.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")
@@ -1076,7 +1077,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Validate that the SWAP_IN instance has the same partitions the SWAP_OUT instance had.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
 
     // Assert isEvacuateFinished is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -1090,7 +1091,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Validate that dropping the instance has not changed the assignment
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), Set.of(instanceToSwapInName))), TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")
@@ -1443,7 +1444,7 @@ public class TestInstanceOperation extends ZkTestBase {
         .build(participantName);
 
     if (capacity >= 0) {
-      config.setInstanceCapacityMap(Map.of(TEST_CAPACITY_KEY, capacity));
+      config.setInstanceCapacityMap(ImmutableMap.of(TEST_CAPACITY_KEY, capacity));
     }
     _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 

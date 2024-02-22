@@ -39,7 +39,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.cloud.CloudInstanceInformation;

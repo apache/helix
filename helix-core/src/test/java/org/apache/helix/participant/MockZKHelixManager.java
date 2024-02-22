@@ -337,7 +337,7 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
-  public void addIndividualInstanceConfigChangeListener(InstanceConfigChangeListener listener, String instanceName) throws Exception {
+  public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener, String instanceName) throws Exception {
   }
 
   @Override

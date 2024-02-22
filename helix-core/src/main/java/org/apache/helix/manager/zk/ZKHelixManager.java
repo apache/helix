@@ -491,7 +491,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
-  public void addIndividualInstanceConfigChangeListener(
+  public void addInstanceConfigChangeListener(
       InstanceConfigChangeListener listener, String instanceName) throws Exception {
     addListener(listener, new Builder(_clusterName).instanceConfig(instanceName),
         ChangeType.INSTANCE_CONFIG, new EventType[]{EventType.NodeDataChanged});

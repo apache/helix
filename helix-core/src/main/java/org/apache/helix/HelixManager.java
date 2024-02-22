@@ -154,7 +154,7 @@ public interface HelixManager {
    * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
    * @param listener
    */
-  void addIndividualInstanceConfigChangeListener(InstanceConfigChangeListener listener, String instanceName) throws Exception;
+  void addInstanceConfigChangeListener(InstanceConfigChangeListener listener, String instanceName) throws Exception;
 
   /**
    * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)

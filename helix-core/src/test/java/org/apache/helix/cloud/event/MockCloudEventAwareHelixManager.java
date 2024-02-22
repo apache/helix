@@ -150,7 +150,7 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
   }
 
   @Override
-  public void addIndividualInstanceConfigChangeListener(
+  public void addInstanceConfigChangeListener(
       InstanceConfigChangeListener listener, String instanceName) throws Exception {
 
   }

@@ -1495,7 +1495,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     participant.syncStart();
     if (listener != null) {
-      participant.addIndividualInstanceConfigChangeListener(listener, participantName);
+      participant.addInstanceConfigChangeListener(listener, participantName);
     }
     _participants.add(participant);
     _participantNames.add(participantName);

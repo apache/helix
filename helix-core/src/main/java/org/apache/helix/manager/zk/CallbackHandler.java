@@ -361,7 +361,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           List<InstanceConfig> configs = Collections.emptyList();
           if (_propertyKey.getParams().length == 0) {
             configs = preFetch(_propertyKey);
-            listener.onInstanceConfigChange(configs, changeContext);
           } else {
             // If there are params, that means the property key is for a specific instance
             // and will not have children.

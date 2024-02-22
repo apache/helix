@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Weight-Aware Globally-Even Distribute Rebalancer.
  * @see <a
- *      href="https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer">
+ *      href="https://github.com/apache/helix/wiki/Weight-Aware-Globally-Even-Distribute-Rebalancer">
  *      Design Document
  *      </a>
  */

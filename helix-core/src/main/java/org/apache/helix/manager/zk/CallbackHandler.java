@@ -55,7 +55,6 @@ import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
-import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
@@ -223,8 +222,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           listenerClass = ConfigChangeListener.class;
         } else if (_listener instanceof InstanceConfigChangeListener) {
           listenerClass = InstanceConfigChangeListener.class;
-        } else if (_listener instanceof IndividualInstanceConfigChangeListener) {
-          listenerClass = InstanceConfigChangeListener.class;
         }
         break;
       case CLUSTER_CONFIG:
@@ -361,15 +358,18 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           configChangeListener.onConfigChange(configs, changeContext);
         } else if (_listener instanceof InstanceConfigChangeListener) {
           InstanceConfigChangeListener listener = (InstanceConfigChangeListener) _listener;
-          List<InstanceConfig> configs = preFetch(_propertyKey);
-          listener.onInstanceConfigChange(configs, changeContext);
-        } else if (_listener instanceof IndividualInstanceConfigChangeListener) {
-          IndividualInstanceConfigChangeListener listener = (IndividualInstanceConfigChangeListener) _listener;
-          InstanceConfig config = null;
-          if (_preFetchEnabled) {
-            config = _accessor.getProperty(_propertyKey);
+          List<InstanceConfig> configs = Collections.emptyList();
+          if (_propertyKey.getParams().length == 0) {
+            configs = preFetch(_propertyKey);
+            listener.onInstanceConfigChange(configs, changeContext);
+          } else {
+            // If there are params, that means the property key is for a specific instance
+            // and will not have children.
+            if (_preFetchEnabled) {
+              configs = Collections.singletonList(_accessor.getProperty(_propertyKey));
+            }
           }
-          listener.onIndividualInstanceConfigChange(config, changeContext);
+          listener.onInstanceConfigChange(configs, changeContext);
         }
       } else if (_changeType == RESOURCE_CONFIG) {
         ResourceConfigChangeListener listener = (ResourceConfigChangeListener) _listener;

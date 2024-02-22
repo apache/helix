@@ -34,7 +34,6 @@ import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
-import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
@@ -47,7 +46,6 @@ import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
@@ -153,10 +151,10 @@ public interface HelixManager {
   void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
 
   /**
-   * @see IndividualInstanceConfigChangeListener#onIndividualInstanceConfigChange(InstanceConfig, NotificationContext)
+   * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
    * @param listener
    */
-  void addIndividualInstanceConfigChangeListener(IndividualInstanceConfigChangeListener listener, String instanceName) throws Exception;
+  void addIndividualInstanceConfigChangeListener(InstanceConfigChangeListener listener, String instanceName) throws Exception;
 
   /**
    * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)

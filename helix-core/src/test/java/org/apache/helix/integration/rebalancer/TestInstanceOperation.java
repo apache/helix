@@ -21,13 +21,12 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
+import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -1103,7 +1102,7 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")
-  public void testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet() {
+  public void testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet() at "
             + new Date(System.currentTimeMillis()));
@@ -1121,7 +1120,7 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet")
-  public void testNodeSwapAddSwapInFirstEnableBeforeSwapOutSet() {
+  public void testNodeSwapAddSwapInFirstEnableBeforeSwapOutSet() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwapAddSwapInFirstEnableBeforeSwapOutSet() at "
             + new Date(System.currentTimeMillis()));
@@ -1144,7 +1143,7 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapAddSwapInFirstEnableBeforeSwapOutSet")
-  public void testUnsetInstanceOperationOnSwapInWhenAlreadyUnsetOnSwapOut() {
+  public void testUnsetInstanceOperationOnSwapInWhenAlreadyUnsetOnSwapOut() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testUnsetInstanceOperationOnSwapInWhenAlreadyUnsetOnSwapOut() at "
             + new Date(System.currentTimeMillis()));
@@ -1388,7 +1387,7 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
-  public void testSwapEvacuateAddRemoveEvacuate() {
+  public void testSwapEvacuateAddRemoveEvacuate() throws Exception {
     System.out.println("START TestInstanceOperation.testSwapEvacuateAddRemoveEvacuate() at " + new Date(
         System.currentTimeMillis()));
     removeOfflineOrDisabledOrSwapInInstances();
@@ -1434,7 +1433,7 @@ public class TestInstanceOperation extends ZkTestBase {
     }, timeout));
   }
 
-  private static class CustomIndividualInstanceConfigChangeListener implements IndividualInstanceConfigChangeListener {
+  private static class CustomIndividualInstanceConfigChangeListener implements InstanceConfigChangeListener {
     private boolean throttlesEnabled;
 
     public CustomIndividualInstanceConfigChangeListener() {
@@ -1446,26 +1445,21 @@ public class TestInstanceOperation extends ZkTestBase {
     }
 
     @Override
-    public void onIndividualInstanceConfigChange(InstanceConfig instanceConfig,
+    public void onInstanceConfigChange(List<InstanceConfig> instanceConfig,
         NotificationContext context) {
-      if (instanceConfig.getInstanceOperation()
+      if (instanceConfig.get(0).getInstanceOperation()
           .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())) {
         throttlesEnabled = false;
-      } else if (instanceConfig.getInstanceOperation().isEmpty()) {
+      } else if (instanceConfig.get(0).getInstanceOperation().isEmpty()) {
         throttlesEnabled = true;
       }
     }
   }
 
-  private MockParticipantManager createParticipant(String participantName,
-      IndividualInstanceConfigChangeListener listener) {
+  private MockParticipantManager createParticipant(String participantName) throws Exception {
     // start dummy participants
-    HelixManagerProperty helixManagerProperty = listener != null
-        ? new HelixManagerProperty.Builder().setIndividualInstanceConfigChangeListenerCallback(
-        listener).build() : new HelixManagerProperty.Builder().build();
     MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName, 10, null,
-            helixManagerProperty);
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName, 10, null);
     StateMachineEngine stateMachine = participant.getStateMachineEngine();
     // Using a delayed state model
     StDelayMSStateModelFactory delayFactory = new StDelayMSStateModelFactory();
@@ -1473,19 +1467,20 @@ public class TestInstanceOperation extends ZkTestBase {
     return participant;
   }
 
-  private void addParticipant(String participantName) {
+  private void addParticipant(String participantName) throws Exception {
     addParticipant(participantName, UUID.randomUUID().toString(),
         "zone_" + _participants.size() % ZONE_COUNT, null, true, -1);
   }
 
   private void addParticipant(String participantName, String logicalId, String zone,
-      InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity) {
+      InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity)
+      throws Exception {
     addParticipant(participantName, logicalId, zone, instanceOperation, enabled, capacity, null);
   }
 
   private void addParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, boolean enabled, int capacity,
-      IndividualInstanceConfigChangeListener listener) {
+      InstanceConfigChangeListener listener) throws Exception {
     InstanceConfig config = new InstanceConfig.Builder().setDomain(
             String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
                 logicalId)).setInstanceEnabled(enabled).setInstanceOperation(instanceOperation)
@@ -1496,9 +1491,12 @@ public class TestInstanceOperation extends ZkTestBase {
     }
     _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
-    MockParticipantManager participant = createParticipant(participantName, listener);
+    MockParticipantManager participant = createParticipant(participantName);
 
     participant.syncStart();
+    if (listener != null) {
+      participant.addIndividualInstanceConfigChangeListener(listener, participantName);
+    }
     _participants.add(participant);
     _participantNames.add(participantName);
     _nextStartPort++;

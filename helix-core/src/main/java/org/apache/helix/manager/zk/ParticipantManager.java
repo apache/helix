@@ -168,19 +168,6 @@ public class ParticipantManager {
      * setup message listener
      */
     setupMsgHandler();
-
-    // If the manager property has a callback for its instance config change, register it.
-    if (_helixManagerProperty != null
-        && _helixManagerProperty.getIndividualInstanceConfigChangeListener() != null) {
-      _manager.addIndividualInstanceConfigChangeListener(
-          _helixManagerProperty.getIndividualInstanceConfigChangeListener(), _instanceName);
-      // call the callback to handle the initial instance config
-      NotificationContext changeContext = new NotificationContext(_manager);
-      changeContext.setType(NotificationContext.Type.INIT);
-      _helixManagerProperty.getIndividualInstanceConfigChangeListener()
-          .onIndividualInstanceConfigChange(
-              _configAccessor.getInstanceConfig(_clusterName, _instanceName), changeContext);
-    }
   }
 
   private boolean shouldCarryOver() {

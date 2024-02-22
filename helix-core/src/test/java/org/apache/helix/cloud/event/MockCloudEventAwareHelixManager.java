@@ -45,7 +45,6 @@ import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
-import org.apache.helix.api.listeners.IndividualInstanceConfigChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
@@ -152,7 +151,7 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
 
   @Override
   public void addIndividualInstanceConfigChangeListener(
-      IndividualInstanceConfigChangeListener listener, String instanceName) throws Exception {
+      InstanceConfigChangeListener listener, String instanceName) throws Exception {
 
   }
 

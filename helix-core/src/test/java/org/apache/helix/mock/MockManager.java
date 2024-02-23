@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
@@ -56,7 +57,7 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-
+import org.apache.zookeeper.Watcher;
 
 public class MockManager implements HelixManager {
   MockAccessor accessor;
@@ -329,6 +330,11 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void addListener(Object listener, PropertyKey propertyKey, HelixConstants.ChangeType changeType,
+      Watcher.Event.EventType[] eventType) {
+  }
+
+  @Override
   public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
       throws Exception {
     // TODO Auto-generated method stub
@@ -336,12 +342,6 @@ public class MockManager implements HelixManager {
 
   @Override
   public void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception {
-
-  }
-
-  @Override
-  public void addInstanceConfigChangeListener(
-      InstanceConfigChangeListener listener, String instanceName) throws Exception {
 
   }
 

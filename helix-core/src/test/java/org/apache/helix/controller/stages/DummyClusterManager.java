@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
@@ -53,6 +54,7 @@ import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.zookeeper.Watcher;
 
 public class DummyClusterManager implements HelixManager {
   HelixDataAccessor _accessor;
@@ -304,6 +306,11 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
+  public void addListener(Object listener, PropertyKey propertyKey, HelixConstants.ChangeType changeType,
+      Watcher.Event.EventType[] eventType) {
+  }
+
+  @Override
   public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
       throws Exception {
     // TODO Auto-generated method stub
@@ -312,12 +319,6 @@ public class DummyClusterManager implements HelixManager {
 
   @Override
   public void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception {
-
-  }
-
-  @Override
-  public void addInstanceConfigChangeListener(
-      InstanceConfigChangeListener listener, String instanceName) throws Exception {
 
   }
 

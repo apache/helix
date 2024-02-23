@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -24,6 +25,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -54,6 +56,7 @@ import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -1495,7 +1498,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     participant.syncStart();
     if (listener != null) {
-      participant.addInstanceConfigChangeListener(listener, participantName);
+      participant.addListener(listener,
+          new PropertyKey.Builder(CLUSTER_NAME).instanceConfig(participantName),
+          HelixConstants.ChangeType.INSTANCE_CONFIG,
+          new Watcher.Event.EventType[]{Watcher.Event.EventType.NodeDataChanged});
     }
     _participants.add(participant);
     _participantNames.add(participantName);

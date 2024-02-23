@@ -419,7 +419,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
-  void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,
+  public void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,
       EventType[] eventType) {
     checkConnected(_waitForConnectedTimeout);
 
@@ -488,13 +488,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     addListener(listener, new Builder(_clusterName).instanceConfigs(), ChangeType.INSTANCE_CONFIG,
         new EventType[] { EventType.NodeChildrenChanged
         });
-  }
-
-  @Override
-  public void addInstanceConfigChangeListener(
-      InstanceConfigChangeListener listener, String instanceName) throws Exception {
-    addListener(listener, new Builder(_clusterName).instanceConfig(instanceName),
-        ChangeType.INSTANCE_CONFIG, new EventType[]{EventType.NodeDataChanged});
   }
 
   @Deprecated

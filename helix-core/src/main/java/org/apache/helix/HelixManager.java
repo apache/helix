@@ -51,7 +51,7 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-
+import org.apache.zookeeper.Watcher;
 
 /**
  * Class that represents the Helix Agent.
@@ -109,6 +109,17 @@ public interface HelixManager {
   void disconnect();
 
   /**
+   * Add a change listener on the specified propertyKey for the specified
+   * changeType and eventTypes.
+   * @param listener the listener to add
+   * @param propertyKey the property key to listen to
+   * @param changeType the type of change to listen to
+   * @param eventType the event type to listen for
+   */
+  void addListener(Object listener, PropertyKey propertyKey, HelixConstants.ChangeType changeType,
+      Watcher.Event.EventType[] eventType);
+
+  /**
    * @see IdealStateChangeListener#onIdealStateChange(List, NotificationContext)
    * @param listener
    * @throws Exception
@@ -149,12 +160,6 @@ public interface HelixManager {
    * @param listener
    */
   void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
-
-  /**
-   * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
-   * @param listener
-   */
-  void addInstanceConfigChangeListener(InstanceConfigChangeListener listener, String instanceName) throws Exception;
 
   /**
    * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)

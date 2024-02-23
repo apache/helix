@@ -21,10 +21,14 @@ package org.apache.helix.recipes.rabbitmq;
 
 import java.io.IOException;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Delivery;
+import com.rabbitmq.client.Envelope;
 
 public class ConsumerThread extends Thread {
   private static final String EXCHANGE_NAME = "topic_logs";
@@ -56,19 +60,14 @@ public class ConsumerThread extends Thread {
       System.out.println(" [*] " + _consumerId + " Waiting for messages on " + bindingKey
           + ". To exit press CTRL+C");
 
-      QueueingConsumer consumer = new QueueingConsumer(channel);
+      Consumer consumer = new MyConsumer(channel);
       channel.basicConsume(queueName, true, consumer);
 
-      while (true) {
-        QueueingConsumer.Delivery delivery = consumer.nextDelivery();
-        String message = new String(delivery.getBody());
-        String routingKey = delivery.getEnvelope().getRoutingKey();
-
-        System.out.println(" [x] " + _consumerId + " Received '" + routingKey + "':'" + message
-            + "'");
-      }
-    } catch (InterruptedException e) {
-      System.err.println(" [-] " + _consumerId + " on " + _partition + " is interrupted ...");
+      String consumerTag = channel.basicConsume(queueName, false, consumer);
+      System.out.println("press any key to terminate");
+      System.in.read();
+      channel.basicCancel(consumerTag);
+      channel.close();
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
@@ -80,6 +79,20 @@ public class ConsumerThread extends Thread {
           e.printStackTrace();
         }
       }
+    }
+  }
+
+  private static class MyConsumer extends DefaultConsumer {
+
+    public MyConsumer(Channel channel) {
+      super(channel);
+    }
+
+    @Override
+    public void handleDelivery(String consumerTag, Envelope envelope,
+        AMQP.BasicProperties properties, byte[] body) {
+      System.out.println(
+          " [x] Received '" + envelope.getRoutingKey() + "':'" + new String(body) + "'");
     }
   }
 }

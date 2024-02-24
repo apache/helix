@@ -34,6 +34,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
@@ -387,7 +388,7 @@ public class TestWagedRebalance extends ZkTestBase {
         disableParticipants.add(p.getInstanceName());
         InstanceConfig config = _gSetupTool.getClusterManagementTool()
             .getInstanceConfig(CLUSTER_NAME, p.getInstanceName());
-        config.setInstanceEnabled(false);
+        config.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
         _gSetupTool.getClusterManagementTool()
             .setInstanceConfig(CLUSTER_NAME, p.getInstanceName(), config);
       }
@@ -408,7 +409,7 @@ public class TestWagedRebalance extends ZkTestBase {
       for (String instanceName : disableParticipants) {
         InstanceConfig config =
             _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceName);
-        config.setInstanceEnabled(true);
+        config.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
         _gSetupTool.getClusterManagementTool()
             .setInstanceConfig(CLUSTER_NAME, instanceName, config);
       }

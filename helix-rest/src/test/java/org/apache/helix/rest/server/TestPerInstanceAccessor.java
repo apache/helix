@@ -36,7 +36,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
@@ -50,9 +49,6 @@ import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -388,7 +384,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     Assert.assertFalse(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceActive());
     Assert.assertEquals(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(),
         InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
@@ -401,7 +397,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         "clusters/{}/instances/{}?command=enable&instanceDisabledType=USER_OPERATION&instanceDisabledReason=reason1")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     Assert.assertTrue(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceActive());
     Assert.assertEquals(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(),
         InstanceConstants.INSTANCE_NOT_DISABLED);
@@ -419,12 +415,12 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     Assert.assertFalse(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceActive());
 
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=enable")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     Assert.assertTrue(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceActive());
 
     // Disable instance should see no field write to clusterConfig
     cls = _configAccessor.getClusterConfig(CLUSTER_NAME);

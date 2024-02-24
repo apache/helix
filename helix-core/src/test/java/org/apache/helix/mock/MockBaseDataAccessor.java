@@ -101,6 +101,16 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   }
 
   @Override
+  public boolean multiSet(Map<String, DataUpdater<ZNRecord>> updaterByPath) {
+    for (Map.Entry<String, DataUpdater<ZNRecord>> entry : updaterByPath.entrySet()) {
+      String path = entry.getKey();
+      DataUpdater<ZNRecord> updater = entry.getValue();
+      update(path, updater, 0);
+    }
+    return true;
+  }
+
+  @Override
   public boolean remove(String path, int options) {
     _recordMap.remove(path);
     try {

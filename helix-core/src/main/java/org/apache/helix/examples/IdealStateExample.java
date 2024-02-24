@@ -19,6 +19,7 @@ package org.apache.helix.examples;
  * under the License.
  */
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -113,7 +114,7 @@ public class IdealStateExample {
       InstanceConfig config = new InstanceConfig("localhost_" + port);
       config.setHostName("localhost");
       config.setPort(Integer.toString(port));
-      config.setInstanceEnabled(true);
+      config.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       admin.addInstance(clusterName, config);
     }
 

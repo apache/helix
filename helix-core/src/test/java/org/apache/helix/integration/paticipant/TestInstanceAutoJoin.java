@@ -122,7 +122,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
       }
       InstanceConfig composedInstanceConfig =
           manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance3);
-      return !composedInstanceConfig.getInstanceEnabled() && composedInstanceConfig.getTags()
+      return !composedInstanceConfig.getInstanceActive() && composedInstanceConfig.getTags()
           .contains("foo");
     }, 2000));
 

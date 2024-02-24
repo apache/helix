@@ -175,7 +175,7 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
         String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
         InstanceConfig instanceConfig =
             _manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instanceName);
-        if (instanceConfig.getInstanceEnabled()) {
+        if (instanceConfig.getInstanceActive()) {
           return false;
         }
       }
@@ -200,7 +200,7 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
         String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
         InstanceConfig instanceConfig =
             _manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instanceName);
-        if (!instanceConfig.getInstanceEnabled()) {
+        if (!instanceConfig.getInstanceActive()) {
           return false;
         }
       }

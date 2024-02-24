@@ -51,7 +51,7 @@ public class TestInstanceConfig {
   @Test
   public void testSetInstanceEnableWithReason() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
-    instanceConfig.setInstanceEnabled(true);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     instanceConfig.setInstanceDisabledReason("NoShowReason");
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
 
@@ -63,7 +63,7 @@ public class TestInstanceConfig {
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_TYPE.toString()), null);
 
 
-    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     String reasonCode = "ReasonCode";
     instanceConfig.setInstanceDisabledReason(reasonCode);
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
@@ -192,7 +192,7 @@ public class TestInstanceConfig {
     Assert.assertEquals(instanceConfig.getWeight(), 100);
     Assert.assertTrue(instanceConfig.getTags().contains("tag1"));
     Assert.assertTrue(instanceConfig.getTags().contains("tag2"));
-    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertFalse(instanceConfig.getInstanceActive());
     Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CAGE"), "H");
     Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CABINET"), "30");
     Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight1"), Integer.valueOf(1));

@@ -448,7 +448,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     long currentTime = System.currentTimeMillis();
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instance, enabled);
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
-    Assert.assertEquals(instanceConfig.getInstanceEnabled(), enabled);
+    Assert.assertEquals(instanceConfig.getInstanceActive(), enabled);
     Assert.assertTrue(instanceConfig.getInstanceEnabledTime() >= currentTime);
     Assert.assertTrue(instanceConfig.getInstanceEnabledTime() <= currentTime + 100);
   }

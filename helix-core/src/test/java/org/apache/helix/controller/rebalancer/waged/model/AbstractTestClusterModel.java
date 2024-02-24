@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -84,7 +85,7 @@ public abstract class AbstractTestClusterModel {
     InstanceConfig testInstanceConfig = new InstanceConfig(instanceId);
     testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
     testInstanceConfig.addTag(_testInstanceTags.get(0));
-    testInstanceConfig.setInstanceEnabled(true);
+    testInstanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     testInstanceConfig.setZoneId(_testFaultZoneId);
     return testInstanceConfig;
   }

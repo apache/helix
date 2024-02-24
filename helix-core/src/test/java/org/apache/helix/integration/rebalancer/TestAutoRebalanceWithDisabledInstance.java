@@ -64,7 +64,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     // check that the instance is really disabled
     boolean result = TestHelper.verify(
         () -> !_gSetupTool.getClusterManagementTool()
-            .getInstanceConfig(CLUSTER_NAME, disabledInstance).getInstanceEnabled(),
+            .getInstanceConfig(CLUSTER_NAME, disabledInstance).getInstanceActive(),
         TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -77,7 +77,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     // check that the instance is really enabled
     result = TestHelper.verify(
         () -> _gSetupTool.getClusterManagementTool()
-            .getInstanceConfig(CLUSTER_NAME, disabledInstance).getInstanceEnabled(),
+            .getInstanceConfig(CLUSTER_NAME, disabledInstance).getInstanceActive(),
         TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -99,7 +99,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
         TestHelper
             .verify(
                 () -> !_gSetupTool.getClusterManagementTool()
-                    .getInstanceConfig(CLUSTER_NAME, nodeName).getInstanceEnabled(),
+                    .getInstanceConfig(CLUSTER_NAME, nodeName).getInstanceActive(),
                 TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
@@ -117,7 +117,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
         TestHelper
             .verify(
                 () -> _gSetupTool.getClusterManagementTool()
-                    .getInstanceConfig(CLUSTER_NAME, nodeName).getInstanceEnabled(),
+                    .getInstanceConfig(CLUSTER_NAME, nodeName).getInstanceActive(),
                 TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

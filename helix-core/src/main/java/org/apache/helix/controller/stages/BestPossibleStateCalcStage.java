@@ -137,7 +137,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
     // 2. Get all enabled and live SWAP_IN instances in the cluster.
     Set<String> liveSwapInInstances = cache.getLiveSwapInInstanceNames();
-    Set<String> enabledSwapInInstances = cache.getEnabledSwapInInstanceNames();
     // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to
     // the stateMap with the correct state.
     // Skipping this when there are no SWAP_IN instances that are alive will reduce computation time.
@@ -163,12 +162,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
                 // If the corresponding swap-in instance is not enabled, assign replicas with
                 // initial state.
-                if (!enabledSwapInInstances.contains(
-                    swapOutToSwapInInstancePairs.get(swapOutInstance))) {
-                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                      stateModelDef.getInitialState());
-                  return;
-                }
+//                if (!enabledSwapInInstances.contains(
+//                    swapOutToSwapInInstancePairs.get(swapOutInstance))) {
+//                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+//                      stateModelDef.getInitialState());
+//                  return;
+//                }
 
                 // If the swap-in node is live and enabled, do assignment with the following logic:
                 // 1. If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica

@@ -41,6 +41,7 @@ import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.HelixControllerMain;
@@ -379,7 +380,7 @@ public class TestMessageThrottle2 extends ZkTestBase {
       if (instanceConfig == null) {
         InstanceConfig config = new InstanceConfig(instanceName);
         config.setHostName("localhost");
-        config.setInstanceEnabled(true);
+        config.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
         echo("Adding InstanceConfig:" + config);
         admin.addInstance(_clusterName, config);
       }

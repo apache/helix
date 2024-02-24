@@ -21,6 +21,7 @@ package org.apache.helix.integration.rebalancer.PartitionMigration;
 
 import java.util.Map;
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -77,7 +78,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
     for (int i = numNodes; i < numNodes + NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       InstanceConfig config = InstanceConfig.toInstanceConfig(storageNodeName);
-      config.setInstanceEnabled(false);
+      config.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
       config.getRecord().getSimpleFields()
           .remove(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name());
 

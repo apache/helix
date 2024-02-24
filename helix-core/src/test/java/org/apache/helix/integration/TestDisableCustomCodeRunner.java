@@ -32,6 +32,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -170,7 +171,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     InstanceConfig instanceConfig = new InstanceConfig(fakeInstanceName);
     instanceConfig.setHostName("localhost");
     instanceConfig.setPort("10000");
-    instanceConfig.setInstanceEnabled(true);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     admin.addInstance(clusterName, instanceConfig);
 
     LiveInstance fakeInstance = new LiveInstance(fakeInstanceName);

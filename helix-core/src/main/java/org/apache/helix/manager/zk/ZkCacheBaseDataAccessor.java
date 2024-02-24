@@ -315,6 +315,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
   }
 
   @Override
+  public boolean multiSet(Map<String, DataUpdater<T>> updaterByPath) {
+    return true;
+  }
+
+  @Override
   public boolean exists(String path, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);

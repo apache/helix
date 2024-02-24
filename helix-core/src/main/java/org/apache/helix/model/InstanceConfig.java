@@ -47,9 +47,7 @@ public class InstanceConfig extends HelixProperty {
    * Configurable characteristics of an instance
    */
   public enum InstanceConfigProperty {
-    HELIX_HOST,
-    HELIX_PORT,
-    HELIX_ZONE_ID,
+    HELIX_HOST, HELIX_PORT, HELIX_ZONE_ID, @Deprecated
     HELIX_ENABLED,
     HELIX_ENABLED_TIMESTAMP,
     HELIX_DISABLED_REASON,
@@ -70,6 +68,13 @@ public class InstanceConfig extends HelixProperty {
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
   private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
   private static final boolean HELIX_ENABLED_DEFAULT_VALUE = true;
+
+  private static final Set<String> INSTANCE_OPERATIONS_CONSIDERED_ACTIVE =
+      Set.of(InstanceConstants.InstanceOperation.ENABLE.name());
+  private static final Set<String> INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS =
+      Set.of(InstanceConstants.InstanceOperation.ENABLE.name(),
+          InstanceConstants.InstanceOperation.DISABLE.name(),
+          InstanceConstants.InstanceOperation.EVACUATE.name());
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -252,20 +257,23 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
-   * Check if this instance is enabled and able to serve replicas
-   * @return true if enabled, false if disabled
+   * Get the timestamp (milliseconds from epoch) when this instance was enabled/disabled last time.
+   *
+   * @return the timestamp when the instance was enabled/disabled last time. If the instance is never
+   *        enabled/disabled, return -1.
    */
-  public boolean getInstanceEnabled() {
-    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
-        HELIX_ENABLED_DEFAULT_VALUE);
+  public long getInstanceEnabledTime() {
+    return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
   }
 
   /**
-   * Set the enabled state of the instance
-   * If user enables the instance, HELIX_DISABLED_REASON filed will be removed.
+   * Set the enabled state of the instance If user enables the instance, HELIX_DISABLED_REASON filed
+   * will be removed.
    *
    * @param enabled true to enable, false to disable
+   * @deprecated This method is deprecated. Please use setInstanceOperation instead.
    */
+  @Deprecated
   public void setInstanceEnabled(boolean enabled) {
     // set instance operation only when we need to change InstanceEnabled value.
     setInstanceEnabledHelper(enabled);
@@ -292,7 +300,7 @@ public class InstanceConfig extends HelixProperty {
    * It will be a no-op when instance is enabled.
    */
   public void setInstanceDisabledReason(String disabledReason) {
-     if (!getInstanceEnabled()) {
+    if (!getInstanceActive()) {
        _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), disabledReason);
      }
   }
@@ -302,13 +310,14 @@ public class InstanceConfig extends HelixProperty {
    * It will be a no-op when instance is enabled.
    */
   public void setInstanceDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
-    if (!getInstanceEnabled()) {
+    if (!getInstanceActive()) {
       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
           disabledType.name());
     }
   }
 
   /**
+   * Get the instance disabled reason when instance is disabled.
    * @return Return instance disabled reason. Default is am empty string.
    */
   public String getInstanceDisabledReason() {
@@ -321,7 +330,7 @@ public class InstanceConfig extends HelixProperty {
    *         Default is am empty string.
    */
   public String getInstanceDisabledType() {
-    if (getInstanceEnabled()) {
+    if (getInstanceActive()) {
       return InstanceConstants.INSTANCE_NOT_DISABLED;
     }
     return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
@@ -329,21 +338,64 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
-   * Get the timestamp (milliseconds from epoch) when this instance was enabled/disabled last time.
+   * Check if this instance is enabled and able to serve replicas
    *
-   * @return
+   * @return true if enabled, false if disabled
    */
-  public long getInstanceEnabledTime() {
-    return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
+  public boolean getInstanceActive() {
+    // Note: Users of old API may still use HELIX_ENABLED field to check if the instance is enabled.
+    // It is possible that users will be using earlier version of HelixAdmin or helix-rest. If this
+    // is the case, they may think the instance is enabled even when the INSTANCE_OPERATION is set to
+    // something other than DISABLE or ENABLED. This is okay because the older version can only modify the
+    // HELIX_ENABLED field. If they modify HELIX_ENABLED field it will be respected by future versions.
+    // Also, because they only modify this field through setInstanceEnabled API, it will not interfere
+    // with the new INSTANCE_OPERATION field being used for new functionality such as SWAP and EVACUATE.
+    return INSTANCE_OPERATIONS_CONSIDERED_ACTIVE.contains(getInstanceOperation());
   }
 
+  /**
+   * Set the instance operation for this instance.
+   *
+   * @param operation the instance operation
+   */
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
     _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name(),
         operation == null ? "" : operation.name());
+    if (operation == null || operation == InstanceConstants.InstanceOperation.ENABLE
+        || operation == InstanceConstants.InstanceOperation.DISABLE) {
+      // We are still setting the HELIX_ENABLED field for backwards compatibility.
+      // It is possible that users will be using earlier version of HelixAdmin or helix-rest
+      // is on older version.
+      // TODO: Remove this when we are sure that all users are using the new field INSTANCE_OPERATION.
+      setInstanceEnabledHelper(!(operation == InstanceConstants.InstanceOperation.DISABLE));
+    }
   }
 
+  /**
+   * Get the InstanceOperation of this instance, default is ENABLE if nothing is set. If
+   * HELIX_ENABLED is set to false, then the instance operation is DISABLE for backwards
+   * compatibility.
+   *
+   * @return the instance operation
+   */
   public String getInstanceOperation() {
-    return _record.getStringField(InstanceConfigProperty.INSTANCE_OPERATION.name(), "");
+    String instanceOperation =
+        _record.getSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name());
+    // Use InstanceOperation in all other cases.
+    if (instanceOperation == null || instanceOperation.isEmpty()) {
+      // If INSTANCE_OPERATION is not set, then the instance is enabled.
+      instanceOperation = InstanceConstants.InstanceOperation.ENABLE.name();
+    }
+
+    // Always respect the HELIX_ENABLED being set to false when instance operation is unset
+    // for backwards compatibility.
+    if (!_record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
+        HELIX_ENABLED_DEFAULT_VALUE) && (INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS.contains(
+        instanceOperation))) {
+      return InstanceConstants.InstanceOperation.DISABLE.name();
+    }
+
+    return instanceOperation;
   }
 
   /**
@@ -828,8 +880,10 @@ public class InstanceConfig extends HelixProperty {
         instanceConfig.addTag(tag);
       }
 
-      if (_instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
-        instanceConfig.setInstanceEnabled(_instanceEnabled);
+      if (_instanceOperation == null && _instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
+        instanceConfig.setInstanceOperation(
+            _instanceEnabled ? InstanceConstants.InstanceOperation.ENABLE
+                : InstanceConstants.InstanceOperation.DISABLE);
       }
 
       if (_instanceOperation != null) {
@@ -899,9 +953,11 @@ public class InstanceConfig extends HelixProperty {
 
     /**
      * Set the enabled status for this instance
+     * @deprecated HELIX_ENABLED is no longer in use. Use setInstanceOperation instead.
      * @param instanceEnabled true if enabled, false otherwise
      * @return InstanceConfig.Builder
      */
+    @Deprecated
     public Builder setInstanceEnabled(boolean instanceEnabled) {
       _instanceEnabled = instanceEnabled;
       return this;

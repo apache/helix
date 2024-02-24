@@ -53,7 +53,8 @@ class RoutingDataCache extends BasicClusterDataCache {
 
   // When an instance has any of these instance operations, it should not be routable.
   private static final ImmutableSet<String> NON_ROUTABLE_INSTANCE_OPERATIONS =
-      ImmutableSet.of(InstanceConstants.InstanceOperation.SWAP_IN.name());
+      ImmutableSet.of(InstanceConstants.InstanceOperation.SWAP_IN.name(),
+          InstanceConstants.InstanceOperation.UNKNOWN.name());
 
   private final Map<PropertyType, List<String>> _sourceDataTypeMap;
 

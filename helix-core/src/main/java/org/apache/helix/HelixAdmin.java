@@ -281,9 +281,11 @@ public interface HelixAdmin {
    * @param instanceName
    * @param enabled
    */
+  @Deprecated
   void enableInstance(String clusterName, String instanceName, boolean enabled);
 
   /**
+   * @deprecated use {@link #setInstanceOperation(String, String, InstanceConstants.InstanceOperation)}
    * @param clusterName
    * @param instanceName
    * @param enabled
@@ -292,6 +294,7 @@ public interface HelixAdmin {
    * @param reason set additional string description on why the instance is disabled when
    *          <code>enabled</code> is false. Existing disabled reason will be over write if instance is in disabled state.
    */
+  @Deprecated
   void enableInstance(String clusterName, String instanceName, boolean enabled,
       InstanceConstants.InstanceDisabledType disabledType, String reason);
 

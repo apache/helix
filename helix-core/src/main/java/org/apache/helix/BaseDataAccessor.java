@@ -20,6 +20,7 @@ package org.apache.helix;
  */
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
@@ -90,6 +91,8 @@ public interface BaseDataAccessor<T> {
    * @return true if data update succeeded, false otherwise
    */
   boolean update(String path, DataUpdater<T> updater, int options);
+
+  boolean multiSet(Map<String, DataUpdater<T>> updaterByPath);
 
   /**
    * This will remove the ZNode and all its descendants if any

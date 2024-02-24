@@ -32,6 +32,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -93,7 +94,9 @@ public class InstanceValidationUtil {
     if (instanceConfig == null) {
       throw new HelixException("InstanceConfig is NULL");
     }
-    boolean enabledInInstanceConfig = instanceConfig.getInstanceEnabled();
+    boolean enabledInInstanceConfig =
+        instanceConfig.getInstanceActive() || instanceConfig.getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.EVACUATE.name());
     // TODO: batch enable/disable in cluster config is breaking backward compatibility with older library
     // re-enable once batch enable/disable is ready
     if (true || clusterConfig == null) {

@@ -10,8 +10,10 @@ public class InstanceConstants {
   }
 
   public enum InstanceOperation {
+    ENABLE, // Node will be enabled
+    DISABLE, // Node will be disabled
     EVACUATE, // Node will be removed after a period of time
     SWAP_IN,  // New node joining for swap operation
-    SWAP_OUT // Existing Node to be removed for swap operation
+    UNKNOWN // Unknown operation meaning that the instance is not assignable
   }
 }

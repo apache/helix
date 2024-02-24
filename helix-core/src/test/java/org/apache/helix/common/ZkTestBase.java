@@ -45,6 +45,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.config.HelixConfigProperty;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
@@ -528,7 +529,7 @@ public class ZkTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
-    Assert.assertEquals(wantEnabled, config.getInstanceEnabled());
+    Assert.assertEquals(wantEnabled, config.getInstanceActive());
   }
 
   public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource,
@@ -687,7 +688,7 @@ public class ZkTestBase {
       InstanceConfig instanceConfig = new InstanceConfig(instance);
       instanceConfig.setHostName("localhost");
       instanceConfig.setPort("" + instances[i]);
-      instanceConfig.setInstanceEnabled(true);
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       admin.addInstance(clusterName, instanceConfig);
     }
   }

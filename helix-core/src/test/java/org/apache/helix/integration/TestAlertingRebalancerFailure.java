@@ -33,6 +33,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
@@ -297,7 +298,8 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
   private void setInstanceEnable(String instanceName, boolean enabled,
       ConfigAccessor configAccessor) {
     InstanceConfig instanceConfig = configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName);
-    instanceConfig.setInstanceEnabled(enabled);
+    instanceConfig.setInstanceOperation(enabled ? InstanceConstants.InstanceOperation.ENABLE
+        : InstanceConstants.InstanceOperation.DISABLE);
     configAccessor.setInstanceConfig(CLUSTER_NAME, instanceName, instanceConfig);
   }
 

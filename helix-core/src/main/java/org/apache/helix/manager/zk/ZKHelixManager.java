@@ -419,6 +419,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
+  @Override
   public void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,
       EventType[] eventType) {
     checkConnected(_waitForConnectedTimeout);

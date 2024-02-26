@@ -111,6 +111,7 @@ public interface HelixManager {
   /**
    * Add a change listener on the specified propertyKey for the specified
    * changeType and eventTypes.
+   * @see org.apache.helix.api.listeners for the list of available listeners
    * @param listener the listener to add
    * @param propertyKey the property key to listen to
    * @param changeType the type of change to listen to

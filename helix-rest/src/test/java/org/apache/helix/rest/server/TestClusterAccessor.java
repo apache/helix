@@ -1529,10 +1529,8 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   private boolean isSame(Set<String> result, Set<String> expected) {
-    if (result.size() != expected.size()) {
-      return false;
-    }
-    return result.containsAll(expected) && expected.containsAll(result);
+    return result.size() == expected.size() && result.containsAll(expected) && expected.containsAll(
+        result);
   }
 
   private void validateAuditLogSize(int expected) {

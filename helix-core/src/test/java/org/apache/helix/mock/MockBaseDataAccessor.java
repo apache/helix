@@ -102,7 +102,13 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
 
   @Override
   public boolean remove(String path, int options) {
-    return remove(path, options, -1);
+    _recordMap.remove(path);
+    try {
+      Thread.sleep(50);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    return true;
   }
 
   @Override

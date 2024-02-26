@@ -445,7 +445,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     // and remove() should return false.
     RealmAwareZkClient mockZkClient = Mockito.mock(RealmAwareZkClient.class);
     Mockito.doThrow(new ZkException("Failed to delete " + path)).when(mockZkClient)
-        .delete(path, -1);
+        .delete(path);
     Mockito.doThrow(new ZkClientException("Failed to recursively delete " + path)).when(mockZkClient)
         .deleteRecursively(path);
     ZkBaseDataAccessor<ZNRecord> accessorMock =
@@ -480,21 +480,25 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
     // Create node
-    boolean success = accessor.create(path, record, AccessOption.PERSISTENT);
-    Assert.assertTrue(success);
+    Assert.assertTrue(accessor.create(path, record, AccessOption.PERSISTENT));
 
     // Create child node
-    success = accessor.create(path + "/child", record, AccessOption.PERSISTENT);
-    Assert.assertTrue(success);
+    String childPath = path + "/child";
+    Assert.assertTrue(accessor.create(childPath, record, AccessOption.PERSISTENT));
 
-    // Delete parent with wrong expected version. Should fail
+    // Delete parent with correct expected version. Should fail due to having a child
     int currentVersion = accessor.getStat(path, 0).getVersion();
-    success = accessor.remove(path, 0, currentVersion+100);
-    Assert.assertFalse(success);
+    Assert.assertFalse(accessor.remove(path, 0, currentVersion));
 
-    // Delete parent with correct expected version. Should succeed
-    success = accessor.remove(path, 0, currentVersion);
-    Assert.assertTrue(success);
+    // Remove Child
+    Assert.assertTrue(accessor.remove(childPath, 0, -1));
+
+    // Delete childless node with wrong expected version. Should fail due to version mismatch
+    Assert.assertFalse(accessor.remove(path, 0, currentVersion+100));
+
+    // Delete childless node with correct expected version. Shoudl succeed
+    Assert.assertTrue(accessor.remove(path, 0, currentVersion));
+
   }
 
   @Test

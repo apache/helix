@@ -333,7 +333,27 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   @Override
   public boolean remove(String path, int options) {
-    return remove(path, options, -1);
+    String clientPath = path;
+    String serverPath = prependChroot(clientPath);
+
+    Cache<T> cache = getCache(serverPath);
+    if (cache != null) {
+      try {
+        cache.lockWrite();
+
+        boolean success = _baseAccessor.remove(serverPath, options);
+        if (success) {
+          cache.purgeRecursive(serverPath);
+        }
+
+        return success;
+      } finally {
+        cache.unlockWrite();
+      }
+    }
+
+    // no cache
+    return _baseAccessor.remove(serverPath, options);
   }
 
   @Override

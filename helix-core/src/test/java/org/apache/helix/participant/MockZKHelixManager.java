@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
@@ -58,6 +59,7 @@ import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.task.TaskConstants;
+import org.apache.zookeeper.Watcher;
 import org.testng.collections.Lists;
 
 public class MockZKHelixManager implements HelixManager {
@@ -322,6 +324,11 @@ public class MockZKHelixManager implements HelixManager {
     // TODO Auto-generated method stub
     return new ZkHelixPropertyStore<>(
         (ZkBaseDataAccessor<ZNRecord>) _accessor.getBaseDataAccessor(), TaskConstants.REBALANCER_CONTEXT_ROOT, Lists.<String>newArrayList());
+  }
+
+  @Override
+  public void addListener(Object listener, PropertyKey propertyKey, HelixConstants.ChangeType changeType,
+      Watcher.Event.EventType[] eventType) {
   }
 
   @Override

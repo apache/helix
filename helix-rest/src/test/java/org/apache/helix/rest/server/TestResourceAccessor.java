@@ -75,8 +75,10 @@ public class TestResourceAccessor extends AbstractTestClass {
 
     Set<String> resources = OBJECT_MAPPER.readValue(idealStates,
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
-    Assert.assertEquals(resources, _resourcesMap.get("TestCluster_0"), "Resources from response: "
-        + resources + " vs clusters actually: " + _resourcesMap.get("TestCluster_0"));
+    Assert.assertTrue(resources.size() == _resourcesMap.get("TestCluster_0").size()
+        && resources.containsAll(_resourcesMap.get("TestCluster_0"))
+        && _resourcesMap.get("TestCluster_0").containsAll(resources),
+        "Sets are not equal. Resources from response: " + resources + " vs clusters actually: " + _resourcesMap.get("TestCluster_0"));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

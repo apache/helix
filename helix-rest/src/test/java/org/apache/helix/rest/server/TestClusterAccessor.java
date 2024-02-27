@@ -99,7 +99,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     Set<String> clusters = OBJECT_MAPPER.readValue(clustersStr,
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
-    Assert.assertEquals(clusters, _clusters);
+    Assert.assertTrue(isSame(clusters, _clusters));
 
     validateAuditLogSize(1);
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
@@ -1526,6 +1526,11 @@ public class TestClusterAccessor extends AbstractTestClass {
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
     validateAuditLog(auditLog, HTTPMethods.POST.name(), "clusters/" + cluster + "/configs",
         Response.Status.OK.getStatusCode(), null);
+  }
+
+  private boolean isSame(Set<String> result, Set<String> expected) {
+    return result.size() == expected.size() && result.containsAll(expected) && expected.containsAll(
+        result);
   }
 
   private void validateAuditLogSize(int expected) {

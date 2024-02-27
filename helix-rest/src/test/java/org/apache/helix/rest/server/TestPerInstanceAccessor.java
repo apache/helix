@@ -331,8 +331,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     Set<String> instances = OBJECT_MAPPER.readValue(instancesStr,
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
-    Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
-        + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
+    String errorMessage = "Instances from response: "+ instances + " vs instances actually: "
+        + _instancesMap.get(CLUSTER_NAME);
+    Assert.assertEquals(instances.size(), _instancesMap.get(CLUSTER_NAME).size(), errorMessage);
+    Assert.assertTrue(instances.containsAll(_instancesMap.get(CLUSTER_NAME)), errorMessage);
+    Assert.assertTrue(_instancesMap.get(CLUSTER_NAME).containsAll(instances), errorMessage);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

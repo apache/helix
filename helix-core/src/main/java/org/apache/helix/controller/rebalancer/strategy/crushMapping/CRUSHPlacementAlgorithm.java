@@ -242,6 +242,7 @@ public class CRUSHPlacementAlgorithm {
           if (current.getWeight() == 0) {
             straws.put(current, 0L);
             i++;
+            numLeft--;
             continue;
           }
           straws.put(current, (long)(straw*0x10000));
@@ -252,17 +253,8 @@ public class CRUSHPlacementAlgorithm {
 
           current = sortedNodes.get(i);
           Node previous = sortedNodes.get(i-1);
-          if (current.getWeight() == previous.getWeight()) {
-            continue;
-          }
           wbelow += (float)(previous.getWeight() - lastw)*numLeft;
-          for (int j = i; j < length; j++) {
-            if (sortedNodes.get(j).getWeight() == current.getWeight()) {
-              numLeft--;
-            } else {
-              break;
-            }
-          }
+          numLeft--;
           float wnext = (float)(numLeft * (current.getWeight() - previous.getWeight()));
           float pbelow = wbelow/(wbelow + wnext);
           straw *= Math.pow(1.0/pbelow, 1.0/numLeft);

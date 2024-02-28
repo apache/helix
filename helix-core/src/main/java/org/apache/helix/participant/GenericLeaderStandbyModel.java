@@ -99,4 +99,23 @@ public class GenericLeaderStandbyModel extends StateModel {
   public void onBecomeOfflineFromStandby(Message message, NotificationContext context) {
     LOG.info("Become OFFLINE from STANDBY");
   }
+
+  @Transition(to = "DROPPED", from = "OFFLINE")
+  public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
+    LOG.info("Become DROPPED from OFFLINE");
+  }
+
+  @Transition(to = "OFFLINE", from = "DROPPED")
+  public void onBecomeOfflineFromDropped(
+      Message message, NotificationContext context) {
+    reset();
+    LOG.info("Become OFFLINE from DROPPED");
+
+  }
+
+  @Transition(to = "OFFLINE", from = "ERROR")
+  public void onBecomeOfflineFromError(Message message, NotificationContext context) {
+    reset();
+    LOG.info("Become OFFLINE from ERROR");
+  }
 }

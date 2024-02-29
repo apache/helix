@@ -745,7 +745,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * match is not enforced.
    */
   @Override
-  public boolean remove(String path, int options, int expectedVersion) {
+  public boolean removeWithExpectedVersion(String path, int options, int expectedVersion) {
     try {
       // operation will not throw exception when path successfully deleted or does not exist
       // despite real error, operation will throw exception when path not empty, and in this

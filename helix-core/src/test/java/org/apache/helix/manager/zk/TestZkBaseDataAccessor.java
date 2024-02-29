@@ -488,16 +488,16 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     // Delete parent with correct expected version. Should fail due to having a child
     int currentVersion = accessor.getStat(path, 0).getVersion();
-    Assert.assertFalse(accessor.remove(path, 0, currentVersion));
+    Assert.assertFalse(accessor.removeWithExpectedVersion(path, 0, currentVersion));
 
     // Remove Child
-    Assert.assertTrue(accessor.remove(childPath, 0, -1));
+    Assert.assertTrue(accessor.removeWithExpectedVersion(childPath, 0, -1));
 
     // Delete childless node with wrong expected version. Should fail due to version mismatch
-    Assert.assertFalse(accessor.remove(path, 0, currentVersion+100));
+    Assert.assertFalse(accessor.removeWithExpectedVersion(path, 0, currentVersion+100));
 
     // Delete childless node with correct expected version. Shoudl succeed
-    Assert.assertTrue(accessor.remove(path, 0, currentVersion));
+    Assert.assertTrue(accessor.removeWithExpectedVersion(path, 0, currentVersion));
 
   }
 

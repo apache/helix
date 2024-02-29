@@ -108,7 +108,7 @@ public interface BaseDataAccessor<T> {
    * version
    * @return true if the removal succeeded, false otherwise
    */
-  boolean remove(String path, int options, int expectedVersion);
+  boolean removeWithExpectedVersion(String path, int options, int expectedVersion);
 
   /**
    * Use it when creating children under a parent node. This will use async api for better

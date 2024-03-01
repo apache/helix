@@ -20,7 +20,9 @@ package org.apache.helix;
  */
 
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -90,6 +92,17 @@ public interface BaseDataAccessor<T> {
    * @return true if data update succeeded, false otherwise
    */
   boolean update(String path, DataUpdater<T> updater, int options);
+
+  /**
+   * This will attempt to update the data using the updater using
+   * each updater for the corresponding path.
+   * This should be used on existing ZNodes only.
+   * @param updaterByPath updaters for each path to update
+   * @return true if all the updates succeeded, false otherwise
+   */
+  default boolean multiSet(Map<String, DataUpdater<T>> updaterByPath) {
+    throw new NotImplementedException("multiSet is not implemented");
+  }
 
   /**
    * This will remove the ZNode and all its descendants if any

@@ -57,6 +57,8 @@ import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 import org.slf4j.Logger;
@@ -482,6 +484,56 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
     result._retCode = RetCode.OK;
     result._updatedValue = updatedData;
+    return result;
+  }
+
+  /**
+   * transactional sync set
+   */
+  @Override
+  public boolean multiSet(Map<String, DataUpdater<T>> updaterByPath) {
+    AccessResult result = doMultiSet(updaterByPath);
+    return result._retCode == RetCode.OK;
+  }
+
+  private AccessResult doMultiSet(Map<String, DataUpdater<T>> updaterByPath) {
+    AccessResult result = new AccessResult();
+    boolean retry;
+    do {
+      retry = false;
+      try {
+        List<Op> ops = new ArrayList<>();
+        for (Map.Entry<String, DataUpdater<T>> entry : updaterByPath.entrySet()) {
+          String path = entry.getKey();
+          DataUpdater<T> updater = entry.getValue();
+          Stat readStat = new Stat();
+          T oldData = (T) _zkClient.readData(path, readStat);
+          T newData = updater.update(oldData);
+          if (newData != null) {
+            ops.add(Op.setData(path, _zkClient.serialize(newData, path), readStat.getVersion()));
+          }
+        }
+        for (OpResult opResult : _zkClient.multi(ops)) {
+          if (opResult instanceof OpResult.SetDataResult) {
+            DataTree.copyStat(((OpResult.SetDataResult) opResult).getStat(), result._stat);
+          } else if (opResult instanceof OpResult.ErrorResult) {
+            if (((OpResult.ErrorResult) opResult).getErr() == Code.BADVERSION.intValue()) {
+              retry = true;
+            } else {
+              LOG.error("Failed to update path: " + updaterByPath.keySet());
+              result._retCode = RetCode.ERROR;
+              return result;
+            }
+          }
+        }
+      } catch (Exception e) {
+        LOG.error("Exception while updating paths: " + updaterByPath.keySet(), e);
+        result._retCode = RetCode.ERROR;
+        return result;
+      }
+    } while (retry);
+
+    result._retCode = RetCode.OK;
     return result;
   }
 

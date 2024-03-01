@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -415,6 +416,84 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     getRecord = _gZkClient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
+
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSyncMultiSet() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path1 = String.format("/%s/%s", _rootPath, "foo");
+    String path2 = String.format("/%s/%s", _rootPath, "bar");
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    accessor.create(path1, new ZNRecord("foo"), AccessOption.PERSISTENT);
+    accessor.create(path2, new ZNRecord("bar"), AccessOption.PERSISTENT);
+
+    boolean success = accessor.multiSet(Map.of(path1, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        currentData.setMapField("key", Map.of("key1", "value1"));
+        return currentData;
+      }
+    }, path2, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        currentData.setSimpleField("key", "value");
+        return currentData;
+      }
+    }));
+    Assert.assertTrue(success);
+    ZNRecord getRecord1 = _gZkClient.readData(path1);
+    ZNRecord getRecord2 = _gZkClient.readData(path2);
+
+    Assert.assertNotNull(getRecord1);
+    Assert.assertEquals(getRecord1.getId(), "foo");
+    Assert.assertEquals(getRecord1.getMapField("key"), Map.of("key1", "value1"));
+
+    Assert.assertNotNull(getRecord2);
+    Assert.assertEquals(getRecord2.getId(), "bar");
+    Assert.assertEquals(getRecord2.getSimpleField("key"), "value");
+
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSyncMultiSetOneRecordNoExist() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path1 = String.format("/%s/%s", _rootPath, "foo");
+    String path2 = String.format("/%s/%s", _rootPath, "bar");
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    accessor.create(path1, new ZNRecord("foo"), AccessOption.PERSISTENT);
+
+    boolean success = accessor.multiSet(Map.of(path1, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        currentData.setMapField("key", Map.of("key1", "value1"));
+        return currentData;
+      }
+    }, path2, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        currentData.setSimpleField("key", "value");
+        return currentData;
+      }
+    }));
+    Assert.assertFalse(success);
+    ZNRecord getRecord1 = _gZkClient.readData(path1);
+
+    Assert.assertNotNull(getRecord1);
+    Assert.assertEquals(getRecord1.getId(), "foo");
+    Assert.assertNotSame(getRecord1.getMapField("key"), Map.of("key1", "value1"));
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }

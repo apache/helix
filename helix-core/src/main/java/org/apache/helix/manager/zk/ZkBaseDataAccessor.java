@@ -56,6 +56,7 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
@@ -501,8 +502,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     boolean retry;
     do {
       retry = false;
+      List<Op> ops = new ArrayList<>();
       try {
-        List<Op> ops = new ArrayList<>();
         for (Map.Entry<String, DataUpdater<T>> entry : updaterByPath.entrySet()) {
           String path = entry.getKey();
           DataUpdater<T> updater = entry.getValue();
@@ -513,21 +514,18 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             ops.add(Op.setData(path, _zkClient.serialize(newData, path), readStat.getVersion()));
           }
         }
-        for (OpResult opResult : _zkClient.multi(ops)) {
-          if (opResult instanceof OpResult.SetDataResult) {
-            DataTree.copyStat(((OpResult.SetDataResult) opResult).getStat(), result._stat);
-          } else if (opResult instanceof OpResult.ErrorResult) {
-            if (((OpResult.ErrorResult) opResult).getErr() == Code.BADVERSION.intValue()) {
-              retry = true;
-            } else {
-              LOG.error("Failed to update path: " + updaterByPath.keySet());
-              result._retCode = RetCode.ERROR;
-              return result;
-            }
-          }
-        }
-      } catch (Exception e) {
-        LOG.error("Exception while updating paths: " + updaterByPath.keySet(), e);
+      } catch (Exception e1) {
+        LOG.error("Exception while reading paths: " + updaterByPath.keySet(), e1);
+        result._retCode = RetCode.ERROR;
+        return result;
+      }
+
+      try {
+        _zkClient.multi(ops);
+      } catch (ZkBadVersionException e) {
+        retry = true;
+      } catch (Exception e1) {
+        LOG.error("Exception while updating paths: " + updaterByPath.keySet(), e1);
         result._retCode = RetCode.ERROR;
         return result;
       }

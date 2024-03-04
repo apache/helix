@@ -56,7 +56,10 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 import org.slf4j.Logger;
@@ -482,6 +485,53 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
     result._retCode = RetCode.OK;
     result._updatedValue = updatedData;
+    return result;
+  }
+
+  /**
+   * transactional sync set
+   */
+  @Override
+  public boolean multiSet(Map<String, DataUpdater<T>> updaterByPath) {
+    AccessResult result = doMultiSet(updaterByPath);
+    return result._retCode == RetCode.OK;
+  }
+
+  private AccessResult doMultiSet(Map<String, DataUpdater<T>> updaterByPath) {
+    AccessResult result = new AccessResult();
+    boolean retry;
+    do {
+      retry = false;
+      List<Op> ops = new ArrayList<>();
+      try {
+        for (Map.Entry<String, DataUpdater<T>> entry : updaterByPath.entrySet()) {
+          String path = entry.getKey();
+          DataUpdater<T> updater = entry.getValue();
+          Stat readStat = new Stat();
+          T oldData = (T) _zkClient.readData(path, readStat);
+          T newData = updater.update(oldData);
+          if (newData != null) {
+            ops.add(Op.setData(path, _zkClient.serialize(newData, path), readStat.getVersion()));
+          }
+        }
+      } catch (Exception e1) {
+        LOG.error("Exception while reading paths: " + updaterByPath.keySet(), e1);
+        result._retCode = RetCode.ERROR;
+        return result;
+      }
+
+      try {
+        _zkClient.multi(ops);
+      } catch (ZkBadVersionException e) {
+        retry = true;
+      } catch (Exception e1) {
+        LOG.error("Exception while updating paths: " + updaterByPath.keySet(), e1);
+        result._retCode = RetCode.ERROR;
+        return result;
+      }
+    } while (retry);
+
+    result._retCode = RetCode.OK;
     return result;
   }
 

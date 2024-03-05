@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
+@Deprecated
 public class GenericLeaderStandbyStateModelFactory extends
     StateModelFactory<GenericLeaderStandbyModel> {
   private final CustomCodeCallbackHandler _callback;

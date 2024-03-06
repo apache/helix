@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
  *  .start()
  * </code>
  */
+@Deprecated
 public class HelixCustomCodeRunner {
   private static final String LEADER_STANDBY = "LeaderStandby";
   private static Logger LOG = LoggerFactory.getLogger(HelixCustomCodeRunner.class);

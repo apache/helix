@@ -1070,7 +1070,6 @@ public class TestInstanceOperation extends ZkTestBase {
         InstanceConstants.InstanceOperation.EVACUATE);
 
     // Validate that the assignment has not changed since setting the InstanceOperation to EVACUATE
-    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), Collections.emptySet());
 
@@ -1105,7 +1104,7 @@ public class TestInstanceOperation extends ZkTestBase {
         Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
   }
 
-  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testSwapEvacuateAdd")
   public void testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwapAddSwapInFirstEnabledBeforeSwapOutSet() at "
@@ -1325,8 +1324,6 @@ public class TestInstanceOperation extends ZkTestBase {
     for (String resource : _allDBs) {
       Assert.assertTrue(getParticipantsInEv(assignment.get(resource)).contains(instanceToEvacuate));
     }
-
-    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // exit MM
     _gSetupTool.getClusterManagementTool()

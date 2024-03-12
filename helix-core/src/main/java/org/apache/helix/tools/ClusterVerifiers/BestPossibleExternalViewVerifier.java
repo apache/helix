@@ -30,19 +30,16 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
-import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
-import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.ClusterConfig;
@@ -50,7 +47,6 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.RebalanceUtil;
@@ -433,7 +429,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     RebalanceUtil.runStage(event, new CurrentStateComputationStage());
     // Note the readOnlyWagedRebalancer is just for one time usage
 
-    try (ZkBucketDataAccessor zkBucketDataAccessor = new ZkBucketDataAccessor(_zkClient);
+    try (
+        // Pass the zkAddress to constructor to ensure the correct ZkClient is created with ByteArraySerializer
+        ZkBucketDataAccessor zkBucketDataAccessor = new ZkBucketDataAccessor(
+            _zkClient.getServers());
         DryrunWagedRebalancer dryrunWagedRebalancer = new DryrunWagedRebalancer(zkBucketDataAccessor,
             cache.getClusterName(), cache.getClusterConfig().getGlobalRebalancePreference())) {
       event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), dryrunWagedRebalancer);
@@ -461,15 +460,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     public DryrunWagedRebalancer(ZkBucketDataAccessor zkBucketDataAccessor, String clusterName,
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
       super(zkBucketDataAccessor, clusterName, preferences);
-    }
-
-    @Override
-    protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
-        ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-        Set<String> activeNodes, CurrentStateOutput currentStateOutput,
-        RebalanceAlgorithm algorithm) throws HelixRebalanceException {
-      return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
-          resourceMap.keySet());
     }
   }
 }

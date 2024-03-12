@@ -51,7 +51,7 @@ public class TestInstanceConfig {
   @Test
   public void testSetInstanceEnableWithReason() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
-    instanceConfig.setInstanceEnabled(true);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     instanceConfig.setInstanceDisabledReason("NoShowReason");
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
 
@@ -63,7 +63,7 @@ public class TestInstanceConfig {
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_TYPE.toString()), null);
 
 
-    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     String reasonCode = "ReasonCode";
     instanceConfig.setInstanceDisabledReason(reasonCode);
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);

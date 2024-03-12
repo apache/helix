@@ -28,6 +28,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -74,7 +75,7 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     // Disable instance 0 so that it will cause a partition to do a load balance
     PropertyKey key = _accessor.keyBuilder().instanceConfig(_participants[0].getInstanceName());
     InstanceConfig instanceConfig = _accessor.getProperty(key);
-    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     _accessor.setProperty(key, instanceConfig);
 
     // Resume the controller
@@ -234,7 +235,7 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     // Disable an instance so that it will not be subject to throttling
     PropertyKey key = _accessor.keyBuilder().instanceConfig(_participants[0].getInstanceName());
     InstanceConfig instanceConfig = _accessor.getProperty(key);
-    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     _accessor.setProperty(key, instanceConfig);
 
     // Set the state transition delay so that transitions would be processed slowly

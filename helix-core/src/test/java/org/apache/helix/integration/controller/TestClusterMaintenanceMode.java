@@ -280,7 +280,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
         MaintenanceSignal.TriggeringEntity.CONTROLLER);
     Assert.assertEquals(maintenanceSignal.getAutoTriggerReason(),
-        MaintenanceSignal.AutoTriggerReason.MAX_OFFLINE_INSTANCES_EXCEEDED);
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
 
     // Bring up all instances
     for (int i = 0; i < 3; i++) {
@@ -306,7 +306,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
         MaintenanceSignal.TriggeringEntity.CONTROLLER);
     Assert.assertEquals(maintenanceSignal.getAutoTriggerReason(),
-        MaintenanceSignal.AutoTriggerReason.MAX_OFFLINE_INSTANCES_EXCEEDED);
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
 
     // Set the cluster config for auto-exiting maintenance mode
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);

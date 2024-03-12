@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
@@ -98,7 +99,7 @@ public class Worker implements Runnable {
       if (!nodes.contains(_instanceName)) {
         InstanceConfig config = new InstanceConfig(_instanceName);
         config.setHostName("localhost");
-        config.setInstanceEnabled(true);
+        config.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
         admin.addInstance(_clusterName, config);
       }
 

@@ -359,7 +359,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     // Disable one selected instance0, it should failed to check
     String instance = "instance0";
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER, instance);
-    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", false);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER, instance, instanceConfig);
 
@@ -377,7 +377,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
             ImmutableSet.of("HELIX:HAS_DISABLED_PARTITION","HELIX:INSTANCE_NOT_ENABLED","HELIX:INSTANCE_NOT_STABLE","HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
 
     // Reenable instance0, it should passed the check
-    instanceConfig.setInstanceEnabled(true);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", true);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER, instance, instanceConfig);
     Assert.assertTrue(verifier.verifyByPolling());

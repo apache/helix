@@ -75,6 +75,8 @@ public class ClusterConfig extends HelixProperty {
     // TODO: if we want to support this for other rebalancers, we need to implement that logic
     GLOBAL_MAX_PARTITIONS_ALLOWED_PER_INSTANCE,
     // The following two include offline AND disabled instances
+    // TODO: At some point we should rename this to something like MAX_INSTANCES_UNABLE_TO_TAKE_ACCEPT_REPLICAS
+    //     to make it clear that it includes both offline and non-assignable instances
     MAX_OFFLINE_INSTANCES_ALLOWED,
     NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT, // For auto-exiting maintenance mode
 

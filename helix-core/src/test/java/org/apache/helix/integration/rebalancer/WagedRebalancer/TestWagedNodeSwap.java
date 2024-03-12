@@ -32,6 +32,7 @@ import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -156,7 +157,7 @@ public class TestWagedNodeSwap extends ZkTestBase {
     String oldParticipantName = oldParticipant.getInstanceName();
     final InstanceConfig instanceConfig =
         _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, oldParticipantName);
-    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     _gSetupTool.getClusterManagementTool()
         .setInstanceConfig(CLUSTER_NAME, oldParticipantName, instanceConfig);
     Assert.assertTrue(_clusterVerifier.verify(10000));
@@ -231,7 +232,7 @@ public class TestWagedNodeSwap extends ZkTestBase {
       InstanceConfig instanceConfig =
           _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceName);
       if (instanceConfig.getDomainAsMap().get("zone").equals(randZoneStr)) {
-        instanceConfig.setInstanceEnabled(false);
+        instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
         _gSetupTool.getClusterManagementTool()
             .setInstanceConfig(CLUSTER_NAME, instanceName, instanceConfig);
         removedInstanceConfigMap.put(instanceName, instanceConfig);

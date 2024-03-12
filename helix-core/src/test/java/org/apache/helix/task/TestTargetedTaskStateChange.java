@@ -86,7 +86,7 @@ public class TestTargetedTaskStateChange {
     when(mock._cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
     when(mock._cache.getJobContext(JOB_NAME)).thenReturn(mock._jobContext);
     when(mock._cache.getIdealStates()).thenReturn(mock._idealStates);
-    when(mock._cache.getAssignableEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
+    when(mock._cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
     when(mock._cache.getAssignableInstanceConfigMap()).thenReturn(_instanceConfigs);
     when(mock._cache.getClusterConfig()).thenReturn(_clusterConfig);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME)).thenReturn(mock._runtimeJobDag);
@@ -123,7 +123,7 @@ public class TestTargetedTaskStateChange {
     when(mock._cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
     when(mock._cache.getJobContext(JOB_NAME)).thenReturn(mock._jobContext);
     when(mock._cache.getIdealStates()).thenReturn(mock._idealStates);
-    when(mock._cache.getAssignableEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
+    when(mock._cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
     when(mock._cache.getAssignableInstanceConfigMap()).thenReturn(_instanceConfigs);
     when(mock._cache.getClusterConfig()).thenReturn(_clusterConfig);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME)).thenReturn(mock._runtimeJobDag);

@@ -29,6 +29,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ExternalView;
@@ -69,7 +70,7 @@ public class Quickstart {
       InstanceConfig instanceConfig = new InstanceConfig("localhost_" + port);
       instanceConfig.setHostName("localhost");
       instanceConfig.setPort("" + port);
-      instanceConfig.setInstanceEnabled(true);
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       INSTANCE_CONFIG_LIST.add(instanceConfig);
     }
 
@@ -190,7 +191,7 @@ public class Quickstart {
     InstanceConfig instanceConfig = new InstanceConfig("localhost_" + port);
     instanceConfig.setHostName("localhost");
     instanceConfig.setPort("" + port);
-    instanceConfig.setInstanceEnabled(true);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     echo("ADDING NEW NODE :" + instanceConfig.getInstanceName()
         + ". Partitions will move from old nodes to the new node.");
     admin.addInstance(CLUSTER_NAME, instanceConfig);

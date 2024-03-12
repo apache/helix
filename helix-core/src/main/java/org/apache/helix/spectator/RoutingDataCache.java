@@ -52,8 +52,10 @@ class RoutingDataCache extends BasicClusterDataCache {
   private static Logger LOG = LoggerFactory.getLogger(RoutingDataCache.class.getName());
 
   // When an instance has any of these instance operations, it should not be routable.
-  private static final ImmutableSet<String> NON_ROUTABLE_INSTANCE_OPERATIONS =
-      ImmutableSet.of(InstanceConstants.InstanceOperation.SWAP_IN.name());
+  private static final ImmutableSet<InstanceConstants.InstanceOperation>
+      NON_ROUTABLE_INSTANCE_OPERATIONS =
+      ImmutableSet.of(InstanceConstants.InstanceOperation.SWAP_IN,
+          InstanceConstants.InstanceOperation.UNKNOWN);
 
   private final Map<PropertyType, List<String>> _sourceDataTypeMap;
 

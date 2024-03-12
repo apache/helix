@@ -95,7 +95,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     String instanceTag = currentIdealState.getInstanceGroupTag();
     if (instanceTag != null) {
-      assignableLiveEnabledNodes = clusterData.getAssignableEnabledLiveInstancesWithTag(instanceTag);
+      assignableLiveEnabledNodes = clusterData.getEnabledLiveInstancesWithTag(instanceTag);
       assignableNodes = clusterData.getAssignableInstancesWithTag(instanceTag);
 
       if (LOG.isInfoEnabled()) {
@@ -105,7 +105,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
             currentIdealState.getInstanceGroupTag(), resourceName, assignableNodes, assignableLiveEnabledNodes));
       }
     } else {
-      assignableLiveEnabledNodes = clusterData.getAssignableEnabledLiveInstances();
+      assignableLiveEnabledNodes = clusterData.getEnabledLiveInstances();
       assignableNodes = clusterData.getAssignableInstances();
     }
 
@@ -246,7 +246,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
 
-    Set<String> allNodes = cache.getAssignableEnabledInstances();
+    Set<String> allNodes = cache.getEnabledInstances();
     Set<String> liveNodes = cache.getAssignableLiveInstances().keySet();
 
     ClusterConfig clusterConfig = cache.getClusterConfig();

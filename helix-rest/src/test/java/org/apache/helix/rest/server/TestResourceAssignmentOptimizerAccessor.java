@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -68,7 +69,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     toEnabledInstance = liveInstances.get(2);
     InstanceConfig config = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(cluster, toEnabledInstance);
-    config.setInstanceEnabled(false);
+    config.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     _gSetupTool.getClusterManagementTool()
         .setInstanceConfig(cluster, toEnabledInstance, config);
 
@@ -94,7 +95,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     }
     InstanceConfig config = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(cluster, toEnabledInstance);
-    config.setInstanceEnabled(true);
+    config.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     _gSetupTool.getClusterManagementTool().setInstanceConfig(cluster, toEnabledInstance, config);
     _gSetupTool.getClusterManagementTool()
         .enableMaintenanceMode(cluster, false, TestHelper.getTestMethodName());
@@ -245,8 +246,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     InstanceConfig toEnabledInstanceConfig =
         _gSetupTool.getClusterManagementTool().getInstanceConfig(cluster, toEnabledInstance);
     // Another way to mark the node as inactive or active.
-    toDeactivatedInstanceConfig.setInstanceEnabled(false);
-    toEnabledInstanceConfig.setInstanceEnabled(true);
+    toDeactivatedInstanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
+    toEnabledInstanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     // Write the current InstanceConfigs record to json string
     StringWriter sw = new StringWriter();
     OBJECT_MAPPER.writeValue(sw, toDeactivatedInstanceConfig.getRecord());

@@ -29,19 +29,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.InstanceValidationUtil;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -409,7 +406,7 @@ public class DelayedRebalanceUtil {
       ResourceAssignment resourceAssignment) {
     String resourceName = resourceAssignment.getResourceName();
     IdealState currentIdealState = clusterData.getIdealState(resourceName);
-    Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
+    Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
     int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
     int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
         .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),
@@ -430,7 +427,7 @@ public class DelayedRebalanceUtil {
 
   private static int getMinActiveReplica(ResourceControllerDataProvider clusterData, String resourceName) {
     IdealState currentIdealState = clusterData.getIdealState(resourceName);
-    Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
+    Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
     int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
     return DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
         .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),

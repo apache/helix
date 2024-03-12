@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -133,12 +134,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   private void addSwapInInstancesToBestPossibleState(Map<String, Resource> resourceMap,
       BestPossibleStateOutput bestPossibleStateOutput, ResourceControllerDataProvider cache) {
-    // 1. Get all SWAP_OUT instances and corresponding SWAP_IN instance pairs in the cluster.
+    // 1. Get all swap out instances and corresponding SWAP_IN instance pairs in the cluster.
     Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
-    // 2. Get all enabled and live SWAP_IN instances in the cluster.
+    // 2. Get all live SWAP_IN instances in the cluster.
     Set<String> liveSwapInInstances = cache.getLiveSwapInInstanceNames();
-    Set<String> enabledSwapInInstances = cache.getEnabledSwapInInstanceNames();
-    // 3. For each SWAP_OUT instance in any of the preferenceLists, add the corresponding SWAP_IN instance to
+    // 3. For each swap out instance in any of the preferenceLists, add the corresponding SWAP_IN instance to
     // the stateMap with the correct state.
     // Skipping this when there are no SWAP_IN instances that are alive will reduce computation time.
     if (!liveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
@@ -158,15 +158,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                 // If the corresponding swap-in instance is not live, skip assigning to it.
                 if (!liveSwapInInstances.contains(
                     swapOutToSwapInInstancePairs.get(swapOutInstance))) {
-                  return;
-                }
-
-                // If the corresponding swap-in instance is not enabled, assign replicas with
-                // initial state.
-                if (!enabledSwapInInstances.contains(
-                    swapOutToSwapInInstancePairs.get(swapOutInstance))) {
-                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                      stateModelDef.getInitialState());
                   return;
                 }
 
@@ -327,21 +318,28 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   // if yes, auto enable maintenance mode, and use the maintenance rebalancer for this pipeline.
   private boolean validateOfflineInstancesLimit(final ResourceControllerDataProvider cache,
       final HelixManager manager) {
-    int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
-    if (maxOfflineInstancesAllowed >= 0) {
-      int offlineCount =
-          cache.getAssignableInstances().size() - cache.getAssignableEnabledLiveInstances().size();
-      if (offlineCount > maxOfflineInstancesAllowed) {
+    int maxInstancesUnableToAcceptOnlineReplicas =
+        cache.getClusterConfig().getMaxOfflineInstancesAllowed();
+    if (maxInstancesUnableToAcceptOnlineReplicas >= 0) {
+      // Instead of only checking the offline instances, we consider how many instances in the cluster
+      // are not assignable and live. This is because some instances may be online but have an unassignable
+      // InstanceOperation such as EVACUATE, DISABLE, or UNKNOWN. We will exclude SWAP_IN instances from
+      // they should not account against the capacity of the cluster.
+      int instancesUnableToAcceptOnlineReplicas = cache.getInstanceConfigMap().entrySet().stream()
+          .filter(instanceEntry -> !instanceEntry.getValue().getInstanceOperation()
+              .equals(InstanceConstants.InstanceOperation.SWAP_IN)).collect(Collectors.toSet())
+          .size() - cache.getEnabledLiveInstances().size();
+      if (instancesUnableToAcceptOnlineReplicas > maxInstancesUnableToAcceptOnlineReplicas) {
         String errMsg = String.format(
-            "Offline Instances count %d greater than allowed count %d. Put cluster %s into "
-                + "maintenance mode.",
-            offlineCount, maxOfflineInstancesAllowed, cache.getClusterName());
+            "Instances unable to take ONLINE replicas count %d greater than allowed count %d. Put cluster %s into "
+                + "maintenance mode.", instancesUnableToAcceptOnlineReplicas,
+            maxInstancesUnableToAcceptOnlineReplicas, cache.getClusterName());
         if (manager != null) {
           if (manager.getHelixDataAccessor()
               .getProperty(manager.getHelixDataAccessor().keyBuilder().maintenance()) == null) {
             manager.getClusterManagmentTool()
                 .autoEnableMaintenanceMode(manager.getClusterName(), true, errMsg,
-                    MaintenanceSignal.AutoTriggerReason.MAX_OFFLINE_INSTANCES_EXCEEDED);
+                    MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
             LogUtil.logWarn(logger, _eventId, errMsg);
           }
         } else {

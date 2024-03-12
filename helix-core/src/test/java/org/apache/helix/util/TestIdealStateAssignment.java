@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -43,7 +44,8 @@ public class TestIdealStateAssignment {
     for (String instance : instances) {
       instanceConfigs.add(new InstanceConfig(instance));
       if (disabledInstances.contains(instance)) {
-        instanceConfigs.get(instanceConfigs.size() - 1).setInstanceEnabled(false);
+        instanceConfigs.get(instanceConfigs.size() - 1)
+            .setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
       }
     }
 

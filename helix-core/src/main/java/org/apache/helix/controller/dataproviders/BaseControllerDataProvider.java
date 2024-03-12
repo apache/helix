@@ -64,7 +64,6 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
-import org.apache.helix.util.InstanceValidationUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
@@ -120,30 +119,37 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private final Set<String> _disabledInstanceSet = new HashSet<>();
 
   private static final class DerivedInstanceCache {
-    // Assignable instances are instances will contain at most one instance with a given logicalId.
-    // This is used for SWAP related operations where there can be two instances with the same logicalId.
+    private final Map<InstanceConstants.InstanceOperation, Map<String, InstanceConfig>>
+        _instanceConfigMapByInstanceOperation;
     private final Map<String, InstanceConfig> _assignableInstanceConfigMap;
     private final Map<String, LiveInstance> _assignableLiveInstancesMap;
     private final Map<String, String> _swapOutInstanceNameToSwapInInstanceName;
     private final Set<String> _liveSwapInInstanceNames;
-    private final Set<String> _enabledSwapInInstanceNames;
 
-    DerivedInstanceCache(Map<String, InstanceConfig> assignableInstanceConfigMap,
+    DerivedInstanceCache(
+        Map<InstanceConstants.InstanceOperation, Map<String, InstanceConfig>> instanceConfigMapByInstanceOperation,
+        Map<String, InstanceConfig> assignableInstanceConfigMap,
         Map<String, LiveInstance> assignableLiveInstancesMap,
         Map<String, String> swapOutInstanceNameToSwapInInstanceName,
-        Set<String> liveSwapInInstanceNames, Set<String> enabledSwapInInstanceNames) {
+        Set<String> liveSwapInInstanceNames) {
+      _instanceConfigMapByInstanceOperation = instanceConfigMapByInstanceOperation;
       _assignableInstanceConfigMap = assignableInstanceConfigMap;
       _assignableLiveInstancesMap = assignableLiveInstancesMap;
       _swapOutInstanceNameToSwapInInstanceName = swapOutInstanceNameToSwapInInstanceName;
       _liveSwapInInstanceNames = liveSwapInInstanceNames;
-      _enabledSwapInInstanceNames = enabledSwapInInstanceNames;
+    }
+
+    private Map<String, InstanceConfig> getInstanceConfigMapByInstanceOperation(
+        InstanceConstants.InstanceOperation instanceOperation) {
+      return _instanceConfigMapByInstanceOperation.getOrDefault(instanceOperation,
+          Collections.emptyMap());
     }
   }
 
   // All maps and sets are encapsulated in DerivedInstanceCache to ensure that they are updated together
   // as a snapshot.
   private DerivedInstanceCache _derivedInstanceCache =
-      new DerivedInstanceCache(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashSet<>(),
+      new DerivedInstanceCache(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
           new HashSet<>());
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
   private final Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
@@ -383,15 +389,14 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
 
     // Create new caches to be populated.
+    Map<InstanceConstants.InstanceOperation, Map<String, InstanceConfig>>
+        newInstanceConfigMapByInstanceOperation = new HashMap<>();
     Map<String, InstanceConfig> newAssignableInstanceConfigMap = new HashMap<>();
     Map<String, LiveInstance> newAssignableLiveInstancesMap = new HashMap<>();
-    Map<String, String> newSwapOutInstanceNameToSwapInInstanceName = new HashMap<>();
+    Map<String, String> newSwapOutInstanceNameToSwapOutInstanceName = new HashMap<>();
     Set<String> newLiveSwapInInstanceNames = new HashSet<>();
-    Set<String> newEnabledSwapInInstanceNames = new HashSet<>();
-
-    Map<String, String> filteredInstancesByLogicalId = new HashMap<>();
-    Map<String, String> swapOutLogicalIdsByInstanceName = new HashMap<>();
-    Map<String, String> swapInInstancesByLogicalId = new HashMap<>();
+    Map<String, String> swapInLogicalIdsByInstanceName = new HashMap<>();
+    Map<String, String> nonSwapInInstancesByLogicalId = new HashMap<>();
 
     for (Map.Entry<String, InstanceConfig> entry : instanceConfigMap.entrySet()) {
       String node = entry.getKey();
@@ -404,44 +409,20 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       String currentInstanceLogicalId =
           currentInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
 
-      // Filter out instances with duplicate logical IDs. If there are duplicates, the instance with
-      // InstanceOperation SWAP_OUT will be chosen over the instance with SWAP_IN. SWAP_IN is not
-      // assignable. If there are duplicates with one node having no InstanceOperation and the other
-      // having SWAP_OUT, the node with no InstanceOperation will be chosen. This signifies SWAP
-      // completion, therefore making the node assignable.
-      if (filteredInstancesByLogicalId.containsKey(currentInstanceLogicalId)) {
-        String filteredNode = filteredInstancesByLogicalId.get(currentInstanceLogicalId);
-        InstanceConfig filteredDuplicateInstanceConfig = instanceConfigMap.get(filteredNode);
+      newInstanceConfigMapByInstanceOperation.computeIfAbsent(
+              currentInstanceConfig.getInstanceOperation(), k -> new HashMap<>())
+          .put(node, currentInstanceConfig);
 
-        if ((filteredDuplicateInstanceConfig.getInstanceOperation()
-            .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
-            && currentInstanceConfig.getInstanceOperation()
-            .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name()))
-            || currentInstanceConfig.getInstanceOperation().isEmpty()) {
-          // If the already filtered instance is SWAP_IN and this instance is in SWAP_OUT, then replace the filtered
-          // instance with this instance. If this instance has no InstanceOperation, then replace the filtered instance
-          // with this instance. This is the case where the SWAP_IN node has been marked as complete or SWAP_IN exists and
-          // SWAP_OUT does not. There can never be a case where both have no InstanceOperation set.
-          newAssignableInstanceConfigMap.remove(filteredNode);
-          newAssignableInstanceConfigMap.put(node, currentInstanceConfig);
-          filteredInstancesByLogicalId.put(currentInstanceLogicalId, node);
-        }
-      } else if (!currentInstanceConfig.getInstanceOperation()
-          .equals(InstanceConstants.InstanceOperation.EVACUATE.name())) {
-        // EVACUATE instances are not considered to be assignable.
+      if (currentInstanceConfig.isAssignable()) {
         newAssignableInstanceConfigMap.put(node, currentInstanceConfig);
-        filteredInstancesByLogicalId.put(currentInstanceLogicalId, node);
       }
 
       if (currentInstanceConfig.getInstanceOperation()
-          .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) {
-        swapOutLogicalIdsByInstanceName.put(currentInstanceConfig.getInstanceName(),
+          .equals(InstanceConstants.InstanceOperation.SWAP_IN)) {
+        swapInLogicalIdsByInstanceName.put(currentInstanceConfig.getInstanceName(),
             currentInstanceLogicalId);
-      }
-
-      if (currentInstanceConfig.getInstanceOperation()
-          .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())) {
-        swapInInstancesByLogicalId.put(
+      } else {
+        nonSwapInInstancesByLogicalId.put(
             currentInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType()),
             currentInstanceConfig.getInstanceName());
       }
@@ -453,25 +434,20 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       }
     });
 
-    swapOutLogicalIdsByInstanceName.forEach((swapOutInstanceName, value) -> {
-      String swapInInstanceName = swapInInstancesByLogicalId.get(value);
-      if (swapInInstanceName != null) {
-        newSwapOutInstanceNameToSwapInInstanceName.put(swapOutInstanceName, swapInInstanceName);
+    swapInLogicalIdsByInstanceName.forEach((swapInInstanceName, swapInLogicalId) -> {
+      String swapOutInstanceName = nonSwapInInstancesByLogicalId.get(swapInLogicalId);
+      if (swapOutInstanceName != null) {
+        newSwapOutInstanceNameToSwapOutInstanceName.put(swapOutInstanceName, swapInInstanceName);
         if (liveInstancesMap.containsKey(swapInInstanceName)) {
           newLiveSwapInInstanceNames.add(swapInInstanceName);
-        }
-        if (InstanceValidationUtil.isInstanceEnabled(instanceConfigMap.get(swapInInstanceName),
-            clusterConfig)) {
-          newEnabledSwapInInstanceNames.add(swapInInstanceName);
         }
       }
     });
 
     // Replace caches with up-to-date instance sets.
-    _derivedInstanceCache =
-        new DerivedInstanceCache(newAssignableInstanceConfigMap, newAssignableLiveInstancesMap,
-            newSwapOutInstanceNameToSwapInInstanceName, newLiveSwapInInstanceNames,
-            newEnabledSwapInInstanceNames);
+    _derivedInstanceCache = new DerivedInstanceCache(newInstanceConfigMapByInstanceOperation,
+        newAssignableInstanceConfigMap, newAssignableLiveInstancesMap,
+        newSwapOutInstanceNameToSwapOutInstanceName, newLiveSwapInInstanceNames);
   }
 
   private void refreshResourceConfig(final HelixDataAccessor accessor,
@@ -722,78 +698,37 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
-   * Return all the live nodes that are enabled and assignable
-   *
-   * @return A new set contains live instance name and that are marked enabled
-   */
-  public Set<String> getAssignableEnabledLiveInstances() {
-    Set<String> enabledLiveInstances = new HashSet<>(getAssignableLiveInstances().keySet());
-    enabledLiveInstances.removeAll(getDisabledInstances());
-
-    return enabledLiveInstances;
-  }
-
-  /**
-   * Return all the live nodes that are enabled
+   * Return all the live nodes that are enabled. If a node is enabled, it is assignable.
    * @return A new set contains live instance name and that are marked enabled
    */
   public Set<String> getEnabledLiveInstances() {
     Set<String> enabledLiveInstances = new HashSet<>(getLiveInstances().keySet());
-    enabledLiveInstances.removeAll(getDisabledInstances());
+    enabledLiveInstances.retainAll(getEnabledInstances());
 
     return enabledLiveInstances;
   }
 
   /**
-   * Return all nodes that are enabled and assignable.
-   *
-   * @return A new set contains instance name and that are marked enabled
-   */
-  public Set<String> getAssignableEnabledInstances() {
-    Set<String> enabledNodes = new HashSet<>(getAssignableInstances());
-    enabledNodes.removeAll(getDisabledInstances());
-
-    return enabledNodes;
-  }
-
-  /**
-   * Return all nodes that are enabled.
+   * Return all nodes that are enabled. If a node is enabled, it is assignable.
    * @return A new set contains instance name and that are marked enabled
    */
   public Set<String> getEnabledInstances() {
-    Set<String> enabledNodes = new HashSet<>(getAllInstances());
-    enabledNodes.removeAll(getDisabledInstances());
-
-    return enabledNodes;
+    return new HashSet<>(_derivedInstanceCache.getInstanceConfigMapByInstanceOperation(
+        InstanceConstants.InstanceOperation.ENABLE).keySet());
   }
 
   /**
-   * Return all the live nodes that are enabled and assignable and tagged with given instanceTag.
+   * Return all the live nodes that are enabled and tagged with given instanceTag. If a node is
+   * enabled, it is assignable.
    *
    * @param instanceTag The instance group tag.
    * @return A new set contains live instance name and that are marked enabled and have the
    * specified tag.
    */
-  public Set<String> getAssignableEnabledLiveInstancesWithTag(String instanceTag) {
-    Set<String> enabledLiveInstancesWithTag = new HashSet<>(getAssignableLiveInstances().keySet());
-    Set<String> instancesWithTag = getAssignableInstancesWithTag(instanceTag);
-    enabledLiveInstancesWithTag.retainAll(instancesWithTag);
-    enabledLiveInstancesWithTag.removeAll(getDisabledInstances());
-
-    return enabledLiveInstancesWithTag;
-  }
-
-  /**
-   * Return all the live nodes that are enabled and tagged with given instanceTag.
-   * @param instanceTag The instance group tag.
-   * @return A new set contains live instance name and that are marked enabled and have the
-   *         specified tag.
-   */
   public Set<String> getEnabledLiveInstancesWithTag(String instanceTag) {
-    Set<String> enabledLiveInstancesWithTag = new HashSet<>(getLiveInstances().keySet());
+    Set<String> enabledLiveInstancesWithTag = new HashSet<>(getEnabledLiveInstances());
     Set<String> instancesWithTag = getAssignableInstancesWithTag(instanceTag);
     enabledLiveInstancesWithTag.retainAll(instancesWithTag);
-    enabledLiveInstancesWithTag.removeAll(getDisabledInstances());
 
     return enabledLiveInstancesWithTag;
   }
@@ -860,7 +795,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   /**
    * Get all swapping instance pairs.
    *
-   * @return a map of SWAP_OUT instanceNames and their corresponding SWAP_IN instanceNames.
+   * @return a map of swap out instanceNames and their corresponding SWAP_IN instanceNames.
    */
   public Map<String, String> getSwapOutToSwapInInstancePairs() {
     return Collections.unmodifiableMap(
@@ -870,19 +805,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   /**
    * Get all the live SWAP_IN instances.
    *
-   * @return a set of SWAP_IN instanceNames that have a corresponding SWAP_OUT instance.
+   * @return a set of SWAP_IN instanceNames that have a corresponding swap out instance.
    */
   public Set<String> getLiveSwapInInstanceNames() {
     return Collections.unmodifiableSet(_derivedInstanceCache._liveSwapInInstanceNames);
-  }
-
-  /**
-   * Get all the enabled SWAP_IN instances.
-   *
-   * @return a set of SWAP_IN instanceNames that have a corresponding SWAP_OUT instance.
-   */
-  public Set<String> getEnabledSwapInInstanceNames() {
-    return Collections.unmodifiableSet(_derivedInstanceCache._enabledSwapInInstanceNames);
   }
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
@@ -1127,7 +1053,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _disabledInstanceSet.clear();
     for (InstanceConfig config : allInstanceConfigs) {
       Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
-      if (!InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
+      if (config.getInstanceOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
         _disabledInstanceSet.add(config.getInstanceName());
       }
       for (String resource : disabledPartitionMap.keySet()) {

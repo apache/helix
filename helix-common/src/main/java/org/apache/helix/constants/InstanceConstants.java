@@ -20,6 +20,11 @@ public class InstanceConstants {
   public static final Set<InstanceOperation> INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS =
       Set.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE, InstanceOperation.EVACUATE);
 
+  // This means that the instance will not be populated in the routing table provider and should
+  // be considered as a ghost instance in the cluster.
+  public static final Set<InstanceOperation> UNSERVABLE_INSTANCE_OPERATIONS =
+      Set.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
+
   public enum InstanceDisabledType {
     CLOUD_EVENT,
     USER_OPERATION,

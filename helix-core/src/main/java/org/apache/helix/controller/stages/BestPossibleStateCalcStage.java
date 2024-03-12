@@ -241,7 +241,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // Check whether the offline/disabled instance count in the cluster exceeds the set limit,
     // if yes, put the cluster into maintenance mode.
     boolean isValid =
-        validateOfflineInstancesLimit(cache, event.getAttribute(AttributeName.helixmanager.name()));
+        validateInstancesUnableToAcceptOnlineReplicasLimit(cache, event.getAttribute(AttributeName.helixmanager.name()));
 
     final List<String> failureResources = new ArrayList<>();
 
@@ -314,9 +314,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     });
   }
 
-  // Check whether the offline/disabled instance count in the cluster reaches the set limit,
+  // Check whether the offline/unable to accept online replicas instance count in the cluster reaches the set limit,
   // if yes, auto enable maintenance mode, and use the maintenance rebalancer for this pipeline.
-  private boolean validateOfflineInstancesLimit(final ResourceControllerDataProvider cache,
+  private boolean validateInstancesUnableToAcceptOnlineReplicasLimit(final ResourceControllerDataProvider cache,
       final HelixManager manager) {
     int maxInstancesUnableToAcceptOnlineReplicas =
         cache.getClusterConfig().getMaxOfflineInstancesAllowed();
@@ -326,8 +326,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       // InstanceOperation such as EVACUATE, DISABLE, or UNKNOWN. We will exclude SWAP_IN instances from
       // they should not account against the capacity of the cluster.
       int instancesUnableToAcceptOnlineReplicas = cache.getInstanceConfigMap().entrySet().stream()
-          .filter(instanceEntry -> !instanceEntry.getValue().getInstanceOperation()
-              .equals(InstanceConstants.InstanceOperation.SWAP_IN)).collect(Collectors.toSet())
+          .filter(instanceEntry -> !InstanceConstants.UNSERVABLE_INSTANCE_OPERATIONS.contains(
+              instanceEntry.getValue().getInstanceOperation())).collect(Collectors.toSet())
           .size() - cache.getEnabledLiveInstances().size();
       if (instancesUnableToAcceptOnlineReplicas > maxInstancesUnableToAcceptOnlineReplicas) {
         String errMsg = String.format(

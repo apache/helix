@@ -223,6 +223,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           InstanceConstants.InstanceOperation.UNKNOWN,
           attemptedInstanceOperation, clusterName);
     } catch (HelixException e) {
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
       logger.error("Failed to add instance " + instanceConfig.getInstanceName() + " to cluster "
           + clusterName + " with instance operation " + attemptedInstanceOperation
           + ". Setting INSTANCE_OPERATION to " + instanceConfig.getInstanceOperation()
@@ -529,8 +530,8 @@ public class ZKHelixAdmin implements HelixAdmin {
         findInstancesMatchingLogicalId(clusterName, instanceConfig);
     validateInstanceOperationTransition(instanceConfig,
         !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
-        instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE : instanceOperation,
         instanceConfig.getInstanceOperation(),
+        instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE : instanceOperation,
         clusterName);
 
    boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {

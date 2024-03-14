@@ -78,7 +78,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
     for (int i = numNodes; i < numNodes + NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       InstanceConfig config = InstanceConfig.toInstanceConfig(storageNodeName);
-      config.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
+      config.setInstanceEnabled(false);
       config.getRecord().getSimpleFields()
           .remove(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name());
 

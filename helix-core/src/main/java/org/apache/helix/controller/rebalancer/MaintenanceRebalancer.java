@@ -78,27 +78,4 @@ public class MaintenanceRebalancer extends SemiAutoRebalancer<ResourceController
         .format("End computing ideal state for resource %s in maintenance mode.", resourceName));
     return currentIdealState;
   }
-
-  public static void main(String[] args) {
-    List<String> list = new ArrayList<>();
-    Set<String> set = new HashSet<>();
-    do {
-      String s1 = RandomStringUtils.randomAlphanumeric(10);
-      String s2 = RandomStringUtils.randomAlphanumeric(10);
-      String s3 = RandomStringUtils.randomAlphanumeric(10);
-      list.clear();
-      list.add(s1);
-      list.add(s2);
-      list.add(s3);
-      set.clear();
-      set.add(s1);
-      set.add(s2);
-      set.add(s3);
-      System.out.println(list);
-      System.out.println(new ArrayList<String>(set));
-    } while (list.toString() != new ArrayList<String>(set).toString());
-
-    System.out.println(list);
-    System.out.println(new ArrayList<String>(set));
-  }
 }

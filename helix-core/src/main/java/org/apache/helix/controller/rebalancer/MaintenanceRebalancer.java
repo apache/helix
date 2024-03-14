@@ -21,13 +21,17 @@ package org.apache.helix.controller.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,16 +59,46 @@ public class MaintenanceRebalancer extends SemiAutoRebalancer<ResourceController
 
     // One principal is to prohibit DROP -> OFFLINE and OFFLINE -> DROP state transitions.
     // Derived preference list from current state with state priority
+    StateModelDefinition stateModelDef = clusterData.getStateModelDef(currentIdealState.getStateModelDefRef());
+
     for (Partition partition : currentStateMap.keySet()) {
       Map<String, String> stateMap = currentStateMap.get(partition);
       List<String> preferenceList = new ArrayList<>(stateMap.keySet());
+
+      // This sorting preserves the ordering of current state hosts in the order of current IS pref list
       Collections.sort(preferenceList, new PreferenceListNodeComparator(stateMap,
-          clusterData.getStateModelDef(currentIdealState.getStateModelDefRef()),
-          Collections.<String>emptyList()));
+          stateModelDef, currentIdealState.getPreferenceList(partition.getPartitionName())));
+
+      // This sorts the current state hosts based on the priority
+      preferenceList.sort(new StatePriorityComparator(stateMap, stateModelDef));
+
       currentIdealState.setPreferenceList(partition.getPartitionName(), preferenceList);
     }
     LOG.info(String
         .format("End computing ideal state for resource %s in maintenance mode.", resourceName));
     return currentIdealState;
+  }
+
+  public static void main(String[] args) {
+    List<String> list = new ArrayList<>();
+    Set<String> set = new HashSet<>();
+    do {
+      String s1 = RandomStringUtils.randomAlphanumeric(10);
+      String s2 = RandomStringUtils.randomAlphanumeric(10);
+      String s3 = RandomStringUtils.randomAlphanumeric(10);
+      list.clear();
+      list.add(s1);
+      list.add(s2);
+      list.add(s3);
+      set.clear();
+      set.add(s1);
+      set.add(s2);
+      set.add(s3);
+      System.out.println(list);
+      System.out.println(new ArrayList<String>(set));
+    } while (list.toString() != new ArrayList<String>(set).toString());
+
+    System.out.println(list);
+    System.out.println(new ArrayList<String>(set));
   }
 }

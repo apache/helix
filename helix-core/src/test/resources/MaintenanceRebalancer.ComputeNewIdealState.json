@@ -1,0 +1,98 @@
+[
+  {
+    "comment": "[Case 1] Same state - No (A, B, C) -> (A, C, B) for different hash order",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lKmBBEPisM", "8PNpMU7EgT", "HOs3rOFCad"
+    ],
+    "currentStateMap": {
+      "lKmBBEPisM" : "MASTER",
+      "8PNpMU7EgT" : "SLAVE",
+      "HOs3rOFCad" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "lKmBBEPisM", "8PNpMU7EgT", "HOs3rOFCad"
+    ]
+  },
+  {
+    "comment": "[Case 2] Same state - No (A, B, C) -> (A, C, B) for different hash order",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "Q3ZZuCeBpu", "QY9U91XBYo", "GMYBW20gmC"
+    ],
+    "currentStateMap": {
+      "Q3ZZuCeBpu" : "MASTER",
+      "QY9U91XBYo" : "SLAVE",
+      "GMYBW20gmC" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "Q3ZZuCeBpu", "QY9U91XBYo", "GMYBW20gmC"
+    ]
+  },
+  {
+    "comment": "[Case 3] second becomes leader, (A, B, C) -> (B, A, C) for different hash order",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lKmBBEPisM", "8PNpMU7EgT", "HOs3rOFCad"
+    ],
+    "currentStateMap": {
+      "lKmBBEPisM" : "SLAVE",
+      "8PNpMU7EgT" : "MASTER",
+      "HOs3rOFCad" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "8PNpMU7EgT", "lKmBBEPisM", "HOs3rOFCad"
+    ]
+  },
+  {
+    "comment": "[Case 4] second becomes leader, (A, B, C) -> (B, A, C) for different hash order",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "Q3ZZuCeBpu", "QY9U91XBYo", "GMYBW20gmC"
+    ],
+    "currentStateMap": {
+      "Q3ZZuCeBpu" : "SLAVE",
+      "QY9U91XBYo" : "MASTER",
+      "GMYBW20gmC" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "QY9U91XBYo", "Q3ZZuCeBpu", "GMYBW20gmC"
+    ]
+  },
+  {
+    "comment": "[Case 5] leader becomes offline, (A, B, C) -> (B, C, A) for different hash order",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "lKmBBEPisM", "8PNpMU7EgT", "HOs3rOFCad"
+    ],
+    "currentStateMap": {
+      "lKmBBEPisM" : "OFFLINE",
+      "8PNpMU7EgT" : "MASTER",
+      "HOs3rOFCad" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "8PNpMU7EgT", "HOs3rOFCad", "lKmBBEPisM"
+    ]
+  },
+  {
+    "comment": "[Case 6] leader becomes offline, (A, B, C) -> (B, C, A) for different hash order",
+    "stateModel": "MasterSlave",
+    "liveInstances": [],
+    "preferenceList": [
+      "Q3ZZuCeBpu", "QY9U91XBYo", "GMYBW20gmC"
+    ],
+    "currentStateMap": {
+      "Q3ZZuCeBpu" : "OFFLINE",
+      "QY9U91XBYo" : "MASTER",
+      "GMYBW20gmC" : "SLAVE"
+    },
+    "expectedPreferenceList": [
+      "QY9U91XBYo", "GMYBW20gmC", "Q3ZZuCeBpu"
+    ]
+  }
+]

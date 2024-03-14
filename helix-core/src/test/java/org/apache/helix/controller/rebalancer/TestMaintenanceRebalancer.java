@@ -46,8 +46,6 @@ public class TestMaintenanceRebalancer {
         .computeNewIdealState(RESOURCE_NAME, currentIdealState, currentStateOutput, dataCache);
 
     List<String> partitionPrefList = updatedIdealState.getPreferenceList(PARTITION_NAME);
-    System.out.println(partitionPrefList);
-    System.out.println(expectedPrefList);
     Assert.assertTrue(partitionPrefList.equals(expectedPrefList));
   }
 

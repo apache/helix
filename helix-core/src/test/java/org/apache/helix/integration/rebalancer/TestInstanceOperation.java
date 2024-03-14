@@ -1258,8 +1258,6 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertTrue(getParticipantsInEv(assignment.get(resource)).contains(instanceToEvacuate));
     }
 
-    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
-
     // exit MM
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);

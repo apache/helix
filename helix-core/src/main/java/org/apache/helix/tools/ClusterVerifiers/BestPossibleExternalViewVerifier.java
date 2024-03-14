@@ -30,19 +30,16 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
-import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
-import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.ClusterConfig;
@@ -50,7 +47,6 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.RebalanceUtil;
@@ -59,8 +55,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * verifier that the ExternalViews of given resources (or all resources in the cluster)
- * match its best possible mapping states.
+ * Verify that the ExternalViews of given resources (or all resources in the cluster)
+ * match its best possible mapping states. The best possible mapping states are computed
+ * by running the BestPossibleStateCalc stage with the same inputs that the controller would
+ * use to calculate the best possible state. The mappings produced by this stage are compared
+ * to the external view to ensure that they match. When they match, the cluster has converged.
+ * Note: The best possible state compared to the external view includes the non-persisted state
+ * mappings generated when handling MIN_ACTIVE replicas.
  */
 public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private static Logger LOG = LoggerFactory.getLogger(BestPossibleExternalViewVerifier.class);
@@ -433,7 +434,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     RebalanceUtil.runStage(event, new CurrentStateComputationStage());
     // Note the readOnlyWagedRebalancer is just for one time usage
 
-    try (ZkBucketDataAccessor zkBucketDataAccessor = new ZkBucketDataAccessor(_zkClient);
+    try (
+        // Pass the zkAddress to constructor to ensure the correct ZkClient is created with ByteArraySerializer
+        ZkBucketDataAccessor zkBucketDataAccessor = new ZkBucketDataAccessor(
+            _zkClient.getServers());
         DryrunWagedRebalancer dryrunWagedRebalancer = new DryrunWagedRebalancer(zkBucketDataAccessor,
             cache.getClusterName(), cache.getClusterConfig().getGlobalRebalancePreference())) {
       event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), dryrunWagedRebalancer);
@@ -461,15 +465,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     public DryrunWagedRebalancer(ZkBucketDataAccessor zkBucketDataAccessor, String clusterName,
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
       super(zkBucketDataAccessor, clusterName, preferences);
-    }
-
-    @Override
-    protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
-        ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-        Set<String> activeNodes, CurrentStateOutput currentStateOutput,
-        RebalanceAlgorithm algorithm) throws HelixRebalanceException {
-      return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
-          resourceMap.keySet());
     }
   }
 }

@@ -207,10 +207,8 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
     addListeners(mixedListener);
     updateConfigs();
 
-    Thread.sleep(4000);
-    boolean result = (mixedListener._instanceConfigChangedCount == _numNode) && (
-        mixedListener._idealStateChangedCount < _numResource/2);
-
+    boolean result = TestHelper.verify(() -> (mixedListener._instanceConfigChangedCount == _numNode)
+        && (mixedListener._idealStateChangedCount < _numResource/2), 4000);
     Assert.assertTrue(result, "instance callbacks: " + mixedListener._instanceConfigChangedCount
         + ", idealstate callbacks " + mixedListener._idealStateChangedCount + "\ninstance count: "
         + _numNode + ", idealstate counts: " + _numResource);

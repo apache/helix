@@ -83,9 +83,9 @@ public class TestSyncSessionToController extends ZkTestBase {
     ZNRecord data = accessor.get(path, stat, 2);
     data.getSimpleFields().put("SESSION_ID", "invalid-id");
     accessor.set(path, data, 2);
-    Thread.sleep(2000);
+
     // Since we always read the content from ephemeral nodes, sync message won't be sent
-    Assert.assertFalse(mockMessageListener.isSessionSyncMessageSent());
+    Assert.assertFalse(TestHelper.verify(mockMessageListener::isSessionSyncMessageSent, 2000));
 
     // Even after reconnect, session sync won't happen
     ZkTestHelper.expireSession(participants[0].getZkClient());

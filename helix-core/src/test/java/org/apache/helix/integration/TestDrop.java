@@ -194,9 +194,6 @@ public class TestDrop extends ZkTestBase {
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
     Assert.assertTrue(verifier.verifyByPolling());
-
-    Thread.sleep(400);
-
     assertEmptyCSandEV(className, "TestDB0", participants);
 
     // clean up
@@ -259,7 +256,7 @@ public class TestDrop extends ZkTestBase {
         .setZkClient(_gZkClient).setErrStates(errStateMap)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
-    Assert.assertTrue(verifier.verifyByPolling());
+    Assert.assertTrue(verifier.verifyByPolling(TestHelper.WAIT_DURATION, TestHelper.POLL_DURATION));
 
     // drop resource containing error partitions should invoke error->dropped transition
     // if error happens during error->dropped transition, partition should be disabled
@@ -275,7 +272,6 @@ public class TestDrop extends ZkTestBase {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     // ExternalView should have TestDB0_4->localhost_12918_>ERROR
-    Thread.sleep(250L);
     ExternalView ev = accessor.getProperty(keyBuilder.externalView("TestDB0"));
     Set<String> partitions = ev.getPartitionSet();
     Assert.assertEquals(partitions.size(), 1, "Should have TestDB0_4->localhost_12918->ERROR");
@@ -457,9 +453,7 @@ public class TestDrop extends ZkTestBase {
     // System.out.println("Dropping schemata resource group...");
     command = "--zkSvr " + ZK_ADDR + " --dropResource " + clusterName + " schemata";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Assert.assertTrue(verifier.verifyByPolling());
-
-    Thread.sleep(400);
+    Assert.assertTrue(verifier.verifyByPolling(TestHelper.WAIT_DURATION, TestHelper.POLL_DURATION));
 
     assertEmptyCSandEV(clusterName, "schemata", participants);
 

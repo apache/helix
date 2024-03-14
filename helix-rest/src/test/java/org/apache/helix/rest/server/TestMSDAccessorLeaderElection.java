@@ -31,6 +31,7 @@ import java.util.Set;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.helix.TestHelper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
@@ -43,8 +44,6 @@ import org.apache.helix.rest.server.filters.CORSFilter;
 import org.apache.helix.rest.server.mock.MockMetadataStoreDirectoryAccessor;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPut;
@@ -108,9 +107,7 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
     _httpClient = HttpClients.createDefault();
 
     // Start zkclient to verify leader election behavior
-    _zkClient = DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddrTestNS),
-            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    _zkClient = TestHelper.createZkClient(_zkAddrTestNS);
   }
 
   @AfterClass

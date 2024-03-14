@@ -119,8 +119,7 @@ public class TestDriver {
   public static void setupCluster(String uniqClusterName, String zkAddr, int numResources,
       int numPartitionsPerResource, int numInstances, int replica, boolean doRebalance)
       throws Exception {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+    HelixZkClient zkClient = TestHelper.createZkClient(ZK_ADDR);
 
     try {
       zkClient.setZkSerializer(new ZNRecordSerializer());

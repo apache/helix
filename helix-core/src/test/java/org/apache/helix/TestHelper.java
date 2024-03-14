@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -46,8 +48,8 @@ import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -61,7 +63,7 @@ import org.apache.helix.util.ZKClientPool;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -77,6 +79,7 @@ import org.testng.Assert;
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
   public static final long WAIT_DURATION = 60 * 1000L; // 60 seconds
+  public static final long POLL_DURATION = 10L;        // 10 milli-seconds
   public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1500;
   /**
    * Returns a unused random port.
@@ -221,9 +224,7 @@ public class TestHelper {
 
   public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceName,
       Set<String> instanceNames, String zkAddr) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkClient = createZkClient(zkAddr);
 
     try {
       ZKHelixDataAccessor accessor =
@@ -278,8 +279,7 @@ public class TestHelper {
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    HelixZkClient zkClient = createZkClient(zkAddr);
     try {
       if (zkClient.exists("/" + clusterName)) {
         LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
@@ -287,7 +287,17 @@ public class TestHelper {
       }
 
       ClusterSetup setupTool = new ClusterSetup(zkAddr);
-      setupTool.addCluster(clusterName, true);
+
+      /**
+       * This is an optimization that we are performing to selectively load only the state-model defs
+       * that are required for cluster. We have found that loading all state-model defs everytime in
+       * a cluster creation takes about 500-700ms, due to invocation of ZKUtil::isClusterSetup function
+       * that (repeatedly) ensure all the helix cluster paths are created before loading a state-model.
+       */
+      List<BuiltInStateModelDefinitions> stateModelDefinitions = Objects.isNull(stateModelDef)
+          ? (resourceNb == 0 ? Collections.emptyList() : Arrays.asList(BuiltInStateModelDefinitions.values()))
+          : Arrays.asList(BuiltInStateModelDefinitions.valueOf(stateModelDef));
+      setupTool.addCluster(clusterName, stateModelDefinitions, false);
 
       for (int i = 0; i < nodesNb; i++) {
         int port = startPort + i;
@@ -322,7 +332,6 @@ public class TestHelper {
       } catch (Exception ex) {
         // Failed to delete, give some more time for connections to drop
         try {
-          Thread.sleep(3000L);
           setup.deleteCluster(clusterName);
         } catch (Exception ignored) {
           // OK - just ignore
@@ -339,9 +348,7 @@ public class TestHelper {
    */
   public static void verifyState(String clusterName, String zkAddr,
       Map<String, Set<String>> stateMap, String state) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkClient = createZkClient(zkAddr);
 
     try {
       ZKHelixDataAccessor accessor =
@@ -814,7 +821,7 @@ public class TestHelper {
         }
         return result;
       }
-      Thread.sleep(50);
+      Thread.sleep(Duration.ofMillis(POLL_DURATION).toMillis());
     } while (true);
   }
 
@@ -863,5 +870,13 @@ public class TestHelper {
       }
     }
     System.out.println("}");
+  }
+
+  public static HelixZkClient createZkClient(String zkAddress) {
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig()
+        .setZkSerializer(new org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer());
+
+    HelixZkClient.ZkConnectionConfig zkConnectionConfig = new HelixZkClient.ZkConnectionConfig(zkAddress);
+    return DedicatedZkClientFactory.getInstance().buildZkClient(zkConnectionConfig, clientConfig);
   }
 }

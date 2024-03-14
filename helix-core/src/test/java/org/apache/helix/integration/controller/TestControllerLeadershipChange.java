@@ -283,8 +283,6 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     // Trigger missing top state in manager1
     participant.syncStop();
 
-    Thread.sleep(1000);
-
     // Starting manager2
     HelixManager manager2 = HelixManagerFactory
         .getZKHelixManager(clusterName, clusterName + "-manager2", InstanceType.CONTROLLER,
@@ -299,8 +297,6 @@ public class TestControllerLeadershipChange extends ZkTestBase {
 
     // Wait for rebalance
     Assert.assertTrue(clusterVerifier.verify());
-
-    Thread.sleep(1000);
 
     // The moment before manager1 regain leadership. The topstateless duration will start counting.
     long start = System.currentTimeMillis();

@@ -158,7 +158,6 @@ public class TestP2PSingleTopState extends ZkTestBase {
       participant.syncStart();
       participant.setTransition(new TestTransition(participant.getInstanceName()));
       _participants.add(participant);
-      Thread.sleep(100);
     }
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

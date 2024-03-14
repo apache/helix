@@ -84,7 +84,6 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     // Start the controller
     _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     _controller.syncStart();
-    Thread.sleep(1000);
   }
 
   @AfterMethod

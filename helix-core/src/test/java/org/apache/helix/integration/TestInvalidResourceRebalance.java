@@ -86,7 +86,6 @@ public class TestInvalidResourceRebalance extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    Thread.sleep(1000);
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new EmptyZkVerifier(clusterName, RESOURCE_NAME));
     Assert.assertTrue(result, "External view and current state must be empty");

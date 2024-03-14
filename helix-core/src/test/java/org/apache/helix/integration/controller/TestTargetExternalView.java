@@ -87,7 +87,7 @@ public class TestTargetExternalView extends TaskTestBase {
         _participants[0].getInstanceName(), false);
 
     Assert.assertTrue(verifier.verifyByPolling());
-    Thread.sleep(1000);
+
     targetExternalViews = _accessor.getChildValues(_accessor.keyBuilder().externalViews(), true);
     idealStates = _accessor.getChildValues(_accessor.keyBuilder().idealStates(), true);
 

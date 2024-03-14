@@ -66,6 +66,8 @@ public class TestManagementModeStage extends ZkTestBase {
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
     setupIdealState(_clusterName, new int[]{0, 1}, new String[]{"TestDB"}, 1, 2);
+    _gSetupTool.addInstanceToCluster(_clusterName, "localhost_0");
+    _gSetupTool.addInstanceToCluster(_clusterName, "localhost_1");
     List<LiveInstance> liveInstances = setupLiveInstances(_clusterName, new int[]{0, 1});
     setupStateModel(_clusterName);
 

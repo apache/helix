@@ -55,8 +55,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * verifier that the ExternalViews of given resources (or all resources in the cluster)
- * match its best possible mapping states.
+ * Verify that the ExternalViews of given resources (or all resources in the cluster)
+ * match its best possible mapping states. The best possible mapping states are computed
+ * by running the BestPossibleStateCalc stage with the same inputs that the controller would
+ * use to calculate the best possible state. The mappings produced by this stage are compared
+ * to the external view to ensure that they match. When they match, the cluster has converged.
+ * Note: The best possible state compared to the external view includes the non-persisted state
+ * mappings generated when handling MIN_ACTIVE replicas.
  */
 public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private static Logger LOG = LoggerFactory.getLogger(BestPossibleExternalViewVerifier.class);

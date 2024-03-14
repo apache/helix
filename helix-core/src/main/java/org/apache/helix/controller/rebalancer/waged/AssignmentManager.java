@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ResourceAssignment;
@@ -86,7 +88,11 @@ class AssignmentManager {
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBestAssignment = new HashMap<>(assignmentMetadataStore.getBestPossibleAssignment());
+        currentBestAssignment =
+            assignmentMetadataStore.getBestPossibleAssignment().entrySet().stream().collect(
+                Collectors.toMap(Map.Entry::getKey,
+                    entry -> new ResourceAssignment(entry.getValue().getRecord())));
+        ;
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(

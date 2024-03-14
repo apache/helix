@@ -51,6 +51,7 @@ public class TestManagementModeStage extends ZkTestBase {
   public void beforeClass() {
     _clusterName = "CLUSTER_" + TestHelper.getTestClassName();
     _accessor = new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    _gSetupTool.setupTestCluster(_clusterName);
     _manager = new DummyClusterManager(_clusterName, _accessor);
   }
 
@@ -96,7 +97,7 @@ public class TestManagementModeStage extends ZkTestBase {
 
     ControllerHistory history =
         _accessor.getProperty(_accessor.keyBuilder().controllerLeaderHistory());
-    Assert.assertNull(history);
+    Assert.assertTrue(history.getMaintenanceHistoryList().isEmpty());
 
     // Mark both live instances to be frozen, then entering freeze mode is complete
     for (int i = 0; i < 2; i++) {

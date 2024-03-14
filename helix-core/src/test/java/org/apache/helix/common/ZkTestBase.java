@@ -634,6 +634,7 @@ public class ZkTestBase {
 
     for (int i = 0; i < liveInstances.length; i++) {
       String instance = "localhost_" + liveInstances[i];
+      _gSetupTool.addInstanceToCluster(clusterName, instance);
 
       _liveInstanceOwners.putIfAbsent(clusterName, new HashMap<>());
       Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(clusterName);

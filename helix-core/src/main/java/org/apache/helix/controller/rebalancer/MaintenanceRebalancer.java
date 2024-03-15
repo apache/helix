@@ -62,11 +62,30 @@ public class MaintenanceRebalancer extends SemiAutoRebalancer<ResourceController
       Map<String, String> stateMap = currentStateMap.get(partition);
       List<String> preferenceList = new ArrayList<>(stateMap.keySet());
 
-      // This sorting preserves the ordering of current state hosts in the order of current IS pref list
+      /**
+       * This sorting preserves the ordering of current state hosts in the order of current IS pref list
+       * Example:
+       * ideal state pref-list: [A, B, C]
+       * current-state: {
+       *     A: FOLLOWER,
+       *     B: LEADER,
+       *     C: FOLLOWER
+       * }
+       * Lets say newPrefList = new ArrayList<>(current-state.keySet()) => [C, B, A]
+       *
+       * Sort 1: Sort based on preference-list order:
+       * --------------------------------------------------------
+       * newPrefList = [C, B, A] => [A, B, C]
+       */
       Collections.sort(preferenceList, new PreferenceListNodeComparator(stateMap,
           stateModelDef, currentIdealState.getPreferenceList(partition.getPartitionName())));
 
-      // This sorts the current state hosts based on the priority
+      /**
+       * Sort 2: Sort based on state-priority order:
+       * --------------------------------------------------------
+       * newPrefList = [A, B, C] => [B, A, C]
+       * Here, A will be 2nd and C will be third always as both have same priority so original (pref-list) order will be maintained.
+       */
       preferenceList.sort(new StatePriorityComparator(stateMap, stateModelDef));
 
       currentIdealState.setPreferenceList(partition.getPartitionName(), preferenceList);

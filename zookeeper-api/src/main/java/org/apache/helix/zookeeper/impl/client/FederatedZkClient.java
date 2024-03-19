@@ -372,7 +372,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
 
   @Override
   public boolean delete(String path) {
-    return getZkClient(path).delete(path);
+    return delete(path, -1);
+  }
+
+  @Override
+  public boolean delete(String path, int expectedVersion) {
+    return getZkClient(path).delete(path, expectedVersion);
   }
 
   @Override

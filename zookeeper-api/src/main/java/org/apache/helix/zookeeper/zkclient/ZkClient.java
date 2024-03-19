@@ -2158,6 +2158,18 @@ public class ZkClient implements Watcher {
    * @return true if path is successfully deleted, false if path does not exist
    */
   public boolean delete(final String path) {
+    return delete(path, -1);
+  }
+
+  /**
+   * Delete the given path. Path should not have any children or the deletion will fail.
+   * This function will throw an exception if we fail to delete an existing path.
+   * @param path Path of the znode to delete
+   * @param expectedVersion The expected version of the node to be removed, -1 means match any
+   * version. ZK
+   * @return true if the path is successfully deleted, false if path does not exist
+   */
+  public boolean delete(final String path, final int expectedVersion) {
     long startT = System.currentTimeMillis();
     boolean success;
     try {
@@ -2166,7 +2178,7 @@ public class ZkClient implements Watcher {
 
           @Override
           public Object call() throws Exception {
-            getConnection().delete(path);
+            getConnection().delete(path, expectedVersion);
             return null;
           }
         });

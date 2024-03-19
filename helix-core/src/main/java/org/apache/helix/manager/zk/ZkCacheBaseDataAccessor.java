@@ -357,6 +357,31 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
   }
 
   @Override
+  public boolean removeWithExpectedVersion(String path, int options, int expectedVersion) {
+    String clientPath = path;
+    String serverPath = prependChroot(clientPath);
+
+    Cache<T> cache = getCache(serverPath);
+    if (cache != null) {
+      try {
+        cache.lockWrite();
+
+        boolean success = _baseAccessor.removeWithExpectedVersion(serverPath, options, expectedVersion);
+        if (success) {
+          cache.purgeRecursive(serverPath);
+        }
+
+        return success;
+      } finally {
+        cache.unlockWrite();
+      }
+    }
+
+    // no cache
+    return _baseAccessor.removeWithExpectedVersion(serverPath, options, expectedVersion);
+  }
+
+  @Override
   public T get(String path, Stat stat, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);

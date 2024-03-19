@@ -543,6 +543,43 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
+  /**
+   * Test that remove with expected version will fail on version mismatch. Succeed on version match.
+   */
+  @Test
+  public void testRemoveWithExpectedVersion() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+    ZNRecord record = new ZNRecord("msg_0");
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+
+    // Create node
+    Assert.assertTrue(accessor.create(path, record, AccessOption.PERSISTENT));
+
+    // Create child node
+    String childPath = path + "/child";
+    Assert.assertTrue(accessor.create(childPath, record, AccessOption.PERSISTENT));
+
+    // Delete parent with correct expected version. Should fail due to having a child
+    int currentVersion = accessor.getStat(path, 0).getVersion();
+    Assert.assertFalse(accessor.removeWithExpectedVersion(path, 0, currentVersion));
+
+    // Remove Child
+    Assert.assertTrue(accessor.removeWithExpectedVersion(childPath, 0, -1));
+
+    // Delete childless node with wrong expected version. Should fail due to version mismatch
+    Assert.assertFalse(accessor.removeWithExpectedVersion(path, 0, currentVersion+100));
+
+    // Delete childless node with correct expected version. Shoudl succeed
+    Assert.assertTrue(accessor.removeWithExpectedVersion(path, 0, currentVersion));
+
+  }
+
   @Test
   public void testDeleteNodeWithChildren() {
     String root = _rootPath;

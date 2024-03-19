@@ -414,8 +414,13 @@ public class SharedZkClient implements RealmAwareZkClient {
 
   @Override
   public boolean delete(String path) {
+    return delete(path, -1);
+  }
+
+  @Override
+  public boolean delete(String path, int expectedVersion) {
     checkIfPathContainsShardingKey(path);
-    return _innerSharedZkClient.delete(path);
+    return _innerSharedZkClient.delete(path, expectedVersion);
   }
 
   @Override

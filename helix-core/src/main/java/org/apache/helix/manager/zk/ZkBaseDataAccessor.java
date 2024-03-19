@@ -789,6 +789,27 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
+   * Sync remove with expected version. It tries to remove the ZNode if the ZNode's version matches
+   * the provided expectedVersion. This operation will FAIL if the node has any children. Node does
+   * not exist is regarded as success. If expectedVersion is set to -1, then the ZNode version
+   * match is not enforced.
+   */
+  @Override
+  public boolean removeWithExpectedVersion(String path, int options, int expectedVersion) {
+    try {
+      // operation will not throw exception when path successfully deleted or does not exist
+      // despite real error, operation will throw exception when path not empty, and in this
+      // case, we do NOT try to delete recursively
+      _zkClient.delete(path, expectedVersion);
+    } catch (ZkException zkException) {
+      LOG.error("Failed to delete {} with opts {} and expected version {}.", path, options,
+          expectedVersion, zkException);
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * async create. give up on error other than NONODE
    */
   ZkAsyncCallbacks.CreateCallbackHandler[] create(List<String> paths, List<T> records,

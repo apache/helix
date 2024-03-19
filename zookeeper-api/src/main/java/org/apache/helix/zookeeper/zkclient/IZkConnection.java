@@ -45,6 +45,8 @@ public interface IZkConnection {
 
     public void delete(String path) throws InterruptedException, KeeperException;
 
+    public void delete (String path, int expectedVersion) throws InterruptedException, KeeperException;
+
     boolean exists(final String path, final boolean watch) throws KeeperException, InterruptedException;
 
     List<String> getChildren(final String path, final boolean watch) throws KeeperException, InterruptedException;

@@ -1,9 +1,9 @@
 name: Helix Front CI
 on:
   pull_request:
-    branches: [ master ]
+    branches: [master]
     paths:
-      - 'helix-front/**'
+      - "helix-front/**"
 
 jobs:
   CI:
@@ -16,9 +16,9 @@ jobs:
       - name: Setup Node environment
         uses: actions/setup-node@v3
         with:
-          node-version: '16.x'
-          cache: 'yarn'
-          cache-dependency-path: 'helix-front/yarn.lock'
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: "helix-front/yarn.lock"
 
       - name: Install dependencies
         run: yarn

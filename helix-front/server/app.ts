@@ -18,6 +18,7 @@ import {
 } from './config';
 import setRoutes from './routes';
 
+const isProd = process.env.NODE_ENV === 'production';
 const httpsProxyAgent = PROXY_URL ? new ProxyAgent(PROXY_URL) : null;
 
 if (APP_INSIGHTS_CONNECTION_STRING) {
@@ -35,7 +36,7 @@ if (APP_INSIGHTS_CONNECTION_STRING) {
     .start();
 }
 
-if (httpsProxyAgent && process.env.NODE_ENV === 'production') {
+if (httpsProxyAgent && isProd) {
   // NOTES:
   //
   // - `defaultClient` property on `appInsights` doesn't exist
@@ -52,13 +53,24 @@ const server = http.createServer(app);
 dotenv.load({ path: '.env' });
 app.set('port', process.env.PORT || 4200);
 
+const secretToken = process.env.SECRET_TOKEN;
+if (!secretToken || secretToken === 'promiseyouwillchangeit') {
+  if (isProd) {
+    throw new Error('Please change your SECRET_TOKEN env');
+  } else {
+    console.warn(
+      'Remember to change your SECRET_TOKEN env before deploying to PROD'
+    );
+  }
+}
+
 app.use('/', express.static(path.join(__dirname, '../public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   session({
     store: SESSION_STORE,
-    secret: process.env.SECRET_TOKEN,
+    secret: secretToken,
     resave: true,
     saveUninitialized: true,
     cookie: { expires: new Date(2147483647000) },

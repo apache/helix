@@ -58,7 +58,9 @@ if (!secretToken || secretToken === 'promiseyouwillchangeit') {
   if (isProd) {
     throw new Error('Please change your SECRET_TOKEN env');
   } else {
-    console.warn('Remember to change your SECRET_TOKEN env before deploying to PROD');
+    console.warn(
+      'Remember to change your SECRET_TOKEN env before deploying to PROD'
+    );
   }
 }
 

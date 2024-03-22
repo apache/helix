@@ -21,9 +21,9 @@ jobs:
     - name: Delete frontend-maven-plugin dir
       run: rm -rf .m2\repository\com\github\eirslett
     - name: Build with Maven
-      run: mvn clean install -Dmaven.test.skip.exec=true -DretryFailedDeploymentCount=5
+      run: mvn -B -ntp clean install -Dmaven.test.skip.exec=true -DretryFailedDeploymentCount=5
     - name: Run All Tests
-      run: mvn -q -fae test
+      run: mvn -B -ntp -q -fae test
     - name: Upload to Codecov
       run: bash <(curl -s https://codecov.io/bash)
       if: ${{ github.repository == 'apache/helix' && github.event_name == 'push' && (success() || failure()) }}

@@ -181,12 +181,50 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.12.1</version>
         <executions>
           <execution>
+            <id>JDK 8</id>
+            <phase>compile</phase>
             <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}_jdk8</outputDirectory>
+              <release>8</release>
+              <fork>true</fork>
+            </configuration>
+          </execution>
+          <execution>
+            <id>JDK 11</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>11</release>
+              <fork>true</fork>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>default-package-jdk11</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
               <goal>test-jar</goal>
             </goals>
+            <configuration>
+              <classesDirectory>${project.build.outputDirectory}_jdk8</classesDirectory>
+              <classifier>jdk8</classifier>
+            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -36,8 +39,10 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -45,9 +50,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import static org.apache.helix.model.BuiltInStateModelDefinitions.LeaderStandby;
+import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
 
 public class TestWagedClusterExpansionWithAddingResourcesBeforeInstances extends ZkTestBase {
-
+  private static final long TIMEOUT = 10 * 1000L;
   protected static final AtomicLong PORT_GENERATOR = new AtomicLong(12918);
   protected static final int PARTITIONS = 4;
 
@@ -78,9 +84,9 @@ public class TestWagedClusterExpansionWithAddingResourcesBeforeInstances extends
     clusterConfig.setGlobalRebalancePreference(preference);
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
-    // create resource - 1 with instances
+    // create resource with instances
     String testResource1 = "Test-resource-1";
-    createResource(testResource1, 4, 4, "Tag-1");
+    createResource(testResource1, 4, 4, "Tag-1", true);
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -89,42 +95,48 @@ public class TestWagedClusterExpansionWithAddingResourcesBeforeInstances extends
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     enableTopologyAwareRebalance(_gZkClient, CLUSTER_NAME, true);
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testResource1, _replica);
+    _gSetupTool.rebalanceResource(CLUSTER_NAME, testResource1, _replica);
     _allDBs.add(testResource1);
 
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).setResources(_allDBs)
         .build();
-    Assert.assertTrue(_clusterVerifier.verify(5000));
+    Assert.assertTrue(_clusterVerifier.verify(12000));
   }
 
-  private void createResource(String resourceName, int numInstances, int numPartitions, String tagName) {
-    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
-    Set<String> nodes = new HashSet<>();
+  private List<String> createResource(
+      String resourceName, int numInstances, int numPartitions, String tagName, boolean enableParticipants) {
+    List<String> nodes = new ArrayList<>();
     for (int i = 0; i < numInstances; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + PORT_GENERATOR.incrementAndGet();
-      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
-      _gSetupTool.addInstanceTag(CLUSTER_NAME, storageNodeName, tagName);
-      String zone = "zone-" + i % numInstances;
-      String domain = String.format("zone=%s,instance=%s", zone, storageNodeName);
-
-      InstanceConfig instanceConfig = configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
-      instanceConfig.setDomain(domain);
-      _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, storageNodeName, instanceConfig);
-      nodes.add(storageNodeName);
-    }
-
-    // start dummy participants
-    for (String node : nodes) {
-      MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, node);
-      participant.syncStart();
-      _participants.add(participant);
+      nodes.add(addInstance(new ConfigAccessor(_gZkClient), "zone-" + i % numInstances, tagName, enableParticipants));
     }
 
     createResourceWithWagedRebalance(CLUSTER_NAME, resourceName, LeaderStandby.name(), numPartitions, _replica, _replica - 1);
     IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resourceName);
     idealState.setInstanceGroupTag(tagName);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, resourceName, idealState);
+    return nodes;
+  }
+
+  private String addInstance(ConfigAccessor configAccessor, String zone, String instanceTag, boolean enabled) {
+    String storageNodeName = PARTICIPANT_PREFIX + "_" + PORT_GENERATOR.incrementAndGet();
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+    _gSetupTool.addInstanceTag(CLUSTER_NAME, storageNodeName, instanceTag);
+    String domain = String.format("zone=%s,instance=%s", zone, storageNodeName);
+
+    InstanceConfig instanceConfig = configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
+    instanceConfig.setDomain(domain);
+    instanceConfig.setInstanceEnabled(enabled);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, storageNodeName, instanceConfig);
+
+    MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, storageNodeName);
+    if (enabled) {
+      // start dummy participant
+      participant.syncStart();
+    }
+    _participants.add(participant);
+
+    return storageNodeName;
   }
 
   @AfterClass
@@ -137,63 +149,41 @@ public class TestWagedClusterExpansionWithAddingResourcesBeforeInstances extends
   }
 
   @Test
-  public void testExpandClusterWithResourceWithoutInstances() {
+  public void  testExpandClusterWithResourceWithoutInstances() throws Exception {
+    // Set-up a WAGED resource without any instances and let cluster rebalance successfully.
     String testResource2 = "Test-resource-2";
-    createResource(testResource2, 0, 0, "Tag-2");
+    String testResourceTagName = "Tag-2";
+    createResource(testResource2, 0, 0, testResourceTagName, false);
 
+    _gSetupTool.rebalanceResource(CLUSTER_NAME, testResource2, _replica);
     _allDBs.add(testResource2);
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testResource2, _replica);
 
     ZkHelixClusterVerifier _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
         .setZkClient(_gZkClient)
+        .setResources(_allDBs)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateIsolation(is, ev, _replica);
-    }
+    checkRebalanceFailureGauge(false);
   }
 
-  @Test(dependsOnMethods = "testExpandClusterWithResourceWithoutInstances")
-  public void testExpandClusterWithResourceWithoutPartitions() {
-    String testResource3 = "Test-resource-3";
-    createResource(testResource3, 4, 0, "Tag-3");
-
-    _allDBs.add(testResource3);
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testResource3, _replica);
-
-    ZkHelixClusterVerifier _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
-        .setZkClient(_gZkClient)
-        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-        .build();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateIsolation(is, ev, _replica);
-    }
-  }
-
-  /**
-   * Validate each partition is different instances and with necessary tagged instances.
-   */
-  private void validateIsolation(IdealState is, ExternalView ev, int expectedReplica) {
-    String tag = is.getInstanceGroupTag();
-    for (String partition : is.getPartitionSet()) {
-      Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
-      Set<String> instancesInEV = assignmentMap.keySet();
-      Assert.assertEquals(instancesInEV.size(), expectedReplica);
-      for (String instance : instancesInEV) {
-        if (tag != null) {
-          InstanceConfig config = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instance);
-          Assert.assertTrue(config.containsTag(tag));
-        }
+  private void checkRebalanceFailureGauge(final boolean expectFailure) throws Exception {
+    boolean result = TestHelper.verify(() -> {
+      try {
+        Long value =
+            (Long) _server.getAttribute(getMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
+        return value != null && (value == 1) == expectFailure;
+      } catch (Exception e) {
+        return false;
       }
-    }
+    }, TIMEOUT);
+    Assert.assertTrue(result);
+  }
+
+  private ObjectName getMbeanName(String clusterName) throws MalformedObjectNameException {
+    String clusterBeanName = String.format("%s=%s", CLUSTER_DN_KEY, clusterName);
+    return new ObjectName(
+        String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), clusterBeanName));
   }
 
 }

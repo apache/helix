@@ -268,7 +268,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       Map<String, String> bestStateForPartition =
           // We use cache.getLiveInstances().keySet() to make sure we gracefully handle n -> n + 1 replicas if possible
           // when the one of the current nodes holding the replica is no longer considered assignable. (ex: EVACUATE)
-          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef, preferenceList,
+          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(),
+              stateModelDef, preferenceList,
               currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
               partition, cache.getAbnormalStateResolver(stateModelDefName), cache);
 
@@ -363,6 +364,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     currentMapWithPreferenceList.keySet().retainAll(preferenceList);
 
     combinedPreferenceList.addAll(currentInstances);
+    combinedPreferenceList.removeAll(cache.getUnknownInstances());
     combinedPreferenceList.sort(new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
 
     // if preference list is not empty, and we do have new intanceToAdd, we

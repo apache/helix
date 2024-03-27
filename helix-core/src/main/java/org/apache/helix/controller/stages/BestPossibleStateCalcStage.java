@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
@@ -161,40 +162,47 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                   return;
                 }
 
-                // If the swap-in node is live and enabled, do assignment with the following logic:
-                // 1. If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
-                // to the same secondTopState.
-                // 2. If the swap-out instance's replica is any other state and is in the preferenceList,
-                // set the swap-in instance's replica to the topState if the StateModel allows another to be added.
-                // If not, set the swap-in instance's replica to the secondTopState.
-                // We can make this assumption because if there is assignment to the swapOutInstance, it must be either
-                // a topState or a secondTopState.
-                if (stateMap.containsKey(swapOutInstance) && stateModelDef.getSecondTopStates()
-                    .contains(stateMap.get(swapOutInstance))) {
-                  // If the swap-out instance's replica is a secondTopState, set the swap-in instance's replica
-                  // to the same secondTopState.
-                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                      stateMap.get(swapOutInstance));
-                } else {
-                  // If the swap-out instance's replica is any other state in the stateMap or not present in the
-                  // stateMap, set the swap-in instance's replica to the topState if the StateModel allows another
-                  // to be added. If not, set the swap-in to the secondTopState.
-                  String topStateCount =
-                      stateModelDef.getNumInstancesPerState(stateModelDef.getTopState());
-                  if (topStateCount.equals(
-                      StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)
-                      || topStateCount.equals(
-                      StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
-                    // If the StateModel allows for another replica with the topState to be added,
-                    // set the swap-in instance's replica to the topState.
-                    stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                        stateModelDef.getTopState());
+                // If the swap-in node is live, do assignment with the following logic:
+                // 1. If the swap-out instance's replica is in the stateMap:
+                // - if the swap-out instance's replica is a topState, set the swap-in instance's replica to the topState.
+                //   if another is allowed to be added, otherwise set the swap-in instance's replica to a secondTopState.
+                // - if the swap-out instance's replica is not a topState or ERROR, set the swap-in instance's replica to the same state.
+                // - if the swap-out instance's replica is ERROR, set the swap-in instance's replica to the initialState.
+                // 2. If the swap-out instance's replica is not in the stateMap, set the swap-in instance's replica to the initialState.
+                // This happens when the swap-out node is offline.
+                if (stateMap.containsKey(swapOutInstance)) {
+                  if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState())
+                      || stateMap.get(swapOutInstance).equals(HelixDefinedState.ERROR.name())) {
+                    // If the swap-out instance's replica is a topState, set the swap-in instance's replica
+                    // to the topState if the StateModel allows another to be added. If not, set the swap-in
+                    // to the secondTopState.
+                    String topStateCount =
+                        stateModelDef.getNumInstancesPerState(stateModelDef.getTopState());
+                    if (topStateCount.equals(
+                        StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)
+                        || topStateCount.equals(
+                        StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
+                      // If the StateModel allows for another replica with the topState to be added,
+                      // set the swap-in instance's replica to the topState.
+                      stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                          stateModelDef.getTopState());
+                    } else {
+                      // If StateModel does not allow another topState replica to be
+                      // added, set the swap-in instance's replica to the secondTopState.
+                      stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                          stateModelDef.getSecondTopStates().iterator().next());
+                    }
                   } else {
-                    // If StateModel does not allow another topState replica to be
-                    // added, set the swap-in instance's replica to the secondTopState.
+                    // If the swap-out instance's replica is not a topState or ERROR, set the swap-in instance's replica
+                    // to the same state
                     stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                        stateModelDef.getSecondTopStates().iterator().next());
+                        stateMap.get(swapOutInstance));
                   }
+                } else {
+                  // If the swap-out instance's replica is not in the stateMap, set the swap-in instance's replica
+                  // to the initialState. This happens when the swap-out node is offline.
+                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
+                      stateModelDef.getInitialState());
                 }
               });
             });

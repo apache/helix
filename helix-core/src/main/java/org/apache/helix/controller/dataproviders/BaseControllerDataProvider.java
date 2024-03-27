@@ -698,6 +698,19 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
+   * Return a set of all instances that have the UNKNOWN InstanceOperation.
+   * These instances are not assignable and should have all replicas dropped
+   * immediately.
+   *
+   * @return A new set contains
+   */
+  public Set<String> getUnknownInstances() {
+    return Collections.unmodifiableSet(
+        _derivedInstanceCache.getInstanceConfigMapByInstanceOperation(
+            InstanceConstants.InstanceOperation.UNKNOWN).keySet());
+  }
+
+  /**
    * Return all the live nodes that are enabled. If a node is enabled, it is assignable.
    * @return A new set contains live instance name and that are marked enabled
    */

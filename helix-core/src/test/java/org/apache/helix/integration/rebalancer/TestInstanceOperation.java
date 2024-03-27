@@ -521,44 +521,12 @@ public class TestInstanceOperation extends ZkTestBase {
         InstanceConstants.InstanceOperation.SWAP_IN);
   }
 
-  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapWrongFaultZone")
-  public void testNodeSwapWrongCapacity() throws Exception {
-    System.out.println("START TestInstanceOperation.testNodeSwapWrongCapacity() at " + new Date(
-        System.currentTimeMillis()));
-
-    removeOfflineOrInactiveInstances();
-
-    String instanceToSwapOutName = _participants.get(0).getInstanceName();
-
-    // Add instance with InstanceOperation set to SWAP_IN
-    // There should be an error because SWAP_IN instance must have same capacity as the swap out node.
-    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
-    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
-        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
-    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
-        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, TEST_CAPACITY_VALUE - 10);
-
-    // The InstanceOperation should be set to UNKNOWN since the swap in instance does not have the
-    // same InstanceCapacityWeights.
-    Assert.assertEquals(
-        _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
-            .getInstanceOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
-
-    // Try to set the InstanceOperation to SWAP_IN, it should throw an exception.
-    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapInName,
-        InstanceConstants.InstanceOperation.SWAP_IN);
-  }
-
-  @Test(dependsOnMethods = "testNodeSwapWrongCapacity")
+  @Test(dependsOnMethods = "testNodeSwapWrongFaultZone")
   public void testNodeSwap() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwap() at " + new Date(System.currentTimeMillis()));
 
     removeOfflineOrInactiveInstances();
-
-    // Store original EV
-    Map<String, ExternalView> originalEVs = getEVs();
 
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
@@ -567,6 +535,24 @@ public class TestInstanceOperation extends ZkTestBase {
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    String resourceToDisablePartition = _allDBs.iterator().next();
+    // Disable 1 partition that is assigned to the instance that will be swapped out.
+    getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapOutName).entrySet().stream()
+        .filter(entry -> entry.getKey().startsWith(resourceToDisablePartition)).findFirst()
+        .ifPresent(entry -> {
+          String partition = entry.getKey();
+          instanceToSwapOutInstanceConfig.setInstanceEnabledForPartition(resourceToDisablePartition,
+              partition, false);
+        });
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceConfig(CLUSTER_NAME, instanceToSwapOutName, instanceToSwapOutInstanceConfig);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Store original EV
+    Map<String, ExternalView> originalEVs = getEVs();
+
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), Collections.emptySet());
 
@@ -601,6 +587,15 @@ public class TestInstanceOperation extends ZkTestBase {
     // Assert completeSwapIfPossible is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName, false));
+
+    // Get both instanceConfigs and make sure correct fields are copied over.
+    InstanceConfig instanceToSwapInInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapInName);
+
+    Assert.assertEquals(instanceToSwapInInstanceConfig.getRecord()
+            .getMapField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()),
+        instanceToSwapInInstanceConfig.getRecord()
+            .getMapField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()));
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -665,7 +660,7 @@ public class TestInstanceOperation extends ZkTestBase {
         .enableInstance(CLUSTER_NAME, instanceToSwapOutName, false);
 
     // Check that the SWAP_IN instance's replicas match the SWAP_OUT instance's replicas
-    // and all of them are STANDBY.
+    // and all of them are OFFLINE.
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     Map<String, Map<String, String>> resourcePartitionStateOnSwapOutInstance =
         getResourcePartitionStateOnInstance(getEVs(), instanceToSwapOutName);
@@ -685,7 +680,7 @@ public class TestInstanceOperation extends ZkTestBase {
         resourcePartitionStateOnSwapInInstance.values().stream().flatMap(e -> e.values().stream())
             .collect(Collectors.toSet());
     Assert.assertEquals(swapInInstancePartitionStates.size(), 1);
-    Assert.assertTrue(swapInInstancePartitionStates.contains("STANDBY"));
+    Assert.assertTrue(swapInInstancePartitionStates.contains("OFFLINE"));
 
     // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
     validateRoutingTablesInstance(getEVs(), instanceToSwapOutName, true);
@@ -696,7 +691,7 @@ public class TestInstanceOperation extends ZkTestBase {
         .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
 
     // Re-enable the swap out instance
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceToSwapInName, true);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceToSwapOutName, true);
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Validate that the SWAP_OUT instance is in routing tables and SWAP_IN is not.
@@ -982,15 +977,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
-    // Validate that the SWAP_IN instance has the same partitions in secondTopState as the swap out instance
-    // did before being disabled.
+    // Validate that the SWAP_IN instance has no partitions because the swap started when the swap out node was offline
     Map<String, String> swapInInstancePartitionsAndStates =
         getPartitionsAndStatesOnInstance(getEVs(), instanceToSwapInName);
-    Assert.assertEquals(swapInInstancePartitionsAndStates.keySet(),
-        swapOutInstanceOriginalPartitions);
-    Set<String> swapInInstanceStates = new HashSet<>(swapInInstancePartitionsAndStates.values());
-    swapInInstanceStates.removeAll(SECONDARY_STATE_SET);
-    Assert.assertEquals(swapInInstanceStates.size(), 0);
+    Assert.assertEquals(swapInInstancePartitionsAndStates.size(), 0);
 
     // Assert canSwapBeCompleted is false because swap out instance is disabled.
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -1000,7 +990,7 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName, false));
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Assert that swap out instance is disabled and has no partitions assigned to it.
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()

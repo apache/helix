@@ -69,6 +69,13 @@ public class InstanceConfig extends HelixProperty {
   private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
   private static final boolean HELIX_ENABLED_DEFAULT_VALUE = true;
 
+  // These fields are not allowed to be overwritten by the merge method because
+  // they are unique properties of an instance.
+  private static final Set<InstanceConfigProperty> NON_OVERWRITABLE_PROPERTIES =
+      Set.of(InstanceConfigProperty.HELIX_HOST, InstanceConfigProperty.HELIX_PORT,
+          InstanceConfigProperty.HELIX_ZONE_ID, InstanceConfigProperty.DOMAIN,
+          InstanceConfigProperty.INSTANCE_INFO_MAP);
+
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
   /**
@@ -840,6 +847,38 @@ public class InstanceConfig extends HelixProperty {
     Topology.computeInstanceTopologyMap(clusterConfig, instanceName, this,
         false /*earlyQuitForFaultZone*/);
     return true;
+  }
+
+  /**
+   * Overwrite the InstanceConfigProperties from the given InstanceConfig to this InstanceConfig.
+   * The merge is done by overwriting the properties in this InstanceConfig with the properties
+   * from the given InstanceConfig. {@link #NON_OVERWRITABLE_PROPERTIES} will not be overridden.
+   *
+   * @param overwritingInstanceConfig the InstanceConfig to override into this InstanceConfig
+   */
+  public void overwriteInstanceConfig(InstanceConfig overwritingInstanceConfig) {
+    for (InstanceConfigProperty keyEnum : InstanceConfigProperty.values()) {
+      if (NON_OVERWRITABLE_PROPERTIES.contains(keyEnum)) {
+        continue;
+      }
+
+      String key = keyEnum.toString();
+      // Add key value pair if it exists in overwritingInstanceConfig and remove it if it doesn't
+      // exist in overwritingInstanceConfig but does exist in this InstanceConfig.
+      if (overwritingInstanceConfig.getRecord().getSimpleFields().containsKey(key)) {
+        _record.setSimpleField(key, overwritingInstanceConfig.getRecord().getSimpleField(key));
+      } else if (_record.getSimpleFields().containsKey(key)) {
+        _record.getSimpleFields().remove(key);
+      } else if (overwritingInstanceConfig.getRecord().getListFields().containsKey(key)) {
+        _record.setListField(key, overwritingInstanceConfig.getRecord().getListField(key));
+      } else if (_record.getListFields().containsKey(key)) {
+        _record.getListFields().remove(key);
+      } else if (overwritingInstanceConfig.getRecord().getMapFields().containsKey(key)) {
+        _record.setMapField(key, overwritingInstanceConfig.getRecord().getMapField(key));
+      } else if (_record.getMapFields().containsKey(key)) {
+        _record.getMapFields().remove(key);
+      }
+    }
   }
 
   public static class Builder {

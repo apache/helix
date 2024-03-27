@@ -479,25 +479,6 @@ public class ZKHelixAdmin implements HelixAdmin {
                     + " and this instance: " + instanceConfig.getInstanceName()
                     + " has FAULT_ZONE_TYPE: " + instanceConfig.getDomainAsMap().get(faultZoneKey));
           }
-
-          Map<String, Integer> foundInstanceCapacityMap =
-              matchingLogicalIdInstance.getInstanceCapacityMap().isEmpty()
-                  ? clusterConfig.getDefaultInstanceCapacityMap()
-                  : matchingLogicalIdInstance.getInstanceCapacityMap();
-          Map<String, Integer> instanceCapacityMap =
-              instanceConfig.getInstanceCapacityMap().isEmpty()
-                  ? clusterConfig.getDefaultInstanceCapacityMap()
-                  : instanceConfig.getInstanceCapacityMap();
-          // If the instance does not have the same capacity, we cannot add this instance.
-          if (!new EqualsBuilder().append(foundInstanceCapacityMap, instanceCapacityMap)
-              .isEquals()) {
-            throw new HelixException(
-                "Instance can only be added if the swap out instance sharing the same logicalId has the same capacity"
-                    + " as this instance. " + "Existing instance: "
-                    + matchingLogicalIdInstance.getInstanceName() + " has capacity: "
-                    + foundInstanceCapacityMap + " and this instance: "
-                    + instanceConfig.getInstanceName() + " has capacity: " + instanceCapacityMap);
-          }
           return;
         }
       default:
@@ -655,21 +636,15 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    // 4. Collect a list of all partitions that have a current state on swapOutInstance
-    String swapOutLastActiveSession;
-    if (swapOutLiveInstance == null) {
-      // SwapOutInstance is down, try to find the last active session
-      if (swapOutSessions.size() != 1) {
-        logger.warn(
-            "SwapOutInstance {} is offline and has {} sessions for cluster {}. Swap can't be "
-                + "verified if last active session can't be determined. There should only be one session.",
-            swapOutInstanceName, swapOutSessions.size(), clusterName);
-        return false;
-      }
-      swapOutLastActiveSession = swapOutSessions.get(0);
-    } else {
-      swapOutLastActiveSession = swapOutLiveInstance.getEphemeralOwner();
+    // 4. If the swap-out instance is not alive or is disabled, we return true without checking
+    // the current states on the swap-in instance.
+    if (swapOutLiveInstance == null || swapOutInstanceConfig.getInstanceOperation()
+        .equals(InstanceConstants.InstanceOperation.DISABLE)) {
+      return true;
     }
+
+    // 5. Collect a list of all partitions that have a current state on swapOutInstance
+    String swapOutLastActiveSession = swapOutLiveInstance.getEphemeralOwner();
     String swapInActiveSession = swapInLiveInstance.getEphemeralOwner();
 
     // Iterate over all resources with current states on the swapOutInstance
@@ -704,24 +679,22 @@ public class ZKHelixAdmin implements HelixAdmin {
         String swapOutPartitionState = swapOutResourceCurrentState.getState(partitionName);
         String swapInPartitionState = swapInResourceCurrentState.getState(partitionName);
 
-        // SwapInInstance should not have any partitions in ERROR state.
-        if (swapInPartitionState.equals(HelixDefinedState.ERROR.name())) {
-          logger.warn(
-              "SwapOutInstance {} has partition {} in state {} and SwapInInstance {} has partition {} in state {} for cluster {}."
-                  + " Swap will not complete unless both instances have no partitions in ERROR state.",
-              swapOutInstanceName, partitionName, swapOutPartitionState, swapInInstanceName,
-              partitionName, swapInPartitionState, clusterName);
-          return false;
-        }
-
-        // The state of the partition on the swapInInstance be in the topState or a secondTopState.
-        // It should be in a topState only if the state model allows multiple replicas in the topState.
-        // In all other cases it should be a secondTopState.
-        if (!(swapInPartitionState.equals(topState) || secondTopStates.contains(
+        // SwapInInstance should have the correct state for the partition.
+        // All states should match except for the case where the topState is not ALL_REPLICAS or ALL_CANDIDATE_NODES
+        // or the swap-out partition is ERROR state.
+        // When the topState is not ALL_REPLICAS or ALL_CANDIDATE_NODES, the swap-in partition should be in a secondTopStates.
+        if (!(swapOutPartitionState.equals(HelixDefinedState.ERROR.name()) || (
+            topState.equals(swapOutPartitionState) && (
+                swapOutPartitionState.equals(swapInPartitionState) ||
+                    !Set.of(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS,
+                        StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES).contains(
+                        stateModelDefinition.getNumInstancesPerState(
+                            stateModelDefinition.getTopState())) && secondTopStates.contains(
+                        swapInPartitionState))) || swapOutPartitionState.equals(
             swapInPartitionState))) {
           logger.warn(
               "SwapOutInstance {} has partition {} in {} but SwapInInstance {} has partition {} in state {} for cluster {}."
-                  + " Swap will not complete unless SwapInInstance has partition in topState or secondState.",
+                  + " Swap will not complete unless SwapInInstance has partition in correct states.",
               swapOutInstanceName, partitionName, swapOutPartitionState, swapInInstanceName,
               partitionName, swapInPartitionState, clusterName);
           return false;
@@ -820,8 +793,11 @@ public class ZKHelixAdmin implements HelixAdmin {
             + ", SWAP_IN instance config is null");
       }
 
+      InstanceConfig currentSwapOutInstanceConfig =
+          getInstanceConfig(clusterName, swapOutInstanceConfig.getInstanceName());
       InstanceConfig config = new InstanceConfig(currentData);
-      config.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+      config.overwriteInstanceConfig(currentSwapOutInstanceConfig);
+      // Special handling in case the swap-out instance does not have HELIX_ENABLED or InstanceOperation set.
       return config.getRecord();
     }, swapOutInstanceConfigPath, currentData -> {
       if (currentData == null) {

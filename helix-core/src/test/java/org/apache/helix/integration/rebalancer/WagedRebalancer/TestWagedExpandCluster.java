@@ -22,6 +22,7 @@ package org.apache.helix.integration.rebalancer.WagedRebalancer;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.rebalancer.PartitionMigration.TestPartitionMigrationBase;
 import org.apache.helix.model.ClusterConfig;
@@ -103,7 +104,7 @@ public class TestWagedExpandCluster extends TestPartitionMigrationBase {
     for (int i = numNodes; i < numNodes + NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       InstanceConfig config = InstanceConfig.toInstanceConfig(storageNodeName);
-      config.setInstanceEnabled(false);
+      config.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
       config.getRecord().getSimpleFields()
           .remove(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name());
 

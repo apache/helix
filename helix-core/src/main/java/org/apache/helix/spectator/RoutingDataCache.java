@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -45,15 +44,12 @@ import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Cache the cluster data that are needed by RoutingTableProvider.
  */
 class RoutingDataCache extends BasicClusterDataCache {
   private static Logger LOG = LoggerFactory.getLogger(RoutingDataCache.class.getName());
-
-  // When an instance has any of these instance operations, it should not be routable.
-  private static final ImmutableSet<String> NON_ROUTABLE_INSTANCE_OPERATIONS =
-      ImmutableSet.of(InstanceConstants.InstanceOperation.SWAP_IN.name());
 
   private final Map<PropertyType, List<String>> _sourceDataTypeMap;
 
@@ -185,7 +181,7 @@ class RoutingDataCache extends BasicClusterDataCache {
 
   private void updateRoutableInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
     _routableInstanceConfigMap = instanceConfigMap.entrySet().stream().filter(
-            (instanceConfigEntry) -> !NON_ROUTABLE_INSTANCE_OPERATIONS.contains(
+            (instanceConfigEntry) -> !InstanceConstants.UNSERVABLE_INSTANCE_OPERATIONS.contains(
                 instanceConfigEntry.getValue().getInstanceOperation()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
@@ -194,7 +190,7 @@ class RoutingDataCache extends BasicClusterDataCache {
       Map<String, LiveInstance> liveInstanceMap) {
     _routableLiveInstanceMap = liveInstanceMap.entrySet().stream().filter(
             (liveInstanceEntry) -> instanceConfigMap.containsKey(liveInstanceEntry.getKey())
-                && !NON_ROUTABLE_INSTANCE_OPERATIONS.contains(
+                && !InstanceConstants.UNSERVABLE_INSTANCE_OPERATIONS.contains(
                 instanceConfigMap.get(liveInstanceEntry.getKey()).getInstanceOperation()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }

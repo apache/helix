@@ -106,7 +106,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     activeInstances.add(instance1);
     activeInstances.add(instance2);
     when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
-    when(testCache.getAssignableEnabledLiveInstances()).thenReturn(activeInstances);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
 
     // test 0, empty input
     Assert.assertEquals(
@@ -144,7 +144,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // test 2, no additional replica to be assigned
     testCache = setupClusterDataCache();
     when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
-    when(testCache.getAssignableEnabledLiveInstances()).thenReturn(activeInstances);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
     input = ImmutableMap.of(
         _resourceNames.get(0),
         ImmutableMap.of(
@@ -169,7 +169,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // test 3, minActiveReplica==2, two partitions falling short
     testCache = setupClusterDataCache();
     when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
-    when(testCache.getAssignableEnabledLiveInstances()).thenReturn(activeInstances);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
     input = ImmutableMap.of(
         _resourceNames.get(0),
         ImmutableMap.of(
@@ -207,7 +207,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     activeInstances.add(instance1);
     activeInstances.add(instance2);
     when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
-    when(testCache.getAssignableEnabledLiveInstances()).thenReturn(activeInstances);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
 
     // test 1, one partition under minActiveReplica
     Map<String, Map<String, Map<String, String>>> input = ImmutableMap.of(
@@ -247,7 +247,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // test 2, minActiveReplica==2, three partitions falling short
     testCache = setupClusterDataCache();
     when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
-    when(testCache.getAssignableEnabledLiveInstances()).thenReturn(activeInstances);
+    when(testCache.getEnabledLiveInstances()).thenReturn(activeInstances);
     input = ImmutableMap.of(
         _resourceNames.get(0),
         ImmutableMap.of(

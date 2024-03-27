@@ -304,7 +304,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
     Set<String> activeNodes =
         DelayedRebalanceUtil.getActiveNodes(clusterData.getAssignableInstances(),
-            clusterData.getAssignableEnabledLiveInstances(),
+            clusterData.getEnabledLiveInstances(),
             clusterData.getInstanceOfflineTimeMap(),
             clusterData.getAssignableLiveInstances().keySet(),
             clusterData.getAssignableInstanceConfigMap(), clusterData.getClusterConfig());
@@ -401,7 +401,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       RebalanceAlgorithm algorithm) throws HelixRebalanceException {
 
     // the "real" live nodes at the time
-    final Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
+    final Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
 
     if (activeNodes.equals(enabledLiveInstances) || !requireRebalanceOverwrite(clusterData, currentResourceAssignment)) {
       // no need for additional process, return the current resource assignment
@@ -602,7 +602,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       ClusterConfig clusterConfig = clusterData.getClusterConfig();
       boolean delayedRebalanceEnabled = DelayedRebalanceUtil.isDelayRebalanceEnabled(clusterConfig);
       Set<String> offlineOrDisabledInstances = new HashSet<>(delayedActiveNodes);
-      offlineOrDisabledInstances.removeAll(clusterData.getAssignableEnabledLiveInstances());
+      offlineOrDisabledInstances.removeAll(clusterData.getEnabledLiveInstances());
       for (String resource : resourceSet) {
         DelayedRebalanceUtil
             .setRebalanceScheduler(resource, delayedRebalanceEnabled, offlineOrDisabledInstances,
@@ -623,7 +623,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       String resourceName = resourceAssignment.getResourceName();
       IdealState currentIdealState = clusterData.getIdealState(resourceName);
 
-      Set<String> enabledLiveInstances = clusterData.getAssignableEnabledLiveInstances();
+      Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
 
       int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
       int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig

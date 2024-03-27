@@ -50,7 +50,9 @@ public class MaintenanceSignal extends PauseSignal {
    * maintenance mode. This field does not apply when triggered manually.
    */
   public enum AutoTriggerReason {
+    @Deprecated // Replaced with MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS
     MAX_OFFLINE_INSTANCES_EXCEEDED,
+    MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS,
     MAX_PARTITION_PER_INSTANCE_EXCEEDED,
     NOT_APPLICABLE // Not triggered automatically or automatically exiting maintenance mode
   }

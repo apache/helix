@@ -82,6 +82,7 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
     String reason;
     switch (internalReason) {
     case MAX_OFFLINE_INSTANCES_EXCEEDED:
+    case MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS:
       // Check on the number of offline/disabled instances
       int numOfflineInstancesForAutoExit =
           cache.getClusterConfig().getNumOfflineInstancesForAutoExit();
@@ -90,7 +91,7 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
       }
       // Get the count of all instances that are either offline or disabled
       int offlineDisabledCount =
-          cache.getAssignableInstances().size() - cache.getAssignableEnabledLiveInstances().size();
+          cache.getAssignableInstances().size() - cache.getEnabledLiveInstances().size();
       shouldExitMaintenance = offlineDisabledCount <= numOfflineInstancesForAutoExit;
       reason = String.format(
           "Auto-exiting maintenance mode for cluster %s; Num. of offline/disabled instances is %d, less than or equal to the exit threshold %d",

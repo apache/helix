@@ -36,7 +36,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
@@ -50,9 +49,6 @@ import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -500,15 +496,15 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(
-        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.EVACUATE.toString());
+    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+        InstanceConstants.InstanceOperation.EVACUATE);
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=INVALIDOP")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(
-        instanceConfig.getInstanceOperation(), "");
+    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
 
     // test canCompleteSwap
     Response canCompleteSwapResponse =
@@ -548,8 +544,8 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(
-        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.EVACUATE.toString());
+    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+        InstanceConstants.InstanceOperation.EVACUATE);
 
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
@@ -591,8 +587,8 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, test_instance_name).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, test_instance_name);
-    Assert.assertEquals(
-        instanceConfig.getInstanceOperation(), InstanceConstants.InstanceOperation.EVACUATE.toString());
+    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+        InstanceConstants.InstanceOperation.EVACUATE);
 
     response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")
         .format(CLUSTER_NAME, test_instance_name).post(this, entity);

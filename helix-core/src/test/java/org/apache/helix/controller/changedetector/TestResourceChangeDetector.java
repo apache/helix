@@ -31,6 +31,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -399,7 +400,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
         _dataAccessor.getProperty(_keyBuilder.instanceConfig(instanceName));
     Assert.assertTrue(instanceConfig.getInstanceEnabled());
     try {
-      instanceConfig.setInstanceEnabled(false);
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
       _dataAccessor.updateProperty(_keyBuilder.instanceConfig(instanceName), instanceConfig);
       _dataProvider.notifyDataChange(ChangeType.INSTANCE_CONFIG);
       _dataProvider.refresh(_dataAccessor);
@@ -410,7 +411,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
     } finally {
       // remove newly added resource/ideastate
       _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resourceName);
-      instanceConfig.setInstanceEnabled(true);
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       _dataAccessor.updateProperty(_keyBuilder.instanceConfig(instanceName), instanceConfig);
     }
   }

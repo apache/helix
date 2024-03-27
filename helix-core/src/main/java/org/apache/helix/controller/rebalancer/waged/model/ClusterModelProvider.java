@@ -164,7 +164,7 @@ public class ClusterModelProvider {
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       Map<String, ResourceAssignment> currentStateAssignment) {
     return generateClusterModel(dataProvider, resourceMap,
-        dataProvider.getAssignableEnabledLiveInstances(), Collections.emptyMap(),
+        dataProvider.getEnabledLiveInstances(), Collections.emptyMap(),
         Collections.emptyMap(), currentStateAssignment,
         RebalanceScopeType.GLOBAL_BASELINE);
   }

@@ -268,7 +268,7 @@ public class StoppableInstancesSelector {
       PropertyKey.Builder propertyKeyBuilder = _dataAccessor.keyBuilder();
       InstanceConfig instanceConfig =
           _dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instance));
-      if (InstanceConstants.InstanceOperation.EVACUATE.name()
+      if (InstanceConstants.InstanceOperation.EVACUATE
           .equals(instanceConfig.getInstanceOperation())) {
         toBeStoppedInstances.add(instance);
       }

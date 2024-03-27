@@ -29,6 +29,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstraint;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -77,7 +78,7 @@ public class WeightAwareRebalanceUtil {
       List<InstanceConfig> instanceConfigs) {
     for (InstanceConfig instanceConfig : instanceConfigs) {
       // ensure the instance is enabled
-      instanceConfig.setInstanceEnabled(true);
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       _instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
     }
     // ensure no instance is disabled

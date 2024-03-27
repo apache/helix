@@ -51,7 +51,7 @@ public class TestInstanceConfig {
   @Test
   public void testSetInstanceEnableWithReason() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
-    instanceConfig.setInstanceEnabled(true);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     instanceConfig.setInstanceDisabledReason("NoShowReason");
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
 
@@ -63,7 +63,7 @@ public class TestInstanceConfig {
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_TYPE.toString()), null);
 
 
-    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     String reasonCode = "ReasonCode";
     instanceConfig.setInstanceDisabledReason(reasonCode);
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
@@ -196,5 +196,46 @@ public class TestInstanceConfig {
     Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CAGE"), "H");
     Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CABINET"), "30");
     Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight1"), Integer.valueOf(1));
+  }
+
+  @Test
+  public void testOverwriteInstanceConfig() {
+    InstanceConfig instanceConfig = new InstanceConfig("instance2");
+    instanceConfig.setHostName("host1");
+    instanceConfig.setPort("1234");
+    instanceConfig.setDomain("foo=bar");
+    instanceConfig.setWeight(100);
+    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.addTag("tag1");
+    instanceConfig.addTag("tag2");
+    instanceConfig.setInstanceCapacityMap(ImmutableMap.of("weight1", 1));
+
+    InstanceConfig overrideConfig = new InstanceConfig("instance1");
+    overrideConfig.setHostName("host2");
+    overrideConfig.setPort("5678");
+    overrideConfig.setDomain("foo=bar2");
+    overrideConfig.setWeight(200);
+    overrideConfig.addTag("tag3");
+    overrideConfig.addTag("tag4");
+    overrideConfig.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
+    overrideConfig.setInstanceCapacityMap(ImmutableMap.of("weight2", 2));
+
+    instanceConfig.overwriteInstanceConfig(overrideConfig);
+
+    Assert.assertEquals(instanceConfig.getId(), "instance2");
+    Assert.assertEquals(instanceConfig.getHostName(), "host1");
+    Assert.assertEquals(instanceConfig.getPort(), "1234");
+    Assert.assertEquals(instanceConfig.getDomainAsString(), "foo=bar");
+    Assert.assertEquals(instanceConfig.getWeight(), 200);
+    Assert.assertFalse(instanceConfig.getTags().contains("tag1"));
+    Assert.assertFalse(instanceConfig.getTags().contains("tag2"));
+    Assert.assertTrue(instanceConfig.getTags().contains("tag3"));
+    Assert.assertTrue(instanceConfig.getTags().contains("tag4"));
+    Assert.assertFalse(instanceConfig.getRecord().getSimpleFields()
+        .containsKey(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()));
+    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+        InstanceConstants.InstanceOperation.EVACUATE);
+    Assert.assertFalse(instanceConfig.getInstanceCapacityMap().containsKey("weight1"));
+    Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight2"), Integer.valueOf(2));
   }
 }

@@ -425,7 +425,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       case ENABLE:
       case DISABLE:
         // ENABLE or DISABLE can be set to ENABLE, DISABLE, or EVACUATE at any time.
-        if (Set.of(InstanceConstants.InstanceOperation.ENABLE,
+        if (ImmutableSet.of(InstanceConstants.InstanceOperation.ENABLE,
             InstanceConstants.InstanceOperation.DISABLE,
             InstanceConstants.InstanceOperation.EVACUATE).contains(targetOperation)) {
           return;
@@ -456,7 +456,7 @@ public class ZKHelixAdmin implements HelixAdmin {
             .equals(InstanceConstants.InstanceOperation.EVACUATE)))) {
           return;
         } else if (targetOperation.equals(InstanceConstants.InstanceOperation.SWAP_IN)
-            && matchingLogicalIdInstance != null && !Set.of(
+            && matchingLogicalIdInstance != null && !ImmutableSet.of(
                 InstanceConstants.InstanceOperation.UNKNOWN,
                 InstanceConstants.InstanceOperation.EVACUATE)
             .contains(matchingLogicalIdInstance.getInstanceOperation())) {
@@ -686,7 +686,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         if (!(swapOutPartitionState.equals(HelixDefinedState.ERROR.name()) || (
             topState.equals(swapOutPartitionState) && (
                 swapOutPartitionState.equals(swapInPartitionState) ||
-                    !Set.of(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS,
+                    !ImmutableSet.of(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS,
                         StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES).contains(
                         stateModelDefinition.getNumInstancesPerState(
                             stateModelDefinition.getTopState())) && secondTopStates.contains(
@@ -787,7 +787,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     String swapOutInstanceConfigPath =
         PropertyPathBuilder.instanceConfig(clusterName, swapOutInstanceConfig.getInstanceName());
 
-    return baseAccessor.multiSet(Map.of(swapInInstanceConfigPath, currentData -> {
+    Map<String, DataUpdater<ZNRecord>> updaterMap = new HashMap<>();
+    updaterMap.put(swapInInstanceConfigPath, currentData -> {
       if (currentData == null) {
         throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
             + ", SWAP_IN instance config is null");
@@ -799,7 +800,9 @@ public class ZKHelixAdmin implements HelixAdmin {
       config.overwriteInstanceConfig(currentSwapOutInstanceConfig);
       // Special handling in case the swap-out instance does not have HELIX_ENABLED or InstanceOperation set.
       return config.getRecord();
-    }, swapOutInstanceConfigPath, currentData -> {
+    });
+
+    updaterMap.put(swapOutInstanceConfigPath, currentData -> {
       if (currentData == null) {
         throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
             + ", swap out instance config is null");
@@ -808,7 +811,9 @@ public class ZKHelixAdmin implements HelixAdmin {
       InstanceConfig config = new InstanceConfig(currentData);
       config.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
       return config.getRecord();
-    }));
+    });
+
+    return baseAccessor.multiSet(updaterMap);
   }
 
   @Override

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.constants.InstanceConstants;
@@ -71,8 +72,8 @@ public class InstanceConfig extends HelixProperty {
 
   // These fields are not allowed to be overwritten by the merge method because
   // they are unique properties of an instance.
-  private static final Set<InstanceConfigProperty> NON_OVERWRITABLE_PROPERTIES =
-      Set.of(InstanceConfigProperty.HELIX_HOST, InstanceConfigProperty.HELIX_PORT,
+  private static final ImmutableSet<InstanceConfigProperty> NON_OVERWRITABLE_PROPERTIES =
+      ImmutableSet.of(InstanceConfigProperty.HELIX_HOST, InstanceConfigProperty.HELIX_PORT,
           InstanceConfigProperty.HELIX_ZONE_ID, InstanceConfigProperty.DOMAIN,
           InstanceConfigProperty.INSTANCE_INFO_MAP);
 

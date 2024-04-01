@@ -15,6 +15,7 @@ public class InstanceConstants {
   /**
    * The set contains the InstanceOperations that are overridden when the deprecated HELIX_ENABLED
    * field is set to false. This will maintain backwards compatibility with the deprecated field.
+   * TODO: Remove this when the deprecated HELIX_ENABLED is removed.
    */
   public static final Set<InstanceOperation> INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS =
       Set.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE, InstanceOperation.EVACUATE);

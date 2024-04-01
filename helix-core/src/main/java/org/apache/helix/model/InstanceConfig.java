@@ -858,28 +858,24 @@ public class InstanceConfig extends HelixProperty {
    * @param overwritingInstanceConfig the InstanceConfig to override into this InstanceConfig
    */
   public void overwriteInstanceConfig(InstanceConfig overwritingInstanceConfig) {
-    for (InstanceConfigProperty keyEnum : InstanceConfigProperty.values()) {
-      if (NON_OVERWRITABLE_PROPERTIES.contains(keyEnum)) {
-        continue;
-      }
+    // Remove all overwritable fields from the record
+    Set<String> overwritableProperties = Arrays.stream(InstanceConfigProperty.values())
+        .filter(property -> !NON_OVERWRITABLE_PROPERTIES.contains(property)).map(Enum::name)
+        .collect(Collectors.toSet());
+    _record.getSimpleFields().keySet().removeAll(overwritableProperties);
+    _record.getListFields().keySet().removeAll(overwritableProperties);
+    _record.getMapFields().keySet().removeAll(overwritableProperties);
 
-      String key = keyEnum.toString();
-      // Add key value pair if it exists in overwritingInstanceConfig and remove it if it doesn't
-      // exist in overwritingInstanceConfig but does exist in this InstanceConfig.
-      if (overwritingInstanceConfig.getRecord().getSimpleFields().containsKey(key)) {
-        _record.setSimpleField(key, overwritingInstanceConfig.getRecord().getSimpleField(key));
-      } else if (_record.getSimpleFields().containsKey(key)) {
-        _record.getSimpleFields().remove(key);
-      } else if (overwritingInstanceConfig.getRecord().getListFields().containsKey(key)) {
-        _record.setListField(key, overwritingInstanceConfig.getRecord().getListField(key));
-      } else if (_record.getListFields().containsKey(key)) {
-        _record.getListFields().remove(key);
-      } else if (overwritingInstanceConfig.getRecord().getMapFields().containsKey(key)) {
-        _record.setMapField(key, overwritingInstanceConfig.getRecord().getMapField(key));
-      } else if (_record.getMapFields().containsKey(key)) {
-        _record.getMapFields().remove(key);
-      }
-    }
+    // Get all overwritable fields from the overwritingInstanceConfig and set them in this record
+    overwritingInstanceConfig.getRecord().getSimpleFields().entrySet().stream()
+        .filter(entry -> overwritableProperties.contains(entry.getKey()))
+        .forEach((entry) -> _record.setSimpleField(entry.getKey(), entry.getValue()));
+    overwritingInstanceConfig.getRecord().getListFields().entrySet().stream()
+        .filter(entry -> overwritableProperties.contains(entry.getKey()))
+        .forEach((entry) -> _record.setListField(entry.getKey(), entry.getValue()));
+    overwritingInstanceConfig.getRecord().getMapFields().entrySet().stream()
+        .filter(entry -> overwritableProperties.contains(entry.getKey()))
+        .forEach((entry) -> _record.setMapField(entry.getKey(), entry.getValue()));
   }
 
   public static class Builder {

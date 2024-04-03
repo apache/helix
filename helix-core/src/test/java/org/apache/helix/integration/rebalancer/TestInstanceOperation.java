@@ -1320,7 +1320,31 @@ public class TestInstanceOperation extends ZkTestBase {
     _stateModelDelay = 3L;
   }
 
-  @Test(dependsOnMethods = "testMarkEvacuationAfterEMM")
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testMarkEvacuationAfterEMM")
+  public void testSwapEvacuateAddRemoveEvacuate() throws Exception {
+    System.out.println("START TestInstanceOperation.testSwapEvacuateAddRemoveEvacuate() at " + new Date(
+        System.currentTimeMillis()));
+    removeOfflineOrInactiveInstances();
+
+    // Set instance's InstanceOperation to EVACUATE
+    String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
+        InstanceConstants.InstanceOperation.EVACUATE);
+
+    // Add instance with InstanceOperation set to ENABLE
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
+        InstanceConstants.InstanceOperation.ENABLE, -1);
+
+    // Remove EVACUATE instance's InstanceOperation
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName, null);
+  }
+
+  @Test(dependsOnMethods = "testSwapEvacuateAddRemoveEvacuate")
   public void testEvacuationWithOfflineInstancesInCluster() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testEvacuationWithOfflineInstancesInCluster() at " + new Date(
@@ -1359,30 +1383,6 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);
     dropTestDBs(ImmutableSet.of("TEST_DB3_DELAYED_CRUSHED", "TEST_DB4_DELAYED_WAGED"));
-  }
-
-  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
-  public void testSwapEvacuateAddRemoveEvacuate() throws Exception {
-    System.out.println("START TestInstanceOperation.testSwapEvacuateAddRemoveEvacuate() at " + new Date(
-        System.currentTimeMillis()));
-    removeOfflineOrInactiveInstances();
-
-    // Set instance's InstanceOperation to EVACUATE
-    String instanceToSwapOutName = _participants.get(0).getInstanceName();
-    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
-        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
-    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
-        InstanceConstants.InstanceOperation.EVACUATE);
-
-    // Add instance with InstanceOperation set to ENABLE
-    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
-    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
-        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.ENABLE, -1);
-
-    // Remove EVACUATE instance's InstanceOperation
-    _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName, null);
   }
 
   /**

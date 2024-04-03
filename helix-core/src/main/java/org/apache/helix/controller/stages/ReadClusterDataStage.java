@@ -90,7 +90,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
                 instanceMessageMap.put(instanceName,
                     Sets.newHashSet(dataProvider.getMessages(instanceName).values()));
               }
-              if (!InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
+              if (!config.getInstanceEnabled()) {
                 disabledInstanceSet.add(instanceName);
               }
 

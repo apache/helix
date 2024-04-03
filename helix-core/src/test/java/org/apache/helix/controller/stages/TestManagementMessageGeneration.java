@@ -84,6 +84,7 @@ public class TestManagementMessageGeneration extends ManagementMessageGeneration
     when(currentStateOutput.getPendingMessage(TEST_RESOURCE, partition, TEST_INSTANCE))
         .thenReturn(pendingMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     // Set helix manager to event
     event.addAttribute(AttributeName.helixmanager.name(), mock(HelixManager.class));

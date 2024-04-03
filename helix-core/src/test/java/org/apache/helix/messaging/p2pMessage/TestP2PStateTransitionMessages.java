@@ -95,6 +95,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), new CurrentStateOutput());
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), new CurrentStateOutput());
     event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     Pipeline pipeline = createPipeline();
@@ -106,6 +107,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     CurrentStateOutput currentStateOutput =
         populateCurrentStateFromBestPossible(bestPossibleStateOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     Partition p = new Partition(db + "_0");
 
@@ -153,6 +155,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     currentStateOutput.setPendingRelayMessage(db, p, masterInstance, relayMessage);
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     pipeline.handle(event);
 
@@ -167,6 +170,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     currentStateOutput.setCurrentState(db, p, masterInstance, "SLAVE");
     currentStateOutput.setPendingMessage(db, p, newMasterInstance, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     pipeline.handle(event);
 
@@ -186,6 +190,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     // but controller should not send S->M to newly calculated master.
     currentStateOutput.setCurrentState(db, p, masterInstance, "OFFLINE");
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     String slaveInstance =
         getTopStateInstance(bestPossibleStateOutput.getInstanceStateMap(db, p),
@@ -217,6 +222,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     // Controller will not send S->M to new master.
     currentStateOutput.setPendingMessage(db, p, newMasterInstance, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), bestPossibleStateOutput);
@@ -244,6 +250,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     currentStateOutput.setCurrentState(db, p, slaveInstance, "SLAVE");
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     pipeline = new Pipeline("test");
     pipeline.addStage(new MessageGenerationPhase());
@@ -271,6 +278,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), new CurrentStateOutput());
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), new CurrentStateOutput());
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
@@ -284,6 +292,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     CurrentStateOutput currentStateOutput =
         populateCurrentStateFromBestPossible(bestPossibleStateOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     Partition p = new Partition(db + "_0");
 

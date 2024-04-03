@@ -189,6 +189,7 @@ public class TestReplicaLevelThrottling extends BaseStageTest {
         }
         ClusterEvent event = new ClusterEvent(CLUSTER_NAME, ClusterEventType.Unknown);
         event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput); // add current states
+        event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput); // add current states
         event.addAttribute(AttributeName.ControllerDataProvider.name(),
             buildCache(mock, numReplica, minActiveReplica, stateModelDef, stateModelName, preferenceLists));
         event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageOutput);

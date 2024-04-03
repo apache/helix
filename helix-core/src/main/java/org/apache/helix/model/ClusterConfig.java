@@ -90,7 +90,9 @@ public class ClusterConfig extends HelixProperty {
     // state transition if the number of
     // partitons that need recovery or in
     // error exceeds this limitation
+    @Deprecated // TODO: Remove in Helix 2.0
     DISABLED_INSTANCES,
+    @Deprecated // TODO: Remove in Helix 2.0
     DISABLED_INSTANCES_WITH_INFO,
     // disabled instances and disabled instances with info are for storing batch disabled instances.
     // disabled instances will write into both 2 fields for backward compatibility.
@@ -818,8 +820,11 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Get current disabled instance map of <instance, disabledTimeStamp>
+   * @deprecated We will no longer be using the clusterConfig to disable instances
+   * please use the InstanceConfig to disable instances
    * @return a non-null map of disabled instances in cluster config
    */
+  @Deprecated
   public Map<String, String> getDisabledInstances() {
     Map<String, String> disabledInstances =
         _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
@@ -829,8 +834,10 @@ public class ClusterConfig extends HelixProperty {
   /**
    * Get current disabled instance map of
    * <instance, disabledReason = "res, disabledType = typ, disabledTimeStamp = time">
+   * @deprecated Please use InstanceConfig for enabling and disabling instances
    * @return a non-null map of disabled instances in cluster config
    */
+  @Deprecated
   public Map<String, String> getDisabledInstancesWithInfo() {
     Map<String, String> disabledInstances =
         _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES_WITH_INFO.name());

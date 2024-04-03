@@ -36,6 +36,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -76,7 +77,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
-    CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
+    CurrentStateOutput currentStateOutput =
+        event.getAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name());
     final Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     final ClusterStatusMonitor clusterStatusMonitor =
@@ -85,8 +87,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     if (currentStateOutput == null || resourceMap == null || cache == null) {
-      throw new StageException(
-          "Missing attributes in event:" + event + ". Requires CURRENT_STATE|RESOURCES|DataCache");
+      throw new StageException("Missing attributes in event:" + event
+          + ". Requires CURRENT_STATE_EXCLUDING_UNKNOWN|RESOURCES|DataCache");
     }
 
     final BestPossibleStateOutput bestPossibleStateOutput =
@@ -133,79 +135,102 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     });
   }
 
+  private String selectSwapInState(StateModelDefinition stateModelDef, Map<String, String> stateMap,
+      String swapOutInstance) {
+    // If the swap-in node is live, select state with the following logic:
+    // 1. If the swap-out instance's replica is in the stateMap:
+    // - if the swap-out instance's replica is a topState, select the swap-in instance's replica to the topState.
+    //   if another is allowed to be added, otherwise select the swap-in instance's replica to a secondTopState.
+    // - if the swap-out instance's replica is not a topState or ERROR, select the swap-in instance's replica to the same state.
+    // - if the swap-out instance's replica is ERROR, select the swap-in instance's replica to the initialState.
+    // 2. If the swap-out instance's replica is not in the stateMap, select the swap-in instance's replica to the initialState.
+    // This happens when the swap-out node is offline.
+    if (stateMap.containsKey(swapOutInstance)) {
+      if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState()) || stateMap.get(
+          swapOutInstance).equals(HelixDefinedState.ERROR.name())) {
+        // If the swap-out instance's replica is a topState, select the swap-in instance's replica
+        // to be the topState if the StateModel allows another to be added. If not, select the swap-in
+        // to be the secondTopState.
+        String topStateCount = stateModelDef.getNumInstancesPerState(stateModelDef.getTopState());
+        if (topStateCount.equals(StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)
+            || topStateCount.equals(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
+          // If the StateModel allows for another replica with the topState to be added,
+          // select the swap-in instance's replica to the topState.
+          return stateModelDef.getTopState();
+        } else {
+          // If StateModel does not allow another topState replica to be
+          // added, select the swap-in instance's replica to be the secondTopState.
+          return stateModelDef.getSecondTopStates().iterator().next();
+        }
+      } else {
+        // If the swap-out instance's replica is not a topState or ERROR, select the swap-in instance's replica
+        // to be the same state
+        return stateMap.get(swapOutInstance);
+      }
+    } else {
+      // If the swap-out instance's replica is not in the stateMap, select the swap-in instance's replica
+      // to be the initialState. This happens when the swap-out node is offline.
+      return stateModelDef.getInitialState();
+    }
+  }
+
   private void addSwapInInstancesToBestPossibleState(Map<String, Resource> resourceMap,
       BestPossibleStateOutput bestPossibleStateOutput, ResourceControllerDataProvider cache) {
     // 1. Get all swap out instances and corresponding SWAP_IN instance pairs in the cluster.
     Map<String, String> swapOutToSwapInInstancePairs = cache.getSwapOutToSwapInInstancePairs();
+    Map<String, String> swapInToSwapOutInstancePairs = cache.getSwapInToSwapOutInstancePairs();
+
     // 2. Get all live SWAP_IN instances in the cluster.
     Set<String> liveSwapInInstances = cache.getLiveSwapInInstanceNames();
-    // 3. For each swap out instance in any of the preferenceLists, add the corresponding SWAP_IN instance to
-    // the stateMap with the correct state.
-    // Skipping this when there are no SWAP_IN instances that are alive will reduce computation time.
-    if (!liveSwapInInstances.isEmpty() && !cache.isMaintenanceModeEnabled()) {
-      resourceMap.forEach((resourceName, resource) -> {
-        StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
-        bestPossibleStateOutput.getResourceStatesMap().get(resourceName).getStateMap()
-            .forEach((partition, stateMap) -> {
-              // We use the preferenceList for the case where the swapOutInstance goes offline.
-              // We do not want to drop the replicas that may have been bootstrapped on the swapInInstance
-              // in the case that the swapOutInstance goes offline and no longer has an entry in the stateMap.
-              Set<String> commonInstances = new HashSet<>(
-                  bestPossibleStateOutput.getPreferenceList(resourceName,
-                      partition.getPartitionName()));
-              commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
+    if (liveSwapInInstances.isEmpty() || cache.isMaintenanceModeEnabled()) {
+      return;
+    }
 
-              commonInstances.forEach(swapOutInstance -> {
-                // If the corresponding swap-in instance is not live, skip assigning to it.
-                if (!liveSwapInInstances.contains(
-                    swapOutToSwapInInstancePairs.get(swapOutInstance))) {
-                  return;
-                }
+    // 3. Find the assignment for each swap-in instance
+    // <instanceName> : <resourceName> : <partitionName>
+    Map<String, Map<String, Set<String>>> swapInInstanceAssignment = new HashMap<>();
+    resourceMap.forEach((resourceName, resource) -> {
+      bestPossibleStateOutput.getResourceStatesMap().get(resourceName).getStateMap()
+          .forEach((partition, stateMap) -> {
+            // We use the preferenceList for the case where the swapOutInstance goes offline.
+            // We do not want to drop the replicas that may have been bootstrapped on the swapInInstance
+            // in the case that the swapOutInstance goes offline and no longer has an entry in the stateMap.
+            List<String> preferenceList = bestPossibleStateOutput.getPreferenceList(resourceName,
+                partition.getPartitionName());
+            if (preferenceList == null || preferenceList.isEmpty()) {
+              return;
+            }
+            Set<String> commonInstances = new HashSet<>(preferenceList);
+            commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
 
-                // If the swap-in node is live, do assignment with the following logic:
-                // 1. If the swap-out instance's replica is in the stateMap:
-                // - if the swap-out instance's replica is a topState, set the swap-in instance's replica to the topState.
-                //   if another is allowed to be added, otherwise set the swap-in instance's replica to a secondTopState.
-                // - if the swap-out instance's replica is not a topState or ERROR, set the swap-in instance's replica to the same state.
-                // - if the swap-out instance's replica is ERROR, set the swap-in instance's replica to the initialState.
-                // 2. If the swap-out instance's replica is not in the stateMap, set the swap-in instance's replica to the initialState.
-                // This happens when the swap-out node is offline.
-                if (stateMap.containsKey(swapOutInstance)) {
-                  if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState())
-                      || stateMap.get(swapOutInstance).equals(HelixDefinedState.ERROR.name())) {
-                    // If the swap-out instance's replica is a topState, set the swap-in instance's replica
-                    // to the topState if the StateModel allows another to be added. If not, set the swap-in
-                    // to the secondTopState.
-                    String topStateCount =
-                        stateModelDef.getNumInstancesPerState(stateModelDef.getTopState());
-                    if (topStateCount.equals(
-                        StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES)
-                        || topStateCount.equals(
-                        StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS)) {
-                      // If the StateModel allows for another replica with the topState to be added,
-                      // set the swap-in instance's replica to the topState.
-                      stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                          stateModelDef.getTopState());
-                    } else {
-                      // If StateModel does not allow another topState replica to be
-                      // added, set the swap-in instance's replica to the secondTopState.
-                      stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                          stateModelDef.getSecondTopStates().iterator().next());
-                    }
-                  } else {
-                    // If the swap-out instance's replica is not a topState or ERROR, set the swap-in instance's replica
-                    // to the same state
-                    stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                        stateMap.get(swapOutInstance));
-                  }
-                } else {
-                  // If the swap-out instance's replica is not in the stateMap, set the swap-in instance's replica
-                  // to the initialState. This happens when the swap-out node is offline.
-                  stateMap.put(swapOutToSwapInInstancePairs.get(swapOutInstance),
-                      stateModelDef.getInitialState());
-                }
-              });
+            commonInstances.forEach(swapOutInstance -> {
+              swapInInstanceAssignment.computeIfAbsent(
+                      swapOutToSwapInInstancePairs.get(swapOutInstance), k -> new HashMap<>())
+                  .computeIfAbsent(resourceName, k -> new HashSet<>())
+                  .add(partition.getPartitionName());
             });
+          });
+    });
+
+    // 4. Add the correct states for the swap-in instances to the bestPossibleStateOutput.
+    if (!swapInInstanceAssignment.isEmpty()) {
+      swapInInstanceAssignment.forEach((swapInInstance, resourceMapForInstance) -> {
+        // If the corresponding swap-in instance is not live, skip assigning to it.
+        if (!liveSwapInInstances.contains(swapInInstance)) {
+          return;
+        }
+
+        resourceMapForInstance.forEach((resourceName, partitions) -> {
+          partitions.forEach(partitionName -> {
+            Partition partition = new Partition(partitionName);
+            Map<String, String> stateMap =
+                bestPossibleStateOutput.getInstanceStateMap(resourceName, partition);
+            bestPossibleStateOutput.setState(resourceName, partition, swapInInstance,
+                selectSwapInState(
+                    cache.getStateModelDef(resourceMap.get(resourceName).getStateModelDefRef()),
+                    stateMap, swapInToSwapOutInstancePairs.get(swapInInstance)));
+          });
+        });
       });
     }
   }

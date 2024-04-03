@@ -124,6 +124,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     private final Map<String, InstanceConfig> _assignableInstanceConfigMap;
     private final Map<String, LiveInstance> _assignableLiveInstancesMap;
     private final Map<String, String> _swapOutInstanceNameToSwapInInstanceName;
+    private final Map<String, String> _swapInInstanceNameToSwapOutInstanceName;
     private final Set<String> _liveSwapInInstanceNames;
 
     DerivedInstanceCache(
@@ -136,6 +137,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       _assignableInstanceConfigMap = assignableInstanceConfigMap;
       _assignableLiveInstancesMap = assignableLiveInstancesMap;
       _swapOutInstanceNameToSwapInInstanceName = swapOutInstanceNameToSwapInInstanceName;
+      _swapInInstanceNameToSwapOutInstanceName = swapOutInstanceNameToSwapInInstanceName.entrySet()
+          .stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
       _liveSwapInInstanceNames = liveSwapInInstanceNames;
     }
 
@@ -806,13 +809,23 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
-   * Get all swapping instance pairs.
+   * Get all swapping instance pairs keyed by swap-out instanceNames.
    *
    * @return a map of swap out instanceNames and their corresponding SWAP_IN instanceNames.
    */
   public Map<String, String> getSwapOutToSwapInInstancePairs() {
     return Collections.unmodifiableMap(
         _derivedInstanceCache._swapOutInstanceNameToSwapInInstanceName);
+  }
+
+  /**
+   * Get all swapping instance pairs keyed by swap-in instanceNames.
+   *
+   * @return a map of swap in instanceNames and their corresponding swap out instanceNames.
+   */
+  public Map<String, String> getSwapInToSwapOutInstancePairs() {
+    return Collections.unmodifiableMap(
+        _derivedInstanceCache._swapInInstanceNameToSwapOutInstanceName);
   }
 
   /**

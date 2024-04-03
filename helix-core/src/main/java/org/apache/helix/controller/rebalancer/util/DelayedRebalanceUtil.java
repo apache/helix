@@ -154,7 +154,7 @@ public class DelayedRebalanceUtil {
     }
 
     // check the time instance got disabled.
-    if (!InstanceValidationUtil.isInstanceEnabled(instanceConfig, clusterConfig)) {
+    if (!instanceConfig.getInstanceEnabled()) {
       long disabledTime = instanceConfig.getInstanceEnabledTime();
       String batchedDisabledTime = clusterConfig.getInstanceHelixDisabledTimeStamp(instance);
       if (batchedDisabledTime != null && !batchedDisabledTime.isEmpty()) {

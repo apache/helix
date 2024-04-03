@@ -364,9 +364,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     currentMapWithPreferenceList.keySet().retainAll(preferenceList);
 
     combinedPreferenceList.addAll(currentInstances);
-    if (cache != null) {
-      combinedPreferenceList.removeAll(cache.getUnknownInstances());
-    }
     combinedPreferenceList.sort(new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
 
     // if preference list is not empty, and we do have new intanceToAdd, we

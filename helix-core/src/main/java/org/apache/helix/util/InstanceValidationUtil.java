@@ -73,22 +73,22 @@ public class InstanceValidationUtil {
   public static boolean isEnabled(HelixDataAccessor dataAccessor, String instanceName) {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instanceName));
-    ClusterConfig clusterConfig = dataAccessor.getProperty(propertyKeyBuilder.clusterConfig());
-    // TODO deprecate instance level config checks once migrated the enable status to cluster config only
-    if (instanceConfig == null || clusterConfig == null) {
-      throw new HelixException("InstanceConfig or ClusterConfig is NULL");
+    if (instanceConfig == null) {
+      throw new HelixException("InstanceConfig is NULL");
     }
 
-    return isInstanceEnabled(instanceConfig, clusterConfig);
-
+    return instanceConfig.getInstanceEnabled();
   }
 
   /**
    * Check if the instance is enabled by configuration
+   * @deprecated Use {@link InstanceConfig#getInstanceEnabled()} instead. We will no longer
+   * be using cluster config to enable/disable instances.
    * @param instanceConfig
    * @param clusterConfig
    * @return
    */
+  @Deprecated
   public static boolean isInstanceEnabled(InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
     if (instanceConfig == null) {
       throw new HelixException("InstanceConfig is NULL");

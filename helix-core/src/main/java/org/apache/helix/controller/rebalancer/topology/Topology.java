@@ -205,7 +205,7 @@ public class Topology {
         }
         addEndNode(root, instanceName, instanceTopologyMap, weight, _liveInstances);
       } catch (IllegalArgumentException e) {
-        if (InstanceValidationUtil.isInstanceEnabled(insConfig, clusterConfig)) {
+        if (insConfig.getInstanceEnabled()) {
           throw e;
         } else {
           logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",

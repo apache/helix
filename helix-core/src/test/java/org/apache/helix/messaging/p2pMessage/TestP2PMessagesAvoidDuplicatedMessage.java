@@ -82,6 +82,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), new CurrentStateOutput());
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), new CurrentStateOutput());
     event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     _fullPipeline = new Pipeline("FullPipeline");
@@ -124,6 +125,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     CurrentStateOutput currentStateOutput =
         populateCurrentStateFromBestPossible(_bestpossibleState);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     _fullPipeline.handle(event);
 
@@ -161,6 +163,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     currentStateOutput.setPendingRelayMessage(_db, _partition, initialMaster, relayMessage);
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     _fullPipeline.handle(event);
 
@@ -179,6 +182,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     currentStateOutput.setPendingRelayMessage(_db, _partition, initialMaster, relayMessage);
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     _messagePipeline.handle(event);
 
@@ -218,6 +222,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
     _messagePipeline.handle(event);
@@ -244,6 +249,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     currentStateOutput.setCurrentState(_db, _partition, initialMaster, "SLAVE");
     currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     _fullPipeline.handle(event);
 
@@ -264,6 +270,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     // Validate: controller should not send S->M to thirdMaster.
     currentStateOutput.setCurrentState(_db, _partition, initialMaster, "OFFLINE");
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     thirdMaster =
         getTopStateInstance(_bestpossibleState.getInstanceStateMap(_db, _partition),
@@ -290,6 +297,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     // Validate: Controller should not send S->M to thirdMaster.
     currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
@@ -310,6 +318,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     currentStateOutput.setCurrentState(_db, _partition, thirdMaster, "SLAVE");
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
 
     _messagePipeline.handle(event);
 

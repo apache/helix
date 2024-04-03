@@ -313,7 +313,7 @@ public class ClusterSetup {
 
     ClusterConfig clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
     // ensure node is disabled, otherwise fail
-    if (InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
+    if (config.getInstanceEnabled()) {
       String error = "Node " + instanceId + " is enabled, cannot drop";
       _logger.warn(error);
       throw new HelixException(error);

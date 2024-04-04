@@ -376,7 +376,7 @@ public class InstanceConfig extends HelixProperty {
     InstanceConstants.InstanceOperation instanceOperation;
     try {
       // If INSTANCE_OPERATION is not set, then the instance is enabled.
-      instanceOperation = instanceOperationString == null || instanceOperationString.isEmpty()
+      instanceOperation = (instanceOperationString == null || instanceOperationString.isEmpty())
           ? InstanceConstants.InstanceOperation.ENABLE
           : InstanceConstants.InstanceOperation.valueOf(instanceOperationString);
     } catch (IllegalArgumentException e) {

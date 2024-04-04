@@ -157,21 +157,18 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           // If the StateModel allows for another replica with the topState to be added,
           // select the swap-in instance's replica to the topState.
           return stateModelDef.getTopState();
-        } else {
-          // If StateModel does not allow another topState replica to be
-          // added, select the swap-in instance's replica to be the secondTopState.
-          return stateModelDef.getSecondTopStates().iterator().next();
         }
-      } else {
-        // If the swap-out instance's replica is not a topState or ERROR, select the swap-in instance's replica
-        // to be the same state
-        return stateMap.get(swapOutInstance);
+        // If StateModel does not allow another topState replica to be
+        // added, select the swap-in instance's replica to be the secondTopState.
+        return stateModelDef.getSecondTopStates().iterator().next();
       }
-    } else {
-      // If the swap-out instance's replica is not in the stateMap, select the swap-in instance's replica
-      // to be the initialState. This happens when the swap-out node is offline.
-      return stateModelDef.getInitialState();
+      // If the swap-out instance's replica is not a topState or ERROR, select the swap-in instance's replica
+      // to be the same state
+      return stateMap.get(swapOutInstance);
     }
+    // If the swap-out instance's replica is not in the stateMap, select the swap-in instance's replica
+    // to be the initialState. This happens when the swap-out node is offline.
+    return stateModelDef.getInitialState();
   }
 
   private void addSwapInInstancesToBestPossibleState(Map<String, Resource> resourceMap,

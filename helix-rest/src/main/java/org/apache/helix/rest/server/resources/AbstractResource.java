@@ -89,7 +89,8 @@ public class AbstractResource {
     canCompleteSwap,
     completeSwapIfPossible,
     onDemandRebalance,
-    isEvacuateFinished
+    isEvacuateFinished,
+    setPartitionsToError
   }
 
   @Context

@@ -176,7 +176,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
         deltaList.add(delta);
         _currentStateDelta.setDeltaList(deltaList);
         _stateModelFactory.removeStateModel(_message.getResourceName(), partitionKey);
-      } else if (_stateModel.getCurrentState().equals(_message.getFromState())) {
+      } else if (_message.getFromState().equals("*")
+          || _stateModel.getCurrentState().equals(_message.getFromState())) {
         // if the partition is not to be dropped, update _stateModel to the TO_STATE
         // need this check because TaskRunner may change _stateModel before reach here.
         _stateModel.updateState(toState);

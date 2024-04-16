@@ -134,6 +134,9 @@ public class ClusterSetup {
   public static final String resetInstance = "resetInstance";
   public static final String resetResource = "resetResource";
 
+  // set partitions to ERROR
+  public static final String setPartitionsToError = "setPartitionsToError";
+
   // help
   public static final String help = "help";
 
@@ -1114,6 +1117,13 @@ public class ClusterSetup {
     removeCloudConfigOption.setRequired(false);
     removeCloudConfigOption.setArgName("clusterName");
 
+    Option setPartitionsToErrorOption =
+        OptionBuilder.withLongOpt(setPartitionsToError)
+            .withDescription("Set a Partition to Error State").create();
+    setPartitionsToErrorOption.setArgs(4);
+    setPartitionsToErrorOption.setRequired(false);
+    setPartitionsToErrorOption.setArgName("clusterName instanceName resourceName partitionName");
+
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
     group.addOption(rebalanceOption);
@@ -1153,6 +1163,7 @@ public class ClusterSetup {
     group.addOption(listStateModelOption);
     group.addOption(addResourcePropertyOption);
     group.addOption(removeResourcePropertyOption);
+    group.addOption(setPartitionsToErrorOption);
 
     // set/get/remove config options
     group.addOption(setConfOption);
@@ -1561,6 +1572,16 @@ public class ClusterSetup {
       String newInstanceName = cmd.getOptionValues(swapInstance)[2];
 
       setupTool.swapInstance(clusterName, oldInstanceName, newInstanceName);
+    } else if (cmd.hasOption(setPartitionsToError)) {
+      String[] args = cmd.getOptionValues(setPartitionsToError);
+
+      String clusterName = args[0];
+      String instanceName = args[1];
+      String resourceName = args[2];
+      List<String> partitionNames = Arrays.asList(Arrays.copyOfRange(args, 3, args.length));
+
+      setupTool.getClusterManagementTool().setPartitionsToError(clusterName, instanceName, resourceName, partitionNames);
+      return 0;
     }
     // set/get/remove config options
     else if (cmd.hasOption(setConfig)) {

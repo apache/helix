@@ -166,9 +166,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       // to be the same state
       return stateMap.get(swapOutInstance);
     }
-    // If the swap-out instance's replica is not in the stateMap, select the swap-in instance's replica
-    // to be the initialState. This happens when the swap-out node is offline.
-    return stateModelDef.getInitialState();
+    // If the swap-out instance's replica is not in the stateMap, return null
+    return null;
   }
 
   private void addSwapInInstancesToBestPossibleState(Map<String, Resource> resourceMap,
@@ -192,12 +191,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             // We use the preferenceList for the case where the swapOutInstance goes offline.
             // We do not want to drop the replicas that may have been bootstrapped on the swapInInstance
             // in the case that the swapOutInstance goes offline and no longer has an entry in the stateMap.
-            List<String> preferenceList = bestPossibleStateOutput.getPreferenceList(resourceName,
-                partition.getPartitionName());
-            if (preferenceList == null || preferenceList.isEmpty()) {
+            Set<String> commonInstances =
+                bestPossibleStateOutput.getInstanceStateMap(resourceName, partition) != null
+                    ? new HashSet<>(
+                    bestPossibleStateOutput.getInstanceStateMap(resourceName, partition).keySet())
+                    : Collections.emptySet();
+            if (commonInstances.isEmpty()) {
               return;
             }
-            Set<String> commonInstances = new HashSet<>(preferenceList);
             commonInstances.retainAll(swapOutToSwapInInstancePairs.keySet());
 
             commonInstances.forEach(swapOutInstance -> {
@@ -222,10 +223,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             Partition partition = new Partition(partitionName);
             Map<String, String> stateMap =
                 bestPossibleStateOutput.getInstanceStateMap(resourceName, partition);
-            bestPossibleStateOutput.setState(resourceName, partition, swapInInstance,
-                selectSwapInState(
-                    cache.getStateModelDef(resourceMap.get(resourceName).getStateModelDefRef()),
-                    stateMap, swapInToSwapOutInstancePairs.get(swapInInstance)));
+
+            String selectedState = selectSwapInState(
+                cache.getStateModelDef(resourceMap.get(resourceName).getStateModelDefRef()),
+                stateMap, swapInToSwapOutInstancePairs.get(swapInInstance));
+            if (stateMap != null) {
+              bestPossibleStateOutput.setState(resourceName, partition, swapInInstance,
+                  selectedState);
+            }
           });
         });
       });

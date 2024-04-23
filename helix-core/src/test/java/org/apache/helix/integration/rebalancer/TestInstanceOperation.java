@@ -491,37 +491,7 @@ public class TestInstanceOperation extends ZkTestBase {
             InstanceConstants.InstanceOperation.SWAP_IN);
   }
 
-  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testNodeSwapSwapInNodeWithAlreadySwappingPair")
-  public void testNodeSwapWrongFaultZone() throws Exception {
-    System.out.println("START TestInstanceOperation.testNodeSwapWrongFaultZone() at " + new Date(
-        System.currentTimeMillis()));
-
-    removeOfflineOrInactiveInstances();
-
-    String instanceToSwapOutName = _participants.get(0).getInstanceName();
-
-    // Add instance with InstanceOperation set to SWAP_IN
-    // Instance should be set to UNKNOWN because it is not a valid swap since it does not have
-    // the same FAULT_ZONE as the swap out instance.
-    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
-    InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
-        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
-    addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
-        instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE) + "1",
-        InstanceConstants.InstanceOperation.SWAP_IN, -1);
-
-    // The InstanceOperation should be set to UNKNOWN since the swap in instance does not have the
-    // same FAULT_ZONE as the swap out instance.
-    Assert.assertEquals(
-        _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
-            .getInstanceOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
-
-    // Try to set the InstanceOperation to SWAP_IN, it should throw an exception.
-    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapInName,
-        InstanceConstants.InstanceOperation.SWAP_IN);
-  }
-
-  @Test(dependsOnMethods = "testNodeSwapWrongFaultZone")
+  @Test(dependsOnMethods = "testNodeSwapSwapInNodeWithAlreadySwappingPair")
   public void testNodeSwap() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwap() at " + new Date(System.currentTimeMillis()));
@@ -1356,11 +1326,10 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, evacuateInstanceName,
         InstanceConstants.InstanceOperation.EVACUATE);
 
-    Map<String, ExternalView> assignment;
     // EV should contain all participants, check resources one by one
-    assignment = getEVs();
-    for (String resource : _allDBs) {
-      verifier(() -> {
+    verifier(() -> {
+      Map<String, ExternalView> assignment = getEVs();
+      for (String resource : _allDBs) {
         ExternalView ev = assignment.get(resource);
         for (String partition : ev.getPartitionSet()) {
           AtomicInteger activeReplicaCount = new AtomicInteger();
@@ -1370,14 +1339,14 @@ public class TestInstanceOperation extends ZkTestBase {
               .forEach(v -> activeReplicaCount.getAndIncrement());
           if (activeReplicaCount.get() < REPLICA - 1 || (
               ev.getStateMap(partition).containsKey(evacuateInstanceName) && ev.getStateMap(
-                  partition).get(evacuateInstanceName).equals("MASTER") && ev.getStateMap(partition)
-                  .get(evacuateInstanceName).equals("LEADER"))) {
+                  partition).get(evacuateInstanceName).equals("MASTER") && ev.getStateMap(
+                  partition).get(evacuateInstanceName).equals("LEADER"))) {
             return false;
           }
         }
-        return true;
-      }, 30000);
-    }
+      }
+      return true;
+    }, 30000);
 
     removeOfflineOrInactiveInstances();
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);

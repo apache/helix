@@ -104,17 +104,6 @@ public class TestInstanceValidationUtil {
     InstanceValidationUtil.isEnabled(mock.dataAccessor, TEST_INSTANCE);
   }
 
-  @Test(expectedExceptions = HelixException.class)
-  public void TestIsInstanceEnabled_whenClusterConfigNull() {
-    Mock mock = new Mock();
-    doReturn(new InstanceConfig(TEST_INSTANCE)).when(mock.dataAccessor)
-        .getProperty(argThat(new PropertyKeyArgument(PropertyType.CONFIGS)));
-    doReturn(null).when(mock.dataAccessor)
-        .getProperty(BUILDER.clusterConfig());
-
-    InstanceValidationUtil.isEnabled(mock.dataAccessor, TEST_INSTANCE);
-  }
-
   @Test
   public void TestIsInstanceAlive() {
     Mock mock = new Mock();

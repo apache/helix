@@ -329,6 +329,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     while (it.hasNext()) {
       String instance = it.next();
       String state = currentStateMap.get(instance);
+      // TODO: This may never be a possible case, figure out if we can safely remove this.
       if (state == null) {
         it.remove();
         instancesToDrop.add(instance); // These instances should be set to DROPPED after we get bestPossibleStateMap;
@@ -406,6 +407,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       }
     }
 
+    // TODO: This may not be necessary, all of the instances bestPossibleStateMap should be set to ERROR
+    //    if necessary in the call to computeBestPossibleMap.
     // Adding ERROR replica mapping to best possible
     // ERROR assignment should be mutual excluded from DROPPED assignment because
     // once there is an ERROR replica in the mapping, bestPossibleStateMap.size() > numReplicas prevents

@@ -460,25 +460,6 @@ public class ZKHelixAdmin implements HelixAdmin {
                 InstanceConstants.InstanceOperation.UNKNOWN,
                 InstanceConstants.InstanceOperation.EVACUATE)
             .contains(matchingLogicalIdInstance.getInstanceOperation())) {
-          // Get the topology key used to determine the logicalId of a node.
-          ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
-          ClusterTopologyConfig clusterTopologyConfig =
-              ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
-          String faultZoneKey = clusterTopologyConfig.getFaultZoneType();
-          // If the existing instance with the same logicalId is not in the same FAULT_ZONE as this instance, we cannot
-          // add this instance.
-          if (!matchingLogicalIdInstance.getDomainAsMap().containsKey(faultZoneKey)
-              || !instanceConfig.getDomainAsMap().containsKey(faultZoneKey)
-              || !matchingLogicalIdInstance.getDomainAsMap().get(faultZoneKey)
-              .equals(instanceConfig.getDomainAsMap().get(faultZoneKey))) {
-            throw new HelixException(
-                "Instance can only be added if the swap out instance sharing the same logicalId is in the same FAULT_ZONE"
-                    + " as this instance. " + "Existing instance: "
-                    + matchingLogicalIdInstance.getInstanceName() + " has FAULT_ZONE_TYPE: "
-                    + matchingLogicalIdInstance.getDomainAsMap().get(faultZoneKey)
-                    + " and this instance: " + instanceConfig.getInstanceName()
-                    + " has FAULT_ZONE_TYPE: " + instanceConfig.getDomainAsMap().get(faultZoneKey));
-          }
           return;
         }
       default:

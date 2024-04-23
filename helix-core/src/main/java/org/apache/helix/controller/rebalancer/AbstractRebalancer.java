@@ -362,12 +362,19 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       }
     }
 
+    // TODO: Consider moving this logic to assignStatesToInstances since we are already passing
+    //  disabledInstancesForPartition to that method.
     // (2) Set initial-state to certain instances that are disabled and in preference list.
     // Be careful with the conditions.
     for (String instance : preferenceList) {
       if (disabledInstancesForPartition.contains(instance)) {
         if (currentStateMap.containsKey(instance)) {
-          if (!currentStateMap.get(instance).equals(HelixDefinedState.ERROR.name())) {
+          if (currentStateMap.get(instance).equals(HelixDefinedState.ERROR.name())) {
+            // Must set to ERROR state here because assignStatesToInstances will not assign
+            // any state for disabledInstancesForPartition. This prevents the ERROR partition
+            // from being DROPPED.
+            bestPossibleStateMap.put(instance, HelixDefinedState.ERROR.name());
+          } else {
             bestPossibleStateMap.put(instance, stateModelDef.getInitialState());
           }
         } else {

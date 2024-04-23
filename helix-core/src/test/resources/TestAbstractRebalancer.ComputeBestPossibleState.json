@@ -94,7 +94,8 @@
       "node_3"
     ],
     "expectedBestPossibleStateMap": {
-      "node_1": "OFFLINE"
+      "node_1": "OFFLINE",
+      "node_3": "ERROR"
     }
   },
   {

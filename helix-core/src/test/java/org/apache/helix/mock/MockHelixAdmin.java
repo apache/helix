@@ -266,11 +266,13 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Deprecated
   @Override
   public void enableInstance(String clusterName, String instanceName, boolean enabled) {
     enableInstance(clusterName, instanceName, enabled, null, null);
   }
 
+  @Deprecated
   @Override
   public void enableInstance(String clusterName, String instanceName, boolean enabled,
       InstanceConstants.InstanceDisabledType disabledType, String reason) {
@@ -283,7 +285,8 @@ public class MockHelixAdmin implements HelixAdmin {
 
     ZNRecord record = (ZNRecord) _baseDataAccessor.get(instanceConfigPath, null, 0);
     InstanceConfig instanceConfig = new InstanceConfig(record);
-    instanceConfig.setInstanceEnabled(enabled);
+    instanceConfig.setInstanceOperation(enabled ? InstanceConstants.InstanceOperation.ENABLE
+        : InstanceConstants.InstanceOperation.DISABLE);
     if (!enabled) {
       instanceConfig.resetInstanceDisabledTypeAndReason();
       if (reason != null) {
@@ -296,6 +299,7 @@ public class MockHelixAdmin implements HelixAdmin {
     _baseDataAccessor.set(instanceConfigPath, instanceConfig.getRecord(), 0);
   }
 
+  @Deprecated
   @Override
   public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
 

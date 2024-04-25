@@ -45,6 +45,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.config.HelixConfigProperty;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
@@ -633,7 +634,6 @@ public class ZkTestBase {
 
     for (int i = 0; i < liveInstances.length; i++) {
       String instance = "localhost_" + liveInstances[i];
-
       _liveInstanceOwners.putIfAbsent(clusterName, new HashMap<>());
       Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(clusterName);
       clientMap.putIfAbsent(instance, DedicatedZkClientFactory.getInstance()
@@ -687,7 +687,7 @@ public class ZkTestBase {
       InstanceConfig instanceConfig = new InstanceConfig(instance);
       instanceConfig.setHostName("localhost");
       instanceConfig.setPort("" + instances[i]);
-      instanceConfig.setInstanceEnabled(true);
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       admin.addInstance(clusterName, instanceConfig);
     }
   }

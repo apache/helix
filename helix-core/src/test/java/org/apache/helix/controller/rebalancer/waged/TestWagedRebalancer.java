@@ -118,9 +118,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       liveInstanceMap.put(instanceName, testLiveInstance);
       when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
       when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
-      when(testCache.getAssignableEnabledInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
-      when(testCache.getAssignableEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getAssignableInstances()).thenReturn(_instances);
       when(testCache.getAllInstances()).thenReturn(_instances);
@@ -375,7 +375,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         Collectors.toMap(resourceName -> resourceName, Resource::new));
     try {
       rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
-          clusterData.getAssignableEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
+          clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
@@ -439,7 +439,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Calculation will fail
     try {
       rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
-          clusterData.getAssignableEnabledLiveInstances(), new CurrentStateOutput(), badAlgorithm);
+          clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), badAlgorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
@@ -749,8 +749,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Set<String> instances = new HashSet<>(_instances);
     instances.add(offlineInstance);
     when(clusterData.getAssignableInstances()).thenReturn(instances);
-    when(clusterData.getAssignableEnabledInstances()).thenReturn(instances);
-    when(clusterData.getAssignableEnabledLiveInstances()).thenReturn(
+    when(clusterData.getEnabledInstances()).thenReturn(instances);
+    when(clusterData.getEnabledLiveInstances()).thenReturn(
         new HashSet<>(Arrays.asList(instance0, instance1, instance2)));
     Map<String, Long> instanceOfflineTimeMap = new HashMap<>();
     instanceOfflineTimeMap.put(offlineInstance, System.currentTimeMillis() + Integer.MAX_VALUE);
@@ -894,8 +894,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // force create a fake offlineInstance that's in delay window
     Set<String> instances = new HashSet<>(_instances);
     when(clusterData.getAssignableInstances()).thenReturn(instances);
-    when(clusterData.getAssignableEnabledInstances()).thenReturn(instances);
-    when(clusterData.getAssignableEnabledLiveInstances()).thenReturn(instances);
+    when(clusterData.getEnabledInstances()).thenReturn(instances);
+    when(clusterData.getEnabledLiveInstances()).thenReturn(instances);
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getAssignableInstanceConfigMap();
     when(clusterData.getAssignableInstanceConfigMap()).thenReturn(instanceConfigMap);
     when(clusterData.getInstanceConfigMap()).thenReturn(instanceConfigMap);

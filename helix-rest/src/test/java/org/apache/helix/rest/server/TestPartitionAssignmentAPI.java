@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -107,7 +108,7 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     for (int i = 0; i < DEFAULT_INSTANCE_COUNT; i++) {
       String instanceName = INSTANCE_NAME_PREFIX + (INSTANCE_START_PORT + i);
       InstanceConfig instanceConfig = new InstanceConfig(instanceName);
-      instanceConfig.setInstanceEnabled(true);
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       instanceConfig.setInstanceCapacityMap(
           Collections.singletonMap(INSTANCE_CAPACITY_KEY, DEFAULT_INSTANCE_CAPACITY));
       _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, instanceConfig);

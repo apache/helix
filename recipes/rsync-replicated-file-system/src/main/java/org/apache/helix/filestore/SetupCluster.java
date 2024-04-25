@@ -19,6 +19,7 @@ package org.apache.helix.filestore;
  * under the License.
  */
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
@@ -65,7 +66,7 @@ public class SetupCluster {
         InstanceConfig config = new InstanceConfig(serverId);
         config.setHostName("localhost");
         config.setPort(port);
-        config.setInstanceEnabled(true);
+        config.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
         admin.addInstance(clusterName, config);
       }
       // add resource "repository" which has 1 partition

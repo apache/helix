@@ -266,9 +266,9 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
       liveInstanceMap.put(instanceName, testLiveInstance);
       when(testCache.getAssignableLiveInstances()).thenReturn(liveInstanceMap);
       when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
-      when(testCache.getAssignableEnabledInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
-      when(testCache.getAssignableEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getAssignableInstances()).thenReturn(_instances);
       when(testCache.getAllInstances()).thenReturn(_instances);

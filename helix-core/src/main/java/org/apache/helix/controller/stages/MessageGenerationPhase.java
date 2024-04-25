@@ -135,6 +135,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           new HashMap<>(resourcesStateMap.getInstanceStateMap(resourceName, partition));
       Map<String, String> pendingStateMap =
           currentStateOutput.getPendingStateMap(resourceName, partition);
+      Map<String, String> currentStateMap =
+          currentStateOutput.getCurrentStateMap(resourceName, partition);
 
       // The operation is combing pending state with best possible state. Since some replicas have
       // been moved from one instance to another, the instance will exist in pending state but not
@@ -143,6 +145,16 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       for (String instance : pendingStateMap.keySet()) {
         if (!instanceStateMap.containsKey(instance)) {
           instanceStateMap.put(instance, NO_DESIRED_STATE);
+        }
+      }
+
+      // Look through the current state map and add DROPPED message if the instance is not in the
+      // resourceStateMap. This instance may not have had been dropped by the rebalance strategy.
+      // This check is required to ensure that the instances removed from the ideal state stateMap
+      // are properly dropped.
+      for (String instance : currentStateMap.keySet()) {
+        if (!instanceStateMap.containsKey(instance)) {
+          instanceStateMap.put(instance, HelixDefinedState.DROPPED.name());
         }
       }
 

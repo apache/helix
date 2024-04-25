@@ -95,7 +95,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     String instanceTag = currentIdealState.getInstanceGroupTag();
     if (instanceTag != null) {
-      assignableLiveEnabledNodes = clusterData.getAssignableEnabledLiveInstancesWithTag(instanceTag);
+      assignableLiveEnabledNodes = clusterData.getEnabledLiveInstancesWithTag(instanceTag);
       assignableNodes = clusterData.getAssignableInstancesWithTag(instanceTag);
 
       if (LOG.isInfoEnabled()) {
@@ -105,7 +105,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
             currentIdealState.getInstanceGroupTag(), resourceName, assignableNodes, assignableLiveEnabledNodes));
       }
     } else {
-      assignableLiveEnabledNodes = clusterData.getAssignableEnabledLiveInstances();
+      assignableLiveEnabledNodes = clusterData.getEnabledLiveInstances();
       assignableNodes = clusterData.getAssignableInstances();
     }
 
@@ -246,7 +246,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
 
-    Set<String> allNodes = cache.getAssignableEnabledInstances();
+    Set<String> allNodes = cache.getEnabledInstances();
     Set<String> liveNodes = cache.getAssignableLiveInstances().keySet();
 
     ClusterConfig clusterConfig = cache.getClusterConfig();
@@ -268,7 +268,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       Map<String, String> bestStateForPartition =
           // We use cache.getLiveInstances().keySet() to make sure we gracefully handle n -> n + 1 replicas if possible
           // when the one of the current nodes holding the replica is no longer considered assignable. (ex: EVACUATE)
-          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef, preferenceList,
+          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(),
+              stateModelDef, preferenceList,
               currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
               partition, cache.getAbnormalStateResolver(stateModelDefName), cache);
 
@@ -328,6 +329,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     while (it.hasNext()) {
       String instance = it.next();
       String state = currentStateMap.get(instance);
+      // TODO: This may never be a possible case, figure out if we can safely remove this.
       if (state == null) {
         it.remove();
         instancesToDrop.add(instance); // These instances should be set to DROPPED after we get bestPossibleStateMap;
@@ -405,6 +407,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       }
     }
 
+    // TODO: This may not be necessary, all of the instances bestPossibleStateMap should be set to ERROR
+    //    if necessary in the call to computeBestPossibleMap.
     // Adding ERROR replica mapping to best possible
     // ERROR assignment should be mutual excluded from DROPPED assignment because
     // once there is an ERROR replica in the mapping, bestPossibleStateMap.size() > numReplicas prevents

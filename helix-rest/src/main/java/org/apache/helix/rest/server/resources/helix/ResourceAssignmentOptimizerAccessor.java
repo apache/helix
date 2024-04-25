@@ -44,6 +44,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -225,7 +226,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     // Throw exception if there is no instanceConfig for activatedInstances instance.
     for (String instance : inputFields.activatedInstances) {
       if (instanceConfigMap.containsKey(instance)) {
-        instanceConfigMap.get(instance).setInstanceEnabled(true);
+        instanceConfigMap.get(instance)
+            .setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
       } else {
         throw new InvalidParameterException(
             "instance: " + instance + "does not have instanceConfig");
@@ -234,7 +236,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
 
     for (String instance : inputFields.deactivatedInstances) {
       if (instanceConfigMap.containsKey(instance)) {
-        instanceConfigMap.get(instance).setInstanceEnabled(false);
+        instanceConfigMap.get(instance)
+            .setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
       }
     }
 

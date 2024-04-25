@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.constants.InstanceConstants;
@@ -47,9 +48,7 @@ public class InstanceConfig extends HelixProperty {
    * Configurable characteristics of an instance
    */
   public enum InstanceConfigProperty {
-    HELIX_HOST,
-    HELIX_PORT,
-    HELIX_ZONE_ID,
+    HELIX_HOST, HELIX_PORT, HELIX_ZONE_ID, @Deprecated
     HELIX_ENABLED,
     HELIX_ENABLED_TIMESTAMP,
     HELIX_DISABLED_REASON,
@@ -70,6 +69,13 @@ public class InstanceConfig extends HelixProperty {
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
   private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
   private static final boolean HELIX_ENABLED_DEFAULT_VALUE = true;
+
+  // These fields are not allowed to be overwritten by the merge method because
+  // they are unique properties of an instance.
+  private static final ImmutableSet<InstanceConfigProperty> NON_OVERWRITABLE_PROPERTIES =
+      ImmutableSet.of(InstanceConfigProperty.HELIX_HOST, InstanceConfigProperty.HELIX_PORT,
+          InstanceConfigProperty.HELIX_ZONE_ID, InstanceConfigProperty.DOMAIN,
+          InstanceConfigProperty.INSTANCE_INFO_MAP);
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -252,20 +258,22 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
-   * Check if this instance is enabled and able to serve replicas
-   * @return true if enabled, false if disabled
+   * Get the timestamp (milliseconds from epoch) when this instance was enabled/disabled last time.
+   *
+   * @return the timestamp when the instance was enabled/disabled last time. If the instance is never
+   *        enabled/disabled, return -1.
    */
-  public boolean getInstanceEnabled() {
-    return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
-        HELIX_ENABLED_DEFAULT_VALUE);
+  public long getInstanceEnabledTime() {
+    return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
   }
 
   /**
-   * Set the enabled state of the instance
-   * If user enables the instance, HELIX_DISABLED_REASON filed will be removed.
-   *
+   * Set the enabled state of the instance If user enables the instance, HELIX_DISABLED_REASON filed
+   * will be removed.
+   * @deprecated This method is deprecated. Please use setInstanceOperation instead.
    * @param enabled true to enable, false to disable
    */
+  @Deprecated
   public void setInstanceEnabled(boolean enabled) {
     // set instance operation only when we need to change InstanceEnabled value.
     setInstanceEnabledHelper(enabled);
@@ -292,7 +300,7 @@ public class InstanceConfig extends HelixProperty {
    * It will be a no-op when instance is enabled.
    */
   public void setInstanceDisabledReason(String disabledReason) {
-     if (!getInstanceEnabled()) {
+    if (getInstanceOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
        _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), disabledReason);
      }
   }
@@ -302,13 +310,14 @@ public class InstanceConfig extends HelixProperty {
    * It will be a no-op when instance is enabled.
    */
   public void setInstanceDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
-    if (!getInstanceEnabled()) {
+    if (getInstanceOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
           disabledType.name());
     }
   }
 
   /**
+   * Get the instance disabled reason when instance is disabled.
    * @return Return instance disabled reason. Default is am empty string.
    */
   public String getInstanceDisabledReason() {
@@ -321,7 +330,7 @@ public class InstanceConfig extends HelixProperty {
    *         Default is am empty string.
    */
   public String getInstanceDisabledType() {
-    if (getInstanceEnabled()) {
+    if (!getInstanceOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
       return InstanceConstants.INSTANCE_NOT_DISABLED;
     }
     return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
@@ -329,21 +338,85 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
-   * Get the timestamp (milliseconds from epoch) when this instance was enabled/disabled last time.
+   * Set the instance operation for this instance.
    *
-   * @return
+   * @param operation the instance operation
    */
-  public long getInstanceEnabledTime() {
-    return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
-  }
-
   public void setInstanceOperation(InstanceConstants.InstanceOperation operation) {
     _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name(),
         operation == null ? "" : operation.name());
+    if (operation == null || operation == InstanceConstants.InstanceOperation.ENABLE
+        || operation == InstanceConstants.InstanceOperation.DISABLE) {
+      // We are still setting the HELIX_ENABLED field for backwards compatibility.
+      // It is possible that users will be using earlier version of HelixAdmin or helix-rest
+      // is on older version.
+      // TODO: Remove this when we are sure that all users are using the new field INSTANCE_OPERATION.
+      setInstanceEnabledHelper(!(operation == InstanceConstants.InstanceOperation.DISABLE));
+    }
   }
 
-  public String getInstanceOperation() {
-    return _record.getStringField(InstanceConfigProperty.INSTANCE_OPERATION.name(), "");
+  private void setInstanceOperationInit(InstanceConstants.InstanceOperation operation) {
+    if (operation == null) {
+      return;
+    }
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name(), operation.name());
+  }
+
+  /**
+   * Get the InstanceOperation of this instance, default is ENABLE if nothing is set. If
+   * HELIX_ENABLED is set to false, then the instance operation is DISABLE for backwards
+   * compatibility.
+   *
+   * @return the instance operation
+   */
+  public InstanceConstants.InstanceOperation getInstanceOperation() {
+    String instanceOperationString =
+        _record.getSimpleField(InstanceConfigProperty.INSTANCE_OPERATION.name());
+
+    InstanceConstants.InstanceOperation instanceOperation;
+    try {
+      // If INSTANCE_OPERATION is not set, then the instance is enabled.
+      instanceOperation = (instanceOperationString == null || instanceOperationString.isEmpty())
+          ? InstanceConstants.InstanceOperation.ENABLE
+          : InstanceConstants.InstanceOperation.valueOf(instanceOperationString);
+    } catch (IllegalArgumentException e) {
+      _logger.error("Invalid instance operation: " + instanceOperationString + " for instance: "
+          + _record.getId()
+          + ". You may need to update your version of Helix to get support for this "
+          + "type of InstanceOperation. Defaulting to UNKNOWN.");
+      return InstanceConstants.InstanceOperation.UNKNOWN;
+    }
+
+    // Always respect the HELIX_ENABLED being set to false when instance operation is unset
+    // for backwards compatibility.
+    if (!_record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
+        HELIX_ENABLED_DEFAULT_VALUE)
+        && (InstanceConstants.INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS.contains(
+        instanceOperation))) {
+      return InstanceConstants.InstanceOperation.DISABLE;
+    }
+
+    return instanceOperation;
+  }
+
+  /**
+   * Check if this instance is enabled. This is used to determine if the instance can host online
+   * replicas and take new assignment.
+   *
+   * @return true if enabled, false otherwise
+   */
+  public boolean getInstanceEnabled() {
+    return getInstanceOperation().equals(InstanceConstants.InstanceOperation.ENABLE);
+  }
+
+  /**
+   * Check to see if the instance is assignable. This is used to determine if the instance can be
+   * selected by the rebalancer to take assignment of replicas.
+   *
+   * @return true if the instance is assignable, false otherwise
+   */
+  public boolean isAssignable() {
+    return InstanceConstants.ASSIGNABLE_INSTANCE_OPERATIONS.contains(getInstanceOperation());
   }
 
   /**
@@ -777,6 +850,34 @@ public class InstanceConfig extends HelixProperty {
     return true;
   }
 
+  /**
+   * Overwrite the InstanceConfigProperties from the given InstanceConfig to this InstanceConfig.
+   * The merge is done by overwriting the properties in this InstanceConfig with the properties
+   * from the given InstanceConfig. {@link #NON_OVERWRITABLE_PROPERTIES} will not be overridden.
+   *
+   * @param overwritingInstanceConfig the InstanceConfig to override into this InstanceConfig
+   */
+  public void overwriteInstanceConfig(InstanceConfig overwritingInstanceConfig) {
+    // Remove all overwritable fields from the record
+    Set<String> overwritableProperties = Arrays.stream(InstanceConfigProperty.values())
+        .filter(property -> !NON_OVERWRITABLE_PROPERTIES.contains(property)).map(Enum::name)
+        .collect(Collectors.toSet());
+    _record.getSimpleFields().keySet().removeAll(overwritableProperties);
+    _record.getListFields().keySet().removeAll(overwritableProperties);
+    _record.getMapFields().keySet().removeAll(overwritableProperties);
+
+    // Get all overwritable fields from the overwritingInstanceConfig and set them in this record
+    overwritingInstanceConfig.getRecord().getSimpleFields().entrySet().stream()
+        .filter(entry -> overwritableProperties.contains(entry.getKey()))
+        .forEach((entry) -> _record.setSimpleField(entry.getKey(), entry.getValue()));
+    overwritingInstanceConfig.getRecord().getListFields().entrySet().stream()
+        .filter(entry -> overwritableProperties.contains(entry.getKey()))
+        .forEach((entry) -> _record.setListField(entry.getKey(), entry.getValue()));
+    overwritingInstanceConfig.getRecord().getMapFields().entrySet().stream()
+        .filter(entry -> overwritableProperties.contains(entry.getKey()))
+        .forEach((entry) -> _record.setMapField(entry.getKey(), entry.getValue()));
+  }
+
   public static class Builder {
     private String _hostName;
     private String _port;
@@ -828,12 +929,15 @@ public class InstanceConfig extends HelixProperty {
         instanceConfig.addTag(tag);
       }
 
-      if (_instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
-        instanceConfig.setInstanceEnabled(_instanceEnabled);
+      if (_instanceOperation == null && _instanceEnabled != HELIX_ENABLED_DEFAULT_VALUE) {
+        instanceConfig.setInstanceOperationInit(
+            _instanceEnabled ? InstanceConstants.InstanceOperation.ENABLE
+                : InstanceConstants.InstanceOperation.DISABLE);
       }
 
-      if (_instanceOperation != null) {
-        instanceConfig.setInstanceOperation(_instanceOperation);
+      if (_instanceOperation != null && !_instanceOperation.equals(
+          InstanceConstants.InstanceOperation.ENABLE)) {
+        instanceConfig.setInstanceOperationInit(_instanceOperation);
       }
 
       if (_instanceInfoMap != null) {
@@ -899,9 +1003,11 @@ public class InstanceConfig extends HelixProperty {
 
     /**
      * Set the enabled status for this instance
+     * @deprecated HELIX_ENABLED is no longer in use. Use setInstanceOperation instead.
      * @param instanceEnabled true if enabled, false otherwise
      * @return InstanceConfig.Builder
      */
+    @Deprecated
     public Builder setInstanceEnabled(boolean instanceEnabled) {
       _instanceEnabled = instanceEnabled;
       return this;

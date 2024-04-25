@@ -61,7 +61,6 @@ import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.constants.InstanceConstants;
-import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -119,10 +118,10 @@ public class ZKHelixAdmin implements HelixAdmin {
   public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
   private static final String MAINTENANCE_ZNODE_ID = "maintenance";
   private static final int DEFAULT_SUPERCLUSTER_REPLICA = 3;
-  private static final ImmutableSet<String> ALLOWED_INSTANCE_OPERATIONS_FOR_ADD_INSTANCE =
-      ImmutableSet.of("", InstanceConstants.InstanceOperation.SWAP_IN.name());
-  private static final ImmutableSet<String> INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT =
-      ImmutableSet.of(InstanceConstants.InstanceOperation.EVACUATE.name());
+  private static final ImmutableSet<InstanceConstants.InstanceOperation>
+      INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT =
+      ImmutableSet.of(InstanceConstants.InstanceOperation.EVACUATE,
+          InstanceConstants.InstanceOperation.UNKNOWN);
 
   private final RealmAwareZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
@@ -206,113 +205,29 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException("Node " + nodeId + " already exists in cluster " + clusterName);
     }
 
-    if (!ALLOWED_INSTANCE_OPERATIONS_FOR_ADD_INSTANCE.contains(
-        instanceConfig.getInstanceOperation())) {
+    List<InstanceConfig> matchingLogicalIdInstances =
+        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+    if (matchingLogicalIdInstances.size() > 1) {
       throw new HelixException(
-          "Instance can only be added if InstanceOperation is set to one of" + "the following: "
-              + ALLOWED_INSTANCE_OPERATIONS_FOR_ADD_INSTANCE + " This instance: " + nodeId
-              + " has InstanceOperation set to " + instanceConfig.getInstanceOperation());
+          "There are already more than one instance with the same logicalId in the cluster: "
+              + matchingLogicalIdInstances.stream().map(InstanceConfig::getInstanceName)
+              .collect(Collectors.joining(", "))
+              + " Please make sure there is at most 2 instance with the same logicalId in the cluster.");
     }
 
-    // Get the topology key used to determine the logicalId of a node.
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
-    ClusterTopologyConfig clusterTopologyConfig =
-        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
-    String logicalIdKey = clusterTopologyConfig.getEndNodeType();
-    String faultZoneKey = clusterTopologyConfig.getFaultZoneType();
-    String toAddInstanceLogicalId = instanceConfig.getLogicalId(logicalIdKey);
-
-    HelixConfigScope instanceConfigScope =
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT,
-            clusterName).build();
-    List<String> existingInstanceIds = getConfigKeys(instanceConfigScope);
-    List<InstanceConfig> foundInstanceConfigsWithMatchingLogicalId =
-        existingInstanceIds.parallelStream()
-            .map(existingInstanceId -> getInstanceConfig(clusterName, existingInstanceId)).filter(
-                existingInstanceConfig -> existingInstanceConfig.getLogicalId(logicalIdKey)
-                    .equals(toAddInstanceLogicalId)).collect(Collectors.toList());
-
-    if (foundInstanceConfigsWithMatchingLogicalId.size() >= 2) {
-      // If the length is 2, we cannot add an instance with the same logicalId as an existing instance
-      // regardless of InstanceOperation.
-      throw new HelixException(
-          "There can only be 2 instances with the same logicalId in a cluster. "
-              + "Existing instances: " + foundInstanceConfigsWithMatchingLogicalId.get(0)
-              .getInstanceName() + " and " + foundInstanceConfigsWithMatchingLogicalId.get(1)
-              .getInstanceName() + " already have the same logicalId: " + toAddInstanceLogicalId
-              + "; therefore, " + nodeId + " cannot be added to the cluster.");
-    } else if (foundInstanceConfigsWithMatchingLogicalId.size() == 1) {
-      // If there is only one instance with the same logicalId,
-      // we can infer that the intended behaviour is to SWAP_IN or EVACUATE + ADD.
-      if (foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceOperation()
-          .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) {
-        // If the existing instance with the same logicalId has SWAP_OUT InstanceOperation
-
-        // If the InstanceOperation is unset, we will set it to SWAP_IN.
-        if (!instanceConfig.getInstanceOperation()
-            .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())) {
-          instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.SWAP_IN);
-        }
-
-        // If the existing instance with the same logicalId is not in the same FAULT_ZONE as this instance, we cannot
-        // add this instance.
-        if (!foundInstanceConfigsWithMatchingLogicalId.get(0).getDomainAsMap()
-            .containsKey(faultZoneKey) || !instanceConfig.getDomainAsMap().containsKey(faultZoneKey)
-            || !foundInstanceConfigsWithMatchingLogicalId.get(0).getDomainAsMap().get(faultZoneKey)
-            .equals(instanceConfig.getDomainAsMap().get(faultZoneKey))) {
-          throw new HelixException(
-              "Instance can only be added if the SWAP_OUT instance sharing the same logicalId is in the same FAULT_ZONE"
-                  + " as this instance. " + "Existing instance: "
-                  + foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceName()
-                  + " has FAULT_ZONE_TYPE: " + foundInstanceConfigsWithMatchingLogicalId.get(0)
-                  .getDomainAsMap().get(faultZoneKey) + " and this instance: " + nodeId
-                  + " has FAULT_ZONE_TYPE: " + instanceConfig.getDomainAsMap().get(faultZoneKey));
-        }
-
-        Map<String, Integer> foundInstanceCapacityMap =
-            foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceCapacityMap().isEmpty()
-                ? clusterConfig.getDefaultInstanceCapacityMap()
-                : foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceCapacityMap();
-        Map<String, Integer> instanceCapacityMap = instanceConfig.getInstanceCapacityMap().isEmpty()
-            ? clusterConfig.getDefaultInstanceCapacityMap()
-            : instanceConfig.getInstanceCapacityMap();
-        // If the instance does not have the same capacity, we cannot add this instance.
-        if (!new EqualsBuilder().append(foundInstanceCapacityMap, instanceCapacityMap).isEquals()) {
-          throw new HelixException(
-              "Instance can only be added if the SWAP_OUT instance sharing the same logicalId has the same capacity"
-                  + " as this instance. " + "Existing instance: "
-                  + foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceName()
-                  + " has capacity: " + foundInstanceCapacityMap + " and this instance: " + nodeId
-                  + " has capacity: " + instanceCapacityMap);
-        }
-      } else if (foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceOperation()
-          .equals(InstanceConstants.InstanceOperation.EVACUATE.name())) {
-        // No need to check anything on the new node, the old node will be evacuated and the new node
-        // will be added.
-      } else {
-        // If the instanceConfig.getInstanceEnabled() is true and the existing instance with the same logicalId
-        // does not have InstanceOperation set to one of the above, we cannot add this instance.
-        throw new HelixException(
-            "Instance can only be added if the exising instance sharing the same logicalId"
-                + " has InstanceOperation set to "
-                + InstanceConstants.InstanceOperation.SWAP_OUT.name()
-                + " and this instance has InstanceOperation set to "
-                + InstanceConstants.InstanceOperation.SWAP_IN.name()
-                + " or the existing instance sharing the same logicalId has Instance Operation set to "
-                + InstanceConstants.InstanceOperation.EVACUATE.name()
-                + " and this instance has InstanceOperation unset. Existing instance: "
-                + foundInstanceConfigsWithMatchingLogicalId.get(0).getInstanceName()
-                + " has InstanceOperation: " + foundInstanceConfigsWithMatchingLogicalId.get(0)
-                .getInstanceOperation());
-      }
-    } else if (!instanceConfig.getInstanceOperation().isEmpty()) {
-      // If there are no instances with the same logicalId, we can only add this instance if InstanceOperation
-      // is unset because it is a new instance.
-      throw new HelixException(
-          "There is no instance with logicalId: " + toAddInstanceLogicalId + " in cluster: "
-              + clusterName + "; therefore, " + nodeId
-              + " cannot join cluster with InstanceOperation set to "
-              + instanceConfig.getInstanceOperation() + ".");
+    InstanceConstants.InstanceOperation attemptedInstanceOperation =
+        instanceConfig.getInstanceOperation();
+    try {
+      validateInstanceOperationTransition(instanceConfig,
+          !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
+          InstanceConstants.InstanceOperation.UNKNOWN,
+          attemptedInstanceOperation, clusterName);
+    } catch (HelixException e) {
+      instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
+      logger.error("Failed to add instance " + instanceConfig.getInstanceName() + " to cluster "
+          + clusterName + " with instance operation " + attemptedInstanceOperation
+          + ". Setting INSTANCE_OPERATION to " + instanceConfig.getInstanceOperation()
+          + " instead.", e);
     }
 
     ZKUtil.createChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
@@ -464,32 +379,20 @@ public class ZKHelixAdmin implements HelixAdmin {
     return accessor.setProperty(instanceConfigPropertyKey, newInstanceConfig);
   }
 
+  @Deprecated
   @Override
   public void enableInstance(final String clusterName, final String instanceName,
       final boolean enabled) {
     enableInstance(clusterName, instanceName, enabled, null, null);
   }
 
+  @Deprecated
   @Override
   public void enableInstance(final String clusterName, final String instanceName,
       final boolean enabled, InstanceConstants.InstanceDisabledType disabledType, String reason) {
     logger.info("{} instance {} in cluster {}.", enabled ? "Enable" : "Disable", instanceName,
         clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-
-    // If enabled is set to true and InstanceOperation is SWAP_IN, we should fail if there is not a
-    // matching SWAP_OUT instance.
-    InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
-    if (enabled && instanceConfig.getInstanceOperation()
-        .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())) {
-      InstanceConfig matchingSwapInstance = findMatchingSwapInstance(clusterName, instanceConfig);
-      if (matchingSwapInstance == null || !matchingSwapInstance.getInstanceOperation()
-          .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) {
-        throw new HelixException("Instance cannot be enabled if InstanceOperation is set to "
-            + instanceConfig.getInstanceOperation() + " when there is no matching "
-            + InstanceConstants.InstanceOperation.SWAP_OUT.name() + " instance.");
-      }
-    }
 
     // Eventually we will have all instances' enable/disable information in clusterConfig. Now we
     // update both instanceConfig and clusterConfig in transition period.
@@ -499,6 +402,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   }
 
+  @Deprecated
   @Override
   public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
     // TODO: batch enable/disable is breaking backward compatibility on instance enable with older library
@@ -509,62 +413,88 @@ public class ZKHelixAdmin implements HelixAdmin {
     //enableInstance(clusterName, instances, enabled, null, null);
   }
 
+  private void validateInstanceOperationTransition(InstanceConfig instanceConfig,
+      InstanceConfig matchingLogicalIdInstance,
+      InstanceConstants.InstanceOperation currentOperation,
+      InstanceConstants.InstanceOperation targetOperation,
+      String clusterName) {
+    boolean targetStateEnableOrDisable =
+        targetOperation.equals(InstanceConstants.InstanceOperation.ENABLE)
+            || targetOperation.equals(InstanceConstants.InstanceOperation.DISABLE);
+    switch (currentOperation) {
+      case ENABLE:
+      case DISABLE:
+        // ENABLE or DISABLE can be set to ENABLE, DISABLE, or EVACUATE at any time.
+        if (ImmutableSet.of(InstanceConstants.InstanceOperation.ENABLE,
+            InstanceConstants.InstanceOperation.DISABLE,
+            InstanceConstants.InstanceOperation.EVACUATE).contains(targetOperation)) {
+          return;
+        }
+      case SWAP_IN:
+        // We can only ENABLE or DISABLE a SWAP_IN instance if there is an instance with matching logicalId
+        // with an InstanceOperation set to UNKNOWN.
+        if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
+            || matchingLogicalIdInstance.getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.UNKNOWN))) || targetOperation.equals(
+            InstanceConstants.InstanceOperation.UNKNOWN)) {
+          return;
+        }
+      case EVACUATE:
+        // EVACUATE can only be set to ENABLE or DISABLE when there is no instance with the same
+        // logicalId in the cluster.
+        if ((targetStateEnableOrDisable && matchingLogicalIdInstance == null)
+            || targetOperation.equals(InstanceConstants.InstanceOperation.UNKNOWN)) {
+          return;
+        }
+      case UNKNOWN:
+        // UNKNOWN can be set to ENABLE or DISABLE when there is no instance with the same logicalId in the cluster
+        // or the instance with the same logicalId in the cluster has InstanceOperation set to EVACUATE.
+        // UNKNOWN can be set to SWAP_IN when there is an instance with the same logicalId in the cluster set to ENABLE,
+        // or DISABLE.
+        if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
+            || matchingLogicalIdInstance.getInstanceOperation()
+            .equals(InstanceConstants.InstanceOperation.EVACUATE)))) {
+          return;
+        } else if (targetOperation.equals(InstanceConstants.InstanceOperation.SWAP_IN)
+            && matchingLogicalIdInstance != null && !ImmutableSet.of(
+                InstanceConstants.InstanceOperation.UNKNOWN,
+                InstanceConstants.InstanceOperation.EVACUATE)
+            .contains(matchingLogicalIdInstance.getInstanceOperation())) {
+          return;
+        }
+      default:
+        throw new HelixException(
+            "InstanceOperation cannot be set to " + targetOperation + " when the instance is in "
+                + currentOperation + " state");
+    }
+  }
+
+  /**
+   * Set the InstanceOperation of an instance in the cluster.
+   *
+   * @param clusterName       The cluster name
+   * @param instanceName      The instance name
+   * @param instanceOperation The instance operation
+   */
   @Override
-  // TODO: Name may change in future
   public void setInstanceOperation(String clusterName, String instanceName,
       @Nullable InstanceConstants.InstanceOperation instanceOperation) {
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
 
-    // InstanceOperation can only be set to SWAP_IN when the instance is added to the cluster
-    // or if it is disabled.
-    if (instanceOperation != null && instanceOperation.equals(
-        InstanceConstants.InstanceOperation.SWAP_IN) && getInstanceConfig(clusterName,
-        instanceName).getInstanceEnabled()) {
-      throw new HelixException("InstanceOperation should only be set to "
-          + InstanceConstants.InstanceOperation.SWAP_IN.name()
-          + " when an instance joins the cluster for the first time(when "
-          + "creating the InstanceConfig) or is disabled.");
+    InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
+    if (instanceConfig == null) {
+      throw new HelixException("Cluster " + clusterName + ", instance: " + instanceName
+          + ", instance config does not exist");
     }
-
-    // InstanceOperation cannot be set to null if there is an instance with the same logicalId in
-    // the cluster which does not have InstanceOperation set to SWAP_IN or SWAP_OUT.
-    if (instanceOperation == null) {
-      InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
-      String logicalIdKey = ClusterTopologyConfig.createFromClusterConfig(
-          _configAccessor.getClusterConfig(clusterName)).getEndNodeType();
-
-      HelixConfigScope instanceConfigScope =
-          new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT,
-              clusterName).build();
-      List<String> existingInstanceIds = getConfigKeys(instanceConfigScope);
-      List<InstanceConfig> matchingInstancesWithNonSwappingInstanceOperation =
-          existingInstanceIds.parallelStream()
-              .map(existingInstanceId -> getInstanceConfig(clusterName, existingInstanceId)).filter(
-                  existingInstanceConfig ->
-                      !existingInstanceConfig.getInstanceName().equals(instanceName)
-                          && existingInstanceConfig.getLogicalId(logicalIdKey)
-                          .equals(instanceConfig.getLogicalId(logicalIdKey))
-                          && !existingInstanceConfig.getInstanceOperation()
-                          .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
-                          && !existingInstanceConfig.getInstanceOperation()
-                          .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())
-                          && !existingInstanceConfig.getInstanceOperation()
-                          .equals(InstanceConstants.InstanceOperation.EVACUATE.name()))
-              .collect(Collectors.toList());
-
-      if (!matchingInstancesWithNonSwappingInstanceOperation.isEmpty()) {
-        throw new HelixException("InstanceOperation cannot be set to null for " + instanceName
-            + " if there are other instances with the same logicalId in the cluster that do not have"
-            + " InstanceOperation set to SWAP_IN, SWAP_OUT, or EVACUATE.");
-      }
-    }
-
-    if (!baseAccessor.exists(path, 0)) {
-      throw new HelixException(
-          "Cluster " + clusterName + ", instance: " + instanceName + ", instance config does not exist");
-    }
+    List<InstanceConfig> matchingLogicalIdInstances =
+        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+    validateInstanceOperationTransition(instanceConfig,
+        !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
+        instanceConfig.getInstanceOperation(),
+        instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE : instanceOperation,
+        clusterName);
 
    boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
       @Override
@@ -589,50 +519,33 @@ public class ZKHelixAdmin implements HelixAdmin {
   public boolean isEvacuateFinished(String clusterName, String instanceName) {
     if (!instanceHasFullAutoCurrentStateOrMessage(clusterName, instanceName)) {
       InstanceConfig config = getInstanceConfig(clusterName, instanceName);
-      return config != null && config.getInstanceOperation().equals(InstanceConstants.InstanceOperation.EVACUATE.name());
+      return config != null && config.getInstanceOperation()
+          .equals(InstanceConstants.InstanceOperation.EVACUATE);
     }
     return false;
   }
 
   /**
-   * Find the instance that the passed instance is swapping with. If the passed instance has
-   * SWAP_OUT instanceOperation, then find the corresponding instance that has SWAP_IN
-   * instanceOperation. If the passed instance has SWAP_IN instanceOperation, then find the
-   * corresponding instance that has SWAP_OUT instanceOperation.
+   * Find the instance that the passed instance has a matching logicalId with.
    *
    * @param clusterName    The cluster name
-   * @param instanceConfig The instance to find the swap instance for
-   * @return The swap instance if found, null otherwise.
+   * @param instanceConfig The instance to find the matching instance for
+   * @return The matching instance if found, null otherwise.
    */
-  @Nullable
-  private InstanceConfig findMatchingSwapInstance(String clusterName,
+  private List<InstanceConfig> findInstancesMatchingLogicalId(String clusterName,
       InstanceConfig instanceConfig) {
     String logicalIdKey =
         ClusterTopologyConfig.createFromClusterConfig(_configAccessor.getClusterConfig(clusterName))
             .getEndNodeType();
-
-    for (String potentialSwappingInstance : getConfigKeys(
+    return getConfigKeys(
         new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT,
-            clusterName).build())) {
-      InstanceConfig potentialSwappingInstanceConfig =
-          getInstanceConfig(clusterName, potentialSwappingInstance);
-
-      // Return if there is a matching Instance with the same logicalId and opposite InstanceOperation swap operation.
-      if (potentialSwappingInstanceConfig.getLogicalId(logicalIdKey)
-          .equals(instanceConfig.getLogicalId(logicalIdKey)) && (
-          instanceConfig.getInstanceOperation()
-              .equals(InstanceConstants.InstanceOperation.SWAP_IN.name())
-              && potentialSwappingInstanceConfig.getInstanceOperation()
-              .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())) || (
-          instanceConfig.getInstanceOperation()
-              .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name())
-              && potentialSwappingInstanceConfig.getInstanceOperation()
-              .equals(InstanceConstants.InstanceOperation.SWAP_IN.name()))) {
-        return potentialSwappingInstanceConfig;
-      }
-    }
-
-    return null;
+            clusterName).build()).stream()
+        .map(instanceName -> getInstanceConfig(clusterName, instanceName)).filter(
+            potentialInstanceConfig ->
+                !potentialInstanceConfig.getInstanceName().equals(instanceConfig.getInstanceName())
+                    && potentialInstanceConfig.getLogicalId(logicalIdKey)
+                    .equals(instanceConfig.getLogicalId(logicalIdKey)))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -661,14 +574,13 @@ public class ZKHelixAdmin implements HelixAdmin {
         accessor.getProperty(keyBuilder.liveInstance(swapInInstanceName));
     InstanceConfig swapOutInstanceConfig = getInstanceConfig(clusterName, swapOutInstanceName);
     InstanceConfig swapInInstanceConfig = getInstanceConfig(clusterName, swapInInstanceName);
-    if (swapInLiveInstance == null || !swapInInstanceConfig.getInstanceEnabled()) {
+    if (swapInLiveInstance == null) {
       logger.warn(
-          "SwapOutInstance {} is {} + {} and SwapInInstance {} is {} + {} for cluster {}. Swap will"
-              + " not complete unless SwapInInstance instance is ENABLED and ONLINE.",
+          "SwapOutInstance {} is {} + {} and SwapInInstance {} is OFFLINE + {} for cluster {}. Swap will"
+              + " not complete unless SwapInInstance instance is ONLINE.",
           swapOutInstanceName, swapOutLiveInstance != null ? "ONLINE" : "OFFLINE",
-          swapOutInstanceConfig.getInstanceEnabled() ? "ENABLED" : "DISABLED", swapInInstanceName,
-          swapInLiveInstance != null ? "ONLINE" : "OFFLINE",
-          swapInInstanceConfig.getInstanceEnabled() ? "ENABLED" : "DISABLED", clusterName);
+          swapOutInstanceConfig.getInstanceOperation(), swapInInstanceName,
+          swapInInstanceConfig.getInstanceOperation(), clusterName);
       return false;
     }
 
@@ -705,21 +617,15 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    // 4. Collect a list of all partitions that have a current state on swapOutInstance
-    String swapOutLastActiveSession;
-    if (swapOutLiveInstance == null) {
-      // SwapOutInstance is down, try to find the last active session
-      if (swapOutSessions.size() != 1) {
-        logger.warn(
-            "SwapOutInstance {} is offline and has {} sessions for cluster {}. Swap can't be "
-                + "verified if last active session can't be determined. There should only be one session.",
-            swapOutInstanceName, swapOutSessions.size(), clusterName);
-        return false;
-      }
-      swapOutLastActiveSession = swapOutSessions.get(0);
-    } else {
-      swapOutLastActiveSession = swapOutLiveInstance.getEphemeralOwner();
+    // 4. If the swap-out instance is not alive or is disabled, we return true without checking
+    // the current states on the swap-in instance.
+    if (swapOutLiveInstance == null || swapOutInstanceConfig.getInstanceOperation()
+        .equals(InstanceConstants.InstanceOperation.DISABLE)) {
+      return true;
     }
+
+    // 5. Collect a list of all partitions that have a current state on swapOutInstance
+    String swapOutLastActiveSession = swapOutLiveInstance.getEphemeralOwner();
     String swapInActiveSession = swapInLiveInstance.getEphemeralOwner();
 
     // Iterate over all resources with current states on the swapOutInstance
@@ -754,24 +660,22 @@ public class ZKHelixAdmin implements HelixAdmin {
         String swapOutPartitionState = swapOutResourceCurrentState.getState(partitionName);
         String swapInPartitionState = swapInResourceCurrentState.getState(partitionName);
 
-        // SwapInInstance should not have any partitions in ERROR state.
-        if (swapInPartitionState.equals(HelixDefinedState.ERROR.name())) {
-          logger.warn(
-              "SwapOutInstance {} has partition {} in state {} and SwapInInstance {} has partition {} in state {} for cluster {}."
-                  + " Swap will not complete unless both instances have no partitions in ERROR state.",
-              swapOutInstanceName, partitionName, swapOutPartitionState, swapInInstanceName,
-              partitionName, swapInPartitionState, clusterName);
-          return false;
-        }
-
-        // The state of the partition on the swapInInstance be in the topState or a secondTopState.
-        // It should be in a topState only if the state model allows multiple replicas in the topState.
-        // In all other cases it should be a secondTopState.
-        if (!(swapInPartitionState.equals(topState) || secondTopStates.contains(
+        // SwapInInstance should have the correct state for the partition.
+        // All states should match except for the case where the topState is not ALL_REPLICAS or ALL_CANDIDATE_NODES
+        // or the swap-out partition is ERROR state.
+        // When the topState is not ALL_REPLICAS or ALL_CANDIDATE_NODES, the swap-in partition should be in a secondTopStates.
+        if (!(swapOutPartitionState.equals(HelixDefinedState.ERROR.name()) || (
+            topState.equals(swapOutPartitionState) && (
+                swapOutPartitionState.equals(swapInPartitionState) ||
+                    !ImmutableSet.of(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS,
+                        StateModelDefinition.STATE_REPLICA_COUNT_ALL_CANDIDATE_NODES).contains(
+                        stateModelDefinition.getNumInstancesPerState(
+                            stateModelDefinition.getTopState())) && secondTopStates.contains(
+                        swapInPartitionState))) || swapOutPartitionState.equals(
             swapInPartitionState))) {
           logger.warn(
               "SwapOutInstance {} has partition {} in {} but SwapInInstance {} has partition {} in state {} for cluster {}."
-                  + " Swap will not complete unless SwapInInstance has partition in topState or secondState.",
+                  + " Swap will not complete unless SwapInInstance has partition in correct states.",
               swapOutInstanceName, partitionName, swapOutPartitionState, swapInInstanceName,
               partitionName, swapInPartitionState, clusterName);
           return false;
@@ -792,12 +696,21 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    InstanceConfig swapOutInstanceConfig = instanceConfig.getInstanceOperation()
-        .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name()) ? instanceConfig
-        : findMatchingSwapInstance(clusterName, instanceConfig);
+    List<InstanceConfig> swappingInstances =
+        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+    if (swappingInstances.size() != 1) {
+      logger.warn(
+          "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
+          instanceName, clusterName);
+      return false;
+    }
+
+    InstanceConfig swapOutInstanceConfig =
+        !instanceConfig.getInstanceOperation().equals(InstanceConstants.InstanceOperation.SWAP_IN)
+            ? instanceConfig : swappingInstances.get(0);
     InstanceConfig swapInInstanceConfig = instanceConfig.getInstanceOperation()
-        .equals(InstanceConstants.InstanceOperation.SWAP_IN.name()) ? instanceConfig
-        : findMatchingSwapInstance(clusterName, instanceConfig);
+        .equals(InstanceConstants.InstanceOperation.SWAP_IN) ? instanceConfig
+        : swappingInstances.get(0);
     if (swapOutInstanceConfig == null || swapInInstanceConfig == null) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
@@ -821,12 +734,21 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    InstanceConfig swapOutInstanceConfig = instanceConfig.getInstanceOperation()
-        .equals(InstanceConstants.InstanceOperation.SWAP_OUT.name()) ? instanceConfig
-        : findMatchingSwapInstance(clusterName, instanceConfig);
+    List<InstanceConfig> swappingInstances =
+        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+    if (swappingInstances.size() != 1) {
+      logger.warn(
+          "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
+          instanceName, clusterName);
+      return false;
+    }
+
+    InstanceConfig swapOutInstanceConfig =
+        !instanceConfig.getInstanceOperation().equals(InstanceConstants.InstanceOperation.SWAP_IN)
+            ? instanceConfig : swappingInstances.get(0);
     InstanceConfig swapInInstanceConfig = instanceConfig.getInstanceOperation()
-        .equals(InstanceConstants.InstanceOperation.SWAP_IN.name()) ? instanceConfig
-        : findMatchingSwapInstance(clusterName, instanceConfig);
+        .equals(InstanceConstants.InstanceOperation.SWAP_IN) ? instanceConfig
+        : swappingInstances.get(0);
     if (swapOutInstanceConfig == null || swapInInstanceConfig == null) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
@@ -840,11 +762,39 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    // Complete the swap by removing the InstanceOperation for the SWAP_IN node and disabling the SWAP_OUT node.
-    setInstanceOperation(clusterName, swapInInstanceConfig.getInstanceName(), null);
-    enableInstance(clusterName, swapOutInstanceConfig.getInstanceName(), false);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    String swapInInstanceConfigPath =
+        PropertyPathBuilder.instanceConfig(clusterName, swapInInstanceConfig.getInstanceName());
+    String swapOutInstanceConfigPath =
+        PropertyPathBuilder.instanceConfig(clusterName, swapOutInstanceConfig.getInstanceName());
 
-    return true;
+    Map<String, DataUpdater<ZNRecord>> updaterMap = new HashMap<>();
+    updaterMap.put(swapInInstanceConfigPath, currentData -> {
+      if (currentData == null) {
+        throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
+            + ", SWAP_IN instance config is null");
+      }
+
+      InstanceConfig currentSwapOutInstanceConfig =
+          getInstanceConfig(clusterName, swapOutInstanceConfig.getInstanceName());
+      InstanceConfig config = new InstanceConfig(currentData);
+      config.overwriteInstanceConfig(currentSwapOutInstanceConfig);
+      // Special handling in case the swap-out instance does not have HELIX_ENABLED or InstanceOperation set.
+      return config.getRecord();
+    });
+
+    updaterMap.put(swapOutInstanceConfigPath, currentData -> {
+      if (currentData == null) {
+        throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
+            + ", swap out instance config is null");
+      }
+
+      InstanceConfig config = new InstanceConfig(currentData);
+      config.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
+      return config.getRecord();
+    });
+
+    return baseAccessor.multiSet(updaterMap);
   }
 
   @Override
@@ -2427,6 +2377,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     setResourceIdealState(clusterName, resourceName, idealState);
   }
 
+  @Deprecated
   private void enableSingleInstance(final String clusterName, final String instanceName,
       final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor,
       InstanceConstants.InstanceDisabledType disabledType, String reason) {
@@ -2448,7 +2399,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceEnabled(enabled);
         if (!enabled) {
-          // new disabled type and reason will over write existing ones.
+          // new disabled type and reason will overwrite existing ones.
           config.resetInstanceDisabledTypeAndReason();
           if (reason != null) {
             config.setInstanceDisabledReason(reason);

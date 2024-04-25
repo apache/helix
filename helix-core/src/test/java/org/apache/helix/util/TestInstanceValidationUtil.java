@@ -33,6 +33,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -77,7 +78,9 @@ public class TestInstanceValidationUtil {
       boolean expected) {
     Mock mock = new Mock();
     InstanceConfig instanceConfig = new InstanceConfig(TEST_INSTANCE);
-    instanceConfig.setInstanceEnabled(instanceConfigEnabled);
+    instanceConfig.setInstanceOperation(
+        instanceConfigEnabled ? InstanceConstants.InstanceOperation.ENABLE
+            : InstanceConstants.InstanceOperation.DISABLE);
     doReturn(instanceConfig).when(mock.dataAccessor)
         .getProperty(BUILDER.instanceConfig(TEST_INSTANCE));
     ClusterConfig clusterConfig = new ClusterConfig(TEST_CLUSTER);
@@ -97,17 +100,6 @@ public class TestInstanceValidationUtil {
     Mock mock = new Mock();
     doReturn(null).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.CONFIGS)));
-
-    InstanceValidationUtil.isEnabled(mock.dataAccessor, TEST_INSTANCE);
-  }
-
-  @Test(expectedExceptions = HelixException.class)
-  public void TestIsInstanceEnabled_whenClusterConfigNull() {
-    Mock mock = new Mock();
-    doReturn(new InstanceConfig(TEST_INSTANCE)).when(mock.dataAccessor)
-        .getProperty(argThat(new PropertyKeyArgument(PropertyType.CONFIGS)));
-    doReturn(null).when(mock.dataAccessor)
-        .getProperty(BUILDER.clusterConfig());
 
     InstanceValidationUtil.isEnabled(mock.dataAccessor, TEST_INSTANCE);
   }

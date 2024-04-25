@@ -45,6 +45,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
@@ -574,7 +575,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     instanceConfigs.add(new InstanceConfig(instances.get(instances.size() - 1)));
     instanceConfigs.get(instanceConfigs.size() - 1).setDomain("helixZoneId=zone2,host=instance5");
 
-    instanceConfigs.get(1).setInstanceEnabled(false);
+    instanceConfigs.get(1).setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     instanceConfigs.get(3).setInstanceEnabledForPartition("FakeResource", "FakePartition", false);
 
     for (InstanceConfig instanceConfig : instanceConfigs) {

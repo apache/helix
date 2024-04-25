@@ -399,7 +399,7 @@ public final class HelixUtil {
 
     // Remove all disabled instances so that Helix will not consider them live.
     List<String> disabledInstance = instanceConfigs.stream()
-        .filter(instanceConfig -> !InstanceValidationUtil.isInstanceEnabled(instanceConfig, clusterConfig))
+        .filter(instanceConfig -> !instanceConfig.getInstanceEnabled())
         .map(InstanceConfig::getInstanceName)
         .collect(Collectors.toList());
     liveInstances.removeAll(disabledInstance);

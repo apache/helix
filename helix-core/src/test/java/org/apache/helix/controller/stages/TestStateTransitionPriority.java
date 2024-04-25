@@ -85,6 +85,7 @@ public class TestStateTransitionPriority extends BaseStageTest {
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     runStage(event, new ReadClusterDataStage());
 
     // Keep update the current state.
@@ -133,6 +134,7 @@ public class TestStateTransitionPriority extends BaseStageTest {
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
@@ -194,6 +196,7 @@ public class TestStateTransitionPriority extends BaseStageTest {
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(),
         generateMessageMapForPartition(bestPossibleMap, currentStateMap, Collections.emptyList(), resourceName));
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
@@ -350,6 +353,7 @@ public class TestStateTransitionPriority extends BaseStageTest {
     resourcePriority.add(resourceName);
     currentStateOutput.setCurrentState(resourceName, partition, instanceName, state);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
   }
 
   private void updateCurrentStateForPartitionLevelPriority(List<String> partitionPriority,

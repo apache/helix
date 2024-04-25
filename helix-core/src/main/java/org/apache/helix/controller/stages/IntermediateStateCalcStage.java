@@ -661,11 +661,11 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // preference list
     if (preferenceList != null) {
       return stateModelDefinition.getStateCountMap((int) preferenceList.stream().filter(
-              i -> resourceControllerDataProvider.getAssignableEnabledLiveInstances().contains(i))
+              i -> resourceControllerDataProvider.getEnabledLiveInstances().contains(i))
           .count(), requiredNumReplica); // StateModelDefinition's counts
     }
     return stateModelDefinition.getStateCountMap(
-        resourceControllerDataProvider.getAssignableEnabledLiveInstances().size(),
+        resourceControllerDataProvider.getEnabledLiveInstances().size(),
         requiredNumReplica); // StateModelDefinition's counts
   }
 

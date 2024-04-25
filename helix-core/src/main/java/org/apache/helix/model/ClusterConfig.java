@@ -75,6 +75,8 @@ public class ClusterConfig extends HelixProperty {
     // TODO: if we want to support this for other rebalancers, we need to implement that logic
     GLOBAL_MAX_PARTITIONS_ALLOWED_PER_INSTANCE,
     // The following two include offline AND disabled instances
+    // TODO: At some point we should rename this to something like MAX_INSTANCES_UNABLE_TO_TAKE_ACCEPT_REPLICAS
+    //     to make it clear that it includes both offline and non-assignable instances
     MAX_OFFLINE_INSTANCES_ALLOWED,
     NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT, // For auto-exiting maintenance mode
 
@@ -88,7 +90,9 @@ public class ClusterConfig extends HelixProperty {
     // state transition if the number of
     // partitons that need recovery or in
     // error exceeds this limitation
+    @Deprecated // TODO: Remove in Helix 2.0
     DISABLED_INSTANCES,
+    @Deprecated // TODO: Remove in Helix 2.0
     DISABLED_INSTANCES_WITH_INFO,
     // disabled instances and disabled instances with info are for storing batch disabled instances.
     // disabled instances will write into both 2 fields for backward compatibility.
@@ -816,8 +820,11 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Get current disabled instance map of <instance, disabledTimeStamp>
+   * @deprecated We will no longer be using the clusterConfig to disable instances
+   * please use the InstanceConfig to disable instances
    * @return a non-null map of disabled instances in cluster config
    */
+  @Deprecated
   public Map<String, String> getDisabledInstances() {
     Map<String, String> disabledInstances =
         _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
@@ -827,8 +834,10 @@ public class ClusterConfig extends HelixProperty {
   /**
    * Get current disabled instance map of
    * <instance, disabledReason = "res, disabledType = typ, disabledTimeStamp = time">
+   * @deprecated Please use InstanceConfig for enabling and disabling instances
    * @return a non-null map of disabled instances in cluster config
    */
+  @Deprecated
   public Map<String, String> getDisabledInstancesWithInfo() {
     Map<String, String> disabledInstances =
         _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES_WITH_INFO.name());

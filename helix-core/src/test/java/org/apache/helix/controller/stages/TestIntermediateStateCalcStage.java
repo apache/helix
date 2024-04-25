@@ -177,6 +177,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
     runStage(event, new IntermediateStateCalcStage());
@@ -261,6 +262,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
@@ -379,6 +381,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
@@ -553,6 +556,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
     runStage(event, new IntermediateStateCalcStage());

@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -43,6 +44,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
@@ -86,24 +88,39 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     final CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    final CurrentStateOutput currentStateExcludingUnknown = new CurrentStateOutput();
 
     for (LiveInstance instance : liveInstances.values()) {
       String instanceName = instance.getInstanceName();
       String instanceSessionId = instance.getEphemeralOwner();
+      InstanceConfig instanceConfig = cache.getInstanceConfigMap().get(instanceName);
+
+      Set<Message> existingStaleMessages = cache.getStaleMessagesByInstance(instanceName);
+      Map<String, Message> messages = cache.getMessages(instanceName);
+      Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
 
       // update current states.
       updateCurrentStates(instance,
           cache.getCurrentState(instanceName, instanceSessionId, _isTaskFrameworkPipeline).values(),
           currentStateOutput, resourceMap);
-
-      Set<Message> existingStaleMessages = cache.getStaleMessagesByInstance(instanceName);
       // update pending messages
-      Map<String, Message> messages = cache.getMessages(instanceName);
-      Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
       updatePendingMessages(instance, cache, messages.values(), relayMessages.values(),
           existingStaleMessages, currentStateOutput, resourceMap);
+
+      // Only update the currentStateExcludingUnknown if the instance is not in UNKNOWN InstanceOperation.
+      if (instanceConfig == null || !instanceConfig.getInstanceOperation()
+          .equals(InstanceConstants.InstanceOperation.UNKNOWN)) {
+        // update current states.
+        updateCurrentStates(instance,
+            cache.getCurrentState(instanceName, instanceSessionId, _isTaskFrameworkPipeline)
+                .values(), currentStateExcludingUnknown, resourceMap);
+        // update pending messages
+        updatePendingMessages(instance, cache, messages.values(), relayMessages.values(),
+            existingStaleMessages, currentStateExcludingUnknown, resourceMap);
+      }
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateExcludingUnknown);
 
     final ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());

@@ -56,6 +56,8 @@ public class TestAbstractRebalancer {
             new IdealState("test"), new ClusterConfig("TestCluster"), partition,
             MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER);
 
+    System.out.println("Expected best possible state map: " + expectedBestPossibleMap);
+    System.out.println("Actual best possible state map: " + bestPossibleMap);
     Assert.assertTrue(bestPossibleMap.equals(expectedBestPossibleMap));
   }
 

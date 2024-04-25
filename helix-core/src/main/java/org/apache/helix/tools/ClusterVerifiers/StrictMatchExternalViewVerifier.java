@@ -331,7 +331,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
     for (String partition : idealState.getPartitionSet()) {
       List<String> preferenceList = AbstractRebalancer.getPreferenceList(new Partition(partition),
-          idealState, cache.getAssignableEnabledLiveInstances());
+          idealState, cache.getEnabledLiveInstances());
       Map<String, String> idealMapping;
       if (_isDeactivatedNodeAware) {
         idealMapping = HelixUtil.computeIdealMapping(preferenceList, stateModelDef,
@@ -339,7 +339,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
                 cache.getDisabledInstancesForPartition(idealState.getResourceName(), partition));
       } else {
         idealMapping = HelixUtil.computeIdealMapping(preferenceList, stateModelDef,
-            cache.getAssignableEnabledLiveInstances(),
+            cache.getEnabledLiveInstances(),
                 Collections.emptySet());
       }
       idealPartitionState.put(partition, idealMapping);

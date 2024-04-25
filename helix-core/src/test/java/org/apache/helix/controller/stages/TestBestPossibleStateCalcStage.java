@@ -58,6 +58,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
@@ -117,6 +118,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
 

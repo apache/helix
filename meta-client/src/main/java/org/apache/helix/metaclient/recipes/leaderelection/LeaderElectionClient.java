@@ -121,7 +121,8 @@ public class LeaderElectionClient implements AutoCloseable {
    * Returns true if current participant is the current leadership.
    */
   public boolean isLeader(String leaderPath) {
-    return getLeader(leaderPath).equalsIgnoreCase(_participant);
+    String leader = getLeader(leaderPath);
+    return leader != null && getLeader(leaderPath).equalsIgnoreCase(_participant);
   }
 
   /**

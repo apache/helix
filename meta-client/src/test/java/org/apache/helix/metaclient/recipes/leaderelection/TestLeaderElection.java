@@ -42,6 +42,19 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
   }
 
   @Test
+  public void testIsLeaderBeforeJoiningParticipantPool() throws Exception {
+    String leaderPath = LEADER_PATH + "/testIsLeaderBeforeJoiningPool";
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    try {
+      boolean isLeader = clt1.isLeader(leaderPath);
+      Assert.assertFalse(isLeader, "Expected isLeader to return false before joining participant pool");
+    } catch (NullPointerException npe) {
+      Assert.fail("isLeader threw NPE before joining participant pool: " + npe.getMessage());
+    }
+    clt1.close();
+  }
+
+  @Test (dependsOnMethods = "testIsLeaderBeforeJoiningParticipantPool")
   public void testAcquireLeadership() throws Exception {
     System.out.println("START TestLeaderElection.testAcquireLeadership");
     String leaderPath = LEADER_PATH + "/testAcquireLeadership";

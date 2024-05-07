@@ -41,6 +41,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     }
   }
 
+  // Test that calling isLeader before client joins LeaderElectionParticipantPool returns false and does not throw NPE
   @Test
   public void testIsLeaderBeforeJoiningParticipantPool() throws Exception {
     String leaderPath = LEADER_PATH + "/testIsLeaderBeforeJoiningPool";

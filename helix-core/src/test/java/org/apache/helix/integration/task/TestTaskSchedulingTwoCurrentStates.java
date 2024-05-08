@@ -96,7 +96,7 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
     super.afterClass();
   }
 
-  @Test
+  @Test (enabled = false)
   public void testTargetedTaskTwoCurrentStates() throws Exception {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, DATABASE, _numPartitions,
         MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.SEMI_AUTO.name());

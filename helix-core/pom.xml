@@ -310,6 +310,7 @@
           <descriptors>
             <descriptor>src/assemble/assembly.xml</descriptor>
           </descriptors>
+          <attach>false</attach>
         </configuration>
         <executions>
           <execution>

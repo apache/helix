@@ -115,4 +115,15 @@ public abstract class StateModel {
   public boolean isCancelled() {
     return _cancelled;
   }
+
+  /*
+   * default transition to set partition in any state to error state
+   * @param message
+   * @param context
+   * @throws InterruptedException
+   */
+  @Transition(to = "ERROR", from = "*")
+  public void onBecomeErrorFromAny(Message message, NotificationContext context) throws Exception {
+    logger.info("Default *->ERROR transition invoked.");
+  }
 }

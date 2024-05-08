@@ -323,6 +323,7 @@ public class HelixTask implements MessageTask {
         String fromState = message.getFromState();
         String toState = message.getToState();
         String transition = fromState + "--" + toState;
+        transition = transition.replaceAll("\\*", "ANY");
 
         StateTransitionContext cxt =
             new StateTransitionContext(manager.getClusterName(), manager.getInstanceName(),

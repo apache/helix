@@ -364,6 +364,12 @@ public class MockHelixAdmin implements HelixAdmin {
     return null;
   }
 
+  @Override
+  public void setPartitionsToError(String clusterName, String instanceName, String resourceName,
+      List<String> partitionNames) {
+
+  }
+
   @Override public void resetPartition(String clusterName, String instanceName, String resourceName,
       List<String> partitionNames) {
 

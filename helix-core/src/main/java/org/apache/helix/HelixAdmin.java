@@ -422,6 +422,18 @@ public interface HelixAdmin {
   ClusterManagementMode getClusterManagementMode(String clusterName);
 
   /**
+   * Set a list of partitions for an instance to ERROR state from any state.
+   * The partitions could be in any state and setPartitionsToError will bring them to ERROR
+   * state. ANY to ERROR state transition is required for this.
+   * @param clusterName
+   * @param instanceName
+   * @param resourceName
+   * @param partitionNames
+   */
+  void setPartitionsToError(String clusterName, String instanceName, String resourceName,
+      List<String> partitionNames);
+
+  /**
    * Reset a list of partitions in error state for an instance
    * The partitions are assume to be in error state and reset will bring them from error
    * to initial state. An error to initial state transition is required for reset.

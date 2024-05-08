@@ -37,11 +37,13 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
@@ -377,7 +379,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testDeleteInstance")
-  public void updateInstance() throws IOException {
+  public void updateInstance() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Disable instance
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
@@ -461,11 +463,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     String dbName = "_db_0_";
     List<String> partitionsToDisable = Arrays.asList(CLUSTER_NAME + dbName + "0",
         CLUSTER_NAME + dbName + "1", CLUSTER_NAME + dbName + "3");
+    String RESOURCE_NAME = CLUSTER_NAME + dbName.substring(0, dbName.length() - 1);
 
     entity = Entity.entity(
         OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
-            INSTANCE_NAME, PerInstanceAccessor.PerInstanceProperties.resource.name(),
-            CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
+            INSTANCE_NAME, PerInstanceAccessor.PerInstanceProperties.resource.name(), RESOURCE_NAME,
             PerInstanceAccessor.PerInstanceProperties.partitions.name(), partitionsToDisable)),
         MediaType.APPLICATION_JSON_TYPE);
 
@@ -474,13 +476,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
     Assert.assertEquals(
-        new HashSet<>(instanceConfig.getDisabledPartitionsMap()
-            .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
+        new HashSet<>(instanceConfig.getDisabledPartitionsMap().get(RESOURCE_NAME)),
         new HashSet<>(partitionsToDisable));
     entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
         .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,
-            PerInstanceAccessor.PerInstanceProperties.resource.name(),
-            CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
+            PerInstanceAccessor.PerInstanceProperties.resource.name(), RESOURCE_NAME,
             PerInstanceAccessor.PerInstanceProperties.partitions.name(),
             ImmutableList.of(CLUSTER_NAME + dbName + "1"))), MediaType.APPLICATION_JSON_TYPE);
 
@@ -488,8 +488,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap()
-            .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
+    Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap().get(RESOURCE_NAME)),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "3")));
 
     // test set instance operation
@@ -595,6 +594,32 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     evacuateFinishedResult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
     Assert.assertTrue(evacuateFinishedResult.get("successful"));
+
+    // test setPartitionsToError
+    List<String> partitionsToSetToError = Arrays.asList(CLUSTER_NAME + dbName + "7");
+
+    entity = Entity.entity(
+        OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
+            INSTANCE_NAME, PerInstanceAccessor.PerInstanceProperties.resource.name(), RESOURCE_NAME,
+            PerInstanceAccessor.PerInstanceProperties.partitions.name(), partitionsToSetToError)),
+        MediaType.APPLICATION_JSON_TYPE);
+
+    response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setPartitionsToError")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
+    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+
+    TestHelper.verify(() -> {
+      ExternalView externalView = _gSetupTool.getClusterManagementTool()
+          .getResourceExternalView(CLUSTER_NAME, RESOURCE_NAME);
+      Set responseForAllPartitions = new HashSet();
+      for (String partition : partitionsToSetToError) {
+        responseForAllPartitions.add(externalView.getStateMap(partition)
+            .get(INSTANCE_NAME) == HelixDefinedState.ERROR.toString());
+      }
+      return !responseForAllPartitions.contains(Boolean.FALSE);
+    }, TestHelper.WAIT_DURATION);
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

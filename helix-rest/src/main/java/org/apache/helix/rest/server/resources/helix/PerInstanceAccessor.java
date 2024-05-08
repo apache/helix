@@ -434,6 +434,16 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                   OBJECT_MAPPER.getTypeFactory()
                       .constructCollectionType(List.class, String.class)));
           break;
+        case setPartitionsToError:
+          if (!validInstance(node, instanceName)) {
+            return badRequest("Instance names are not a match!");
+          }
+          admin.setPartitionsToError(clusterId, instanceName,
+              node.get(PerInstanceProperties.resource.name()).textValue(),
+              (List<String>) OBJECT_MAPPER.readValue(
+                  node.get(PerInstanceProperties.partitions.name()).toString(), OBJECT_MAPPER
+                      .getTypeFactory().constructCollectionType(List.class, String.class)));
+          break;
         case setInstanceOperation:
           admin.setInstanceOperation(clusterId, instanceName, state);
           break;

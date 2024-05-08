@@ -99,7 +99,6 @@ under the License.
             <phase>package</phase>
             <goals>
               <goal>jar</goal>
-              <goal>test-jar</goal>
             </goals>
             <configuration>
               <classesDirectory>${project.build.outputDirectory}_jdk8</classesDirectory>
@@ -119,28 +118,6 @@ under the License.
         <executions>
           <execution>
             <phase>package</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-artifacts</id>
-            <phase>package</phase>
-            <goals>
-              <goal>attach-artifact</goal>
-            </goals>
-            <configuration>
-              <artifacts>
-                <artifact>
-                  <file>${project.build.directory}/${project.artifactId}-${project.version}-jdk8.jar</file>
-                  <type>jar</type>
-                  <classifier>jdk8</classifier>
-                </artifact>
-              </artifacts>
-            </configuration>
           </execution>
         </executions>
       </plugin>

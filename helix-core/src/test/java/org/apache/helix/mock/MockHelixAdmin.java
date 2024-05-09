@@ -288,9 +288,11 @@ public class MockHelixAdmin implements HelixAdmin {
     instanceConfig.setInstanceOperation(enabled ? InstanceConstants.InstanceOperation.ENABLE
         : InstanceConstants.InstanceOperation.DISABLE);
     if (!enabled) {
+      instanceConfig.resetInstanceNonServingReason();
+      // TODO: Replace this when the HELIX_ENABLED and HELIX_DISABLED fields are removed.
       instanceConfig.resetInstanceDisabledTypeAndReason();
       if (reason != null) {
-        instanceConfig.setInstanceDisabledReason(reason);
+        instanceConfig.setInstanceNonServingReason(reason);
       }
       if (disabledType != null) {
         instanceConfig.setInstanceDisabledType(disabledType);
@@ -308,6 +310,11 @@ public class MockHelixAdmin implements HelixAdmin {
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
       InstanceConstants.InstanceOperation instanceOperation) {
+  }
+
+  @Override
+  public void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation, String reason) {
   }
 
   @Override

@@ -394,7 +394,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(),
         InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
     Assert.assertEquals(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(),
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceNonServingReason(),
         "reason1");
 
     // Enable instance
@@ -407,7 +407,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(),
         InstanceConstants.INSTANCE_NOT_DISABLED);
     Assert.assertEquals(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(),
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceNonServingReason(),
         "");
 
     // We should see no instance disable related field in to clusterConfig

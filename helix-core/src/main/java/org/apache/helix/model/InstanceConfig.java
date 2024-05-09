@@ -48,9 +48,13 @@ public class InstanceConfig extends HelixProperty {
    * Configurable characteristics of an instance
    */
   public enum InstanceConfigProperty {
-    HELIX_HOST, HELIX_PORT, HELIX_ZONE_ID, @Deprecated
+    HELIX_HOST,
+    HELIX_PORT,
+    HELIX_ZONE_ID,
+    @Deprecated
     HELIX_ENABLED,
     HELIX_ENABLED_TIMESTAMP,
+    @Deprecated
     HELIX_DISABLED_REASON,
     HELIX_DISABLED_TYPE,
     HELIX_DISABLED_PARTITION,
@@ -62,7 +66,8 @@ public class InstanceConfig extends HelixProperty {
     INSTANCE_INFO_MAP,
     INSTANCE_CAPACITY_MAP,
     TARGET_TASK_THREAD_POOL_SIZE,
-    INSTANCE_OPERATION
+    INSTANCE_OPERATION,
+    NON_SERVING_INSTANCE_OPERATION_REASON
   }
 
   public static final int WEIGHT_NOT_SET = -1;
@@ -283,31 +288,60 @@ public class InstanceConfig extends HelixProperty {
     _record.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), enabled);
     _record.setLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), System.currentTimeMillis());
     if (enabled) {
+      resetInstanceNonServingReason();
+      // TODO: Replace this when HELIX_ENABLED and HELIX_DISABLED_REASON is removed.
       resetInstanceDisabledTypeAndReason();
     }
   }
 
   /**
+   * Removes NON_SERVABLE_INSTANCE_OPERATION_REASON field.
+   */
+  public void resetInstanceNonServingReason() {
+    _record.getSimpleFields()
+        .remove(InstanceConfigProperty.NON_SERVING_INSTANCE_OPERATION_REASON.name());
+  }
+
+  /**
    * Removes HELIX_DISABLED_REASON and HELIX_DISABLED_TYPE entry from simple field.
    */
+  @Deprecated
   public void resetInstanceDisabledTypeAndReason() {
     _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.name());
     _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.name());
   }
 
   /**
+   * Set the reason for moving the instance to a non-servable InstanceOperation.
+   * It will be a no-op when instance is enabled.
+   * @param reason the reason for moving the instance to a non-servable InstanceOperation
+   */
+  public void setInstanceNonServingReason(String reason) {
+    if (InstanceConstants.NON_SERVABLE_INSTANCE_OPERATIONS.contains(getInstanceOperation())) {
+      _record.setSimpleField(InstanceConfigProperty.NON_SERVING_INSTANCE_OPERATION_REASON.name(),
+          reason);
+      // TODO: Remove this when HELIX_ENABLED and HELIX_DISABLED_REASON is removed.
+      setInstanceDisabledReason(reason);
+    }
+  }
+
+  /**
    * Set the instance disabled reason when instance is disabled.
    * It will be a no-op when instance is enabled.
+   * @deprecated This method is deprecated. Please use setInstanceNonServingReason instead.
    */
+  @Deprecated
   public void setInstanceDisabledReason(String disabledReason) {
     if (getInstanceOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
-       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), disabledReason);
-     }
+      _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), disabledReason);
+    }
   }
 
   /**
    * Set the instance disabled type when instance is disabled.
    * It will be a no-op when instance is enabled.
+   * TODO: Consider deprecating DisabledType, it is not used much and likely isn't worth
+   *  migrating to InstanceOperation.
    */
   public void setInstanceDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
     if (getInstanceOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
@@ -317,9 +351,23 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
+   * Get the reason for moving the instance to a non-servable InstanceOperation.
+   *
+   * @return Return instance non-servable reason. Default is am empty string.
+   */
+  public String getInstanceNonServingReason() {
+    // TODO: Make the default value an empty string once we remove the deprecated method.
+    return _record.getStringField(
+        InstanceConfigProperty.NON_SERVING_INSTANCE_OPERATION_REASON.name(),
+        getInstanceDisabledReason());
+  }
+
+  /**
    * Get the instance disabled reason when instance is disabled.
    * @return Return instance disabled reason. Default is am empty string.
+   * @deprecated This method is deprecated. Please use getInstanceNonServingReason instead. getInstanceDisabledReason
    */
+  @Deprecated
   public String getInstanceDisabledReason() {
     return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(), "");
   }

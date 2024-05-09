@@ -321,6 +321,18 @@ public interface HelixAdmin {
       @Nullable InstanceConstants.InstanceOperation instanceOperation);
 
   /**
+   * Set the instanceOperation field. Setting it to null is equivalent to ENABLE.
+   *
+   * @param clusterName       The cluster name
+   * @param instanceName      The instance name
+   * @param instanceOperation The instance operation
+   * @param reason            The reason for setting the instance operation (only works with
+   *                          {@link InstanceConstants#NON_SERVABLE_INSTANCE_OPERATIONS})
+   */
+  void setInstanceOperation(String clusterName, String instanceName,
+      @Nullable InstanceConstants.InstanceOperation instanceOperation, String reason);
+
+  /**
    * Disable or enable a resource
    * @param clusterName
    * @param resourceName

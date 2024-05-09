@@ -26,8 +26,15 @@ public class InstanceConstants {
   /**
    * The set of InstanceOperations that are not allowed to be populated in the RoutingTableProvider.
    */
-  public static final Set<InstanceOperation> UNSERVABLE_INSTANCE_OPERATIONS =
-      ImmutableSet.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
+  public static final Set<InstanceOperation> UNROUTABLE_INSTANCE_OPERATIONS =
+      Set.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
+
+  /**
+   * The set of InstanceOperations that are not considered to be servable.
+   * These InstanceOperations will no allow any online replicas be hosted.
+   */
+  public static final Set<InstanceOperation> NON_SERVABLE_INSTANCE_OPERATIONS =
+      Set.of(InstanceOperation.DISABLE, InstanceOperation.UNKNOWN);
 
   public enum InstanceDisabledType {
     CLOUD_EVENT,

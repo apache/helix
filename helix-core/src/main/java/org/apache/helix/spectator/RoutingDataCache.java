@@ -181,7 +181,7 @@ class RoutingDataCache extends BasicClusterDataCache {
 
   private void updateRoutableInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
     _routableInstanceConfigMap = instanceConfigMap.entrySet().stream().filter(
-            (instanceConfigEntry) -> !InstanceConstants.UNSERVABLE_INSTANCE_OPERATIONS.contains(
+            (instanceConfigEntry) -> !InstanceConstants.UNROUTABLE_INSTANCE_OPERATIONS.contains(
                 instanceConfigEntry.getValue().getInstanceOperation()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
@@ -190,7 +190,7 @@ class RoutingDataCache extends BasicClusterDataCache {
       Map<String, LiveInstance> liveInstanceMap) {
     _routableLiveInstanceMap = liveInstanceMap.entrySet().stream().filter(
             (liveInstanceEntry) -> instanceConfigMap.containsKey(liveInstanceEntry.getKey())
-                && !InstanceConstants.UNSERVABLE_INSTANCE_OPERATIONS.contains(
+                && !InstanceConstants.UNROUTABLE_INSTANCE_OPERATIONS.contains(
                 instanceConfigMap.get(liveInstanceEntry.getKey()).getInstanceOperation()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }

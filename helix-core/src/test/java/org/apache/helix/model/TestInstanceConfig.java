@@ -52,7 +52,7 @@ public class TestInstanceConfig {
   public void testSetInstanceEnableWithReason() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
-    instanceConfig.setInstanceDisabledReason("NoShowReason");
+    instanceConfig.setInstanceNonServingReason("NoShowReason");
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
 
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
@@ -65,13 +65,13 @@ public class TestInstanceConfig {
 
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     String reasonCode = "ReasonCode";
-    instanceConfig.setInstanceDisabledReason(reasonCode);
+    instanceConfig.setInstanceNonServingReason(reasonCode);
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()), "false");
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_REASON.toString()), reasonCode);
-    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), reasonCode);
+    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), reasonCode);
     Assert.assertEquals(instanceConfig.getInstanceDisabledType(),
         InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());
   }
@@ -196,6 +196,30 @@ public class TestInstanceConfig {
     Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CAGE"), "H");
     Assert.assertEquals(instanceConfig.getInstanceInfoMap().get("CABINET"), "30");
     Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight1"), Integer.valueOf(1));
+  }
+
+  @Test
+  public void testInstanceNonServingReason() {
+    InstanceConfig instanceConfig = new InstanceConfig("instance1");
+    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceDisabledReason("disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "disableReason");
+
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
+    instanceConfig.setInstanceNonServingReason("unknownReason");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "unknownReason");
+
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
+    instanceConfig.setInstanceNonServingReason("disableReason2");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason2");
+    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "disableReason2");
+
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    instanceConfig.setInstanceNonServingReason("should not set");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "");
+    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "");
   }
 
   @Test

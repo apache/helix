@@ -178,16 +178,17 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     }
 
     Assert.assertTrue(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason().isEmpty());
     String disableReason = "Reason";
     tool.enableInstance(clusterName, instanceName, false,
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, disableReason);
-    Assert.assertTrue(tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason()
+    Assert.assertTrue(
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason()
         .equals(disableReason));
     tool.enableInstance(clusterName, instanceName, true,
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, disableReason);
     Assert.assertTrue(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason().isEmpty());
     Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledType(),
         InstanceConstants.INSTANCE_NOT_DISABLED);
 
@@ -346,6 +347,62 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     deleteCluster(clusterName);
     System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  private void testSetInstanceOperation() {
+    System.out.println("START testSetInstanceOperation at " + new Date(System.currentTimeMillis()));
+
+    final String clusterName = getShortClassName();
+    String rootPath = "/" + clusterName;
+    if (_gZkClient.exists(rootPath)) {
+      _gZkClient.deleteRecursively(rootPath);
+    }
+
+    HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    tool.addCluster(clusterName, true);
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient));
+    Assert.assertTrue(_gZkClient.exists(PropertyPathBuilder.customizedStateConfig(clusterName)));
+
+    // Add instance to cluster
+    String hostname = "host1";
+    String port = "9999";
+    String instanceName = hostname + "_" + port;
+    InstanceConfig config =
+        new InstanceConfig.Builder().setHostName(hostname).setPort(port).build(instanceName);
+
+    tool.addInstance(clusterName, config);
+
+    // Set instance operation to DISABLE
+    tool.setInstanceOperation(clusterName, instanceName,
+        InstanceConstants.InstanceOperation.DISABLE, "disableReason");
+    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason(),
+        "disableReason");
+
+    // Set instance operation to ENABLE
+    tool.setInstanceOperation(clusterName, instanceName, InstanceConstants.InstanceOperation.ENABLE,
+        "enableReason");
+    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
+    // InstanceNonServingReason should be empty after setting operation to ENABLE
+    Assert.assertEquals(
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason(), "");
+
+    // Set instance operation to UNKNOWN
+    tool.setInstanceOperation(clusterName, instanceName,
+        InstanceConstants.InstanceOperation.UNKNOWN, "unknownReason");
+    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation(),
+        InstanceConstants.InstanceOperation.UNKNOWN);
+    Assert.assertEquals(
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason(),
+        "unknownReason");
+
+    deleteCluster(clusterName);
+
+    System.out.println("END testSetInstanceOperation at " + new Date(System.currentTimeMillis()));
   }
 
   private HelixManager initializeHelixManager(String clusterName, String instanceName) {

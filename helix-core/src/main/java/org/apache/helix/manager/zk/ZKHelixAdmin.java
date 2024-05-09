@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -397,9 +396,6 @@ public class ZKHelixAdmin implements HelixAdmin {
     // Eventually we will have all instances' enable/disable information in clusterConfig. Now we
     // update both instanceConfig and clusterConfig in transition period.
     enableSingleInstance(clusterName, instanceName, enabled, baseAccessor, disabledType, reason);
-//    enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled,
-//        baseAccessor, disabledType, reason);
-
   }
 
   @Deprecated
@@ -479,6 +475,21 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
       @Nullable InstanceConstants.InstanceOperation instanceOperation) {
+    setInstanceOperation(clusterName, instanceName, instanceOperation, null);
+  }
+
+  /**
+   * Set the InstanceOperation of an instance in the cluster.
+   *
+   * @param clusterName       The cluster name
+   * @param instanceName      The instance name
+   * @param instanceOperation The instance operation
+   * @param reason            The reason for setting the instance operation
+   *                          (only works with {@link InstanceConstants#NON_SERVABLE_INSTANCE_OPERATIONS})
+   */
+  @Override
+  public void setInstanceOperation(String clusterName, String instanceName,
+      @Nullable InstanceConstants.InstanceOperation instanceOperation, String reason) {
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
@@ -506,6 +517,9 @@ public class ZKHelixAdmin implements HelixAdmin {
 
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceOperation(instanceOperation);
+        if (reason != null) {
+          config.setInstanceNonServingReason(reason);
+        }
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);
@@ -2433,10 +2447,12 @@ public class ZKHelixAdmin implements HelixAdmin {
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceEnabled(enabled);
         if (!enabled) {
+          // new non-serving reason will overwrite existing one.
+          config.resetInstanceNonServingReason();
           // new disabled type and reason will overwrite existing ones.
           config.resetInstanceDisabledTypeAndReason();
           if (reason != null) {
-            config.setInstanceDisabledReason(reason);
+            config.setInstanceNonServingReason(reason);
           }
           if (disabledType != null) {
             config.setInstanceDisabledType(disabledType);
@@ -2448,6 +2464,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   // TODO: Add history ZNode for all batched enabling/disabling histories with metadata.
+  @Deprecated
   private void enableBatchInstances(final String clusterName, final List<String> instances,
       final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor,
       InstanceConstants.InstanceDisabledType disabledType, String reason) {

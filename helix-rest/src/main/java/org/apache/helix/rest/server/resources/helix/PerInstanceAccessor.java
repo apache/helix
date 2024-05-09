@@ -390,7 +390,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @PathParam("instanceName") String instanceName, @QueryParam("command") String command,
       @QueryParam("instanceOperation") InstanceConstants.InstanceOperation state,
       @QueryParam("instanceDisabledType") String disabledType,
-      @QueryParam("instanceDisabledReason") String disabledReason,
+      @Deprecated @QueryParam("instanceDisabledReason") String disabledReason,
+      @QueryParam("instanceOperationReason") String instanceOperationReason,
       @QueryParam("force") boolean force, String content) {
     Command cmd;
     try {
@@ -445,7 +446,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                       .getTypeFactory().constructCollectionType(List.class, String.class)));
           break;
         case setInstanceOperation:
-          admin.setInstanceOperation(clusterId, instanceName, state);
+          admin.setInstanceOperation(clusterId, instanceName, state, instanceOperationReason);
           break;
         case canCompleteSwap:
           return OK(OBJECT_MAPPER.writeValueAsString(

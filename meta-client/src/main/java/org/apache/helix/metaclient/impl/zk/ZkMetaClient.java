@@ -39,6 +39,7 @@ import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.exception.MetaClientBadVersionException;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
@@ -58,6 +59,7 @@ import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -207,16 +209,36 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public T update(String key, DataUpdater<T> updater) {
-    org.apache.zookeeper.data.Stat stat = new org.apache.zookeeper.data.Stat();
-    // TODO: add retry logic for ZkBadVersionException.
-    try {
-      T oldData = _zkClient.readData(key, stat);
-      T newData = updater.update(oldData);
-      set(key, newData, stat.getVersion());
-      return newData;
-    } catch (ZkException e) {
-      throw translateZkExceptionToMetaclientException(e);
-    }
+    boolean retry;
+    T updatedData = null;
+    do {
+      retry = false;
+      try {
+        org.apache.zookeeper.data.Stat stat = new org.apache.zookeeper.data.Stat();
+        T oldData = _zkClient.readData(key, stat);
+        T newData = updater.update(oldData);
+        set(key, newData, stat.getVersion());
+        updatedData = newData;
+      } catch (MetaClientBadVersionException badVersionException) {
+        // Retry on bad version
+        retry = true;
+      } catch (ZkNoNodeException noNodeException) {
+        // If node does not exist, attempt to create it - pass null to updater
+        T newData = updater.update(null);
+        if (newData != null) {
+          try {
+            create(key, newData);
+            updatedData = newData;
+          } catch (MetaClientNodeExistsException nodeExistsException) {
+            // If node now exists, then retry update
+            retry = true;
+          } catch (ZkException e) {
+            throw translateZkExceptionToMetaclientException(e);
+          }
+        }
+      }
+    } while (retry);
+    return updatedData;
   }
 
   //TODO: Get Expiry Time in Stat

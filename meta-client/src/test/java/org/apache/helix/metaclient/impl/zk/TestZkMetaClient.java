@@ -215,40 +215,93 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
   }
 
   @Test
-  public void testUpdate() {
+  public void testUpdate() throws InterruptedException {
+    int testIterationCount = 2;
     final String key = "/TestZkMetaClient_testUpdate";
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
     try (ZkMetaClient<Integer> zkMetaClient = new ZkMetaClient<>(config)) {
       zkMetaClient.connect();
       int initValue = 3;
+      DataUpdater<Integer> updater = new DataUpdater<Integer>() {
+        @Override
+        public Integer update(Integer currentData) {
+          return currentData != null ? currentData + 1 : initValue;
+        }
+      };
+
+      // Test updater basic success
+      for (int i = 0; i < testIterationCount; i++) {
+        Integer newData = zkMetaClient.update(key, updater);
+        Assert.assertEquals((int) newData, initValue + i);
+        Assert.assertEquals(zkMetaClient.exists(key).getVersion(), i);
+      }
+
+      zkMetaClient.delete(key);
+
+      AtomicBoolean latch = new AtomicBoolean();
+      DataUpdater<Integer> noOpUpdater = new DataUpdater<Integer>() {
+        @Override
+        public Integer update(Integer currentData) {
+          latch.set(true);
+          return currentData;
+        }
+      };
+
+      DataUpdater<Integer> latchedUpdater = new DataUpdater<Integer>() {
+        @Override
+        public Integer update(Integer currentData) {
+          try {
+            while (!latch.get()) {
+              Thread.sleep(200);
+            }
+            return currentData != null ? currentData + 1 : initValue;
+          } catch (InterruptedException e) {
+            return -1;
+          }
+        }
+      };
+
+      // Test updater retries on bad version
       zkMetaClient.create(key, initValue);
-      MetaClientInterface.Stat entryStat = zkMetaClient.exists(key);
-      Assert.assertEquals(entryStat.getVersion(), 0);
+      for (int i = 0; i < testIterationCount; i++) {
+        Thread thread = new Thread(() -> {
+          zkMetaClient.update(key, latchedUpdater);
+        });
+        thread.start();
+        zkMetaClient.update(key, noOpUpdater);
+        thread.join();
+        latch.set(false);
+        Assert.assertEquals((int) zkMetaClient.get(key), initValue + i + 1);
+        Assert.assertEquals(zkMetaClient.exists(key).getVersion(), 2 + (i*2));
+      }
 
-      // test update() and validate entry value and version
-      Integer newData = zkMetaClient.update(key, new DataUpdater<Integer>() {
+      DataUpdater<Integer> errorUpdater = new DataUpdater<Integer>() {
         @Override
         public Integer update(Integer currentData) {
-          return currentData + 1;
+          throw new RuntimeException("IGNORABLE: Test dataUpdater correctly throws exception");
         }
+      };
+
+      // Test updater throws error
+      try {
+        zkMetaClient.update(key, errorUpdater);
+        Assert.fail("DataUpdater should have thrown error");
+      } catch (RuntimeException e) {}
+
+      zkMetaClient.delete(key);
+
+      // Test updater retries update if node now exists when attempting to create it
+      latch.set(false);
+      Thread thread = new Thread(() -> {
+        zkMetaClient.update(key, latchedUpdater);
       });
-      Assert.assertEquals((int) newData, (int) initValue + 1);
-
-      entryStat = zkMetaClient.exists(key);
-      Assert.assertEquals(entryStat.getVersion(), 1);
-
-      newData = zkMetaClient.update(key, new DataUpdater<Integer>() {
-
-        @Override
-        public Integer update(Integer currentData) {
-          return currentData + 1;
-        }
-      });
-
-      entryStat = zkMetaClient.exists(key);
-      Assert.assertEquals(entryStat.getVersion(), 2);
-      Assert.assertEquals((int) newData, (int) initValue + 2);
+      thread.start();
+      zkMetaClient.create(key, initValue);
+      latch.set(true);
+      thread.join();
+      Assert.assertEquals((int) zkMetaClient.get(key), initValue + 1);
+      Assert.assertEquals(zkMetaClient.exists(key).getVersion(), 1);
       zkMetaClient.delete(key);
     }
   }

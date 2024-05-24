@@ -109,6 +109,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
       // Only update the currentStateExcludingUnknown if the instance is not in UNKNOWN InstanceOperation.
       if (instanceConfig == null || !instanceConfig.getInstanceOperation()
+          .getOperation()
           .equals(InstanceConstants.InstanceOperation.UNKNOWN)) {
         // update current states.
         updateCurrentStates(instance,

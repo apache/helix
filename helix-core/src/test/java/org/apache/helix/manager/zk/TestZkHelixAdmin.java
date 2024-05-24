@@ -178,17 +178,15 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     }
 
     Assert.assertTrue(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason().isEmpty());
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
     String disableReason = "Reason";
     tool.enableInstance(clusterName, instanceName, false,
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, disableReason);
-    Assert.assertTrue(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason()
-        .equals(disableReason));
+    Assert.assertEquals(disableReason, tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason());
     tool.enableInstance(clusterName, instanceName, true,
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, disableReason);
     Assert.assertTrue(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason().isEmpty());
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
     Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledType(),
         InstanceConstants.INSTANCE_NOT_DISABLED);
 
@@ -375,29 +373,35 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     // Set instance operation to DISABLE
     tool.setInstanceOperation(clusterName, instanceName,
-        InstanceConstants.InstanceOperation.DISABLE, "disableReason");
-    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation(),
+        new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.DISABLE).setReason("disableReason").build());
+    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation()
+            .getOperation(),
         InstanceConstants.InstanceOperation.DISABLE);
     Assert.assertEquals(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason(),
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason(),
         "disableReason");
 
     // Set instance operation to ENABLE
-    tool.setInstanceOperation(clusterName, instanceName, InstanceConstants.InstanceOperation.ENABLE,
-        "enableReason");
-    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation(),
+    tool.setInstanceOperation(clusterName, instanceName,
+        new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.ENABLE).setReason("enableReason").build());
+    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation()
+            .getOperation(),
         InstanceConstants.InstanceOperation.ENABLE);
     // InstanceNonServingReason should be empty after setting operation to ENABLE
     Assert.assertEquals(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason(), "");
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason(), "");
 
     // Set instance operation to UNKNOWN
     tool.setInstanceOperation(clusterName, instanceName,
-        InstanceConstants.InstanceOperation.UNKNOWN, "unknownReason");
-    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation(),
+        new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.UNKNOWN).setReason("unknownReason").build());
+    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation()
+            .getOperation(),
         InstanceConstants.InstanceOperation.UNKNOWN);
     Assert.assertEquals(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceNonServingReason(),
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation().getReason(),
         "unknownReason");
 
     deleteCluster(clusterName);

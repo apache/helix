@@ -361,7 +361,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       // they should not account against the capacity of the cluster.
       int instancesUnableToAcceptOnlineReplicas = cache.getInstanceConfigMap().entrySet().stream()
           .filter(instanceEntry -> !InstanceConstants.UNROUTABLE_INSTANCE_OPERATIONS.contains(
-              instanceEntry.getValue().getInstanceOperation())).collect(Collectors.toSet())
+              instanceEntry.getValue().getInstanceOperation().getOperation()))
+          .collect(Collectors.toSet())
           .size() - cache.getEnabledLiveInstances().size();
       if (instancesUnableToAcceptOnlineReplicas > maxInstancesUnableToAcceptOnlineReplicas) {
         String errMsg = String.format(

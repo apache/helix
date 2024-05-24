@@ -413,14 +413,15 @@ public class BaseControllerDataProvider implements ControlContextProvider {
           currentInstanceConfig.getLogicalId(clusterTopologyConfig.getEndNodeType());
 
       newInstanceConfigMapByInstanceOperation.computeIfAbsent(
-              currentInstanceConfig.getInstanceOperation(), k -> new HashMap<>())
+              currentInstanceConfig.getInstanceOperation().getOperation(),
+              k -> new HashMap<>())
           .put(node, currentInstanceConfig);
 
       if (currentInstanceConfig.isAssignable()) {
         newAssignableInstanceConfigMap.put(node, currentInstanceConfig);
       }
 
-      if (currentInstanceConfig.getInstanceOperation()
+      if (currentInstanceConfig.getInstanceOperation().getOperation()
           .equals(InstanceConstants.InstanceOperation.SWAP_IN)) {
         swapInLogicalIdsByInstanceName.put(currentInstanceConfig.getInstanceName(),
             currentInstanceLogicalId);
@@ -1079,7 +1080,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _disabledInstanceSet.clear();
     for (InstanceConfig config : allInstanceConfigs) {
       Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
-      if (config.getInstanceOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
+      if (config.getInstanceOperation().getOperation()
+          .equals(InstanceConstants.InstanceOperation.DISABLE)) {
         _disabledInstanceSet.add(config.getInstanceName());
       }
       for (String resource : disabledPartitionMap.keySet()) {

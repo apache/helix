@@ -48,7 +48,10 @@ class HelixEventHandlingUtil {
    * @param dataAccessor
    * @return return true only when instance is Helix disabled and the disabled reason in
    * instanceConfig is cloudEvent
+   * @deprecated No need to check this if using InstanceOperation and specifying the trigger as CLOUD
+   *            when enabling.
    */
+  @Deprecated
   static boolean isInstanceDisabledForCloudEvent(String instanceName,
       HelixDataAccessor dataAccessor) {
     InstanceConfig instanceConfig =

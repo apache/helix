@@ -52,7 +52,6 @@ public class TestInstanceConfig {
   public void testSetInstanceEnableWithReason() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
-    instanceConfig.setInstanceNonServingReason("NoShowReason");
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
 
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
@@ -62,16 +61,15 @@ public class TestInstanceConfig {
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_TYPE.toString()), null);
 
-
-    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     String reasonCode = "ReasonCode";
-    instanceConfig.setInstanceNonServingReason(reasonCode);
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+        InstanceConstants.InstanceOperation.DISABLE).setReason(reasonCode).build());
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()), "false");
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_REASON.toString()), reasonCode);
-    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), reasonCode);
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), reasonCode);
     Assert.assertEquals(instanceConfig.getInstanceDisabledType(),
         InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());
   }
@@ -204,22 +202,22 @@ public class TestInstanceConfig {
     instanceConfig.setInstanceEnabled(false);
     instanceConfig.setInstanceDisabledReason("disableReason");
     Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
-    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "disableReason");
-
-    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
-    instanceConfig.setInstanceNonServingReason("unknownReason");
     Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
-    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "unknownReason");
+
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+        InstanceConstants.InstanceOperation.UNKNOWN).setReason("unknownReason").build());
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "unknownReason");
 
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
-    instanceConfig.setInstanceNonServingReason("disableReason2");
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+        InstanceConstants.InstanceOperation.DISABLE).setReason("disableReason2").build());
     Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason2");
-    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "disableReason2");
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "disableReason2");
 
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
-    instanceConfig.setInstanceNonServingReason("should not set");
     Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "");
-    Assert.assertEquals(instanceConfig.getInstanceNonServingReason(), "");
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "");
   }
 
   @Test
@@ -257,7 +255,7 @@ public class TestInstanceConfig {
     Assert.assertTrue(instanceConfig.getTags().contains("tag4"));
     Assert.assertFalse(instanceConfig.getRecord().getSimpleFields()
         .containsKey(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()));
-    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
         InstanceConstants.InstanceOperation.EVACUATE);
     Assert.assertFalse(instanceConfig.getInstanceCapacityMap().containsKey("weight1"));
     Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight2"), Integer.valueOf(2));

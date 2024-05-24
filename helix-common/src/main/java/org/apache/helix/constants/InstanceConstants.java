@@ -36,10 +36,51 @@ public class InstanceConstants {
   public static final Set<InstanceOperation> NON_SERVABLE_INSTANCE_OPERATIONS =
       Set.of(InstanceOperation.DISABLE, InstanceOperation.UNKNOWN);
 
+  @Deprecated
   public enum InstanceDisabledType {
     CLOUD_EVENT,
     USER_OPERATION,
     DEFAULT_INSTANCE_DISABLE_TYPE
+  }
+
+  public enum InstanceOperationTrigger {
+    CLOUD, USER, DEFAULT;
+
+    /**
+     * Convert from InstanceOperationTrigger to DisabledType
+     *
+     * @param trigger InstanceOperationTrigger
+     * @return InstanceDisabledType
+     */
+    public static InstanceDisabledType instanceOperationTriggerToInstanceDisabledType(
+        InstanceOperationTrigger trigger) {
+      switch (trigger) {
+        case CLOUD:
+          return InstanceDisabledType.CLOUD_EVENT;
+        case USER:
+          return InstanceDisabledType.USER_OPERATION;
+        default:
+          return InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE;
+      }
+    }
+
+    /**
+     * Convert from InstanceDisabledType to InstanceOperationTrigger
+     *
+     * @param disabledType InstanceDisabledType
+     * @return InstanceOperationTrigger
+     */
+    public static InstanceOperationTrigger instanceDisabledTypeToInstanceOperationTrigger(
+        InstanceDisabledType disabledType) {
+      switch (disabledType) {
+        case CLOUD_EVENT:
+          return InstanceOperationTrigger.CLOUD;
+        case USER_OPERATION:
+          return InstanceOperationTrigger.USER;
+        default:
+          return InstanceOperationTrigger.DEFAULT;
+      }
+    }
   }
 
   public enum InstanceOperation {

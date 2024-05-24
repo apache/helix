@@ -55,8 +55,6 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
         .getInstanceConfig(CLUSTER_NAME, _instanceManager.getInstanceName())
         .getInstanceDisabledType(), InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name());
 
-    // Should not disable instance if it is already disabled due to other reasons
-    // And disabled type should remain unchanged
     _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), false);
     _impl.disableInstance(_instanceManager, null);
     Assert.assertFalse(InstanceValidationUtil
@@ -66,6 +64,7 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
             .getInstanceDisabledType(),
         InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
 
+    _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), true);
     _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), false,
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
   }

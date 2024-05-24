@@ -215,7 +215,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     InstanceConstants.InstanceOperation attemptedInstanceOperation =
-        instanceConfig.getInstanceOperation();
+        instanceConfig.getInstanceOperation().getOperation();
     try {
       validateInstanceOperationTransition(instanceConfig,
           !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
@@ -226,6 +226,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       logger.error("Failed to add instance " + instanceConfig.getInstanceName() + " to cluster "
           + clusterName + " with instance operation " + attemptedInstanceOperation
           + ". Setting INSTANCE_OPERATION to " + instanceConfig.getInstanceOperation()
+          .getOperation()
           + " instead.", e);
     }
 
@@ -430,7 +431,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         // We can only ENABLE or DISABLE a SWAP_IN instance if there is an instance with matching logicalId
         // with an InstanceOperation set to UNKNOWN.
         if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
-            || matchingLogicalIdInstance.getInstanceOperation()
+            || matchingLogicalIdInstance.getInstanceOperation().getOperation()
             .equals(InstanceConstants.InstanceOperation.UNKNOWN))) || targetOperation.equals(
             InstanceConstants.InstanceOperation.UNKNOWN)) {
           return;
@@ -448,14 +449,14 @@ public class ZKHelixAdmin implements HelixAdmin {
         // UNKNOWN can be set to SWAP_IN when there is an instance with the same logicalId in the cluster set to ENABLE,
         // or DISABLE.
         if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
-            || matchingLogicalIdInstance.getInstanceOperation()
+            || matchingLogicalIdInstance.getInstanceOperation().getOperation()
             .equals(InstanceConstants.InstanceOperation.EVACUATE)))) {
           return;
         } else if (targetOperation.equals(InstanceConstants.InstanceOperation.SWAP_IN)
             && matchingLogicalIdInstance != null && !ImmutableSet.of(
                 InstanceConstants.InstanceOperation.UNKNOWN,
                 InstanceConstants.InstanceOperation.EVACUATE)
-            .contains(matchingLogicalIdInstance.getInstanceOperation())) {
+            .contains(matchingLogicalIdInstance.getInstanceOperation().getOperation())) {
           return;
         }
       default:
@@ -475,7 +476,8 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
       @Nullable InstanceConstants.InstanceOperation instanceOperation) {
-    setInstanceOperation(clusterName, instanceName, instanceOperation, null);
+    setInstanceOperation(clusterName, instanceName,
+        new InstanceConfig.InstanceOperation.Builder().setOperation(instanceOperation).build());
   }
 
   /**
@@ -483,13 +485,11 @@ public class ZKHelixAdmin implements HelixAdmin {
    *
    * @param clusterName       The cluster name
    * @param instanceName      The instance name
-   * @param instanceOperation The instance operation
-   * @param reason            The reason for setting the instance operation
-   *                          (only works with {@link InstanceConstants#NON_SERVABLE_INSTANCE_OPERATIONS})
+   * @param instanceOperation The instance operation (only works with
    */
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
-      @Nullable InstanceConstants.InstanceOperation instanceOperation, String reason) {
+      @Nullable InstanceConfig.InstanceOperation instanceOperation) {
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
@@ -503,29 +503,27 @@ public class ZKHelixAdmin implements HelixAdmin {
         findInstancesMatchingLogicalId(clusterName, instanceConfig);
     validateInstanceOperationTransition(instanceConfig,
         !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
-        instanceConfig.getInstanceOperation(),
-        instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE : instanceOperation,
-        clusterName);
+        instanceConfig.getInstanceOperation().getOperation(),
+        instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE
+            : instanceOperation.getOperation(), clusterName);
 
-   boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
+    boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {
-          throw new HelixException(
-              "Cluster: " + clusterName + ", instance: " + instanceName + ", participant config is null");
+          throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
+              + ", participant config is null");
         }
 
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceOperation(instanceOperation);
-        if (reason != null) {
-          config.setInstanceNonServingReason(reason);
-        }
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);
 
     if (!succeeded) {
-      throw new HelixException("Failed to update instance operation. Please check if instance is disabled.");
+      throw new HelixException(
+          "Failed to update instance operation. Please check if instance is disabled.");
     }
   }
 
@@ -533,7 +531,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public boolean isEvacuateFinished(String clusterName, String instanceName) {
     if (!instanceHasFullAutoCurrentStateOrMessage(clusterName, instanceName)) {
       InstanceConfig config = getInstanceConfig(clusterName, instanceName);
-      return config != null && config.getInstanceOperation()
+      return config != null && config.getInstanceOperation().getOperation()
           .equals(InstanceConstants.InstanceOperation.EVACUATE);
     }
     return false;
@@ -593,8 +591,8 @@ public class ZKHelixAdmin implements HelixAdmin {
           "SwapOutInstance {} is {} + {} and SwapInInstance {} is OFFLINE + {} for cluster {}. Swap will"
               + " not complete unless SwapInInstance instance is ONLINE.",
           swapOutInstanceName, swapOutLiveInstance != null ? "ONLINE" : "OFFLINE",
-          swapOutInstanceConfig.getInstanceOperation(), swapInInstanceName,
-          swapInInstanceConfig.getInstanceOperation(), clusterName);
+          swapOutInstanceConfig.getInstanceOperation().getOperation(), swapInInstanceName,
+          swapInInstanceConfig.getInstanceOperation().getOperation(), clusterName);
       return false;
     }
 
@@ -633,7 +631,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // 4. If the swap-out instance is not alive or is disabled, we return true without checking
     // the current states on the swap-in instance.
-    if (swapOutLiveInstance == null || swapOutInstanceConfig.getInstanceOperation()
+    if (swapOutLiveInstance == null || swapOutInstanceConfig.getInstanceOperation().getOperation()
         .equals(InstanceConstants.InstanceOperation.DISABLE)) {
       return true;
     }
@@ -719,10 +717,10 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    InstanceConfig swapOutInstanceConfig =
-        !instanceConfig.getInstanceOperation().equals(InstanceConstants.InstanceOperation.SWAP_IN)
+    InstanceConfig swapOutInstanceConfig = !instanceConfig.getInstanceOperation().getOperation()
+        .equals(InstanceConstants.InstanceOperation.SWAP_IN)
             ? instanceConfig : swappingInstances.get(0);
-    InstanceConfig swapInInstanceConfig = instanceConfig.getInstanceOperation()
+    InstanceConfig swapInInstanceConfig = instanceConfig.getInstanceOperation().getOperation()
         .equals(InstanceConstants.InstanceOperation.SWAP_IN) ? instanceConfig
         : swappingInstances.get(0);
     if (swapOutInstanceConfig == null || swapInInstanceConfig == null) {
@@ -757,10 +755,10 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    InstanceConfig swapOutInstanceConfig =
-        !instanceConfig.getInstanceOperation().equals(InstanceConstants.InstanceOperation.SWAP_IN)
+    InstanceConfig swapOutInstanceConfig = !instanceConfig.getInstanceOperation().getOperation()
+        .equals(InstanceConstants.InstanceOperation.SWAP_IN)
             ? instanceConfig : swappingInstances.get(0);
-    InstanceConfig swapInInstanceConfig = instanceConfig.getInstanceOperation()
+    InstanceConfig swapInInstanceConfig = instanceConfig.getInstanceOperation().getOperation()
         .equals(InstanceConstants.InstanceOperation.SWAP_IN) ? instanceConfig
         : swappingInstances.get(0);
     if (swapOutInstanceConfig == null || swapInInstanceConfig == null) {
@@ -816,7 +814,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (!instanceHasFullAutoCurrentStateOrMessage(clusterName, instanceName)) {
       InstanceConfig config = getInstanceConfig(clusterName, instanceName);
       return config != null && INSTANCE_OPERATION_TO_EXCLUDE_FROM_ASSIGNMENT.contains(
-          config.getInstanceOperation());
+          config.getInstanceOperation().getOperation());
     }
     return false;
   }
@@ -2445,19 +2443,12 @@ public class ZKHelixAdmin implements HelixAdmin {
         }
 
         InstanceConfig config = new InstanceConfig(currentData);
-        config.setInstanceEnabled(enabled);
-        if (!enabled) {
-          // new non-serving reason will overwrite existing one.
-          config.resetInstanceNonServingReason();
-          // new disabled type and reason will overwrite existing ones.
-          config.resetInstanceDisabledTypeAndReason();
-          if (reason != null) {
-            config.setInstanceNonServingReason(reason);
-          }
-          if (disabledType != null) {
-            config.setInstanceDisabledType(disabledType);
-          }
-        }
+        config.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            enabled ? InstanceConstants.InstanceOperation.ENABLE
+                : InstanceConstants.InstanceOperation.DISABLE).setReason(reason).setTrigger(
+            disabledType != null
+                ? InstanceConstants.InstanceOperationTrigger.instanceDisabledTypeToInstanceOperationTrigger(
+                disabledType) : null).build());
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);

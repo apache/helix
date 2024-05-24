@@ -285,18 +285,12 @@ public class MockHelixAdmin implements HelixAdmin {
 
     ZNRecord record = (ZNRecord) _baseDataAccessor.get(instanceConfigPath, null, 0);
     InstanceConfig instanceConfig = new InstanceConfig(record);
-    instanceConfig.setInstanceOperation(enabled ? InstanceConstants.InstanceOperation.ENABLE
-        : InstanceConstants.InstanceOperation.DISABLE);
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            enabled ? InstanceConstants.InstanceOperation.ENABLE
+                : InstanceConstants.InstanceOperation.DISABLE).setReason(reason).build());
     if (!enabled) {
-      instanceConfig.resetInstanceNonServingReason();
       // TODO: Replace this when the HELIX_ENABLED and HELIX_DISABLED fields are removed.
       instanceConfig.resetInstanceDisabledTypeAndReason();
-      if (reason != null) {
-        instanceConfig.setInstanceNonServingReason(reason);
-      }
-      if (disabledType != null) {
-        instanceConfig.setInstanceDisabledType(disabledType);
-      }
     }
     _baseDataAccessor.set(instanceConfigPath, instanceConfig.getRecord(), 0);
   }
@@ -314,7 +308,7 @@ public class MockHelixAdmin implements HelixAdmin {
 
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
-      InstanceConstants.InstanceOperation instanceOperation, String reason) {
+      InstanceConfig.InstanceOperation instanceOperation) {
   }
 
   @Override

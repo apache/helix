@@ -272,17 +272,9 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     long numOfPartitionWithTopState = 0;
 
     Set<String> partitions = idealState.getPartitionSet();
-    int replica;
-    try {
-      replica = Integer.valueOf(idealState.getReplicas());
-    } catch (NumberFormatException e) {
-      _logger.info("Unspecified replica count for {}, skip updating the ResourceMonitor Mbean: {}", _resourceName,
-          idealState.getReplicas());
-      return;
-    } catch (Exception ex) {
-      _logger.warn("Failed to get replica count for {}, cannot update the ResourceMonitor Mbean.", _resourceName);
-      return;
-    }
+
+    // returns -1 when replica is set to ANY_LIVEINSTANCE.
+    int replica = idealState.getReplicaCount(-1);
 
     int minActiveReplica = idealState.getMinActiveReplicas();
     minActiveReplica = (minActiveReplica >= 0) ? minActiveReplica : replica;

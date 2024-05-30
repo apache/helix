@@ -37,6 +37,7 @@ import javax.management.ReflectionException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
@@ -220,6 +221,26 @@ public class TestResourceMonitor {
       monitor.setRebalanceState(ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED);
       Assert.assertEquals(monitor.getRebalanceState(),
           ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED.name());
+
+      // test when replica is set to ANY_LIVEINSTANCE and all instances are taken offline.
+      idealState.setReplicas(ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.name());
+
+      for (int i = 0; i < _partitions; i++) {
+        String partition = _dbName + "_" + i;
+        Map<String, String> externalViewStateMap = externalView.getStateMap(partition);
+        for (String key : externalViewStateMap.keySet()) {
+          if (externalViewStateMap.get(key).equalsIgnoreCase("MASTER")) {
+            externalViewStateMap.put(key, "OFFLINE");
+          }
+        }
+        externalView.setStateMap(partition, externalViewStateMap);
+      }
+
+      monitor.updateResourceState(externalView, idealState, stateModelDef);
+
+      Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), _partitions);
+      Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), 0);
+      Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     } finally {
       // Has to unregister this monitor to clean up. Otherwise, later tests may be affected and fail.
       monitor.unregister();

@@ -59,7 +59,6 @@ import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -214,15 +213,16 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
     do {
       retry = false;
       try {
-        org.apache.zookeeper.data.Stat stat = new org.apache.zookeeper.data.Stat();
-        T oldData = _zkClient.readData(key, stat);
+        ImmutablePair<T, Stat> tup = getDataAndStat(key);
+        Stat stat = tup.right;
+        T oldData = tup.left;
         T newData = updater.update(oldData);
         set(key, newData, stat.getVersion());
         updatedData = newData;
       } catch (MetaClientBadVersionException badVersionException) {
         // Retry on bad version
         retry = true;
-      } catch (ZkNoNodeException noNodeException) {
+      } catch (MetaClientNoNodeException noNodeException) {
         // If node does not exist, attempt to create it - pass null to updater
         T newData = updater.update(null);
         if (newData != null) {

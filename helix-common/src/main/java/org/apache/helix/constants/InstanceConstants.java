@@ -2,6 +2,8 @@ package org.apache.helix.constants;
 
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
+
 public class InstanceConstants {
   public static final String INSTANCE_NOT_DISABLED = "INSTANCE_NOT_DISABLED";
 
@@ -9,7 +11,7 @@ public class InstanceConstants {
    * The set contains the InstanceOperations that are allowed to be assigned replicas by the rebalancer.
    */
   public static final Set<InstanceOperation> ASSIGNABLE_INSTANCE_OPERATIONS =
-      Set.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE);
+      ImmutableSet.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE);
 
 
   /**
@@ -18,14 +20,14 @@ public class InstanceConstants {
    * TODO: Remove this when the deprecated HELIX_ENABLED is removed.
    */
   public static final Set<InstanceOperation> INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS =
-      Set.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE, InstanceOperation.EVACUATE);
+      ImmutableSet.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE, InstanceOperation.EVACUATE);
 
 
   /**
    * The set of InstanceOperations that are not allowed to be populated in the RoutingTableProvider.
    */
   public static final Set<InstanceOperation> UNSERVABLE_INSTANCE_OPERATIONS =
-      Set.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
+      ImmutableSet.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
 
   public enum InstanceDisabledType {
     CLOUD_EVENT,

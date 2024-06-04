@@ -29,13 +29,6 @@ public class InstanceConstants {
   public static final Set<InstanceOperation> UNROUTABLE_INSTANCE_OPERATIONS =
       Set.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
 
-  /**
-   * The set of InstanceOperations that are not considered to be servable.
-   * These InstanceOperations will no allow any online replicas be hosted.
-   */
-  public static final Set<InstanceOperation> NON_SERVABLE_INSTANCE_OPERATIONS =
-      Set.of(InstanceOperation.DISABLE, InstanceOperation.UNKNOWN);
-
   @Deprecated
   public enum InstanceDisabledType {
     CLOUD_EVENT,

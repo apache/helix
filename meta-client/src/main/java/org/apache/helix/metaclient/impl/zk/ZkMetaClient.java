@@ -208,10 +208,18 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public T update(String key, DataUpdater<T> updater) {
+    return update(key, updater, false);
+  }
+
+  @Override
+  public T update(String key, DataUpdater<T> updater, boolean retryOnFailure) {
+    final int MAX_RETRY_ATTEMPTS = 3;
+    int retryAttempts = 0;
     boolean retry;
     T updatedData = null;
     do {
       retry = false;
+      retryAttempts++;
       try {
         ImmutablePair<T, Stat> tup = getDataAndStat(key);
         Stat stat = tup.right;
@@ -220,6 +228,11 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
         set(key, newData, stat.getVersion());
         updatedData = newData;
       } catch (MetaClientBadVersionException badVersionException) {
+        // If exceeded max retry attempts, re-throw exception
+        if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+          LOG.error("Failed to update node at " + key + " after " + MAX_RETRY_ATTEMPTS + " attempts.");
+          throw badVersionException;
+        }
         // Retry on bad version
         retry = true;
       } catch (MetaClientNoNodeException noNodeException) {
@@ -230,6 +243,11 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
             create(key, newData);
             updatedData = newData;
           } catch (MetaClientNodeExistsException nodeExistsException) {
+            // If exceeded max retry attempts, re-throw exception
+            if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+              LOG.error("Failed to update node at " + key + " after " + MAX_RETRY_ATTEMPTS + " attempts.");
+              throw nodeExistsException;
+            }
             // If node now exists, then retry update
             retry = true;
           } catch (ZkException e) {
@@ -237,7 +255,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
           }
         }
       }
-    } while (retry);
+    } while (retryOnFailure && retry);
     return updatedData;
   }
 

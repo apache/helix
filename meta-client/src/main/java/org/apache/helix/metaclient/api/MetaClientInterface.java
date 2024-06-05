@@ -196,12 +196,24 @@ public interface MetaClientInterface<T> {
 
   /**
    * Update existing data of a given key using an updater. This method will issue a read to get
-   * current data and apply updater upon the current data.
+   * current data and apply updater upon the current data. This method will NOT retry applying updated
+   * data upon failure.
    * @param key key to identify the entry
    * @param updater An updater that modifies the entry value.
    * @return the updated value.
    */
   T update(final String key, DataUpdater<T> updater);
+
+
+  /**
+   * Update existing data of a given key using an updater. This method will issue a read to get
+   * current data and apply updater upon the current data.
+   * @param key key to identify the entry
+   * @param updater An updater that modifies the entry value.
+   * @param retryOnFailure If true, updater should retry applying updated data upon failure.
+   * @return the updated value.
+   */
+  T update(final String key, DataUpdater<T> updater, boolean retryOnFailure);
 
   /**
    * Check if there is an entry for the given key.

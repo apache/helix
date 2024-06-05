@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -303,12 +305,20 @@ public class MockHelixAdmin implements HelixAdmin {
 
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
-      InstanceConstants.InstanceOperation instanceOperation) {
+      @Nullable InstanceConstants.InstanceOperation instanceOperation) {
+    setInstanceOperation(clusterName, instanceName, instanceOperation, null, false);
   }
 
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
-      InstanceConfig.InstanceOperation instanceOperation) {
+      @Nullable InstanceConstants.InstanceOperation instanceOperation, String reason) {
+    setInstanceOperation(clusterName, instanceName, instanceOperation, reason, false);
+  }
+
+  @Override
+  public void setInstanceOperation(String clusterName, String instanceName,
+      @Nullable InstanceConstants.InstanceOperation instanceOperation, String reason,
+      boolean overrideAll) {
   }
 
   @Override

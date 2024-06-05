@@ -36,8 +36,8 @@ public class InstanceConstants {
     DEFAULT_INSTANCE_DISABLE_TYPE
   }
 
-  public enum InstanceOperationTrigger {
-    CLOUD, USER, DEFAULT;
+  public enum InstanceOperationSource {
+    AUTOMATION, ADMIN, USER;
 
     /**
      * Convert from InstanceOperationTrigger to DisabledType
@@ -45,13 +45,11 @@ public class InstanceConstants {
      * @param trigger InstanceOperationTrigger
      * @return InstanceDisabledType
      */
-    public static InstanceDisabledType instanceOperationTriggerToInstanceDisabledType(
-        InstanceOperationTrigger trigger) {
+    public static InstanceDisabledType instanceOperationSourceToInstanceDisabledType(
+        InstanceOperationSource trigger) {
       switch (trigger) {
-        case CLOUD:
+        case AUTOMATION:
           return InstanceDisabledType.CLOUD_EVENT;
-        case USER:
-          return InstanceDisabledType.USER_OPERATION;
         default:
           return InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE;
       }
@@ -63,15 +61,13 @@ public class InstanceConstants {
      * @param disabledType InstanceDisabledType
      * @return InstanceOperationTrigger
      */
-    public static InstanceOperationTrigger instanceDisabledTypeToInstanceOperationTrigger(
+    public static InstanceOperationSource instanceDisabledTypeToInstanceOperationSource(
         InstanceDisabledType disabledType) {
       switch (disabledType) {
         case CLOUD_EVENT:
-          return InstanceOperationTrigger.CLOUD;
-        case USER_OPERATION:
-          return InstanceOperationTrigger.USER;
+          return InstanceOperationSource.AUTOMATION;
         default:
-          return InstanceOperationTrigger.DEFAULT;
+          return InstanceOperationSource.USER;
       }
     }
   }

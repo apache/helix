@@ -24,6 +24,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.util.InstanceUtil;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,11 +51,14 @@ public class DefaultCloudEventCallbackImpl {
     LOG.info("DefaultCloudEventCallbackImpl disable Instance {}", manager.getInstanceName());
     if (InstanceValidationUtil
         .isEnabled(manager.getHelixDataAccessor(), manager.getInstanceName())) {
-      manager.getClusterManagmentTool()
+      InstanceUtil instanceUtil = new InstanceUtil(manager.getConfigAccessor(),
+          manager.getHelixDataAccessor().getBaseDataAccessor());
+      instanceUtil
           .setInstanceOperation(manager.getClusterName(), manager.getInstanceName(),
               new InstanceConfig.InstanceOperation.Builder().setOperation(
                       InstanceConstants.InstanceOperation.DISABLE)
-                  .setTrigger(InstanceConstants.InstanceOperationTrigger.CLOUD).setReason(message)
+                  .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION)
+                  .setReason(message)
                   .build());
     }
     HelixEventHandlingUtil.updateCloudEventOperationInClusterConfig(manager.getClusterName(),
@@ -76,11 +80,13 @@ public class DefaultCloudEventCallbackImpl {
     HelixEventHandlingUtil
         .updateCloudEventOperationInClusterConfig(manager.getClusterName(), instanceName,
             manager.getHelixDataAccessor().getBaseDataAccessor(), true, message);
-    manager.getClusterManagmentTool()
+    InstanceUtil instanceUtil = new InstanceUtil(manager.getConfigAccessor(),
+        manager.getHelixDataAccessor().getBaseDataAccessor());
+    instanceUtil
         .setInstanceOperation(manager.getClusterName(), manager.getInstanceName(),
             new InstanceConfig.InstanceOperation.Builder().setOperation(
                     InstanceConstants.InstanceOperation.ENABLE)
-                .setTrigger(InstanceConstants.InstanceOperationTrigger.CLOUD).setReason(message)
+                .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).setReason(message)
                 .build());
   }
 

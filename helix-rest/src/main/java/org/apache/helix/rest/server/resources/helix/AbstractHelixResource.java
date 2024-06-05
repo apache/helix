@@ -31,6 +31,7 @@ import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.util.InstanceUtil;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
@@ -56,6 +57,11 @@ public class AbstractHelixResource extends AbstractResource {
   public HelixAdmin getHelixAdmin() {
     ServerContext serverContext = getServerContext();
     return serverContext.getHelixAdmin();
+  }
+
+  public InstanceUtil getInstanceUtil() {
+    ServerContext serverContext = getServerContext();
+    return serverContext.getInstanceUtil();
   }
 
   public ClusterSetup getClusterSetup() {

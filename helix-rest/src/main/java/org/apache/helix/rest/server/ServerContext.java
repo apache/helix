@@ -38,6 +38,7 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.util.InstanceUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
@@ -68,6 +69,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private volatile RealmAwareZkClient _byteArrayZkClient;
 
   private volatile ZKHelixAdmin _zkHelixAdmin;
+  private volatile InstanceUtil _instanceUtil;
   private volatile ClusterSetup _clusterSetup;
   private volatile ConfigAccessor _configAccessor;
   // A lazily-initialized base data accessor that reads/writes byte array to ZK
@@ -212,6 +214,17 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
       }
     }
     return _zkHelixAdmin;
+  }
+
+  public InstanceUtil getInstanceUtil() {
+    if (_instanceUtil == null) {
+      synchronized (this) {
+        if (_instanceUtil == null) {
+          _instanceUtil = new InstanceUtil(getRealmAwareZkClient());
+        }
+      }
+    }
+    return _instanceUtil;
   }
 
   public ClusterSetup getClusterSetup() {

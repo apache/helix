@@ -373,8 +373,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     // Set instance operation to DISABLE
     tool.setInstanceOperation(clusterName, instanceName,
-        new InstanceConfig.InstanceOperation.Builder().setOperation(
-            InstanceConstants.InstanceOperation.DISABLE).setReason("disableReason").build());
+        InstanceConstants.InstanceOperation.DISABLE, "disableReason");
     Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation()
             .getOperation(),
         InstanceConstants.InstanceOperation.DISABLE);
@@ -383,9 +382,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         "disableReason");
 
     // Set instance operation to ENABLE
-    tool.setInstanceOperation(clusterName, instanceName,
-        new InstanceConfig.InstanceOperation.Builder().setOperation(
-            InstanceConstants.InstanceOperation.ENABLE).setReason("enableReason").build());
+    tool.setInstanceOperation(clusterName, instanceName, InstanceConstants.InstanceOperation.ENABLE,
+        "enableReason");
     Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation()
             .getOperation(),
         InstanceConstants.InstanceOperation.ENABLE);
@@ -395,8 +393,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     // Set instance operation to UNKNOWN
     tool.setInstanceOperation(clusterName, instanceName,
-        new InstanceConfig.InstanceOperation.Builder().setOperation(
-            InstanceConstants.InstanceOperation.UNKNOWN).setReason("unknownReason").build());
+        InstanceConstants.InstanceOperation.UNKNOWN, "unknownReason");
     Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceOperation()
             .getOperation(),
         InstanceConstants.InstanceOperation.UNKNOWN);

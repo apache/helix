@@ -68,7 +68,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ClusterStatus;
-import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
@@ -88,11 +87,11 @@ import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.util.InstanceUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -127,6 +126,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   // true if ZKHelixAdmin was instantiated with a RealmAwareZkClient, false otherwise
   // This is used for close() to determine how ZKHelixAdmin should close the underlying ZkClient
   private final boolean _usesExternalZkClient;
+  private final InstanceUtil _instanceUtil;
 
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
@@ -142,6 +142,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(zkClient);
     _usesExternalZkClient = true;
+    _instanceUtil = new InstanceUtil(zkClient);
   }
 
   /**
@@ -182,12 +183,14 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
     _usesExternalZkClient = false;
+    _instanceUtil = new InstanceUtil(_zkClient);
   }
 
   private ZKHelixAdmin(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
     _usesExternalZkClient = usesExternalZkClient;
+    _instanceUtil = new InstanceUtil(_zkClient);
   }
 
   @Override
@@ -205,7 +208,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> matchingLogicalIdInstances =
-        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+        _instanceUtil.findInstancesMatchingLogicalId(clusterName, instanceConfig);
     if (matchingLogicalIdInstances.size() > 1) {
       throw new HelixException(
           "There are already more than one instance with the same logicalId in the cluster: "
@@ -217,10 +220,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     InstanceConstants.InstanceOperation attemptedInstanceOperation =
         instanceConfig.getInstanceOperation().getOperation();
     try {
-      validateInstanceOperationTransition(instanceConfig,
+      InstanceUtil.validateInstanceOperationTransition(
           !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
-          InstanceConstants.InstanceOperation.UNKNOWN,
-          attemptedInstanceOperation, clusterName);
+          InstanceConstants.InstanceOperation.UNKNOWN, attemptedInstanceOperation);
     } catch (HelixException e) {
       instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
       logger.error("Failed to add instance " + instanceConfig.getInstanceName() + " to cluster "
@@ -410,62 +412,6 @@ public class ZKHelixAdmin implements HelixAdmin {
     //enableInstance(clusterName, instances, enabled, null, null);
   }
 
-  private void validateInstanceOperationTransition(InstanceConfig instanceConfig,
-      InstanceConfig matchingLogicalIdInstance,
-      InstanceConstants.InstanceOperation currentOperation,
-      InstanceConstants.InstanceOperation targetOperation,
-      String clusterName) {
-    boolean targetStateEnableOrDisable =
-        targetOperation.equals(InstanceConstants.InstanceOperation.ENABLE)
-            || targetOperation.equals(InstanceConstants.InstanceOperation.DISABLE);
-    switch (currentOperation) {
-      case ENABLE:
-      case DISABLE:
-        // ENABLE or DISABLE can be set to ENABLE, DISABLE, or EVACUATE at any time.
-        if (ImmutableSet.of(InstanceConstants.InstanceOperation.ENABLE,
-            InstanceConstants.InstanceOperation.DISABLE,
-            InstanceConstants.InstanceOperation.EVACUATE).contains(targetOperation)) {
-          return;
-        }
-      case SWAP_IN:
-        // We can only ENABLE or DISABLE a SWAP_IN instance if there is an instance with matching logicalId
-        // with an InstanceOperation set to UNKNOWN.
-        if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
-            || matchingLogicalIdInstance.getInstanceOperation().getOperation()
-            .equals(InstanceConstants.InstanceOperation.UNKNOWN))) || targetOperation.equals(
-            InstanceConstants.InstanceOperation.UNKNOWN)) {
-          return;
-        }
-      case EVACUATE:
-        // EVACUATE can only be set to ENABLE or DISABLE when there is no instance with the same
-        // logicalId in the cluster.
-        if ((targetStateEnableOrDisable && matchingLogicalIdInstance == null)
-            || targetOperation.equals(InstanceConstants.InstanceOperation.UNKNOWN)) {
-          return;
-        }
-      case UNKNOWN:
-        // UNKNOWN can be set to ENABLE or DISABLE when there is no instance with the same logicalId in the cluster
-        // or the instance with the same logicalId in the cluster has InstanceOperation set to EVACUATE.
-        // UNKNOWN can be set to SWAP_IN when there is an instance with the same logicalId in the cluster set to ENABLE,
-        // or DISABLE.
-        if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
-            || matchingLogicalIdInstance.getInstanceOperation().getOperation()
-            .equals(InstanceConstants.InstanceOperation.EVACUATE)))) {
-          return;
-        } else if (targetOperation.equals(InstanceConstants.InstanceOperation.SWAP_IN)
-            && matchingLogicalIdInstance != null && !ImmutableSet.of(
-                InstanceConstants.InstanceOperation.UNKNOWN,
-                InstanceConstants.InstanceOperation.EVACUATE)
-            .contains(matchingLogicalIdInstance.getInstanceOperation().getOperation())) {
-          return;
-        }
-      default:
-        throw new HelixException(
-            "InstanceOperation cannot be set to " + targetOperation + " when the instance is in "
-                + currentOperation + " state");
-    }
-  }
-
   /**
    * Set the InstanceOperation of an instance in the cluster.
    *
@@ -476,55 +422,44 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
       @Nullable InstanceConstants.InstanceOperation instanceOperation) {
-    setInstanceOperation(clusterName, instanceName,
-        new InstanceConfig.InstanceOperation.Builder().setOperation(instanceOperation).build());
+    setInstanceOperation(clusterName, instanceName, instanceOperation, null, false);
   }
 
   /**
-   * Set the InstanceOperation of an instance in the cluster.
+   * Set the instanceOperation of and instance with {@link InstanceConstants.InstanceOperation}.
    *
    * @param clusterName       The cluster name
    * @param instanceName      The instance name
-   * @param instanceOperation The instance operation (only works with
+   * @param instanceOperation The instance operation type
+   * @param reason            The reason for the operation
    */
   @Override
   public void setInstanceOperation(String clusterName, String instanceName,
-      @Nullable InstanceConfig.InstanceOperation instanceOperation) {
+      @Nullable InstanceConstants.InstanceOperation instanceOperation, String reason) {
+    setInstanceOperation(clusterName, instanceName, instanceOperation, reason, false);
+  }
 
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-    String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
-
-    InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
-    if (instanceConfig == null) {
-      throw new HelixException("Cluster " + clusterName + ", instance: " + instanceName
-          + ", instance config does not exist");
-    }
-    List<InstanceConfig> matchingLogicalIdInstances =
-        findInstancesMatchingLogicalId(clusterName, instanceConfig);
-    validateInstanceOperationTransition(instanceConfig,
-        !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
-        instanceConfig.getInstanceOperation().getOperation(),
-        instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE
-            : instanceOperation.getOperation(), clusterName);
-
-    boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        if (currentData == null) {
-          throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
-              + ", participant config is null");
-        }
-
-        InstanceConfig config = new InstanceConfig(currentData);
-        config.setInstanceOperation(instanceOperation);
-        return config.getRecord();
-      }
-    }, AccessOption.PERSISTENT);
-
-    if (!succeeded) {
-      throw new HelixException(
-          "Failed to update instance operation. Please check if instance is disabled.");
-    }
+  /**
+   * Set the instanceOperation of and instance with {@link InstanceConstants.InstanceOperation}.
+   *
+   * @param clusterName       The cluster name
+   * @param instanceName      The instance name
+   * @param instanceOperation The instance operation type
+   * @param reason            The reason for the operation
+   * @param overrideAll       Whether to override all existing instance operations from all other
+   *                          instance operations
+   */
+  @Override
+  public void setInstanceOperation(String clusterName, String instanceName,
+      @Nullable InstanceConstants.InstanceOperation instanceOperation, String reason,
+      boolean overrideAll) {
+    InstanceConfig.InstanceOperation instanceOperationObj =
+        new InstanceConfig.InstanceOperation.Builder().setOperation(
+            instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE
+                : instanceOperation).setReason(reason).setSource(
+            overrideAll ? InstanceConstants.InstanceOperationSource.ADMIN
+                : InstanceConstants.InstanceOperationSource.USER).build();
+    _instanceUtil.setInstanceOperation(clusterName, instanceName, instanceOperationObj);
   }
 
   @Override
@@ -535,29 +470,6 @@ public class ZKHelixAdmin implements HelixAdmin {
           .equals(InstanceConstants.InstanceOperation.EVACUATE);
     }
     return false;
-  }
-
-  /**
-   * Find the instance that the passed instance has a matching logicalId with.
-   *
-   * @param clusterName    The cluster name
-   * @param instanceConfig The instance to find the matching instance for
-   * @return The matching instance if found, null otherwise.
-   */
-  private List<InstanceConfig> findInstancesMatchingLogicalId(String clusterName,
-      InstanceConfig instanceConfig) {
-    String logicalIdKey =
-        ClusterTopologyConfig.createFromClusterConfig(_configAccessor.getClusterConfig(clusterName))
-            .getEndNodeType();
-    return getConfigKeys(
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT,
-            clusterName).build()).stream()
-        .map(instanceName -> getInstanceConfig(clusterName, instanceName)).filter(
-            potentialInstanceConfig ->
-                !potentialInstanceConfig.getInstanceName().equals(instanceConfig.getInstanceName())
-                    && potentialInstanceConfig.getLogicalId(logicalIdKey)
-                    .equals(instanceConfig.getLogicalId(logicalIdKey)))
-        .collect(Collectors.toList());
   }
 
   /**
@@ -709,7 +621,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> swappingInstances =
-        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+        _instanceUtil.findInstancesMatchingLogicalId(clusterName, instanceConfig);
     if (swappingInstances.size() != 1) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
@@ -747,7 +659,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> swappingInstances =
-        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+        _instanceUtil.findInstancesMatchingLogicalId(clusterName, instanceConfig);
     if (swappingInstances.size() != 1) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
@@ -2445,9 +2357,9 @@ public class ZKHelixAdmin implements HelixAdmin {
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
             enabled ? InstanceConstants.InstanceOperation.ENABLE
-                : InstanceConstants.InstanceOperation.DISABLE).setReason(reason).setTrigger(
+                : InstanceConstants.InstanceOperation.DISABLE).setReason(reason).setSource(
             disabledType != null
-                ? InstanceConstants.InstanceOperationTrigger.instanceDisabledTypeToInstanceOperationTrigger(
+                ? InstanceConstants.InstanceOperationSource.instanceDisabledTypeToInstanceOperationSource(
                 disabledType) : null).build());
         return config.getRecord();
       }

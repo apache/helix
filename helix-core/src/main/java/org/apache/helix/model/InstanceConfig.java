@@ -67,16 +67,14 @@ public class InstanceConfig extends HelixProperty {
     DELAY_REBALANCE_ENABLED,
     MAX_CONCURRENT_TASK,
     INSTANCE_INFO_MAP,
-    INSTANCE_CAPACITY_MAP,
-    TARGET_TASK_THREAD_POOL_SIZE,
-    HELIX_INSTANCE_OPERATION_MAP
+    INSTANCE_CAPACITY_MAP, TARGET_TASK_THREAD_POOL_SIZE, HELIX_INSTANCE_OPERATIONS
   }
 
   public static class InstanceOperation {
     private final Map<String, String> _properties;
 
     private enum InstanceOperationProperties {
-      OPERATION, REASON, TRIGGER, TIMESTAMP
+      OPERATION, REASON, SOURCE, TIMESTAMP
     }
 
     private InstanceOperation(@Nullable Map<String, String> properties) {
@@ -112,13 +110,14 @@ public class InstanceConfig extends HelixProperty {
       }
 
       /**
-       * Set the trigger for this instance operation.
-       * @param trigger InstanceOperationTrigger that caused this instance operation to be triggered.
+       * Set the source for this instance operation.
+       * @param source InstanceOperationSource
+       *              that caused this instance operation to be triggered.
        */
-      public Builder setTrigger(InstanceConstants.InstanceOperationTrigger trigger) {
-        _properties.put(InstanceOperationProperties.TRIGGER.name(),
-            trigger == null ? InstanceConstants.InstanceOperationTrigger.DEFAULT.name()
-                : trigger.name());
+      public Builder setSource(InstanceConstants.InstanceOperationSource source) {
+        _properties.put(InstanceOperationProperties.SOURCE.name(),
+            source == null ? InstanceConstants.InstanceOperationSource.USER.name()
+                : source.name());
         return this;
       }
 
@@ -153,15 +152,17 @@ public class InstanceConfig extends HelixProperty {
     }
 
     /**
-     * Get the InstanceOperationTrigger that caused this instance operation to be triggered.
-     * If the trigger is not set, it will default to DEFAULT.
+     * Get the InstanceOperationSource
+     * that caused this instance operation to be triggered.
+     * If the source is not set, it will default to DEFAULT.
      *
-     * @return the InstanceOperationTrigger that caused this instance operation to be triggered.
+     * @return the InstanceOperationSource
+     *that caused this instance operation to be triggered.
      */
-    public InstanceConstants.InstanceOperationTrigger getTrigger() {
-      return InstanceConstants.InstanceOperationTrigger.valueOf(
-          _properties.getOrDefault(InstanceOperationProperties.TRIGGER.name(),
-              InstanceConstants.InstanceOperationTrigger.DEFAULT.name()));
+    public InstanceConstants.InstanceOperationSource getSource() {
+      return InstanceConstants.InstanceOperationSource.valueOf(
+          _properties.getOrDefault(InstanceOperationProperties.SOURCE.name(),
+              InstanceConstants.InstanceOperationSource.USER.name()));
     }
 
     /**
@@ -198,8 +199,7 @@ public class InstanceConfig extends HelixProperty {
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
-  private Map<InstanceConstants.InstanceOperationTrigger, InstanceOperation>
-      _deserializedInstanceOperationMap;
+  private List<InstanceOperation> _deserializedInstanceOperations;
 
   /**
    * Instantiate for a specific instance
@@ -437,7 +437,8 @@ public class InstanceConfig extends HelixProperty {
    * Set the instance disabled type when instance is disabled.
    * It will be a no-op when instance is enabled.
    * @deprecated This method is deprecated. Please use setInstanceOperation along with
-   * InstanceOperation.Builder().setTrigger(...)
+   * InstanceOperation.Builder().setSource
+   *(...)
    */
   @Deprecated
   public void setInstanceDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
@@ -461,7 +462,8 @@ public class InstanceConfig extends HelixProperty {
    *
    * @return Return instance disabled type (org.apache.helix.constants.InstanceConstants.InstanceDisabledType)
    *         Default is am empty string.
-   * @deprecated This method is deprecated. Please use getInstanceOperation().getTrigger() instead.
+   * @deprecated This method is deprecated. Please use getInstanceOperation().getSource
+   *() instead.
    */
   @Deprecated
   public String getInstanceDisabledType() {
@@ -473,34 +475,30 @@ public class InstanceConfig extends HelixProperty {
         InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
   }
 
-  private Map<InstanceConstants.InstanceOperationTrigger, InstanceOperation> getInstanceOperationsMap() {
-    if (_deserializedInstanceOperationMap == null || _deserializedInstanceOperationMap.isEmpty()) {
+  private List<InstanceOperation> getInstanceOperations() {
+    if (_deserializedInstanceOperations == null || _deserializedInstanceOperations.isEmpty()) {
       // If the _deserializedInstanceOperationMap is not set, then we need to build it from the real
       // helix property HELIX_INSTANCE_OPERATION_MAP.
-      Map<String, String> instanceOperationMap =
-          _record.getMapField(InstanceConfigProperty.HELIX_INSTANCE_OPERATION_MAP.name());
-      Map<InstanceConstants.InstanceOperationTrigger, InstanceOperation>
-          newDeserializedInstanceOperationMap = new HashMap<>();
-      if (instanceOperationMap != null) {
-        for (String triggerString : instanceOperationMap.keySet()) {
+      List<String> instanceOperations =
+          _record.getListField(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name());
+      List<InstanceOperation> newDeserializedInstanceOperations = new ArrayList<>();
+      if (instanceOperations != null) {
+        for (String serializedInstanceOperation : instanceOperations) {
           try {
-            Map<String, String> properties =
-                _objectMapper.readValue(instanceOperationMap.get(triggerString),
+            Map<String, String> properties = _objectMapper.readValue(serializedInstanceOperation,
                     new TypeReference<Map<String, String>>() {
                     });
-            newDeserializedInstanceOperationMap.put(
-                InstanceConstants.InstanceOperationTrigger.valueOf(triggerString),
-                new InstanceOperation(properties));
+            newDeserializedInstanceOperations.add(new InstanceOperation(properties));
           } catch (JsonProcessingException e) {
             _logger.error(
                 "Failed to deserialize instance operation for instance: " + _record.getId(), e);
           }
         }
       }
-      _deserializedInstanceOperationMap = newDeserializedInstanceOperationMap;
+      _deserializedInstanceOperations = newDeserializedInstanceOperations;
     }
 
-    return _deserializedInstanceOperationMap;
+    return _deserializedInstanceOperations;
   }
 
   /**
@@ -511,25 +509,29 @@ public class InstanceConfig extends HelixProperty {
    * @param operation the instance operation
    */
   public void setInstanceOperation(InstanceOperation operation) {
-    Map<String, String> instanceOperationMap =
-        _record.getMapField(InstanceConfigProperty.HELIX_INSTANCE_OPERATION_MAP.name());
-    if (instanceOperationMap == null) {
-      instanceOperationMap = new HashMap<>();
-      _record.setMapField(InstanceConfigProperty.HELIX_INSTANCE_OPERATION_MAP.name(),
-          instanceOperationMap);
-    }
+    List<InstanceOperation> deserializedInstanceOperations = getInstanceOperations();
 
-    try {
-      instanceOperationMap.put(operation.getTrigger().name(),
-          _objectMapper.writeValueAsString(operation.getProperties()));
-      Map<InstanceConstants.InstanceOperationTrigger, InstanceOperation>
-          deserializedInstanceOperationsMap = getInstanceOperationsMap();
-      deserializedInstanceOperationsMap.put(operation.getTrigger(), operation);
-    } catch (JsonProcessingException e) {
-      throw new HelixException(
-          "Failed to serialize instance operation for instance: " + _record.getId()
-              + " Can't set the instance operation to: " + operation.getOperation(), e);
+    if (operation.getSource() == InstanceConstants.InstanceOperationSource.ADMIN) {
+      deserializedInstanceOperations.clear();
+    } else {
+      // Remove the instance operation with the same trigger if it exists.
+      deserializedInstanceOperations.removeIf(
+          instanceOperation -> instanceOperation.getSource() == operation.getSource());
     }
+    if (operation.getOperation() != InstanceConstants.InstanceOperation.ENABLE) {
+      deserializedInstanceOperations.add(operation);
+    }
+    // Set the actual field in the ZnRecord
+    _record.setListField(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name(),
+        deserializedInstanceOperations.stream().map(instanceOperation -> {
+          try {
+            return _objectMapper.writeValueAsString(instanceOperation.getProperties());
+          } catch (JsonProcessingException e) {
+            throw new HelixException(
+                "Failed to serialize instance operation for instance: " + _record.getId()
+                    + " Can't set the instance operation to: " + operation.getOperation(), e);
+          }
+        }).collect(Collectors.toList()));
 
     // TODO: Remove this when we are sure that all users are using the new InstanceOperation only and HELIX_ENABLED is removed.
     if (operation.getOperation() == InstanceConstants.InstanceOperation.DISABLE) {
@@ -545,13 +547,13 @@ public class InstanceConfig extends HelixProperty {
       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(),
           operation.getReason());
       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
-          InstanceConstants.InstanceOperationTrigger.instanceOperationTriggerToInstanceDisabledType(
-              operation.getTrigger()).name());
+          InstanceConstants.InstanceOperationSource.instanceOperationSourceToInstanceDisabledType(
+              operation.getSource()).name());
     } else if (operation.getOperation() == InstanceConstants.InstanceOperation.ENABLE) {
       // If any of the other InstanceOperations are of type DISABLE, set that in the HELIX_ENABLED,
       // HELIX_DISABLED_REASON, and HELIX_DISABLED_TYPE fields.
       InstanceOperation latestDisableInstanceOperation = null;
-      for (InstanceOperation instanceOperation : getInstanceOperationsMap().values()) {
+      for (InstanceOperation instanceOperation : getInstanceOperations()) {
         if (instanceOperation.getOperation() == InstanceConstants.InstanceOperation.DISABLE && (
             latestDisableInstanceOperation == null || instanceOperation.getTimestamp()
                 > latestDisableInstanceOperation.getTimestamp())) {
@@ -563,8 +565,8 @@ public class InstanceConfig extends HelixProperty {
         _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(),
             latestDisableInstanceOperation.getReason());
         _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
-            InstanceConstants.InstanceOperationTrigger.instanceOperationTriggerToInstanceDisabledType(
-                latestDisableInstanceOperation.getTrigger()).name());
+            InstanceConstants.InstanceOperationSource.instanceOperationSourceToInstanceDisabledType(
+                latestDisableInstanceOperation.getSource()).name());
       } else {
         setInstanceEnabledHelper(true, operation.getTimestamp());
       }
@@ -596,30 +598,19 @@ public class InstanceConfig extends HelixProperty {
   }
 
   private InstanceOperation getActiveInstanceOperation() {
-    Map<InstanceConstants.InstanceOperationTrigger, InstanceOperation> instanceOperationMap =
-        getInstanceOperationsMap();
+    List<InstanceOperation> instanceOperationMap = getInstanceOperations();
 
-    InstanceOperation latestInstanceOperation =
-        new InstanceOperation.Builder().setOperation(InstanceConstants.InstanceOperation.ENABLE)
-            .setTrigger(InstanceConstants.InstanceOperationTrigger.DEFAULT).build();
-    latestInstanceOperation.setTimestamp(HELIX_ENABLED_TIMESTAMP_DEFAULT_VALUE);
-    InstanceOperation latestNotEnabledInstanceOperation = null;
-    for (InstanceOperation instanceOperation : instanceOperationMap.values()) {
-      if (instanceOperation.getTimestamp() > latestInstanceOperation.getTimestamp()) {
-        latestInstanceOperation = instanceOperation;
-      }
-      if (instanceOperation.getOperation() != InstanceConstants.InstanceOperation.ENABLE && (
-          latestNotEnabledInstanceOperation == null || instanceOperation.getTimestamp()
-              > latestNotEnabledInstanceOperation.getTimestamp())) {
-        latestNotEnabledInstanceOperation = instanceOperation;
-      }
+    if (instanceOperationMap.isEmpty()) {
+      InstanceOperation instanceOperation =
+          new InstanceOperation.Builder().setOperation(InstanceConstants.InstanceOperation.ENABLE)
+              .setSource(InstanceConstants.InstanceOperationSource.USER).build();
+      instanceOperation.setTimestamp(HELIX_ENABLED_TIMESTAMP_DEFAULT_VALUE);
+      return instanceOperation;
     }
 
-    if (latestNotEnabledInstanceOperation != null) {
-      return latestNotEnabledInstanceOperation;
-    }
-
-    return latestInstanceOperation;
+    // The last instance operation in the list is the most recent one.
+    // ENABLE operation should not be included in the list.
+    return instanceOperationMap.get(instanceOperationMap.size() - 1);
   }
 
   /**
@@ -650,8 +641,8 @@ public class InstanceConfig extends HelixProperty {
         activeInstanceOperation.getOperation()))) {
       return new InstanceOperation.Builder().setOperation(
               InstanceConstants.InstanceOperation.DISABLE).setReason(getInstanceDisabledReason())
-          .setTrigger(
-              InstanceConstants.InstanceOperationTrigger.instanceDisabledTypeToInstanceOperationTrigger(
+          .setSource(
+              InstanceConstants.InstanceOperationSource.instanceDisabledTypeToInstanceOperationSource(
                   InstanceConstants.InstanceDisabledType.valueOf(getInstanceDisabledType())))
           .build();
     }

@@ -29,28 +29,15 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.constants.InstanceConstants;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 
 public class InstanceUtil {
-  private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
-  private final ConfigAccessor _configAccessor;
-
-  public InstanceUtil(RealmAwareZkClient zkClient) {
-    _baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
-    _configAccessor = new ConfigAccessor(zkClient);
-  }
-
-  public InstanceUtil(ConfigAccessor configAccessor, BaseDataAccessor<ZNRecord> baseAccessor) {
-    _baseDataAccessor = baseAccessor;
-    _configAccessor = configAccessor;
+  private InstanceUtil() {
   }
 
   public static void validateInstanceOperationTransition(InstanceConfig matchingLogicalIdInstance,
@@ -114,15 +101,16 @@ public class InstanceUtil {
    * @param instanceConfig The instance to find the matching instance for
    * @return The matching instance if found, null otherwise.
    */
-  public List<InstanceConfig> findInstancesMatchingLogicalId(String clusterName,
+  public static List<InstanceConfig> findInstancesMatchingLogicalId(ConfigAccessor configAccessor,
+      String clusterName,
       InstanceConfig instanceConfig) {
     String logicalIdKey =
-        ClusterTopologyConfig.createFromClusterConfig(_configAccessor.getClusterConfig(clusterName))
+        ClusterTopologyConfig.createFromClusterConfig(configAccessor.getClusterConfig(clusterName))
             .getEndNodeType();
-    return _configAccessor.getKeys(
+    return configAccessor.getKeys(
             new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT,
                 clusterName).build()).stream()
-        .map(instanceName -> _configAccessor.getInstanceConfig(clusterName, instanceName)).filter(
+        .map(instanceName -> configAccessor.getInstanceConfig(clusterName, instanceName)).filter(
             potentialInstanceConfig ->
                 !potentialInstanceConfig.getInstanceName().equals(instanceConfig.getInstanceName())
                     && potentialInstanceConfig.getLogicalId(logicalIdKey)
@@ -137,24 +125,25 @@ public class InstanceUtil {
    * @param instanceName      The instance name
    * @param instanceOperation The instance operation to set
    */
-  public void setInstanceOperation(String clusterName, String instanceName,
+  public static void setInstanceOperation(ConfigAccessor configAccessor,
+      BaseDataAccessor<ZNRecord> baseAccessor, String clusterName, String instanceName,
       InstanceConfig.InstanceOperation instanceOperation) {
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
 
-    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(clusterName, instanceName);
+    InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
     if (instanceConfig == null) {
       throw new HelixException("Cluster " + clusterName + ", instance: " + instanceName
           + ", instance config does not exist");
     }
     List<InstanceConfig> matchingLogicalIdInstances =
-        findInstancesMatchingLogicalId(clusterName, instanceConfig);
+        findInstancesMatchingLogicalId(configAccessor, clusterName, instanceConfig);
     validateInstanceOperationTransition(
         !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
         instanceConfig.getInstanceOperation().getOperation(),
         instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE
             : instanceOperation.getOperation());
 
-    boolean succeeded = _baseDataAccessor.update(path, new DataUpdater<ZNRecord>() {
+    boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {

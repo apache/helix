@@ -37,22 +37,16 @@ public class InstanceConstants {
   }
 
   public enum InstanceOperationSource {
-    AUTOMATION, ADMIN, USER;
+    ADMIN(0), USER(1), AUTOMATION(2), DEFAULT(3);
 
-    /**
-     * Convert from InstanceOperationTrigger to DisabledType
-     *
-     * @param trigger InstanceOperationTrigger
-     * @return InstanceDisabledType
-     */
-    public static InstanceDisabledType instanceOperationSourceToInstanceDisabledType(
-        InstanceOperationSource trigger) {
-      switch (trigger) {
-        case AUTOMATION:
-          return InstanceDisabledType.CLOUD_EVENT;
-        default:
-          return InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE;
-      }
+    private final int _priority;
+
+    InstanceOperationSource(int priority) {
+      _priority = priority;
+    }
+
+    public int getPriority() {
+      return _priority;
     }
 
     /**
@@ -66,8 +60,10 @@ public class InstanceConstants {
       switch (disabledType) {
         case CLOUD_EVENT:
           return InstanceOperationSource.AUTOMATION;
-        default:
+        case USER_OPERATION:
           return InstanceOperationSource.USER;
+        default:
+          return InstanceOperationSource.DEFAULT;
       }
     }
   }

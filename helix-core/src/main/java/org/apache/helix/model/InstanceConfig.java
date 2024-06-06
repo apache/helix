@@ -514,7 +514,7 @@ public class InstanceConfig extends HelixProperty {
     if (operation.getSource() == InstanceConstants.InstanceOperationSource.ADMIN) {
       deserializedInstanceOperations.clear();
     } else {
-      // Remove the instance operation with the same trigger if it exists.
+      // Remove the instance operation with the same source if it exists.
       deserializedInstanceOperations.removeIf(
           instanceOperation -> instanceOperation.getSource() == operation.getSource());
     }
@@ -547,8 +547,7 @@ public class InstanceConfig extends HelixProperty {
       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(),
           operation.getReason());
       _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
-          InstanceConstants.InstanceOperationSource.instanceOperationSourceToInstanceDisabledType(
-              operation.getSource()).name());
+          InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
     } else if (operation.getOperation() == InstanceConstants.InstanceOperation.ENABLE) {
       // If any of the other InstanceOperations are of type DISABLE, set that in the HELIX_ENABLED,
       // HELIX_DISABLED_REASON, and HELIX_DISABLED_TYPE fields.
@@ -565,8 +564,7 @@ public class InstanceConfig extends HelixProperty {
         _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.name(),
             latestDisableInstanceOperation.getReason());
         _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.name(),
-            InstanceConstants.InstanceOperationSource.instanceOperationSourceToInstanceDisabledType(
-                latestDisableInstanceOperation.getSource()).name());
+            InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
       } else {
         setInstanceEnabledHelper(true, operation.getTimestamp());
       }
@@ -575,7 +573,7 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Set the instance operation for this instance. Provide the InstanceOperation enum and the reason
-   * and trigger will be set to default values.
+   * and source will be set to default values.
    *
    * @param operation the instance operation
    */

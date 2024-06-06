@@ -51,10 +51,9 @@ public class DefaultCloudEventCallbackImpl {
     LOG.info("DefaultCloudEventCallbackImpl disable Instance {}", manager.getInstanceName());
     if (InstanceValidationUtil
         .isEnabled(manager.getHelixDataAccessor(), manager.getInstanceName())) {
-      InstanceUtil instanceUtil = new InstanceUtil(manager.getConfigAccessor(),
-          manager.getHelixDataAccessor().getBaseDataAccessor());
-      instanceUtil
-          .setInstanceOperation(manager.getClusterName(), manager.getInstanceName(),
+      InstanceUtil.setInstanceOperation(manager.getConfigAccessor(),
+          manager.getHelixDataAccessor().getBaseDataAccessor(), manager.getClusterName(),
+          manager.getInstanceName(),
               new InstanceConfig.InstanceOperation.Builder().setOperation(
                       InstanceConstants.InstanceOperation.DISABLE)
                   .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION)
@@ -80,10 +79,9 @@ public class DefaultCloudEventCallbackImpl {
     HelixEventHandlingUtil
         .updateCloudEventOperationInClusterConfig(manager.getClusterName(), instanceName,
             manager.getHelixDataAccessor().getBaseDataAccessor(), true, message);
-    InstanceUtil instanceUtil = new InstanceUtil(manager.getConfigAccessor(),
-        manager.getHelixDataAccessor().getBaseDataAccessor());
-    instanceUtil
-        .setInstanceOperation(manager.getClusterName(), manager.getInstanceName(),
+    InstanceUtil.setInstanceOperation(manager.getConfigAccessor(),
+        manager.getHelixDataAccessor().getBaseDataAccessor(), manager.getClusterName(),
+        manager.getInstanceName(),
             new InstanceConfig.InstanceOperation.Builder().setOperation(
                     InstanceConstants.InstanceOperation.ENABLE)
                 .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).setReason(message)

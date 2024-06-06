@@ -123,10 +123,10 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   private final RealmAwareZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
+  private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
   // true if ZKHelixAdmin was instantiated with a RealmAwareZkClient, false otherwise
   // This is used for close() to determine how ZKHelixAdmin should close the underlying ZkClient
   private final boolean _usesExternalZkClient;
-  private final InstanceUtil _instanceUtil;
 
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
@@ -141,8 +141,8 @@ public class ZKHelixAdmin implements HelixAdmin {
   public ZKHelixAdmin(RealmAwareZkClient zkClient) {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(zkClient);
+    _baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
     _usesExternalZkClient = true;
-    _instanceUtil = new InstanceUtil(zkClient);
   }
 
   /**
@@ -182,15 +182,15 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
+    _baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
     _usesExternalZkClient = false;
-    _instanceUtil = new InstanceUtil(_zkClient);
   }
 
   private ZKHelixAdmin(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
+    _baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
     _usesExternalZkClient = usesExternalZkClient;
-    _instanceUtil = new InstanceUtil(_zkClient);
   }
 
   @Override
@@ -208,7 +208,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> matchingLogicalIdInstances =
-        _instanceUtil.findInstancesMatchingLogicalId(clusterName, instanceConfig);
+        InstanceUtil.findInstancesMatchingLogicalId(_configAccessor, clusterName, instanceConfig);
     if (matchingLogicalIdInstances.size() > 1) {
       throw new HelixException(
           "There are already more than one instance with the same logicalId in the cluster: "
@@ -242,8 +242,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient.createPersistent(PropertyPathBuilder.instanceError(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceStatusUpdate(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceHistory(clusterName, nodeId), true);
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.participantHistory(nodeId), new ParticipantHistory(nodeId));
   }
@@ -346,8 +345,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           "instance" + instanceName + " does not exist in cluster " + clusterName);
     }
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     return accessor.getProperty(keyBuilder.instanceConfig(instanceName));
@@ -366,8 +364,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           "instance" + instanceName + " does not exist in cluster " + clusterName);
     }
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey instanceConfigPropertyKey = accessor.keyBuilder().instanceConfig(instanceName);
     InstanceConfig currentInstanceConfig = accessor.getProperty(instanceConfigPropertyKey);
     if (!newInstanceConfig.getHostName().equals(currentInstanceConfig.getHostName())
@@ -459,7 +456,8 @@ public class ZKHelixAdmin implements HelixAdmin {
                 : instanceOperation).setReason(reason).setSource(
             overrideAll ? InstanceConstants.InstanceOperationSource.ADMIN
                 : InstanceConstants.InstanceOperationSource.USER).build();
-    _instanceUtil.setInstanceOperation(clusterName, instanceName, instanceOperationObj);
+    InstanceUtil.setInstanceOperation(_configAccessor, _baseDataAccessor, clusterName, instanceName,
+        instanceOperationObj);
   }
 
   @Override
@@ -487,7 +485,7 @@ public class ZKHelixAdmin implements HelixAdmin {
    */
   private boolean canCompleteSwap(String clusterName, String swapOutInstanceName,
       String swapInInstanceName) {
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
@@ -621,7 +619,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> swappingInstances =
-        _instanceUtil.findInstancesMatchingLogicalId(clusterName, instanceConfig);
+        InstanceUtil.findInstancesMatchingLogicalId(_configAccessor, clusterName, instanceConfig);
     if (swappingInstances.size() != 1) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
@@ -659,7 +657,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> swappingInstances =
-        _instanceUtil.findInstancesMatchingLogicalId(clusterName, instanceConfig);
+        InstanceUtil.findInstancesMatchingLogicalId(_configAccessor, clusterName, instanceConfig);
     if (swappingInstances.size() != 1) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
@@ -740,7 +738,7 @@ public class ZKHelixAdmin implements HelixAdmin {
    */
   private boolean instanceHasFullAutoCurrentStateOrMessage(String clusterName,
       String instanceName) {
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     // check the instance is alive
@@ -751,7 +749,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
     // count number of sessions under CurrentState folder. If it is carrying over from prv session,
     // then there are > 1 session ZNodes.
     List<String> sessions = baseAccessor.getChildNames(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName), 0);
@@ -791,7 +789,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void enableResource(final String clusterName, final String resourceName, final boolean enabled) {
     logger.info("{} resource {} in cluster {}.", enabled ? "Enable" : "Disable", resourceName, clusterName);
     String path = PropertyPathBuilder.idealState(clusterName, resourceName);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
     if (!baseAccessor.exists(path, 0)) {
       throw new HelixException("Cluster " + clusterName + ", resource: " + resourceName
           + ", ideal-state does not exist");
@@ -818,7 +816,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         instanceName, clusterName);
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
 
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
 
     // check instanceConfig exists
     if (!baseAccessor.exists(path, 0)) {
@@ -897,8 +895,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void enableCluster(String clusterName, boolean enabled, String reason) {
     logger.info("{} cluster {} for reason {}.", enabled ? "Enable" : "Disable", clusterName,
         reason == null ? "NULL" : reason);
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     if (enabled) {
@@ -922,8 +919,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public boolean isInMaintenanceMode(String clusterName) {
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getBaseDataAccessor()
         .exists(keyBuilder.maintenance().getPath(), AccessOption.PERSISTENT);
@@ -1172,8 +1168,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       final String reason, final MaintenanceSignal.AutoTriggerReason internalReason,
       final Map<String, String> customFields,
       final MaintenanceSignal.TriggeringEntity triggeringEntity) {
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
         triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
@@ -1436,8 +1431,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<String> instances = _zkClient.getChildren(memberInstancesPath);
     List<String> result = new ArrayList<String>();
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     for (String instanceName : instances) {
@@ -1583,8 +1577,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public List<String> getResourcesInClusterWithTag(String clusterName, String tag) {
     List<String> resourcesWithTag = new ArrayList<String>();
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     for (String resourceName : getResourcesInCluster(clusterName)) {
@@ -1599,8 +1592,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public IdealState getResourceIdealState(String clusterName, String resourceName) {
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     return accessor.getProperty(keyBuilder.idealStates(resourceName));
@@ -1612,8 +1604,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     logger
         .info("Set IdealState for resource {} in cluster {} with new IdealState {}.", resourceName,
             clusterName, idealState == null ? "NULL" : idealState.toString());
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
@@ -1655,8 +1646,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public ExternalView getResourceExternalView(String clusterName, String resourceName) {
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.externalView(resourceName));
   }
@@ -1664,8 +1654,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public CustomizedView getResourceCustomizedView(String clusterName, String resourceName,
       String customizedStateType) {
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.customizedView(customizedStateType, resourceName));
   }
@@ -1698,8 +1687,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       }
     }
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.stateModelDef(stateModelDef), stateModel);
   }
@@ -1710,8 +1698,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("Cluster " + clusterName + " is not setup yet");
     }
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     accessor.removeProperty(keyBuilder.idealStates(resourceName));
@@ -1730,8 +1717,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     CloudConfig.Builder builder = new CloudConfig.Builder(cloudConfig);
     CloudConfig cloudConfigBuilder = builder.build();
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.cloudConfig(), cloudConfigBuilder);
   }
@@ -1739,8 +1725,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void removeCloudConfig(String clusterName) {
     logger.info("Remove Cloud Config for cluster {}.", clusterName);
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.removeProperty(keyBuilder.cloudConfig());
   }
@@ -1771,8 +1756,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public StateModelDefinition getStateModelDef(String clusterName, String stateModelName) {
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     return accessor.getProperty(keyBuilder.stateModelDef(stateModelName));
@@ -1781,8 +1765,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void dropCluster(String clusterName) {
     logger.info("Deleting cluster {}.", clusterName);
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     String root = "/" + clusterName;
@@ -1859,8 +1842,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         new CustomizedStateConfig.Builder(customizedStateConfig);
     CustomizedStateConfig customizedStateConfigFromBuilder = builder.build();
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.customizedStateConfig(),
         customizedStateConfigFromBuilder);
@@ -1871,8 +1853,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     logger.info(
         "Remove CustomizedStateConfig from cluster {}.", clusterName);
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.removeProperty(keyBuilder.customizedStateConfig());
 
@@ -1891,8 +1872,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     builder.addAggregationEnabledType(type);
     CustomizedStateConfig customizedStateConfigFromBuilder = builder.build();
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     if(!accessor.updateProperty(keyBuilder.customizedStateConfig(),
         customizedStateConfigFromBuilder)) {
@@ -1921,8 +1901,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     builder.removeAggregationEnabledType(type);
     CustomizedStateConfig customizedStateConfigFromBuilder = builder.build();
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.customizedStateConfig(),
         customizedStateConfigFromBuilder);
@@ -1945,7 +1924,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public void onDemandRebalance(String clusterName) {
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
     String path = PropertyPathBuilder.clusterConfig(clusterName);
 
     if (!baseAccessor.exists(path, 0)) {
@@ -2128,7 +2107,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       final String constraintId, final ConstraintItem constraintItem) {
     logger.info("Set constraint type {} with constraint id {} for cluster {}.", constraintType,
         constraintId, clusterName);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String path = keyBuilder.constraint(constraintType.toString()).getPath();
@@ -2151,7 +2130,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       final String constraintId) {
     logger.info("Remove constraint type {} with constraint id {} for cluster {}.", constraintType,
         constraintId, clusterName);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String path = keyBuilder.constraint(constraintType.toString()).getPath();
@@ -2172,8 +2151,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public ClusterConstraints getConstraints(String clusterName, ConstraintType constraintType) {
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     return accessor.getProperty(keyBuilder.constraint(constraintType.toString()));
@@ -2255,8 +2233,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException(
           "cluster " + clusterName + " instance " + instanceName + " is not setup yet");
     }
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
@@ -2276,8 +2253,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException(
           "cluster " + clusterName + " instance " + instanceName + " is not setup yet");
     }
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
@@ -2297,8 +2273,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException(
           "cluster " + clusterName + " instance " + instanceName + " is not setup yet");
     }
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
@@ -2703,8 +2678,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       }
     }
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     List<String> instanceConfigNames = accessor.getChildNames(keyBuilder.instanceConfigs());
     List<String> instancePathNames = accessor.getChildNames(keyBuilder.instances());

@@ -216,17 +216,6 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     return _zkHelixAdmin;
   }
 
-  public InstanceUtil getInstanceUtil() {
-    if (_instanceUtil == null) {
-      synchronized (this) {
-        if (_instanceUtil == null) {
-          _instanceUtil = new InstanceUtil(getRealmAwareZkClient());
-        }
-      }
-    }
-    return _instanceUtil;
-  }
-
   public ClusterSetup getClusterSetup() {
     if (_clusterSetup == null) {
       synchronized (this) {

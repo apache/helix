@@ -27,7 +27,7 @@ public class InstanceConstants {
    * The set of InstanceOperations that are not allowed to be populated in the RoutingTableProvider.
    */
   public static final Set<InstanceOperation> UNROUTABLE_INSTANCE_OPERATIONS =
-      Set.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
+      ImmutableSet.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
 
   @Deprecated
   public enum InstanceDisabledType {

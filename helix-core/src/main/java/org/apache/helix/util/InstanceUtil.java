@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -63,27 +64,28 @@ public class InstanceUtil {
               .getOperation().equals(InstanceConstants.InstanceOperation.DISABLE));
 
   // Validator map for valid instance operation transitions <currentOperation>:<targetOperation>:<validator>
-  private static final Map<InstanceConstants.InstanceOperation, Map<InstanceConstants.InstanceOperation, Function<List<InstanceConfig>, Boolean>>>
-      validInstanceOperationTransitions = Map.of(InstanceConstants.InstanceOperation.ENABLE,
+  private static final ImmutableMap<InstanceConstants.InstanceOperation, ImmutableMap<InstanceConstants.InstanceOperation, Function<List<InstanceConfig>, Boolean>>>
+      validInstanceOperationTransitions =
+      ImmutableMap.of(InstanceConstants.InstanceOperation.ENABLE,
       // ENABLE and DISABLE can be set to UNKNOWN when matching instance is in SWAP_IN and set to ENABLE in a transaction.
-      Map.of(InstanceConstants.InstanceOperation.ENABLE, ALWAYS_ALLOWED,
+          ImmutableMap.of(InstanceConstants.InstanceOperation.ENABLE, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.DISABLE, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED),
       InstanceConstants.InstanceOperation.DISABLE,
-      Map.of(InstanceConstants.InstanceOperation.DISABLE, ALWAYS_ALLOWED,
+          ImmutableMap.of(InstanceConstants.InstanceOperation.DISABLE, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.ENABLE, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED),
       InstanceConstants.InstanceOperation.SWAP_IN,
       // SWAP_IN can be set to ENABLE when matching instance is in UNKNOWN state in a transaction.
-      Map.of(InstanceConstants.InstanceOperation.SWAP_IN, ALWAYS_ALLOWED,
+          ImmutableMap.of(InstanceConstants.InstanceOperation.SWAP_IN, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED),
       InstanceConstants.InstanceOperation.EVACUATE,
-      Map.of(InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED,
+          ImmutableMap.of(InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.ENABLE, ALL_MATCHES_ARE_UNKNOWN,
           InstanceConstants.InstanceOperation.DISABLE, ALL_MATCHES_ARE_UNKNOWN,
           InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED),
       InstanceConstants.InstanceOperation.UNKNOWN,
-      Map.of(InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED,
+          ImmutableMap.of(InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.ENABLE, ALL_MATCHES_ARE_UNKNOWN_OR_EVACUATE,
           InstanceConstants.InstanceOperation.DISABLE, ALL_MATCHES_ARE_UNKNOWN_OR_EVACUATE,
           InstanceConstants.InstanceOperation.SWAP_IN, ANY_MATCH_ENABLE_OR_DISABLE));

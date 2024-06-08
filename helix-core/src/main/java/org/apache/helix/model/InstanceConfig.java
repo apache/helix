@@ -477,8 +477,8 @@ public class InstanceConfig extends HelixProperty {
 
   private List<InstanceOperation> getInstanceOperations() {
     if (_deserializedInstanceOperations == null || _deserializedInstanceOperations.isEmpty()) {
-      // If the _deserializedInstanceOperationMap is not set, then we need to build it from the real
-      // helix property HELIX_INSTANCE_OPERATION_MAP.
+      // If the _deserializedInstanceOperations is not set, then we need to build it from the real
+      // helix property HELIX_INSTANCE_OPERATIONS.
       List<String> instanceOperations =
           _record.getListField(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name());
       List<InstanceOperation> newDeserializedInstanceOperations = new ArrayList<>();
@@ -518,7 +518,18 @@ public class InstanceConfig extends HelixProperty {
       deserializedInstanceOperations.removeIf(
           instanceOperation -> instanceOperation.getSource() == operation.getSource());
     }
-    if (operation.getOperation() != InstanceConstants.InstanceOperation.ENABLE) {
+    if (operation.getOperation() == InstanceConstants.InstanceOperation.ENABLE) {
+      // Insert the operation after the last ENABLE or at the beginning if there isn't ENABLE in the list.
+      int insertIndex = 0;
+      for (int i = deserializedInstanceOperations.size() - 1; i >= 0; i--) {
+        if (deserializedInstanceOperations.get(i).getOperation()
+            == InstanceConstants.InstanceOperation.ENABLE) {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+      deserializedInstanceOperations.add(insertIndex, operation);
+    } else {
       deserializedInstanceOperations.add(operation);
     }
     // Set the actual field in the ZnRecord
@@ -596,19 +607,19 @@ public class InstanceConfig extends HelixProperty {
   }
 
   private InstanceOperation getActiveInstanceOperation() {
-    List<InstanceOperation> instanceOperationMap = getInstanceOperations();
+    List<InstanceOperation> instanceOperations = getInstanceOperations();
 
-    if (instanceOperationMap.isEmpty()) {
+    if (instanceOperations.isEmpty()) {
       InstanceOperation instanceOperation =
           new InstanceOperation.Builder().setOperation(InstanceConstants.InstanceOperation.ENABLE)
-              .setSource(InstanceConstants.InstanceOperationSource.USER).build();
+              .setSource(InstanceConstants.InstanceOperationSource.DEFAULT).build();
       instanceOperation.setTimestamp(HELIX_ENABLED_TIMESTAMP_DEFAULT_VALUE);
       return instanceOperation;
     }
 
     // The last instance operation in the list is the most recent one.
     // ENABLE operation should not be included in the list.
-    return instanceOperationMap.get(instanceOperationMap.size() - 1);
+    return instanceOperations.get(instanceOperations.size() - 1);
   }
 
   /**

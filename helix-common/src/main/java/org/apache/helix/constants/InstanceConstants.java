@@ -20,7 +20,7 @@ public class InstanceConstants {
    * TODO: Remove this when the deprecated HELIX_ENABLED is removed.
    */
   public static final Set<InstanceOperation> INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS =
-      ImmutableSet.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE, InstanceOperation.EVACUATE);
+      ImmutableSet.of(InstanceOperation.ENABLE, InstanceOperation.EVACUATE);
 
 
   /**

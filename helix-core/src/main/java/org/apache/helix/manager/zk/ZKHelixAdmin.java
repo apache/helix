@@ -208,7 +208,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> matchingLogicalIdInstances =
-        InstanceUtil.findInstancesMatchingLogicalId(_configAccessor, clusterName, instanceConfig);
+        InstanceUtil.findInstancesWithMatchingLogicalId(_configAccessor, clusterName,
+            instanceConfig);
     if (matchingLogicalIdInstances.size() > 1) {
       throw new HelixException(
           "There are already more than one instance with the same logicalId in the cluster: "
@@ -220,8 +221,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     InstanceConstants.InstanceOperation attemptedInstanceOperation =
         instanceConfig.getInstanceOperation().getOperation();
     try {
-      InstanceUtil.validateInstanceOperationTransition(
-          !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
+      InstanceUtil.validateInstanceOperationTransition(_configAccessor, clusterName, instanceConfig,
           InstanceConstants.InstanceOperation.UNKNOWN, attemptedInstanceOperation);
     } catch (HelixException e) {
       instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.UNKNOWN);
@@ -619,7 +619,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> swappingInstances =
-        InstanceUtil.findInstancesMatchingLogicalId(_configAccessor, clusterName, instanceConfig);
+        InstanceUtil.findInstancesWithMatchingLogicalId(_configAccessor, clusterName,
+            instanceConfig);
     if (swappingInstances.size() != 1) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",
@@ -657,7 +658,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     List<InstanceConfig> swappingInstances =
-        InstanceUtil.findInstancesMatchingLogicalId(_configAccessor, clusterName, instanceConfig);
+        InstanceUtil.findInstancesWithMatchingLogicalId(_configAccessor, clusterName,
+            instanceConfig);
     if (swappingInstances.size() != 1) {
       logger.warn(
           "Instance {} in cluster {} is not swapping with any other instance. Cannot determine if the swap is complete.",

@@ -20,9 +20,10 @@ package org.apache.helix.util;
  */
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -37,76 +38,101 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 
 public class InstanceUtil {
+
+  // Private constructor to prevent instantiation
   private InstanceUtil() {
   }
 
-  public static void validateInstanceOperationTransition(InstanceConfig matchingLogicalIdInstance,
+  // Validators for instance operation transitions
+  private static final Function<List<InstanceConfig>, Boolean> ALWAYS_ALLOWED =
+      (matchingInstances) -> true;
+  private static final Function<List<InstanceConfig>, Boolean> ALL_MATCHES_ARE_UNKNOWN =
+      (matchingInstances) -> matchingInstances.isEmpty() || matchingInstances.stream().allMatch(
+          instance -> instance.getInstanceOperation().getOperation()
+              .equals(InstanceConstants.InstanceOperation.UNKNOWN));
+  private static final Function<List<InstanceConfig>, Boolean> ALL_MATCHES_ARE_UNKNOWN_OR_EVACUATE =
+      (matchingInstances) -> matchingInstances.isEmpty() || matchingInstances.stream().allMatch(
+          instance -> instance.getInstanceOperation().getOperation()
+              .equals(InstanceConstants.InstanceOperation.UNKNOWN)
+              || instance.getInstanceOperation().getOperation()
+              .equals(InstanceConstants.InstanceOperation.EVACUATE));
+  private static final Function<List<InstanceConfig>, Boolean> ANY_MATCH_ENABLE_OR_DISABLE =
+      (matchingInstances) -> !matchingInstances.isEmpty() && matchingInstances.stream().anyMatch(
+          instance -> instance.getInstanceOperation().getOperation()
+              .equals(InstanceConstants.InstanceOperation.ENABLE) || instance.getInstanceOperation()
+              .getOperation().equals(InstanceConstants.InstanceOperation.DISABLE));
+
+  // Validator map for valid instance operation transitions <currentOperation>:<targetOperation>:<validator>
+  private static final Map<InstanceConstants.InstanceOperation, Map<InstanceConstants.InstanceOperation, Function<List<InstanceConfig>, Boolean>>>
+      validInstanceOperationTransitions = Map.of(InstanceConstants.InstanceOperation.ENABLE,
+      // ENABLE and DISABLE can be set to UNKNOWN when matching instance is in SWAP_IN and set to ENABLE in a transaction.
+      Map.of(InstanceConstants.InstanceOperation.ENABLE, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.DISABLE, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED),
+      InstanceConstants.InstanceOperation.DISABLE,
+      Map.of(InstanceConstants.InstanceOperation.DISABLE, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.ENABLE, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED),
+      InstanceConstants.InstanceOperation.SWAP_IN,
+      // SWAP_IN can be set to ENABLE when matching instance is in UNKNOWN state in a transaction.
+      Map.of(InstanceConstants.InstanceOperation.SWAP_IN, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED),
+      InstanceConstants.InstanceOperation.EVACUATE,
+      Map.of(InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.ENABLE, ALL_MATCHES_ARE_UNKNOWN,
+          InstanceConstants.InstanceOperation.DISABLE, ALL_MATCHES_ARE_UNKNOWN,
+          InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED),
+      InstanceConstants.InstanceOperation.UNKNOWN,
+      Map.of(InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.ENABLE, ALL_MATCHES_ARE_UNKNOWN_OR_EVACUATE,
+          InstanceConstants.InstanceOperation.DISABLE, ALL_MATCHES_ARE_UNKNOWN_OR_EVACUATE,
+          InstanceConstants.InstanceOperation.SWAP_IN, ANY_MATCH_ENABLE_OR_DISABLE));
+
+  /**
+   * Validates if the transition from the current operation to the target operation is valid.
+   *
+   * @param configAccessor   The ConfigAccessor instance
+   * @param clusterName      The cluster name
+   * @param instanceConfig   The current instance configuration
+   * @param currentOperation The current operation
+   * @param targetOperation  The target operation
+   */
+  public static void validateInstanceOperationTransition(ConfigAccessor configAccessor,
+      String clusterName, InstanceConfig instanceConfig,
       InstanceConstants.InstanceOperation currentOperation,
       InstanceConstants.InstanceOperation targetOperation) {
-    boolean targetStateEnableOrDisable =
-        targetOperation.equals(InstanceConstants.InstanceOperation.ENABLE)
-            || targetOperation.equals(InstanceConstants.InstanceOperation.DISABLE);
-    switch (currentOperation) {
-      case ENABLE:
-      case DISABLE:
-        // ENABLE or DISABLE can be set to ENABLE, DISABLE, or EVACUATE at any time.
-        if (ImmutableSet.of(InstanceConstants.InstanceOperation.ENABLE,
-            InstanceConstants.InstanceOperation.DISABLE,
-            InstanceConstants.InstanceOperation.EVACUATE).contains(targetOperation)) {
-          return;
-        }
-      case SWAP_IN:
-        // We can only ENABLE or DISABLE a SWAP_IN instance if there is an instance with matching logicalId
-        // with an InstanceOperation set to UNKNOWN.
-        if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
-            || matchingLogicalIdInstance.getInstanceOperation().getOperation()
-            .equals(InstanceConstants.InstanceOperation.UNKNOWN))) || targetOperation.equals(
-            InstanceConstants.InstanceOperation.UNKNOWN)) {
-          return;
-        }
-      case EVACUATE:
-        // EVACUATE can only be set to ENABLE or DISABLE when there is no instance with the same
-        // logicalId in the cluster.
-        if ((targetStateEnableOrDisable && matchingLogicalIdInstance == null)
-            || targetOperation.equals(InstanceConstants.InstanceOperation.UNKNOWN)) {
-          return;
-        }
-      case UNKNOWN:
-        // UNKNOWN can be set to ENABLE or DISABLE when there is no instance with the same logicalId in the cluster
-        // or the instance with the same logicalId in the cluster has InstanceOperation set to EVACUATE.
-        // UNKNOWN can be set to SWAP_IN when there is an instance with the same logicalId in the cluster set to ENABLE,
-        // or DISABLE.
-        if ((targetStateEnableOrDisable && (matchingLogicalIdInstance == null
-            || matchingLogicalIdInstance.getInstanceOperation().getOperation()
-            .equals(InstanceConstants.InstanceOperation.EVACUATE)))) {
-          return;
-        } else if (targetOperation.equals(InstanceConstants.InstanceOperation.SWAP_IN)
-            && matchingLogicalIdInstance != null && !ImmutableSet.of(
-                InstanceConstants.InstanceOperation.UNKNOWN,
-                InstanceConstants.InstanceOperation.EVACUATE)
-            .contains(matchingLogicalIdInstance.getInstanceOperation().getOperation())) {
-          return;
-        }
-      default:
-        throw new HelixException(
-            "InstanceOperation cannot be set to " + targetOperation + " when the instance is in "
-                + currentOperation + " state");
+    // Check if the current operation and target operation are in the valid transitions map
+    if (!validInstanceOperationTransitions.containsKey(currentOperation)
+        || !validInstanceOperationTransitions.get(currentOperation).containsKey(targetOperation)) {
+      throw new HelixException(
+          "Invalid instance operation transition from " + currentOperation + " to "
+              + targetOperation);
+    }
+
+    // Throw exception if the validation fails
+    if (!validInstanceOperationTransitions.get(currentOperation).get(targetOperation)
+        .apply(findInstancesWithMatchingLogicalId(configAccessor, clusterName, instanceConfig))) {
+      throw new HelixException(
+          "Failed validation for instance operation transition from " + currentOperation + " to "
+              + targetOperation);
     }
   }
 
   /**
-   * Find the instance that the passed instance has a matching logicalId with.
+   * Finds the instances that have a matching logical ID with the given instance.
    *
-   * @param clusterName    The cluster name
-   * @param instanceConfig The instance to find the matching instance for
-   * @return The matching instance if found, null otherwise.
+   * @param configAccessor  The ConfigAccessor instance
+   * @param clusterName     The cluster name
+   * @param instanceConfig  The instance configuration to match
+   * @return A list of matching instances
    */
-  public static List<InstanceConfig> findInstancesMatchingLogicalId(ConfigAccessor configAccessor,
-      String clusterName,
-      InstanceConfig instanceConfig) {
+  public static List<InstanceConfig> findInstancesWithMatchingLogicalId(
+      ConfigAccessor configAccessor, String clusterName, InstanceConfig instanceConfig) {
     String logicalIdKey =
         ClusterTopologyConfig.createFromClusterConfig(configAccessor.getClusterConfig(clusterName))
             .getEndNodeType();
+
+    // Retrieve and filter instances with matching logical ID
     return configAccessor.getKeys(
             new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT,
                 clusterName).build()).stream()
@@ -119,30 +145,33 @@ public class InstanceUtil {
   }
 
   /**
-   * Set the instance operation for the given instance.
+   * Sets the instance operation for the given instance.
    *
-   * @param clusterName       The cluster name
-   * @param instanceName      The instance name
-   * @param instanceOperation The instance operation to set
+   * @param configAccessor      The ConfigAccessor instance
+   * @param baseAccessor        The BaseDataAccessor instance
+   * @param clusterName         The cluster name
+   * @param instanceName        The instance name
+   * @param instanceOperation   The instance operation to set
    */
   public static void setInstanceOperation(ConfigAccessor configAccessor,
       BaseDataAccessor<ZNRecord> baseAccessor, String clusterName, String instanceName,
       InstanceConfig.InstanceOperation instanceOperation) {
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
 
+    // Retrieve the current instance configuration
     InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
     if (instanceConfig == null) {
       throw new HelixException("Cluster " + clusterName + ", instance: " + instanceName
           + ", instance config does not exist");
     }
-    List<InstanceConfig> matchingLogicalIdInstances =
-        findInstancesMatchingLogicalId(configAccessor, clusterName, instanceConfig);
-    validateInstanceOperationTransition(
-        !matchingLogicalIdInstances.isEmpty() ? matchingLogicalIdInstances.get(0) : null,
+
+    // Validate the instance operation transition
+    validateInstanceOperationTransition(configAccessor, clusterName, instanceConfig,
         instanceConfig.getInstanceOperation().getOperation(),
         instanceOperation == null ? InstanceConstants.InstanceOperation.ENABLE
             : instanceOperation.getOperation());
 
+    // Update the instance operation
     boolean succeeded = baseAccessor.update(path, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {

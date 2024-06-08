@@ -19,6 +19,7 @@ package org.apache.helix.controller.changedetector.trimmer;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,6 +61,21 @@ public class InstanceConfigTrimmer extends HelixPropertyTrimmer<InstanceConfig> 
   @Override
   protected Map<FieldType, Set<String>> getNonTrimmableFields(InstanceConfig instanceConfig) {
     return STATIC_TOPOLOGY_RELATED_FIELD_MAP;
+  }
+
+  /**
+   * We should trim HELIX_INSTANCE_OPERATIONS field, it is used to filter instances in the
+   * BaseControllerDataProvider. That filtering will be used to determine if ResourceChangeSnapshot
+   * has changed as opposed to checking the actual value of the field.
+   *
+   * @param property the instance config
+   * @return a map contains all non-trimmable field keys that need to be kept.
+   */
+  protected Map<FieldType, Set<String>> getNonTrimmableKeys(InstanceConfig property) {
+    Map<FieldType, Set<String>> nonTrimmableKeys = super.getNonTrimmableKeys(property);
+    nonTrimmableKeys.get(FieldType.LIST_FIELD)
+        .remove(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name());
+    return nonTrimmableKeys;
   }
 
   @Override

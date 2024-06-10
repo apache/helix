@@ -70,11 +70,13 @@ public class InstanceUtil {
       // ENABLE and DISABLE can be set to UNKNOWN when matching instance is in SWAP_IN and set to ENABLE in a transaction.
           ImmutableMap.of(InstanceConstants.InstanceOperation.ENABLE, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.DISABLE, ALWAYS_ALLOWED,
-          InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED),
+          InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED),
       InstanceConstants.InstanceOperation.DISABLE,
           ImmutableMap.of(InstanceConstants.InstanceOperation.DISABLE, ALWAYS_ALLOWED,
           InstanceConstants.InstanceOperation.ENABLE, ALWAYS_ALLOWED,
-          InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED),
+          InstanceConstants.InstanceOperation.EVACUATE, ALWAYS_ALLOWED,
+          InstanceConstants.InstanceOperation.UNKNOWN, ALWAYS_ALLOWED),
       InstanceConstants.InstanceOperation.SWAP_IN,
       // SWAP_IN can be set to ENABLE when matching instance is in UNKNOWN state in a transaction.
           ImmutableMap.of(InstanceConstants.InstanceOperation.SWAP_IN, ALWAYS_ALLOWED,

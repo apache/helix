@@ -262,7 +262,7 @@ public class TestInstanceConfig {
   }
 
   @Test
-  public void testInstanceOperationMultipleSources() {
+  public void testInstanceOperationMultipleSources() throws InterruptedException {
     InstanceConfig instanceConfig = new InstanceConfig("instance1");
 
     // Check that the instance operation is ENABLE from the DEFAULT source
@@ -278,16 +278,18 @@ public class TestInstanceConfig {
     // Get enabled time
     long op1EnabledTime = instanceConfig.getInstanceEnabledTime();
 
+    Thread.sleep(1000);
     // Set instance operation from automation source
     instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
             InstanceConstants.InstanceOperation.DISABLE).setReason("automationReason")
         .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).build());
-    // Check that the enabled time is the same as op1 but the source and reason is changed to automation
 
+    // Check that the enabled time is the same as op1 but the source and reason is changed to automation
     Assert.assertEquals(instanceConfig.getInstanceEnabledTime(), op1EnabledTime);
     Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
         InstanceConstants.InstanceOperationSource.AUTOMATION);
 
+    Thread.sleep(1000);
     // Set instance operation from user source to be ENABLE
     instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
             InstanceConstants.InstanceOperation.ENABLE)
@@ -300,6 +302,7 @@ public class TestInstanceConfig {
     Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
         InstanceConstants.InstanceOperationSource.AUTOMATION);
 
+    Thread.sleep(1000);
     // Set the instance operation from the automation source to be ENABLE
     instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
             InstanceConstants.InstanceOperation.ENABLE)

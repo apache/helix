@@ -211,9 +211,10 @@ public interface MetaClientInterface<T> {
    * @param key key to identify the entry
    * @param updater An updater that modifies the entry value.
    * @param retryOnFailure If true, updater should retry applying updated data upon failure.
+   * @param createIfAbsent If true, create the entry if it does not exist.
    * @return the updated value.
    */
-  T update(final String key, DataUpdater<T> updater, boolean retryOnFailure);
+  T update(final String key, DataUpdater<T> updater, boolean retryOnFailure, boolean createIfAbsent);
 
   /**
    * Check if there is an entry for the given key.

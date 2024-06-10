@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -208,11 +209,11 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public T update(String key, DataUpdater<T> updater) {
-    return update(key, updater, false);
+    return update(key, updater, false, false);
   }
 
   @Override
-  public T update(String key, DataUpdater<T> updater, boolean retryOnFailure) {
+  public T update(String key, DataUpdater<T> updater, boolean retryOnFailure, boolean createIfAbsent) {
     final int MAX_RETRY_ATTEMPTS = 3;
     int retryAttempts = 0;
     boolean retry;
@@ -230,23 +231,29 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
       } catch (MetaClientBadVersionException badVersionException) {
         // If exceeded max retry attempts, re-throw exception
         if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-          LOG.error("Failed to update node at " + key + " after " + MAX_RETRY_ATTEMPTS + " attempts.");
+          LOG.error("Failed to update node at {} after {} attempts.", key, MAX_RETRY_ATTEMPTS);
           throw badVersionException;
         }
         // Retry on bad version
         retry = true;
       } catch (MetaClientNoNodeException noNodeException) {
+        if (!createIfAbsent) {
+          LOG.error("Failed to update node at {} as node does not exist. createIfAbsent was {}.", key, createIfAbsent);
+          throw noNodeException;
+        }
         // If node does not exist, attempt to create it - pass null to updater
         T newData = updater.update(null);
         if (newData != null) {
           try {
             create(key, newData);
             updatedData = newData;
+          // If parent node for key does not exist, then updater will immediately fail due to uncaught NoNodeException
           } catch (MetaClientNodeExistsException nodeExistsException) {
-            // If exceeded max retry attempts, re-throw exception
+            // If exceeded max retry attempts, cast to ConcurrentModification exception and re-throw.
             if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-              LOG.error("Failed to update node at " + key + " after " + MAX_RETRY_ATTEMPTS + " attempts.");
-              throw nodeExistsException;
+              LOG.error("Failed to update node at {} after {} attempts.", key, MAX_RETRY_ATTEMPTS);
+              throw new ConcurrentModificationException("Failed to update node at " + key + " after " +
+                  MAX_RETRY_ATTEMPTS + " attempts.", nodeExistsException);
             }
             // If node now exists, then retry update
             retry = true;

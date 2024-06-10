@@ -245,25 +245,41 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
   @Test
   public void testUpdateWithRetry() throws InterruptedException {
     final boolean RETRY_ON_FAILURE = true;
-    int testIterationCount = 2;
+    final boolean CREATE_IF_ABSENT = true;
     final String key = "/TestZkMetaClient_testUpdateWithRetry";
     ZkMetaClientConfig config =
         new ZkMetaClientConfig.ZkMetaClientConfigBuilder().setConnectionAddress(ZK_ADDR).build();
     try (ZkMetaClient<Integer> zkMetaClient = new ZkMetaClient<>(config)) {
       zkMetaClient.connect();
       int initValue = 3;
-      DataUpdater<Integer> updater = new DataUpdater<Integer>() {
+      // Basic updater that increments node value by 1, starting at initValue
+      DataUpdater<Integer> basicUpdater = new DataUpdater<Integer>() {
         @Override
         public Integer update(Integer currentData) {
           return currentData != null ? currentData + 1 : initValue;
         }
       };
 
-      // Test updater creates node if it doesn't exist
-      Integer newData = zkMetaClient.update(key, updater, RETRY_ON_FAILURE);
+      // Test updater fails create node if it doesn't exist when createIfAbsent is false
+      try {
+        zkMetaClient.update(key, basicUpdater, RETRY_ON_FAILURE, false);
+        Assert.fail("Updater should have thrown error");
+      } catch (MetaClientNoNodeException e) {
+        Assert.assertFalse(zkMetaClient.exists(key) != null);
+      }
+
+      // Test updater fails when parent path does not exist
+      try {
+        zkMetaClient.update(key + "/child", basicUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
+        Assert.fail("Updater should have thrown error");
+      } catch (MetaClientNoNodeException e) {
+        Assert.assertFalse(zkMetaClient.exists(key + "/child") != null);
+      }
+
+      // Test updater creates node if it doesn't exist when createIfAbsent is true
+      Integer newData = zkMetaClient.update(key, basicUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
       Assert.assertEquals((int) newData, initValue);
       Assert.assertEquals(zkMetaClient.exists(key).getVersion(), 0);
-
 
       // Cleanup
       zkMetaClient.delete(key);
@@ -285,7 +301,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
         public Integer update(Integer currentData) {
           try {
             while (!latch.get()) {
-              zkMetaClient.update(key, versionIncrementUpdater, RETRY_ON_FAILURE);
+              zkMetaClient.update(key, versionIncrementUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
             }
             return currentData != null ? currentData + 1 : initValue;
           } catch (MetaClientException e) {
@@ -301,7 +317,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
           try {
             latch.set(false);
             while (!latch.get()) {
-              zkMetaClient.update(key, versionIncrementUpdater, RETRY_ON_FAILURE);
+              zkMetaClient.update(key, versionIncrementUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
             }
             return currentData != null ? currentData + 1 : initValue;
           } catch (MetaClientException e) {
@@ -341,7 +357,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       // Latched updater should read znode at version 0, but attempt to write to version 1 which fails. Should retry
       // and increment version to 2
       zkMetaClient.create(key, initValue);
-      zkMetaClient.update(key, failsOnceUpdater, RETRY_ON_FAILURE);
+      zkMetaClient.update(key, failsOnceUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
       Assert.assertEquals((int) zkMetaClient.get(key), initValue + 1);
       Assert.assertEquals(zkMetaClient.exists(key).getVersion(), 2);
 
@@ -349,14 +365,14 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       latch.set(false);
       // Test updater fails on retries exceeded
       try {
-        zkMetaClient.update(key, alwaysFailLatchedUpdater, RETRY_ON_FAILURE);
+        zkMetaClient.update(key, alwaysFailLatchedUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
         Assert.fail("Updater should have thrown error");
       } catch (MetaClientBadVersionException e) {}
 
 
       // Test updater throws error
       try {
-        zkMetaClient.update(key, errorUpdater, RETRY_ON_FAILURE);
+        zkMetaClient.update(key, errorUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
         Assert.fail("DataUpdater should have thrown error");
       } catch (RuntimeException e) {}
 
@@ -364,7 +380,7 @@ public class TestZkMetaClient extends ZkMetaClientTestBase{
       latch.set(false);
       zkMetaClient.delete(key);
       // Test updater retries update if node does not exist on read, but then exists when updater attempts to create it
-      zkMetaClient.update(key, failOnFirstCreateLatchedUpdater, RETRY_ON_FAILURE);
+      zkMetaClient.update(key, failOnFirstCreateLatchedUpdater, RETRY_ON_FAILURE, CREATE_IF_ABSENT);
       Assert.assertEquals((int) zkMetaClient.get(key), initValue + 1);
       Assert.assertEquals(zkMetaClient.exists(key).getVersion(), 1);
       zkMetaClient.delete(key);

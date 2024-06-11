@@ -211,7 +211,7 @@ public class TestInstanceOperation extends ZkTestBase {
       InstanceConfig instanceConfig =
           _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, participantName);
       if (!_participants.get(i).isConnected() || !instanceConfig.getInstanceEnabled()
-          || instanceConfig.getInstanceOperation()
+          || instanceConfig.getInstanceOperation().getOperation()
           .equals(InstanceConstants.InstanceOperation.SWAP_IN)) {
         if (_participants.get(i).isConnected()) {
           _participants.get(i).syncStop();
@@ -338,7 +338,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // now remove operation tag
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -370,7 +370,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertEquals(
         _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
-            .getInstanceOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+            .getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.UNKNOWN);
   }
 
   @Test(dependsOnMethods = "testNodeSwapNoTopologySetup")
@@ -397,7 +398,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertEquals(
         _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
-            .getInstanceOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+            .getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.UNKNOWN);
   }
 
   @Test(dependsOnMethods = "testAddingNodeWithEnableInstanceOperation")
@@ -416,7 +418,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertEquals(
         _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
-            .getInstanceOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+            .getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.UNKNOWN);
   }
 
   @Test(dependsOnMethods = "testNodeSwapWithNoSwapOutNode")
@@ -440,7 +443,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertEquals(
         _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
-            .getInstanceOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+            .getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.UNKNOWN);
 
     // Setting the InstanceOperation to SWAP_IN should work because there is a matching logicalId in
     // the cluster and the InstanceCapacityWeights and FaultZone match.
@@ -481,7 +485,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Instance should be UNKNOWN since there was already a swapping pair.
     Assert.assertEquals(_gSetupTool.getClusterManagementTool()
-            .getInstanceConfig(CLUSTER_NAME, secondInstanceToSwapInName).getInstanceOperation(),
+            .getInstanceConfig(CLUSTER_NAME, secondInstanceToSwapInName).getInstanceOperation()
+            .getOperation(),
         InstanceConstants.InstanceOperation.UNKNOWN);
 
     // Try to set the InstanceOperation to SWAP_IN, it should throw an exception since there is already
@@ -576,7 +581,8 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceEnabled());
     Assert.assertEquals(_gSetupTool.getClusterManagementTool()
-            .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceOperation(),
+            .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceOperation()
+            .getOperation(),
         InstanceConstants.InstanceOperation.UNKNOWN);
 
     // Check to make sure the throttle was enabled again after the swap was completed.
@@ -681,7 +687,8 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceEnabled());
     Assert.assertEquals(_gSetupTool.getClusterManagementTool()
-            .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceOperation(),
+            .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceOperation()
+            .getOperation(),
         InstanceConstants.InstanceOperation.UNKNOWN);
 
     // Validate that the SWAP_IN instance has the same partitions the swap out instance had before
@@ -824,7 +831,7 @@ public class TestInstanceOperation extends ZkTestBase {
         Collections.emptySet(), Collections.emptySet());
 
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName, null);
+        .setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName, InstanceConstants.InstanceOperation.ENABLE);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -1110,7 +1117,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // This should throw exception because we cannot ever have two instances with the same logicalId and both have InstanceOperation
     // unset.
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToSwapInName, null);
+        .setInstanceOperation(CLUSTER_NAME, instanceToSwapInName, InstanceConstants.InstanceOperation.ENABLE);
   }
 
   @Test(dependsOnMethods = "testUnsetInstanceOperationOnSwapInWhenSwapping")
@@ -1180,7 +1187,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // cancel the evacuation
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
 
     assignment = getEVs();
     for (String resource : _allDBs) {
@@ -1222,7 +1229,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // cancel evacuation
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, null);
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
     // check every replica has >= 3 active replicas, even before cluster converge
     Map<String, ExternalView> assignment = getEVs();
     for (String resource : _allDBs) {
@@ -1311,7 +1318,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Remove EVACUATE instance's InstanceOperation
     _gSetupTool.getClusterManagementTool()
-        .setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName, null);
+        .setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName, InstanceConstants.InstanceOperation.ENABLE);
   }
 
   @Test(dependsOnMethods = "testSwapEvacuateAddRemoveEvacuate")
@@ -1392,7 +1399,7 @@ public class TestInstanceOperation extends ZkTestBase {
     @Override
     public void onInstanceConfigChange(List<InstanceConfig> instanceConfig,
         NotificationContext context) {
-      if (instanceConfig.get(0).getInstanceOperation()
+      if (instanceConfig.get(0).getInstanceOperation().getOperation()
           .equals(InstanceConstants.InstanceOperation.SWAP_IN)) {
         throttlesEnabled = false;
       } else {

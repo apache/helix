@@ -310,15 +310,38 @@ public interface HelixAdmin {
   void enableInstance(String clusterName, List<String> instances, boolean enabled);
 
   /**
-   * Set the instanceOperation field. Setting it to null is equivalent to
-   * ENABLE.
+   * Set the instanceOperation of and instance with {@link InstanceConstants.InstanceOperation}.
    *
    * @param clusterName       The cluster name
    * @param instanceName      The instance name
-   * @param instanceOperation The instance operation
+   * @param instanceOperation The instance operation type
    */
   void setInstanceOperation(String clusterName, String instanceName,
-      @Nullable InstanceConstants.InstanceOperation instanceOperation);
+      InstanceConstants.InstanceOperation instanceOperation);
+
+  /**
+   * Set the instanceOperation of and instance with {@link InstanceConstants.InstanceOperation}.
+   *
+   * @param clusterName       The cluster name
+   * @param instanceName      The instance name
+   * @param instanceOperation The instance operation type
+   * @param reason            The reason for the operation
+   */
+  void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation, String reason);
+
+  /**
+   * Set the instanceOperation of and instance with {@link InstanceConstants.InstanceOperation}.
+   *
+   * @param clusterName       The cluster name
+   * @param instanceName      The instance name
+   * @param instanceOperation The instance operation type
+   * @param reason            The reason for the operation
+   * @param overrideAll       Whether to override all existing instance operations from all other
+   *                          instance operations
+   */
+  void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation, String reason, boolean overrideAll);
 
   /**
    * Disable or enable a resource

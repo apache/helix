@@ -23,6 +23,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.util.InstanceUtil;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,9 +51,14 @@ public class DefaultCloudEventCallbackImpl {
     LOG.info("DefaultCloudEventCallbackImpl disable Instance {}", manager.getInstanceName());
     if (InstanceValidationUtil
         .isEnabled(manager.getHelixDataAccessor(), manager.getInstanceName())) {
-      manager.getClusterManagmentTool()
-          .enableInstance(manager.getClusterName(), manager.getInstanceName(), false,
-              InstanceConstants.InstanceDisabledType.CLOUD_EVENT, message);
+      InstanceUtil.setInstanceOperation(manager.getConfigAccessor(),
+          manager.getHelixDataAccessor().getBaseDataAccessor(), manager.getClusterName(),
+          manager.getInstanceName(),
+              new InstanceConfig.InstanceOperation.Builder().setOperation(
+                      InstanceConstants.InstanceOperation.DISABLE)
+                  .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION)
+                  .setReason(message)
+                  .build());
     }
     HelixEventHandlingUtil.updateCloudEventOperationInClusterConfig(manager.getClusterName(),
         manager.getInstanceName(), manager.getHelixDataAccessor().getBaseDataAccessor(), false,
@@ -72,10 +79,13 @@ public class DefaultCloudEventCallbackImpl {
     HelixEventHandlingUtil
         .updateCloudEventOperationInClusterConfig(manager.getClusterName(), instanceName,
             manager.getHelixDataAccessor().getBaseDataAccessor(), true, message);
-    if (HelixEventHandlingUtil.isInstanceDisabledForCloudEvent(instanceName, accessor)) {
-      manager.getClusterManagmentTool().enableInstance(manager.getClusterName(), instanceName, true,
-          InstanceConstants.InstanceDisabledType.CLOUD_EVENT, message);
-    }
+    InstanceUtil.setInstanceOperation(manager.getConfigAccessor(),
+        manager.getHelixDataAccessor().getBaseDataAccessor(), manager.getClusterName(),
+        manager.getInstanceName(),
+            new InstanceConfig.InstanceOperation.Builder().setOperation(
+                    InstanceConstants.InstanceOperation.ENABLE)
+                .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).setReason(message)
+                .build());
   }
 
   /**

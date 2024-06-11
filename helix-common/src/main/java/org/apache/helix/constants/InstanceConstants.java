@@ -20,19 +20,52 @@ public class InstanceConstants {
    * TODO: Remove this when the deprecated HELIX_ENABLED is removed.
    */
   public static final Set<InstanceOperation> INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS =
-      ImmutableSet.of(InstanceOperation.ENABLE, InstanceOperation.DISABLE, InstanceOperation.EVACUATE);
+      ImmutableSet.of(InstanceOperation.ENABLE, InstanceOperation.EVACUATE);
 
 
   /**
    * The set of InstanceOperations that are not allowed to be populated in the RoutingTableProvider.
    */
-  public static final Set<InstanceOperation> UNSERVABLE_INSTANCE_OPERATIONS =
+  public static final Set<InstanceOperation> UNROUTABLE_INSTANCE_OPERATIONS =
       ImmutableSet.of(InstanceOperation.SWAP_IN, InstanceOperation.UNKNOWN);
 
+  @Deprecated
   public enum InstanceDisabledType {
     CLOUD_EVENT,
     USER_OPERATION,
     DEFAULT_INSTANCE_DISABLE_TYPE
+  }
+
+  public enum InstanceOperationSource {
+    ADMIN(0), USER(1), AUTOMATION(2), DEFAULT(3);
+
+    private final int _priority;
+
+    InstanceOperationSource(int priority) {
+      _priority = priority;
+    }
+
+    public int getPriority() {
+      return _priority;
+    }
+
+    /**
+     * Convert from InstanceDisabledType to InstanceOperationTrigger
+     *
+     * @param disabledType InstanceDisabledType
+     * @return InstanceOperationTrigger
+     */
+    public static InstanceOperationSource instanceDisabledTypeToInstanceOperationSource(
+        InstanceDisabledType disabledType) {
+      switch (disabledType) {
+        case CLOUD_EVENT:
+          return InstanceOperationSource.AUTOMATION;
+        case USER_OPERATION:
+          return InstanceOperationSource.USER;
+        default:
+          return InstanceOperationSource.DEFAULT;
+      }
+    }
   }
 
   public enum InstanceOperation {

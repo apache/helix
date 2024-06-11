@@ -495,14 +495,14 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
         InstanceConstants.InstanceOperation.EVACUATE);
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=INVALIDOP")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
         InstanceConstants.InstanceOperation.ENABLE);
 
     // test canCompleteSwap
@@ -543,7 +543,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
         InstanceConstants.InstanceOperation.EVACUATE);
 
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")
@@ -586,7 +586,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, test_instance_name).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, test_instance_name);
-    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
         InstanceConstants.InstanceOperation.EVACUATE);
 
     response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")

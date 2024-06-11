@@ -52,7 +52,6 @@ public class TestInstanceConfig {
   public void testSetInstanceEnableWithReason() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
-    instanceConfig.setInstanceDisabledReason("NoShowReason");
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
 
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
@@ -62,10 +61,9 @@ public class TestInstanceConfig {
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_TYPE.toString()), null);
 
-
-    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
     String reasonCode = "ReasonCode";
-    instanceConfig.setInstanceDisabledReason(reasonCode);
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+        InstanceConstants.InstanceOperation.DISABLE).setReason(reasonCode).build());
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()), "false");
@@ -199,6 +197,30 @@ public class TestInstanceConfig {
   }
 
   @Test
+  public void testInstanceOperationReason() {
+    InstanceConfig instanceConfig = new InstanceConfig("instance1");
+    instanceConfig.setInstanceEnabled(false);
+    instanceConfig.setInstanceDisabledReason("disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
+
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+        InstanceConstants.InstanceOperation.UNKNOWN).setReason("unknownReason").build());
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "unknownReason");
+
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE);
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+        InstanceConstants.InstanceOperation.DISABLE).setReason("disableReason2").build());
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason2");
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "disableReason2");
+
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "");
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "");
+  }
+
+  @Test
   public void testOverwriteInstanceConfig() {
     InstanceConfig instanceConfig = new InstanceConfig("instance2");
     instanceConfig.setHostName("host1");
@@ -233,9 +255,91 @@ public class TestInstanceConfig {
     Assert.assertTrue(instanceConfig.getTags().contains("tag4"));
     Assert.assertFalse(instanceConfig.getRecord().getSimpleFields()
         .containsKey(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()));
-    Assert.assertEquals(instanceConfig.getInstanceOperation(),
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
         InstanceConstants.InstanceOperation.EVACUATE);
     Assert.assertFalse(instanceConfig.getInstanceCapacityMap().containsKey("weight1"));
     Assert.assertEquals(instanceConfig.getInstanceCapacityMap().get("weight2"), Integer.valueOf(2));
+  }
+
+  @Test
+  public void testInstanceOperationMultipleSources() throws InterruptedException {
+    InstanceConfig instanceConfig = new InstanceConfig("instance1");
+
+    // Check that the instance operation is ENABLE from the DEFAULT source
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.DEFAULT);
+
+    // Set instance operation from user source
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.DISABLE).setReason("userReason")
+        .setSource(InstanceConstants.InstanceOperationSource.USER).build());
+    // Get enabled time
+    long op1EnabledTime = instanceConfig.getInstanceEnabledTime();
+
+    Thread.sleep(1000);
+    // Set instance operation from automation source
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.DISABLE).setReason("automationReason")
+        .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).build());
+
+    // Check that the enabled time is the same as op1 but the source and reason is changed to automation
+    Assert.assertEquals(instanceConfig.getInstanceEnabledTime(), op1EnabledTime);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.AUTOMATION);
+
+    Thread.sleep(1000);
+    // Set instance operation from user source to be ENABLE
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.ENABLE)
+        .setSource(InstanceConstants.InstanceOperationSource.USER).build());
+
+    // Check that the operation is DISABLE, the enabled time is the same as op1, and the source is still automation
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceEnabledTime(), op1EnabledTime);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.AUTOMATION);
+
+    Thread.sleep(1000);
+    // Set the instance operation from the automation source to be ENABLE
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.ENABLE)
+        .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).build());
+
+    // Check that the operation is ENABLE, the enabled time is the different from op1, and the source is still automation
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertFalse(instanceConfig.getInstanceEnabledTime() == op1EnabledTime);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.AUTOMATION);
+
+    // Set the instance operation from the automation source to be EVACUATE
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.EVACUATE)
+        .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).build());
+
+    // Set the instance operation from the user source to be DISABLE
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.DISABLE)
+        .setSource(InstanceConstants.InstanceOperationSource.USER).build());
+
+    // Check that the instance operation is DISABLE and the source is user
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
+
+    // Set the instance operation from the admin source to be ENABLE
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
+            InstanceConstants.InstanceOperation.ENABLE)
+        .setSource(InstanceConstants.InstanceOperationSource.ADMIN).build());
+
+    // Check that the instance operation is ENABLE and the source is admin
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.ADMIN);
   }
 }

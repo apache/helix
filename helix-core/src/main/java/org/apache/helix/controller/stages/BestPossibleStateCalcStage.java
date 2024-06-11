@@ -36,7 +36,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.LogUtil;
-import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -358,11 +357,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     if (maxInstancesUnableToAcceptOnlineReplicas >= 0) {
       // Instead of only checking the offline instances, we consider how many instances in the cluster
       // are not assignable and live. This is because some instances may be online but have an unassignable
-      // InstanceOperation such as EVACUATE, DISABLE, or UNKNOWN. We will exclude SWAP_IN instances from
+      // InstanceOperation such as EVACUATE, and DISABLE. We will exclude SWAP_IN and UNKNOWN instances from
       // they should not account against the capacity of the cluster.
       int instancesUnableToAcceptOnlineReplicas = cache.getInstanceConfigMap().entrySet().stream()
-          .filter(instanceEntry -> !InstanceConstants.UNSERVABLE_INSTANCE_OPERATIONS.contains(
-              instanceEntry.getValue().getInstanceOperation())).collect(Collectors.toSet())
+          .filter(instanceEntry -> !InstanceConstants.UNROUTABLE_INSTANCE_OPERATIONS.contains(
+              instanceEntry.getValue().getInstanceOperation().getOperation()))
+          .collect(Collectors.toSet())
           .size() - cache.getEnabledLiveInstances().size();
       if (instancesUnableToAcceptOnlineReplicas > maxInstancesUnableToAcceptOnlineReplicas) {
         String errMsg = String.format(

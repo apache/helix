@@ -45,12 +45,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.HealthStat;
@@ -66,6 +68,7 @@ import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
+import org.apache.helix.util.InstanceUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
@@ -388,9 +391,11 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @POST
   public Response updateInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("command") String command,
-      @QueryParam("instanceOperation") InstanceConstants.InstanceOperation state,
-      @QueryParam("instanceDisabledType") String disabledType,
-      @QueryParam("instanceDisabledReason") String disabledReason,
+      @QueryParam("instanceOperation") InstanceConstants.InstanceOperation instanceOperation,
+      @QueryParam("instanceOperationSource") InstanceConstants.InstanceOperationSource instanceOperationSource,
+      @QueryParam("reason") String reason,
+      @Deprecated @QueryParam("instanceDisabledType") String disabledType,
+      @Deprecated @QueryParam("instanceDisabledReason") String disabledReason,
       @QueryParam("force") boolean force, String content) {
     Command cmd;
     try {
@@ -445,7 +450,12 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                       .getTypeFactory().constructCollectionType(List.class, String.class)));
           break;
         case setInstanceOperation:
-          admin.setInstanceOperation(clusterId, instanceName, state);
+          InstanceUtil.setInstanceOperation(new ConfigAccessor(getRealmAwareZkClient()),
+              new ZkBaseDataAccessor<>(getRealmAwareZkClient()), clusterId, instanceName,
+              new InstanceConfig.InstanceOperation.Builder().setOperation(instanceOperation)
+                  .setReason(reason).setSource(
+                      force ? InstanceConstants.InstanceOperationSource.ADMIN : instanceOperationSource)
+                  .build());
           break;
         case canCompleteSwap:
           return OK(OBJECT_MAPPER.writeValueAsString(

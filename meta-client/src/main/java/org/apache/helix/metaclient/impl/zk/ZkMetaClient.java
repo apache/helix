@@ -666,7 +666,7 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
   }
 
   @VisibleForTesting
-  ZkClient getZkClient() {
+   ZkClient getZkClient() {
     return _zkClient;
   }
 }

@@ -25,8 +25,11 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
 
   public static LeaderElectionClient createLeaderElectionClient(String participantName) {
     MetaClientConfig.StoreType storeType = MetaClientConfig.StoreType.ZOOKEEPER;
-    MetaClientConfig config =
-        new MetaClientConfig.MetaClientConfigBuilder<>().setConnectionAddress(ZK_ADDR).setStoreType(storeType).build();
+    MetaClientConfig config = new MetaClientConfig.MetaClientConfigBuilder<>().setConnectionAddress(ZK_ADDR)
+        .setStoreType(storeType)
+        .setSessionTimeoutInMillis(1 * 60 * 1000)
+        .setConnectionInitTimeoutInMillis(1 * 60 * 1000)
+        .build();
     return new LeaderElectionClient(config, participantName);
   }
 

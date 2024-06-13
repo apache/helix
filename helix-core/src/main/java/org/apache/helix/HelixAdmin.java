@@ -316,8 +316,10 @@ public interface HelixAdmin {
    * @param instanceName      The instance name
    * @param instanceOperation The instance operation type
    */
-  void setInstanceOperation(String clusterName, String instanceName,
-      InstanceConstants.InstanceOperation instanceOperation);
+  default void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation) {
+    throw new UnsupportedOperationException("setInstanceOperation is not implemented.");
+  }
 
   /**
    * Set the instanceOperation of and instance with {@link InstanceConstants.InstanceOperation}.
@@ -327,8 +329,10 @@ public interface HelixAdmin {
    * @param instanceOperation The instance operation type
    * @param reason            The reason for the operation
    */
-  void setInstanceOperation(String clusterName, String instanceName,
-      InstanceConstants.InstanceOperation instanceOperation, String reason);
+  default void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation, String reason) {
+    throw new UnsupportedOperationException("setInstanceOperation is not implemented.");
+  }
 
   /**
    * Set the instanceOperation of and instance with {@link InstanceConstants.InstanceOperation}.
@@ -340,8 +344,10 @@ public interface HelixAdmin {
    * @param overrideAll       Whether to override all existing instance operations from all other
    *                          instance operations
    */
-  void setInstanceOperation(String clusterName, String instanceName,
-      InstanceConstants.InstanceOperation instanceOperation, String reason, boolean overrideAll);
+  default void setInstanceOperation(String clusterName, String instanceName,
+      InstanceConstants.InstanceOperation instanceOperation, String reason, boolean overrideAll) {
+    throw new UnsupportedOperationException("setInstanceOperation is not implemented.");
+  }
 
   /**
    * Disable or enable a resource
@@ -453,8 +459,10 @@ public interface HelixAdmin {
    * @param resourceName
    * @param partitionNames
    */
-  void setPartitionsToError(String clusterName, String instanceName, String resourceName,
-      List<String> partitionNames);
+  default void setPartitionsToError(String clusterName, String instanceName, String resourceName,
+      List<String> partitionNames) {
+    throw new UnsupportedOperationException("setPartitionsToError is not implemented.");
+  }
 
   /**
    * Reset a list of partitions in error state for an instance
@@ -795,7 +803,9 @@ public interface HelixAdmin {
    * @param instancesNames
    * @return Return true if there is no current state nor pending message on the instance.
    */
-  boolean isEvacuateFinished(String clusterName, String instancesNames);
+  default boolean isEvacuateFinished(String clusterName, String instancesNames) {
+    throw new UnsupportedOperationException("isEvacuateFinished is not implemented.");
+  }
 
   /**
    * Check to see if swapping between two instances can be completed. Either the swapOut or
@@ -804,7 +814,9 @@ public interface HelixAdmin {
    * @param instanceName The instance that is being swapped out or swapped in
    * @return True if the swap is ready to be completed, false otherwise.
    */
-  boolean canCompleteSwap(String clusterName, String instanceName);
+  default boolean canCompleteSwap(String clusterName, String instanceName) {
+    throw new UnsupportedOperationException("canCompleteSwap is not implemented.");
+  }
 
   /**
    * Check to see if swapping between two instances is ready to be completed and complete it if
@@ -816,7 +828,10 @@ public interface HelixAdmin {
    * @return True if the swap is ready to be completed and was completed successfully, false
    * otherwise.
    */
-  boolean completeSwapIfPossible(String clusterName, String instanceName, boolean forceComplete);
+  default boolean completeSwapIfPossible(String clusterName, String instanceName,
+      boolean forceComplete) {
+    throw new UnsupportedOperationException("completeSwapIfPossible is not implemented.");
+  }
 
   /**
    * Return if instance is ready for preparing joining cluster. The instance should have no current state,
@@ -825,5 +840,8 @@ public interface HelixAdmin {
    * @param instancesNames
    * @return true if the instance is ready for preparing joining cluster.
    */
-  boolean isReadyForPreparingJoiningCluster(String clusterName, String instancesNames);
+  default boolean isReadyForPreparingJoiningCluster(String clusterName, String instancesNames) {
+    throw new UnsupportedOperationException(
+        "isReadyForPreparingJoiningCluster is not implemented.");
+  }
 }

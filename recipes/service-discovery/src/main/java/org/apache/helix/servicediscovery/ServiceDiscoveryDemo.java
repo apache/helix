@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.servicediscovery.ServiceDiscovery.Mode;
 
 public class ServiceDiscoveryDemo {
@@ -33,6 +34,11 @@ public class ServiceDiscoveryDemo {
     String zkAddress = "localhost:2199";
     String serviceName = "myServiceName";
     int numServices = 5;
+
+    ZKHelixAdmin admin = new ZKHelixAdmin(zkAddress);
+    // create cluster
+    System.out.println("Creating cluster: " + clusterName);
+    admin.addCluster(clusterName, true);
 
     // registration + zk watch
     demo(clusterName, zkAddress, serviceName, numServices, Mode.WATCH);

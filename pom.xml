@@ -312,11 +312,9 @@
     <module>zookeeper-api</module>
     <module>helix-common</module>
     <module>helix-core</module>
-    <module>helix-admin-webapp</module>
     <module>helix-rest</module>
     <module>helix-lock</module>
     <module>helix-agent</module>
-    <!--<module>helix-front</module> disable build for helix-front-->
     <module>recipes</module>
     <module>helix-view-aggregator</module>
     <module>meta-client</module>

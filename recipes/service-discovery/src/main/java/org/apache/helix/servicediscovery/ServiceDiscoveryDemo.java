@@ -47,6 +47,7 @@ public class ServiceDiscoveryDemo {
     // only registration + ondemand
     demo(clusterName, zkAddress, serviceName, numServices, Mode.NONE);
 
+    admin.close();
   }
 
   private static void demo(String clusterName, String zkAddress, String serviceName,

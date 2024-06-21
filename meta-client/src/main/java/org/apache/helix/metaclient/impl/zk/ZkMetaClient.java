@@ -19,6 +19,7 @@ package org.apache.helix.metaclient.impl.zk;
  * under the License.
  */
 
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,6 +40,7 @@ import org.apache.helix.metaclient.api.DirectChildSubscribeResult;
 import org.apache.helix.metaclient.api.MetaClientInterface;
 import org.apache.helix.metaclient.api.Op;
 import org.apache.helix.metaclient.api.OpResult;
+import org.apache.helix.metaclient.exception.MetaClientBadVersionException;
 import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
@@ -207,16 +209,61 @@ public class ZkMetaClient<T> implements MetaClientInterface<T>, AutoCloseable {
 
   @Override
   public T update(String key, DataUpdater<T> updater) {
-    org.apache.zookeeper.data.Stat stat = new org.apache.zookeeper.data.Stat();
-    // TODO: add retry logic for ZkBadVersionException.
-    try {
-      T oldData = _zkClient.readData(key, stat);
-      T newData = updater.update(oldData);
-      set(key, newData, stat.getVersion());
-      return newData;
-    } catch (ZkException e) {
-      throw translateZkExceptionToMetaclientException(e);
-    }
+    return update(key, updater, false, false);
+  }
+
+  @Override
+  public T update(String key, DataUpdater<T> updater, boolean retryOnFailure, boolean createIfAbsent) {
+    final int MAX_RETRY_ATTEMPTS = 3;
+    int retryAttempts = 0;
+    boolean retry;
+    T updatedData = null;
+    do {
+      retry = false;
+      retryAttempts++;
+      try {
+        ImmutablePair<T, Stat> tup = getDataAndStat(key);
+        Stat stat = tup.right;
+        T oldData = tup.left;
+        T newData = updater.update(oldData);
+        set(key, newData, stat.getVersion());
+        updatedData = newData;
+      } catch (MetaClientBadVersionException badVersionException) {
+        // If exceeded max retry attempts, re-throw exception
+        if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+          LOG.error("Failed to update node at {} after {} attempts.", key, MAX_RETRY_ATTEMPTS);
+          throw badVersionException;
+        }
+        // Retry on bad version
+        retry = true;
+      } catch (MetaClientNoNodeException noNodeException) {
+        if (!createIfAbsent) {
+          LOG.error("Failed to update node at {} as node does not exist. createIfAbsent was {}.", key, createIfAbsent);
+          throw noNodeException;
+        }
+        // If node does not exist, attempt to create it - pass null to updater
+        T newData = updater.update(null);
+        if (newData != null) {
+          try {
+            create(key, newData);
+            updatedData = newData;
+          // If parent node for key does not exist, then updater will immediately fail due to uncaught NoNodeException
+          } catch (MetaClientNodeExistsException nodeExistsException) {
+            // If exceeded max retry attempts, cast to ConcurrentModification exception and re-throw.
+            if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+              LOG.error("Failed to update node at {} after {} attempts.", key, MAX_RETRY_ATTEMPTS);
+              throw new ConcurrentModificationException("Failed to update node at " + key + " after " +
+                  MAX_RETRY_ATTEMPTS + " attempts.", nodeExistsException);
+            }
+            // If node now exists, then retry update
+            retry = true;
+          } catch (ZkException e) {
+            throw translateZkExceptionToMetaclientException(e);
+          }
+        }
+      }
+    } while (retryOnFailure && retry);
+    return updatedData;
   }
 
   //TODO: Get Expiry Time in Stat

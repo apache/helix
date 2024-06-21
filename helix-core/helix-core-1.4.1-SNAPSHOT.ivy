@@ -20,7 +20,7 @@ under the License.
 <ivy-module version="1.0" xmlns:m="http://ant.apache.org/ivy/maven">
 	<info organisation="org.apache.helix"
 		module="helix-core"
-		revision="1.3.2-SNAPSHOT"
+		revision="1.4.1-SNAPSHOT"
 		status="release"
 		publication="2011111505113547"
 	>

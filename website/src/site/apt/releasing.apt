@@ -139,6 +139,7 @@ Apache Helix is a generic cluster management framework that makes it easy to bui
 Release notes:
 https://helix.apache.org/[VERSION]-docs/releasenotes/release-[VERSION].html
 
+
 Release artifacts:
 https://repository.apache.org/content/repositories/orgapachehelix-[NNNN]
 
@@ -149,7 +150,7 @@ https://dist.apache.org/repos/dist/dev/helix/[VERSION]/binaries/
 https://dist.apache.org/repos/dist/dev/helix/[VERSION]/src/
 
 The [VERSION] release tag:
-https://git-wip-us.apache.org/repos/asf?p=helix.git;a=tag;h=refs/tags/helix-[VERSION]
+https://github.com/apache/helix/releases/tag/helix-[VERSION]
 
 KEYS file available here:
 https://dist.apache.org/repos/dist/dev/helix/KEYS

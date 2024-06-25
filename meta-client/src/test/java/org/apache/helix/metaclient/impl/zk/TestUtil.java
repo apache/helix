@@ -185,4 +185,22 @@ public class TestUtil {
     zkClient.process(event);
   }
 
+  /**
+   * Simulate a zk state change by calling {@link ZkClient#process(WatchedEvent)} directly
+   * This need to be done in a separate thread to simulate ZkClient eventThread.
+   */
+  public static void simulateZkStateClosedAndReconnect(ZkMetaClient client) throws InterruptedException {
+    final ZkClient zkClient = client.getZkClient();
+    WatchedEvent event =
+        new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.Closed,
+            null);
+    zkClient.process(event);
+
+    Thread.sleep(AUTO_RECONNECT_WAIT_TIME_WITHIN);
+
+    event = new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.SyncConnected,
+        null);
+    zkClient.process(event);
+  }
+
 }

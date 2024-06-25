@@ -409,15 +409,19 @@ public class LeaderElectionClient implements AutoCloseable {
     public void handleConnectStateChanged(MetaClientInterface.ConnectState prevState,
         MetaClientInterface.ConnectState currentState) throws Exception {
       LOG.info("Connect state changed from {} to {}", prevState, currentState);
-      if ((prevState == MetaClientInterface.ConnectState.EXPIRED || prevState == MetaClientInterface.ConnectState.CLOSED_BY_CLIENT)
-          && currentState == MetaClientInterface.ConnectState.CONNECTED) {
+      if (currentState == MetaClientInterface.ConnectState.CONNECTED) {
+        // when reconnected, we try to recreate the ephemeral node for participant
         for (String leaderPath : _participantInfos.keySet()) {
-          LOG.info("Recreate participant node for leaderPath {}.", leaderPath);
-          _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, _participantInfos.get(leaderPath),
-              MetaClientInterface.EntryMode.EPHEMERAL);
+          try {
+            LOG.info("Recreate participant node for leaderPath {}.", leaderPath);
+            _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, _participantInfos.get(leaderPath),
+                MetaClientInterface.EntryMode.EPHEMERAL);
+          } catch (MetaClientNodeExistsException ex) {
+            // If reconnected before expire, the ephemeral node is still there.
+            LOG.info("Participant {} already in leader group {}.", _participant, leaderPath);
+          }
         }
-      } else if (prevState == MetaClientInterface.ConnectState.DISCONNECTED
-          && currentState == MetaClientInterface.ConnectState.CONNECTED) {
+        // touch leader node to renew session ID
         touchLeaderNode();
       }
     }

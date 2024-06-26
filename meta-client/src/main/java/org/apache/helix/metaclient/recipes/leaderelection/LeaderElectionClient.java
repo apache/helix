@@ -38,7 +38,6 @@ import org.apache.helix.metaclient.exception.MetaClientException;
 import org.apache.helix.metaclient.exception.MetaClientNoNodeException;
 import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
-import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
 import org.slf4j.Logger;
@@ -167,6 +166,7 @@ public class LeaderElectionClient implements AutoCloseable {
       // try to create participant info entry, assuming leader election group node is already there
       _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, participantInfo,
           MetaClientInterface.EntryMode.EPHEMERAL);
+      LOG.info("Participant {} joined leader group {}.", _participant, leaderPath);
     } catch (MetaClientNodeExistsException ex) {
       throw new ConcurrentModificationException("Already joined leader election group. ", ex);
     } catch (MetaClientNoNodeException ex) {
@@ -261,6 +261,7 @@ public class LeaderElectionClient implements AutoCloseable {
     // deleting ZNode. So that handler in ReElectListener won't recreate the leader node.
     if (exitLeaderElectionParticipantPool) {
       _leaderGroups.remove(leaderPath + LEADER_ENTRY_KEY);
+      LOG.info("Leaving leader election pool {}.", leaderPath);
       _metaClient.delete(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant);
     }
     // check if current participant is the leader
@@ -272,12 +273,13 @@ public class LeaderElectionClient implements AutoCloseable {
         List<Op> ops = Arrays.asList(Op.check(key, expectedVersion), Op.delete(key, expectedVersion));
         //Execute transactional support on operations
         List<OpResult> opResults = _metaClient.transactionOP(ops);
+        LOG.info("Try relinquish leader {}.", leaderPath);
         if (opResults.get(0).getType() == ERRORRESULT) {
           if (isLeader(leaderPath)) {
             // Participant re-elected as leader.
             throw new ConcurrentModificationException("Concurrent operation, please retry");
           } else {
-            LOG.info("Someone else is already leader");
+            LOG.info("Someone else is already leader when relinquishing leadership for path {}.", leaderPath);
           }
         }
       }
@@ -366,7 +368,7 @@ public class LeaderElectionClient implements AutoCloseable {
 
   @Override
   public void close() throws Exception {
-
+    LOG.info("Closing leader election client.");
     _metaClient.unsubscribeConnectStateChanges(_connectStateListener);
 
     // exit all previous joined leader election groups
@@ -406,14 +408,20 @@ public class LeaderElectionClient implements AutoCloseable {
     @Override
     public void handleConnectStateChanged(MetaClientInterface.ConnectState prevState,
         MetaClientInterface.ConnectState currentState) throws Exception {
-      if (prevState == MetaClientInterface.ConnectState.EXPIRED
-          && currentState == MetaClientInterface.ConnectState.CONNECTED) {
+      LOG.info("Connect state changed from {} to {}", prevState, currentState);
+      if (currentState == MetaClientInterface.ConnectState.CONNECTED) {
+        // when reconnected, we try to recreate the ephemeral node for participant
         for (String leaderPath : _participantInfos.keySet()) {
-          _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, _participantInfos.get(leaderPath),
-              MetaClientInterface.EntryMode.EPHEMERAL);
+          try {
+            LOG.info("Recreate participant node for leaderPath {}.", leaderPath);
+            _metaClient.create(leaderPath + PARTICIPANTS_ENTRY_PARENT + _participant, _participantInfos.get(leaderPath),
+                MetaClientInterface.EntryMode.EPHEMERAL);
+          } catch (MetaClientNodeExistsException ex) {
+            // If reconnected before expire, the ephemeral node is still there.
+            LOG.info("Participant {} already in leader group {}.", _participant, leaderPath);
+          }
         }
-      } else if (prevState == MetaClientInterface.ConnectState.DISCONNECTED
-          && currentState == MetaClientInterface.ConnectState.CONNECTED) {
+        // touch leader node to renew session ID
         touchLeaderNode();
       }
     }
@@ -431,6 +439,7 @@ public class LeaderElectionClient implements AutoCloseable {
       if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
         int expectedVersion = tup.right.getVersion();
         try {
+          LOG.info("Try touch leader node for path {}", _leaderGroups);
           _metaClient.set(key, tup.left, expectedVersion);
         } catch (MetaClientNoNodeException ex) {
           LOG.info("leaderPath {} gone when retouch leader node.", key);

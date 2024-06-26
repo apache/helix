@@ -5,7 +5,6 @@ import org.apache.helix.metaclient.MetaClientTestUtil;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
-import org.apache.helix.metaclient.impl.zk.TestUtil;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClient;
 import org.apache.helix.metaclient.impl.zk.ZkMetaClientTestBase;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
@@ -40,6 +39,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
       client.recursiveDelete(LEADER_PATH);
     }
   }
+
 
   // Test that calling isLeader before client joins LeaderElectionParticipantPool returns false and does not throw NPE
   @Test
@@ -299,7 +299,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     System.out.println("END TestLeaderElection.testSessionExpire");
   }
 
-  @Test(dependsOnMethods = "testSessionExpire")
+  @Test (dependsOnMethods = "testSessionExpire")
   public void testClientDisconnectAndReconnectBeforeExpire() throws Exception {
     System.out.println("START TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
     String leaderPath = LEADER_PATH + "/testClientDisconnectAndReconnectBeforeExpire";
@@ -352,6 +352,34 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt1.close();
     clt2.close();
     System.out.println("END TestLeaderElection.testClientDisconnectAndReconnectBeforeExpire");
+  }
+
+  @Test(dependsOnMethods = "testClientDisconnectAndReconnectBeforeExpire")
+  public void testClientClosedAndReconnectAfterExpire() throws Exception {
+    System.out.println("START TestLeaderElection.testClientClosedAndReconnectAfterExpire");
+    String leaderPath = LEADER_PATH + "/testClientClosedAndReconnectAfterExpire";
+    LeaderInfo participantInfo = new LeaderInfo(PARTICIPANT_NAME1);
+    participantInfo.setSimpleField("Key1", "value1");
+    LeaderInfo participantInfo2 = new LeaderInfo(PARTICIPANT_NAME2);
+    participantInfo2.setSimpleField("Key2", "value2");
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
+
+    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
+    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
+
+    // session expire and reconnect
+    expireSession((ZkMetaClient) clt1.getMetaClient());
+    // clt1 closed and reconnected
+    simulateZkStateClosedAndReconnect((ZkMetaClient) clt1.getMetaClient());
+
+    // when session recreated, participant info node should maintain
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+
+    ((ZkMetaClient<?>) clt1.getMetaClient()).close();
+    clt2.close();
+    System.out.println("END TestLeaderElection.testClientClosedAndReconnectAfterExpire");
   }
 
   private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2)

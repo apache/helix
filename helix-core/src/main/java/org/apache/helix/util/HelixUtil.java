@@ -394,7 +394,7 @@ public final class HelixUtil {
         RebalanceStrategy.class.cast(loadClass(HelixUtil.class, strategyClassName).newInstance());
 
     strategy.init(idealState.getResourceName(), partitions, stateModelDefinition
-            .getStateCountMap(liveInstances.size(), Integer.parseInt(idealState.getReplicas())),
+            .getStateCountMap(liveInstances.size(), idealState.getReplicaCount(liveInstances.size())),
         idealState.getMaxPartitionsPerInstance());
 
     // Remove all disabled instances so that Helix will not consider them live.

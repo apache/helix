@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+package proto.org.apache.helix.gateway;
+
+import "proto/com/linkedin/acmadmin/ACMAdmin.proto";
+import "si/grpc.proto";

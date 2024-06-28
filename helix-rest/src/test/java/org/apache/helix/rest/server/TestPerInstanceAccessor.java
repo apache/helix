@@ -525,21 +525,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertFalse((boolean) responseMap.get("successful"));
 
     // test isEvacuateFinished on instance with EVACUATE but has currentState
-    // Put the cluster in MM so no assignment is calculated
-    _gSetupTool.getClusterManagementTool()
-        .enableMaintenanceMode(CLUSTER_NAME, true, "Change resource to full-auto");
-
-    // Make the DBs FULL_AUTO and wait because EVACUATE is only supported for FULL_AUTO resources
-    Set<String> resources = _resourcesMap.get(CLUSTER_NAME);
-    for (String resource : resources) {
-      IdealState idealState =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resource);
-      idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
-      idealState.setDelayRebalanceEnabled(true);
-      idealState.setRebalanceDelay(360000);
-      _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, resource, idealState);
-    }
-
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=setInstanceOperation&instanceOperation=EVACUATE")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
@@ -550,22 +535,8 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
     Map<String, Boolean> evacuateFinishedResult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-    // Returns false because the node still contains full-auto resources
-    Assert.assertFalse(evacuateFinishedResult.get("successful"));
-
-    // Make all resources SEMI_AUTO again
-    for (String resource : resources) {
-      IdealState idealState =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resource);
-      idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
-      idealState.setDelayRebalanceEnabled(false);
-      idealState.setRebalanceDelay(0);
-      _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, resource, idealState);
-    }
-
-    // Exit MM
-    _gSetupTool.getClusterManagementTool()
-        .enableMaintenanceMode(CLUSTER_NAME, false, "Change resource to full-auto");
+    // Returns true because the node only contains semi-auto resources
+    Assert.assertTrue(evacuateFinishedResult.get("successful"));
 
     // Because the resources are now all semi-auto, is EvacuateFinished should return true
     response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isEvacuateFinished")

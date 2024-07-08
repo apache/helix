@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package proto.org.apache.helix.gateway;
+
+message SingleTransitionRequest {
+  enum TransitionType {
+    ADD_SHARD = 0;
+    DELETE_SHARD = 1;
+    CHANGE_ROLE = 2;
+  }
+  string transitionID = 1;    // ID of transition message
+  TransitionType transitionType = 2;   // Transition type for shard operations
+  string resourceID = 3;              // Resource ID
+  string shardID = 4;                 // Shard to perform operation
+  optional string startState = 5;      // Shard start state, it is not mandatory. Application can decide how to get target state.
+  optional string targetState = 6;     // Shard target state.
+}
+
+message TransitionRequests {
+  repeated SingleTransitionRequest request = 1;
+}
+
+message SingleTransitionResponse {
+  string transitionID = 1;       // ID of transition message
+  bool isSuccess = 2;           // Was transition successfully performed
+  optional string currentState = 3;   // If it failed, what is the current state it should reported as.
+}
+
+message TransitionResponse {
+  repeated SingleTransitionResponse response = 1;
+}
+
+service GatewayService {
+  rpc transition(TransitionRequests) returns (TransitionResponse) {}
+}

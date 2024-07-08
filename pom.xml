@@ -318,6 +318,7 @@
     <module>recipes</module>
     <module>helix-view-aggregator</module>
     <module>meta-client</module>
+    <module>helix-gateway</module>
   </modules>
 
   <mailingLists>

@@ -44,13 +44,13 @@ public class TestNodeMaxPartitionLimitConstraint {
     when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE))
         .thenReturn(Collections.emptySet());
     when(_testReplica.getResourceMaxPartitionsPerInstance()).thenReturn(5);
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
   }
 
   @Test
   public void testConstraintInvalid() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_testNode.getMaxPartition()).thenReturn(5);
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
   }
 }

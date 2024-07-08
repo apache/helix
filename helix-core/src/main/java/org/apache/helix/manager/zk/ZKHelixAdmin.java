@@ -2484,7 +2484,11 @@ public class ZKHelixAdmin implements HelixAdmin {
     setResourceIdealState(clusterName, idealState.getResourceName(), idealState);
 
     // 4. rebalance the resource
-    rebalance(clusterName, idealState.getResourceName(), Integer.parseInt(idealState.getReplicas()),
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    List<String> liveNodes = accessor.getChildNames(keyBuilder.liveInstances());
+
+    rebalance(clusterName, idealState.getResourceName(), idealState.getReplicaCount(liveNodes.size()),
         idealState.getResourceName(), idealState.getInstanceGroupTag());
 
     return true;

@@ -554,8 +554,9 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Get the number of replicas for each partition of this resource.
-   * @return String value of the replica count, can be ANY_LIVEINSTANCE string
+   * Get the number of replicas for each partition of this resource. Return value can be "ANY_LIVEINSTANCE", use
+   * {@link #getReplicaCount(int)} to prevent NumberFormatException when parsing string for int. 
+   * @return String value of the replica count,
    */
   public String getReplicas() {
     // HACK: if replica doesn't exists, use the length of the first list field

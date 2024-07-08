@@ -159,22 +159,11 @@ public class ClusterDataCache extends ResourceControllerDataProvider {
     Map<String, IdealState> idealStateMap = _idealStateCache.getIdealStateMap();
 
     if (idealStateMap.containsKey(resourceName)) {
-      String replicasStr = idealStateMap.get(resourceName).getReplicas();
+      int replicasStr = idealStateMap.get(resourceName).getReplicaCount(_liveInstanceMap.size());
 
-      if (replicasStr != null) {
-        if (replicasStr.equals(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString())) {
-          replicas = _liveInstanceMap.size();
-        } else {
-          try {
-            replicas = Integer.parseInt(replicasStr);
-          } catch (Exception e) {
-            LogUtil.logError(LOG, _eventId, "invalid replicas string: " + replicasStr + " for "
-                + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
-          }
-        }
-      } else {
-        LogUtil.logError(LOG, _eventId, "idealState for resource: " + resourceName
-            + " does NOT have replicas for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
+      if (replicasStr == 0) {
+        LogUtil.logError(LOG, _eventId,
+            "idealState for resource: " + resourceName + " does NOT have replicas for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
       }
     }
     return replicas;

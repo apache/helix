@@ -367,6 +367,9 @@ public interface HelixAdmin {
   void enablePartition(boolean enabled, String clusterName, String instanceName,
       String resourceName, List<String> partitionNames);
 
+  // gspencer TODO
+//  void enableAllPartitions(boolean enabled, String clusterName, String instanceName);
+
   /**
    * Disable or enable a cluster
    * @param clusterName

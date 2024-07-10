@@ -30,6 +30,7 @@ import javax.management.ObjectName;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
@@ -48,6 +49,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     ENABLED_STATUS_GAUGE("Enabled"),
     ONLINE_STATUS_GAUGE("Online"),
     DISABLED_PARTITIONS_GAUGE("DisabledPartitions"),
+    ALL_PARTITIONS_DISABLED_GAUGE("AllPartitionsDisabled"),
     MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge"),
     MESSAGE_QUEUE_SIZE_GAUGE("MessageQueueSizeGauge"),
     PASTDUE_MESSAGE_GAUGE("PastDueMessageGauge");
@@ -75,6 +77,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   // Gauges
   private SimpleDynamicMetric<Long> _enabledStatusGauge;
   private SimpleDynamicMetric<Long> _disabledPartitionsGauge;
+  private SimpleDynamicMetric<Long> _allPartitionsDisabledGauge;
   private SimpleDynamicMetric<Long> _onlineStatusGauge;
   private SimpleDynamicMetric<Double> _maxCapacityUsageGauge;
   private SimpleDynamicMetric<Long> _messageQueueSizeGauge;
@@ -105,6 +108,8 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _disabledPartitionsGauge =
         new SimpleDynamicMetric<>(InstanceMonitorMetric.DISABLED_PARTITIONS_GAUGE.metricName(),
             0L);
+    _allPartitionsDisabledGauge = new SimpleDynamicMetric<>(
+        InstanceMonitorMetric.ALL_PARTITIONS_DISABLED_GAUGE.metricName(), 0L);
     _enabledStatusGauge =
         new SimpleDynamicMetric<>(InstanceMonitorMetric.ENABLED_STATUS_GAUGE.metricName(), 0L);
     _onlineStatusGauge =
@@ -124,6 +129,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     List<DynamicMetric<?, ?>> attributeList = Lists.newArrayList(
         _totalMessagedReceivedCounter,
         _disabledPartitionsGauge,
+        _allPartitionsDisabledGauge,
         _enabledStatusGauge,
         _onlineStatusGauge,
         _maxCapacityUsageGauge,
@@ -157,6 +163,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   protected long getDisabledPartitions() {
     return _disabledPartitionsGauge.getValue();
   }
+  protected long getAllPartitionsDisabled() { return _allPartitionsDisabledGauge.getValue(); }
 
   protected long getMessageQueueSizeGauge() { return _messageQueueSizeGauge.getValue(); }
 
@@ -191,10 +198,15 @@ public class InstanceMonitor extends DynamicMBeanProvider {
       Collections.sort(_tags);
     }
     long numDisabledPartitions = 0L;
+    boolean allPartitionsDisabled = false;
     if (disabledPartitions != null) {
       for (List<String> partitions : disabledPartitions.values()) {
         if (partitions != null) {
           numDisabledPartitions += partitions.size();
+          if (partitions.contains(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY)) {
+            allPartitionsDisabled = true;
+            numDisabledPartitions -= 1;
+          }
         }
       }
     }
@@ -206,6 +218,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _onlineStatusGauge.updateValue(isLive ? 1L : 0L);
     _enabledStatusGauge.updateValue(isEnabled ? 1L : 0L);
     _disabledPartitionsGauge.updateValue(numDisabledPartitions);
+    _allPartitionsDisabledGauge.updateValue(allPartitionsDisabled ? 1L : 0L);
   }
 
   /**

@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -64,6 +65,10 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       Map<SoftConstraint, Float> softConstraints) {
     _hardConstraints = hardConstraints;
     _softConstraints = softConstraints;
+
+    for (HardConstraint constraint : hardConstraints) {
+      constraint.setLogEnabledReplicas(logEnabledReplicas);
+    }
   }
 
   @Override
@@ -189,14 +194,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
    * @param replica replica to be added
    */
   private void enableFullLoggingForReplica(AssignableReplica replica) {
-    if (logEnabledReplicas.contains(replica.toString())) {
-      return;
-    }
-
-    // enable the full logging for replica in all hard constraints
-    for (HardConstraint constraint : _hardConstraints) {
-      constraint.addReplicaToLogEnabledSet(replica);
-    }
     logEnabledReplicas.add(replica.toString());
   }
 
@@ -205,12 +202,12 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
    * @param replica replica to be removed
    */
   private void removeReplicaFromFullLogging(AssignableReplica replica) {
-    if (logEnabledReplicas.contains(replica.toString())) {
-      for (HardConstraint constraint : _hardConstraints) {
-        constraint.removeReplicaFromLogEnabledSet(replica);
-      }
-      logEnabledReplicas.remove(replica.toString());
-    }
+    logEnabledReplicas.remove(replica.toString());
+  }
+
+  @VisibleForTesting
+  Set<String> getLogEnabledReplicas() {
+    return logEnabledReplicas;
   }
 
   private static class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {

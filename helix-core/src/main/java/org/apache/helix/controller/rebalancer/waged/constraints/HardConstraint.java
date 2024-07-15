@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
@@ -32,7 +31,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  */
 abstract class HardConstraint {
 
-  protected Set<String> logEnabledReplicas = new HashSet<>();
+  protected Set<String> logEnabledReplicas;
 
   /**
    * Check if the replica could be assigned to the node
@@ -55,22 +54,15 @@ abstract class HardConstraint {
    * @param replica The replica to be checked
    */
   public boolean isLoggingEnabled(AssignableReplica replica) {
-    return logEnabledReplicas.contains(replica.toString());
+    return logEnabledReplicas != null && logEnabledReplicas.contains(replica.toString());
   }
 
   /**
-   * Add the replica to the log enabled set
-   * @param replica The replica to be added
+   * Set the reference of the replicas that need to be logged.
+   * @param logEnabledReplicas The replicas that need to be logged
    */
-  public void addReplicaToLogEnabledSet(AssignableReplica replica) {
-    logEnabledReplicas.add(replica.toString());
+  public void setLogEnabledReplicas(Set<String> logEnabledReplicas) {
+    this.logEnabledReplicas = logEnabledReplicas;
   }
 
-  /**
-   * Remove the replica from the log enabled set
-   * @param replica The replica to be removed
-   */
-  public void removeReplicaFromLogEnabledSet(AssignableReplica replica) {
-    logEnabledReplicas.remove(replica.toString());
-  }
 }

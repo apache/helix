@@ -60,8 +60,7 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
 
-    verify(mockHardConstraint, never()).removeReplicaFromLogEnabledSet(any());
-    verify(mockHardConstraint, times(1)).addReplicaToLogEnabledSet(any());
+    Assert.assertEquals(algorithm.getLogEnabledReplicas().size(), 1);
     verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
   }
 
@@ -83,13 +82,12 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
 
-    verify(mockHardConstraint, never()).removeReplicaFromLogEnabledSet(any());
-    verify(mockHardConstraint, times(1)).addReplicaToLogEnabledSet(any());
+    Assert.assertEquals(algorithm.getLogEnabledReplicas().size(), 1);
     verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
 
     // calling again for recovery (no exception)
     algorithm.calculate(clusterModel);
-    verify(mockHardConstraint, times(1)).removeReplicaFromLogEnabledSet(any());
+    Assert.assertEquals(algorithm.getLogEnabledReplicas().size(), 0);
   }
 
   @Test

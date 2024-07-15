@@ -54,7 +54,7 @@ public class TestReplicaActivateConstraint {
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
 
-    Assert.assertTrue(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertTrue(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -66,7 +66,7 @@ public class TestReplicaActivateConstraint {
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
 
-    Assert.assertFalse(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertFalse(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
 }

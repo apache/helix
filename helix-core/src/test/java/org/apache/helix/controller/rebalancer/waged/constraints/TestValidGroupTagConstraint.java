@@ -45,7 +45,7 @@ public class TestValidGroupTagConstraint {
     when(_testReplica.getResourceInstanceGroupTag()).thenReturn(TEST_TAG);
     when(_testNode.getInstanceTags()).thenReturn(ImmutableSet.of(TEST_TAG));
 
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -54,13 +54,13 @@ public class TestValidGroupTagConstraint {
     when(_testReplica.getResourceInstanceGroupTag()).thenReturn(TEST_TAG);
     when(_testNode.getInstanceTags()).thenReturn(Collections.emptySet());
 
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
   public void testConstraintWhenReplicaHasNoTag() {
     when(_testReplica.hasResourceInstanceGroupTag()).thenReturn(false);
 
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 }

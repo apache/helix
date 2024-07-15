@@ -45,7 +45,7 @@ public class TestSamePartitionOnInstanceConstraint {
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITIOIN);
 
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -54,6 +54,6 @@ public class TestSamePartitionOnInstanceConstraint {
         .thenReturn(ImmutableSet.of(TEST_PARTITIOIN));
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITIOIN);
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 }

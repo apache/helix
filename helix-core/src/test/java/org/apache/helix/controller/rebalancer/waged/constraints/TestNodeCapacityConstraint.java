@@ -41,7 +41,7 @@ public class TestNodeCapacityConstraint {
     String key = "testKey";
     when(_testNode.getRemainingCapacity()).thenReturn(ImmutableMap.of(key,  10));
     when(_testReplica.getCapacity()).thenReturn(ImmutableMap.of(key, 5));
-    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -49,6 +49,6 @@ public class TestNodeCapacityConstraint {
     String key = "testKey";
     when(_testNode.getRemainingCapacity()).thenReturn(ImmutableMap.of(key,  1));
     when(_testReplica.getCapacity()).thenReturn(ImmutableMap.of(key, 5));
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 }

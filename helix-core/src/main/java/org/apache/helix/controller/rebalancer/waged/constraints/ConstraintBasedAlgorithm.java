@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,7 +34,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
-import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -58,6 +58,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
   private final Map<SoftConstraint, Float> _softConstraints;
+  private final Set<String> logEnabledReplicas = new HashSet<>();
 
   ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
       Map<SoftConstraint, Float> softConstraints) {
@@ -121,16 +122,15 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private Optional<AssignableNode> getNodeWithHighestPoints(AssignableReplica replica,
       List<AssignableNode> assignableNodes, ClusterContext clusterContext,
       Set<String> busyInstances, OptimalAssignment optimalAssignment) {
-    Map<AssignableNode, List<String>> hardConstraintFailures = new ConcurrentHashMap<>();
+    Map<AssignableNode, List<HardConstraint>> hardConstraintFailures = new ConcurrentHashMap<>();
     List<AssignableNode> candidateNodes = assignableNodes.parallelStream().filter(candidateNode -> {
       boolean isValid = true;
       // need to record all the failure reasons and it gives us the ability to debug/fix the runtime
       // cluster environment
       for (HardConstraint hardConstraint : _hardConstraints) {
-        ValidationResult validationResult = hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext);
-        if (!validationResult.isSuccess()) {
+        if (!hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext)) {
           hardConstraintFailures.computeIfAbsent(candidateNode, node -> new ArrayList<>())
-              .add(validationResult.getErrorMsg());
+              .add(hardConstraint);
           isValid = false;
         }
       }
@@ -138,9 +138,13 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }).collect(Collectors.toList());
 
     if (candidateNodes.isEmpty()) {
-      optimalAssignment.recordAssignmentFailure(replica, hardConstraintFailures);
+      enableFullLoggingForReplica(replica);
+      optimalAssignment.recordAssignmentFailure(replica,
+          Maps.transformValues(hardConstraintFailures, this::convertFailureReasons));
       return Optional.empty();
     }
+
+    removeReplicaFromFullLogging(replica);
 
     return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,
         getAssignmentNormalizedScore(node, replica, clusterContext)))
@@ -173,6 +177,40 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       }
     }
     return sum;
+  }
+
+  private List<String> convertFailureReasons(List<HardConstraint> hardConstraints) {
+    return hardConstraints.stream().map(HardConstraint::getDescription)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Adds replica for full logging in all hard constraints
+   * @param replica replica to be added
+   */
+  private void enableFullLoggingForReplica(AssignableReplica replica) {
+    if (logEnabledReplicas.contains(replica.toString())) {
+      return;
+    }
+
+    // enable the full logging for replica in all hard constraints
+    for (HardConstraint constraint : _hardConstraints) {
+      constraint.addReplicaToLogEnabledSet(replica);
+    }
+    logEnabledReplicas.add(replica.toString());
+  }
+
+  /**
+   * Removes the replica from full logging in all hard constraints (if added previously)
+   * @param replica replica to be removed
+   */
+  private void removeReplicaFromFullLogging(AssignableReplica replica) {
+    if (logEnabledReplicas.contains(replica.toString())) {
+      for (HardConstraint constraint : _hardConstraints) {
+        constraint.removeReplicaFromLogEnabledSet(replica);
+      }
+      logEnabledReplicas.remove(replica.toString());
+    }
   }
 
   private static class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {

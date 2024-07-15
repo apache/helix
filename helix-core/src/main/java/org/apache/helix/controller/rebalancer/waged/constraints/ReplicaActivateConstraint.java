@@ -27,21 +27,23 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult.fail;
 
 class ReplicaActivateConstraint extends HardConstraint {
 
   private static final Logger LOG = LoggerFactory.getLogger(ReplicaActivateConstraint.class);
 
   @Override
-  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     List<String> disabledPartitions = node.getDisabledPartitionsMap().get(replica.getResourceName());
 
     if (disabledPartitions != null && disabledPartitions.contains(replica.getPartitionName())) {
-      return fail(String.format("Cannot assign the inactive replica: %s", replica.getPartitionName()));
+      if (isLoggingEnabled(replica)) {
+        LOG.info("Cannot assign the inactive replica: {}", replica.getPartitionName());
+      }
+      return false;
     }
-    return ValidationResult.OK;
+    return true;
   }
 
   @Override

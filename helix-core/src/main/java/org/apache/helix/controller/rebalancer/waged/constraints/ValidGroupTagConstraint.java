@@ -25,23 +25,25 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult.fail;
 
 class ValidGroupTagConstraint extends HardConstraint {
 
   private static final Logger LOG = LoggerFactory.getLogger(SamePartitionOnInstanceConstraint.class);
 
   @Override
-  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     if (!replica.hasResourceInstanceGroupTag()) {
-      return ValidationResult.OK;
+      return true;
     }
 
     if (!node.getInstanceTags().contains(replica.getResourceInstanceGroupTag())) {
-      return fail(String.format("Instance doesn't have the tag of the replica (%s)", replica.getResourceInstanceGroupTag()));
+      if (isLoggingEnabled(replica)) {
+        LOG.info("Instance doesn't have the tag of the replica ({})", replica.getResourceInstanceGroupTag());
+      }
+      return false;
     }
-    return ValidationResult.OK;
+    return true;
   }
 
   @Override

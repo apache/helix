@@ -20,28 +20,29 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  */
 
 import java.util.Set;
-
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint.ValidationResult.fail;
 
 class SamePartitionOnInstanceConstraint extends HardConstraint {
 
   private static final Logger LOG = LoggerFactory.getLogger(SamePartitionOnInstanceConstraint.class);
 
   @Override
-  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     Set<String> assignedPartitionsByResource = node.getAssignedPartitionsByResource(replica.getResourceName());
 
     if (assignedPartitionsByResource.contains(replica.getPartitionName())) {
-      return fail(String.format("Same partition (%s) of different states cannot co-exist in one instance", replica.getPartitionName()));
+      if (isLoggingEnabled(replica)) {
+        LOG.info("Same partition ({}) of different states cannot co-exist in one instance", replica.getPartitionName());
+      }
+      return false;
     }
-    return ValidationResult.OK;
+    return true;
   }
 
   @Override

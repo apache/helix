@@ -56,7 +56,7 @@ public class TestFaultZoneAwareConstraint {
             ImmutableSet.of(TEST_PARTITION));
 
     Assert.assertFalse(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -65,7 +65,7 @@ public class TestFaultZoneAwareConstraint {
     when(_clusterContext.getPartitionsForResourceAndFaultZone(TEST_RESOURCE, TEST_ZONE)).thenReturn(Collections.emptySet());
 
     Assert.assertTrue(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
   @Test
@@ -73,6 +73,6 @@ public class TestFaultZoneAwareConstraint {
     when(_testNode.hasFaultZone()).thenReturn(false);
 
     Assert.assertTrue(
-        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext).isSuccess());
+        _faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 }

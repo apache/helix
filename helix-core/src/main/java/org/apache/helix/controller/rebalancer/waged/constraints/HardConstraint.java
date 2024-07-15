@@ -19,6 +19,9 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -29,39 +32,13 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  */
 abstract class HardConstraint {
 
-  /**
-   * Result of the constraint validation, which contains the error message if the validation fails.
-   */
-  static class ValidationResult {
-
-    public static final ValidationResult OK = new ValidationResult(true, null);
-
-    private final boolean success;
-    private final String errorMsg;
-
-    public static ValidationResult fail(String errorMsg) {
-      return new ValidationResult(false, errorMsg);
-    }
-
-    private ValidationResult(boolean success, String errorMsg) {
-      this.success = success;
-      this.errorMsg = errorMsg;
-    }
-
-    public String getErrorMsg() {
-      return errorMsg;
-    }
-
-    public boolean isSuccess() {
-      return success;
-    }
-  }
+  protected Set<String> logEnabledReplicas = new HashSet<>();
 
   /**
    * Check if the replica could be assigned to the node
    * @return True if the proposed assignment is valid; False otherwise
    */
-  abstract ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  abstract boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
   /**
@@ -71,5 +48,29 @@ abstract class HardConstraint {
    */
   String getDescription() {
     return getClass().getName();
+  }
+
+  /**
+   * Check if the logging is enabled for the replica
+   * @param replica The replica to be checked
+   */
+  public boolean isLoggingEnabled(AssignableReplica replica) {
+    return logEnabledReplicas.contains(replica.toString());
+  }
+
+  /**
+   * Add the replica to the log enabled set
+   * @param replica The replica to be added
+   */
+  public void addReplicaToLogEnabledSet(AssignableReplica replica) {
+    logEnabledReplicas.add(replica.toString());
+  }
+
+  /**
+   * Remove the replica from the log enabled set
+   * @param replica The replica to be removed
+   */
+  public void removeReplicaFromLogEnabledSet(AssignableReplica replica) {
+    logEnabledReplicas.remove(replica.toString());
   }
 }

@@ -31,14 +31,15 @@ class NodeMaxPartitionLimitConstraint extends HardConstraint {
   private static final Logger LOG = LoggerFactory.getLogger(NodeMaxPartitionLimitConstraint.class);
 
   @Override
-  ValidationResult isAssignmentValid(AssignableNode node, AssignableReplica replica,
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     boolean exceedMaxPartitionLimit =
         node.getMaxPartition() < 0 || node.getAssignedReplicaCount() < node.getMaxPartition();
 
     if (!exceedMaxPartitionLimit) {
-      return ValidationResult.fail(String.format("Cannot exceed the max number of partitions (%s) limitation on node. Assigned replica count: %s",
-          node.getMaxPartition(), node.getAssignedReplicaCount()));
+      LOG.debug("Cannot exceed the max number of partitions ({}) limitation on node. Assigned replica count: {}",
+          node.getMaxPartition(), node.getAssignedReplicaCount());
+      return false;
     }
 
     int resourceMaxPartitionsPerInstance = replica.getResourceMaxPartitionsPerInstance();
@@ -47,11 +48,13 @@ class NodeMaxPartitionLimitConstraint extends HardConstraint {
         || assignedPartitionsByResourceSize < resourceMaxPartitionsPerInstance;
 
     if (!exceedResourceMaxPartitionLimit) {
-      return ValidationResult.fail(String.format("Cannot exceed the max number of partitions per resource (%s) limitation on node. Assigned replica count: %s",
-          resourceMaxPartitionsPerInstance, assignedPartitionsByResourceSize));
-
+      if (isLoggingEnabled(replica)) {
+        LOG.info("Cannot exceed the max number of partitions per resource ({}) limitation on node. Assigned replica count: {}",
+            resourceMaxPartitionsPerInstance, assignedPartitionsByResourceSize);
+      }
+      return false;
     }
-    return ValidationResult.OK;
+    return true;
   }
 
   @Override

@@ -34,7 +34,9 @@ import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -60,8 +62,7 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
 
-    Assert.assertEquals(algorithm.getLogEnabledClusters().size(), 1);
-    Assert.assertTrue(algorithm.getLogEnabledClusters().contains(clusterModel.getContext().getClusterName()));
+    verify(mockHardConstraint, times(1)).setEnableLogging(eq(true));
     verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
   }
 
@@ -83,13 +84,12 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
 
-    Assert.assertEquals(algorithm.getLogEnabledClusters().size(), 1);
-    Assert.assertTrue(algorithm.getLogEnabledClusters().contains(clusterModel.getContext().getClusterName()));
+    verify(mockHardConstraint, times(1)).setEnableLogging(eq(true));
     verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
 
     // calling again for recovery (no exception)
     algorithm.calculate(clusterModel);
-    Assert.assertEquals(algorithm.getLogEnabledClusters().size(), 0);
+    verify(mockHardConstraint, atLeastOnce()).setEnableLogging(eq(false));
   }
 
   @Test

@@ -19,8 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import java.util.Set;
-
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -31,7 +29,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  */
 abstract class HardConstraint {
 
-  protected Set<String> logEnabledClusters;
+  protected boolean enableLogging = false;
 
   /**
    * Check if the replica could be assigned to the node
@@ -50,19 +48,10 @@ abstract class HardConstraint {
   }
 
   /**
-   * Check if the logging is enabled for the replica
-   * @param clusterName The name of the cluster to be checked
+   * Sets the flag to enable constraint level logging
    */
-  public boolean isLoggingEnabled(String clusterName) {
-    return logEnabledClusters != null && logEnabledClusters.contains(clusterName);
-  }
-
-  /**
-   * Set the reference of the replicas that need to be logged.
-   * @param logEnabledClusters The clusters that need to be logged
-   */
-  public void setLogEnabledClusters(Set<String> logEnabledClusters) {
-    this.logEnabledClusters = logEnabledClusters;
+  public void setEnableLogging(boolean enableLogging) {
+    this.enableLogging = enableLogging;
   }
 
 }

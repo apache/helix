@@ -48,7 +48,7 @@ class NodeMaxPartitionLimitConstraint extends HardConstraint {
         || assignedPartitionsByResourceSize < resourceMaxPartitionsPerInstance;
 
     if (!exceedResourceMaxPartitionLimit) {
-      if (isLoggingEnabled(clusterContext.getClusterName())) {
+      if (enableLogging) {
         LOG.info("Cannot exceed the max number of partitions per resource ({}) limitation on node. Assigned replica count: {}",
             resourceMaxPartitionsPerInstance, assignedPartitionsByResourceSize);
       }

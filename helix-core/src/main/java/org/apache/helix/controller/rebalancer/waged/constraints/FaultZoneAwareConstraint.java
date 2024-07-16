@@ -42,7 +42,7 @@ class FaultZoneAwareConstraint extends HardConstraint {
         clusterContext.getPartitionsForResourceAndFaultZone(replica.getResourceName(), node.getFaultZone());
 
     if (partitionsForResourceAndFaultZone.contains(replica.getPartitionName())) {
-      if (isLoggingEnabled(replica)) {
+      if (isLoggingEnabled(clusterContext.getClusterName())) {
         LOG.info("A fault zone cannot contain more than 1 replica of same partition. Found replica for partition: {}",
             replica.getPartitionName());
       }

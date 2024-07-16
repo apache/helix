@@ -38,7 +38,7 @@ class ReplicaActivateConstraint extends HardConstraint {
     List<String> disabledPartitions = node.getDisabledPartitionsMap().get(replica.getResourceName());
 
     if (disabledPartitions != null && disabledPartitions.contains(replica.getPartitionName())) {
-      if (isLoggingEnabled(replica)) {
+      if (isLoggingEnabled(clusterContext.getClusterName())) {
         LOG.info("Cannot assign the inactive replica: {}", replica.getPartitionName());
       }
       return false;

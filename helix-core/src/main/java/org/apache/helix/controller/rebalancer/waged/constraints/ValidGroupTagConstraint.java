@@ -38,7 +38,7 @@ class ValidGroupTagConstraint extends HardConstraint {
     }
 
     if (!node.getInstanceTags().contains(replica.getResourceInstanceGroupTag())) {
-      if (isLoggingEnabled(replica)) {
+      if (isLoggingEnabled(clusterContext.getClusterName())) {
         LOG.info("Instance doesn't have the tag of the replica ({})", replica.getResourceInstanceGroupTag());
       }
       return false;

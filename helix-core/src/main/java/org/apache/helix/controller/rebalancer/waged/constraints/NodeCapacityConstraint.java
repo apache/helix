@@ -40,7 +40,7 @@ class NodeCapacityConstraint extends HardConstraint {
     for (String key : replicaCapacity.keySet()) {
       if (nodeCapacity.containsKey(key)) {
         if (nodeCapacity.get(key) < replicaCapacity.get(key)) {
-          if (isLoggingEnabled(replica)) {
+          if (isLoggingEnabled(clusterContext.getClusterName())) {
             LOG.info("Node has insufficient capacity for: {}. Left available: {}, Required: {}",
                 key, nodeCapacity.get(key), replicaCapacity.get(key));
           }

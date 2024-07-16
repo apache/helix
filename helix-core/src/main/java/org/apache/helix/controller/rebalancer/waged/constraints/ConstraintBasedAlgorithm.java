@@ -59,7 +59,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
   private final Map<SoftConstraint, Float> _softConstraints;
-  private final Set<String> logEnabledReplicas = new HashSet<>();
+  private final Set<String> logEnabledClusters = new HashSet<>();
 
   ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
       Map<SoftConstraint, Float> softConstraints) {
@@ -67,7 +67,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     _softConstraints = softConstraints;
 
     for (HardConstraint constraint : hardConstraints) {
-      constraint.setLogEnabledReplicas(logEnabledReplicas);
+      constraint.setLogEnabledReplicas(logEnabledClusters);
     }
   }
 
@@ -143,13 +143,15 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }).collect(Collectors.toList());
 
     if (candidateNodes.isEmpty()) {
-      enableFullLoggingForReplica(replica);
+      LOG.info("Found no eligible candidate nodes. Enabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
+      enableFullLoggingForCluster(clusterContext.getClusterName());
       optimalAssignment.recordAssignmentFailure(replica,
           Maps.transformValues(hardConstraintFailures, this::convertFailureReasons));
       return Optional.empty();
     }
 
-    removeReplicaFromFullLogging(replica);
+    LOG.info("Disabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
+    removeClusterFromFullLogging(clusterContext.getClusterName());
 
     return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,
         getAssignmentNormalizedScore(node, replica, clusterContext)))
@@ -190,24 +192,24 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   }
 
   /**
-   * Adds replica for full logging in all hard constraints
-   * @param replica replica to be added
+   * Adds cluster name for full logging in all hard constraints
+   * @param clusterName cluster to be added
    */
-  private void enableFullLoggingForReplica(AssignableReplica replica) {
-    logEnabledReplicas.add(replica.toString());
+  private void enableFullLoggingForCluster(String clusterName) {
+    logEnabledClusters.add(clusterName);
   }
 
   /**
-   * Removes the replica from full logging in all hard constraints (if added previously)
-   * @param replica replica to be removed
+   * Removes the cluster from full logging in all hard constraints (if added previously)
+   * @param clusterName cluster to be removed
    */
-  private void removeReplicaFromFullLogging(AssignableReplica replica) {
-    logEnabledReplicas.remove(replica.toString());
+  private void removeClusterFromFullLogging(String clusterName) {
+    logEnabledClusters.remove(clusterName);
   }
 
   @VisibleForTesting
-  Set<String> getLogEnabledReplicas() {
-    return logEnabledReplicas;
+  Set<String> getLogEnabledClusters() {
+    return logEnabledClusters;
   }
 
   private static class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {

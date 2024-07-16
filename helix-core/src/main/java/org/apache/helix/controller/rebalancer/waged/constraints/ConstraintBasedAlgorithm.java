@@ -67,7 +67,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     _softConstraints = softConstraints;
 
     for (HardConstraint constraint : hardConstraints) {
-      constraint.setLogEnabledReplicas(logEnabledClusters);
+      constraint.setLogEnabledClusters(logEnabledClusters);
     }
   }
 

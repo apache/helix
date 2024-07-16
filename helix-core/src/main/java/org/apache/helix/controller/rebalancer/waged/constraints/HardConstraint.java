@@ -61,7 +61,7 @@ abstract class HardConstraint {
    * Set the reference of the replicas that need to be logged.
    * @param logEnabledClusters The clusters that need to be logged
    */
-  public void setLogEnabledReplicas(Set<String> logEnabledClusters) {
+  public void setLogEnabledClusters(Set<String> logEnabledClusters) {
     this.logEnabledClusters = logEnabledClusters;
   }
 

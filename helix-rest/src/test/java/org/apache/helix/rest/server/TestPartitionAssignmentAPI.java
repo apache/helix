@@ -38,6 +38,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -379,6 +380,26 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
+  private void createAutoRebalanceResource(String db) {
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, 1, "LeaderStandby",
+        IdealState.RebalanceMode.FULL_AUTO + "", null);
+    _resources.add(db);
+
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+
+    idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
+    idealState.setRebalanceStrategy(AutoRebalanceStrategy.class.getName());
+    idealState.setReplicas("ANY_LIVEINSTANCE");
+    idealState.enable(true);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, idealState);
+
+    ResourceConfig resourceConfig = new ResourceConfig(db);
+    _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+  }
+
   @Test
   private void testComputePartitionAssignmentMaintenanceMode() throws Exception {
 
@@ -398,6 +419,8 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
           DEFAULT_INSTANCE_CAPACITY * DEFAULT_INSTANCE_COUNT / REPLICAS / crushedResourceCount,
           MIN_ACTIVE_REPLICA, 100000L);
     }
+
+    createAutoRebalanceResource("TEST_AUTOREBALANCE_DB_0");
 
     // Wait for cluster to converge after adding resources
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

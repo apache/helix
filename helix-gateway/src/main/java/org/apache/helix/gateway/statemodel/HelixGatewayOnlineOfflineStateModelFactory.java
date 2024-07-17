@@ -1,11 +1,13 @@
-package org.apache.helix.gateway.service;
+package org.apache.helix.gateway.statemodel;
 
+import org.apache.helix.gateway.service.GatewayServiceManager;
+import org.apache.helix.gateway.statemodel.HelixGatewayOnlineOfflineStateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
 public class HelixGatewayOnlineOfflineStateModelFactory extends StateModelFactory<HelixGatewayOnlineOfflineStateModel> {
-  private ClusterManager _clusterManager;
+  private GatewayServiceManager _clusterManager;
 
-  public HelixGatewayOnlineOfflineStateModelFactory(ClusterManager clusterManager) {
+  public HelixGatewayOnlineOfflineStateModelFactory(GatewayServiceManager clusterManager) {
     _clusterManager = clusterManager;
   }
 

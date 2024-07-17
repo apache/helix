@@ -11,15 +11,23 @@ import org.apache.helix.gateway.mock.MockApplication;
 import org.apache.helix.gateway.mock.MockProtoRequest;
 import org.apache.helix.gateway.mock.MockProtoResponse;
 
-public class ClusterManager {
+/**
+ * A top layer class that
+ *  1. get event from Handler
+ *  2. Maintain a gateway service registry, one gateway service maps to one Helix cluster
+ *  3. On init connect, create the participant manager
+ *  4. For ST reply message, update the tracker
+ */
+
+public class GatewayServiceManager {
   private Map<String, Map<String, AtomicBoolean>> _flagMap;
   private Map<String, MockApplication> _channelMap;
-  private Lock _lock = new ReentrantLock();
+  HelixGatewayServiceProcessor _helixGatewayServiceProcessor;
 
   // event queue
   // state tracker, call tracker.update
 
-  public ClusterManager() {
+  public GatewayServiceManager() {
     _flagMap = new ConcurrentHashMap<>();
     _channelMap = new ConcurrentHashMap<>();
   }

@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.service;
+package org.apache.helix.gateway.statemodel;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -6,12 +6,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.gateway.constant.MessageType;
 import org.apache.helix.gateway.mock.MockProtoRequest;
+import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 
 public class HelixGatewayOnlineOfflineStateModel extends StateModel {
   private boolean _firstTime = true;
-  private ClusterManager _clusterManager;
+  private GatewayServiceManager _clusterManager;
 
   private String _resourceName;
   private String _partitionKey;
@@ -19,7 +20,7 @@ public class HelixGatewayOnlineOfflineStateModel extends StateModel {
   private AtomicBoolean _completed;
 
   public HelixGatewayOnlineOfflineStateModel(String resourceName, String partitionKey,
-      ClusterManager clusterManager) {
+      GatewayServiceManager clusterManager) {
     _resourceName = resourceName;
     _partitionKey = partitionKey;
     _clusterManager = clusterManager;

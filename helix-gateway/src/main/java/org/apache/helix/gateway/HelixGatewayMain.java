@@ -8,6 +8,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.InstanceType;
 import org.apache.helix.gateway.mock.ControllerManager;
 import org.apache.helix.gateway.mock.MockApplication;
+import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.service.HelixGatewayService;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ClusterConfig;
@@ -52,7 +53,7 @@ public final class HelixGatewayMain {
         new ControllerManager(ZK_ADDRESS, CLUSTER_NAME, "CONTROLLER", InstanceType.CONTROLLER);
     controllerManager.syncStart();
 
-    HelixGatewayService service = new HelixGatewayService(ZK_ADDRESS);
+    HelixGatewayService service = new HelixGatewayService(new GatewayServiceManager(), ZK_ADDRESS);
     service.start();
 
     List<MockApplication> mockApplications = new ArrayList<>();

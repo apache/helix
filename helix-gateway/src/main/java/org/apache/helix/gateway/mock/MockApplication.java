@@ -8,16 +8,16 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 
-import org.apache.helix.gateway.service.ClusterManager;
+import org.apache.helix.gateway.service.GatewayServiceManager;
 
 public class MockApplication {
-  private final ClusterManager _clusterManager;
+  private final GatewayServiceManager _clusterManager;
   private Map<String, Map<String, String>> _currentStates;
   private String _instanceName;
   private String _clusterName;
   private Queue<MockProtoRequest> _requestQueue;
 
-  public MockApplication(String instanceName, String clusterName, ClusterManager clusterManager) {
+  public MockApplication(String instanceName, String clusterName, GatewayServiceManager clusterManager) {
     _instanceName = instanceName;
     _clusterName = clusterName;
     _currentStates = new HashMap<>();

@@ -50,4 +50,8 @@ public class HelixGatewayService {
       _clusterManager.removeChannel(participantName);
     }
   }
+
+  public void stop() {
+    System.out.println("Stoping Helix Gateway Service");
+  }
 }

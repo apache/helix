@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -136,10 +138,15 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }).collect(Collectors.toList());
 
     if (candidateNodes.isEmpty()) {
+      LOG.info("Found no eligible candidate nodes. Enabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
+      enableFullLoggingForCluster();
       optimalAssignment.recordAssignmentFailure(replica,
           Maps.transformValues(hardConstraintFailures, this::convertFailureReasons));
       return Optional.empty();
     }
+
+    LOG.info("Disabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
+    removeFullLoggingForCluster();
 
     return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,
         getAssignmentNormalizedScore(node, replica, clusterContext)))
@@ -177,6 +184,24 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private List<String> convertFailureReasons(List<HardConstraint> hardConstraints) {
     return hardConstraints.stream().map(HardConstraint::getDescription)
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Enables logging of failures in all hard constraints
+   */
+  private void enableFullLoggingForCluster() {
+    for (HardConstraint hardConstraint : _hardConstraints) {
+      hardConstraint.setEnableLogging(true);
+    }
+  }
+
+  /**
+   * Removes the cluster from full logging in all hard constraints (if added previously)
+   */
+  private void removeFullLoggingForCluster() {
+    for (HardConstraint hardConstraint : _hardConstraints) {
+      hardConstraint.setEnableLogging(false);
+    }
   }
 
   private static class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {

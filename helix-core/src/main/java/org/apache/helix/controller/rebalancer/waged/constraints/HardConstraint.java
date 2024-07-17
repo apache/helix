@@ -29,6 +29,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  */
 abstract class HardConstraint {
 
+  protected boolean enableLogging = false;
+
   /**
    * Check if the replica could be assigned to the node
    * @return True if the proposed assignment is valid; False otherwise
@@ -44,4 +46,12 @@ abstract class HardConstraint {
   String getDescription() {
     return getClass().getName();
   }
+
+  /**
+   * Sets the flag to enable constraint level logging
+   */
+  public void setEnableLogging(boolean enableLogging) {
+    this.enableLogging = enableLogging;
+  }
+
 }

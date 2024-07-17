@@ -37,7 +37,9 @@ class SamePartitionOnInstanceConstraint extends HardConstraint {
     Set<String> assignedPartitionsByResource = node.getAssignedPartitionsByResource(replica.getResourceName());
 
     if (assignedPartitionsByResource.contains(replica.getPartitionName())) {
-      LOG.debug("Same partition ({}) of different states cannot co-exist in one instance", replica.getPartitionName());
+      if (enableLogging) {
+        LOG.info("Same partition ({}) of different states cannot co-exist in one instance", replica.getPartitionName());
+      }
       return false;
     }
     return true;

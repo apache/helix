@@ -56,7 +56,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestPerInstanceAccessor extends AbstractTestClass {
-  private final static String CLUSTER_NAME = "TestCluster_0";
+  private final static String CLUSTER_NAME = "TestCluster_4";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
 
   @Test
@@ -256,7 +256,8 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testTakeInstanceCheckOnly")
   public void testGetAllMessages() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String testInstance = CLUSTER_NAME + "localhost_12926"; //Non-live instance
+    _mockParticipantManagers.get(0).disconnect();
+    String testInstance = CLUSTER_NAME + "localhost_12918"; //Non-live instance
 
     String messageId = "msg1";
     Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
@@ -280,10 +281,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetAllMessages")
-  public void testGetMessagesByStateModelDef() throws IOException {
+  public void testGetMessagesByStateModelDef() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String testInstance = CLUSTER_NAME + "localhost_12926"; //Non-live instance
+    String testInstance = CLUSTER_NAME + "localhost_12918"; //Non-live instance
     String messageId = "msg1";
     Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
     message.setStateModelDef("MasterSlave");
@@ -314,6 +315,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 0);
+    _mockParticipantManagers.get(0).connect();
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

@@ -9,13 +9,13 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
 
   HelixGatewayServiceProcessor _helixGatewayServiceProcessor;
   @Override
-  public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ReplicaStateMessage> report(
+  public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage> report(
       StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage> responseObserver) {
 
-    return new StreamObserver<ReplicaStateMessage>() {
+    return new StreamObserver<ShardStateMessage>() {
 
       @Override
-      public void onNext(ReplicaStateMessage request) {
+      public void onNext(ShardStateMessage request) {
         // called when a client sends a message
         //....
       }

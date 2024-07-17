@@ -20,7 +20,7 @@ message TransitionMessage{
   repeated SingleTransitionMessage request = 1;
 }
 
-message SingleReplicaTransitionStatus {
+message SingleShardTransitionStatus {
   string transitionID = 1;       // ID of transition message
   bool isSuccess = 2;           // Was transition successfully performed
   optional string currentState = 3;   // If it failed, what is the current state it should reported as.
@@ -30,23 +30,23 @@ message SingleReplicaTransitionStatus {
 
 message SingleResourceState {
   string resource = 1;
-  repeated SingleReplicaState SingleReplicaState= 2;
+  repeated SingleShardState SingleReplicaState= 2;
 
 }
 
-message SingleReplicaState {
-  string replicaName = 1;
+message SingleShardState {
+  string shardaName = 1;
   string currentState = 2;
 }
 
 //
-message ReplicaStateMessage{
-  repeated SingleReplicaTransitionStatus replicaStateST = 1;
-  repeated SingleReplicaState replicaState = 2;
+message ShardStateMessage{
+  repeated SingleShardTransitionStatus replicaStateST = 1;
+  repeated SingleShardState shardState = 2;
 }
 
 
 service HelixGatewayService {
-  rpc report(stream ReplicaStateMessage) returns (stream TransitionMessage) {}
+  rpc report(stream ShardStateMessage) returns (stream TransitionMessage) {}
 }
 

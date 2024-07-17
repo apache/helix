@@ -16,14 +16,14 @@ message SingleTransitionMessage {
   string targetState = 6;     // Shard target state.
 }
 
-message StateTransitionMessage{
+message TransitionMessage{
   repeated SingleTransitionMessage request = 1;
 }
 
-message SingleReplicaStateTransitionStatus {
+message SingleReplicaTransitionStatus {
   string transitionID = 1;       // ID of transition message
   bool isSuccess = 2;           // Was transition successfully performed
-  string currentState = 3;   // If it failed, what is the current state it should reported as.
+  optional string currentState = 3;   // If it failed, what is the current state it should reported as.
 }
 
 // resource has list of replica
@@ -41,12 +41,12 @@ message SingleReplicaState {
 
 //
 message ReplicaStateMessage{
-  repeated SingleReplicaStateTransitionStatus replicaStateST = 1;
+  repeated SingleReplicaTransitionStatus replicaStateST = 1;
   repeated SingleReplicaState replicaState = 2;
 }
 
 
 service HelixGatewayService {
-  rpc report(stream ReplicaStateMessage) returns (stream StateTransitionMessage) {}
+  rpc report(stream ReplicaStateMessage) returns (stream TransitionMessage) {}
 }
 

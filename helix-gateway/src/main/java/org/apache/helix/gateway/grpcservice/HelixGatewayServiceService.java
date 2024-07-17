@@ -1,6 +1,5 @@
-package org.apache.helix.gateway.grpcService;
+package org.apache.helix.gateway.grpcservice;
 
-import org.apache.helix.gateway.service.HelixGatewayService;
 import proto.org.apache.helix.gateway.*;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.*;
 import io.grpc.stub.StreamObserver;
@@ -9,7 +8,7 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
 
   @Override
   public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ReplicaStateMessage> report(
-      StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.StateTransitionMessage> responseObserver) {
+      StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage> responseObserver) {
 
     return new StreamObserver<ReplicaStateMessage>() {
 

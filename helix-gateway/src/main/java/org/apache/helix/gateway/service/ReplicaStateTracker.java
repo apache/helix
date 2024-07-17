@@ -5,4 +5,8 @@ public class ReplicaStateTracker {
   boolean compareTargetState(){
     return true;
   }
+
+  boolean updateReplicaState() {
+    return true;
+  }
 }

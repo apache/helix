@@ -16,6 +16,9 @@ public class ClusterManager {
   private Map<String, MockApplication> _channelMap;
   private Lock _lock = new ReentrantLock();
 
+  // event queue
+  // state tracker, call tracker.update
+
   public ClusterManager() {
     _flagMap = new ConcurrentHashMap<>();
     _channelMap = new ConcurrentHashMap<>();

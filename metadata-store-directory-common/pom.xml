@@ -149,7 +149,7 @@
         <version>3.3.0</version>
         <executions>
           <execution>
-            <id>default-package-jdk11</id>
+            <id>default-package-jdk8</id>
             <phase>package</phase>
             <goals>
               <goal>jar</goal>
@@ -157,6 +157,23 @@
             <configuration>
               <classesDirectory>${project.build.outputDirectory}_jdk8</classesDirectory>
               <classifier>jdk8</classifier>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>default-process-resources-jdk8</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}_jdk8</outputDirectory>
             </configuration>
           </execution>
         </executions>

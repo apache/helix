@@ -28,12 +28,12 @@ message SingleShardTransitionStatus {
 
 message SingleResourceState {
   string resource = 1;             // name of the resource
-  repeated SingleShardState SingleReplicaState = 2;    // State of each shard
+  repeated SingleShardState SingleShardState = 2;    // State of each shard
 
 }
 
 message SingleShardState {
-  string shardaName = 1;       // Name of the shard
+  string shardName = 1;       // Name of the shard
   string currentState = 2;     // Current state of the shard
 }
 

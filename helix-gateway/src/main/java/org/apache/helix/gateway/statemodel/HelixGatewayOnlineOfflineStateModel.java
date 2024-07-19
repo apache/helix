@@ -5,10 +5,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.gateway.constant.MessageType;
-import org.apache.helix.gateway.mock.MockProtoRequest;
 import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
+
 
 public class HelixGatewayOnlineOfflineStateModel extends StateModel {
   private boolean _firstTime = true;
@@ -28,42 +28,28 @@ public class HelixGatewayOnlineOfflineStateModel extends StateModel {
 
   public void onBecomeOnlineFromOffline(Message message, NotificationContext context) {
     if (_firstTime) {
-      wait(_clusterManager.sendMessage(
-          new MockProtoRequest(MessageType.ADD, message.getResourceName(),
-              message.getPartitionName(), message.getTgtName(), UUID.randomUUID().toString(),
-              message.getToState(), message.getFromState())));
+      wait(_clusterManager.sendTransitionRequestToApplicationInstance());
       System.out.println(
-          "Message for " + message.getPartitionName() + " instance " + message.getTgtName()
-              + " with ADD for " + message.getResourceName() + " processed");
+          "Message for " + message.getPartitionName() + " instance " + message.getTgtName() + " with ADD for "
+              + message.getResourceName() + " processed");
       _firstTime = false;
     }
-    wait(_clusterManager.sendMessage(
-        new MockProtoRequest(MessageType.CHANGE_ROLE, message.getResourceName(),
-            message.getPartitionName(), message.getTgtName(), UUID.randomUUID().toString(),
-            message.getToState(), message.getFromState())));
-    System.out.println(
-        "Message for " + message.getPartitionName() + " instance " + message.getTgtName()
-            + " with CHANGE_ROLE_OFFLINE_ONLINE for " + message.getResourceName() + " processed");
+    wait(_clusterManager.sendTransitionRequestToApplicationInstance());
+    System.out.println("Message for " + message.getPartitionName() + " instance " + message.getTgtName()
+        + " with CHANGE_ROLE_OFFLINE_ONLINE for " + message.getResourceName() + " processed");
   }
 
   public void onBecomeOfflineFromOnline(Message message, NotificationContext context) {
-    wait(_clusterManager.sendMessage(
-        new MockProtoRequest(MessageType.CHANGE_ROLE, message.getResourceName(),
-            message.getPartitionName(), message.getTgtName(), UUID.randomUUID().toString(),
-            message.getToState(), message.getFromState())));
-    System.out.println(
-        "Message for " + message.getPartitionName() + " instance " + message.getTgtName()
-            + " with CHANGE_ROLE_ONLINE_OFFLINE for " + message.getResourceName() + " processed");
+    wait(_clusterManager.sendTransitionRequestToApplicationInstance());
+    System.out.println("Message for " + message.getPartitionName() + " instance " + message.getTgtName()
+        + " with CHANGE_ROLE_ONLINE_OFFLINE for " + message.getResourceName() + " processed");
   }
 
   public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
-    wait(_clusterManager.sendMessage(
-        new MockProtoRequest(MessageType.REMOVE, message.getResourceName(),
-            message.getPartitionName(), message.getTgtName(), UUID.randomUUID().toString(),
-            message.getToState(), message.getFromState())));
+    wait(_clusterManager.sendTransitionRequestToApplicationInstance());
     System.out.println(
-        "Message for " + message.getPartitionName() + " instance " + message.getTgtName()
-            + " with REMOVE for " + message.getResourceName() + " processed");
+        "Message for " + message.getPartitionName() + " instance " + message.getTgtName() + " with REMOVE for "
+            + message.getResourceName() + " processed");
   }
 
   private void wait(AtomicBoolean completed) {

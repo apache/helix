@@ -5,9 +5,10 @@ import proto.org.apache.helix.gateway.*;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.*;
 import io.grpc.stub.StreamObserver;
 
-public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase {
 
-  HelixGatewayServiceProcessor _helixGatewayServiceProcessor;
+public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase
+    implements HelixGatewayServiceProcessor {
+
   @Override
   public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage> report(
       StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage> responseObserver) {
@@ -32,5 +33,15 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
         //....
       }
     };
+  }
+
+  @Override
+  public boolean sendStateTransitionMessage() {
+    return false;
+  }
+
+  @Override
+  public void pushEventToManager() {
+
   }
 }

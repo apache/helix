@@ -8,23 +8,9 @@ import java.util.Map;
 /**
  * Translate from/to GRPC function call
  */
-public class HelixGatewayServiceProcessor{
+public interface HelixGatewayServiceProcessor {
 
-  Map<String, StreamObserver> applicationInstanceMap;
+  public boolean sendStateTransitionMessage();
 
-  public HelixGatewayServiceProcessor() {
-    applicationInstanceMap = new ConcurrentHashMap<String, StreamObserver>();
-  }
-
-  public boolean sendStateTransitionMessage() {
-    //streamObserver.onNext(translateSTMsgToProto(msg));
-    return true;
-  }
-
-  public void pushEventToManager() {
-
-  }
-
-
-
+  public void pushEventToManager();
 }

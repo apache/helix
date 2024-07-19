@@ -1,18 +1,16 @@
 package org.apache.helix.gateway.service;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 import java.util.Map;
+
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import org.apache.helix.gateway.grpcservice.HelixGatewayServiceService;
 
-import org.apache.helix.gateway.mock.MockApplication;
-import org.apache.helix.gateway.mock.MockProtoRequest;
-import org.apache.helix.gateway.mock.MockProtoResponse;
 
 /**
- * A top layer class that
+ * A top layer class that send/receive messages from Grpc end point, and dispatch them to corrsponding gateway services.
  *  1. get event from Handler
  *  2. Maintain a gateway service registry, one gateway service maps to one Helix cluster
  *  3. On init connect, create the participant manager
@@ -20,43 +18,57 @@ import org.apache.helix.gateway.mock.MockProtoResponse;
  */
 
 public class GatewayServiceManager {
-  private Map<String, Map<String, AtomicBoolean>> _flagMap;
-  private Map<String, MockApplication> _channelMap;
+
+  HelixGatewayServiceService _helixGatewayServiceService;
+
   HelixGatewayServiceProcessor _helixGatewayServiceProcessor;
+
+  Map<String, HelixGatewayService> _helixGatewayServiceMap;
 
   // event queue
   // state tracker, call tracker.update
 
+  // tp for init
+  // single thread tp for update
+
+  public enum EventType {
+    INIT,    // init connection to gateway service
+    UPDATE,  // update state transition result
+    SHUTDOWN // shutdown connection to gateway service.
+  }
+
+  public class GateWayServiceEvent {
+    // event type
+    EventType eventType;
+    // event data
+    String clusterName;
+    String participantName;
+    String resourceName;
+    String shardName;
+    String shardState;
+  }
+
+  Queue<GateWayServiceEvent> _eventQueue;
+
   public GatewayServiceManager() {
-    _flagMap = new ConcurrentHashMap<>();
-    _channelMap = new ConcurrentHashMap<>();
+    _helixGatewayServiceMap = new ConcurrentHashMap<>();
+    _eventQueue = Lists.newLinkedList();
   }
 
-  public void addChannel(MockApplication mockApplication) {
-    _channelMap.put(mockApplication.getInstanceName(), mockApplication);
-    _flagMap.computeIfAbsent(mockApplication.getInstanceName(), k -> new ConcurrentHashMap<>());
+  public AtomicBoolean sendTransitionRequestToApplicationInstance() {
+
+    return null;
   }
 
-  public void removeChannel(String instanceName) {
-    _channelMap.remove(instanceName);
-    _flagMap.remove(instanceName);
+  public void updateShardState() {
+
   }
 
-  public AtomicBoolean sendMessage(MockProtoRequest request) {
-    MockApplication mockApplication = _channelMap.get(request.getInstanceName());
-    synchronized (mockApplication) {
-      mockApplication.addRequest(request);
-      AtomicBoolean flag = new AtomicBoolean(false);
-      _flagMap.computeIfAbsent(request.getInstanceName(), k -> new ConcurrentHashMap<>())
-          .put(request.getMessageId(), flag);
-      return flag;
-    }
+  public void newParticipantConnecting() {
+
   }
 
-  public synchronized void receiveResponse(List<MockProtoResponse> responses, String instanceName) {
-    for (MockProtoResponse response : responses) {
-      AtomicBoolean flag = _flagMap.get(instanceName).remove(response.getMessageId());
-      flag.set(true);
-    }
+  public void participantDisconnected() {
+
   }
 }

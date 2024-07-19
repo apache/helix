@@ -1,10 +1,13 @@
 package org.apache.helix.gateway.grpcservice;
 
 import io.grpc.stub.StreamObserver;
+import org.apache.helix.gateway.service.HelixGatewayServiceProcessor;
 import proto.org.apache.helix.gateway.*;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.*;
 
-public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase {
+
+public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase
+    implements HelixGatewayServiceProcessor {
 
   @Override
   public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage> report(
@@ -30,5 +33,15 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
         //....
       }
     };
+  }
+
+  @Override
+  public boolean sendStateTransitionMessage() {
+    return false;
+  }
+
+  @Override
+  public void pushEventToManager() {
+
   }
 }

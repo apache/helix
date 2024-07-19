@@ -10,7 +10,10 @@ import java.util.Map;
  */
 public interface HelixGatewayServiceProcessor {
 
-  public boolean sendStateTransitionMessage();
+  public boolean sendStateTransitionMessage(String instanceName);
 
-  public void pushEventToManager();
+  public void pushEventToManager(GatewayServiceManager.GateWayServiceEvent event);
+
+
+
 }

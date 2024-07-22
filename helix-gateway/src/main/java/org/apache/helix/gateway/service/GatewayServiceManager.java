@@ -27,9 +27,9 @@ public class GatewayServiceManager {
   // single thread tp for update
 
   public enum EventType {
-    INIT,    // init connection to gateway service
+    CONNECT,    // init connection to gateway service
     UPDATE,  // update state transition result
-    SHUTDOWN // shutdown connection to gateway service.
+    DISCONNECT // shutdown connection to gateway service.
   }
 
   public class GateWayServiceEvent {

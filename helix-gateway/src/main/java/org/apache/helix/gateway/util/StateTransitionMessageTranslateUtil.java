@@ -1,8 +1,17 @@
 package org.apache.helix.gateway.util;
 
-public class StateTransitionMessageTranslateUtil {
+import org.apache.helix.gateway.service.GatewayServiceManager;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
 
-  public static void translateSTMsgToProto() {
 
+public final class StateTransitionMessageTranslateUtil {
+
+  public static TransitionMessage translateSTMsgToProto() {
+    return null;
+  }
+
+  public static GatewayServiceManager.GateWayServiceEvent translateProtoToSTMsg(ShardStateMessage message) {
+    return null;
   }
 }

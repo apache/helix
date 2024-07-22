@@ -16,7 +16,9 @@ import java.util.Map;
 public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase
     implements HelixGatewayServiceProcessor {
 
-  Map<String, StreamObserver<TransitionMessage>> _observerMap = new ConcurrentHashMap<String, StreamObserver<TransitionMessage>>();
+  Map<String, StreamObserver<TransitionMessage>> _observerMap =
+      new ConcurrentHashMap<String, StreamObserver<TransitionMessage>>();
+
   @Override
   public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage> report(
       StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage> responseObserver) {
@@ -28,12 +30,11 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
         // called when a client sends a message
         //....
         String instanceName = request.getInstanceName();
-        if (_observerMap.containsValue(instanceName)) {
-          // this is from an existing client
-        } else {
-          updateObserver(instanceName, responseObserver);
+        if (!_observerMap.containsValue(instanceName)) {
           // update state map
+          updateObserver(instanceName, responseObserver);
         }
+        // process the message
       }
 
       @Override
@@ -51,7 +52,7 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
   }
 
   @Override
-  public boolean sendStateTransitionMessage(String instanceName ) {
+  public boolean sendStateTransitionMessage(String instanceName) {
     return false;
   }
 
@@ -62,6 +63,5 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
 
   public void updateObserver(String instanceName, StreamObserver<TransitionMessage> streamObserver) {
     _observerMap.put(instanceName, streamObserver);
-
   }
 }

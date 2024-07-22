@@ -2,11 +2,11 @@ package org.apache.helix.gateway.service;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.gateway.mock.MockApplication;
+import org.apache.helix.gateway.statemodel.HelixGatewayOnlineOfflineStateModelFactory;
+import org.apache.helix.manager.zk.ZKHelixManager;
+
 
 public class HelixGatewayService {
   final private Map<String, Map<String, HelixManager>> _participantsMap;
@@ -28,15 +28,13 @@ public class HelixGatewayService {
     System.out.println("Starting Helix Gateway Service");
   }
 
-  public void registerParticipant(MockApplication mockApplication) {
-    HelixManager manager = _participantsMap.computeIfAbsent(mockApplication.getClusterName(),
-        k -> new ConcurrentHashMap<>()).computeIfAbsent(mockApplication.getInstanceName(),
-        k -> HelixManagerFactory.getZKHelixManager(mockApplication.getClusterName(),
-            mockApplication.getInstanceName(), InstanceType.PARTICIPANT, _zkAddress));
-    manager.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-        new HelixGatewayOnlineOfflineStateModelFactory(_clusterManager));
+  public void registerParticipant() {
+    // TODO: create participant manager and add to _participantsMap
+    HelixManager manager = new ZKHelixManager("clusterName", "instanceName", InstanceType.PARTICIPANT, _zkAddress);
+    manager.getStateMachineEngine()
+        .registerStateModelFactory("OnlineOffline", new HelixGatewayOnlineOfflineStateModelFactory(_clusterManager));
     try {
-      _clusterManager.addChannel(mockApplication);
+      _clusterManager.addChannel();
       manager.connect();
     } catch (Exception e) {
       throw new RuntimeException(e);

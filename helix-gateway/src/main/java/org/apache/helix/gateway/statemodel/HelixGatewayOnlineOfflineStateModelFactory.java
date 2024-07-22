@@ -1,6 +1,5 @@
 package org.apache.helix.gateway.statemodel;
 
-import org.apache.helix.gateway.service.ClusterManager;
 import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.statemodel.HelixGatewayOnlineOfflineStateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;

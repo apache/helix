@@ -11,6 +11,10 @@ import org.apache.helix.gateway.statemodel.HelixGatewayOnlineOfflineStateModelFa
 import org.apache.helix.manager.zk.ZKHelixManager;
 
 
+/**
+ * A service object for each Helix cluster.
+ * This service object manages the Helix participants in the cluster.
+ */
 public class HelixGatewayService {
   final private Map<String, Map<String, HelixManager>> _participantsMap;
 

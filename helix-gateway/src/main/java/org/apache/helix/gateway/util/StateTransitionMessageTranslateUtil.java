@@ -1,6 +1,6 @@
 package org.apache.helix.gateway.util;
 
-public class StateTransitionMessageTranslator {
+public class StateTransitionMessageTranslateUtil {
 
   public static void translateSTMsgToProto() {
 

@@ -10,6 +10,9 @@ import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.*;
 import java.util.Map;
 
 
+/**
+ * Helix Gateway Service GRPC UI implementation.
+ */
 public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase
     implements HelixGatewayServiceProcessor {
 

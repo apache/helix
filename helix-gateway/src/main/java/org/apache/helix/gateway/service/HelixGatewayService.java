@@ -29,6 +29,7 @@ public class HelixGatewayService {
   }
 
   public void registerParticipant() {
+    // TODO: create participant manager and add to _participantsMap
     HelixManager manager = new ZKHelixManager("clusterName", "instanceName", InstanceType.PARTICIPANT, _zkAddress);
     manager.getStateMachineEngine()
         .registerStateModelFactory("OnlineOffline", new HelixGatewayOnlineOfflineStateModelFactory(_clusterManager));

@@ -21,7 +21,7 @@
 <suite name="Suite" parallel="false">
   <test name="Test" preserve-order="true">
     <packages>
-      <package name="org.apache.helix.helix.gateway.*"/>
+      <package name="org.apache.helix.gateway.*"/>
     </packages>
   </test>
 </suite>

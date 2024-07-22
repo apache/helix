@@ -1,8 +1,8 @@
 package org.apache.helix.gateway.grpcservice;
 
+import io.grpc.stub.StreamObserver;
 import proto.org.apache.helix.gateway.*;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.*;
-import io.grpc.stub.StreamObserver;
 
 public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase {
 

@@ -70,6 +70,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // a map from customized state type to customized view cache
   private final Map<String, CustomizedViewCache> _customizedViewCacheMap;
 
+  // maintain a cache of ideal state (preference list + best possible assignment) which will be managed ondemand in rebalancer
+  private final Map<String, ZNRecord> _ondemandIdealStateCache;
+
   // maintain a cache of bestPossible assignment across pipeline runs
   // TODO: this is only for customRebalancer, remove it and merge it with _idealMappingCache.
   private Map<String, ResourceAssignment> _resourceAssignmentCache;
@@ -145,6 +148,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     _refreshedChangeTypes = ConcurrentHashMap.newKeySet();
     _customizedStateCache = new CustomizedStateCache(this, _aggregationEnabledTypes);
     _customizedViewCacheMap = new HashMap<>();
+    _ondemandIdealStateCache = new HashMap<>();
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
@@ -381,6 +385,28 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   public Map<String, Map<String, String>> getLastTopStateLocationMap() {
     return _lastTopStateLocationMap;
+  }
+
+  /**
+   * Get cached ideal state (preference list + best possible assignment) for a resource
+   * @param resource
+   * @return
+   */
+  public ZNRecord getCachedOndemandIdealState(String resource) {
+    return _ondemandIdealStateCache.get(resource);
+  }
+
+  /**
+   * Cache ideal state (preference list + best possible assignment) for a resource
+   * @param resource
+   * @return
+   */
+  public void setCachedOndemandIdealState(String resource, ZNRecord idealState) {
+    _ondemandIdealStateCache.put(resource, idealState);
+  }
+
+  public void clearCachedOndemandIdealStates() {
+    _ondemandIdealStateCache.clear();
   }
 
   /**

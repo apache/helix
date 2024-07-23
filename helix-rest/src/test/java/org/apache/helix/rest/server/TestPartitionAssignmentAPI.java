@@ -103,8 +103,6 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
         .setResources(new HashSet<>(_resources))
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
     // Add and start instances to cluster
     for (int i = 0; i < DEFAULT_INSTANCE_COUNT; i++) {
       String instanceName = INSTANCE_NAME_PREFIX + (INSTANCE_START_PORT + i);
@@ -119,6 +117,7 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
       _participants.add(participant);
     }
 
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     System.out.println("End setup:" + TestHelper.getTestMethodName());
   }
 
@@ -126,11 +125,8 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
   public void afterTest() throws Exception {
     System.out.println("Start teardown:" + TestHelper.getTestMethodName());
 
-    // Drop all resources
-    for (String resource : _resources) {
-      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, resource);
-    }
-    _resources.clear();
+    // Stop controller
+    _controller.syncStop();
 
     // Stop and remove all instances
     for (MockParticipantManager participant : _participants) {
@@ -143,8 +139,11 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     }
     _participants.clear();
 
-    // Stop controller
-    _controller.syncStop();
+    // Drop all resources
+    for (String resource : _resources) {
+      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, resource);
+    }
+    _resources.clear();
 
     // Drop cluster
     _gSetupTool.deleteCluster(CLUSTER_NAME);
@@ -442,6 +441,7 @@ public class TestPartitionAssignmentAPI extends AbstractTestClass {
     MockParticipantManager toAddParticipant = createParticipant(toAddInstanceName);
     toAddParticipant.syncStart();
 
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // Choose participant to simulate killing in API call
     MockParticipantManager participantToKill = _participants.get(0);
 

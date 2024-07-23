@@ -57,7 +57,7 @@ public class HelixGatewayServiceService extends HelixGatewayServiceGrpc.HelixGat
   }
 
   @Override
-  public void pushEventToManager(GatewayServiceManager.GateWayServiceEvent event) {
+  public void sendEventToManager(GatewayServiceManager.GateWayServiceEvent event) {
 
   }
 

@@ -7,5 +7,5 @@ public interface HelixGatewayServiceProcessor {
 
   public boolean sendStateTransitionMessage(String instanceName);
 
-  public void pushEventToManager(GatewayServiceManager.GateWayServiceEvent event);
+  public void sendEventToManager(GatewayServiceManager.GateWayServiceEvent event);
 }

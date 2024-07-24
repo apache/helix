@@ -52,15 +52,15 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
-    if (!this._rebalanceCondition.evaluate()) {
+    if (!this._rebalanceCondition.shouldPerformRebalance()) {
       ZNRecord cachedIdealState = clusterData.getCachedOndemandIdealState(resourceName);
       if (cachedIdealState != null) {
         return new IdealState(cachedIdealState);
       }
       // In theory, the cache should be populated already if no rebalance is needed
-      LOG.warn(String.format(
-          "Cannot fetch the cached Ideal State for resource: %s, will recompute the Ideal State",
-          resourceName));
+      LOG.warn(
+          "Cannot fetch the cached Ideal State for resource: {}, will recompute the Ideal State",
+          resourceName);
     }
 
     LOG.info("Computing IdealState for " + resourceName);
@@ -130,12 +130,14 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
         _rebalanceStrategy.computePartitionAssignment(assignableNodes, assignableLiveNodes,
             currentMapping, clusterData);
 
-    LOG.debug("currentMapping: {}", currentMapping);
-    LOG.debug("stateCountMap: {}", stateCountMap);
-    LOG.debug("assignableLiveNodes: {}", assignableLiveNodes);
-    LOG.debug("assignableNodes: {}", assignableNodes);
-    LOG.debug("maxPartition: {}", maxPartition);
-    LOG.debug("newMapping: {}", newMapping);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("currentMapping: {}", currentMapping);
+      LOG.debug("stateCountMap: {}", stateCountMap);
+      LOG.debug("assignableLiveNodes: {}", assignableLiveNodes);
+      LOG.debug("assignableNodes: {}", assignableNodes);
+      LOG.debug("maxPartition: {}", maxPartition);
+      LOG.debug("newMapping: {}", newMapping);
+    }
 
     IdealState newIdealState = new IdealState(resourceName);
     newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
@@ -151,7 +153,7 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
   public ResourceAssignment computeBestPossiblePartitionState(ResourceControllerDataProvider cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     ZNRecord cachedIdealState = cache.getCachedOndemandIdealState(resource.getResourceName());
-    if (!this._rebalanceCondition.evaluate()) {
+    if (!this._rebalanceCondition.shouldPerformRebalance()) {
       if (cachedIdealState != null && cachedIdealState.getMapFields() != null) {
         ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
         for (Partition partition : resource.getPartitions()) {
@@ -160,9 +162,8 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
         return new ResourceAssignment(cachedIdealState);
       }
       // In theory, the cache should be populated already if no rebalance is needed
-      LOG.warn(String.format(
-          "Cannot fetch the cached assignment for resource: %s, will recompute the assignment",
-          resource.getResourceName()));
+      LOG.warn("Cannot fetch the cached assignment for resource: {}, will recompute the assignment",
+          resource.getResourceName());
     }
 
     LOG.info("Computing BestPossibleMapping for " + resource.getResourceName());

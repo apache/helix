@@ -16,7 +16,7 @@ public class RebalanceConditionBuilder {
     }
 
     @Override
-    public boolean evaluate() {
+    public boolean shouldPerformRebalance() {
       return _condition.getAsBoolean();
     }
   }
@@ -35,9 +35,9 @@ public class RebalanceConditionBuilder {
     }
 
     @Override
-    public boolean evaluate() {
+    public boolean shouldPerformRebalance() {
       for (RebalanceCondition condition : _conditions) {
-        if (!condition.evaluate()) {
+        if (!condition.shouldPerformRebalance()) {
           return false;
         }
       }
@@ -51,9 +51,9 @@ public class RebalanceConditionBuilder {
     }
 
     @Override
-    public boolean evaluate() {
+    public boolean shouldPerformRebalance() {
       for (RebalanceCondition condition : _conditions) {
-        if (condition.evaluate()) {
+        if (condition.shouldPerformRebalance()) {
           return true;
         }
       }

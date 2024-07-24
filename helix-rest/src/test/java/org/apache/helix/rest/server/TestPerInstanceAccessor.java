@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,23 +42,42 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.constants.InstanceConstants;
+import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.task.TaskFactory;
+import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestPerInstanceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_4";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
+
+  private MockParticipantManager _instanceToDisable;
+
+  @BeforeClass
+  public void beforeClass() {
+    int indexToDisable = -1;
+    for (int i = 0; i < _mockParticipantManagers.size(); i++) {
+      if (_mockParticipantManagers.get(i).getInstanceName().equals(INSTANCE_NAME)) {
+        indexToDisable = i;
+        break;
+      }
+    }
+    _instanceToDisable = _mockParticipantManagers.remove(indexToDisable);
+  }
 
   @Test
   public void testIsInstanceStoppable() throws IOException {
@@ -254,10 +274,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testTakeInstanceCheckOnly")
-  public void testGetAllMessages() throws IOException {
+  public void testGetAllMessages() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    _mockParticipantManagers.get(0).disconnect();
-    String testInstance = CLUSTER_NAME + "localhost_12918"; //Non-live instance
+    _instanceToDisable.disconnect();
+
+    String testInstance = INSTANCE_NAME; //Non-live instance
 
     String messageId = "msg1";
     Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
@@ -277,14 +298,14 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 1);
+    helixDataAccessor.removeProperty(helixDataAccessor.keyBuilder().message(testInstance, messageId));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAllMessages")
   public void testGetMessagesByStateModelDef() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-
-    String testInstance = CLUSTER_NAME + "localhost_12918"; //Non-live instance
+    String testInstance = INSTANCE_NAME; //Non-live instance
     String messageId = "msg1";
     Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
     message.setStateModelDef("MasterSlave");
@@ -315,7 +336,15 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 0);
-    _mockParticipantManagers.get(0).connect();
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, INSTANCE_NAME);
+    Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
+    taskFactoryReg.put(MockTask.TASK_COMMAND, MockTask::new);
+    StateMachineEngine stateMachineEngine = participant.getStateMachineEngine();
+    stateMachineEngine.registerStateModelFactory("Task",
+        new TaskStateModelFactory(participant, taskFactoryReg));
+    participant.syncStart();
+    _mockParticipantManagers.add(participant);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

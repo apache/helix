@@ -703,7 +703,6 @@ public class InstanceConfig extends HelixProperty {
    * @param partition the partition name to check
    * @return true if the instance is enabled for the partition, false otherwise
    */
-  @Deprecated
   public boolean getInstanceEnabledForPartition(String resource, String partition) {
     // TODO: Remove this old partition list check once old get API removed.
     List<String> oldDisabledPartition =
@@ -788,8 +787,6 @@ public class InstanceConfig extends HelixProperty {
     if (disabledPartitionsRawMap == null) {
       return Collections.emptyMap();
     }
-
-    // if all resource key, then thats the map
 
     Map<String, List<String>> disabledPartitionsMap = new HashMap<String, List<String>>();
     for (String resourceName : disabledPartitionsRawMap.keySet()) {

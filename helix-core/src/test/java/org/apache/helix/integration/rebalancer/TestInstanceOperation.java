@@ -1815,7 +1815,8 @@ public class TestInstanceOperation extends ZkTestBase {
     }
   }
 
-  //gspencer todo comments
+  // State Transition Factory that has counters to track number of state transitions. The counters are shared across
+  // all state models. You can register this state model for a single participant if you need to isolate the counter.
   public class StateTransitionCountStateModelFactory extends StateModelFactory<StateTransitionCountStateModel> {
 
     AtomicInteger _upwardStateTransitionCounter = new AtomicInteger(0);
@@ -1837,7 +1838,6 @@ public class TestInstanceOperation extends ZkTestBase {
       }
   }
 
-  //gspencer todo comments
   @StateModelInfo(initialState = "OFFLINE", states = {"MASTER", "SLAVE", "ERROR"})
   public class StateTransitionCountStateModel extends StateModel {
     AtomicInteger _upwardStateTransitionCounter;

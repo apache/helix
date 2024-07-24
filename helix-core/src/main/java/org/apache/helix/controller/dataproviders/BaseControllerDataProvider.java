@@ -528,7 +528,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
               getPipelineName()));
     }
   }
-// manually clear map. etc. for disabledinstance set for resourceControllerDataProvider
+
   public synchronized void refresh(HelixDataAccessor accessor) {
     doRefresh(accessor);
   }

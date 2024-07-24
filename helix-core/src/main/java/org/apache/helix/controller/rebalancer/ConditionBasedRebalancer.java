@@ -43,16 +43,20 @@ import org.slf4j.LoggerFactory;
 
 public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(ConditionBasedRebalancer.class);
-  private final RebalanceCondition _rebalanceCondition;
+  private final List<RebalanceCondition> _rebalanceConditions;
 
-  public ConditionBasedRebalancer(RebalanceCondition rebalanceCondition) {
-    this._rebalanceCondition = rebalanceCondition;
+  public ConditionBasedRebalancer(List<RebalanceCondition> rebalanceConditions) {
+    this._rebalanceConditions =
+        rebalanceConditions == null ? new ArrayList<>() : rebalanceConditions;
   }
 
+  /**
+   * Compute new Ideal State iff all conditions are met, otherwise just return from cached Ideal State
+   */
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
-    if (!this._rebalanceCondition.shouldPerformRebalance()) {
+    if (!this._rebalanceConditions.stream().allMatch(RebalanceCondition::shouldPerformRebalance)) {
       ZNRecord cachedIdealState = clusterData.getCachedOndemandIdealState(resourceName);
       if (cachedIdealState != null) {
         return new IdealState(cachedIdealState);
@@ -149,11 +153,14 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
     return newIdealState;
   }
 
+  /**
+   * Compute new assignment iff all conditions are met, otherwise just return from cached assignment
+   */
   @Override
   public ResourceAssignment computeBestPossiblePartitionState(ResourceControllerDataProvider cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     ZNRecord cachedIdealState = cache.getCachedOndemandIdealState(resource.getResourceName());
-    if (!this._rebalanceCondition.shouldPerformRebalance()) {
+    if (!this._rebalanceConditions.stream().allMatch(RebalanceCondition::shouldPerformRebalance)) {
       if (cachedIdealState != null && cachedIdealState.getMapFields() != null) {
         ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
         for (Partition partition : resource.getPartitions()) {

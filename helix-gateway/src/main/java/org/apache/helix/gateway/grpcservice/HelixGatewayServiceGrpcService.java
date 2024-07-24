@@ -2,10 +2,7 @@ package org.apache.helix.gateway.grpcservice;
 
 import io.grpc.stub.StreamObserver;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
-
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
@@ -13,10 +10,10 @@ import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.service.HelixGatewayServiceProcessor;
 import org.apache.helix.gateway.util.PerKeyLockRegistry;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
-import proto.org.apache.helix.gateway.*;
-import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.*;
-
-import java.util.Map;
+import proto.org.apache.helix.gateway.HelixGatewayServiceGrpc;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage;
 
 
 /**
@@ -67,6 +64,12 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     };
   }
 
+  /**
+   * Send state transition message to the instance.
+   * The instance must already have established a connection to the gateway service.
+   * @param instanceName
+   * @return
+   */
   @Override
   public boolean sendStateTransitionMessage(String instanceName) {
     StreamObserver<TransitionMessage> observer;
@@ -77,7 +80,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     return true;
   }
 
-  public void updateObserver(String instanceName, String clusterName,
+  private void updateObserver(String instanceName, String clusterName,
       StreamObserver<TransitionMessage> streamObserver) {
     _lockRegistry.withLock(instanceName, () -> {
       _observerMap.put(instanceName, streamObserver);

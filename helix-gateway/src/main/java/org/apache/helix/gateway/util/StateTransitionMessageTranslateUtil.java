@@ -7,10 +7,10 @@ import java.util.Map;
 import org.apache.helix.gateway.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
-import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage;
-import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardTransitionStatus;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage;
 
 
 public final class StateTransitionMessageTranslateUtil {

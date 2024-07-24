@@ -1,5 +1,6 @@
 package org.apache.helix.gateway.service;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -106,5 +107,15 @@ public class GatewayServiceManager {
         helixGatewayService.deregisterParticipant(_event.getClusterName(), _event.getInstanceName());
       }
     }
+  }
+
+  @VisibleForTesting
+  HelixGatewayServiceGrpcService getGrpcService() {
+    return _grpcService;
+  }
+
+  @VisibleForTesting
+  HelixGatewayService getHelixGatewayService(String clusterName) {
+    return _helixGatewayServiceMap.get(clusterName);
   }
 }

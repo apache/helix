@@ -1,6 +1,6 @@
 package org.apache.helix.gateway.service;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,9 +32,6 @@ public class HelixGatewayService {
     return _gatewayServiceManager;
   }
 
-  public void start() {
-    System.out.println("Starting Helix Gateway Service");
-  }
 
   public void registerParticipant() {
     // TODO: create participant manager and add to _participantsMap

@@ -1414,6 +1414,7 @@ public class TestInstanceOperation extends ZkTestBase {
         toDisableThenEvacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
 
     verifier(() -> _admin.isEvacuateFinished(CLUSTER_NAME, toDisableThenEvacuateInstanceName), 30000);
+    int downwardSTCountAfterEvacuateComplete = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
 
     // Assert node received no upward state transitions after evacuation was called on already disabled node
     Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
@@ -1440,6 +1441,8 @@ public class TestInstanceOperation extends ZkTestBase {
     // Assert node received no upward state transitions after disabling already evacuated node
     Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
         upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter(),
+        downwardSTCountAfterEvacuateComplete, "Downward state transitions should not have been received");
 
 
     // Clean up test resources

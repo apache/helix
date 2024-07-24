@@ -117,7 +117,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private Map<String, Map<String, String>> _idealStateRuleMap;
   private final Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private final Set<String> _disabledInstanceSet = new HashSet<>();
-  private final Set<String> _disabledInstancesForAllPartitionsSet = new HashSet<>();
 
   private static final class DerivedInstanceCache {
     private final Map<InstanceConstants.InstanceOperation, Map<String, InstanceConfig>>
@@ -529,7 +528,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
               getPipelineName()));
     }
   }
-
+// manually clear map. etc. for disabledinstance set for resourceControllerDataProvider
   public synchronized void refresh(HelixDataAccessor accessor) {
     doRefresh(accessor);
   }
@@ -792,7 +791,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Set<String> getDisabledInstancesForPartition(String resource, String partition) {
     Set<String> disabledInstancesForPartition = new HashSet<>(_disabledInstanceSet);
-    disabledInstancesForPartition.addAll(_disabledInstancesForAllPartitionsSet);
 
     if (_disabledInstanceForPartitionMap.containsKey(resource)
         && _disabledInstanceForPartitionMap
@@ -1081,15 +1079,11 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // Move the calculating disabled instances to refresh
     _disabledInstanceForPartitionMap.clear();
     _disabledInstanceSet.clear();
-    _disabledInstancesForAllPartitionsSet.clear();
     for (InstanceConfig config : allInstanceConfigs) {
       Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
       // Treat instance as disabled if it has "DISABLE" operation or "ALL_RESOURCES" in the disabled partition map
       if (config.getInstanceOperation().getOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
         _disabledInstanceSet.add(config.getInstanceName());
-      }
-      if (disabledPartitionMap.containsKey(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY)) {
-        _disabledInstancesForAllPartitionsSet.add(config.getInstanceName());
       }
       for (String resource : disabledPartitionMap.keySet()) {
         _disabledInstanceForPartitionMap.putIfAbsent(resource, new HashMap<>());

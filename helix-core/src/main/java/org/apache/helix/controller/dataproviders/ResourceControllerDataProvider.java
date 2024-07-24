@@ -20,6 +20,7 @@ package org.apache.helix.controller.dataproviders;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CustomizedStateCache;
 import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.CapacityNode;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -48,6 +50,7 @@ import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -85,6 +88,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
   private Set<String> _aggregationEnabledTypes = new HashSet<>();
   private Set<CapacityNode> _simpleCapacitySet;
+  private final Set<String> _disabledInstancesForAllPartitionsSet = new HashSet<>();
 
 
   // CrushEd strategy needs to have a stable partition list input. So this cached list persist the
@@ -176,6 +180,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // TODO: remove the workaround once we are able to apply the simple fix without majorly
     // TODO: impacting user's clusters.
     refreshStablePartitionList(getIdealStates());
+    refreshDisabledInstancesForAllPartitionsSet();
 
     if (getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1) {
       buildSimpleCapacityMap(getClusterConfig().getGlobalMaxPartitionAllowedPerInstance());
@@ -550,5 +555,23 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   public Set<CapacityNode> getSimpleCapacitySet() {
     return _simpleCapacitySet;
+  }
+
+  private void refreshDisabledInstancesForAllPartitionsSet() {
+    _disabledInstancesForAllPartitionsSet.clear();
+    Collection<InstanceConfig> allConfigs = getInstanceConfigMap().values();
+    for (InstanceConfig config : allConfigs) {
+      Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
+      if (disabledPartitionMap.containsKey(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY)) {
+        _disabledInstancesForAllPartitionsSet.add(config.getInstanceName());
+      }
+    }
+  }
+
+  @Override
+  public Set<String> getDisabledInstancesForPartition(String resource, String partition) {
+    Set<String> disabledInstances = super.getDisabledInstancesForPartition(resource, partition);
+    disabledInstances.addAll(_disabledInstancesForAllPartitionsSet);
+    return disabledInstances;
   }
 }

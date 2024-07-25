@@ -271,6 +271,11 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
           }
           return assignmentSeen;
         }, 5000);
+
+    // Cleanup test resources
+    for (String resource : resources) {
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resource);
+    }
   }
 
   private static void verifier(TestHelper.Verifier verifier, long timeout) throws Exception {

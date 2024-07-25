@@ -41,22 +41,39 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The {@code ConditionBasedRebalancer} class extends the {@link AbstractRebalancer} and
+ * perform the rebalance operation based on specific list of conditions defined by the
+ * {@link RebalanceCondition} interface.
+ */
 public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(ConditionBasedRebalancer.class);
   private final List<RebalanceCondition> _rebalanceConditions;
 
+  public ConditionBasedRebalancer() {
+    this._rebalanceConditions = new ArrayList<>();
+  }
+
   public ConditionBasedRebalancer(List<RebalanceCondition> rebalanceConditions) {
-    this._rebalanceConditions =
-        rebalanceConditions == null ? new ArrayList<>() : rebalanceConditions;
+    this._rebalanceConditions = rebalanceConditions;
   }
 
   /**
    * Compute new Ideal State iff all conditions are met, otherwise just return from cached Ideal State
+   *
+   * @param resourceName        the name of the resource for which to compute the new ideal state.
+   * @param currentIdealState   the current {@link IdealState} of the resource.
+   * @param currentStateOutput  the current state output, containing the actual states of the
+   *                            partitions.
+   * @param clusterData         the {@link ResourceControllerDataProvider} instance providing
+   *                            additional data required for the computation.
+   * @return the newly computed {@link IdealState} for the resource.
    */
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
-    if (!this._rebalanceConditions.stream().allMatch(RebalanceCondition::shouldPerformRebalance)) {
+    if (!this._rebalanceConditions.stream()
+        .allMatch(condition -> condition.shouldPerformRebalance(clusterData))) {
       ZNRecord cachedIdealState = clusterData.getCachedOndemandIdealState(resourceName);
       if (cachedIdealState != null) {
         return new IdealState(cachedIdealState);
@@ -155,12 +172,23 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
 
   /**
    * Compute new assignment iff all conditions are met, otherwise just return from cached assignment
+   *
+   * @param cache               the {@link ResourceControllerDataProvider} instance providing
+   *                            metadata and state information about the cluster.
+   * @param idealState          the {@link IdealState} representing the current ideal state.
+   * @param resource            the {@link Resource} for which to compute the best possible partition
+   *                            state.
+   * @param currentStateOutput  the {@link CurrentStateOutput} containing the current states of the
+   *                            partitions.
+   * @return the {@link ResourceAssignment} representing the best possible state assignment for the
+   *         partitions of the resource.
    */
   @Override
   public ResourceAssignment computeBestPossiblePartitionState(ResourceControllerDataProvider cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     ZNRecord cachedIdealState = cache.getCachedOndemandIdealState(resource.getResourceName());
-    if (!this._rebalanceConditions.stream().allMatch(RebalanceCondition::shouldPerformRebalance)) {
+    if (!this._rebalanceConditions.stream()
+        .allMatch(condition -> condition.shouldPerformRebalance(cache))) {
       if (cachedIdealState != null && cachedIdealState.getMapFields() != null) {
         ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
         for (Partition partition : resource.getPartitions()) {

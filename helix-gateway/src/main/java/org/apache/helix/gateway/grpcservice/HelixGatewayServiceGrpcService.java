@@ -37,6 +37,12 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     _lockRegistry = new PerKeyLockRegistry();
   }
 
+  /**
+   * Grpc service end pint.
+   * Application instances Report the state of the shard or result of transition request to the gateway service.
+   * @param responseObserver
+   * @return
+   */
   @Override
   public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage> report(
       StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage> responseObserver) {

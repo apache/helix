@@ -20,7 +20,7 @@ public final class StateTransitionMessageTranslateUtil {
   }
 
   /**
-   * Translate from GRPC function call to Helix Gateway Service event.
+   * Translate from user sent ShardStateMessage message to Helix Gateway Service event.
    */
   public static GatewayServiceEvent translateShardStateMessageToEvent(ShardStateMessage request) {
 
@@ -56,6 +56,10 @@ public final class StateTransitionMessageTranslateUtil {
     }
     return builder.build();
   }
+
+  /**
+   * Translate termination event to GatewayServiceEvent.
+   */
 
   public static GatewayServiceEvent translateClientCloseToEvent(String instanceName, String clusterName) {
     GatewayServiceEvent.GateWayServiceEventBuilder builder =

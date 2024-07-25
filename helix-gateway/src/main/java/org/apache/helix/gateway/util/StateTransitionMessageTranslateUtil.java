@@ -27,8 +27,6 @@ public final class StateTransitionMessageTranslateUtil {
     GatewayServiceEvent.GateWayServiceEventBuilder builder;
     if (request.hasShardState()) { // init connection to gateway service
       ShardState shardState = request.getShardState();
-      String instanceName = shardState.getInstanceName();
-      String clusterName = shardState.getClusterName();
       Map<String, String> shardStateMap = new HashMap<>();
       for (HelixGatewayServiceOuterClass.SingleResourceState resourceState : shardState.getResourceStateList()) {
         for (HelixGatewayServiceOuterClass.SingleShardState state : resourceState.getShardStatesList()) {
@@ -36,11 +34,9 @@ public final class StateTransitionMessageTranslateUtil {
         }
       }
       builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(
-          clusterName).setParticipantName(instanceName);
+          shardState.getClusterName()).setParticipantName(shardState.getInstanceName());
     } else {
       ShardTransitionStatus shardTransitionStatus = request.getShardTransitionStatus();
-      String instanceName = shardTransitionStatus.getInstanceName();
-      String clusterName = shardTransitionStatus.getClusterName();
       // this is status update for established connection
       List<HelixGatewayServiceOuterClass.SingleShardTransitionStatus> status =
           shardTransitionStatus.getShardTransitionStatusList();
@@ -53,10 +49,10 @@ public final class StateTransitionMessageTranslateUtil {
             new GatewayServiceEvent.StateTransitionResult(stateTransitionId, stateTransitionStatus, shardState);
         stResult.add(result);
       }
-      builder =
-          new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(clusterName)
-              .setParticipantName(instanceName)
-              .setStateTransitionStatusMap(stResult);
+      builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(
+              shardTransitionStatus.getClusterName())
+          .setParticipantName(shardTransitionStatus.getInstanceName())
+          .setStateTransitionStatusMap(stResult);
     }
     return builder.build();
   }

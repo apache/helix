@@ -24,6 +24,7 @@ public final class StateTransitionMessageTranslateUtil {
    */
   public static GatewayServiceEvent translateShardStateMessageToEvent(ShardStateMessage request) {
 
+    GatewayServiceEvent.GateWayServiceEventBuilder builder;
     if (request.hasShardState()) { // init connection to gateway service
       ShardState shardState = request.getShardState();
       String instanceName = shardState.getInstanceName();
@@ -34,10 +35,8 @@ public final class StateTransitionMessageTranslateUtil {
           shardStateMap.put(resourceState.getResource() + "_" + state.getShardName(), state.getCurrentState());
         }
       }
-      GatewayServiceEvent.GateWayServiceEventBuilder builder =
-          new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(
-              clusterName).setParticipantName(instanceName);
-      return builder.build();
+      builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(
+          clusterName).setParticipantName(instanceName);
     } else {
       ShardTransitionStatus shardTransitionStatus = request.getShardTransitionStatus();
       String instanceName = shardTransitionStatus.getInstanceName();
@@ -54,12 +53,12 @@ public final class StateTransitionMessageTranslateUtil {
             new GatewayServiceEvent.StateTransitionResult(stateTransitionId, stateTransitionStatus, shardState);
         stResult.add(result);
       }
-      GatewayServiceEvent.GateWayServiceEventBuilder builder =
+      builder =
           new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(clusterName)
               .setParticipantName(instanceName)
               .setStateTransitionStatusMap(stResult);
-      return builder.build();
     }
+    return builder.build();
   }
 
   public static GatewayServiceEvent translateClientCloseToEvent(String instanceName, String clusterName) {

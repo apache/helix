@@ -5,7 +5,6 @@ package org.apache.helix.gateway.service;
  */
 public interface HelixGatewayServiceProcessor {
 
-  public boolean sendStateTransitionMessage(String instanceName);
+  public boolean sendStateTransitionMessage( String instanceName);
 
-  public void sendEventToManager(GatewayServiceManager.GateWayServiceEvent event);
 }

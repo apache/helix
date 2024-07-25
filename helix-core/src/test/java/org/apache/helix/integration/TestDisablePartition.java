@@ -19,6 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,16 +29,20 @@ import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -208,5 +213,83 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
     }
 
     deleteCluster(clusterName);
+  }
+
+  @Test
+  public void testDisableAllPartitions() throws Exception {
+    final int NUM_PARTITIONS = 8;
+    final int NUM_REPLICAS = 3;
+    final long DELAY_WINDOW = 200000;
+    final String CRUSHED_RESOURCE = "TEST_DB0_CRUSHED";
+    final String WAGED_RESOURCE = "TEST_DB1_WAGED";
+
+    List<String> resources = Arrays.asList(CRUSHED_RESOURCE, WAGED_RESOURCE);
+    createResourceWithDelayedRebalance(CLUSTER_NAME, CRUSHED_RESOURCE,
+        BuiltInStateModelDefinitions.LeaderStandby.name(), NUM_PARTITIONS, NUM_REPLICAS,
+        NUM_REPLICAS - 1, DELAY_WINDOW, CrushEdRebalanceStrategy.class.getName());
+
+    createResourceWithWagedRebalance(CLUSTER_NAME, WAGED_RESOURCE, "MasterSlave",
+        NUM_PARTITIONS, NUM_REPLICAS, NUM_REPLICAS - 1);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Disable all partitions on a first participant
+    MockParticipantManager disabledPartitionInstance = _participants[0];
+    _gSetupTool.getClusterManagementTool().enablePartition(false, CLUSTER_NAME, disabledPartitionInstance.getInstanceName(),
+    InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, Collections.singletonList("foobar"));
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    verifier(() -> {
+      for (String resource : resources) {
+        ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, resource);
+        // EV should not have disabled instance above the lowest state (OFFLINE)
+        for (String partition : ev.getPartitionSet()) {
+          if (ev.getStateMap(partition).containsKey(disabledPartitionInstance.getInstanceName()) &&
+                  !ev.getStateMap(partition).get(disabledPartitionInstance.getInstanceName()).equals("OFFLINE")) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }, 5000);
+
+    _gSetupTool.getClusterManagementTool().enablePartition(true, CLUSTER_NAME, disabledPartitionInstance.getInstanceName(),
+        InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, Collections.singletonList("foobar"));
+
+    // Assert node still has CRUSHED assignment and that it is not in OFFLINE state
+    // Cannot assert for WAGED resource as we can't guarantee that the node will be in subsequent assignments
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    verifier(() -> {
+          ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, CRUSHED_RESOURCE);
+          boolean assignmentSeen = false;
+          for (String partition : ev.getPartitionSet()) {
+            if (ev.getStateMap(partition).containsKey(disabledPartitionInstance.getInstanceName())) {
+              assignmentSeen = true;
+              if (ev.getStateMap(partition).get(disabledPartitionInstance.getInstanceName()).equals("OFFLINE")) {
+                return false;
+              }
+            }
+          }
+          return assignmentSeen;
+        }, 5000);
+
+    // Cleanup test resources
+    for (String resource : resources) {
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resource);
+    }
+  }
+
+  private static void verifier(TestHelper.Verifier verifier, long timeout) throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> {
+      try {
+        boolean result = verifier.verify();
+        if (!result) {
+          LOG.error("Verifier returned false, retrying...");
+        }
+        return result;
+      } catch (AssertionError e) {
+        LOG.error("Caught AssertionError on verifier attempt: ", e);
+        return false;
+      }
+    }, timeout));
   }
 }

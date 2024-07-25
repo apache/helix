@@ -540,7 +540,7 @@ public class TestInstanceOperation extends ZkTestBase {
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
-        InstanceConstants.InstanceOperation.SWAP_IN, -1, instanceToSwapInInstanceConfigListener);
+        InstanceConstants.InstanceOperation.SWAP_IN, -1, instanceToSwapInInstanceConfigListener, null);
 
     // Validate that the throttles are off since the InstanceOperation is set to SWAP_IN
     Assert.assertFalse(instanceToSwapInInstanceConfigListener.isThrottlesEnabled());
@@ -1344,10 +1344,10 @@ public class TestInstanceOperation extends ZkTestBase {
                   v -> v.equals("MASTER") || v.equals("LEADER") || v.equals("SLAVE") || v.equals(
                       "FOLLOWER") || v.equals("STANDBY"))
               .forEach(v -> activeReplicaCount.getAndIncrement());
-          if (activeReplicaCount.get() < REPLICA - 1 || (
-              ev.getStateMap(partition).containsKey(evacuateInstanceName) && ev.getStateMap(
-                  partition).get(evacuateInstanceName).equals("MASTER") && ev.getStateMap(
-                  partition).get(evacuateInstanceName).equals("LEADER"))) {
+          // If min active replicas violated OR if instance is evacuating and is top state for partition
+          if (activeReplicaCount.get() < REPLICA - 1 || (ev.getStateMap(partition).containsKey(evacuateInstanceName) &&
+              (ev.getStateMap(partition).get(evacuateInstanceName).equals("MASTER") ||
+                  ev.getStateMap(partition).get(evacuateInstanceName).equals("LEADER")))) {
             return false;
           }
         }
@@ -1359,6 +1359,99 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);
     dropTestDBs(ImmutableSet.of("TEST_DB3_DELAYED_CRUSHED", "TEST_DB4_DELAYED_WAGED"));
+  }
+
+  @Test(dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
+  public void testEvacuateWithDisabledPartition() throws Exception {
+    System.out.println(
+        "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(
+            System.currentTimeMillis()));
+    StateTransitionCountStateModelFactory stateTransitionCountStateModelFactory = new StateTransitionCountStateModelFactory();
+    removeOfflineOrInactiveInstances();
+    String testCrushedDBName = "testEvacuateWithDisabledPartition_CRUSHED_DB0";
+    String testWagedDBName = "testEvacuateWithDisabledPartition_WAGED_DB1";
+    String toDisableThenEvacuateInstanceName = "disable_then_evacuate_host";
+    addParticipant(toDisableThenEvacuateInstanceName, stateTransitionCountStateModelFactory);
+    MockParticipantManager toDisableThenEvacuateParticipant = _participants.get(_participants.size() - 1);
+
+    List<String> testResources = Arrays.asList(testCrushedDBName, testWagedDBName);
+    createResourceWithDelayedRebalance(CLUSTER_NAME, testCrushedDBName, "MasterSlave",
+        PARTITIONS, REPLICA, REPLICA-1, 200000, CrushEdRebalanceStrategy.class.getName());
+    createResourceWithWagedRebalance(CLUSTER_NAME, testWagedDBName, "MasterSlave", PARTITIONS,
+        REPLICA, REPLICA-1);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    int upwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter();
+    int downwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
+
+
+    InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName);
+    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", false);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    // EV should not have disabled instance above the lowest state (OFFLINE)
+    verifier(() -> {
+      for (String resource : testResources) {
+        ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, resource);
+        for (String partition : ev.getPartitionSet()) {
+          if (ev.getStateMap(partition).containsKey(toDisableThenEvacuateInstanceName) && !ev.getStateMap(partition).
+              get(toDisableThenEvacuateInstanceName).equals("OFFLINE")) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }, 5000);
+
+    // Assert node received downward state transitions and no upward transitions
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+    Assert.assertTrue(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter() >
+        downwardSTCountBeforeDisableThenEvacuate, "Should have received downward state transitions");
+
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
+
+    verifier(() -> _admin.isEvacuateFinished(CLUSTER_NAME, toDisableThenEvacuateInstanceName), 30000);
+    int downwardSTCountAfterEvacuateComplete = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
+
+    // Assert node received no upward state transitions after evacuation was called on already disabled node
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+
+    // Re-enable all partitions for the instance
+    instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName);
+    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert node received no upward state transitions after re-enabled partitions
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+
+    // Disable all partitions for the instance again
+    instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName);
+    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert node received no upward state transitions after disabling already evacuated node
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter(),
+        downwardSTCountAfterEvacuateComplete, "Downward state transitions should not have been received");
+
+
+    // Clean up test resources
+    for (String resource : testResources) {
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resource);
+    }
+    // Clean up test participant
+    toDisableThenEvacuateParticipant.syncStop();
+    removeOfflineOrInactiveInstances();
   }
 
   /**
@@ -1408,14 +1501,14 @@ public class TestInstanceOperation extends ZkTestBase {
     }
   }
 
-  private MockParticipantManager createParticipant(String participantName) throws Exception {
+  private MockParticipantManager createParticipant(String participantName, StateModelFactory stateModelFactory) throws Exception {
     // start dummy participants
     MockParticipantManager participant =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName, 10, null);
     StateMachineEngine stateMachine = participant.getStateMachineEngine();
-    // Using a delayed state model
-    StDelayMSStateModelFactory delayFactory = new StDelayMSStateModelFactory();
-    stateMachine.registerStateModelFactory("MasterSlave", delayFactory);
+    // Default to delayed statemodel if stateModel not provided
+    stateMachine.registerStateModelFactory("MasterSlave", stateModelFactory != null ?
+        stateModelFactory : new StDelayMSStateModelFactory());
     return participant;
   }
 
@@ -1424,15 +1517,20 @@ public class TestInstanceOperation extends ZkTestBase {
         "zone_" + _participants.size() % ZONE_COUNT, null, -1);
   }
 
+  private void addParticipant(String participantName, StateModelFactory stateModelFactory) throws Exception {
+    addParticipant(participantName, UUID.randomUUID().toString(),
+        "zone_" + _participants.size() % ZONE_COUNT, null, -1, null, stateModelFactory);
+  }
+
   private void addParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, int capacity)
       throws Exception {
-    addParticipant(participantName, logicalId, zone, instanceOperation, capacity, null);
+    addParticipant(participantName, logicalId, zone, instanceOperation, capacity, null, null);
   }
 
   private void addParticipant(String participantName, String logicalId, String zone,
       InstanceConstants.InstanceOperation instanceOperation, int capacity,
-      InstanceConfigChangeListener listener) throws Exception {
+      InstanceConfigChangeListener listener, StateModelFactory stateModelFactory) throws Exception {
     InstanceConfig config = new InstanceConfig.Builder().setDomain(
             String.format("%s=%s, %s=%s, %s=%s", ZONE, zone, HOST, participantName, LOGICAL_ID,
                 logicalId)).setInstanceOperation(instanceOperation)
@@ -1443,7 +1541,7 @@ public class TestInstanceOperation extends ZkTestBase {
     }
     _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
-    MockParticipantManager participant = createParticipant(participantName);
+    MockParticipantManager participant = createParticipant(participantName, stateModelFactory);
 
     participant.syncStart();
     if (listener != null) {
@@ -1719,4 +1817,65 @@ public class TestInstanceOperation extends ZkTestBase {
       }
     }
   }
+
+  // State Transition Factory that has counters to track number of state transitions. The counters are shared across
+  // all state models. You can register this state model for a single participant if you need to isolate the counter.
+  public class StateTransitionCountStateModelFactory extends StateModelFactory<StateTransitionCountStateModel> {
+
+    AtomicInteger _upwardStateTransitionCounter = new AtomicInteger(0);
+    AtomicInteger _downwardStateTransitionCounter = new AtomicInteger(0);
+
+      @Override
+      public StateTransitionCountStateModel createNewStateModel(String resourceName, String partitionKey) {
+        StateTransitionCountStateModel model =
+            new StateTransitionCountStateModel(_upwardStateTransitionCounter, _downwardStateTransitionCounter);
+        return model;
+      }
+
+      public int getUpwardStateTransitionCounter() {
+        return _upwardStateTransitionCounter.get();
+      }
+
+      public int getDownwardStateTransitionCounter() {
+        return _downwardStateTransitionCounter.get();
+      }
+  }
+
+  @StateModelInfo(initialState = "OFFLINE", states = {"MASTER", "SLAVE", "ERROR"})
+  public class StateTransitionCountStateModel extends StateModel {
+    AtomicInteger _upwardStateTransitionCounter;
+    AtomicInteger _downwardStateTransitionCounter;
+    public StateTransitionCountStateModel(AtomicInteger upwardStateTransitionCounter, AtomicInteger downwardStateTransitionCounter) {
+      _upwardStateTransitionCounter = upwardStateTransitionCounter;
+      _downwardStateTransitionCounter = downwardStateTransitionCounter;
+    }
+
+    @Transition(to = "SLAVE", from = "OFFLINE")
+    public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
+      _upwardStateTransitionCounter.incrementAndGet();
+    }
+
+    @Transition(to = "MASTER", from = "SLAVE")
+    public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
+      _upwardStateTransitionCounter.incrementAndGet();
+    }
+
+    @Transition(to = "SLAVE", from = "MASTER")
+    public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
+      _downwardStateTransitionCounter.incrementAndGet();
+    }
+
+    @Transition(to = "OFFLINE", from = "SLAVE")
+    public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
+      _downwardStateTransitionCounter.incrementAndGet();
+    }
+
+    @Transition(to = "DROPPED", from = "OFFLINE")
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
+      _downwardStateTransitionCounter.incrementAndGet();
+    }
+  }
+
+
+
 }

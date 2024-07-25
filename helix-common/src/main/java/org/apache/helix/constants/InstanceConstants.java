@@ -100,4 +100,6 @@ public class InstanceConstants {
      */
     UNKNOWN
   }
+
+  public static final String ALL_RESOURCES_DISABLED_PARTITION_KEY = "ALL_RESOURCES";
 }

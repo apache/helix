@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import java.util.List;
 
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -36,8 +37,10 @@ class ReplicaActivateConstraint extends HardConstraint {
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     List<String> disabledPartitions = node.getDisabledPartitionsMap().get(replica.getResourceName());
+    boolean allResourcesDisabled = node.getDisabledPartitionsMap()
+        .containsKey(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY);
 
-    if (disabledPartitions != null && disabledPartitions.contains(replica.getPartitionName())) {
+    if (allResourcesDisabled || (disabledPartitions != null && disabledPartitions.contains(replica.getPartitionName()))) {
       if (enableLogging) {
         LOG.info("Cannot assign the inactive replica: {}", replica.getPartitionName());
       }

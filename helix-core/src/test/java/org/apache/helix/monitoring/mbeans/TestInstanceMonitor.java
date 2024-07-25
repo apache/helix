@@ -29,6 +29,7 @@ import javax.management.ObjectName;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.helix.constants.InstanceConstants;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -40,8 +41,8 @@ public class TestInstanceMonitor {
     String testInstance = "testInstance";
     String testDomain = "testDomain:key=value";
     Set<String> tags = ImmutableSet.of("test", "DEFAULT");
-    Map<String, List<String>> disabledPartitions =
-        ImmutableMap.of("instance1", ImmutableList.of("partition1", "partition2"));
+    Map<String, List<String>> disabledPartitions = ImmutableMap.of("instance1",
+        ImmutableList.of("partition1", "partition2", InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY));
     InstanceMonitor monitor =
         new InstanceMonitor(testCluster, testInstance, new ObjectName(testDomain));
 
@@ -53,6 +54,7 @@ public class TestInstanceMonitor {
     Assert.assertEquals(monitor.getEnabled(), 0L);
     Assert.assertEquals(monitor.getTotalMessageReceived(), 0L);
     Assert.assertEquals(monitor.getDisabledPartitions(), 0L);
+    Assert.assertEquals(monitor.getAllPartitionsDisabled(), 0L);
     Assert.assertEquals(monitor.getMaxCapacityUsageGauge(), 0.0d);
 
     // Update metrics.
@@ -70,6 +72,7 @@ public class TestInstanceMonitor {
     Assert.assertEquals(monitor.getOnline(), 1L);
     Assert.assertEquals(monitor.getEnabled(), 1L);
     Assert.assertEquals(monitor.getDisabledPartitions(), 2L);
+    Assert.assertEquals(monitor.getAllPartitionsDisabled(), 1L);
     Assert.assertEquals(monitor.getMaxCapacityUsageGauge(), 0.5d);
     Assert.assertEquals(monitor.getMessageQueueSizeGauge(), 100L);
     Assert.assertEquals(monitor.getPastDueMessageGauge(), 50L);

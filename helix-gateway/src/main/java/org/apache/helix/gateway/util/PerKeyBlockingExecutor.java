@@ -1,10 +1,8 @@
 package org.apache.helix.gateway.util;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Queue;
-import java.util.Set;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;

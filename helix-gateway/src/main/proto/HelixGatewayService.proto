@@ -20,16 +20,9 @@ message TransitionMessage{
   repeated SingleTransitionMessage request = 1;
 }
 
-message SingleShardTransitionStatus {
-  string transitionID = 1;       // ID of transition message
-  bool isSuccess = 2;           // Was transition successfully performed
-  optional string currentState = 3;   // If it failed, what is the current state it should reported as.
-}
-
 message SingleResourceState {
   string resource = 1;             // name of the resource
-  repeated SingleShardState SingleShardState = 2;    // State of each shard
-
+  repeated SingleShardState shardStates = 2;    // State of each shard
 }
 
 message SingleShardState {
@@ -37,12 +30,31 @@ message SingleShardState {
   string currentState = 2;     // Current state of the shard
 }
 
-//
-message ShardStateMessage{
+message SingleShardTransitionStatus {
+  string transitionID = 1;       // ID of transition message
+  bool isSuccess = 2;           // Was transition successfully performed
+  optional string currentState = 3;   // If it failed, what is the current state it should reported as.
+}
+
+message ShardTransitionStatus{
   string instanceName = 1;         // Name of the application instance
   string clusterName = 2;          // Name of the cluster to connect to
-  repeated SingleShardTransitionStatus shardStatus = 3;    // state transition result for a shard
-  repeated SingleShardState shardState = 4;        // State of each shard, only reported upon init connection
+  repeated SingleShardTransitionStatus shardTransitionStatus = 3;    // state transition result for a shard
+}
+
+// Application report its state to Helix Gateway upon initial connection
+message ShardState{
+  string instanceName = 1;         // Name of the application instance
+  string clusterName = 2;          // Name of the cluster to connect to
+  repeated SingleResourceState resourceState = 3;    // State of each resource
+}
+
+// Application instance sends message upon initial connection or reply to state transition message
+message ShardStateMessage{
+  oneof instanceUpdate {
+    ShardState shardState = 1;
+    ShardTransitionStatus shardTransitionStatus = 2;
+  }
 }
 
 service HelixGatewayService {

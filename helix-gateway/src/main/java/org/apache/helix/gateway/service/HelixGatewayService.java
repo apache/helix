@@ -1,9 +1,7 @@
 package org.apache.helix.gateway.service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
@@ -32,10 +30,10 @@ public class HelixGatewayService {
     return _gatewayServiceManager;
   }
 
-  public void start() {
-    System.out.println("Starting Helix Gateway Service");
-  }
-
+  /**
+   * Register a participant to the Helix cluster.
+   * It creates a HelixParticipantManager and connects to the Helix controller.
+   */
   public void registerParticipant() {
     // TODO: create participant manager and add to _participantsMap
     HelixManager manager = new ZKHelixManager("clusterName", "instanceName", InstanceType.PARTICIPANT, _zkAddress);
@@ -48,6 +46,11 @@ public class HelixGatewayService {
     }
   }
 
+  /**
+   * Deregister a participant from the Helix cluster when app instance is gracefully stopped or connection lost.
+   * @param clusterName
+   * @param participantName
+   */
   public void deregisterParticipant(String clusterName, String participantName) {
     HelixManager manager = _participantsMap.get(clusterName).remove(participantName);
     if (manager != null) {
@@ -69,19 +72,20 @@ public class HelixGatewayService {
       return flag;
   }
 
+  /**
+   * Entry point for receive the state transition response from the participant.
+   * It will update in memory state accordingly.
+   */
   public void receiveSTResponse() {
      // AtomicBoolean flag = _flagMap.get(instanceName).remove(response.getMessageId());
   }
 
-  public void newParticipantConnecting(){
-
-  }
-
-  public void participantDisconnected(){
-
-  }
-
+  /**
+   * Stop the HelixGatewayService.
+   * It stops all participants in the cluster.
+   */
   public void stop() {
+    // TODO: stop all participants
     System.out.println("Stopping Helix Gateway Service");
   }
 }

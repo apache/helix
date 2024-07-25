@@ -42,11 +42,9 @@ public final class StateTransitionMessageTranslateUtil {
           shardTransitionStatus.getShardTransitionStatusList();
       List<GatewayServiceEvent.StateTransitionResult> stResult = new ArrayList<>();
       for (HelixGatewayServiceOuterClass.SingleShardTransitionStatus shardTransition : status) {
-        String stateTransitionId = shardTransition.getTransitionID();
-        String stateTransitionStatus = shardTransition.getCurrentState();
-        String shardState = shardTransition.getCurrentState();
         GatewayServiceEvent.StateTransitionResult result =
-            new GatewayServiceEvent.StateTransitionResult(stateTransitionId, stateTransitionStatus, shardState);
+            new GatewayServiceEvent.StateTransitionResult(shardTransition.getTransitionID(),
+                shardTransition.getCurrentState(), shardTransition.getCurrentState());
         stResult.add(result);
       }
       builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(

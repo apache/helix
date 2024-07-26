@@ -4,7 +4,8 @@ import org.apache.helix.gateway.constant.MessageType;
 import org.apache.helix.model.Message;
 
 /**
- * Translate from/to GRPC function call to Helix Gateway Service event.
+ * Helix Gateway Service Processor interface allows sending state transition messages to
+ * participants through services implementing this interface.
  */
 public interface HelixGatewayServiceProcessor {
 

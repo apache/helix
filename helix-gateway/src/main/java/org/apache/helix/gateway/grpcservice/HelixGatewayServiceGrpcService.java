@@ -24,11 +24,13 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.helix.gateway.constant.MessageType;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.gateway.service.GatewayServiceManager;
-import org.apache.helix.gateway.service.HelixGatewayServiceProcessor;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
 import org.apache.helix.gateway.util.PerKeyLockRegistry;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
+import org.apache.helix.model.Message;
 import proto.org.apache.helix.gateway.HelixGatewayServiceGrpc;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
@@ -92,17 +94,20 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   /**
    * Send state transition message to the instance.
    * The instance must already have established a connection to the gateway service.
-   * @param instanceName
-   * @return
+   * @param instanceName the instance name to send the message to
+   * @param messageType the type of the message
+   * @param message the message to convert to the transition message
    */
   @Override
-  public boolean sendStateTransitionMessage(String instanceName) {
+  public void sendStateTransitionMessage(String instanceName, MessageType messageType,
+      Message message) {
     StreamObserver<TransitionMessage> observer;
     observer = _observerMap.get(instanceName);
     if (observer != null) {
-      observer.onNext(StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage());
+      observer.onNext(
+          StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage(messageType,
+              message));
     }
-    return true;
   }
 
   private void updateObserver(String instanceName, String clusterName,

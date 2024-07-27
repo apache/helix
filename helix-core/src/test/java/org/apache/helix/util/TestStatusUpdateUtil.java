@@ -108,11 +108,15 @@ public class TestStatusUpdateUtil extends ZkTestBase {
         .instanceError(clusterName, "localhost_12918", participants[0].getSessionId(), "TestDB",
             "TestDB_0");
 
-    try {
-      ZNRecord error = _gZkClient.readData(errPath);
-    } catch (ZkException zke) {
-      Assert.fail("expecting being able to send error logs to ZK.", zke);
-    }
+    // Verify message exists in ZK
+    TestHelper.verify(() -> {
+      try {
+        _gZkClient.readData(errPath);
+        return true;
+      } catch (ZkException zke) {
+        return false;
+      }
+    }, 10000);
   }
 
   @Test

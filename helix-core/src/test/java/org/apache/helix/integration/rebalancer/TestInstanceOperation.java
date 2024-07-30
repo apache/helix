@@ -63,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
@@ -173,6 +174,12 @@ public class TestInstanceOperation extends ZkTestBase {
     _spectator.disconnect();
   }
 
+  @BeforeMethod
+  public void beforeMethod() throws Exception {
+    removeOfflineOrInactiveInstances();
+    _clusterVerifier.verifyByPolling();
+  }
+
   private void setupClusterConfig() {
     _stateModelDelay = 3L;
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -275,6 +282,97 @@ public class TestInstanceOperation extends ZkTestBase {
 }
 
   @Test(dependsOnMethods = "testEvacuate")
+  public void testEvacuateWithDisabledPartition() throws Exception {
+    System.out.println(
+        "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(
+            System.currentTimeMillis()));
+    StateTransitionCountStateModelFactory stateTransitionCountStateModelFactory = new StateTransitionCountStateModelFactory();
+    String testCrushedDBName = "testEvacuateWithDisabledPartition_CRUSHED_DB0";
+    String testWagedDBName = "testEvacuateWithDisabledPartition_WAGED_DB1";
+    String toDisableThenEvacuateInstanceName = "disable_then_evacuate_host";
+    addParticipant(toDisableThenEvacuateInstanceName, stateTransitionCountStateModelFactory);
+    MockParticipantManager toDisableThenEvacuateParticipant = _participants.get(_participants.size() - 1);
+
+    List<String> testResources = Arrays.asList(testCrushedDBName, testWagedDBName);
+    createResourceWithDelayedRebalance(CLUSTER_NAME, testCrushedDBName, "MasterSlave",
+        PARTITIONS, REPLICA, REPLICA-1, 200000, CrushEdRebalanceStrategy.class.getName());
+    createResourceWithWagedRebalance(CLUSTER_NAME, testWagedDBName, "MasterSlave", PARTITIONS,
+        REPLICA, REPLICA-1);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    int upwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter();
+    int downwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
+
+
+    InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName);
+    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", false);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    // EV should not have disabled instance above the lowest state (OFFLINE)
+    verifier(() -> {
+      for (String resource : testResources) {
+        ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, resource);
+        for (String partition : ev.getPartitionSet()) {
+          if (ev.getStateMap(partition).containsKey(toDisableThenEvacuateInstanceName) && !ev.getStateMap(partition).
+              get(toDisableThenEvacuateInstanceName).equals("OFFLINE")) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }, 5000);
+
+    // Assert node received downward state transitions and no upward transitions
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+    Assert.assertTrue(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter() >
+        downwardSTCountBeforeDisableThenEvacuate, "Should have received downward state transitions");
+
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
+
+    verifier(() -> _admin.isEvacuateFinished(CLUSTER_NAME, toDisableThenEvacuateInstanceName), 30000);
+    int downwardSTCountAfterEvacuateComplete = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
+
+    // Assert node received no upward state transitions after evacuation was called on already disabled node
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+
+    // Re-enable all partitions for the instance
+    instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName);
+    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert node received no upward state transitions after re-enabled partitions
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+
+    // Disable all partitions for the instance again
+    instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
+        toDisableThenEvacuateInstanceName);
+    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", false);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert node received no upward state transitions after disabling already evacuated node
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
+        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
+    Assert.assertEquals(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter(),
+        downwardSTCountAfterEvacuateComplete, "Downward state transitions should not have been received");
+
+
+    // Clean up test resources
+    for (String resource : testResources) {
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resource);
+    }
+    // Clean up test participant
+    toDisableThenEvacuateParticipant.syncStop();
+  }
+
+  @Test(dependsOnMethods = "testEvacuateWithDisabledPartition")
   public void testRevertEvacuation() throws Exception {
     System.out.println("START TestInstanceOperation.testRevertEvacuation() at " + new Date(System.currentTimeMillis()));
     // revert an evacuate instance
@@ -1146,8 +1244,6 @@ public class TestInstanceOperation extends ZkTestBase {
         "START TestInstanceOperation.testEvacuateAndCancelBeforeBootstrapFinish() at " + new Date(
             System.currentTimeMillis()));
 
-    removeOfflineOrInactiveInstances();
-
     // add a resource where downward state transition is slow
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB3_DELAYED_CRUSHED", "MasterSlave",
         PARTITIONS, REPLICA, REPLICA - 1, 200000, CrushEdRebalanceStrategy.class.getName());
@@ -1362,116 +1458,25 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
-  public void testEvacuateWithDisabledPartition() throws Exception {
-    System.out.println(
-        "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(
-            System.currentTimeMillis()));
-    StateTransitionCountStateModelFactory stateTransitionCountStateModelFactory = new StateTransitionCountStateModelFactory();
-    removeOfflineOrInactiveInstances();
-    String testCrushedDBName = "testEvacuateWithDisabledPartition_CRUSHED_DB0";
-    String testWagedDBName = "testEvacuateWithDisabledPartition_WAGED_DB1";
-    String toDisableThenEvacuateInstanceName = "disable_then_evacuate_host";
-    addParticipant(toDisableThenEvacuateInstanceName, stateTransitionCountStateModelFactory);
-    MockParticipantManager toDisableThenEvacuateParticipant = _participants.get(_participants.size() - 1);
-
-    List<String> testResources = Arrays.asList(testCrushedDBName, testWagedDBName);
-    createResourceWithDelayedRebalance(CLUSTER_NAME, testCrushedDBName, "MasterSlave",
-        PARTITIONS, REPLICA, REPLICA-1, 200000, CrushEdRebalanceStrategy.class.getName());
-    createResourceWithWagedRebalance(CLUSTER_NAME, testWagedDBName, "MasterSlave", PARTITIONS,
-        REPLICA, REPLICA-1);
-
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    int upwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter();
-    int downwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
-
-
-    InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
-        toDisableThenEvacuateInstanceName);
-    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", false);
-    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    // EV should not have disabled instance above the lowest state (OFFLINE)
-    verifier(() -> {
-      for (String resource : testResources) {
-        ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, resource);
-        for (String partition : ev.getPartitionSet()) {
-          if (ev.getStateMap(partition).containsKey(toDisableThenEvacuateInstanceName) && !ev.getStateMap(partition).
-              get(toDisableThenEvacuateInstanceName).equals("OFFLINE")) {
-            return false;
-          }
-        }
-      }
-      return true;
-    }, 5000);
-
-    // Assert node received downward state transitions and no upward transitions
-    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
-        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
-    Assert.assertTrue(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter() >
-        downwardSTCountBeforeDisableThenEvacuate, "Should have received downward state transitions");
-
-    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME,
-        toDisableThenEvacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
-
-    verifier(() -> _admin.isEvacuateFinished(CLUSTER_NAME, toDisableThenEvacuateInstanceName), 30000);
-    int downwardSTCountAfterEvacuateComplete = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
-
-    // Assert node received no upward state transitions after evacuation was called on already disabled node
-    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
-        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
-
-    // Re-enable all partitions for the instance
-    instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
-        toDisableThenEvacuateInstanceName);
-    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", true);
-    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    // Assert node received no upward state transitions after re-enabled partitions
-    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
-        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
-
-    // Disable all partitions for the instance again
-    instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
-        toDisableThenEvacuateInstanceName);
-    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", true);
-    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    // Assert node received no upward state transitions after disabling already evacuated node
-    Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
-        upwardSTCountBeforeDisableThenEvacuate, "Upward state transitions should not have been received");
-    Assert.assertEquals(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter(),
-        downwardSTCountAfterEvacuateComplete, "Downward state transitions should not have been received");
-
-
-    // Clean up test resources
-    for (String resource : testResources) {
-      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resource);
-    }
-    // Clean up test participant
-    toDisableThenEvacuateParticipant.syncStop();
-    removeOfflineOrInactiveInstances();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-  }
-
-  @Test(dependsOnMethods = "testEvacuateWithDisabledPartition")
   public void testDisabledPartitionsBeforeSwapInitiated() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(System.currentTimeMillis()));
-    removeOfflineOrInactiveInstances();
-
-    Map<String, ExternalView> beforeEVs = getEVs();
-
+    //gspencer todo
+    enabledTopologyAwareRebalance();
     // Add instance with InstanceOperation set to UNKNOWN
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
     InstanceConfig instanceToSwapOutconfig = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
+    swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
 
     addParticipant(instanceToSwapInName, instanceToSwapOutconfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutconfig.getDomainAsMap().get(ZONE),
         InstanceConstants.InstanceOperation.UNKNOWN, -1);
+
+    _clusterVerifier.verifyByPolling();
+    Map<String, ExternalView> beforeEVs = getEVs();
 
     // Set all partitions to disabled and set instance operation to SWAP_IN
     InstanceConfig swapInInstanceConfig = _gSetupTool.getClusterManagementTool()
@@ -1517,8 +1522,8 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
         .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName, false));
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    validateEVsCorrect(getEVs(), beforeEVs, ImmutableMap.of(instanceToSwapOutName, instanceToSwapInName),
-        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName));
+    validateEVsCorrect(getEVs(), beforeEVs, swapOutInstancesToSwapInInstances, Collections.emptySet(),
+        ImmutableSet.of(instanceToSwapInName));
 
     swapInInstanceConfig = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapInName);
@@ -1540,13 +1545,19 @@ public class TestInstanceOperation extends ZkTestBase {
       }
       return true;
     }, 5000);
+
+    // set resource partitions back to enabled
+    swapInInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapInName);
+    swapInInstanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY,
+        "", true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, instanceToSwapInName, swapInInstanceConfig);
   }
 
   @Test(dependsOnMethods = "testDisabledPartitionsBeforeSwapInitiated")
   public void testDisabledPartitionsAfterSwapInitiated() throws Exception {
     System.out.println(
-        "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(System.currentTimeMillis()));
-    removeOfflineOrInactiveInstances();
+        "START TestInstanceOperation.testDisabledPartitionsAfterSwapInitiated() at " + new Date(System.currentTimeMillis()));
 
     String swapOutInstanceName = _participants.get(0).getInstanceName();
     InstanceConfig swapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
@@ -1607,8 +1618,6 @@ public class TestInstanceOperation extends ZkTestBase {
     // Assert swap completed successfully
     validateEVsCorrect(getEVs(), beforeSwapAndDisableEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), ImmutableSet.of(swapInInstanceName));
-    removeOfflineOrInactiveInstances();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @Test(dependsOnMethods = "testDisabledPartitionsAfterSwapInitiated")
@@ -1616,10 +1625,6 @@ public class TestInstanceOperation extends ZkTestBase {
     System.out.println(
         "START TestInstanceOperation.testUnknownDoesNotTriggerRebalance() at " + new Date(
             System.currentTimeMillis()));
-
-    // Ensure clean slate
-    removeOfflineOrInactiveInstances();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     Map<String, IdealState> idealStatesBefore = getISs();
 
@@ -1648,8 +1653,6 @@ public class TestInstanceOperation extends ZkTestBase {
     for (MockParticipantManager participant : testParticipants) {
       participant.syncStop();
     }
-    removeOfflineOrInactiveInstances();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   /**

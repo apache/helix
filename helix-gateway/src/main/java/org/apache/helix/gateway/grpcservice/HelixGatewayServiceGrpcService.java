@@ -106,8 +106,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     observer = _observerMap.get(instanceName);
     if (observer != null) {
       observer.onNext(
-          StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage(currentState,
-              message));
+          StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage(message));
     }
   }
 

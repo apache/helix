@@ -60,16 +60,14 @@ public final class StateTransitionMessageTranslateUtil {
   /**
    * Translate from user sent Message to Helix Gateway Service event.
    *
-   * @param currentState current state of the shard
-   * @param message     Message
+   * @param message Message
    * @return TransitionMessage
    */
-  public static TransitionMessage translateSTMsgToTransitionMessage(String currentState,
-      Message message) {
+  public static TransitionMessage translateSTMsgToTransitionMessage(Message message) {
     return TransitionMessage.newBuilder().addRequest(
         HelixGatewayServiceOuterClass.SingleTransitionMessage.newBuilder()
-            .setTransitionID(message.getMsgId())
-            .setTransitionType(translateStatesToTransitionType(currentState, message.getToState()))
+            .setTransitionID(message.getMsgId()).setTransitionType(
+                translateStatesToTransitionType(message.getFromState(), message.getToState()))
             .setResourceID(message.getResourceName()).setShardID(message.getPartitionName())
             .setTargetState(message.getToState()).build()).build();
   }

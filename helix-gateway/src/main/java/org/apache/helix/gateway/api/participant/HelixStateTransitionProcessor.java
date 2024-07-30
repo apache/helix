@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.constant;
+package org.apache.helix.gateway.api.participant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +19,26 @@ package org.apache.helix.gateway.constant;
  * under the License.
  */
 
-public enum MessageType {
-  ADD, DELETE, CHANGE_ROLE
+import org.apache.helix.model.Message;
+import org.apache.helix.participant.statemachine.StateTransitionError;
+
+/**
+ * Process state transition message.
+ */
+public interface HelixStateTransitionProcessor {
+  /**
+   * Process state transition message.
+   * @param message state transition message
+   * @throws Exception if failed to process the message
+   */
+  void processStateTransitionMessage(Message message) throws Exception;
+
+  /**
+   * Handle state transition error. This results from state transition handler throwing an exception or
+   * timing out.
+   *
+   * @param message state transition message
+   * @param error state transition error
+   */
+  void handleStateTransitionError(Message message, StateTransitionError error);
 }

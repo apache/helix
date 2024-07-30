@@ -23,8 +23,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.gateway.constant.GatewayServiceEventType;
-import org.apache.helix.gateway.constant.MessageType;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.model.Message;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
@@ -35,40 +36,40 @@ import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMe
 
 
 public final class StateTransitionMessageTranslateUtil {
-
   /**
-   * Translate from user sent MessageType to Helix Gateway Service TransitionType.
+   * Determine the transition type based on the current state and the target state.
    *
-   * @param messageType MessageType
+   * @param currentState current state
+   * @param toState      target state
    * @return TransitionType
    */
-  public static HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType translateMessageTypeToTransitionType(
-      MessageType messageType) {
-    switch (messageType) {
-      case ADD:
-        return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.ADD_SHARD;
-      case DELETE:
-        return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.DELETE_SHARD;
-      case CHANGE_ROLE:
-        return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.CHANGE_ROLE;
-      default:
-        throw new IllegalArgumentException("Unknown message type: " + messageType);
+  public static HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType translateStatesToTransitionType(
+      String currentState, String toState) {
+    boolean isCurrentDropped = HelixDefinedState.DROPPED.name().equals(currentState);
+    boolean isToStateDropped = HelixDefinedState.DROPPED.name().equals(toState);
+
+    if (isToStateDropped && !isCurrentDropped) {
+      return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.DELETE_SHARD;
     }
+    if (!isToStateDropped && isCurrentDropped) {
+      return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.ADD_SHARD;
+    }
+    return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.CHANGE_ROLE;
   }
 
   /**
    * Translate from user sent Message to Helix Gateway Service event.
    *
-   * @param messageType MessageType
+   * @param currentState current state of the shard
    * @param message     Message
    * @return TransitionMessage
    */
-  public static TransitionMessage translateSTMsgToTransitionMessage(MessageType messageType,
+  public static TransitionMessage translateSTMsgToTransitionMessage(String currentState,
       Message message) {
     return TransitionMessage.newBuilder().addRequest(
         HelixGatewayServiceOuterClass.SingleTransitionMessage.newBuilder()
             .setTransitionID(message.getMsgId())
-            .setTransitionType(translateMessageTypeToTransitionType(messageType))
+            .setTransitionType(translateStatesToTransitionType(currentState, message.getToState()))
             .setResourceID(message.getResourceName()).setShardID(message.getPartitionName())
             .setTargetState(message.getToState()).build()).build();
   }

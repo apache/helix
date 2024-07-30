@@ -1,23 +1,49 @@
 package org.apache.helix.gateway.participant;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
-import org.apache.helix.gateway.api.participant.HelixGatewayMultiTopStateStateTransitionProcessor;
+import org.apache.helix.gateway.api.participant.HelixStateTransitionProcessor;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
-import org.apache.helix.gateway.constant.MessageType;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 
-public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTransitionProcessor {
+/**
+ * HelixGatewayParticipant encapsulates the Helix Participant Manager and handles tracking the state
+ * of a remote participant connected to the Helix Gateway Service. It processes state transitions
+ * for the participant and updates the state of the participant's shards upon successful state
+ * transitions signaled by remote participant.
+ */
+public class HelixGatewayParticipant implements HelixStateTransitionProcessor {
   private final HelixGatewayServiceProcessor _gatewayServiceProcessor;
   private final HelixManager _participantManager;
   private final Map<String, Map<String, String>> _shardStateMap;
@@ -32,7 +58,7 @@ public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTr
   }
 
   @Override
-  public void processMultiTopStateModelStateTransitionMessage(Message message) throws Exception {
+  public void processStateTransitionMessage(Message message) throws Exception {
     String transitionId = message.getMsgId();
     String resourceId = message.getResourceName();
     String shardId = message.getPartitionName();
@@ -45,9 +71,8 @@ public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTr
 
       CompletableFuture<Boolean> future = new CompletableFuture<>();
       _stateTransitionResultMap.put(transitionId, future);
-      _gatewayServiceProcessor.sendStateTransitionMessage(
-          _participantManager.getInstanceName(),
-          determineTransitionType(resourceId, shardId, toState), message);
+      _gatewayServiceProcessor.sendStateTransitionMessage(_participantManager.getInstanceName(),
+          getCurrentState(resourceId, shardId), message);
 
       boolean success = future.get();
       if (!success) {
@@ -80,6 +105,15 @@ public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTr
   }
 
   /**
+   * Get the instance name of the participant.
+   *
+   * @return participant instance name
+   */
+  public String getInstanceName() {
+    return _participantManager.getInstanceName();
+  }
+
+  /**
    * Completes the state transition with the given transitionId.
    *
    * @param transitionId the transitionId to complete
@@ -94,25 +128,29 @@ public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTr
 
   private boolean isCurrentStateAlreadyTarget(String resourceId, String shardId,
       String targetState) {
-    return (_shardStateMap.containsKey(resourceId) && _shardStateMap.get(resourceId)
-        .containsKey(shardId) && _shardStateMap.get(resourceId).get(shardId).equals(targetState))
-        || targetState.equals(HelixDefinedState.DROPPED.name());
+    return getCurrentState(resourceId, shardId).equals(targetState);
   }
 
-  private MessageType determineTransitionType(String resourceId, String shardId,
-      String toState) {
-    boolean containsShard = _shardStateMap.containsKey(resourceId) && _shardStateMap.get(resourceId)
-        .containsKey(shardId);
-    if (toState.equals(HelixDefinedState.DROPPED.name())) {
-      return containsShard ? MessageType.DELETE : MessageType.ADD;
-    } else {
-      return containsShard ? MessageType.CHANGE_ROLE : MessageType.ADD;
-    }
+  @VisibleForTesting
+  public Map<String, Map<String, String>> getShardStateMap() {
+    return _shardStateMap;
+  }
+
+  /**
+   * Get the current state of the shard.
+   *
+   * @param resourceId the resource id
+   * @param shardId    the shard id
+   * @return the current state of the shard or DROPPED if it does not exist
+   */
+  public String getCurrentState(String resourceId, String shardId) {
+    return getShardStateMap().getOrDefault(resourceId, Collections.emptyMap())
+        .getOrDefault(shardId, HelixDefinedState.DROPPED.name());
   }
 
   private void updateState(String resourceId, String shardId, String state) {
     if (state.equals(HelixDefinedState.DROPPED.name())) {
-      _shardStateMap.computeIfPresent(resourceId, (k, v) -> {
+      getShardStateMap().computeIfPresent(resourceId, (k, v) -> {
         v.remove(shardId);
         if (v.isEmpty()) {
           return null;
@@ -120,7 +158,7 @@ public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTr
         return v;
       });
     } else {
-      _shardStateMap.computeIfAbsent(resourceId, k -> new ConcurrentHashMap<>())
+      getShardStateMap().computeIfAbsent(resourceId, k -> new ConcurrentHashMap<>())
           .put(shardId, state);
     }
   }
@@ -156,7 +194,7 @@ public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTr
      * @return the builder
      */
     public Builder addMultiTopStateStateModelDefinition(String stateModelDefinitionName) {
-      // TODO: Add validation that thi state model definition is a multi-top state model
+      // TODO: Add validation that the state model definition is a multi-top state model
       _multiTopStateModelDefinitions.add(stateModelDefinitionName);
       return this;
     }
@@ -169,7 +207,9 @@ public class HelixGatewayParticipant implements HelixGatewayMultiTopStateStateTr
      * @param initialShardStateMap the initial shard state map to add
      * @return the Builder
      */
-    public Builder addInitialShardState(Map<String, Map<String, String>> initialShardStateMap) {
+    public Builder setInitialShardState(Map<String, Map<String, String>> initialShardStateMap) {
+      // TODO: Add handling for shard states that where never assigned to the participant since
+      //  the participant was last online.
       // deep copy into the initialShardStateMap into concurrent hash map
       initialShardStateMap.forEach((resourceId, shardStateMap) -> {
         _initialShardStateMap.put(resourceId, new ConcurrentHashMap<>(shardStateMap));

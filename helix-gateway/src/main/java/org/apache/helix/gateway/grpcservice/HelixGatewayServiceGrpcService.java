@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.helix.gateway.constant.MessageType;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
@@ -61,8 +60,9 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   /**
    * Grpc service end pint.
    * Application instances Report the state of the shard or result of transition request to the gateway service.
-   * @param responseObserver
-   * @return
+   *
+   * @param responseObserver the observer to send the response to the client
+   * @return the observer to receive the state of the shard or result of transition request
    */
   @Override
   public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage> report(
@@ -94,18 +94,19 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   /**
    * Send state transition message to the instance.
    * The instance must already have established a connection to the gateway service.
+   *
    * @param instanceName the instance name to send the message to
-   * @param messageType the type of the message
+   * @param currentState the current state of shard
    * @param message the message to convert to the transition message
    */
   @Override
-  public void sendStateTransitionMessage(String instanceName, MessageType messageType,
+  public void sendStateTransitionMessage(String instanceName, String currentState,
       Message message) {
     StreamObserver<TransitionMessage> observer;
     observer = _observerMap.get(instanceName);
     if (observer != null) {
       observer.onNext(
-          StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage(messageType,
+          StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage(currentState,
               message));
     }
   }

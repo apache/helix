@@ -130,7 +130,9 @@ public class TestStatusUpdateUtil extends ZkTestBase {
             "TestDB_0");
     try {
       ZNRecord error = _gZkClient.readData(errPath);
-      Assert.fail("not expecting being able to send error logs to ZK by default.");
+      Assert.fail(String.format(
+          "not expecting being able to send error logs to ZK by default. Read data %s",
+          error.toString()));
     } catch (ZkException zke) {
       // expected
     }

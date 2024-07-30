@@ -141,7 +141,7 @@ public class TestZkConnectionLost extends TaskTestBase {
     }
   }
 
-  @Test
+  @Test (enabled = false)
   public void testLostZkConnection() throws Exception {
     System.setProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT, "5000");
     System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, "5000");

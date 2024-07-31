@@ -1125,6 +1125,8 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testSwapEvacuateAdd() throws Exception {
     System.out.println("START TestInstanceOperation.testSwapEvacuateAdd() at " + new Date(
         System.currentTimeMillis()));
+    removeOfflineOrInactiveInstances();
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Store original EV
     Map<String, ExternalView> originalEVs = getEVs();
@@ -1291,6 +1293,7 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     validateEVsCorrect(getEVs(), beforeEVs, swapOutInstancesToSwapInInstances, Collections.emptySet(),
         ImmutableSet.of(instanceToSwapInName));
+    _participants.get(_participants.size()-1).syncStop();
   }
 
   @Test(dependsOnMethods = "testDisabledPartitionsBeforeSwapInitiated")
@@ -1362,6 +1365,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Assert swap completed successfully
     validateEVsCorrect(getEVs(), beforeSwapAndDisableEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), ImmutableSet.of(swapInInstanceName));
+    _participants.get(_participants.size()-1).syncStop();
   }
 
   @Test(dependsOnMethods = "testDisabledPartitionsAfterSwapInitiated")

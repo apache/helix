@@ -19,6 +19,7 @@ package org.apache.helix.gateway.base.util;
  * under the License.
  */
 
+import io.grpc.Server;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -37,13 +38,15 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
+import org.apache.helix.gateway.grpcservice.HelixGatewayServiceGrpcService;
+import org.apache.helix.gateway.service.GatewayServiceManager;
+import org.apache.helix.gateway.util.HelixGatewayGrpcServerBuilder;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -71,10 +74,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
+import static org.apache.helix.gateway.constant.GatewayServiceGrpcDefaultConfig.*;
+
+
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
   public static final long WAIT_DURATION = 60 * 1000L; // 60 seconds
   public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1500;
+
   /**
    * Returns a unused random port.
    */
@@ -92,22 +99,19 @@ public class TestHelper {
     return TestHelper.startZkServer(zkAddress, empty, true);
   }
 
-  static public ZkServer startZkServer(final String zkAddress, final String rootNamespace)
-      throws Exception {
+  static public ZkServer startZkServer(final String zkAddress, final String rootNamespace) throws Exception {
     List<String> rootNamespaces = new ArrayList<String>();
     rootNamespaces.add(rootNamespace);
     return TestHelper.startZkServer(zkAddress, rootNamespaces, true);
   }
 
-  static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces)
-      throws Exception {
+  static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces) throws Exception {
     return startZkServer(zkAddress, rootNamespaces, true);
   }
 
-  static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces,
-      boolean overwrite) throws Exception {
-    System.out.println(
-        "Start zookeeper at " + zkAddress + " in thread " + Thread.currentThread().getName());
+  static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces, boolean overwrite)
+      throws Exception {
+    System.out.println("Start zookeeper at " + zkAddress + " in thread " + Thread.currentThread().getName());
 
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
@@ -146,8 +150,7 @@ public class TestHelper {
     if (zkServer != null) {
       zkServer.shutdown();
       System.out.println(
-          "Shut down zookeeper at port " + zkServer.getPort() + " in thread " + Thread
-              .currentThread().getName());
+          "Shut down zookeeper at port " + zkServer.getPort() + " in thread " + Thread.currentThread().getName());
     }
   }
 
@@ -190,8 +193,7 @@ public class TestHelper {
       // debug
       // LOG.info(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify ("
       // + result + ")");
-      System.err.println(
-          verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify " + " (" + result + ")");
+      System.err.println(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify " + " (" + result + ")");
       LOG.debug("args:" + Arrays.toString(args));
       // System.err.println("args:" + Arrays.toString(args));
 
@@ -218,21 +220,19 @@ public class TestHelper {
 
   public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceName,
       Set<String> instanceNames, String zkAddr) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    HelixZkClient zkClient =
+        SharedZkClientFactory.getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
     try {
-      ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+      ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String instanceName : instanceNames) {
         List<String> sessionIds = accessor.getChildNames(keyBuilder.sessions(instanceName));
 
         for (String sessionId : sessionIds) {
-          CurrentState curState =
-              accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
+          CurrentState curState = accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
 
           if (curState != null && curState.getRecord().getMapFields().size() != 0) {
             return false;
@@ -263,20 +263,18 @@ public class TestHelper {
     return !manager.isConnected();
   }
 
-  public static void setupCluster(String clusterName, String zkAddr, int startPort,
-      String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
-      int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
-    TestHelper
-        .setupCluster(clusterName, zkAddr, startPort, participantNamePrefix, resourceNamePrefix,
-            resourceNb, partitionNb, nodesNb, replica, stateModelDef, RebalanceMode.SEMI_AUTO,
-            doRebalance);
+  public static void setupCluster(String clusterName, String zkAddr, int startPort, String participantNamePrefix,
+      String resourceNamePrefix, int resourceNb, int partitionNb, int nodesNb, int replica, String stateModelDef,
+      boolean doRebalance) throws Exception {
+    TestHelper.setupCluster(clusterName, zkAddr, startPort, participantNamePrefix, resourceNamePrefix, resourceNb,
+        partitionNb, nodesNb, replica, stateModelDef, RebalanceMode.SEMI_AUTO, doRebalance);
   }
 
-  public static void setupCluster(String clusterName, String zkAddr, int startPort,
-      String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
-      int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+  public static void setupCluster(String clusterName, String zkAddr, int startPort, String participantNamePrefix,
+      String resourceNamePrefix, int resourceNb, int partitionNb, int nodesNb, int replica, String stateModelDef,
+      RebalanceMode mode, boolean doRebalance) {
+    HelixZkClient zkClient =
+        SharedZkClientFactory.getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     try {
       if (zkClient.exists("/" + clusterName)) {
         LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
@@ -293,8 +291,7 @@ public class TestHelper {
 
       for (int i = 0; i < resourceNb; i++) {
         String resourceName = resourceNamePrefix + i;
-        setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef,
-            mode.name(),
+        setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef, mode.name(),
             mode == RebalanceMode.FULL_AUTO ? CrushEdRebalanceStrategy.class.getName()
                 : RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
         if (doRebalance) {
@@ -334,15 +331,13 @@ public class TestHelper {
    * @param state
    *          : MASTER|SLAVE|ERROR...
    */
-  public static void verifyState(String clusterName, String zkAddr,
-      Map<String, Set<String>> stateMap, String state) {
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+  public static void verifyState(String clusterName, String zkAddr, Map<String, Set<String>> stateMap, String state) {
+    HelixZkClient zkClient =
+        SharedZkClientFactory.getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
     try {
-      ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+      ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String resGroupPartitionKey : stateMap.keySet()) {
@@ -354,12 +349,12 @@ public class TestHelper {
         for (String instance : stateMap.get(resGroupPartitionKey)) {
           String actualState = extView.getStateMap(partitionKey).get(instance);
           Assert.assertNotNull(actualState,
-              "externalView doesn't contain state for " + resGroup + "/" + partitionKey + " on "
-                  + instance + " (expect " + state + ")");
+              "externalView doesn't contain state for " + resGroup + "/" + partitionKey + " on " + instance
+                  + " (expect " + state + ")");
 
           Assert.assertEquals(actualState, state,
-              "externalView for " + resGroup + "/" + partitionKey + " on " + instance + " is "
-                  + actualState + " (expect " + state + ")");
+              "externalView for " + resGroup + "/" + partitionKey + " on " + instance + " is " + actualState
+                  + " (expect " + state + ")");
         }
       }
     } finally {
@@ -391,8 +386,8 @@ public class TestHelper {
     return retMap;
   }
 
-  public static <T> Map<String, T> startThreadsConcurrently(final int nrThreads,
-      final Callable<T> method, final long timeout) {
+  public static <T> Map<String, T> startThreadsConcurrently(final int nrThreads, final Callable<T> method,
+      final long timeout) {
     final CountDownLatch startLatch = new CountDownLatch(1);
     final CountDownLatch finishCounter = new CountDownLatch(nrThreads);
     final Map<String, T> resultsMap = new ConcurrentHashMap<String, T>();
@@ -445,8 +440,8 @@ public class TestHelper {
     return resultsMap;
   }
 
-  public static Message createMessage(String msgId, String fromState, String toState,
-      String tgtName, String resourceName, String partitionName) {
+  public static Message createMessage(String msgId, String fromState, String toState, String tgtName,
+      String resourceName, String partitionName) {
     Message msg = new Message(MessageType.STATE_TRANSITION, msgId);
     msg.setFromState(fromState);
     msg.setToState(toState);
@@ -469,8 +464,7 @@ public class TestHelper {
     return fullClassName.substring(fullClassName.lastIndexOf('.') + 1);
   }
 
-  public static <T> Map<String, T> startThreadsConcurrently(final List<Callable<T>> methods,
-      final long timeout) {
+  public static <T> Map<String, T> startThreadsConcurrently(final List<Callable<T>> methods, final long timeout) {
     final int nrThreads = methods.size();
     final CountDownLatch startLatch = new CountDownLatch(1);
     final CountDownLatch finishCounter = new CountDownLatch(nrThreads);
@@ -536,8 +530,7 @@ public class TestHelper {
       TreeSet<String> childSet = new TreeSet<String>();
       childSet.addAll(node.getChildSet());
       System.out.print(
-          key + "=" + node.getData() + ", " + childSet + ", " + (node.getStat() == null ? "null\n"
-              : node.getStat()));
+          key + "=" + node.getData() + ", " + childSet + ", " + (node.getStat() == null ? "null\n" : node.getStat()));
     }
     System.out.println("END:Print cache");
   }
@@ -560,8 +553,7 @@ public class TestHelper {
     }
   }
 
-  public static void readZkRecursive(String path, Map<String, ZNode> map,
-      BaseDataAccessor<ZNRecord> zkAccessor) {
+  public static void readZkRecursive(String path, Map<String, ZNode> map, BaseDataAccessor<ZNRecord> zkAccessor) {
     try {
       Stat stat = new Stat();
       ZNRecord record = zkAccessor.get(path, stat, 0);
@@ -582,8 +574,8 @@ public class TestHelper {
     }
   }
 
-  public static boolean verifyZkCache(List<String> paths, BaseDataAccessor<ZNRecord> zkAccessor,
-      HelixZkClient zkclient, boolean needVerifyStat) {
+  public static boolean verifyZkCache(List<String> paths, BaseDataAccessor<ZNRecord> zkAccessor, HelixZkClient zkclient,
+      boolean needVerifyStat) {
     // read everything
     Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
     Map<String, ZNode> cache = new HashMap<String, ZNode>();
@@ -596,13 +588,13 @@ public class TestHelper {
     return verifyZkCache(paths, null, cache, zkMap, needVerifyStat);
   }
 
-  public static boolean verifyZkCache(List<String> paths, Map<String, ZNode> cache,
-      HelixZkClient zkclient, boolean needVerifyStat) {
+  public static boolean verifyZkCache(List<String> paths, Map<String, ZNode> cache, HelixZkClient zkclient,
+      boolean needVerifyStat) {
     return verifyZkCache(paths, null, cache, zkclient, needVerifyStat);
   }
 
-  public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat,
-      Map<String, ZNode> cache, HelixZkClient zkclient, boolean needVerifyStat) {
+  public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat, Map<String, ZNode> cache,
+      HelixZkClient zkclient, boolean needVerifyStat) {
     // read everything on zk under paths
     Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
     for (String path : paths) {
@@ -613,12 +605,11 @@ public class TestHelper {
     return verifyZkCache(paths, pathsExcludeForStat, cache, zkMap, needVerifyStat);
   }
 
-  public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat,
-      Map<String, ZNode> cache, Map<String, ZNode> zkMap, boolean needVerifyStat) {
+  public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat, Map<String, ZNode> cache,
+      Map<String, ZNode> zkMap, boolean needVerifyStat) {
     // equal size
     if (zkMap.size() != cache.size()) {
-      System.err
-          .println("size mismatch: cacheSize: " + cache.size() + ", zkMapSize: " + zkMap.size());
+      System.err.println("size mismatch: cacheSize: " + cache.size() + ", zkMapSize: " + zkMap.size());
       System.out.println("cache: (" + cache.size() + ")");
       TestHelper.printCache(cache);
 
@@ -640,23 +631,20 @@ public class TestHelper {
       }
 
       if ((zkNode.getData() == null && cacheNode.getData() != null) || (zkNode.getData() != null
-          && cacheNode.getData() == null) || (zkNode.getData() != null
-          && cacheNode.getData() != null && !zkNode.getData().equals(cacheNode.getData()))) {
+          && cacheNode.getData() == null) || (zkNode.getData() != null && cacheNode.getData() != null
+          && !zkNode.getData().equals(cacheNode.getData()))) {
         // data not equal
         System.err.println(
-            "data mismatch on path: " + path + ", inCache: " + cacheNode.getData() + ", onZk: "
-                + zkNode.getData());
+            "data mismatch on path: " + path + ", inCache: " + cacheNode.getData() + ", onZk: " + zkNode.getData());
         return false;
       }
 
-      if ((zkNode.getChildSet() == null && cacheNode.getChildSet() != null) || (
-          zkNode.getChildSet() != null && cacheNode.getChildSet() == null) || (
-          zkNode.getChildSet() != null && cacheNode.getChildSet() != null && !zkNode.getChildSet()
-              .equals(cacheNode.getChildSet()))) {
+      if ((zkNode.getChildSet() == null && cacheNode.getChildSet() != null) || (zkNode.getChildSet() != null
+          && cacheNode.getChildSet() == null) || (zkNode.getChildSet() != null && cacheNode.getChildSet() != null
+          && !zkNode.getChildSet().equals(cacheNode.getChildSet()))) {
         // childSet not equal
-        System.err.println(
-            "childSet mismatch on path: " + path + ", inCache: " + cacheNode.getChildSet()
-                + ", onZk: " + zkNode.getChildSet());
+        System.err.println("childSet mismatch on path: " + path + ", inCache: " + cacheNode.getChildSet() + ", onZk: "
+            + zkNode.getChildSet());
         return false;
       }
 
@@ -664,8 +652,7 @@ public class TestHelper {
         if (cacheNode.getStat() == null || !zkNode.getStat().equals(cacheNode.getStat())) {
           // stat not equal
           System.err.println(
-              "Stat mismatch on path: " + path + ", inCache: " + cacheNode.getStat() + ", onZk: "
-                  + zkNode.getStat());
+              "Stat mismatch on path: " + path + ", inCache: " + cacheNode.getStat() + ", onZk: " + zkNode.getStat());
           return false;
         }
       }
@@ -684,8 +671,7 @@ public class TestHelper {
     statePriorityList.add("IDLE");
     statePriorityList.add("DROPPED");
     statePriorityList.add("ERROR");
-    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
-        statePriorityList);
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(), statePriorityList);
     for (String state : statePriorityList) {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
@@ -813,5 +799,11 @@ public class TestHelper {
       }
       Thread.sleep(50);
     } while (true);
+  }
+
+  public static Server createHelixGatewayServer(int port, GatewayServiceManager manager) {
+    return new HelixGatewayGrpcServerBuilder().setPort(port)
+        .setGrpcService((HelixGatewayServiceGrpcService) manager.getHelixGatewayServiceProcessor())
+        .build();
   }
 }

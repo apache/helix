@@ -19,6 +19,14 @@ package org.apache.helix.gateway;
  * under the License.
  */
 
+import io.grpc.Server;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import org.apache.helix.gateway.grpcservice.HelixGatewayServiceGrpcService;
+import org.apache.helix.gateway.service.GatewayServiceManager;
+import org.apache.helix.gateway.util.HelixGatewayGrpcServerBuilder;
+
+
 /**
  * Main class for Helix Gateway.
  * It starts the Helix Gateway grpc service.
@@ -28,7 +36,18 @@ public final class HelixGatewayMain {
   private HelixGatewayMain() {
   }
 
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) throws InterruptedException, IOException {
+    // Create a new server to listen on port 50051
+    GatewayServiceManager manager = new GatewayServiceManager();
+    Server server = new HelixGatewayGrpcServerBuilder().setPort(50051)
+        .setGrpcService((HelixGatewayServiceGrpcService)manager.getHelixGatewayServiceProcessor())
+        .build();
 
+    server.start();
+    System.out.println("Server started, listening on " + server.getPort());
+
+    // Wait for the server to shutdown
+    server.awaitTermination(365, TimeUnit.DAYS);
   }
 }
+

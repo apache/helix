@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.constant;
+package org.apache.helix.gateway.api.service;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +19,22 @@ package org.apache.helix.gateway.constant;
  * under the License.
  */
 
-public enum MessageStatus {
-  SUCCESS, FAILURE
+import org.apache.helix.model.Message;
+
+/**
+ * Helix Gateway Service Processor interface allows sending state transition messages to
+ * participants through service implementing this interface.
+ */
+public interface HelixGatewayServiceProcessor {
+
+  /**
+   * Send a state transition message to a remote participant.
+   *
+   * @param instanceName the name of the participant
+   * @param currentState the current state of the shard
+   * @param message      the message to send
+   */
+  void sendStateTransitionMessage(String instanceName, String currentState,
+      Message message);
+
 }

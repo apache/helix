@@ -58,7 +58,7 @@ public final class StateTransitionMessageTranslateUtil {
   }
 
   /**
-   * Translate from user sent Message to Helix Gateway Service event.
+   * Translate from Helix ST Message to Helix Gateway Service TransitionMessage.
    *
    * @param message Message
    * @return TransitionMessage
@@ -120,7 +120,6 @@ public final class StateTransitionMessageTranslateUtil {
    * @param clusterName the cluster name
    * @return GatewayServiceEvent
    */
-
   public static GatewayServiceEvent translateClientCloseToEvent(String instanceName, String clusterName) {
     GatewayServiceEvent.GateWayServiceEventBuilder builder =
         new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.DISCONNECT).setClusterName(

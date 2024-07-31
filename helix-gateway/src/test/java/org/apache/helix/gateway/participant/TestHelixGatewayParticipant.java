@@ -174,12 +174,12 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   }
 
   /**
-   * Get the current state of a Helix partition.
+   * Get the current state of a Helix shard.
    */
   private String getHelixCurrentState(String instanceName, String resourceName,
-      String partitionName) {
+      String shardId) {
     return _gSetupTool.getClusterManagementTool()
-        .getResourceExternalView(CLUSTER_NAME, resourceName).getStateMap(partitionName)
+        .getResourceExternalView(CLUSTER_NAME, resourceName).getStateMap(shardId)
         .getOrDefault(instanceName, HelixDefinedState.DROPPED.name());
   }
 
@@ -200,11 +200,11 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
       String instanceName = participant.getInstanceName();
       for (String resourceName : _gSetupTool.getClusterManagementTool()
           .getResourcesInCluster(CLUSTER_NAME)) {
-        for (String partitionName : _gSetupTool.getClusterManagementTool()
+        for (String shardId : _gSetupTool.getClusterManagementTool()
             .getResourceIdealState(CLUSTER_NAME, resourceName).getPartitionSet()) {
           String helixCurrentState =
-              getHelixCurrentState(instanceName, resourceName, partitionName);
-          if (!participant.getCurrentState(resourceName, partitionName).equals(helixCurrentState)) {
+              getHelixCurrentState(instanceName, resourceName, shardId);
+          if (!participant.getCurrentState(resourceName, shardId).equals(helixCurrentState)) {
             return false;
           }
         }
@@ -214,15 +214,15 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   }
 
   /**
-   * Verify that all partitions for a given instance are in a specific state.
+   * Verify that all shards for a given instance are in a specific state.
    */
   private void verifyHelixPartitionStates(String instanceName, String state) throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
       for (String resourceName : _gSetupTool.getClusterManagementTool()
           .getResourcesInCluster(CLUSTER_NAME)) {
-        for (String partitionName : _gSetupTool.getClusterManagementTool()
+        for (String shardId : _gSetupTool.getClusterManagementTool()
             .getResourceIdealState(CLUSTER_NAME, resourceName).getPartitionSet()) {
-          if (!getHelixCurrentState(instanceName, resourceName, partitionName).equals(state)) {
+          if (!getHelixCurrentState(instanceName, resourceName, shardId).equals(state)) {
             return false;
           }
         }
@@ -302,7 +302,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     deleteParticipant(participant);
     verifyHelixPartitionStates(participant.getInstanceName(), "DROPPED");
 
-    // Remove partition preference and re-add the participant
+    // Remove shard preference and re-add the participant
     removeFromPreferenceList(participant);
     HelixGatewayParticipant participantReplacement =
         addParticipant(participant.getInstanceName(), participant.getShardStateMap());

@@ -74,8 +74,7 @@ public class HelixGatewayParticipant implements HelixStateTransitionProcessor {
       _gatewayServiceProcessor.sendStateTransitionMessage(_participantManager.getInstanceName(),
           getCurrentState(resourceId, shardId), message);
 
-      boolean success = future.get();
-      if (!success) {
+      if (!future.get()) {
         throw new Exception("Failed to transition to state " + toState);
       }
 

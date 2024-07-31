@@ -24,7 +24,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
 
-public class TestHelixGatewayParticipant {
+public class TestStateTransitionMessageTranslateUtil {
 
   @Test
   public void testTranslateStatesToTransitionType_DeleteShard() {

@@ -40,20 +40,20 @@ public class GatewayServiceEvent {
 
   public static class StateTransitionResult {
     private String stateTransitionId;
-    private String stateTransitionStatus;
+    private boolean isSuccess;
     private String shardState;
 
-    public StateTransitionResult(String stateTransitionId, String stateTransitionStatus, String shardState) {
+    public StateTransitionResult(String stateTransitionId, boolean isSuccess, String shardState) {
       this.stateTransitionId = stateTransitionId;
-      this.stateTransitionStatus = stateTransitionStatus;
+      this.isSuccess = isSuccess;
       this.shardState = shardState;
     }
 
     public String getStateTransitionId() {
       return stateTransitionId;
     }
-    public String getStateTransitionStatus() {
-      return stateTransitionStatus;
+    public boolean getIsSuccess() {
+      return isSuccess;
     }
     public String getShardState() {
       return shardState;

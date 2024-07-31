@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.constant;
+package org.apache.helix.gateway.statemodel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +19,20 @@ package org.apache.helix.gateway.constant;
  * under the License.
  */
 
-public enum MessageType {
-  ADD, REMOVE, CHANGE_ROLE
+import org.apache.helix.gateway.participant.HelixGatewayParticipant;
+import org.apache.helix.participant.statemachine.StateModelFactory;
+
+public class HelixGatewayMultiTopStateStateModelFactory extends StateModelFactory<HelixGatewayMultiTopStateStateModel> {
+  private final HelixGatewayParticipant _helixGatewayParticipant;
+
+  public HelixGatewayMultiTopStateStateModelFactory(
+      HelixGatewayParticipant helixGatewayParticipant) {
+    _helixGatewayParticipant = helixGatewayParticipant;
+  }
+
+  @Override
+  public HelixGatewayMultiTopStateStateModel createNewStateModel(String resourceName,
+      String partitionKey) {
+    return new HelixGatewayMultiTopStateStateModel(_helixGatewayParticipant);
+  }
 }

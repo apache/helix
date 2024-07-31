@@ -30,11 +30,10 @@ message SingleTransitionMessage {
   TransitionType transitionType = 2;   // Transition type for shard operations
   string resourceID = 3;              // Resource ID
   string shardID = 4;                 // Shard to perform operation
-  optional string startState = 5;      // Shard start state
   string targetState = 6;     // Shard target state.
 }
 
-message TransitionMessage{
+message TransitionMessage {
   repeated SingleTransitionMessage request = 1;
 }
 

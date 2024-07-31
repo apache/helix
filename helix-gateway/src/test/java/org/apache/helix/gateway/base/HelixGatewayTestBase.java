@@ -1,7 +1,6 @@
 package org.apache.helix.gateway.base;
 
 import java.util.List;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.gateway.base.manager.ClusterControllerManager;
 import org.apache.helix.gateway.base.manager.MockParticipantManager;

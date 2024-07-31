@@ -3,8 +3,8 @@ package org.apache.helix.gateway;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
-import org.testng.annotations.Test;
 import org.testng.Assert;
+import org.testng.annotations.Test;
 
 
 public class TestPerKeyBlockingExecutor {

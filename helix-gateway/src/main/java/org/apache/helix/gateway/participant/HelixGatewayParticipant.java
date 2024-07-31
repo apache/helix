@@ -237,6 +237,8 @@ public class HelixGatewayParticipant implements HelixStateTransitionProcessor {
       try {
         participantManager.connect();
       } catch (Exception e) {
+        // TODO: When API for gracefully triggering disconnect from remote participant
+        //  is available, we should call it here instead of throwing exception.
         throw new RuntimeException(e);
       }
       return participant;

@@ -30,7 +30,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
-import org.apache.helix.gateway.api.participant.HelixStateTransitionProcessor;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -43,7 +42,8 @@ import org.apache.helix.participant.statemachine.StateTransitionError;
  * for the participant and updates the state of the participant's shards upon successful state
  * transitions signaled by remote participant.
  */
-public class HelixGatewayParticipant implements HelixStateTransitionProcessor {
+public class HelixGatewayParticipant {
+  public static final String UNASSIGNED_STATE = "UNASSIGNED";
   private final HelixGatewayServiceProcessor _gatewayServiceProcessor;
   private final HelixManager _participantManager;
   private final Map<String, Map<String, String>> _shardStateMap;
@@ -57,7 +57,6 @@ public class HelixGatewayParticipant implements HelixStateTransitionProcessor {
     _stateTransitionResultMap = new ConcurrentHashMap<>();
   }
 
-  @Override
   public void processStateTransitionMessage(Message message) throws Exception {
     String transitionId = message.getMsgId();
     String resourceId = message.getResourceName();
@@ -84,7 +83,6 @@ public class HelixGatewayParticipant implements HelixStateTransitionProcessor {
     }
   }
 
-  @Override
   public void handleStateTransitionError(Message message, StateTransitionError error) {
     // Remove the stateTransitionResultMap future for the message
     String transitionId = message.getMsgId();
@@ -144,7 +142,7 @@ public class HelixGatewayParticipant implements HelixStateTransitionProcessor {
    */
   public String getCurrentState(String resourceId, String shardId) {
     return getShardStateMap().getOrDefault(resourceId, Collections.emptyMap())
-        .getOrDefault(shardId, HelixDefinedState.DROPPED.name());
+        .getOrDefault(shardId, UNASSIGNED_STATE);
   }
 
   private void updateState(String resourceId, String shardId, String state) {

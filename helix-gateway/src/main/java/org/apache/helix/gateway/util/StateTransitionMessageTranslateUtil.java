@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.gateway.constant.GatewayServiceEventType;
+import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.model.Message;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
@@ -45,13 +46,13 @@ public final class StateTransitionMessageTranslateUtil {
    */
   public static HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType translateStatesToTransitionType(
       String currentState, String toState) {
-    boolean isCurrentDropped = HelixDefinedState.DROPPED.name().equals(currentState);
+    boolean isUnassigned = HelixGatewayParticipant.UNASSIGNED_STATE.equals(currentState);
     boolean isToStateDropped = HelixDefinedState.DROPPED.name().equals(toState);
 
-    if (isToStateDropped && !isCurrentDropped) {
+    if (isToStateDropped && !isUnassigned) {
       return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.DELETE_SHARD;
     }
-    if (!isToStateDropped && isCurrentDropped) {
+    if (!isToStateDropped && isUnassigned) {
       return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.ADD_SHARD;
     }
     return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.CHANGE_ROLE;

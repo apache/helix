@@ -27,7 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDefinedState;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
@@ -180,7 +179,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
       String shardId) {
     return _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, resourceName).getStateMap(shardId)
-        .getOrDefault(instanceName, HelixDefinedState.DROPPED.name());
+        .getOrDefault(instanceName, HelixGatewayParticipant.UNASSIGNED_STATE);
   }
 
   /**
@@ -284,8 +283,9 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     HelixGatewayParticipant participant = _participants.get(0);
     deleteParticipant(participant);
 
-    // Verify the Helix state transitions to "DROPPED" for the participant
-    verifyHelixPartitionStates(participant.getInstanceName(), "DROPPED");
+    // Verify the Helix state transitions to "UNASSIGNED_STATE" for the participant
+    verifyHelixPartitionStates(participant.getInstanceName(),
+        HelixGatewayParticipant.UNASSIGNED_STATE);
 
     // Re-add the participant with its initial state
     addParticipant(participant.getInstanceName(), participant.getShardStateMap());
@@ -300,7 +300,8 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     // Remove the first participant and verify state
     HelixGatewayParticipant participant = _participants.get(0);
     deleteParticipant(participant);
-    verifyHelixPartitionStates(participant.getInstanceName(), "DROPPED");
+    verifyHelixPartitionStates(participant.getInstanceName(),
+        HelixGatewayParticipant.UNASSIGNED_STATE);
 
     // Remove shard preference and re-add the participant
     removeFromPreferenceList(participant);

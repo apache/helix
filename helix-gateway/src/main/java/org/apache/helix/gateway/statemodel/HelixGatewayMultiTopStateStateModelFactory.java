@@ -19,20 +19,20 @@ package org.apache.helix.gateway.statemodel;
  * under the License.
  */
 
-import org.apache.helix.gateway.api.participant.HelixStateTransitionProcessor;
+import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
 public class HelixGatewayMultiTopStateStateModelFactory extends StateModelFactory<HelixGatewayMultiTopStateStateModel> {
-  private final HelixStateTransitionProcessor _stateTransitionProcessor;
+  private final HelixGatewayParticipant _helixGatewayParticipant;
 
   public HelixGatewayMultiTopStateStateModelFactory(
-      HelixStateTransitionProcessor stateTransitionProcessor) {
-    _stateTransitionProcessor = stateTransitionProcessor;
+      HelixGatewayParticipant helixGatewayParticipant) {
+    _helixGatewayParticipant = helixGatewayParticipant;
   }
 
   @Override
   public HelixGatewayMultiTopStateStateModel createNewStateModel(String resourceName,
       String partitionKey) {
-    return new HelixGatewayMultiTopStateStateModel(_stateTransitionProcessor);
+    return new HelixGatewayMultiTopStateStateModel(_helixGatewayParticipant);
   }
 }

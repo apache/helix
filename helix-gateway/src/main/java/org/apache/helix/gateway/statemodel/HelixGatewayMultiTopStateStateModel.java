@@ -20,7 +20,7 @@ package org.apache.helix.gateway.statemodel;
  */
 
 import org.apache.helix.NotificationContext;
-import org.apache.helix.gateway.api.participant.HelixStateTransitionProcessor;
+import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
@@ -34,17 +34,17 @@ public class HelixGatewayMultiTopStateStateModel extends StateModel {
   private static final Logger _logger =
       LoggerFactory.getLogger(HelixGatewayMultiTopStateStateModel.class);
 
-  private final HelixStateTransitionProcessor _stateTransitionProcessor;
+  private final HelixGatewayParticipant _helixGatewayParticipant;
 
   public HelixGatewayMultiTopStateStateModel(
-      HelixStateTransitionProcessor stateTransitionProcessor) {
-    _stateTransitionProcessor = stateTransitionProcessor;
+      HelixGatewayParticipant helixGatewayParticipant) {
+    _helixGatewayParticipant = helixGatewayParticipant;
   }
 
   @Transition(to = "*", from = "*")
   public void genericStateTransitionHandler(Message message, NotificationContext context)
       throws Exception {
-    _stateTransitionProcessor.processStateTransitionMessage(message);
+    _helixGatewayParticipant.processStateTransitionMessage(message);
   }
 
   @Override
@@ -55,6 +55,6 @@ public class HelixGatewayMultiTopStateStateModel extends StateModel {
   @Override
   public void rollbackOnError(Message message, NotificationContext context,
       StateTransitionError error) {
-    _stateTransitionProcessor.handleStateTransitionError(message, error);
+    _helixGatewayParticipant.handleStateTransitionError(message, error);
   }
 }

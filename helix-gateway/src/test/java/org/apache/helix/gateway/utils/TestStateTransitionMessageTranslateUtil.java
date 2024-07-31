@@ -19,6 +19,7 @@ package org.apache.helix.gateway.utils;/*
 
 import org.apache.helix.HelixDefinedState;
 
+import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -41,7 +42,7 @@ public class TestStateTransitionMessageTranslateUtil {
 
   @Test
   public void testTranslateStatesToTransitionType_AddShard() {
-    String currentState = HelixDefinedState.DROPPED.name();
+    String currentState = HelixGatewayParticipant.UNASSIGNED_STATE;
     String toState = "ONLINE";
 
     HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType result =

@@ -329,5 +329,15 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
         Message message) {
       _pendingMessageMap.put(instanceName, message);
     }
+
+    @Override
+    public void closeConnectionWithError(String instanceName, String reason) {
+
+    }
+
+    @Override
+    public void completeConnection(String instanceName) {
+
+    }
   }
 }

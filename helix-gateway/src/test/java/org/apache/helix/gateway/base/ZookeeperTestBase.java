@@ -1,5 +1,6 @@
 package org.apache.helix.gateway.base;
 
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
@@ -12,8 +13,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
-
-import com.google.common.base.Preconditions;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;

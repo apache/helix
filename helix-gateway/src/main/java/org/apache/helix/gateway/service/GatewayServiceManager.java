@@ -75,7 +75,7 @@ public class GatewayServiceManager {
     if (event.getEventType().equals(GatewayServiceEventType.UPDATE)) {
       _participantStateTransitionResultUpdator.submit(new shardStateUpdator(event));
     } else {
-      _connectionEventProcessor.offerEvent(event.getInstanceName(), new participantConnectionProcessor(event));
+      _connectionEventProcessor.offerEvent(event.getInstanceName(), new ParticipantConnectionProcessor(event));
     }
   }
 
@@ -109,10 +109,10 @@ public class GatewayServiceManager {
    * Create HelixGatewayService instance and register it to the manager.
    * It includes waiting for ZK connection, and also wait for previous LiveInstance to expire.
    */
-  class participantConnectionProcessor implements Runnable {
-    private final GatewayServiceEvent _event;
+  class ParticipantConnectionProcessor implements Runnable {
+    GatewayServiceEvent _event;
 
-    private participantConnectionProcessor(GatewayServiceEvent event) {
+    public ParticipantConnectionProcessor(GatewayServiceEvent event) {
       _event = event;
     }
 
@@ -125,6 +125,10 @@ public class GatewayServiceManager {
         removeHelixGatewayParticipant(_event.getClusterName(), _event.getInstanceName());
       }
     }
+  }
+
+  public HelixGatewayServiceProcessor getHelixGatewayServiceProcessor() {
+    return _gatewayServiceProcessor;
   }
 
   private void createHelixGatewayParticipant(String clusterName, String instanceName,

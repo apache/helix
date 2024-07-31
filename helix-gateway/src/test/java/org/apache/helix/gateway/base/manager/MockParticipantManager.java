@@ -20,7 +20,6 @@ package org.apache.helix.gateway.base.manager;
  */
 
 import java.util.concurrent.CountDownLatch;
-
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.HelixPropertyFactory;

@@ -37,4 +37,17 @@ public interface HelixGatewayServiceProcessor {
   void sendStateTransitionMessage(String instanceName, String currentState,
       Message message);
 
+  /**
+   * Close connection with error.
+   * @param instanceName  instance name
+   * @param reason  reason for closing connection
+   */
+  public void closeConnectionWithError(String instanceName, String reason);
+
+  /**
+   * Close connection with success.
+   * @param instanceName  instance name
+   */
+  public void completeConnection(String instanceName);
+
 }

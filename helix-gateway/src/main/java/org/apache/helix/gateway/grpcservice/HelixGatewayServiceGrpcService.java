@@ -19,6 +19,7 @@ package org.apache.helix.gateway.grpcservice;
  * under the License.
  */
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,8 @@ import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
 import org.apache.helix.gateway.util.PerKeyLockRegistry;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.apache.helix.model.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import proto.org.apache.helix.gateway.HelixGatewayServiceGrpc;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
@@ -41,6 +44,8 @@ import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMe
  */
 public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase
     implements HelixGatewayServiceProcessor {
+  // create LOGGER
+  private static final Logger logger = LoggerFactory.getLogger(HelixGatewayServiceGrpcService.class);
 
   // Map to store the observer for each instance
   private final Map<String, StreamObserver<TransitionMessage>> _observerMap = new HashMap<>();
@@ -72,6 +77,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
 
       @Override
       public void onNext(ShardStateMessage request) {
+        logger.info("Receive message from instance: {}", request.toString());
         if (request.hasShardState()) {
           ShardState shardState = request.getShardState();
           updateObserver(shardState.getInstanceName(), shardState.getClusterName(), responseObserver);
@@ -81,11 +87,13 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
 
       @Override
       public void onError(Throwable t) {
+        logger.info("Receive on error message: {}", t.getMessage());
         onClientClose(responseObserver);
       }
 
       @Override
       public void onCompleted() {
+        logger.info("Receive on complete message");
         onClientClose(responseObserver);
       }
     };
@@ -110,6 +118,40 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     }
   }
 
+  /**
+   * Close the connection of the instance. If closed because of error, use the error reason to close the connection.
+   * @param instanceName instance name
+   * @param errorReason   error reason for close
+   */
+  @Override
+  public void closeConnectionWithError(String instanceName, String errorReason) {
+    logger.info("Close connection for instance: {} with error reason: {}", instanceName,  errorReason);
+    closeConnectionHelper(instanceName, errorReason, true);
+  }
+
+  /**
+   * Complete the connection of the instance.
+   * @param instanceName instance name
+   */
+  @Override
+  public void completeConnection(String instanceName) {
+    logger.info("Complete connection for instance: {}", instanceName);
+    closeConnectionHelper(instanceName, null, false);
+  }
+
+
+  private void closeConnectionHelper(String instanceName, String errorReason, boolean withError) {
+    StreamObserver<TransitionMessage> observer;
+    observer = _observerMap.get(instanceName);
+    if (observer != null) {
+      if (withError) {
+        observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());
+      } else {
+        observer.onCompleted();
+      }
+    }
+  }
+
   private void updateObserver(String instanceName, String clusterName,
       StreamObserver<TransitionMessage> streamObserver) {
     _lockRegistry.withLock(instanceName, () -> {
@@ -125,6 +167,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     Pair<String, String> instanceInfo = _reversedObserverMap.get(responseObserver);
     clusterName = instanceInfo.getRight();
     instanceName = instanceInfo.getLeft();
+    logger.info("Client close connection for instance: {}", instanceName);
 
     if (instanceName == null || clusterName == null) {
       // TODO: log error;

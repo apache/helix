@@ -40,7 +40,6 @@ public class TestGatewayServiceManager {
 
     // Process disconnection event
     grpcService.report(null).onNext(disconnectionEvent);
-    HelixGatewayService gatewayService = manager.getHelixGatewayService("cluster1");
     // Verify the events were processed in sequence
     verify(manager, times(2)).newGatewayServiceEvent(any());
   }

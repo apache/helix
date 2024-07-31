@@ -19,14 +19,17 @@ package org.apache.helix.gateway.service;
  * under the License.
  */
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.google.common.collect.ImmutableSet;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
 import org.apache.helix.gateway.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.grpcservice.HelixGatewayServiceGrpcService;
+import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
 
 
@@ -37,40 +40,35 @@ import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
  *  3. On init connect, create the participant manager
  *  4. For ST reply message, update the tracker
  */
-
 public class GatewayServiceManager {
   public static final int CONNECTION_EVENT_THREAD_POOL_SIZE = 10;
-  private final Map<String, HelixGatewayService> _helixGatewayServiceMap;
+  public static final ImmutableSet<String> SUPPORTED_MULTI_STATE_MODEL_TYPES =
+      ImmutableSet.of("OnlineOffline");
+  private final Map<String, Map<String, HelixGatewayParticipant>> _helixGatewayParticipantMap;
+  private final String _zkAddress;
 
   // a single thread tp for event processing
   private final ExecutorService _participantStateTransitionResultUpdator;
 
   // link to grpc service
-  private final HelixGatewayServiceGrpcService _grpcService;
+  private final HelixGatewayServiceProcessor _gatewayServiceProcessor;
 
   // a per key executor for connection event. All event for the same instance will be executed in sequence.
   // It is used to ensure for each instance, the connect/disconnect event won't start until the previous one is done.
   private final PerKeyBlockingExecutor _connectionEventProcessor;
 
   public GatewayServiceManager() {
-    _helixGatewayServiceMap = new ConcurrentHashMap<>();
+    _helixGatewayParticipantMap = new ConcurrentHashMap<>();
+    _zkAddress = "foo";
     _participantStateTransitionResultUpdator = Executors.newSingleThreadExecutor();
-    _grpcService = new HelixGatewayServiceGrpcService(this);
+    _gatewayServiceProcessor = new HelixGatewayServiceGrpcService(this);
     _connectionEventProcessor =
         new PerKeyBlockingExecutor(CONNECTION_EVENT_THREAD_POOL_SIZE); // todo: make it configurable
   }
 
   /**
-   * send state transition message to application instance
-   * @return
-   */
-  public AtomicBoolean sendTransitionRequestToApplicationInstance() {
-    // TODO: add param
-    return null;
-  }
-
-  /**
-   * Process the event from Grpc service
+   * Process the event from Grpc service and dispatch to async executor for processing.
+   *
    * @param event
    */
   public void newGatewayServiceEvent(GatewayServiceEvent event) {
@@ -86,20 +84,24 @@ public class GatewayServiceManager {
    */
   class shardStateUpdator implements Runnable {
 
-    GatewayServiceEvent _event;
+    private final GatewayServiceEvent _event;
 
-    public shardStateUpdator(GatewayServiceEvent event) {
+    private shardStateUpdator(GatewayServiceEvent event) {
       _event = event;
     }
 
     @Override
     public void run() {
-      HelixGatewayService helixGatewayService = _helixGatewayServiceMap.get(_event.getClusterName());
-      if (helixGatewayService == null) {
+      HelixGatewayParticipant participant =
+          getHelixGatewayParticipant(_event.getClusterName(), _event.getInstanceName());
+      if (participant == null) {
         // TODO: return error code and throw exception.
         return;
       }
-      helixGatewayService.receiveSTResponse();
+      _event.getStateTransitionResult().forEach(stateTransitionResult -> {
+        participant.completeStateTransition(stateTransitionResult.getStateTransitionId(),
+            stateTransitionResult.getIsSuccess());
+      });
     }
   }
 
@@ -108,33 +110,47 @@ public class GatewayServiceManager {
    * It includes waiting for ZK connection, and also wait for previous LiveInstance to expire.
    */
   class participantConnectionProcessor implements Runnable {
-    GatewayServiceEvent _event;
+    private final GatewayServiceEvent _event;
 
-    public participantConnectionProcessor(GatewayServiceEvent event) {
+    private participantConnectionProcessor(GatewayServiceEvent event) {
       _event = event;
     }
 
     @Override
     public void run() {
-      HelixGatewayService helixGatewayService;
-      _helixGatewayServiceMap.computeIfAbsent(_event.getClusterName(),
-          k -> new HelixGatewayService(GatewayServiceManager.this, _event.getClusterName()));
-      helixGatewayService = _helixGatewayServiceMap.get(_event.getClusterName());
       if (_event.getEventType().equals(GatewayServiceEventType.CONNECT)) {
-        helixGatewayService.registerParticipant();
+        createHelixGatewayParticipant(_event.getClusterName(), _event.getInstanceName(),
+            _event.getShardStateMap());
       } else {
-        helixGatewayService.deregisterParticipant(_event.getClusterName(), _event.getInstanceName());
+        removeHelixGatewayParticipant(_event.getClusterName(), _event.getInstanceName());
       }
     }
   }
 
-  @VisibleForTesting
-  HelixGatewayServiceGrpcService getGrpcService() {
-    return _grpcService;
+  private void createHelixGatewayParticipant(String clusterName, String instanceName,
+      Map<String, Map<String, String>> initialShardStateMap) {
+    // Create and add the participant to the participant map
+    HelixGatewayParticipant.Builder participantBuilder =
+        new HelixGatewayParticipant.Builder(_gatewayServiceProcessor, instanceName, clusterName,
+            _zkAddress).setInitialShardState(initialShardStateMap);
+    SUPPORTED_MULTI_STATE_MODEL_TYPES.forEach(
+        participantBuilder::addMultiTopStateStateModelDefinition);
+    _helixGatewayParticipantMap.computeIfAbsent(clusterName, k -> new ConcurrentHashMap<>())
+        .put(instanceName, participantBuilder.build());
   }
 
-  @VisibleForTesting
-  HelixGatewayService getHelixGatewayService(String clusterName) {
-    return _helixGatewayServiceMap.get(clusterName);
+  private void removeHelixGatewayParticipant(String clusterName, String instanceName) {
+    // Disconnect and remove the participant from the participant map
+    HelixGatewayParticipant participant = getHelixGatewayParticipant(clusterName, instanceName);
+    if (participant != null) {
+      participant.disconnect();
+      _helixGatewayParticipantMap.get(clusterName).remove(instanceName);
+    }
+  }
+
+  private HelixGatewayParticipant getHelixGatewayParticipant(String clusterName,
+      String instanceName) {
+    return _helixGatewayParticipantMap.getOrDefault(clusterName, Collections.emptyMap())
+        .get(instanceName);
   }
 }

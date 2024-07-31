@@ -26,9 +26,10 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.gateway.service.GatewayServiceManager;
-import org.apache.helix.gateway.service.HelixGatewayServiceProcessor;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
 import org.apache.helix.gateway.util.PerKeyLockRegistry;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
+import org.apache.helix.model.Message;
 import proto.org.apache.helix.gateway.HelixGatewayServiceGrpc;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
@@ -59,8 +60,9 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   /**
    * Grpc service end pint.
    * Application instances Report the state of the shard or result of transition request to the gateway service.
-   * @param responseObserver
-   * @return
+   *
+   * @param responseObserver the observer to send the response to the client
+   * @return the observer to receive the state of the shard or result of transition request
    */
   @Override
   public StreamObserver<proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage> report(
@@ -92,17 +94,20 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   /**
    * Send state transition message to the instance.
    * The instance must already have established a connection to the gateway service.
-   * @param instanceName
-   * @return
+   *
+   * @param instanceName the instance name to send the message to
+   * @param currentState the current state of shard
+   * @param message the message to convert to the transition message
    */
   @Override
-  public boolean sendStateTransitionMessage(String instanceName) {
+  public void sendStateTransitionMessage(String instanceName, String currentState,
+      Message message) {
     StreamObserver<TransitionMessage> observer;
     observer = _observerMap.get(instanceName);
     if (observer != null) {
-      observer.onNext(StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage());
+      observer.onNext(
+          StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage(message));
     }
-    return true;
   }
 
   private void updateObserver(String instanceName, String clusterName,

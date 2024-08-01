@@ -70,7 +70,7 @@ public class GreedyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     List<CapacityNode> assignableNodes = new ArrayList<>(clusterData.getSimpleCapacitySet());
     assignableNodes.sort(Comparator.comparing(CapacityNode::getId));
 
-    //  Populate node usage based on current mapping
+    //  Populate existing preference list given current mapping
     Map<String, List<String>> currentPreferenceListMap =
         populateCurrentPreferenceListMap(currentMapping, assignableNodes);
 

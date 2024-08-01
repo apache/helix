@@ -20,17 +20,17 @@ package org.apache.helix.controller.rebalancer;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.controller.common.CapacityNode;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.GreedyRebalanceStrategy;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -81,5 +81,135 @@ public class TestGreedyRebalanceStrategy {
 
     Assert.assertEquals(
         capacityNodeSet.stream().filter(node -> node.getCurrentlyAssigned() != 1).count(), 0);
+  }
+
+  @Test
+  public void testStickyAssignment() {
+    final int nReplicas = 4;
+    final int nPartitions = 4;
+    final int nNode = 16;
+
+    ResourceControllerDataProvider clusterDataCache =
+        Mockito.mock(ResourceControllerDataProvider.class);
+    LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>(2);
+    states.put("OFFLINE", 0);
+    states.put("ONLINE", nReplicas);
+
+    Set<CapacityNode> capacityNodeSet = new HashSet<>();
+    for (int i = 0; i < nNode; i++) {
+      CapacityNode capacityNode = new CapacityNode("Node-" + i);
+      capacityNode.setCapacity(1);
+      capacityNodeSet.add(capacityNode);
+    }
+
+    List<String> liveNodes =
+        capacityNodeSet.stream().map(CapacityNode::getId).collect(Collectors.toList());
+
+    List<String> partitions = new ArrayList<>();
+    for (int i = 0; i < nPartitions; i++) {
+      partitions.add(TEST_RESOURCE_PREFIX + i);
+    }
+    when(clusterDataCache.getSimpleCapacitySet()).thenReturn(capacityNodeSet);
+
+    // Populate previous assignment with currentMapping
+    Map<String, Map<String, String>> currentMapping = new HashMap<>();
+    currentMapping.put(TEST_RESOURCE_PREFIX + "0", new HashMap<>());
+    currentMapping.get(TEST_RESOURCE_PREFIX + "0").put("Node-0", "ONLINE");
+    currentMapping.get(TEST_RESOURCE_PREFIX + "0").put("Node-2", "ONLINE");
+    currentMapping.get(TEST_RESOURCE_PREFIX + "0").put("Node-4", "ONLINE");
+    currentMapping.get(TEST_RESOURCE_PREFIX + "0").put("Node-6", "ONLINE");
+    currentMapping.put(TEST_RESOURCE_PREFIX + "2", new HashMap<>());
+    currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-1", "ONLINE");
+    currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-3", "ONLINE");
+    currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-5", "ONLINE");
+    currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-8", "ONLINE");
+
+    GreedyRebalanceStrategy greedyRebalanceStrategy = new GreedyRebalanceStrategy();
+    greedyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 0, partitions, states, 1);
+    ZNRecord shardAssignment =
+        greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, currentMapping,
+            clusterDataCache);
+
+    // Assert the existing assignment won't be changed
+    Assert.assertEquals(currentMapping.get(TEST_RESOURCE_PREFIX + "0").keySet(),
+        new HashSet<>(shardAssignment.getListField(TEST_RESOURCE_PREFIX + "0")));
+    Assert.assertEquals(currentMapping.get(TEST_RESOURCE_PREFIX + "2").keySet(),
+        new HashSet<>(shardAssignment.getListField(TEST_RESOURCE_PREFIX + "2")));
+  }
+
+  @Test
+  public void testStickyAssignmentMultipleTimes() {
+    final int nReplicas = 4;
+    final int nPartitions = 4;
+    final int nNode = 12;
+
+    ResourceControllerDataProvider clusterDataCache =
+        Mockito.mock(ResourceControllerDataProvider.class);
+    LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>(2);
+    states.put("OFFLINE", 0);
+    states.put("ONLINE", nReplicas);
+
+    Set<CapacityNode> capacityNodeSet = new HashSet<>();
+    for (int i = 0; i < nNode; i++) {
+      CapacityNode capacityNode = new CapacityNode("Node-" + i);
+      capacityNode.setCapacity(1);
+      capacityNodeSet.add(capacityNode);
+    }
+
+    List<String> liveNodes =
+        capacityNodeSet.stream().map(CapacityNode::getId).collect(Collectors.toList());
+
+    List<String> partitions = new ArrayList<>();
+    for (int i = 0; i < nPartitions; i++) {
+      partitions.add(TEST_RESOURCE_PREFIX + i);
+    }
+    when(clusterDataCache.getSimpleCapacitySet()).thenReturn(capacityNodeSet);
+
+    GreedyRebalanceStrategy greedyRebalanceStrategy = new GreedyRebalanceStrategy();
+    greedyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 0, partitions, states, 1);
+    // First round assignment computation:
+    // 1. Without previous assignment (currentMapping is null)
+    // 2. Without enough assignable nodes
+    ZNRecord firstRoundShardAssignment =
+        greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, null, clusterDataCache);
+
+    // Assert only 3 partitions are fulfilled with assignment
+    Assert.assertEquals(firstRoundShardAssignment.getListFields().entrySet().stream()
+        .filter(e -> e.getValue().size() == nReplicas).count(), 3);
+
+    // Assign 4 more nodes which is used in second round assignment computation
+    for (int i = nNode; i < nNode + 4; i++) {
+      CapacityNode capacityNode = new CapacityNode("Node-" + i);
+      capacityNode.setCapacity(1);
+      capacityNodeSet.add(capacityNode);
+    }
+
+    liveNodes = capacityNodeSet.stream().map(CapacityNode::getId).collect(Collectors.toList());
+
+    // Populate previous assignment (currentMapping) with first round assignment computation result
+    Map<String, Map<String, String>> currentMapping = new HashMap<>();
+    firstRoundShardAssignment.getListFields().entrySet().stream()
+        .filter(e -> e.getValue().size() == nReplicas).forEach(e -> {
+          currentMapping.put(e.getKey(), new HashMap<>());
+          for (String nodeId : e.getValue()) {
+            currentMapping.get(e.getKey()).put(nodeId, "ONLINE");
+          }
+        });
+
+    // Second round assignment computation:
+    // 1. With previous assignment (currentMapping)
+    // 2. With enough assignable nodes
+    ZNRecord secondRoundShardAssignment =
+        greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, currentMapping,
+            clusterDataCache);
+
+    // Assert all partitions have been assigned with enough replica
+    Assert.assertEquals(secondRoundShardAssignment.getListFields().entrySet().stream()
+        .filter(e -> e.getValue().size() == nReplicas).count(), nPartitions);
+    // For previously existing assignment, assert there is no assignment change
+    currentMapping.forEach((partition, nodeMapping) -> {
+      Assert.assertEquals(nodeMapping.keySet(),
+          new HashSet<>(secondRoundShardAssignment.getListField(partition)));
+    });
   }
 }

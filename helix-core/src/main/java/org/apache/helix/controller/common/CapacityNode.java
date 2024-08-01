@@ -29,14 +29,12 @@ import java.util.Set;
  * of partitions assigned to it, so it can decide if it can receive additional partitions.
  */
 public class CapacityNode {
-  private int _currentlyAssigned;
   private int _capacity;
   private final String _id;
   private final Map<String, Set<String>> _partitionMap;
 
   public CapacityNode(String id) {
     _partitionMap = new HashMap<>();
-    _currentlyAssigned = 0;
     this._id = id;
   }
 
@@ -48,13 +46,32 @@ public class CapacityNode {
    * @return true if the assignment can be made, false otherwise
    */
   public boolean canAdd(String resource, String partition) {
-    if (_currentlyAssigned >= _capacity || (_partitionMap.containsKey(resource)
-        && _partitionMap.get(resource).contains(partition))) {
+    // Check if the partition is already assigned to the resource in this node
+    Set<String> partitions = _partitionMap.get(resource);
+    if (partitions != null && partitions.contains(partition)) {
       return false;
     }
+
+    // Check if adding a new partition would exceed the node's capacity
+    if (getCurrentlyAssigned() >= _capacity) {
+      return false;
+    }
+
+    // Add the partition to the resource's set of partitions in this node
     _partitionMap.computeIfAbsent(resource, k -> new HashSet<>()).add(partition);
-    _currentlyAssigned++;
     return true;
+  }
+
+  /**
+   * Update existing usage
+   *
+   * @param resource  The resource to assign
+   * @param partition The partition to assign
+   * @return true if the assignment can be made, false otherwise
+   */
+  public boolean hasPartition(String resource, String partition) {
+    Set<String> partitions = _partitionMap.get(resource);
+    return partitions != null && partitions.contains(partition);
   }
 
   /**
@@ -78,13 +95,13 @@ public class CapacityNode {
    * @return The number of partitions currently assigned to this node
    */
   public int getCurrentlyAssigned() {
-    return _currentlyAssigned;
+    return _partitionMap.values().stream().mapToInt(Set::size).sum();
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("##########\nname=").append(_id).append("\nassigned:").append(_currentlyAssigned)
+    sb.append("##########\nname=").append(_id).append("\nassigned:").append(getCurrentlyAssigned())
         .append("\ncapacity:").append(_capacity);
     return sb.toString();
   }

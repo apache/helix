@@ -24,13 +24,11 @@ import java.lang.reflect.Modifier;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.testng.Assert;
@@ -44,17 +42,6 @@ public class TestStatusUpdateUtil extends ZkTestBase {
   private int n = 1;
   private Message message = new Message(Message.MessageType.STATE_TRANSITION, "Some unique id");
   private MockParticipantManager[] participants = new MockParticipantManager[n];
-
-
-  static void setFinalStatic(Field field, Object newValue) throws Exception {
-    field.setAccessible(true);
-
-    Field modifiersField = Field.class.getDeclaredField("modifiers");
-    modifiersField.setAccessible(true);
-    modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-
-    field.set(null, newValue);
-  }
 
   @AfterClass
   public void afterClass() {
@@ -98,7 +85,7 @@ public class TestStatusUpdateUtil extends ZkTestBase {
   @Test(dependsOnMethods = "testDisableErrorLogByDefault")
   public void testEnableErrorLog() throws Exception {
     StatusUpdateUtil statusUpdateUtil = new StatusUpdateUtil();
-    setFinalStatic(StatusUpdateUtil.class.getField("ERROR_LOG_TO_ZK_ENABLED"), true);
+    StatusUpdateUtil.setErrorLogToZkEnabled(true);
 
     Exception e = new RuntimeException("test exception");
     statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
@@ -118,16 +105,16 @@ public class TestStatusUpdateUtil extends ZkTestBase {
   @Test
   public void testDisableErrorLogByDefault() throws Exception {
     StatusUpdateUtil statusUpdateUtil = new StatusUpdateUtil();
-    setFinalStatic(StatusUpdateUtil.class.getField("ERROR_LOG_TO_ZK_ENABLED"), false);
+    StatusUpdateUtil.setErrorLogToZkEnabled(false);
 
     Exception e = new RuntimeException("test exception");
     statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
         "test status update", participants[0]);
-
     // assert by default, not logged to Zookeeper
     String errPath = PropertyPathBuilder
         .instanceError(clusterName, "localhost_12918", participants[0].getSessionId(), "TestDB",
             "TestDB_0");
+
     try {
       ZNRecord error = _gZkClient.readData(errPath);
       Assert.fail("not expecting being able to send error logs to ZK by default.");

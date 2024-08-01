@@ -1248,6 +1248,9 @@ public class TestInstanceOperation extends ZkTestBase {
         "", false);
     _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, swapInInstanceName, swapInInstanceConfig);
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    // Assert not possible to complete swap (swap in should not have intended current states)
+    Assert.assertFalse(_gSetupTool.getClusterManagementTool()
+        .canCompleteSwap(CLUSTER_NAME, swapOutInstanceName));
 
     // Assert EV is correct - all swap affected partitions will have 1 extra replica in OFFLINE state hosted on SWAP_IN node
     Map<String, ExternalView> currentEVs = getEVs();

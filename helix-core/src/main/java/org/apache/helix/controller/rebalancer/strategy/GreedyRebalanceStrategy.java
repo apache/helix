@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.strategy;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +70,11 @@ public class GreedyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     // Sort the assignable nodes by id
     List<CapacityNode> assignableNodes = new ArrayList<>(clusterData.getSimpleCapacitySet());
     assignableNodes.sort(Comparator.comparing(CapacityNode::getId));
+
+    // Filter out the nodes if not in the liveNodes parameter
+    // Note the liveNodes parameter here might be processed within the rebalancer, e.g. filter based on tags
+    Set<String> liveNodesSet = new HashSet<>(liveNodes);
+    assignableNodes.removeIf(n -> !liveNodesSet.contains(n.getId()));
 
     //  Populate existing preference list given current mapping
     Map<String, List<String>> currentPreferenceListMap =

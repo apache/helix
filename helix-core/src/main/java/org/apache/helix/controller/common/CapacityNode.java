@@ -63,11 +63,11 @@ public class CapacityNode {
   }
 
   /**
-   * Update existing usage
+   * Checks if a specific resource + partition is assigned to this node.
    *
-   * @param resource  The resource to assign
-   * @param partition The partition to assign
-   * @return true if the assignment can be made, false otherwise
+   * @param resource  the name of the resource
+   * @param partition the partition
+   * @return {@code true} if the resource + partition is assigned to this node, {@code false} otherwise
    */
   public boolean hasPartition(String resource, String partition) {
     Set<String> partitions = _partitionMap.get(resource);

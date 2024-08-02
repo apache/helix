@@ -92,11 +92,9 @@ public class TestStatusUpdateUtil extends ZkTestBase {
             "TestDB_0");
     ZNRecord messageRecord = statusUpdateUtil.createMessageStatusUpdateRecord(message, StatusUpdateUtil.Level.HELIX_ERROR, HelixStateTransitionHandler.class,
         "testEnableErrorLog");
-//    statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
-//        "test status update", participants[0]);
+    // logged to Zookeeper
     statusUpdateUtil.publishErrorRecord(messageRecord, participants[0].getInstanceName(), message.getResourceName(), message.getPartitionName(), participants[0].getSessionId(),
         participants[0].getHelixDataAccessor(), false, true);
-    // logged to Zookeeper
 
     try {
       ZNRecord error = _gZkClient.readData(errPath);
@@ -112,8 +110,6 @@ public class TestStatusUpdateUtil extends ZkTestBase {
         "testDisableErrorLogByDefault");
     statusUpdateUtil.publishErrorRecord(messageRecord, participants[0].getInstanceName(), message.getResourceName(), message.getPartitionName(), participants[0].getSessionId(),
         participants[0].getHelixDataAccessor(), false, false);
-//    statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
-//        "test status update", participants[0]);
     // assert by default, not logged to Zookeeper
     String errPath = PropertyPathBuilder
         .instanceError(clusterName, "localhost_12918", participants[0].getSessionId(), "TestDB",

@@ -575,5 +575,4 @@ public class StatusUpdateUtil {
           updateSubPath, updateKey), new Error(record));
     }
   }
-
 }

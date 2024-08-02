@@ -85,15 +85,18 @@ public class TestStatusUpdateUtil extends ZkTestBase {
   @Test(dependsOnMethods = "testDisableErrorLogByDefault")
   public void testEnableErrorLog() throws Exception {
     StatusUpdateUtil statusUpdateUtil = new StatusUpdateUtil();
-    StatusUpdateUtil.setErrorLogToZkEnabled(true);
 
-    Exception e = new RuntimeException("test exception");
-    statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
-        "test status update", participants[0]);
-    // logged to Zookeeper
+
     String errPath = PropertyPathBuilder
         .instanceError(clusterName, "localhost_12918", participants[0].getSessionId(), "TestDB",
             "TestDB_0");
+    ZNRecord messageRecord = statusUpdateUtil.createMessageStatusUpdateRecord(message, StatusUpdateUtil.Level.HELIX_ERROR, HelixStateTransitionHandler.class,
+        "testEnableErrorLog");
+//    statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
+//        "test status update", participants[0]);
+    statusUpdateUtil.publishErrorRecord(messageRecord, participants[0].getInstanceName(), message.getResourceName(), message.getPartitionName(), participants[0].getSessionId(),
+        participants[0].getHelixDataAccessor(), false, true);
+    // logged to Zookeeper
 
     try {
       ZNRecord error = _gZkClient.readData(errPath);
@@ -105,11 +108,12 @@ public class TestStatusUpdateUtil extends ZkTestBase {
   @Test
   public void testDisableErrorLogByDefault() throws Exception {
     StatusUpdateUtil statusUpdateUtil = new StatusUpdateUtil();
-    StatusUpdateUtil.setErrorLogToZkEnabled(false);
-
-    Exception e = new RuntimeException("test exception");
-    statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
-        "test status update", participants[0]);
+    ZNRecord messageRecord = statusUpdateUtil.createMessageStatusUpdateRecord(message, StatusUpdateUtil.Level.HELIX_ERROR, HelixStateTransitionHandler.class,
+        "testDisableErrorLogByDefault");
+    statusUpdateUtil.publishErrorRecord(messageRecord, participants[0].getInstanceName(), message.getResourceName(), message.getPartitionName(), participants[0].getSessionId(),
+        participants[0].getHelixDataAccessor(), false, false);
+//    statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e,
+//        "test status update", participants[0]);
     // assert by default, not logged to Zookeeper
     String errPath = PropertyPathBuilder
         .instanceError(clusterName, "localhost_12918", participants[0].getSessionId(), "TestDB",

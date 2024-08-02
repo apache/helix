@@ -19,7 +19,6 @@ package org.apache.helix.util;
  * under the License.
  */
 
-import com.google.common.annotations.VisibleForTesting;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.DateFormat;
@@ -57,16 +56,8 @@ import org.slf4j.LoggerFactory;
 public class StatusUpdateUtil {
   static Logger _logger = LoggerFactory.getLogger(StatusUpdateUtil.class);
 
-  private static boolean ERROR_LOG_TO_ZK_ENABLED =
+  public static final boolean ERROR_LOG_TO_ZK_ENABLED =
       Boolean.getBoolean(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED);
-  public static boolean isErrorLogToZkEnabled() {
-    return ERROR_LOG_TO_ZK_ENABLED;
-  }
-
-  @VisibleForTesting
-  public static void setErrorLogToZkEnabled(boolean enabled) {
-    ERROR_LOG_TO_ZK_ENABLED = enabled;
-  }
 
   public static class Transition implements Comparable<Transition> {
     private final String _msgID;
@@ -564,7 +555,13 @@ public class StatusUpdateUtil {
    */
   void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
       String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController) {
-    if (!isErrorLogToZkEnabled()) {
+    publishErrorRecord(record, instanceName, updateSubPath, updateKey, sessionId, accessor,
+        isController, ERROR_LOG_TO_ZK_ENABLED);
+  }
+
+  void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
+      String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController, boolean logToZKEnabled) {
+    if (!logToZKEnabled) {
       return;
     }
 
@@ -578,4 +575,5 @@ public class StatusUpdateUtil {
           updateSubPath, updateKey), new Error(record));
     }
   }
+
 }

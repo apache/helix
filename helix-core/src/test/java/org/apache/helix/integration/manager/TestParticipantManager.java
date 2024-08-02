@@ -44,9 +44,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ParticipantHistory;
-import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -66,6 +64,7 @@ import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.ITestContext;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
@@ -73,6 +72,15 @@ public class TestParticipantManager extends ZkTestBase {
   private final MBeanServer _server = ManagementFactory.getPlatformMBeanServer();
   private final String _clusterName = TestHelper.getTestClassName();
   private final ExecutorService _executor = Executors.newFixedThreadPool(1);
+
+  static {
+    System.setProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED, "true");
+  }
+
+  @AfterClass
+  public void afterClass() {
+    System.clearProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED);
+  }
 
   @AfterMethod
   public void afterMethod(Method testMethod, ITestContext testContext) {
@@ -430,7 +438,6 @@ public class TestParticipantManager extends ZkTestBase {
     String newSessionId = participants[0].getSessionId();
     Assert.assertNotSame(newSessionId, oldSessionId);
 
-    StatusUpdateUtil.setErrorLogToZkEnabled(true);
     // assert interrupt exception error in old session
     String errPath = PropertyPathBuilder.instanceError(_clusterName, "localhost_12918", oldSessionId,
         "TestDB0", "TestDB0_0");

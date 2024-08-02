@@ -48,14 +48,8 @@ public class CapacityNode {
    * @return true if the assignment can be made, false otherwise
    */
   public boolean canAdd(String resource, String partition) {
-    // Check if the partition is already assigned to the resource in this node
-    Set<String> partitions = _partitionMap.get(resource);
-    if (partitions != null && partitions.contains(partition)) {
-      return false;
-    }
-
-    // Check if adding a new partition would exceed the node's capacity
-    if (_currentlyAssigned >= _capacity) {
+    if (_currentlyAssigned >= _capacity || (_partitionMap.containsKey(resource)
+        && _partitionMap.get(resource).contains(partition))) {
       return false;
     }
 

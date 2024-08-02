@@ -63,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
@@ -171,6 +172,13 @@ public class TestInstanceOperation extends ZkTestBase {
     _routingTableProviderEV.shutdown();
     _routingTableProviderCS.shutdown();
     _spectator.disconnect();
+  }
+
+  @BeforeMethod
+  public void beforeMethod() throws Exception {
+    removeOfflineOrInactiveInstances();
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   private void setupClusterConfig() {
@@ -450,6 +458,8 @@ public class TestInstanceOperation extends ZkTestBase {
     // the cluster and the InstanceCapacityWeights and FaultZone match.
     _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapInName,
         InstanceConstants.InstanceOperation.SWAP_IN);
+    Assert.assertEquals(_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
+            .getInstanceOperation().getOperation(), InstanceConstants.InstanceOperation.SWAP_IN);
 
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -462,8 +472,6 @@ public class TestInstanceOperation extends ZkTestBase {
     System.out.println(
         "START TestInstanceOperation.testNodeSwapSwapInNodeWithAlreadySwappingPair() at "
             + new Date(System.currentTimeMillis()));
-
-    removeOfflineOrInactiveInstances();
 
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
     InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
@@ -500,8 +508,6 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testNodeSwap() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwap() at " + new Date(System.currentTimeMillis()));
-
-    removeOfflineOrInactiveInstances();
 
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
@@ -569,7 +575,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertEquals(instanceToSwapInInstanceConfig.getRecord()
             .getMapField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()),
-        instanceToSwapInInstanceConfig.getRecord()
+        instanceToSwapOutInstanceConfig.getRecord()
             .getMapField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()));
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -592,13 +598,18 @@ public class TestInstanceOperation extends ZkTestBase {
     // swap was completed.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
+
+    InstanceConfig instanceToSwapInInstanceConfigAfterSwap = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapInName);
+    instanceToSwapInInstanceConfigAfterSwap.setInstanceEnabledForPartition(resourceToDisablePartition, true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, instanceToSwapInName,
+        instanceToSwapInInstanceConfigAfterSwap);
   }
 
   @Test(dependsOnMethods = "testNodeSwap")
   public void testNodeSwapDisableAndReenable() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testNodeSwap() at " + new Date(System.currentTimeMillis()));
-    removeOfflineOrInactiveInstances();
 
     // Store original EV
     Map<String, ExternalView> originalEVs = getEVs();
@@ -702,8 +713,6 @@ public class TestInstanceOperation extends ZkTestBase {
     System.out.println("START TestInstanceOperation.testNodeSwapSwapInNodeNoInstanceOperation() at "
             + new Date(System.currentTimeMillis()));
 
-    removeOfflineOrInactiveInstances();
-
     // Store original EVs
     Map<String, ExternalView> originalEVs = getEVs();
 
@@ -767,11 +776,8 @@ public class TestInstanceOperation extends ZkTestBase {
         "START TestInstanceOperation.testNodeSwapCancelSwapWhenReadyToComplete() at " + new Date(
             System.currentTimeMillis()));
 
-    removeOfflineOrInactiveInstances();
-
     // Store original EVs
     Map<String, ExternalView> originalEVs = getEVs();
-
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
@@ -813,9 +819,6 @@ public class TestInstanceOperation extends ZkTestBase {
     validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), Collections.emptySet());
 
-    // Stop the participant
-    _participants.get(_participants.size() - 1).syncStop();
-
     // Wait for cluster to converge.
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -845,11 +848,8 @@ public class TestInstanceOperation extends ZkTestBase {
     System.out.println("START TestInstanceOperation.testNodeSwapAfterEMM() at " + new Date(
         System.currentTimeMillis()));
 
-    removeOfflineOrInactiveInstances();
-
     // Store original EVs
     Map<String, ExternalView> originalEVs = getEVs();
-
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
     // Put the cluster in maintenance mode.
@@ -922,17 +922,12 @@ public class TestInstanceOperation extends ZkTestBase {
         "START TestInstanceOperation.testNodeSwapWithSwapOutInstanceDisabled() at " + new Date(
             System.currentTimeMillis()));
 
-    removeOfflineOrInactiveInstances();
-
     // Store original EVs
     Map<String, ExternalView> originalEVs = getEVs();
 
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
     InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
-
-    Set<String> swapOutInstanceOriginalPartitions =
-        getPartitionsAndStatesOnInstance(originalEVs, instanceToSwapOutName).keySet();
 
     // Disable the swap out instance.
     _gSetupTool.getClusterManagementTool()
@@ -984,11 +979,8 @@ public class TestInstanceOperation extends ZkTestBase {
         "START TestInstanceOperation.testNodeSwapWithSwapOutInstanceOffline() at " + new Date(
             System.currentTimeMillis()));
 
-    removeOfflineOrInactiveInstances();
-
     // Store original EV
     Map<String, ExternalView> originalEVs = getEVs();
-
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
@@ -1001,6 +993,11 @@ public class TestInstanceOperation extends ZkTestBase {
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
         InstanceConstants.InstanceOperation.SWAP_IN, -1);
+    // Assert SWAP_IN taking affect
+    Assert.assertEquals(_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
+            .getInstanceOperation().getOperation(), InstanceConstants.InstanceOperation.SWAP_IN);
+
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Kill the participant
     _participants.get(0).syncStop();
@@ -1038,10 +1035,10 @@ public class TestInstanceOperation extends ZkTestBase {
     System.out.println("START TestInstanceOperation.testSwapEvacuateAdd() at " + new Date(
         System.currentTimeMillis()));
     removeOfflineOrInactiveInstances();
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Store original EV
     Map<String, ExternalView> originalEVs = getEVs();
-
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
     // Enter maintenance mode
@@ -1072,7 +1069,7 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
 
-    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Validate that the SWAP_IN instance has the same partitions the swap out instance had.
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
@@ -1099,8 +1096,6 @@ public class TestInstanceOperation extends ZkTestBase {
         "START TestInstanceOperation.testUnsetInstanceOperationOnSwapInWhenSwapping() at "
             + new Date(System.currentTimeMillis()));
 
-    removeOfflineOrInactiveInstances();
-
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
     InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
@@ -1124,7 +1119,6 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testNodeSwapAddSwapInFirst() throws Exception {
     System.out.println("START TestInstanceOperation.testNodeSwapAddSwapInFirst() at " + new Date(
         System.currentTimeMillis()));
-    removeOfflineOrInactiveInstances();
 
     // Store original EV
     Map<String, ExternalView> originalEVs = getEVs();
@@ -1141,12 +1135,156 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testNodeSwapAddSwapInFirst")
+  public void testDisabledPartitionsBeforeSwapInitiated() throws Exception {
+    enabledTopologyAwareRebalance();
+    System.out.println(
+        "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(System.currentTimeMillis()));
+    String toAddParticipant = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    removeOfflineOrInactiveInstances();
+    addParticipant(toAddParticipant);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    // Add instance with InstanceOperation set to UNKNOWN
+    String instanceToSwapOutName = _participants.get(_participants.size()-1).getInstanceName();
+    InstanceConfig instanceToSwapOutconfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
+    String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
+    swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
+
+    addParticipant(instanceToSwapInName, instanceToSwapOutconfig.getLogicalId(LOGICAL_ID),
+        instanceToSwapOutconfig.getDomainAsMap().get(ZONE),
+        InstanceConstants.InstanceOperation.UNKNOWN, -1);
+
+    _clusterVerifier.verifyByPolling();
+    Map<String, ExternalView> beforeEVs = getEVs();
+
+    // Set all partitions to disabled and set instance operation to SWAP_IN
+    InstanceConfig swapInInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapInName);
+    swapInInstanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY,
+        "", false);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, instanceToSwapInName, swapInInstanceConfig);
+    _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapInName,
+        InstanceConstants.InstanceOperation.SWAP_IN);
+    Assert.assertEquals(
+        _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
+            .getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.SWAP_IN);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+
+    // Assert assignment is in IdealState, but all states are offline
+    for (String resource : _allDBs) {
+      IdealState is = _gSetupTool.getClusterManagementTool()
+          .getResourceIdealState(CLUSTER_NAME, resource);
+      ExternalView ev = beforeEVs.get(resource);
+      for (String partition : is.getPartitionSet()) {
+        if (ev.getStateMap(partition).containsKey(instanceToSwapOutName)) {
+          Assert.assertEquals(is.getInstanceStateMap(partition).get(instanceToSwapInName), "OFFLINE");
+        }
+      }
+    }
+
+    // Assert not possible to complete swap (swap in should not have current states)
+    Assert.assertFalse(_gSetupTool.getClusterManagementTool()
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
+
+    // Re-enable all partitions, IS states no longer forced to OFFLINE and swap allowed to complete
+    swapInInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapInName);
+    swapInInstanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY,
+        "", true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, instanceToSwapInName, swapInInstanceConfig);
+
+    // Assert successfully complete swap
+    verifier(() -> _gSetupTool.getClusterManagementTool().canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName), 30000);
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName, false));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    validateEVsCorrect(getEVs(), beforeEVs, swapOutInstancesToSwapInInstances, Collections.emptySet(),
+        ImmutableSet.of(instanceToSwapInName));
+    _participants.get(_participants.size()-1).syncStop();
+  }
+
+  @Test(dependsOnMethods = "testDisabledPartitionsBeforeSwapInitiated")
+  public void testDisabledPartitionsAfterSwapInitiated() throws Exception {
+    System.out.println(
+        "START TestInstanceOperation.testDisabledPartitionsAfterSwapInitiated() at " + new Date(System.currentTimeMillis()));
+
+    String toAddParticipant = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    removeOfflineOrInactiveInstances();
+    addParticipant(toAddParticipant);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Map<String, ExternalView> beforeSwapAndDisableEVs = getEVs();
+
+    String swapOutInstanceName = _participants.get(_participants.size()-1).getInstanceName();
+    InstanceConfig swapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, swapOutInstanceName);
+
+    // Add SWAP_IN instance
+    String swapInInstanceName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    addParticipant(swapInInstanceName, swapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        swapOutInstanceConfig.getDomainAsMap().get(ZONE),
+        InstanceConstants.InstanceOperation.SWAP_IN, -1);
+    Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
+    swapOutInstancesToSwapInInstances.put(swapOutInstanceName, swapInInstanceName);
+
+    // Assert SWAP_IN taking affect
+    Assert.assertEquals(
+        _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, swapInInstanceName)
+            .getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.SWAP_IN);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool().canCompleteSwap(CLUSTER_NAME, swapOutInstanceName));
+
+    // Get current EVs and validate swap proceeding normally
+    Map<String, ExternalView> beforeDisableEVs = getEVs();
+    validateEVsCorrect(beforeDisableEVs, beforeSwapAndDisableEVs, swapOutInstancesToSwapInInstances,
+        ImmutableSet.of(swapInInstanceName), Collections.emptySet());
+
+    // Set all partitions to disabled on SWAP_IN instance
+    InstanceConfig swapInInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, swapInInstanceName);
+    swapInInstanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY,
+        "", false);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, swapInInstanceName, swapInInstanceConfig);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    // Assert not possible to complete swap (swap in should not have intended current states)
+    Assert.assertFalse(_gSetupTool.getClusterManagementTool()
+        .canCompleteSwap(CLUSTER_NAME, swapOutInstanceName));
+
+    // Assert EV is correct - all swap affected partitions will have 1 extra replica in OFFLINE state hosted on SWAP_IN node
+    Map<String, ExternalView> currentEVs = getEVs();
+    for (String resource : _allDBs) {
+      validateEVCorrect(currentEVs.get(resource), beforeDisableEVs.get(resource), swapOutInstancesToSwapInInstances,
+          ImmutableSet.of(swapInInstanceName), Collections.emptySet(), ImmutableSet.of(swapInInstanceName));
+    }
+
+    // Assert not possible to complete swap
+    Assert.assertFalse(_gSetupTool.getClusterManagementTool().canCompleteSwap(CLUSTER_NAME, swapOutInstanceName));
+
+    // Re-enable all partitions, IS states no longer forced to OFFLINE and swap allowed to complete
+    swapInInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, swapInInstanceName);
+    swapInInstanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY,
+        "", true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, swapInInstanceName, swapInInstanceConfig);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool().canCompleteSwap(CLUSTER_NAME, swapOutInstanceName));
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool().completeSwapIfPossible(CLUSTER_NAME, swapOutInstanceName,
+        false));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert swap completed successfully
+    validateEVsCorrect(getEVs(), beforeSwapAndDisableEVs, swapOutInstancesToSwapInInstances,
+        Collections.emptySet(), ImmutableSet.of(swapInInstanceName));
+    _participants.get(_participants.size()-1).syncStop();
+  }
+
+  @Test(dependsOnMethods = "testDisabledPartitionsAfterSwapInitiated")
   public void testEvacuateAndCancelBeforeBootstrapFinish() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testEvacuateAndCancelBeforeBootstrapFinish() at " + new Date(
             System.currentTimeMillis()));
-
-    removeOfflineOrInactiveInstances();
 
     // add a resource where downward state transition is slow
     createResourceWithDelayedRebalance(CLUSTER_NAME, "TEST_DB3_DELAYED_CRUSHED", "MasterSlave",
@@ -1301,7 +1439,6 @@ public class TestInstanceOperation extends ZkTestBase {
   public void testSwapEvacuateAddRemoveEvacuate() throws Exception {
     System.out.println("START TestInstanceOperation.testSwapEvacuateAddRemoveEvacuate() at " + new Date(
         System.currentTimeMillis()));
-    removeOfflineOrInactiveInstances();
 
     // Set instance's InstanceOperation to EVACUATE
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
@@ -1322,6 +1459,41 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testSwapEvacuateAddRemoveEvacuate")
+  public void testUnknownDoesNotTriggerRebalance() throws Exception {
+    System.out.println(
+        "START TestInstanceOperation.testUnknownDoesNotTriggerRebalance() at " + new Date(
+            System.currentTimeMillis()));
+
+    Map<String, IdealState> idealStatesBefore = getISs();
+
+    // Add instance with InstanceOperation set to UNKNOWN (should not be considered in placement calculations)
+    String instanceToAdd = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    addParticipant(instanceToAdd, "foo", "bar", InstanceConstants.InstanceOperation.UNKNOWN, -1);
+    List<MockParticipantManager> testParticipants = new ArrayList<>();
+    testParticipants.add(_participants.get(_participants.size() - 1));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Assert no rebalance
+    Assert.assertEquals(idealStatesBefore, getISs());
+
+    // Assert same no rebalance behavior for node with same logical ID as existing node
+    String instanceToAdd2 = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    InstanceConfig swapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, _participants.get(0).getInstanceName());
+    addParticipant(instanceToAdd2,  swapOutInstanceConfig.getLogicalId(LOGICAL_ID),
+        swapOutInstanceConfig.getDomainAsMap().get(ZONE), InstanceConstants.InstanceOperation.UNKNOWN, -1);
+    testParticipants.add(_participants.get(_participants.size() - 1));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertEquals(idealStatesBefore, getISs());
+
+
+    // Clean up
+    for (MockParticipantManager participant : testParticipants) {
+      participant.syncStop();
+    }
+  }
+
+  @Test(dependsOnMethods = "testUnknownDoesNotTriggerRebalance")
   public void testEvacuationWithOfflineInstancesInCluster() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testEvacuationWithOfflineInstancesInCluster() at " + new Date(
@@ -1367,7 +1539,6 @@ public class TestInstanceOperation extends ZkTestBase {
         "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(
             System.currentTimeMillis()));
     StateTransitionCountStateModelFactory stateTransitionCountStateModelFactory = new StateTransitionCountStateModelFactory();
-    removeOfflineOrInactiveInstances();
     String testCrushedDBName = "testEvacuateWithDisabledPartition_CRUSHED_DB0";
     String testWagedDBName = "testEvacuateWithDisabledPartition_WAGED_DB1";
     String toDisableThenEvacuateInstanceName = "disable_then_evacuate_host";
@@ -1434,7 +1605,7 @@ public class TestInstanceOperation extends ZkTestBase {
     // Disable all partitions for the instance again
     instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
         toDisableThenEvacuateInstanceName);
-    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", true);
+    instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", false);
     _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -1451,7 +1622,6 @@ public class TestInstanceOperation extends ZkTestBase {
     }
     // Clean up test participant
     toDisableThenEvacuateParticipant.syncStop();
-    removeOfflineOrInactiveInstances();
   }
 
   /**
@@ -1588,6 +1758,15 @@ public class TestInstanceOperation extends ZkTestBase {
     return externalViews;
   }
 
+  private Map<String, IdealState> getISs() {
+    Map<String, IdealState> idealStates = new HashMap<String, IdealState>();
+    for (String db : _allDBs) {
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      idealStates.put(db, is);
+    }
+    return idealStates;
+  }
+
   private boolean verifyIS(String evacuateInstanceName) {
     for (String db : _allDBs) {
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
@@ -1672,7 +1851,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   private void validateEVCorrect(ExternalView actual, ExternalView original,
       Map<String, String> swapOutInstancesToSwapInInstances, Set<String> inFlightSwapInInstances,
-      Set<String> completedSwapInInstanceNames) {
+      Set<String> completedSwapInInstanceNames, Set<String> allPartitionsDisabledInstances) {
     Assert.assertEquals(actual.getPartitionSet(), original.getPartitionSet());
     IdealState is = _gSetupTool.getClusterManagementTool()
         .getResourceIdealState(CLUSTER_NAME, original.getResourceName());
@@ -1686,10 +1865,13 @@ public class TestInstanceOperation extends ZkTestBase {
           // If the corresponding swapInInstance is in-flight, add it to the expectedStateMap
           // with the same state as the swapOutInstance or secondState if the swapOutInstance
           // has a topState.
-          expectedStateMap.put(swapOutInstancesToSwapInInstances.get(swapOutInstance),
-              expectedStateMap.get(swapOutInstance).equals(stateModelDef.getTopState())
-                  ? (String) stateModelDef.getSecondTopStates().toArray()[0]
-                  : expectedStateMap.get(swapOutInstance));
+          String expectedState = expectedStateMap.get(swapOutInstance).equals(stateModelDef.getTopState())
+              ? (String) stateModelDef.getSecondTopStates().toArray()[0]
+              : expectedStateMap.get(swapOutInstance);
+          if (allPartitionsDisabledInstances.contains(swapOutInstancesToSwapInInstances.get(swapOutInstance))) {
+            expectedState = stateModelDef.getInitialState();
+          }
+          expectedStateMap.put(swapOutInstancesToSwapInInstances.get(swapOutInstance), expectedState);
         } else if (expectedStateMap.containsKey(swapOutInstance)
             && completedSwapInInstanceNames.contains(
             swapOutInstancesToSwapInInstances.get(swapOutInstance))) {
@@ -1711,7 +1893,7 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertEquals(actuals.keySet(), originals.keySet());
     for (String resource : actuals.keySet()) {
       validateEVCorrect(actuals.get(resource), originals.get(resource),
-          swapOutInstancesToSwapInInstances, inFlightSwapInInstances, completedSwapInInstanceNames);
+          swapOutInstancesToSwapInInstances, inFlightSwapInInstances, completedSwapInInstanceNames, Collections.emptySet());
     }
     return true;
   }
@@ -1822,14 +2004,12 @@ public class TestInstanceOperation extends ZkTestBase {
   // all state models. You can register this state model for a single participant if you need to isolate the counter.
   public class StateTransitionCountStateModelFactory extends StateModelFactory<StateTransitionCountStateModel> {
 
-    AtomicInteger _upwardStateTransitionCounter = new AtomicInteger(0);
-    AtomicInteger _downwardStateTransitionCounter = new AtomicInteger(0);
+    private final AtomicInteger _upwardStateTransitionCounter = new AtomicInteger(0);
+    private final AtomicInteger _downwardStateTransitionCounter = new AtomicInteger(0);
 
       @Override
       public StateTransitionCountStateModel createNewStateModel(String resourceName, String partitionKey) {
-        StateTransitionCountStateModel model =
-            new StateTransitionCountStateModel(_upwardStateTransitionCounter, _downwardStateTransitionCounter);
-        return model;
+        return new StateTransitionCountStateModel(_upwardStateTransitionCounter, _downwardStateTransitionCounter);
       }
 
       public int getUpwardStateTransitionCounter() {
@@ -1875,7 +2055,4 @@ public class TestInstanceOperation extends ZkTestBase {
       _downwardStateTransitionCounter.incrementAndGet();
     }
   }
-
-
-
 }

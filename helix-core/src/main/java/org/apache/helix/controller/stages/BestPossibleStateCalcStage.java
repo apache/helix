@@ -135,9 +135,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   }
 
   private String selectSwapInState(StateModelDefinition stateModelDef, Map<String, String> stateMap,
-      String swapOutInstance) {
+      String swapOutInstance, String swapInInstance, String resource, String partition, ResourceControllerDataProvider cache) {
     // If the swap-in node is live, select state with the following logic:
     // 1. If the swap-out instance's replica is in the stateMap:
+    // - if the swap-in instance is disabled for the partition, select the swap-in instance's replica to the initialState.
     // - if the swap-out instance's replica is a topState, select the swap-in instance's replica to the topState.
     //   if another is allowed to be added, otherwise select the swap-in instance's replica to a secondTopState.
     // - if the swap-out instance's replica is not a topState or ERROR, select the swap-in instance's replica to the same state.
@@ -145,6 +146,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // 2. If the swap-out instance's replica is not in the stateMap, select the swap-in instance's replica to the initialState.
     // This happens when the swap-out node is offline.
     if (stateMap.containsKey(swapOutInstance)) {
+      // Keep in initial state if instance disabled for partition
+      if (cache.getDisabledInstancesForPartition(resource, partition).contains(swapInInstance)) {
+        return stateModelDef.getInitialState();
+      }
       if (stateMap.get(swapOutInstance).equals(stateModelDef.getTopState()) || stateMap.get(
           swapOutInstance).equals(HelixDefinedState.ERROR.name())) {
         // If the swap-out instance's replica is a topState, select the swap-in instance's replica
@@ -225,7 +230,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
             String selectedState = selectSwapInState(
                 cache.getStateModelDef(resourceMap.get(resourceName).getStateModelDefRef()),
-                stateMap, swapInToSwapOutInstancePairs.get(swapInInstance));
+                stateMap, swapInToSwapOutInstancePairs.get(swapInInstance), swapInInstance, resourceName,
+                partition.getPartitionName(), cache);
             if (stateMap != null) {
               bestPossibleStateOutput.setState(resourceName, partition, swapInInstance,
                   selectedState);

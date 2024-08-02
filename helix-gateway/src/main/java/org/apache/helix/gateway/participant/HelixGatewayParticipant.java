@@ -46,16 +46,16 @@ import org.apache.helix.participant.statemachine.StateTransitionError;
 public class HelixGatewayParticipant implements HelixManagerStateListener {
   public static final String UNASSIGNED_STATE = "UNASSIGNED";
   private final HelixGatewayServiceProcessor _gatewayServiceProcessor;
-  private final HelixManager _participantManager;
+  private final HelixManager _helixManager;
   private final Runnable _onDisconnectedCallback;
   private final Map<String, Map<String, String>> _shardStateMap;
   private final Map<String, CompletableFuture<Boolean>> _stateTransitionResultMap;
 
   private HelixGatewayParticipant(HelixGatewayServiceProcessor gatewayServiceProcessor,
-      Runnable onDisconnectedCallback,
-      HelixManager participantManager, Map<String, Map<String, String>> initialShardStateMap) {
+      Runnable onDisconnectedCallback, HelixManager helixManager,
+      Map<String, Map<String, String>> initialShardStateMap) {
     _gatewayServiceProcessor = gatewayServiceProcessor;
-    _participantManager = participantManager;
+    _helixManager = helixManager;
     _onDisconnectedCallback = onDisconnectedCallback;
     _shardStateMap = initialShardStateMap;
     _stateTransitionResultMap = new ConcurrentHashMap<>();
@@ -74,7 +74,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
 
       CompletableFuture<Boolean> future = new CompletableFuture<>();
       _stateTransitionResultMap.put(transitionId, future);
-      _gatewayServiceProcessor.sendStateTransitionMessage(_participantManager.getInstanceName(),
+      _gatewayServiceProcessor.sendStateTransitionMessage(_helixManager.getInstanceName(),
           getCurrentState(resourceId, shardId), message);
 
       if (!future.get()) {
@@ -111,7 +111,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
    * @return participant instance name
    */
   public String getInstanceName() {
-    return _participantManager.getInstanceName();
+    return _helixManager.getInstanceName();
   }
 
   /**
@@ -133,7 +133,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   }
 
   @VisibleForTesting
-  public Map<String, Map<String, String>> getShardStateMap() {
+  Map<String, Map<String, String>> getShardStateMap() {
     return _shardStateMap;
   }
 
@@ -183,15 +183,15 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   @Override
   public void onDisconnected(HelixManager helixManager, Throwable error) throws Exception {
     _onDisconnectedCallback.run();
-    _gatewayServiceProcessor.closeConnectionWithError(_participantManager.getInstanceName(),
+    _gatewayServiceProcessor.closeConnectionWithError(_helixManager.getInstanceName(),
         error.getMessage());
   }
 
   public void disconnect() {
-    if (_participantManager.isConnected()) {
-      _participantManager.disconnect();
+    if (_helixManager.isConnected()) {
+      _helixManager.disconnect();
     }
-    _gatewayServiceProcessor.completeConnection(_participantManager.getInstanceName());
+    _gatewayServiceProcessor.completeConnection(_helixManager.getInstanceName());
   }
 
   public static class Builder {

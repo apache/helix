@@ -136,7 +136,9 @@ public class GatewayServiceManager {
     // Create and add the participant to the participant map
     HelixGatewayParticipant.Builder participantBuilder =
         new HelixGatewayParticipant.Builder(_gatewayServiceProcessor, instanceName, clusterName,
-            _zkAddress).setInitialShardState(initialShardStateMap);
+            _zkAddress,
+            () -> removeHelixGatewayParticipant(clusterName, instanceName)).setInitialShardState(
+            initialShardStateMap);
     SUPPORTED_MULTI_STATE_MODEL_TYPES.forEach(
         participantBuilder::addMultiTopStateStateModelDefinition);
     _helixGatewayParticipantMap.computeIfAbsent(clusterName, k -> new ConcurrentHashMap<>())

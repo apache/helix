@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import org.apache.helix.controller.common.CapacityNode;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
-import org.apache.helix.controller.rebalancer.strategy.GreedyRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.StickyRebalanceStrategy;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -38,7 +38,7 @@ import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.when;
 
-public class TestGreedyRebalanceStrategy {
+public class TestStickyRebalanceStrategy {
   private static final String TEST_CLUSTER_NAME = "TestCluster";
   private static final String TEST_RESOURCE_PREFIX = "TestResource_";
 
@@ -67,7 +67,7 @@ public class TestGreedyRebalanceStrategy {
     }
     when(clusterDataCache.getSimpleCapacitySet()).thenReturn(capacityNodeSet);
 
-    GreedyRebalanceStrategy greedyRebalanceStrategy = new GreedyRebalanceStrategy();
+    StickyRebalanceStrategy greedyRebalanceStrategy = new StickyRebalanceStrategy();
     greedyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 0, partitions, states, 1);
     greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, null, clusterDataCache);
 
@@ -75,7 +75,7 @@ public class TestGreedyRebalanceStrategy {
     for (int i = 0; i < 2; i++) {
       partitions.add(TEST_RESOURCE_PREFIX + "1_" + i);
     }
-    greedyRebalanceStrategy = new GreedyRebalanceStrategy();
+    greedyRebalanceStrategy = new StickyRebalanceStrategy();
     greedyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 1, partitions, states, 1);
     greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, null, clusterDataCache);
 
@@ -120,11 +120,10 @@ public class TestGreedyRebalanceStrategy {
     currentMapping.get(TEST_RESOURCE_PREFIX + "0").put("Node-6", "ONLINE");
     currentMapping.put(TEST_RESOURCE_PREFIX + "2", new HashMap<>());
     currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-1", "ONLINE");
-    currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-3", "ONLINE");
     currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-5", "ONLINE");
     currentMapping.get(TEST_RESOURCE_PREFIX + "2").put("Node-8", "ONLINE");
 
-    GreedyRebalanceStrategy greedyRebalanceStrategy = new GreedyRebalanceStrategy();
+    StickyRebalanceStrategy greedyRebalanceStrategy = new StickyRebalanceStrategy();
     greedyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 0, partitions, states, 1);
     ZNRecord shardAssignment =
         greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, currentMapping,
@@ -133,8 +132,8 @@ public class TestGreedyRebalanceStrategy {
     // Assert the existing assignment won't be changed
     Assert.assertEquals(currentMapping.get(TEST_RESOURCE_PREFIX + "0").keySet(),
         new HashSet<>(shardAssignment.getListField(TEST_RESOURCE_PREFIX + "0")));
-    Assert.assertEquals(currentMapping.get(TEST_RESOURCE_PREFIX + "2").keySet(),
-        new HashSet<>(shardAssignment.getListField(TEST_RESOURCE_PREFIX + "2")));
+    Assert.assertTrue(shardAssignment.getListField(TEST_RESOURCE_PREFIX + "2")
+        .containsAll(currentMapping.get(TEST_RESOURCE_PREFIX + "2").keySet()));
   }
 
   @Test
@@ -165,7 +164,7 @@ public class TestGreedyRebalanceStrategy {
     }
     when(clusterDataCache.getSimpleCapacitySet()).thenReturn(capacityNodeSet);
 
-    GreedyRebalanceStrategy greedyRebalanceStrategy = new GreedyRebalanceStrategy();
+    StickyRebalanceStrategy greedyRebalanceStrategy = new StickyRebalanceStrategy();
     greedyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 0, partitions, states, 1);
     // First round assignment computation:
     // 1. Without previous assignment (currentMapping is null)

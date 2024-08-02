@@ -29,12 +29,14 @@ import java.util.Set;
  * of partitions assigned to it, so it can decide if it can receive additional partitions.
  */
 public class CapacityNode {
+  private int _currentlyAssigned;
   private int _capacity;
   private final String _id;
   private final Map<String, Set<String>> _partitionMap;
 
   public CapacityNode(String id) {
     _partitionMap = new HashMap<>();
+    _currentlyAssigned = 0;
     this._id = id;
   }
 
@@ -53,12 +55,13 @@ public class CapacityNode {
     }
 
     // Check if adding a new partition would exceed the node's capacity
-    if (getCurrentlyAssigned() >= _capacity) {
+    if (_currentlyAssigned >= _capacity) {
       return false;
     }
 
     // Add the partition to the resource's set of partitions in this node
     _partitionMap.computeIfAbsent(resource, k -> new HashSet<>()).add(partition);
+    _currentlyAssigned++;
     return true;
   }
 
@@ -95,13 +98,13 @@ public class CapacityNode {
    * @return The number of partitions currently assigned to this node
    */
   public int getCurrentlyAssigned() {
-    return _partitionMap.values().stream().mapToInt(Set::size).sum();
+    return _currentlyAssigned;
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("##########\nname=").append(_id).append("\nassigned:").append(getCurrentlyAssigned())
+    sb.append("##########\nname=").append(_id).append("\nassigned:").append(_currentlyAssigned)
         .append("\ncapacity:").append(_capacity);
     return sb.toString();
   }

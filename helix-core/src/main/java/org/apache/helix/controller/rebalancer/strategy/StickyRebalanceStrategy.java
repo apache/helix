@@ -62,7 +62,7 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     }
 
     if (clusterData.getSimpleCapacitySet() == null) {
-      logger.warn("No capacity set for resource: " + _resourceName);
+      logger.warn("No capacity set for resource: {}", _resourceName);
       return znRecord;
     }
 
@@ -90,10 +90,10 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
       for (Map.Entry<String, Integer> entry : _states.entrySet()) {
         String state = entry.getKey();
         int stateReplicaNumber = entry.getValue();
-        stateMap.putIfAbsent(_partitions.get(i), new HashMap<>());
         // For this partition, compute existing number replicas
         long existsReplicas =
-            stateMap.get(_partitions.get(i)).values().stream().filter(s -> s.equals(state)).count();
+            stateMap.computeIfAbsent(_partitions.get(i), m -> new HashMap<>()).values().stream()
+                .filter(s -> s.equals(state)).count();
         for (int j = 0; j < stateReplicaNumber - existsReplicas; j++) {
           while (index - startIndex < assignableNodes.size()) {
             CapacityNode node = assignableNodes.get(index++ % assignableNodes.size());
@@ -105,7 +105,7 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
 
           if (index - startIndex >= assignableNodes.size()) {
             // If the all nodes have been tried out, then no node can be assigned.
-            logger.warn("No enough assignable nodes for resource: " + _resourceName);
+            logger.warn("No enough assignable nodes for resource: {}", _resourceName);
           }
         }
       }
@@ -174,15 +174,16 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
 
     Map<String, Integer> tmpStates = new HashMap<>(_states);
     for (String state : currentNodeStateMap.values()) {
-      // If the state is not defined in the state model, return invalid
-      if (!tmpStates.containsKey(state)) {
+      // Return invalid if:
+      // The state is not defined in the state model OR
+      // The state count exceeds the defined count in state model
+      if (!tmpStates.containsKey(state) || tmpStates.get(state) <= 0) {
         return false;
       }
       tmpStates.put(state, tmpStates.get(state) - 1);
     }
 
-    // Ensure no state has a negative count
-    return tmpStates.values().stream().noneMatch(count -> count < 0);
+    return true;
   }
 
   /**

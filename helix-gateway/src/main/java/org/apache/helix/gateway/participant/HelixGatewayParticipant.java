@@ -32,6 +32,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
+import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateTransitionError;
@@ -42,17 +43,20 @@ import org.apache.helix.participant.statemachine.StateTransitionError;
  * for the participant and updates the state of the participant's shards upon successful state
  * transitions signaled by remote participant.
  */
-public class HelixGatewayParticipant {
+public class HelixGatewayParticipant implements HelixManagerStateListener {
   public static final String UNASSIGNED_STATE = "UNASSIGNED";
   private final HelixGatewayServiceProcessor _gatewayServiceProcessor;
   private final HelixManager _participantManager;
+  private final Runnable _onDisconnectedCallback;
   private final Map<String, Map<String, String>> _shardStateMap;
   private final Map<String, CompletableFuture<Boolean>> _stateTransitionResultMap;
 
   private HelixGatewayParticipant(HelixGatewayServiceProcessor gatewayServiceProcessor,
+      Runnable onDisconnectedCallback,
       HelixManager participantManager, Map<String, Map<String, String>> initialShardStateMap) {
     _gatewayServiceProcessor = gatewayServiceProcessor;
     _participantManager = participantManager;
+    _onDisconnectedCallback = onDisconnectedCallback;
     _shardStateMap = initialShardStateMap;
     _stateTransitionResultMap = new ConcurrentHashMap<>();
   }
@@ -160,8 +164,34 @@ public class HelixGatewayParticipant {
     }
   }
 
+  /**
+   * Invoked when the HelixManager connection to zookeeper is established
+   *
+   * @param helixManager HelixManager that is successfully connected
+   */
+  public void onConnected(HelixManager helixManager) throws Exception {
+    // Do nothing
+  }
+
+  /**
+   * Invoked when the HelixManager connection to zookeeper is closed unexpectedly. This will not be
+   * run if the remote participant disconnects from gateway.
+   *
+   * @param helixManager HelixManager that fails to be connected
+   * @param error        connection error
+   */
+  @Override
+  public void onDisconnected(HelixManager helixManager, Throwable error) throws Exception {
+    _onDisconnectedCallback.run();
+    _gatewayServiceProcessor.closeConnectionWithError(_participantManager.getInstanceName(),
+        error.getMessage());
+  }
+
   public void disconnect() {
-    _participantManager.disconnect();
+    if (_participantManager.isConnected()) {
+      _participantManager.disconnect();
+    }
+    _gatewayServiceProcessor.completeConnection(_participantManager.getInstanceName());
   }
 
   public static class Builder {
@@ -169,15 +199,17 @@ public class HelixGatewayParticipant {
     private final String _instanceName;
     private final String _clusterName;
     private final String _zkAddress;
+    private final Runnable _onDisconnectedCallback;
     private final List<String> _multiTopStateModelDefinitions;
     private final Map<String, Map<String, String>> _initialShardStateMap;
 
     public Builder(HelixGatewayServiceProcessor helixGatewayServiceProcessor, String instanceName,
-        String clusterName, String zkAddress) {
+        String clusterName, String zkAddress, Runnable onDisconnectedCallback) {
       _helixGatewayServiceProcessor = helixGatewayServiceProcessor;
       _instanceName = instanceName;
       _clusterName = clusterName;
       _zkAddress = zkAddress;
+      _onDisconnectedCallback = onDisconnectedCallback;
       _multiTopStateModelDefinitions = new ArrayList<>();
       _initialShardStateMap = new ConcurrentHashMap<>();
     }
@@ -226,7 +258,8 @@ public class HelixGatewayParticipant {
       HelixManager participantManager =
           new ZKHelixManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, _zkAddress);
       HelixGatewayParticipant participant =
-          new HelixGatewayParticipant(_helixGatewayServiceProcessor, participantManager,
+          new HelixGatewayParticipant(_helixGatewayServiceProcessor, _onDisconnectedCallback,
+              participantManager,
               _initialShardStateMap);
       _multiTopStateModelDefinitions.forEach(
           stateModelDefinition -> participantManager.getStateMachineEngine()

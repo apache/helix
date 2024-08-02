@@ -147,7 +147,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test
+  @Test (dependsOnMethods = "testDifferentTasks")
   public void testThresholdFailure() throws Exception {
     // Create a job with two different tasks
     String jobName = TestHelper.getTestMethodName();
@@ -174,7 +174,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test
+  @Test (dependsOnMethods = "testThresholdFailure")
   public void testReassignment() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String jobNameSuffix = "job";
@@ -218,7 +218,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 
-  @Test
+  @Test (dependsOnMethods = "testReassignment")
   public void testOneTimeScheduled() throws Exception {
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
@@ -250,7 +250,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Assert.assertTrue(startTime <= inFiveSeconds);
   }
 
-  @Test
+  @Test (dependsOnMethods = "testOneTimeScheduled")
   public void testDelayedRetry() throws Exception {
     // Create a single job with single task, set retry delay
     int delay = 3000;

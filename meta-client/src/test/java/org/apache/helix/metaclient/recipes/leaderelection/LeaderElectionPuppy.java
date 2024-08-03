@@ -35,14 +35,9 @@ public class LeaderElectionPuppy extends AbstractPuppy {
   private final Random _random;
   LeaderElectionClient _leaderElectionClient;
 
-  public LeaderElectionPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
-    super(metaclient, puppySpec);
-    _random = new Random();
-  }
-
   public LeaderElectionPuppy(LeaderElectionClient leaderElectionClient, PuppySpec puppySpec, String leaderGroup,
       String participant) {
-    super(leaderElectionClient.getMetaClient(), puppySpec);
+    super(leaderElectionClient.getMetaClient(), puppySpec, leaderGroup);
     _leaderElectionClient = leaderElectionClient;
     _leaderGroup = leaderGroup;
     _random = new Random();

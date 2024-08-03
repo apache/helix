@@ -28,11 +28,12 @@ import java.util.Random;
 public class DeletePuppy extends AbstractPuppy {
 
   private final Random _random;
-  private final String _parentPath = "/test";
+  private final String _parentPath;
 
-  public DeletePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
-    super(metaclient, puppySpec);
+  public DeletePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec, String parentPath) {
+    super(metaclient, puppySpec, parentPath);
     _random = new Random();
+    _parentPath = parentPath;
   }
 
   @Override

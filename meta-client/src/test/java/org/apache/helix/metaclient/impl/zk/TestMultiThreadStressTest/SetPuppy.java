@@ -31,8 +31,8 @@ public class SetPuppy extends AbstractPuppy {
   private final Random _random;
   private final String _parentPath = "/test";
 
-  public SetPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
-    super(metaclient, puppySpec);
+  public SetPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec, String parentPath) {
+    super(metaclient, puppySpec, parentPath);
     _random = new Random();
   }
 

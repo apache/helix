@@ -32,11 +32,13 @@ public abstract class AbstractPuppy implements Runnable {
   protected PuppySpec _puppySpec;
   public final HashMap<String, Integer> _eventChangeCounterMap;
   public int _unhandledErrorCounter;
+  protected final String _parentPath ;
 
-  public AbstractPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
+  public AbstractPuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec, String parentPath) {
     _metaclient = metaclient;
     _puppySpec = puppySpec;
     _eventChangeCounterMap = new HashMap<>();
+    _parentPath = parentPath;
   }
 
   /**

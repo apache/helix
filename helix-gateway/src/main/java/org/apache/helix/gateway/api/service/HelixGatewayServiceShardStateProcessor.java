@@ -19,12 +19,18 @@ package org.apache.helix.gateway.api.service;
  * under the License.
  */
 
+import org.apache.helix.model.Message;
 
-/**
- * Helix Gateway Service Processor interface allows sending state transition messages to
- * participants through service implementing this interface.
- */
-public interface HelixGatewayServiceProcessor
-    extends HelixGatewayServiceClientConnectionMonitor, HelixGatewayServiceShardStateProcessor {
+public interface HelixGatewayServiceShardStateProcessor {
+  /**
+   * Send a state transition message to a remote participant.
+   *
+   * @param instanceName the name of the participant
+   * @param currentState the current state of the shard
+   * @param message      the message to send
+   */
+  void sendStateTransitionMessage(String instanceName, String currentState,
+      Message message);
+
 
 }

@@ -19,12 +19,17 @@ package org.apache.helix.gateway.api.service;
  * under the License.
  */
 
+public interface HelixGatewayServiceClientConnectionMonitor {
+  /**
+   * Close connection with error.
+   * @param instanceName  instance name
+   * @param reason  reason for closing connection
+   */
+  public void closeConnectionWithError(String instanceName, String reason);
 
-/**
- * Helix Gateway Service Processor interface allows sending state transition messages to
- * participants through service implementing this interface.
- */
-public interface HelixGatewayServiceProcessor
-    extends HelixGatewayServiceClientConnectionMonitor, HelixGatewayServiceShardStateProcessor {
-
+  /**
+   * Close connection with success.
+   * @param instanceName  instance name
+   */
+  public void completeConnection(String instanceName);
 }

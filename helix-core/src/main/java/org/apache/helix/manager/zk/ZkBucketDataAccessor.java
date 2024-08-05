@@ -24,8 +24,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -79,7 +81,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private final ZkSerializer _zkSerializer;
   private final RealmAwareZkClient _zkClient;
   private final ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
-  private final Map<String, ScheduledFuture> _gcTaskFutureMap = new HashMap<>();
+  private final Map<String, Queue<ScheduledFuture>> _gcTaskFutureQueueMap = new HashMap<>();
   private boolean _usesExternalZkClient = false;
 
   /**
@@ -239,7 +241,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
 
     // 5. Update the timer for GC
-    updateGCTimer(rootPath, version);
+    scheduleStaleVersionGC(rootPath, version);
     return true;
   }
 
@@ -255,7 +257,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       throw new HelixException(String.format("Failed to delete the bucket data! Path: %s", path));
     }
     synchronized (this) {
-      _gcTaskFutureMap.remove(path);
+      _gcTaskFutureQueueMap.remove(path);
     }
   }
 
@@ -354,18 +356,20 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     close();
   }
 
-  private synchronized void updateGCTimer(String rootPath, long currentVersion) {
-    if (_gcTaskFutureMap.containsKey(rootPath)) {
-      _gcTaskFutureMap.remove(rootPath).cancel(false);
+  private synchronized void scheduleStaleVersionGC(String rootPath, long currentVersion) {
+    // Create empty queue for new path
+    if (!_gcTaskFutureQueueMap.containsKey(rootPath)) {
+      _gcTaskFutureQueueMap.put(rootPath, new LinkedList<>());
     }
-    // Schedule the gc task with TTL
-    _gcTaskFutureMap.put(rootPath, GC_THREAD.schedule(() -> {
-      try {
-        deleteStaleVersions(rootPath, currentVersion);
-      } catch (Exception ex) {
-        LOG.error("Failed to delete the stale versions.", ex);
-      }
-    }, _versionTTLms, TimeUnit.MILLISECONDS));
+    // Schedule GC task
+    _gcTaskFutureQueueMap.get(rootPath).add(GC_THREAD.schedule(() -> {
+          try {
+            deleteStaleVersions(rootPath, currentVersion);
+          } catch (Exception ex) {
+            LOG.error("Failed to delete the stale versions.", ex);
+          }
+        }, _versionTTLms, TimeUnit.MILLISECONDS)
+    );
   }
 
   /**

@@ -50,7 +50,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private static final String NAME_KEY = TestHelper.getTestClassName();
   private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
-  private static final long VERSION_TTL_MS = 1000L;
+  private static final long VERSION_TTL_MS = 5000L;
 
   // Populate list and map fields for content comparison
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
@@ -58,15 +58,17 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
   private final ZNRecord record = new ZNRecord(NAME_KEY);
 
+  private HelixZkClient _zkClient;
   private BucketDataAccessor _bucketDataAccessor;
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
+  private BucketDataAccessor _fastGCBucketDataAccessor;
 
   @BeforeClass
   public void beforeClass() {
     // Initialize ZK accessors for testing
-    HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+    _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
-    zkClient.setZkSerializer(new ZkSerializer() {
+    _zkClient.setZkSerializer(new ZkSerializer() {
       @Override
       public byte[] serialize(Object data) throws ZkMarshallingError {
         if (data instanceof byte[]) {
@@ -80,8 +82,8 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
         return data;
       }
     });
-    _zkBaseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
-    _bucketDataAccessor = new ZkBucketDataAccessor(zkClient, 50 * 1024, VERSION_TTL_MS);
+    _zkBaseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    _bucketDataAccessor = new ZkBucketDataAccessor(_zkClient, 50 * 1024, VERSION_TTL_MS);
 
     // Fill in some data for the record
     record.setSimpleField(NAME_KEY, NAME_KEY);
@@ -191,6 +193,34 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
     // Check against the original HelixProperty
     Assert.assertEquals(readRecord, property);
+  }
+
+  /**
+   * Test to ensure bucket GC still occurs in high frequency write scenarios.
+   */
+  @Test(dependsOnMethods = "testLargeWriteAndRead")
+  public void testGCScheduler() throws IOException, InterruptedException {
+    long gcTTL = 1000; // GC schedule for 1 second after write
+    ZkBucketDataAccessor fastGCBucketDataAccessor = new ZkBucketDataAccessor(_zkClient, 50 * 1024, gcTTL);
+
+    int writeCount = 10;
+    for (int i = 0; i < writeCount; i++) {
+      Thread.sleep(gcTTL / 2);
+      Assert.assertTrue(fastGCBucketDataAccessor.compressedBucketWrite(PATH, new HelixProperty(record)));
+    }
+    List<String> children = _zkBaseDataAccessor.getChildNames(PATH, AccessOption.PERSISTENT);
+    // remove from list if name cant be parsed into long (aka not a version count node)
+    children.removeIf(name -> {
+      try {
+        Long.parseLong(name);
+        return false;
+      } catch (NumberFormatException e) {
+        return true;
+      }
+    });
+
+    Assert.assertTrue(children.size() < writeCount,
+        "Expecting stale versions to cleaned up. Children were: " + children);
   }
 
   private HelixProperty createLargeHelixProperty(String name, int numEntries) {

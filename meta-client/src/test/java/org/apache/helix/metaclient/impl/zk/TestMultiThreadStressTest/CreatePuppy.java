@@ -29,10 +29,9 @@ import java.util.Random;
 public class CreatePuppy extends AbstractPuppy {
 
   private final Random _random;
-  private final String _parentPath = "/test";
 
-  public CreatePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec) {
-    super(metaclient, puppySpec);
+  public CreatePuppy(MetaClientInterface<String> metaclient, PuppySpec puppySpec, String parentPath) {
+    super(metaclient, puppySpec, parentPath);
     _random = new Random();
   }
 

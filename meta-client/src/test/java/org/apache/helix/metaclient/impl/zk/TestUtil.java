@@ -203,4 +203,12 @@ public class TestUtil {
     zkClient.process(event);
   }
 
+  /**
+   * return the name of the calling test method
+   */
+  public static String getTestMethodName() {
+    StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+    return calls[2].getMethodName();
+  }
+
 }

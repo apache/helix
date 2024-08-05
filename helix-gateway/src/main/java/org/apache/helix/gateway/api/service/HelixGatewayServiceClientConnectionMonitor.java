@@ -19,17 +19,30 @@ package org.apache.helix.gateway.api.service;
  * under the License.
  */
 
+/**
+ * Interface for gateway manager to interact with clients on connection.
+ */
 public interface HelixGatewayServiceClientConnectionMonitor {
   /**
-   * Close connection with error.
+   * Gateway service close connection with error. This function is called when manager wants to close client
+   * connection when there is an error. e.g. HelixManager connection is lost.
    * @param instanceName  instance name
    * @param reason  reason for closing connection
    */
   public void closeConnectionWithError(String instanceName, String reason);
 
   /**
-   * Close connection with success.
+   * Gateway service close client connection with success. This function is called when manager wants to close client
+   * connection gracefully, e.g., when gateway service is shutting down.
    * @param instanceName  instance name
    */
   public void completeConnection(String instanceName);
+
+  /**
+   * Callback when we detect client connection is closed. It could be when client gracefully close the connection，
+   * or when client connection is timed out.
+   * @param clusterName  cluster name
+   * @param instanceName  instance name
+   */
+  public void onClientClose(String clusterName, String instanceName);
 }

@@ -21,16 +21,14 @@ package org.apache.helix.gateway.api.service;
 
 import org.apache.helix.model.Message;
 
+
 public interface HelixGatewayServiceShardStateProcessor {
   /**
-   * Send a state transition message to a remote participant.
+   * Gateway service send a state transition message to a connected participant.
    *
    * @param instanceName the name of the participant
    * @param currentState the current state of the shard
    * @param message      the message to send
    */
-  void sendStateTransitionMessage(String instanceName, String currentState,
-      Message message);
-
-
+  void sendStateTransitionMessage(String instanceName, String currentState, Message message);
 }

@@ -44,6 +44,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.collections.Lists;
 
+
 public class TestHelixGatewayParticipant extends ZkTestBase {
   private static final String CLUSTER_NAME = TestHelixGatewayParticipant.class.getSimpleName();
   private static final int START_NUM_NODE = 3;
@@ -97,11 +98,10 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
    */
   private HelixGatewayParticipant addParticipant(String participantName,
       Map<String, Map<String, String>> initialShardMap) {
-    HelixGatewayParticipant participant = new HelixGatewayParticipant.Builder(
-        new MockHelixGatewayServiceProcessor(_pendingMessageMap), participantName, CLUSTER_NAME,
-        ZK_ADDR, _onDisconnectCallbackCount::incrementAndGet).addMultiTopStateStateModelDefinition(
-            TEST_STATE_MODEL)
-        .setInitialShardState(initialShardMap).build();
+    HelixGatewayParticipant participant =
+        new HelixGatewayParticipant.Builder(new MockHelixGatewayServiceProcessor(_pendingMessageMap), participantName,
+            CLUSTER_NAME, ZK_ADDR, _onDisconnectCallbackCount::incrementAndGet).addMultiTopStateStateModelDefinition(
+            TEST_STATE_MODEL).setInitialShardState(initialShardMap).build();
     _participants.add(participant);
     return participant;
   }
@@ -126,9 +126,9 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
    * Add a participant to the IdealState's preference list.
    */
   private void addToPreferenceList(HelixGatewayParticipant participant) {
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
-    idealState.getPreferenceLists().values()
+    IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+    idealState.getPreferenceLists()
+        .values()
         .forEach(preferenceList -> preferenceList.add(participant.getInstanceName()));
     idealState.setReplicas(String.valueOf(Integer.parseInt(idealState.getReplicas()) + 1));
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, TEST_DB, idealState);
@@ -138,9 +138,9 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
    * Remove a participant from the IdealState's preference list.
    */
   private void removeFromPreferenceList(HelixGatewayParticipant participant) {
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
-    idealState.getPreferenceLists().values()
+    IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+    idealState.getPreferenceLists()
+        .values()
         .forEach(preferenceList -> preferenceList.remove(participant.getInstanceName()));
     idealState.setReplicas(String.valueOf(Integer.parseInt(idealState.getReplicas()) - 1));
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, TEST_DB, idealState);
@@ -151,13 +151,13 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
    */
   private void createDB() {
     createDBInSemiAuto(_gSetupTool, CLUSTER_NAME, TEST_DB,
-        _participants.stream().map(HelixGatewayParticipant::getInstanceName)
-            .collect(Collectors.toList()), TEST_STATE_MODEL, 1, _participants.size());
+        _participants.stream().map(HelixGatewayParticipant::getInstanceName).collect(Collectors.toList()),
+        TEST_STATE_MODEL, 1, _participants.size());
 
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setResources(new HashSet<>(
-            _gSetupTool.getClusterManagementTool().getResourcesInCluster(CLUSTER_NAME)))
-        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
+        .setResources(new HashSet<>(_gSetupTool.getClusterManagementTool().getResourcesInCluster(CLUSTER_NAME)))
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
   }
 
   /**
@@ -178,10 +178,10 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   /**
    * Get the current state of a Helix shard.
    */
-  private String getHelixCurrentState(String instanceName, String resourceName,
-      String shardId) {
+  private String getHelixCurrentState(String instanceName, String resourceName, String shardId) {
     return _gSetupTool.getClusterManagementTool()
-        .getResourceExternalView(CLUSTER_NAME, resourceName).getStateMap(shardId)
+        .getResourceExternalView(CLUSTER_NAME, resourceName)
+        .getStateMap(shardId)
         .getOrDefault(instanceName, HelixGatewayParticipant.UNASSIGNED_STATE);
   }
 
@@ -189,8 +189,8 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
    * Verify that all specified participants have pending messages.
    */
   private void verifyPendingMessages(List<HelixGatewayParticipant> participants) throws Exception {
-    Assert.assertTrue(TestHelper.verify(() -> participants.stream()
-            .allMatch(participant -> getPendingMessage(participant.getInstanceName()) != null),
+    Assert.assertTrue(TestHelper.verify(
+        () -> participants.stream().allMatch(participant -> getPendingMessage(participant.getInstanceName()) != null),
         TestHelper.WAIT_DURATION));
   }
 
@@ -200,12 +200,11 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   private void verifyGatewayStateMatchesHelixState() throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> _participants.stream().allMatch(participant -> {
       String instanceName = participant.getInstanceName();
-      for (String resourceName : _gSetupTool.getClusterManagementTool()
-          .getResourcesInCluster(CLUSTER_NAME)) {
+      for (String resourceName : _gSetupTool.getClusterManagementTool().getResourcesInCluster(CLUSTER_NAME)) {
         for (String shardId : _gSetupTool.getClusterManagementTool()
-            .getResourceIdealState(CLUSTER_NAME, resourceName).getPartitionSet()) {
-          String helixCurrentState =
-              getHelixCurrentState(instanceName, resourceName, shardId);
+            .getResourceIdealState(CLUSTER_NAME, resourceName)
+            .getPartitionSet()) {
+          String helixCurrentState = getHelixCurrentState(instanceName, resourceName, shardId);
           if (!participant.getCurrentState(resourceName, shardId).equals(helixCurrentState)) {
             return false;
           }
@@ -220,10 +219,10 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
    */
   private void verifyHelixPartitionStates(String instanceName, String state) throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
-      for (String resourceName : _gSetupTool.getClusterManagementTool()
-          .getResourcesInCluster(CLUSTER_NAME)) {
+      for (String resourceName : _gSetupTool.getClusterManagementTool().getResourcesInCluster(CLUSTER_NAME)) {
         for (String shardId : _gSetupTool.getClusterManagementTool()
-            .getResourceIdealState(CLUSTER_NAME, resourceName).getPartitionSet()) {
+            .getResourceIdealState(CLUSTER_NAME, resourceName)
+            .getPartitionSet()) {
           if (!getHelixCurrentState(instanceName, resourceName, shardId).equals(state)) {
             return false;
           }
@@ -287,8 +286,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     deleteParticipant(participant);
 
     // Verify the Helix state transitions to "UNASSIGNED_STATE" for the participant
-    verifyHelixPartitionStates(participant.getInstanceName(),
-        HelixGatewayParticipant.UNASSIGNED_STATE);
+    verifyHelixPartitionStates(participant.getInstanceName(), HelixGatewayParticipant.UNASSIGNED_STATE);
 
     // Re-add the participant with its initial state
     addParticipant(participant.getInstanceName(), participant.getShardStateMap());
@@ -303,8 +301,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     // Remove the first participant and verify state
     HelixGatewayParticipant participant = _participants.get(0);
     deleteParticipant(participant);
-    verifyHelixPartitionStates(participant.getInstanceName(),
-        HelixGatewayParticipant.UNASSIGNED_STATE);
+    verifyHelixPartitionStates(participant.getInstanceName(), HelixGatewayParticipant.UNASSIGNED_STATE);
 
     // Remove shard preference and re-add the participant
     removeFromPreferenceList(participant);
@@ -327,8 +324,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     HelixGatewayParticipant participant = _participants.get(0);
     deleteParticipant(participant);
 
-    Assert.assertEquals(MockHelixGatewayServiceProcessor._gracefulDisconnectCount.get(),
-        gracefulDisconnectCount + 1);
+    Assert.assertEquals(MockHelixGatewayServiceProcessor._gracefulDisconnectCount.get(), gracefulDisconnectCount + 1);
   }
 
   @Test(dependsOnMethods = "testGatewayParticipantDisconnectGracefully")
@@ -343,8 +339,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
 
     Assert.assertEquals(MockHelixGatewayServiceProcessor._errorDisconnectCount.get(),
         errorDisconnectCount + _participants.size());
-    Assert.assertEquals(_onDisconnectCallbackCount.get(),
-        onDisconnectCallbackCount + _participants.size());
+    Assert.assertEquals(_onDisconnectCallbackCount.get(), onDisconnectCallbackCount + _participants.size());
   }
 
   public static class MockHelixGatewayServiceProcessor implements HelixGatewayServiceProcessor {
@@ -357,8 +352,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     }
 
     @Override
-    public void sendStateTransitionMessage(String instanceName, String currentState,
-        Message message) {
+    public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
       _pendingMessageMap.put(instanceName, message);
     }
 
@@ -370,6 +364,11 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     @Override
     public void completeConnection(String instanceName) {
       _gracefulDisconnectCount.incrementAndGet();
+    }
+
+    @Override
+    public void onClientClose(String clusterName, String instanceName) {
+
     }
   }
 }

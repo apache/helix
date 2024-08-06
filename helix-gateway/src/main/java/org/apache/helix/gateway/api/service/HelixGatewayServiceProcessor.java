@@ -19,35 +19,29 @@ package org.apache.helix.gateway.api.service;
  * under the License.
  */
 
-import org.apache.helix.model.Message;
+import org.apache.helix.gateway.service.GatewayServiceEvent;
+import org.apache.helix.gateway.service.GatewayServiceManager;
+
 
 /**
  * Helix Gateway Service Processor interface allows sending state transition messages to
  * participants through service implementing this interface.
  */
-public interface HelixGatewayServiceProcessor {
+public interface HelixGatewayServiceProcessor
+    extends HelixGatewayServiceClientConnectionMonitor, HelixGatewayServiceShardStateProcessor {
 
   /**
-   * Send a state transition message to a remote participant.
+   * Callback when receiving a client event.
+   * Event could be a connection closed event (event type DISCONNECT),
+   * an initial connection establish event that contains a map of current chard states (event type CONNECT),
+   * or a state transition result message (event type UPDATE).
    *
-   * @param instanceName the name of the participant
-   * @param currentState the current state of the shard
-   * @param message      the message to send
+   * The default implementation push an event to the Gateway Service Manager.
+   *
+   * @param gatewayServiceManager the Gateway Service Manager
+   * @param event the event to push
    */
-  void sendStateTransitionMessage(String instanceName, String currentState,
-      Message message);
-
-  /**
-   * Close connection with error.
-   * @param instanceName  instance name
-   * @param reason  reason for closing connection
-   */
-  public void closeConnectionWithError(String instanceName, String reason);
-
-  /**
-   * Close connection with success.
-   * @param instanceName  instance name
-   */
-  public void completeConnection(String instanceName);
-
+  default void onClientEvent(GatewayServiceManager gatewayServiceManager, GatewayServiceEvent event) {
+    gatewayServiceManager.newGatewayServiceEvent(event);
+  }
 }

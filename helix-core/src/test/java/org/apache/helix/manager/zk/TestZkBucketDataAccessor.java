@@ -221,6 +221,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
     Assert.assertTrue(children.size() < writeCount,
         "Expecting stale versions to cleaned up. Children were: " + children);
+    System.out.print("Children after GC: " + children);
   }
 
   private HelixProperty createLargeHelixProperty(String name, int numEntries) {

@@ -555,9 +555,16 @@ public class StatusUpdateUtil {
    */
   void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
       String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController) {
-    if (!ERROR_LOG_TO_ZK_ENABLED) {
+    publishErrorRecord(record, instanceName, updateSubPath, updateKey, sessionId, accessor,
+        isController, ERROR_LOG_TO_ZK_ENABLED);
+  }
+
+  void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
+      String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController, boolean logToZKEnabled) {
+    if (!logToZKEnabled) {
       return;
     }
+
     Builder keyBuilder = accessor.keyBuilder();
     if (isController) {
       // TODO need to fix: ERRORS_CONTROLLER doesn't have a form of

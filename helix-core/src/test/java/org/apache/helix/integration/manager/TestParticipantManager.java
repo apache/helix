@@ -44,7 +44,6 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
@@ -78,14 +77,14 @@ public class TestParticipantManager extends ZkTestBase {
     System.setProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED, "true");
   }
 
-  @AfterMethod
-  public void afterMethod(Method testMethod, ITestContext testContext) {
-    deleteCluster(_clusterName);
-  }
-
   @AfterClass
   public void afterClass() {
     System.clearProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED);
+  }
+
+  @AfterMethod
+  public void afterMethod(Method testMethod, ITestContext testContext) {
+    deleteCluster(_clusterName);
   }
 
   @Test

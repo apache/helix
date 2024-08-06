@@ -355,13 +355,13 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
     // Schedule GC task
     _gcTaskFutureMap.put(rootPath, GC_THREAD.schedule(() -> {
-          try {
-            _gcTaskFutureMap.remove(rootPath);
-            deleteStaleVersions(rootPath);
-          } catch (Exception ex) {
-            LOG.error("Failed to delete the stale versions.", ex);
-          }
-        }, _versionTTLms, TimeUnit.MILLISECONDS));
+        try {
+          _gcTaskFutureMap.remove(rootPath);
+          deleteStaleVersions(rootPath);
+        } catch (Exception ex) {
+          LOG.error("Failed to delete the stale versions.", ex);
+        }
+      }, _versionTTLms, TimeUnit.MILLISECONDS));
     }
 
   /**

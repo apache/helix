@@ -50,7 +50,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private static final String NAME_KEY = TestHelper.getTestClassName();
   private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
-  private static final long VERSION_TTL_MS = 5000L;
+  private static final long VERSION_TTL_MS = 1000L;
 
   // Populate list and map fields for content comparison
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");

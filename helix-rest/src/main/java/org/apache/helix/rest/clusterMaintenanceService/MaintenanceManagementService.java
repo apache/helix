@@ -472,9 +472,15 @@ public class MaintenanceManagementService {
   private List<String> batchHelixInstanceStoppableCheck(String clusterId,
       Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks,
       Set<String> toBeStoppedInstances) {
+
+    // Perform all but min_active replicas check in parallel
     Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(
         Collectors.toMap(Function.identity(), instance -> POOL.submit(
             () -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances))));
+
+    // Perform min_active replicas check sequentially
+    addInstanceMinActiveReplicaCheck(helixInstanceChecks, toBeStoppedInstances);
+
     // finalStoppableChecks contains instances that does not pass this health check
     return filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
   }
@@ -787,10 +793,6 @@ public class MaintenanceManagementService {
           healthStatus.put(HealthCheck.EMPTY_RESOURCE_ASSIGNMENT.name(),
               InstanceValidationUtil.isResourceAssigned(_dataAccessor, instanceName));
           break;
-        case MIN_ACTIVE_REPLICA_CHECK_FAILED:
-          healthStatus.put(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),
-              InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor, instanceName, toBeStoppedInstances));
-          break;
         default:
           LOG.error("Unsupported health check: {}", healthCheck);
           break;
@@ -798,6 +800,35 @@ public class MaintenanceManagementService {
     }
 
     return healthStatus;
+  }
+
+  // Adds the result of the min_active replica check for each stoppable check passed in futureStoppableCheckByInstance
+  private void addInstanceMinActiveReplicaCheck(Map<String, Future<StoppableCheck>> futureStoppableCheckByInstance,
+      Set<String> toBeStoppedInstances) {
+    Set<String> possibleToStopInstances = new HashSet<>(toBeStoppedInstances);
+
+    for (Map.Entry<String, Future<StoppableCheck>> entry : futureStoppableCheckByInstance.entrySet()) {
+      try {
+        String instanceName = entry.getKey();
+        StoppableCheck stoppableCheck = entry.getValue().get();
+
+        // Check if min active will be violated and add to stoppableCheck. If instance still stoppable,
+        // add to possibleToStopInstances
+        boolean minActiveCheckResult = InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor,
+            instanceName, possibleToStopInstances);
+        stoppableCheck.add(new StoppableCheck(Collections.singletonMap(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),
+            minActiveCheckResult), StoppableCheck.Category.HELIX_OWN_CHECK));
+        if (stoppableCheck.isStoppable()) {
+          possibleToStopInstances.add(instanceName);
+        }
+
+      } catch (Exception e) {
+        String errorMessage = String.format("Failed to get StoppableChecks in parallel. Instances: %s",
+            futureStoppableCheckByInstance.values());
+        LOG.error(errorMessage, e);
+        throw new HelixException(errorMessage);
+      }
+    }
   }
 
   public static class MaintenanceManagementServiceBuilder {

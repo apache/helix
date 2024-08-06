@@ -83,6 +83,7 @@ public class TestMaintenanceManagementService {
     RESTConfig restConfig = new RESTConfig("restConfig");
     restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:123/path");
     when(_configAccessor.getRESTConfig(TEST_CLUSTER)).thenReturn(restConfig);
+    when(_dataAccessorWrapper.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
   }
 
   class MockMaintenanceManagementService extends MaintenanceManagementService {
@@ -124,7 +125,7 @@ public class TestMaintenanceManagementService {
     Map<String, Boolean> failedCheck = ImmutableMap.of("FailCheck", false);
     MockMaintenanceManagementService service =
         new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
-            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+            _customRestClient, false, false, null, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
@@ -144,7 +145,7 @@ public class TestMaintenanceManagementService {
   public void testGetInstanceStoppableCheckWhenCustomInstanceCheckFail() throws IOException {
     MockMaintenanceManagementService service =
         new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
-            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+            _customRestClient, false, false, null, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
@@ -243,7 +244,7 @@ public class TestMaintenanceManagementService {
   public void testGetInstanceStoppableCheckConnectionRefused() throws IOException {
     MockMaintenanceManagementService service =
         new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
-            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+            _customRestClient, false, false, null, HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {

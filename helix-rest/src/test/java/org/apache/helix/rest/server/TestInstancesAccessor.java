@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.helix.TestHelper;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
@@ -288,6 +289,10 @@ public class TestInstancesAccessor extends AbstractTestClass {
         ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
         ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance0, instanceConfig);
+    instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance1, instanceConfig1);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -516,6 +521,59 @@ public class TestInstancesAccessor extends AbstractTestClass {
     // in ClusterConfig
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
 
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testValidateWeightForAllInstances")
+  public void testMultipleReplicasInSameMZ() throws Exception {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // Create SemiAuto DB so that we can control assignment
+    String testDb = TestHelper.getTestMethodName() + "_resource";
+    _gSetupTool.getClusterManagementTool().addResource(STOPPABLE_CLUSTER2, testDb, 3, "MasterSlave",
+        IdealState.RebalanceMode.SEMI_AUTO.toString());
+    _gSetupTool.getClusterManagementTool().rebalance(STOPPABLE_CLUSTER2, testDb, 3);
+
+    // Manually set ideal state to have the 3 replcias assigned to 3 instances all in the same zone
+    List<String> preferenceList = Arrays.asList("instance0", "instance1", "instance2");
+    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(STOPPABLE_CLUSTER2, testDb);
+    for (String p : is.getPartitionSet()) {
+      is.setPreferenceList(p, preferenceList);
+    }
+    is.setMinActiveReplicas(2);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(STOPPABLE_CLUSTER2, testDb, is);
+
+    // Wait for assignments to take place
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER2).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    // Run stoppable check against the 3 instances where SemiAuto DB was assigned
+    String content =
+        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\"]}",
+            InstancesAccessor.InstancesProperties.selection_base.name(),
+            InstancesAccessor.InstanceHealthSelectionBase.zone_based.name(),
+            InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
+            "instance2");
+    Response response =
+        new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+            STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    // Resource has 3 replicas with min_active of 2
+    // First instance should be stoppable as min_active still satisfied
+    Set<String> stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertTrue(Collections.singleton("instance0").equals(stoppableSet));
+
+    // Next 2 instances should fail stoppable due to MIN_ACTIVE_REPLICA_CHECK_FAILED
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertFalse(getStringSet(nonStoppableInstances, "instance0")
+        .contains("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertTrue(getStringSet(nonStoppableInstances, "instance1")
+        .contains("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertTrue(getStringSet(nonStoppableInstances, "instance2")
+        .contains("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

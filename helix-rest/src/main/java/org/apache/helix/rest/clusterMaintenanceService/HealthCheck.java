@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import java.util.stream.Collectors;
 
 
 public enum HealthCheck {
@@ -62,9 +63,12 @@ public enum HealthCheck {
   MIN_ACTIVE_REPLICA_CHECK_FAILED;
 
   /**
-   * Pre-defined list of checks to test if an instance can be stopped at runtime
+   * Pre-defined list of checks to test if an instance can be stopped at runtime. Excludes MIN_ACTIVE_REPLICA_CHECK as
+   * that is performed separately.
    */
-  public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.asList(HealthCheck.values());
+  public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.stream(HealthCheck.values())
+      .filter(healthCheck -> healthCheck != HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED)
+      .collect(Collectors.toList());
   /**
    * Pre-defined list of checks to test if an instance is in healthy running state
    */

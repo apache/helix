@@ -30,7 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
-import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -45,16 +45,16 @@ import org.apache.helix.participant.statemachine.StateTransitionError;
  */
 public class HelixGatewayParticipant implements HelixManagerStateListener {
   public static final String UNASSIGNED_STATE = "UNASSIGNED";
-  private final HelixGatewayServiceProcessor _gatewayServiceProcessor;
+  private final HelixGatewayServiceChannel _gatewayServiceChannel;
   private final HelixManager _helixManager;
   private final Runnable _onDisconnectedCallback;
   private final Map<String, Map<String, String>> _shardStateMap;
   private final Map<String, CompletableFuture<Boolean>> _stateTransitionResultMap;
 
-  private HelixGatewayParticipant(HelixGatewayServiceProcessor gatewayServiceProcessor,
+  private HelixGatewayParticipant(HelixGatewayServiceChannel gatewayServiceChannel,
       Runnable onDisconnectedCallback, HelixManager helixManager,
       Map<String, Map<String, String>> initialShardStateMap) {
-    _gatewayServiceProcessor = gatewayServiceProcessor;
+    _gatewayServiceChannel = gatewayServiceChannel;
     _helixManager = helixManager;
     _onDisconnectedCallback = onDisconnectedCallback;
     _shardStateMap = initialShardStateMap;
@@ -74,7 +74,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
 
       CompletableFuture<Boolean> future = new CompletableFuture<>();
       _stateTransitionResultMap.put(transitionId, future);
-      _gatewayServiceProcessor.sendStateTransitionMessage(_helixManager.getInstanceName(),
+      _gatewayServiceChannel.sendStateTransitionMessage(_helixManager.getInstanceName(),
           getCurrentState(resourceId, shardId), message);
 
       if (!future.get()) {
@@ -183,7 +183,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   @Override
   public void onDisconnected(HelixManager helixManager, Throwable error) throws Exception {
     _onDisconnectedCallback.run();
-    _gatewayServiceProcessor.closeConnectionWithError(_helixManager.getInstanceName(),
+    _gatewayServiceChannel.closeConnectionWithError(_helixManager.getInstanceName(),
         error.getMessage());
   }
 
@@ -191,11 +191,11 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     if (_helixManager.isConnected()) {
       _helixManager.disconnect();
     }
-    _gatewayServiceProcessor.completeConnection(_helixManager.getInstanceName());
+    _gatewayServiceChannel.completeConnection(_helixManager.getInstanceName());
   }
 
   public static class Builder {
-    private final HelixGatewayServiceProcessor _helixGatewayServiceProcessor;
+    private final HelixGatewayServiceChannel _helixGatewayServiceChannel;
     private final String _instanceName;
     private final String _clusterName;
     private final String _zkAddress;
@@ -203,9 +203,9 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     private final List<String> _multiTopStateModelDefinitions;
     private final Map<String, Map<String, String>> _initialShardStateMap;
 
-    public Builder(HelixGatewayServiceProcessor helixGatewayServiceProcessor, String instanceName,
+    public Builder(HelixGatewayServiceChannel helixGatewayServiceChannel, String instanceName,
         String clusterName, String zkAddress, Runnable onDisconnectedCallback) {
-      _helixGatewayServiceProcessor = helixGatewayServiceProcessor;
+      _helixGatewayServiceChannel = helixGatewayServiceChannel;
       _instanceName = instanceName;
       _clusterName = clusterName;
       _zkAddress = zkAddress;
@@ -258,7 +258,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
       HelixManager participantManager =
           new ZKHelixManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, _zkAddress);
       HelixGatewayParticipant participant =
-          new HelixGatewayParticipant(_helixGatewayServiceProcessor, _onDisconnectedCallback,
+          new HelixGatewayParticipant(_helixGatewayServiceChannel, _onDisconnectedCallback,
               participantManager,
               _initialShardStateMap);
       _multiTopStateModelDefinitions.forEach(

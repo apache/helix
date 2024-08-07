@@ -138,7 +138,7 @@ public class TestGatewayServiceConnection extends HelixGatewayTestBase {
     }
 
     @Override
-    public void newGatewayServiceEvent(GatewayServiceEvent event) {
+    public void onGatewayServiceEvent(GatewayServiceEvent event) {
       if (event.getEventType().equals(GatewayServiceEventType.CONNECT)) {
         connectLatch.countDown();
       } else if (event.getEventType().equals(GatewayServiceEventType.DISCONNECT)) {

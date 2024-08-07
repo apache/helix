@@ -104,8 +104,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
 
     for (String id : sortedAllNodes) {
       Node node = new Node(id);
-      node.capacity = 0;
-      node.hasCeilingCapacity = false;
+      node._capacity = 0;
+      node._hasCeilingCapacity = false;
       _nodeMap.put(id, node);
     }
     for (int i = 0; i < sortedLiveNodes.size(); i++) {
@@ -117,9 +117,9 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         usingCeiling = true;
       }
       Node node = _nodeMap.get(sortedLiveNodes.get(i));
-      node.isAlive = true;
-      node.capacity = targetSize;
-      node.hasCeilingCapacity = usingCeiling;
+      node._isAliveEnabled = true;
+      node._capacity = targetSize;
+      node._hasCeilingCapacity = usingCeiling;
       _liveNodesList.add(node);
     }
 
@@ -170,14 +170,14 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       Replica replica = entry.getKey();
       Node donor = entry.getValue();
       Node receiver = _preferredAssignment.get(replica);
-      if (donor.capacity < donor.currentlyAssigned
-          && receiver.capacity > receiver.currentlyAssigned && receiver.canAdd(replica)) {
-        donor.currentlyAssigned = donor.currentlyAssigned - 1;
-        receiver.currentlyAssigned = receiver.currentlyAssigned + 1;
-        donor.nonPreferred.remove(replica);
-        receiver.preferred.add(replica);
-        donor.newReplicas.remove(replica);
-        receiver.newReplicas.add(replica);
+      if (donor._capacity < donor._currentlyAssigned
+          && receiver._capacity > receiver._currentlyAssigned && receiver.canAdd(replica)) {
+        donor._currentlyAssigned = donor._currentlyAssigned - 1;
+        receiver._currentlyAssigned = receiver._currentlyAssigned + 1;
+        donor._nonPreferred.remove(replica);
+        receiver._preferred.add(replica);
+        donor._newReplicas.remove(replica);
+        receiver._newReplicas.add(replica);
         iterator.remove();
       }
     }
@@ -197,20 +197,20 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
 
       // first find if it preferred node still has capacity
       Node preferred = _preferredAssignment.get(replica);
-      if (preferred.capacity > preferred.currentlyAssigned && preferred.canAdd(replica)) {
-        preferred.currentlyAssigned ++;
-        preferred.preferred.add(replica);
-        preferred.newReplicas.add(replica);
+      if (preferred._capacity > preferred._currentlyAssigned && preferred.canAdd(replica)) {
+        preferred._currentlyAssigned++;
+        preferred._preferred.add(replica);
+        preferred._newReplicas.add(replica);
         added = true;
       } else {
         // if preferred node has no capacity, search all nodes and find one that has capacity.
         int startIndex = computeRandomStartIndex(replica);
         for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
           Node receiver = _liveNodesList.get(index % _liveNodesList.size());
-          if (receiver.capacity > receiver.currentlyAssigned && receiver.canAdd(replica)) {
-            receiver.currentlyAssigned = receiver.currentlyAssigned + 1;
-            receiver.nonPreferred.add(replica);
-            receiver.newReplicas.add(replica);
+          if (receiver._capacity > receiver._currentlyAssigned && receiver.canAdd(replica)) {
+            receiver._currentlyAssigned = receiver._currentlyAssigned + 1;
+            receiver._nonPreferred.add(replica);
+            receiver._newReplicas.add(replica);
             added = true;
             break;
           }
@@ -240,11 +240,11 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     int startIndex = computeRandomStartIndex(replica);
     for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
       Node current = _liveNodesList.get(index % _liveNodesList.size());
-      if (current.hasCeilingCapacity && current.capacity > current.currentlyAssigned
+      if (current._hasCeilingCapacity && current._capacity > current._currentlyAssigned
           && !current.canAddIfCapacity(replica) && capacityDonor == null) {
         // this node has space but cannot accept the node
         capacityDonor = current;
-      } else if (!current.hasCeilingCapacity && current.capacity == current.currentlyAssigned
+      } else if (!current._hasCeilingCapacity && current._capacity == current._currentlyAssigned
           && current.canAddIfCapacity(replica) && capacityAcceptor == null) {
         // this node would be able to accept the replica if it has ceiling capacity
         capacityAcceptor = current;
@@ -268,27 +268,27 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     // iterate over nodes and move extra load
     Iterator<Replica> it;
     for (Node donor : _liveNodesList) {
-      if (donor.capacity < donor.currentlyAssigned) {
-        Collections.sort(donor.nonPreferred);
-        it = donor.nonPreferred.iterator();
+      if (donor._capacity < donor._currentlyAssigned) {
+        Collections.sort(donor._nonPreferred);
+        it = donor._nonPreferred.iterator();
         while (it.hasNext()) {
           Replica replica = it.next();
           int startIndex = computeRandomStartIndex(replica);
           for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
             Node receiver = _liveNodesList.get(index % _liveNodesList.size());
             if (receiver.canAdd(replica)) {
-              receiver.currentlyAssigned ++;
-              receiver.nonPreferred.add(replica);
-              donor.currentlyAssigned --;
+              receiver._currentlyAssigned++;
+              receiver._nonPreferred.add(replica);
+              donor._currentlyAssigned--;
               it.remove();
               break;
             }
           }
-          if (donor.capacity >= donor.currentlyAssigned) {
+          if (donor._capacity >= donor._currentlyAssigned) {
             break;
           }
         }
-        if (donor.capacity < donor.currentlyAssigned) {
+        if (donor._capacity < donor._currentlyAssigned) {
           if (logger.isDebugEnabled()) {
             logger.debug("Could not take partitions out of node:" + donor.id);
           }
@@ -319,20 +319,20 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     // [existing preferred, existing non-preferred, non-existing preferred, non-existing
     // non-preferred]
     for (Node node : _liveNodesList) {
-      for (Replica replica : node.preferred) {
-        if (node.newReplicas.contains(replica)) {
-          newPreferences.get(replica.partition).add(node.id);
+      for (Replica replica : node._preferred) {
+        if (node._newReplicas.contains(replica)) {
+          newPreferences.get(replica._partition).add(node.id);
         } else {
-          znRecord.getListField(replica.partition).add(node.id);
+          znRecord.getListField(replica._partition).add(node.id);
         }
       }
     }
     for (Node node : _liveNodesList) {
-      for (Replica replica : node.nonPreferred) {
-        if (node.newReplicas.contains(replica)) {
-          newPreferences.get(replica.partition).add(node.id);
+      for (Replica replica : node._nonPreferred) {
+        if (node._newReplicas.contains(replica)) {
+          newPreferences.get(replica._partition).add(node.id);
         } else {
-          znRecord.getListField(replica.partition).add(node.id);
+          znRecord.getListField(replica._partition).add(node.id);
         }
       }
     }
@@ -355,17 +355,17 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       Node nodeToAssign = null;
       for (int i = 0; i < _liveNodesList.size(); i++) {
         Node receiver = _liveNodesList.get(i);
-        if ((nodeToAssign == null || receiver.capacity < minOverloadedCapacity)
-            && receiver.currentlyAssigned < _maximumPerNode && receiver
+        if ((nodeToAssign == null || receiver._capacity < minOverloadedCapacity)
+            && receiver._currentlyAssigned < _maximumPerNode && receiver
             .canAddIfCapacity(replica)) {
           nodeToAssign = receiver;
         }
       }
 
       if (nodeToAssign != null) {
-        nodeToAssign.currentlyAssigned = nodeToAssign.currentlyAssigned + 1;
-        nodeToAssign.nonPreferred.add(replica);
-        nodeToAssign.newReplicas.add(replica);
+        nodeToAssign._currentlyAssigned = nodeToAssign._currentlyAssigned + 1;
+        nodeToAssign._nonPreferred.add(replica);
+        nodeToAssign._newReplicas.add(replica);
       }
     }
   }
@@ -477,8 +477,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       for (String nodeId : nodeStateMap.keySet()) {
         Node node = _nodeMap.get(nodeId);
         boolean skip = false;
-        for (Replica replica : node.preferred) {
-          if (replica.partition.equals(partition)) {
+        for (Replica replica : node._preferred) {
+          if (replica._partition.equals(partition)) {
             skip = true;
             break;
           }
@@ -500,7 +500,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
               && !_existingPreferredAssignment.containsKey(replica)
               && !existingNonPreferredAssignment.containsKey(replica)) {
             existingNonPreferredAssignment.put(replica, node);
-            node.nonPreferred.add(replica);
+            node._nonPreferred.add(replica);
 
             break;
           }
@@ -554,15 +554,15 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       nodeStateMap.keySet().retainAll(_nodeMap.keySet());
       for (String nodeId : nodeStateMap.keySet()) {
         Node node = _nodeMap.get(nodeId);
-        node.currentlyAssigned = node.currentlyAssigned + 1;
+        node._currentlyAssigned = node._currentlyAssigned + 1;
         // check if its in one of the preferred position
         for (int replicaId = 0; replicaId < count; replicaId++) {
           Replica replica = new Replica(partition, replicaId);
           if (_preferredAssignment.containsKey(replica)
               && !existingPreferredAssignment.containsKey(replica)
-              && _preferredAssignment.get(replica).id == node.id) {
+              && _preferredAssignment.get(replica).id == node.id && node._isAliveEnabled) {
             existingPreferredAssignment.put(replica, node);
-            node.preferred.add(replica);
+            node._preferred.add(replica);
             break;
           }
         }
@@ -631,21 +631,21 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * of replicas assigned to it, so it can decide if it can receive additional replicas.
    */
   class Node {
-    public int currentlyAssigned;
-    public int capacity;
-    public boolean hasCeilingCapacity;
+    public int _currentlyAssigned;
+    public int _capacity;
+    public boolean _hasCeilingCapacity;
     private final String id;
-    boolean isAlive;
-    private final List<Replica> preferred;
-    private final List<Replica> nonPreferred;
-    private final Set<Replica> newReplicas;
+    boolean _isAliveEnabled;
+    private final List<Replica> _preferred;
+    private final List<Replica> _nonPreferred;
+    private final Set<Replica> _newReplicas;
 
     public Node(String id) {
-      preferred = new ArrayList<Replica>();
-      nonPreferred = new ArrayList<Replica>();
-      newReplicas = new TreeSet<Replica>();
-      currentlyAssigned = 0;
-      isAlive = false;
+      _preferred = new ArrayList<Replica>();
+      _nonPreferred = new ArrayList<Replica>();
+      _newReplicas = new TreeSet<Replica>();
+      _currentlyAssigned = 0;
+      _isAliveEnabled = false;
       this.id = id;
     }
 
@@ -655,7 +655,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
      * @return true if the assignment can be made, false otherwise
      */
     public boolean canAdd(Replica replica) {
-      if (currentlyAssigned >= capacity) {
+      if (_currentlyAssigned >= _capacity) {
         return false;
       }
       return canAddIfCapacity(replica);
@@ -668,16 +668,16 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
      * @return true if the assignment can be made, false otherwise
      */
     public boolean canAddIfCapacity(Replica replica) {
-      if (!isAlive) {
+      if (!_isAliveEnabled) {
         return false;
       }
-      for (Replica r : preferred) {
-        if (r.partition.equals(replica.partition)) {
+      for (Replica r : _preferred) {
+        if (r._partition.equals(replica._partition)) {
           return false;
         }
       }
-      for (Replica r : nonPreferred) {
-        if (r.partition.equals(replica.partition)) {
+      for (Replica r : _nonPreferred) {
+        if (r._partition.equals(replica._partition)) {
           return false;
         }
       }
@@ -690,20 +690,20 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
      * @param replica The replica to receive
      */
     public void steal(Node donor, Replica replica) {
-      donor.hasCeilingCapacity = false;
-      donor.capacity--;
-      hasCeilingCapacity = true;
-      capacity++;
-      currentlyAssigned++;
-      nonPreferred.add(replica);
-      newReplicas.add(replica);
+      donor._hasCeilingCapacity = false;
+      donor._capacity--;
+      _hasCeilingCapacity = true;
+      _capacity++;
+      _currentlyAssigned++;
+      _nonPreferred.add(replica);
+      _newReplicas.add(replica);
     }
 
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-      sb.append("##########\nname=").append(id).append("\npreferred:").append(preferred.size())
-          .append("\nnonpreferred:").append(nonPreferred.size());
+      sb.append("##########\nname=").append(id).append("\npreferred:").append(_preferred.size())
+          .append("\nnonpreferred:").append(_nonPreferred.size());
       return sb.toString();
     }
   }
@@ -713,38 +713,38 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * and an identifier signifying a specific replica of a given partition and state.
    */
   class Replica implements Comparable<Replica> {
-    private String partition;
-    private int replicaId; // this is a partition-relative id
-    private String format;
+    private String _partition;
+    private int _replicaId; // this is a partition-relative id
+    private String _format;
 
     public Replica(String partition, int replicaId) {
-      this.partition = partition;
-      this.replicaId = replicaId;
-      this.format = this.partition + "|" + this.replicaId;
+      this._partition = partition;
+      this._replicaId = replicaId;
+      this._format = this._partition + "|" + this._replicaId;
     }
 
     @Override
     public String toString() {
-      return format;
+      return _format;
     }
 
     @Override
     public boolean equals(Object that) {
       if (that instanceof Replica) {
-        return this.format.equals(((Replica) that).format);
+        return this._format.equals(((Replica) that)._format);
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return this.format.hashCode();
+      return this._format.hashCode();
     }
 
     @Override
     public int compareTo(Replica that) {
       if (that instanceof Replica) {
-        return this.format.compareTo(that.format);
+        return this._format.compareTo(that._format);
       }
       return -1;
     }

@@ -20,12 +20,12 @@ package org.apache.helix.controller.rebalancer;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -98,8 +98,8 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
 
     LinkedHashMap<String, Integer> stateCountMap =
         stateModelDef.getStateCountMap(assignableLiveInstance.size(), replicas);
-    List<String> assignableLiveNodes = new ArrayList<>(assignableLiveInstance.keySet());
-    List<String> assignableNodes = new ArrayList<>(clusterData.getAssignableInstances());
+    Set<String> assignableLiveNodes = new HashSet<>(assignableLiveInstance.keySet());
+    Set<String> assignableNodes = new HashSet<>(clusterData.getAssignableInstances());
     assignableNodes.removeAll(clusterData.getDisabledInstances());
     assignableLiveNodes.retainAll(assignableNodes);
 
@@ -135,20 +135,22 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
         LOG.warn("Resource " + resourceName + " has tag " + currentIdealState.getInstanceGroupTag()
             + " but no live participants have this tag");
       }
-      assignableNodes = new ArrayList<>(taggedNodes);
-      assignableLiveNodes = new ArrayList<>(taggedLiveNodes);
+      assignableNodes = new HashSet<>(taggedNodes);
+      assignableLiveNodes = new HashSet<>(taggedLiveNodes);
     }
 
     // sort node lists to ensure consistent preferred assignments
-    Collections.sort(assignableNodes);
-    Collections.sort(assignableLiveNodes);
+    List<String> assignableNodesList =
+        assignableNodes.stream().sorted().collect(Collectors.toList());
+    List<String> assignableLiveNodesList =
+        assignableLiveNodes.stream().sorted().collect(Collectors.toList());
 
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
     _rebalanceStrategy =
         getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitions, resourceName,
             stateCountMap, maxPartition);
     ZNRecord newMapping =
-        _rebalanceStrategy.computePartitionAssignment(assignableNodes, assignableLiveNodes,
+        _rebalanceStrategy.computePartitionAssignment(assignableNodesList, assignableLiveNodesList,
             currentMapping, clusterData);
 
     if (LOG.isDebugEnabled()) {

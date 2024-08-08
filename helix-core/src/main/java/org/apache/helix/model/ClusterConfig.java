@@ -71,7 +71,7 @@ public class ClusterConfig extends HelixProperty {
     // The following concerns maintenance mode
     MAX_PARTITIONS_PER_INSTANCE,
     // The maximum number of partitions that an instance can serve in this cluster.
-    // This only works for GreedyRebalanceStrategy.
+    // This only works for StickyRebalanceStrategy.
     // TODO: if we want to support this for other rebalancers, we need to implement that logic
     GLOBAL_MAX_PARTITIONS_ALLOWED_PER_INSTANCE,
     // The following two include offline AND disabled instances

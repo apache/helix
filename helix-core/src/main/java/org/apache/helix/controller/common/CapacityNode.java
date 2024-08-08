@@ -52,9 +52,23 @@ public class CapacityNode {
         && _partitionMap.get(resource).contains(partition))) {
       return false;
     }
+
+    // Add the partition to the resource's set of partitions in this node
     _partitionMap.computeIfAbsent(resource, k -> new HashSet<>()).add(partition);
     _currentlyAssigned++;
     return true;
+  }
+
+  /**
+   * Checks if a specific resource + partition is assigned to this node.
+   *
+   * @param resource  the name of the resource
+   * @param partition the partition
+   * @return {@code true} if the resource + partition is assigned to this node, {@code false} otherwise
+   */
+  public boolean hasPartition(String resource, String partition) {
+    Set<String> partitions = _partitionMap.get(resource);
+    return partitions != null && partitions.contains(partition);
   }
 
   /**

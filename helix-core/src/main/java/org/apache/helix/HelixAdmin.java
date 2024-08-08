@@ -844,4 +844,14 @@ public interface HelixAdmin {
     throw new UnsupportedOperationException(
         "isReadyForPreparingJoiningCluster is not implemented.");
   }
+
+  /**
+   * Attempt to forcefully kill an instance in the cluster. This will remove the instance's
+   * LIVEINSTANCES znode, causing the controller to treat the instance as offline. The instance
+   * will not receive any state transitions until it rejoins the cluster. If the instance's
+   * current ZK session expires, then it will rejoin the cluster automatically.
+   */
+  default boolean forceKillInstance(String clusterName, String instanceName) {
+    throw new UnsupportedOperationException("forceKillInstance is not implemented.");
+  }
 }

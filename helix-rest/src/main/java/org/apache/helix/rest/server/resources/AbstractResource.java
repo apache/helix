@@ -90,7 +90,8 @@ public class AbstractResource {
     completeSwapIfPossible,
     onDemandRebalance,
     isEvacuateFinished,
-    setPartitionsToError
+    setPartitionsToError,
+    forceKillInstance
   }
 
   @Context

@@ -731,6 +731,27 @@ public class ZKHelixAdmin implements HelixAdmin {
     return false;
   }
 
+  @Override
+  public boolean forceKillInstance(String clusterName, String instanceName) {
+    logger.info("Force kill instance {} in cluster {}.", instanceName, clusterName);
+    // Instance must be in UNKNOWN state and alive to be force killed.
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
+    if (!InstanceConstants.InstanceOperation.UNKNOWN.equals(
+        getInstanceConfig(clusterName, instanceName).getInstanceOperation().getOperation())) {
+      throw new HelixException("Instance " + instanceName + " in cluster " + clusterName + " is not in UNKNOWN state. "
+          + "Cannot force kill.");
+    }
+
+    if (accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName)).equals(null)) {
+      throw new HelixException("Instance " + instanceName + " in cluster " + clusterName + " is not alive. "
+          + "Cannot force kill.");
+    }
+
+
+    // Attempt to delete participant's LIVEINSTANCES znode
+    return accessor.removeProperty(accessor.keyBuilder().liveInstance(instanceName));
+  }
+
   /**
    * Return true if Instance has any current state or pending message. Otherwise, return false if instance is offline,
    * instance has no active session, or if instance is online but has no current state or pending message.

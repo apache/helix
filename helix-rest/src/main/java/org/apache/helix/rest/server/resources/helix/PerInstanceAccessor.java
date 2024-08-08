@@ -509,10 +509,24 @@ public class PerInstanceAccessor extends AbstractHelixResource {
             return serverError(e);
           }
           return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", evacuateFinished)));
+        case forceKillInstance:
+          // set instance to unknown
+          InstanceUtil.setInstanceOperation(new ConfigAccessor(getRealmAwareZkClient()),
+              new ZkBaseDataAccessor<>(getRealmAwareZkClient()), clusterId, instanceName,
+              new InstanceConfig.InstanceOperation.Builder().setOperation(InstanceConstants.InstanceOperation.UNKNOWN)
+                  .setReason(reason).setSource(InstanceConstants.InstanceOperationSource.ADMIN).build());
+          // delete liveInstanceZnode
+          boolean instanceForceKilled = admin.forceKillInstance(clusterId, instanceName);
+          if (!instanceForceKilled) {
+            return serverError("Failed to kill instance: " + instanceName);
+          }
+          return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", instanceForceKilled)));
         default:
           LOG.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);
       }
+
+
     } catch (Exception e) {
       LOG.error("Failed in updating instance : " + instanceName, e);
       return badRequest(e.getMessage());

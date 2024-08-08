@@ -56,6 +56,7 @@ import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -64,11 +65,14 @@ import org.testng.annotations.Test;
 public class TestPerInstanceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_4";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
+  private BestPossibleExternalViewVerifier _bestPossibleClusterVerifier;
 
   private MockParticipantManager _instanceToDisable;
 
   @BeforeClass
   public void beforeClass() {
+    _bestPossibleClusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+        .setZkAddr(ZK_ADDR).build();
     int indexToDisable = -1;
     for (int i = 0; i < _mockParticipantManagers.size(); i++) {
       if (_mockParticipantManagers.get(i).getInstanceName().equals(INSTANCE_NAME)) {
@@ -888,5 +892,76 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources/{}")
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME, dbName).get(this);
     System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetResourcesOnInstance")
+  public void testForceKillInstance() throws Exception {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // Fix rebalance failures due to settings set in previous tests
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setTopologyAwareEnabled(false);
+    clusterConfig.getRecord().setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), null);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    String instanceToKill = "localhost_" + TestHelper.getTestMethodName();
+    String resourceToAdd = "TestDB_"+TestHelper.getTestMethodName();
+    addParticipant(CLUSTER_NAME, instanceToKill);
+    addResource(CLUSTER_NAME, resourceToAdd, NUM_PARTITIONS, "OnlineOffline", 2, 3);
+
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+
+    // Get assignments on node, assert it has at least one assignemnt
+    Set<String> originalAssignment = new HashSet<>();
+    for (Map.Entry<String, ExternalView> entry : getEVs().entrySet()) {
+      String db = entry.getKey();
+      ExternalView ev = entry.getValue();
+      for (String partition : ev.getPartitionSet()) {
+        Map<String, String> stateMap = ev.getStateMap(partition);
+        if (stateMap.containsKey(instanceToKill)) {
+          originalAssignment.add(db + "/" + partition);
+        }
+      }
+    }
+
+    Assert.assertFalse(originalAssignment.isEmpty());
+
+    Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance")
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+
+
+    // ensure no live instance znode
+    Assert.assertFalse(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVE_INSTANCES/" + instanceToKill),
+        "Instance znode should exist after force kill");
+
+
+    // make sure no assignments on the instance
+    Set<String> postKillAssignment = new HashSet<>();
+    for (ExternalView ev : getEVs().values()) {
+      for (String partition : ev.getPartitionSet()) {
+        Map<String, String> stateMap = ev.getStateMap(partition);
+        if (stateMap.containsKey(instanceToKill)) {
+          postKillAssignment.add(partition);
+        }
+      }
+    }
+    Assert.assertTrue(postKillAssignment.isEmpty());
+
+    // Drop and re-add the instance we killed, remove test resource
+    dropParticipant(CLUSTER_NAME, instanceToKill);
+    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resourceToAdd);
+    _resourcesMap.get(CLUSTER_NAME).remove(resourceToAdd);
+    _bestPossibleClusterVerifier.verifyByPolling();
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  private Map<String, ExternalView> getEVs() {
+    Map<String, ExternalView> externalViews = new HashMap<String, ExternalView>();
+    for (String db : _resourcesMap.get(CLUSTER_NAME)) {
+      ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      externalViews.put(db, ev);
+    }
+    return externalViews;
   }
 }

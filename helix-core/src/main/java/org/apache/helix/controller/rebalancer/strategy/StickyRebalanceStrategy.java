@@ -40,6 +40,7 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
   private String _resourceName;
   private List<String> _partitions;
   private LinkedHashMap<String, Integer> _states;
+  private int _statesReplicaCount;
 
   public StickyRebalanceStrategy() {
   }
@@ -50,6 +51,9 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     _resourceName = resourceName;
     _partitions = partitions;
     _states = states;
+    if (_states != null) {
+      _statesReplicaCount = _states.values().stream().mapToInt(Integer::intValue).sum();
+    }
   }
 
   @Override
@@ -120,14 +124,6 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     return znRecord;
   }
 
-  private int countStateReplicas() {
-    int total = 0;
-    for (Integer count : _states.values()) {
-      total += count;
-    }
-    return total;
-  }
-
   /**
    * Populates a valid state map from the current mapping, filtering out invalid nodes.
    *
@@ -168,7 +164,7 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
    */
   private boolean isValidStateMap(final Map<String, String> currentNodeStateMap) {
     // Check if the size of the current state map exceeds the total state count in state model
-    if (currentNodeStateMap.size() > countStateReplicas()) {
+    if (currentNodeStateMap.size() > _statesReplicaCount) {
       return false;
     }
 

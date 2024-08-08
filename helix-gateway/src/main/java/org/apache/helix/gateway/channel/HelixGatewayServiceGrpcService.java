@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.grpcservice;
+package org.apache.helix.gateway.channel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -27,7 +27,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.gateway.service.GatewayServiceManager;
-import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.util.PerKeyLockRegistry;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.apache.helix.model.Message;
@@ -43,7 +43,7 @@ import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMe
  * Helix Gateway Service GRPC UI implementation.
  */
 public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase
-    implements HelixGatewayServiceProcessor {
+    implements HelixGatewayServiceChannel {
   // create LOGGER
   private static final Logger logger = LoggerFactory.getLogger(HelixGatewayServiceGrpcService.class);
 
@@ -83,7 +83,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
           ShardState shardState = request.getShardState();
           updateObserver(shardState.getInstanceName(), shardState.getClusterName(), responseObserver);
         }
-        onClientEvent(_manager,
+        pushClientEventToGatewayManager(_manager,
             StateTransitionMessageTranslateUtil.translateShardStateMessageToEvent(request));
       }
 
@@ -153,7 +153,6 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     }
   }
 
-  @Override
   public void onClientClose(String clusterName, String instanceName) {
     if (instanceName == null || clusterName == null) {
       // TODO: log error;
@@ -162,7 +161,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     logger.info("Client close connection for instance: {}", instanceName);
     GatewayServiceEvent event =
         StateTransitionMessageTranslateUtil.translateClientCloseToEvent(clusterName, instanceName);
-    onClientEvent(_manager, event);
+    pushClientEventToGatewayManager(_manager, event);
     _lockRegistry.withLock(instanceName, () -> {
       _reversedObserverMap.remove(_observerMap.get(instanceName));
       _observerMap.remove(instanceName);

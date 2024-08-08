@@ -1,6 +1,6 @@
 package org.apache.helix.gateway.service;
 
-import org.apache.helix.gateway.grpcservice.HelixGatewayServiceGrpcService;
+import org.apache.helix.gateway.channel.HelixGatewayServiceGrpcService;
 import org.testng.annotations.Test;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
 
@@ -41,6 +41,6 @@ public class TestGatewayServiceManager {
     // Process disconnection event
     grpcService.report(null).onNext(disconnectionEvent);
     // Verify the events were processed in sequence
-    verify(manager, times(2)).newGatewayServiceEvent(any());
+    verify(manager, times(2)).onGatewayServiceEvent(any());
   }
 }

@@ -26,9 +26,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.constant.GatewayServiceEventType;
-import org.apache.helix.gateway.grpcservice.HelixGatewayServiceGrpcService;
+import org.apache.helix.gateway.channel.HelixGatewayServiceGrpcService;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
 
@@ -51,7 +51,7 @@ public class GatewayServiceManager {
   private final ExecutorService _participantStateTransitionResultUpdator;
 
   // link to grpc service
-  private final HelixGatewayServiceProcessor _gatewayServiceProcessor;
+  private final HelixGatewayServiceChannel _gatewayServiceChannel;
 
   // a per key executor for connection event. All event for the same instance will be executed in sequence.
   // It is used to ensure for each instance, the connect/disconnect event won't start until the previous one is done.
@@ -61,7 +61,7 @@ public class GatewayServiceManager {
     _helixGatewayParticipantMap = new ConcurrentHashMap<>();
     _zkAddress = "foo";
     _participantStateTransitionResultUpdator = Executors.newSingleThreadExecutor();
-    _gatewayServiceProcessor = new HelixGatewayServiceGrpcService(this);
+    _gatewayServiceChannel = new HelixGatewayServiceGrpcService(this);
     _connectionEventProcessor =
         new PerKeyBlockingExecutor(CONNECTION_EVENT_THREAD_POOL_SIZE); // todo: make it configurable
   }
@@ -71,7 +71,7 @@ public class GatewayServiceManager {
    *
    * @param event
    */
-  public void newGatewayServiceEvent(GatewayServiceEvent event) {
+  public void onGatewayServiceEvent(GatewayServiceEvent event) {
     if (event.getEventType().equals(GatewayServiceEventType.UPDATE)) {
       _participantStateTransitionResultUpdator.submit(new shardStateUpdator(event));
     } else {
@@ -127,15 +127,15 @@ public class GatewayServiceManager {
     }
   }
 
-  public HelixGatewayServiceProcessor getHelixGatewayServiceProcessor() {
-    return _gatewayServiceProcessor;
+  public HelixGatewayServiceChannel getHelixGatewayServiceProcessor() {
+    return _gatewayServiceChannel;
   }
 
   private void createHelixGatewayParticipant(String clusterName, String instanceName,
       Map<String, Map<String, String>> initialShardStateMap) {
     // Create and add the participant to the participant map
     HelixGatewayParticipant.Builder participantBuilder =
-        new HelixGatewayParticipant.Builder(_gatewayServiceProcessor, instanceName, clusterName,
+        new HelixGatewayParticipant.Builder(_gatewayServiceChannel, instanceName, clusterName,
             _zkAddress,
             () -> removeHelixGatewayParticipant(clusterName, instanceName)).setInitialShardState(
             initialShardStateMap);

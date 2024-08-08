@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.gateway.api.service.HelixGatewayServiceProcessor;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
@@ -99,7 +99,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   private HelixGatewayParticipant addParticipant(String participantName,
       Map<String, Map<String, String>> initialShardMap) {
     HelixGatewayParticipant participant =
-        new HelixGatewayParticipant.Builder(new MockHelixGatewayServiceProcessor(_pendingMessageMap), participantName,
+        new HelixGatewayParticipant.Builder(new MockHelixGatewayServiceChannel(_pendingMessageMap), participantName,
             CLUSTER_NAME, ZK_ADDR, _onDisconnectCallbackCount::incrementAndGet).addMultiTopStateStateModelDefinition(
             TEST_STATE_MODEL).setInitialShardState(initialShardMap).build();
     _participants.add(participant);
@@ -319,17 +319,17 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
 
   @Test(dependsOnMethods = "testProcessStateTransitionAfterReconnectAfterDroppingPartition")
   public void testGatewayParticipantDisconnectGracefully() {
-    int gracefulDisconnectCount = MockHelixGatewayServiceProcessor._gracefulDisconnectCount.get();
+    int gracefulDisconnectCount = MockHelixGatewayServiceChannel._gracefulDisconnectCount.get();
     // Remove the first participant
     HelixGatewayParticipant participant = _participants.get(0);
     deleteParticipant(participant);
 
-    Assert.assertEquals(MockHelixGatewayServiceProcessor._gracefulDisconnectCount.get(), gracefulDisconnectCount + 1);
+    Assert.assertEquals(MockHelixGatewayServiceChannel._gracefulDisconnectCount.get(), gracefulDisconnectCount + 1);
   }
 
   @Test(dependsOnMethods = "testGatewayParticipantDisconnectGracefully")
   public void testGatewayParticipantDisconnectWithError() throws Exception {
-    int errorDisconnectCount = MockHelixGatewayServiceProcessor._errorDisconnectCount.get();
+    int errorDisconnectCount = MockHelixGatewayServiceChannel._errorDisconnectCount.get();
     int onDisconnectCallbackCount = _onDisconnectCallbackCount.get();
 
     // Call on disconnect with error for all participants
@@ -337,17 +337,17 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
       participant.onDisconnected(null, new Exception("Test error"));
     }
 
-    Assert.assertEquals(MockHelixGatewayServiceProcessor._errorDisconnectCount.get(),
+    Assert.assertEquals(MockHelixGatewayServiceChannel._errorDisconnectCount.get(),
         errorDisconnectCount + _participants.size());
     Assert.assertEquals(_onDisconnectCallbackCount.get(), onDisconnectCallbackCount + _participants.size());
   }
 
-  public static class MockHelixGatewayServiceProcessor implements HelixGatewayServiceProcessor {
+  public static class MockHelixGatewayServiceChannel implements HelixGatewayServiceChannel {
     private final Map<String, Message> _pendingMessageMap;
     private static final AtomicInteger _gracefulDisconnectCount = new AtomicInteger();
     private static final AtomicInteger _errorDisconnectCount = new AtomicInteger();
 
-    public MockHelixGatewayServiceProcessor(Map<String, Message> pendingMessageMap) {
+    public MockHelixGatewayServiceChannel(Map<String, Message> pendingMessageMap) {
       _pendingMessageMap = pendingMessageMap;
     }
 
@@ -360,15 +360,9 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     public void closeConnectionWithError(String instanceName, String reason) {
       _errorDisconnectCount.incrementAndGet();
     }
-
     @Override
     public void completeConnection(String instanceName) {
       _gracefulDisconnectCount.incrementAndGet();
-    }
-
-    @Override
-    public void onClientClose(String clusterName, String instanceName) {
-
     }
   }
 }

@@ -321,18 +321,18 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     for (Node node : _liveNodesList) {
       for (Replica replica : node.preferred) {
         if (node.newReplicas.contains(replica)) {
-          newPreferences.get(replica._partition).add(node.id);
+          newPreferences.get(replica.partition).add(node.id);
         } else {
-          znRecord.getListField(replica._partition).add(node.id);
+          znRecord.getListField(replica.partition).add(node.id);
         }
       }
     }
     for (Node node : _liveNodesList) {
       for (Replica replica : node.nonPreferred) {
         if (node.newReplicas.contains(replica)) {
-          newPreferences.get(replica._partition).add(node.id);
+          newPreferences.get(replica.partition).add(node.id);
         } else {
-          znRecord.getListField(replica._partition).add(node.id);
+          znRecord.getListField(replica.partition).add(node.id);
         }
       }
     }
@@ -478,7 +478,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         Node node = _nodeMap.get(nodeId);
         boolean skip = false;
         for (Replica replica : node.preferred) {
-          if (replica._partition.equals(partition)) {
+          if (replica.partition.equals(partition)) {
             skip = true;
             break;
           }
@@ -672,12 +672,12 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         return false;
       }
       for (Replica r : preferred) {
-        if (r._partition.equals(replica._partition)) {
+        if (r.partition.equals(replica.partition)) {
           return false;
         }
       }
       for (Replica r : nonPreferred) {
-        if (r._partition.equals(replica._partition)) {
+        if (r.partition.equals(replica.partition)) {
           return false;
         }
       }
@@ -713,38 +713,38 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * and an identifier signifying a specific replica of a given partition and state.
    */
   class Replica implements Comparable<Replica> {
-    private String _partition;
-    private int _replicaId; // this is a partition-relative id
-    private String _format;
+    private String partition;
+    private int replicaId; // this is a partition-relative id
+    private String format;
 
     public Replica(String partition, int replicaId) {
-      this._partition = partition;
-      this._replicaId = replicaId;
-      this._format = this._partition + "|" + this._replicaId;
+      this.partition = partition;
+      this.replicaId = replicaId;
+      this.format = this.partition + "|" + this.replicaId;
     }
 
     @Override
     public String toString() {
-      return _format;
+      return format;
     }
 
     @Override
     public boolean equals(Object that) {
       if (that instanceof Replica) {
-        return this._format.equals(((Replica) that)._format);
+        return this.format.equals(((Replica) that).format);
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return this._format.hashCode();
+      return this.format.hashCode();
     }
 
     @Override
     public int compareTo(Replica that) {
       if (that instanceof Replica) {
-        return this._format.compareTo(that._format);
+        return this.format.compareTo(that.format);
       }
       return -1;
     }

@@ -597,6 +597,9 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
     Assert.assertTrue(evacuateFinishedResult.get("successful"));
 
+    // Remove instance created for evacuate test
+    delete("clusters/" + CLUSTER_NAME + "/instances/" + test_instance_name, Response.Status.OK.getStatusCode());
+
     // test setPartitionsToError
     List<String> partitionsToSetToError = Arrays.asList(CLUSTER_NAME + dbName + "7");
 

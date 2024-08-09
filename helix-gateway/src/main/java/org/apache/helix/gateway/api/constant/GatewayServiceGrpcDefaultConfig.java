@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.constant;
+package org.apache.helix.gateway.api.constant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,8 +19,8 @@ package org.apache.helix.gateway.constant;
  * under the License.
  */
 
-public enum GatewayServiceEventType {
-  CONNECT,    // init connection to gateway service
-  UPDATE,  // update state transition result
-  DISCONNECT // shutdown connection to gateway service.
+public class GatewayServiceGrpcDefaultConfig {
+  public static final int DEFAULT_SERVER_HEARTBEAT_INTERVAL = 60;
+  public static final int DEFAULT_AMX_ALLOWED_CLIENT_HEARTBEAT_INTERVAL = 60;
+  public static final int DEFAULT_CLIENT_TIMEOUT = 5 * 60;
 }

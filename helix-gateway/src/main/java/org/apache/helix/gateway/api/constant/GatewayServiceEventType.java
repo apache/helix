@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.channel;
+package org.apache.helix.gateway.api.constant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,38 +19,8 @@ package org.apache.helix.gateway.channel;
  * under the License.
  */
 
-import java.io.IOException;
-import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
-import org.apache.helix.model.Message;
-
-// TODO: implement this class
-public class HelixGatewayServicePullModeChannel implements HelixGatewayServiceChannel {
-
-  public HelixGatewayServicePullModeChannel(GatewayServiceChannelConfig config) {
-  }
-
-  @Override
-  public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
-
-  }
-
-  @Override
-  public void start() throws IOException {
-
-  }
-
-  @Override
-  public void stop() {
-
-  }
-
-  @Override
-  public void closeConnectionWithError(String instanceName, String reason) {
-
-  }
-
-  @Override
-  public void completeConnection(String instanceName) {
-
-  }
+public enum GatewayServiceEventType {
+  CONNECT,    // init connection to gateway service
+  UPDATE,  // update state transition result
+  DISCONNECT // shutdown connection to gateway service.
 }

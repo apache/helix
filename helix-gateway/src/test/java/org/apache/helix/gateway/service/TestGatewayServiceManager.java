@@ -1,5 +1,6 @@
 package org.apache.helix.gateway.service;
 
+import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
 import org.apache.helix.gateway.channel.HelixGatewayServiceGrpcService;
 import org.testng.annotations.Test;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
@@ -16,7 +17,8 @@ public class TestGatewayServiceManager {
   public void testConnectionAndDisconnectionEvents() {
 
     manager = mock(GatewayServiceManager.class);
-    HelixGatewayServiceGrpcService grpcService = new HelixGatewayServiceGrpcService(manager);
+    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder = new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
+    HelixGatewayServiceGrpcService grpcService = new HelixGatewayServiceGrpcService(manager,builder.build());
     // Mock a connection event
     HelixGatewayServiceOuterClass.ShardStateMessage connectionEvent =
         HelixGatewayServiceOuterClass.ShardStateMessage.newBuilder()
@@ -42,5 +44,7 @@ public class TestGatewayServiceManager {
     grpcService.report(null).onNext(disconnectionEvent);
     // Verify the events were processed in sequence
     verify(manager, times(2)).onGatewayServiceEvent(any());
+
+    grpcService.stop();
   }
 }

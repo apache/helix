@@ -1,4 +1,4 @@
-package org.apache.helix.gateway;
+package org.apache.helix.gateway.channel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,29 +19,24 @@ package org.apache.helix.gateway;
  * under the License.
  */
 
-import java.io.IOException;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.service.GatewayServiceManager;
-import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
-
-import static java.lang.Thread.*;
 
 
-/**
- * Main class for Helix Gateway.
- * It starts the Helix Gateway grpc service.
- */
-public final class HelixGatewayMain {
+public class HelixGatewayServiceChannelFactory {
 
-  private HelixGatewayMain() {
-  }
-
-  public static void main(String[] args) throws InterruptedException, IOException {
-    // Create a new server to listen on port 50051
-    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder = new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
-    GatewayServiceManager manager = new GatewayServiceManager(args[0],
-        builder.setGrpcServerPort(50051).build());
-
-    manager.startService();
+  public static HelixGatewayServiceChannel createServiceChannel(GatewayServiceChannelConfig config,
+      GatewayServiceManager manager) {
+    switch (config.getParticipantConnectionChannelType()) {
+      case GRPC_SERVER:
+        return new HelixGatewayServiceGrpcService(manager, config);
+      case PULL_GRPC:
+      case PULL_SHARED_FILE:
+        throw new NotImplementedException("Not implemented yet");
+      default:
+        throw new IllegalArgumentException(
+            "Unsupported processor type: " + config.getParticipantConnectionChannelType());
+    }
   }
 }
-

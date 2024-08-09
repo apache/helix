@@ -21,7 +21,7 @@ package org.apache.helix.gateway.service;
 
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.gateway.constant.GatewayServiceEventType;
+import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
 
 
 /**

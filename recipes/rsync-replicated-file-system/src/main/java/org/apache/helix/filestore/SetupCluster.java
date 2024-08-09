@@ -32,7 +32,7 @@ public class SetupCluster {
   public static final String DEFAULT_CLUSTER_NAME = "file-store-test";
   public static final String DEFAULT_RESOURCE_NAME = "repository";
   public static final int DEFAULT_PARTITION_NUMBER = 1;
-  public static final String DEFAULT_STATE_MODEL = "MasterSlave";
+  public static final String DEFAULT_STATE_MODEL = "OnlineOffline";
 
   public static void main(String[] args) {
     if (args.length < 2) {

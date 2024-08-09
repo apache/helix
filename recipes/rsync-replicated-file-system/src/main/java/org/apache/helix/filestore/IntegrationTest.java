@@ -69,7 +69,7 @@ public class IntegrationTest {
       setup.addInstanceToCluster(clusterName, "localhost_12001");
       setup.addInstanceToCluster(clusterName, "localhost_12002");
       setup.addInstanceToCluster(clusterName, "localhost_12003");
-      setup.addResourceToCluster(clusterName, "repository", 1, "MasterSlave");
+      setup.addResourceToCluster(clusterName, "repository", 1, "OnlineOffline");
       setup.rebalanceResource(clusterName, "repository", 3);
       // Set the configuration
       final String instanceName1 = "localhost_12001";

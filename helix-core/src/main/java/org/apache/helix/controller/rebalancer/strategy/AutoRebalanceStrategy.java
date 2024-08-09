@@ -117,7 +117,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         usingCeiling = true;
       }
       Node node = _nodeMap.get(sortedLiveNodes.get(i));
-      node._isAliveEnabled = true;
+      node.isAlive = true;
       node.capacity = targetSize;
       node.hasCeilingCapacity = usingCeiling;
       _liveNodesList.add(node);
@@ -198,7 +198,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       // first find if it preferred node still has capacity
       Node preferred = _preferredAssignment.get(replica);
       if (preferred.capacity > preferred.currentlyAssigned && preferred.canAdd(replica)) {
-        preferred.currentlyAssigned++;
+        preferred.currentlyAssigned ++;
         preferred.preferred.add(replica);
         preferred.newReplicas.add(replica);
         added = true;
@@ -277,9 +277,9 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
           for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
             Node receiver = _liveNodesList.get(index % _liveNodesList.size());
             if (receiver.canAdd(replica)) {
-              receiver.currentlyAssigned++;
+              receiver.currentlyAssigned ++;
               receiver.nonPreferred.add(replica);
-              donor.currentlyAssigned--;
+              donor.currentlyAssigned --;
               it.remove();
               break;
             }
@@ -560,7 +560,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
           Replica replica = new Replica(partition, replicaId);
           if (_preferredAssignment.containsKey(replica)
               && !existingPreferredAssignment.containsKey(replica)
-              && _preferredAssignment.get(replica).id == node.id && node._isAliveEnabled) {
+              && _preferredAssignment.get(replica).id == node.id && node.isAlive) {
             existingPreferredAssignment.put(replica, node);
             node.preferred.add(replica);
             break;
@@ -635,7 +635,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     public int capacity;
     public boolean hasCeilingCapacity;
     private final String id;
-    boolean _isAliveEnabled;
+    boolean isAlive;
     private final List<Replica> preferred;
     private final List<Replica> nonPreferred;
     private final Set<Replica> newReplicas;
@@ -645,7 +645,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       nonPreferred = new ArrayList<Replica>();
       newReplicas = new TreeSet<Replica>();
       currentlyAssigned = 0;
-      _isAliveEnabled = false;
+      isAlive = false;
       this.id = id;
     }
 
@@ -668,7 +668,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
      * @return true if the assignment can be made, false otherwise
      */
     public boolean canAddIfCapacity(Replica replica) {
-      if (!_isAliveEnabled) {
+      if (!isAlive) {
         return false;
       }
       for (Replica r : preferred) {

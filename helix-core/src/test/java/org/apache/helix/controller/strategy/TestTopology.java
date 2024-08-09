@@ -35,7 +35,7 @@ import org.testng.annotations.Test;
  */
 
 public class TestTopology {
-  private static Logger logger = LoggerFactory.getLogger(TestTopology.class);
+  private static Logger logger = LoggerFactory.getLogger(TestAutoRebalanceStrategy.class);
 
   @Test
   public void testCreateClusterTopology() {

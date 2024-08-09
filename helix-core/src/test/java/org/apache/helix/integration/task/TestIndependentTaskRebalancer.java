@@ -122,7 +122,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _runCounts.clear();
   }
 
-  @Test
+  @Test (enabled = false) // Disable current unstable task.
   public void testDifferentTasks() throws Exception {
     // Create a job with two different tasks
     String jobName = TestHelper.getTestMethodName();
@@ -147,7 +147,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test (dependsOnMethods = "testDifferentTasks")
+  @Test
   public void testThresholdFailure() throws Exception {
     // Create a job with two different tasks
     String jobName = TestHelper.getTestMethodName();

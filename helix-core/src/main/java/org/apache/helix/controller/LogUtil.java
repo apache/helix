@@ -39,18 +39,18 @@ public class LogUtil {
   }
 
   public static void logInfo(Logger logger, String eventInfo, String message, Exception e) {
-    logger.info("Event {} :{}", eventInfo, message, e);
+    logger.info("Event {} : {}", eventInfo, message, e);
   }
 
   public static void logWarn(Logger logger, String eventInfo, String message, Exception e) {
-    logger.warn("Event {} :{}", eventInfo, message, e);
+    logger.warn("Event {} : {}", eventInfo, message, e);
   }
 
   public static void logError(Logger logger, String eventInfo, String message, Exception e) {
-    logger.error("Event {} :{}", eventInfo, message, e);
+    logger.error("Event {} : {}", eventInfo, message, e);
   }
 
   public static void logDebug(Logger logger, String eventInfo, String message, Exception e) {
-    logger.debug("Event {} :{}", eventInfo, message, e);
+    logger.debug("Event {} : {}", eventInfo, message, e);
   }
 }

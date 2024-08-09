@@ -25,8 +25,8 @@ under the License.
 Publications
 -------------
 
-* Untangling cluster management using Helix at [SOCC Oct 2012](http://www.socc2012.org/home/program)
-    - [paper](https://915bbc94-a-62cb3a1a-s-sites.googlegroups.com/site/acm2012socc/helix_onecol.pdf)
+* Untangling cluster management using Helix at [SOCC Oct 2012]:
+    - [paper](https://dl.acm.org/doi/abs/10.1145/2391229.2391248)
     - [presentation](https://www.slideshare.net/KishoreGopalakrishna/helix-socc-v10final)
 * Building distributed systems using Helix
     - [presentation at RelateIQ](https://www.slideshare.net/KishoreGopalakrishna/helix-talk)

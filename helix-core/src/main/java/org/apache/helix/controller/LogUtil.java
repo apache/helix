@@ -23,34 +23,34 @@ import org.slf4j.Logger;
 
 public class LogUtil {
   public static void logInfo(Logger logger, String eventInfo, String message) {
-    logger.info(String.format("Event %s : %s", eventInfo, message));
+    logger.info("Event {} : {}", eventInfo, message);
   }
 
   public static void logWarn(Logger logger, String eventInfo, String message) {
-    logger.warn(String.format("Event %s : %s", eventInfo, message));
+    logger.warn("Event {} : {}", eventInfo, message);
   }
 
   public static void logError(Logger logger, String eventInfo, String message) {
-    logger.error(String.format("Event %s : %s", eventInfo, message));
+    logger.error("Event {} : {}", eventInfo, message);
   }
 
   public static void logDebug(Logger logger, String eventInfo, String message) {
-    logger.debug(String.format("Event %s : %s", eventInfo, message));
+    logger.debug("Event {} : {}", eventInfo, message);
   }
 
   public static void logInfo(Logger logger, String eventInfo, String message, Exception e) {
-    logger.info(String.format("Event %s : %s", eventInfo, message), e);
+    logger.info("Event {} : {}", eventInfo, message, e);
   }
 
   public static void logWarn(Logger logger, String eventInfo, String message, Exception e) {
-    logger.warn(String.format("Event %s : %s", eventInfo, message), e);
+    logger.warn("Event {} : {}", eventInfo, message, e);
   }
 
   public static void logError(Logger logger, String eventInfo, String message, Exception e) {
-    logger.error(String.format("Event %s : %s", eventInfo, message), e);
+    logger.error("Event {} : {}", eventInfo, message, e);
   }
 
   public static void logDebug(Logger logger, String eventInfo, String message, Exception e) {
-    logger.debug(String.format("Event %s : %s", eventInfo, message), e);
+    logger.debug("Event {} : {}", eventInfo, message, e);
   }
 }

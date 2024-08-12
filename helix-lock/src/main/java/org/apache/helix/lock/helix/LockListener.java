@@ -25,7 +25,7 @@ package org.apache.helix.lock.helix;
  * supposed to clean up the work done by the user and return the system to a stable state before
  * releasing the lock.
  */
-interface LockListener {
+public interface LockListener {
   /**
    * call back called when the lock is preempted
    */

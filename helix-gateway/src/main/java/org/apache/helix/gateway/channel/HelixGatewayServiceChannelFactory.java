@@ -31,8 +31,8 @@ public class HelixGatewayServiceChannelFactory {
     switch (config.getParticipantConnectionChannelType()) {
       case GRPC_SERVER:
         return new HelixGatewayServiceGrpcService(manager, config);
-      case PULL_GRPC:
-      case PULL_SHARED_FILE:
+      case POLL_GRPC:
+      case SHARED_FILE:
         throw new NotImplementedException("Not implemented yet");
       default:
         throw new IllegalArgumentException(

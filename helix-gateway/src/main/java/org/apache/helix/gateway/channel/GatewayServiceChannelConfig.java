@@ -20,11 +20,11 @@ package org.apache.helix.gateway.channel;
  */
 
 
-import static org.apache.helix.gateway.api.constant.GatewayServiceGrpcDefaultConfig.*;
+import static org.apache.helix.gateway.api.constant.GatewayServiceDefaultConfig.*;
 
 public class GatewayServiceChannelConfig {
   public enum ChannelType {
-    GRPC_SERVER, PULL_GRPC, PULL_SHARED_FILE
+    GRPC_SERVER, POLL_GRPC, SHARED_FILE
   }
 
   // service configs
@@ -40,8 +40,8 @@ public class GatewayServiceChannelConfig {
   private final int _clientTimeout;
   private final boolean _enableReflectionService;
 
-  // pull mode config
-  private final int _pullIntervalSec;
+  // poll mode config
+  private final int _pollIntervalSec;
   // TODO: configs for pull mode grpc client
 
   // TODO: configs for pull mode with file
@@ -75,13 +75,13 @@ public class GatewayServiceChannelConfig {
     return _enableReflectionService;
   }
 
-  public int getPullIntervalSec() {
-    return _pullIntervalSec;
+  public int getPollIntervalSec() {
+    return _pollIntervalSec;
   }
 
   public GatewayServiceChannelConfig(int grpcServerPort, ChannelType participantConnectionChannelType,
       ChannelType shardStatenChannelType, int serverHeartBeatInterval, int maxAllowedClientHeartBeatInterval,
-      int clientTimeout, boolean enableReflectionService, int pullIntervalSec) {
+      int clientTimeout, boolean enableReflectionService, int pollIntervalSec) {
     _grpcServerPort = grpcServerPort;
     _participantConnectionChannelType = participantConnectionChannelType;
     _shardStatenChannelType = shardStatenChannelType;
@@ -89,7 +89,7 @@ public class GatewayServiceChannelConfig {
     _maxAllowedClientHeartBeatInterval = maxAllowedClientHeartBeatInterval;
     _clientTimeout = clientTimeout;
     _enableReflectionService = enableReflectionService;
-    _pullIntervalSec = pullIntervalSec;
+    _pollIntervalSec = pollIntervalSec;
   }
 
   public static class GatewayServiceProcessorConfigBuilder {
@@ -105,11 +105,11 @@ public class GatewayServiceChannelConfig {
     private int _clientTimeout = DEFAULT_CLIENT_TIMEOUT;
     private boolean _enableReflectionService = true;
 
-    // pull mode config
-    private int _pullIntervalSec = 60;
-    // pull mode grpc client configs
+    // poll mode config
+    private int _pollIntervalSec = DEFAULT_POLL_INTERVAL_SEC;
+    // poll mode grpc client configs
 
-    // pull mode file  configs
+    // poll mode file configs
 
     public GatewayServiceProcessorConfigBuilder setParticipantConnectionChannelType(ChannelType channelType) {
       _participantConnectionChannelType = channelType;
@@ -147,16 +147,16 @@ public class GatewayServiceChannelConfig {
       return this;
     }
 
-    public GatewayServiceProcessorConfigBuilder setPullIntervalSec(int pullIntervalSec) {
-      _pullIntervalSec = pullIntervalSec;
+    public GatewayServiceProcessorConfigBuilder setPollIntervalSec(int pollIntervalSec) {
+      _pollIntervalSec = pollIntervalSec;
       return this;
     }
 
     public void validate() {
-      if ((_participantConnectionChannelType == ChannelType.PULL_GRPC
-          && _shardStatenChannelType != ChannelType.PULL_GRPC) || (
-          _participantConnectionChannelType != ChannelType.PULL_GRPC
-              && _shardStatenChannelType == ChannelType.PULL_GRPC)) {
+      if ((_participantConnectionChannelType == ChannelType.POLL_GRPC
+          && _shardStatenChannelType != ChannelType.POLL_GRPC) || (
+          _participantConnectionChannelType != ChannelType.POLL_GRPC
+              && _shardStatenChannelType == ChannelType.POLL_GRPC)) {
         throw new IllegalArgumentException(
             "Unsupported channel type config: ConnectionChannelType: " + _participantConnectionChannelType
                 + " shardStatenChannelType: " + _shardStatenChannelType);
@@ -167,7 +167,7 @@ public class GatewayServiceChannelConfig {
       validate();
       return new GatewayServiceChannelConfig(_grpcServerPort, _participantConnectionChannelType,
           _shardStatenChannelType, _serverHeartBeatInterval, _maxAllowedClientHeartBeatInterval, _clientTimeout,
-          _enableReflectionService, _pullIntervalSec);
+          _enableReflectionService, _pollIntervalSec);
     }
   }
 }

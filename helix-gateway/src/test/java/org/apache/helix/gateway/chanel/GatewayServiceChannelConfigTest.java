@@ -37,7 +37,7 @@ public class GatewayServiceChannelConfigTest {
         .setMaxAllowedClientHeartBeatInterval(60)
         .setClientTimeout(120)
         .setEnableReflectionService(true)
-        .setPullIntervalSec(10);
+        .setPollIntervalSec(10);
 
     GatewayServiceChannelConfig config = builder.build();
 
@@ -48,7 +48,7 @@ public class GatewayServiceChannelConfigTest {
     Assert.assertEquals(config.getMaxAllowedClientHeartBeatInterval(), 60);
     Assert.assertEquals(config.getClientTimeout(), 120);
     Assert.assertTrue(config.getEnableReflectionService());
-    Assert.assertEquals(config.getPullIntervalSec(), 10);
+    Assert.assertEquals(config.getPollIntervalSec(), 10);
   }
 
   @Test
@@ -57,7 +57,7 @@ public class GatewayServiceChannelConfigTest {
         new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
 
     builder.setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER)
-        .setShardStateProcessorType(GatewayServiceChannelConfig.ChannelType.PULL_GRPC);
+        .setShardStateProcessorType(GatewayServiceChannelConfig.ChannelType.POLL_GRPC);
 
     // assert er get an exception
     try {

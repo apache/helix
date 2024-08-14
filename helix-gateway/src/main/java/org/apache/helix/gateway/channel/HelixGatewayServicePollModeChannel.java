@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.api.constant;
+package org.apache.helix.gateway.channel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,8 +19,38 @@ package org.apache.helix.gateway.api.constant;
  * under the License.
  */
 
-public class GatewayServiceGrpcDefaultConfig {
-  public static final int DEFAULT_SERVER_HEARTBEAT_INTERVAL = 60;
-  public static final int DEFAULT_AMX_ALLOWED_CLIENT_HEARTBEAT_INTERVAL = 60;
-  public static final int DEFAULT_CLIENT_TIMEOUT = 5 * 60;
+import java.io.IOException;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
+import org.apache.helix.model.Message;
+
+// TODO: implement this class
+public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceChannel {
+
+  public HelixGatewayServicePollModeChannel(GatewayServiceChannelConfig config) {
+  }
+
+  @Override
+  public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
+
+  }
+
+  @Override
+  public void start() throws IOException {
+
+  }
+
+  @Override
+  public void stop() {
+
+  }
+
+  @Override
+  public void closeConnectionWithError(String instanceName, String reason) {
+
+  }
+
+  @Override
+  public void completeConnection(String instanceName) {
+
+  }
 }

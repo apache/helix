@@ -23,9 +23,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -79,7 +79,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private final ZkSerializer _zkSerializer;
   private final RealmAwareZkClient _zkClient;
   private final ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
-  private final Map<String, ScheduledFuture> _gcTaskFutureMap = new HashMap<>();
+  private final Map<String, ScheduledFuture> _gcTaskFutureMap = new ConcurrentHashMap<>();
   private boolean _usesExternalZkClient = false;
 
   /**
@@ -239,7 +239,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
 
     // 5. Update the timer for GC
-    updateGCTimer(rootPath, version);
+    scheduleStaleVersionGC(rootPath);
     return true;
   }
 
@@ -268,13 +268,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   private HelixProperty compressedBucketRead(String path) {
     // 1. Get the version to read
-    byte[] binaryVersionToRead = _zkBaseDataAccessor.get(path + "/" + LAST_SUCCESSFUL_WRITE_KEY,
-        null, AccessOption.PERSISTENT);
-    if (binaryVersionToRead == null) {
-      throw new ZkNoNodeException(
-          String.format("Last successful write ZNode does not exist for path: %s", path));
-    }
-    String versionToRead = new String(binaryVersionToRead);
+    String versionToRead = getLastSuccessfulWriteVersion(path);
 
     // 2. Get the metadata map
     byte[] binaryMetadata = _zkBaseDataAccessor.get(path + "/" + versionToRead + "/" + METADATA_KEY,
@@ -354,26 +348,30 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     close();
   }
 
-  private synchronized void updateGCTimer(String rootPath, long currentVersion) {
+  private synchronized void scheduleStaleVersionGC(String rootPath) {
+    // If GC already scheduled, return early
     if (_gcTaskFutureMap.containsKey(rootPath)) {
-      _gcTaskFutureMap.remove(rootPath).cancel(false);
+      return;
     }
-    // Schedule the gc task with TTL
+    // Schedule GC task
     _gcTaskFutureMap.put(rootPath, GC_THREAD.schedule(() -> {
-      try {
-        deleteStaleVersions(rootPath, currentVersion);
-      } catch (Exception ex) {
-        LOG.error("Failed to delete the stale versions.", ex);
-      }
-    }, _versionTTLms, TimeUnit.MILLISECONDS));
-  }
+        try {
+          _gcTaskFutureMap.remove(rootPath);
+          deleteStaleVersions(rootPath);
+        } catch (Exception ex) {
+          LOG.error("Failed to delete the stale versions.", ex);
+        }
+      }, _versionTTLms, TimeUnit.MILLISECONDS));
+    }
 
   /**
    * Deletes all stale versions.
    * @param rootPath
-   * @param currentVersion
    */
-  private void deleteStaleVersions(String rootPath, long currentVersion) {
+  private void deleteStaleVersions(String rootPath) {
+    // Get most recent write version
+    String currentVersionStr = getLastSuccessfulWriteVersion(rootPath);
+
     // Get all children names under path
     List<String> children = _zkBaseDataAccessor.getChildNames(rootPath, AccessOption.PERSISTENT);
     if (children == null || children.isEmpty()) {
@@ -381,7 +379,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       return;
     }
     List<String> pathsToDelete =
-        getPathsToDelete(rootPath, filterChildrenNames(children, currentVersion));
+        getPathsToDelete(rootPath, filterChildrenNames(children, Long.parseLong(currentVersionStr)));
     for (String pathToDelete : pathsToDelete) {
       // TODO: Should be batch delete but it doesn't work. It's okay since this runs async
       _zkBaseDataAccessor.remove(pathToDelete, AccessOption.PERSISTENT);
@@ -428,5 +426,15 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     List<String> pathsToDelete = new ArrayList<>();
     staleVersions.forEach(ver -> pathsToDelete.add(path + "/" + ver));
     return pathsToDelete;
+  }
+
+  private String getLastSuccessfulWriteVersion(String path) {
+    byte[] binaryVersionToRead = _zkBaseDataAccessor.get(path + "/" + LAST_SUCCESSFUL_WRITE_KEY,
+        null, AccessOption.PERSISTENT);
+    if (binaryVersionToRead == null) {
+      throw new ZkNoNodeException(
+          String.format("Last successful write ZNode does not exist for path: %s", path));
+    }
+    return new String(binaryVersionToRead);
   }
 }

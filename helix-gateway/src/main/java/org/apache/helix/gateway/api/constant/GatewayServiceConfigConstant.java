@@ -19,7 +19,7 @@ package org.apache.helix.gateway.api.constant;
  * under the License.
  */
 
-public class GatewayServiceDefaultConfig {
+public class GatewayServiceConfigConstant {
   public static final int DEFAULT_SERVER_HEARTBEAT_INTERVAL = 60;
   public static final int DEFAULT_AMX_ALLOWED_CLIENT_HEARTBEAT_INTERVAL = 60;
   public static final int DEFAULT_CLIENT_TIMEOUT = 5 * 60;

@@ -139,6 +139,9 @@ public class GatewayServiceManager {
 
   public void stopService() {
     _gatewayServiceChannel.stop();
+    _connectionEventProcessor.shutdown();
+    _participantStateTransitionResultUpdator.shutdown();
+    _helixGatewayParticipantMap.clear();
   }
 
   private void createHelixGatewayParticipant(String clusterName, String instanceName,

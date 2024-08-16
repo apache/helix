@@ -23,7 +23,7 @@ import java.io.IOException;
 import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
 
-import static java.lang.Thread.*;
+import static java.lang.Integer.*;
 
 
 /**
@@ -35,11 +35,11 @@ public final class HelixGatewayMain {
   private HelixGatewayMain() {
   }
 
-  public static void main(String[] args) throws InterruptedException, IOException {
+  public static void main(String[] args) throws IOException {
     // Create a new server to listen on port 50051
     GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder = new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
     GatewayServiceManager manager = new GatewayServiceManager(args[0],
-        builder.setGrpcServerPort(50051).build());
+        builder.setGrpcServerPort(parseInt(args[1])).build());
 
     manager.startService();
   }

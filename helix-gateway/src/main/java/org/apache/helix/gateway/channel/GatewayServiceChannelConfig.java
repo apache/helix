@@ -20,7 +20,7 @@ package org.apache.helix.gateway.channel;
  */
 
 
-import static org.apache.helix.gateway.api.constant.GatewayServiceDefaultConfig.*;
+import static org.apache.helix.gateway.api.constant.GatewayServiceConfigConstant.*;
 
 public class GatewayServiceChannelConfig {
   public enum ChannelType {
@@ -79,7 +79,7 @@ public class GatewayServiceChannelConfig {
     return _pollIntervalSec;
   }
 
-  public GatewayServiceChannelConfig(int grpcServerPort, ChannelType participantConnectionChannelType,
+  private GatewayServiceChannelConfig(int grpcServerPort, ChannelType participantConnectionChannelType,
       ChannelType shardStatenChannelType, int serverHeartBeatInterval, int maxAllowedClientHeartBeatInterval,
       int clientTimeout, boolean enableReflectionService, int pollIntervalSec) {
     _grpcServerPort = grpcServerPort;

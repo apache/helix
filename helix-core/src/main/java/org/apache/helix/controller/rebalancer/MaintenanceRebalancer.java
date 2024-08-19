@@ -77,8 +77,8 @@ public class MaintenanceRebalancer extends SemiAutoRebalancer<ResourceController
        * --------------------------------------------------------
        * newPrefList = [C, B, A] => [A, B, C]
        */
-      Collections.sort(preferenceList, new PreferenceListNodeComparator(stateMap,
-          stateModelDef, currentIdealState.getPreferenceList(partition.getPartitionName())));
+      Collections.sort(preferenceList, new PreferenceListNodeComparator(stateMap, stateModelDef,
+          currentIdealState.getPreferenceList(partition.getPartitionName()), clusterData));
 
       /**
        * Sort 2: Sort based on state-priority order:

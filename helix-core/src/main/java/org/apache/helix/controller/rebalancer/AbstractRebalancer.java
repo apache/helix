@@ -46,6 +46,7 @@ import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -557,12 +558,14 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     protected final Map<String, String> _currentStateMap;
     protected final StateModelDefinition _stateModelDef;
     protected final List<String> _preferenceList;
+    ResourceControllerDataProvider _cache;
 
-    public PreferenceListNodeComparator(Map<String, String> currentStateMap,
-        StateModelDefinition stateModelDef, List<String> preferenceList) {
+    public PreferenceListNodeComparator(Map<String, String> currentStateMap, StateModelDefinition stateModelDef,
+        List<String> preferenceList, ResourceControllerDataProvider cache) {
       _currentStateMap = currentStateMap;
       _stateModelDef = stateModelDef;
       _preferenceList = preferenceList;
+      _cache = cache;
     }
 
     @Override
@@ -570,7 +573,9 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       // condition :
       // 1. both in preference list, keep the order in preference list
       // 2. one them in preference list, the one in preference list has higher priority
-      // 3. none of them in preference list, sort by state.
+      // 3. None of them in preference list, reverse sort by # of replicas in that mz
+        // a. node in MZ that has more replicas should be dropped first (lower priority)
+      // 4. Same # of replicas in each MZ, order by state
       if (_preferenceList.contains(ins1) && _preferenceList.contains(ins2)) {
         return _preferenceList.indexOf(ins1) - _preferenceList.indexOf(ins2);
       } else if (_preferenceList.contains(ins1)) {
@@ -581,6 +586,45 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       Integer p1 = Integer.MAX_VALUE;
       Integer p2 = Integer.MAX_VALUE;
 
+      // Order by MZ representation (overrepresented should be dropped first)
+      String mz1 = null;
+      String mz2 = null;
+
+      //gspencer TODO: domain has both zone and node, need to split. Right now it just doesn't do anything
+      if (_cache != null && _cache.getInstanceConfigMap() != null) {
+        String faultZoneType = _cache.getClusterConfig() != null ? _cache.getClusterConfig().getFaultZoneType() : null;
+        if (_cache.getInstanceConfigMap().containsKey(ins1)) {
+          mz1 = _cache.getInstanceConfigMap().get(ins1).getDomainAsMap().get(faultZoneType);
+        }
+        if (_cache.getInstanceConfigMap().containsKey(ins2)) {
+          mz2 = _cache.getInstanceConfigMap().get(ins2).getDomainAsMap().get(faultZoneType);
+        }
+      }
+
+      // If mz is not valid for either instance, skip mz comparison
+      if (mz1 != null && mz2 != null) {
+        // Count number of replicas in each MZ
+        int mz1Count = 0;
+        int mz2Count = 0;
+        for (String instance : _currentStateMap.keySet()) {
+            if (ins1.equals(instance) || ins2.equals(instance)) {
+              continue;
+            }
+
+            String currMz = _cache.getInstanceConfigMap().get(instance).getDomainAsString();
+
+            if (mz1.equals(currMz)) {
+              mz1Count++;
+            } else if (mz2.equals(currMz)) {
+              mz2Count++;
+            }
+        }
+        if (mz1Count != mz2Count) {
+          return mz2Count - mz1Count;
+        }
+      }
+
+      // Order by state priority
       Map<String, Integer> statesPriorityMap = _stateModelDef.getStatePriorityMap();
       String state1 = _currentStateMap.get(ins1);
       String state2 = _currentStateMap.get(ins2);

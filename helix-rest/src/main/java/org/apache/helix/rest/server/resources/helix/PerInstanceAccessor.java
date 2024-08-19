@@ -45,7 +45,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -510,23 +509,15 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           }
           return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", evacuateFinished)));
         case forceKillInstance:
-          // set instance to unknown
-          InstanceUtil.setInstanceOperation(new ConfigAccessor(getRealmAwareZkClient()),
-              new ZkBaseDataAccessor<>(getRealmAwareZkClient()), clusterId, instanceName,
-              new InstanceConfig.InstanceOperation.Builder().setOperation(InstanceConstants.InstanceOperation.UNKNOWN)
-                  .setReason(reason).setSource(InstanceConstants.InstanceOperationSource.ADMIN).build());
-          // delete liveInstanceZnode
-          boolean instanceForceKilled = admin.forceKillInstance(clusterId, instanceName);
+          boolean instanceForceKilled = admin.forceKillInstance(clusterId, instanceName, reason, instanceOperationSource);
           if (!instanceForceKilled) {
-            return serverError("Failed to kill instance: " + instanceName);
+            return serverError("Failed to forcefully kill instance: " + instanceName);
           }
           return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", instanceForceKilled)));
         default:
           LOG.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);
       }
-
-
     } catch (Exception e) {
       LOG.error("Failed in updating instance : " + instanceName, e);
       return badRequest(e.getMessage());

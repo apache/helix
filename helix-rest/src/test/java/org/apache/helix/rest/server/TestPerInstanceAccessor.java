@@ -878,7 +878,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testValidateDeltaInstanceConfigForUpdate")
-  public void testGetResourcesOnInstance() throws JsonProcessingException, InterruptedException {
+  public void testGetResourcesOnInstance() throws JsonProcessingException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources")
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
@@ -895,9 +895,9 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetResourcesOnInstance")
-  public void testForceKillInstance() throws Exception {
+  public void testForceKillInstance() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    // Fix rebalance failures due to settings set in previous tests
+    // Fix rebalance failures due to settings from previous tests
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setTopologyAwareEnabled(false);
     clusterConfig.getRecord().setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), null);
@@ -910,19 +910,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
-    // Get assignments on node, assert it has at least one assignemnt
-    Set<String> originalAssignment = new HashSet<>();
-    for (Map.Entry<String, ExternalView> entry : getEVs().entrySet()) {
-      String db = entry.getKey();
-      ExternalView ev = entry.getValue();
-      for (String partition : ev.getPartitionSet()) {
-        Map<String, String> stateMap = ev.getStateMap(partition);
-        if (stateMap.containsKey(instanceToKill)) {
-          originalAssignment.add(db + "/" + partition);
-        }
-      }
-    }
+    Assert.assertTrue(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should exist before force kill");
 
+    // Get assignments on node, assert it has at least one assignment
+    Map<String, String> originalAssignment = getInstanceCurrentStates(instanceToKill);
     Assert.assertFalse(originalAssignment.isEmpty());
 
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
@@ -930,28 +922,87 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(CLUSTER_NAME, instanceToKill).post(this, entity);
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
+    // Assert instance operation updated
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceToKill);
+    InstanceConfig.InstanceOperation instanceOperation = instanceConfig.getInstanceOperation();
+    Assert.assertEquals(instanceOperation.getOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+    Assert.assertEquals(instanceOperation.getSource(), InstanceConstants.InstanceOperationSource.USER);
 
     // ensure no live instance znode
-    Assert.assertFalse(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVE_INSTANCES/" + instanceToKill),
-        "Instance znode should exist after force kill");
-
+    Assert.assertFalse(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should not exist after force kill");
 
     // make sure no assignments on the instance
-    Set<String> postKillAssignment = new HashSet<>();
-    for (ExternalView ev : getEVs().values()) {
-      for (String partition : ev.getPartitionSet()) {
-        Map<String, String> stateMap = ev.getStateMap(partition);
-        if (stateMap.containsKey(instanceToKill)) {
-          postKillAssignment.add(partition);
-        }
-      }
-    }
+    Map<String, String> postKillAssignment = getInstanceCurrentStates(instanceToKill);
     Assert.assertTrue(postKillAssignment.isEmpty());
 
-    // Drop and re-add the instance we killed, remove test resource
+    // Drop the instance we killed, remove test resource to return cluster to original state
     dropParticipant(CLUSTER_NAME, instanceToKill);
     _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resourceToAdd);
     _resourcesMap.get(CLUSTER_NAME).remove(resourceToAdd);
+    _bestPossibleClusterVerifier.verifyByPolling();
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testForceKillInstance")
+  public void testForceKillInstanceWithParameters() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String instanceToKill = "localhost_" + TestHelper.getTestMethodName();
+    addParticipant(CLUSTER_NAME, instanceToKill);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    String reason = "reason-foobar";
+    InstanceConstants.InstanceOperationSource source = InstanceConstants.InstanceOperationSource.AUTOMATION;
+
+    Entity entity =
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + source.name())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceToKill);
+    InstanceConfig.InstanceOperation instanceOperation = instanceConfig.getInstanceOperation();
+    Assert.assertEquals(instanceOperation.getOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+    Assert.assertEquals(instanceOperation.getReason(),reason);
+    Assert.assertEquals(instanceOperation.getSource(), source);
+
+    // Drop instance we killed to return cluster to original state
+    dropParticipant(CLUSTER_NAME, instanceToKill);
+    _bestPossibleClusterVerifier.verifyByPolling();
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testForceKillInstanceWithParameters")
+  public void testForceKillInvalidInputs() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String instanceToKill = "localhost_" + TestHelper.getTestMethodName();
+    addParticipant(CLUSTER_NAME, instanceToKill);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    String reason = "reason-foobar";
+    InstanceConstants.InstanceOperationSource validSource = InstanceConstants.InstanceOperationSource.AUTOMATION;
+    String invalidSource = "INVALID_SOURCE";
+
+    // Test invalid source
+    Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + invalidSource)
+        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertTrue(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should exist because force kill failed");
+
+    // Calling on a node that has already been force killed (no live instance znode)
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + validSource.name())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertFalse(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should not exist after force kill");
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + validSource.name())
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     _bestPossibleClusterVerifier.verifyByPolling();
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -963,5 +1014,18 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
       externalViews.put(db, ev);
     }
     return externalViews;
+  }
+
+  private Map<String, String> getInstanceCurrentStates(String instanceName) {
+    Map<String, String> assignment = new HashMap<>();
+    for (ExternalView ev : getEVs().values()) {
+      for (String partition : ev.getPartitionSet()) {
+        Map<String, String> stateMap = ev.getStateMap(partition);
+        if (stateMap.containsKey(instanceName)) {
+          assignment.put(partition, stateMap.get(instanceName));
+        }
+      }
+    }
+    return assignment;
   }
 }

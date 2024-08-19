@@ -854,4 +854,10 @@ public interface HelixAdmin {
   default boolean forceKillInstance(String clusterName, String instanceName) {
     throw new UnsupportedOperationException("forceKillInstance is not implemented.");
   }
+
+  default boolean forceKillInstance(String clusterName, String instanceName, String reason,
+      InstanceConstants.InstanceOperationSource operationSource) {
+    throw new UnsupportedOperationException("forceKillInstance is not implemented.");
+  }
+
 }

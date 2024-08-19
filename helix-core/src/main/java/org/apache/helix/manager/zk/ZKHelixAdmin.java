@@ -733,24 +733,33 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public boolean forceKillInstance(String clusterName, String instanceName) {
-    logger.info("Force kill instance {} in cluster {}.", instanceName, clusterName);
-    // Instance must be in UNKNOWN state and alive to be force killed.
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
-    if (!InstanceConstants.InstanceOperation.UNKNOWN.equals(
-        getInstanceConfig(clusterName, instanceName).getInstanceOperation().getOperation())) {
-      throw new HelixException("Instance " + instanceName + " in cluster " + clusterName + " is not in UNKNOWN state. "
-          + "Cannot force kill.");
-    }
+    return forceKillInstance(clusterName, instanceName, "Force kill instance", null);
+  }
 
-    if (accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName)).equals(null)) {
+  @Override
+  public boolean forceKillInstance(String clusterName, String instanceName, String reason,
+      InstanceConstants.InstanceOperationSource operationSource) {
+    logger.info("Force kill instance {} in cluster {}.", instanceName, clusterName);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
+
+    // TODO: Can we batch Instance Operation change and LIVEINSTANCES znode deletion?
+    // Set instance to UNKNOWN so it excluded from assignments
+    InstanceConfig.InstanceOperation instanceOperationObj = new InstanceConfig.InstanceOperation.Builder()
+        .setOperation(InstanceConstants.InstanceOperation.UNKNOWN).setReason(reason)
+        .setSource(operationSource != null ? operationSource : InstanceConstants.InstanceOperationSource.USER).build();
+    InstanceUtil.setInstanceOperation(_configAccessor, _baseDataAccessor, clusterName, instanceName,
+        instanceOperationObj);
+
+    // Check if node already dead. Node will still be removed from assignment due to UNKNOWN operation, but should throw
+    // error to signal forceKill was not responsible for removing liveInstance znode.
+    if (accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName)) == null) {
       throw new HelixException("Instance " + instanceName + " in cluster " + clusterName + " is not alive. "
           + "Cannot force kill.");
     }
-
-
     // Attempt to delete participant's LIVEINSTANCES znode
     return accessor.removeProperty(accessor.keyBuilder().liveInstance(instanceName));
   }
+
 
   /**
    * Return true if Instance has any current state or pending message. Otherwise, return false if instance is offline,

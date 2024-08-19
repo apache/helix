@@ -323,7 +323,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   }
 
   protected void setupHelixResources() throws Exception {
-    _clusters = createClusters(5);
+    _clusters = createClusters(6);
     _gSetupTool.addCluster(_superCluster, true);
     _gSetupTool.addCluster(TASK_TEST_CLUSTER, true);
     _clusters.add(_superCluster);
@@ -392,7 +392,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       int replicationFactor) {
     for (int i = 0; i < numResources; i++) {
       String resource = cluster + "_db_" + i;
-      addResource(cluster, resource, NUM_PARTITIONS, "OnlineOffline", minActiveReplica,
+      addResource(cluster, resource, NUM_PARTITIONS, "MasterSlave", minActiveReplica,
           replicationFactor);
     }
   }

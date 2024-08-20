@@ -55,24 +55,24 @@ public enum HealthCheck {
   /**
    * Check if instance has error partitions
    */
-  HAS_ERROR_PARTITION,
-  /**
-   * Check if all resources hosted on the instance can still meet the min active replica
-   * constraint if this instance is shutdown
-   */
-  MIN_ACTIVE_REPLICA_CHECK_FAILED;
+  HAS_ERROR_PARTITION;
 
   /**
    * Pre-defined list of checks to test if an instance can be stopped at runtime. Excludes MIN_ACTIVE_REPLICA_CHECK as
    * that is performed separately.
    */
-  public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.stream(HealthCheck.values())
-      .filter(healthCheck -> healthCheck != HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED)
-      .collect(Collectors.toList());
+  public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.asList(HealthCheck.values());
+
   /**
    * Pre-defined list of checks to test if an instance is in healthy running state
    */
   public static List<HealthCheck> STARTED_AND_HEALTH_CHECK_LIST = ImmutableList
       .of(INVALID_CONFIG, INSTANCE_NOT_ALIVE, INSTANCE_NOT_ENABLED, INSTANCE_NOT_STABLE,
           EMPTY_RESOURCE_ASSIGNMENT);
+
+  /**
+   * Check if all resources hosted on the instance can still meet the min active replica
+   * constraint if this instance is shutdown
+   */
+  public static String MIN_ACTIVE_REPLICA_CHECK_FAILED = "MIN_ACTIVE_REPLICA_CHECK_FAILED";
 }

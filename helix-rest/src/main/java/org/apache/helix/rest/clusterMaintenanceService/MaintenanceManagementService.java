@@ -816,7 +816,7 @@ public class MaintenanceManagementService {
         // add to possibleToStopInstances
         boolean minActiveCheckResult = InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor,
             instanceName, possibleToStopInstances);
-        stoppableCheck.add(new StoppableCheck(Collections.singletonMap(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),
+        stoppableCheck.add(new StoppableCheck(Collections.singletonMap(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED,
             minActiveCheckResult), StoppableCheck.Category.HELIX_OWN_CHECK));
         if (stoppableCheck.isStoppable()) {
           possibleToStopInstances.add(instanceName);

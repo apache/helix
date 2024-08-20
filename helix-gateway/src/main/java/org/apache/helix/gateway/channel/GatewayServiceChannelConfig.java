@@ -22,16 +22,26 @@ package org.apache.helix.gateway.channel;
 
 import static org.apache.helix.gateway.api.constant.GatewayServiceConfigConstant.*;
 
+
 public class GatewayServiceChannelConfig {
-  public enum ChannelType {
-    GRPC_SERVER, POLL_GRPC, SHARED_FILE
+  public enum ChannelMode {
+    PUSH_MODE,
+    POLL_MODE
   }
+
+  public enum ChannelType {
+    GRPC_SERVER,
+    GRPC_CLIENT,
+    FILE_SHARE
+  }
+
+  private ChannelMode _channelType;
 
   // service configs
   // channel type for participant liveness detection
-  private ChannelType _participantConnectionChannelType;
+  private ChannelType _participantConnectionChannelMode;
   // channel for sending and receiving shard state transition request and shard state response
-  private ChannelType _shardStatenChannelType;
+  private ChannelType _shardStatenChannelMode;
 
   // grpc server configs
   private final int _grpcServerPort;
@@ -47,12 +57,16 @@ public class GatewayServiceChannelConfig {
   // TODO: configs for pull mode with file
 
   // getters
+
+  public ChannelMode getChannelMode() {
+    return _channelType;
+  }
   public ChannelType getParticipantConnectionChannelType() {
-    return _participantConnectionChannelType;
+    return _participantConnectionChannelMode;
   }
 
   public ChannelType getShardStatenChannelType() {
-    return _shardStatenChannelType;
+    return _shardStatenChannelMode;
   }
 
   public int getGrpcServerPort() {
@@ -79,12 +93,13 @@ public class GatewayServiceChannelConfig {
     return _pollIntervalSec;
   }
 
-  private GatewayServiceChannelConfig(int grpcServerPort, ChannelType participantConnectionChannelType,
-      ChannelType shardStatenChannelType, int serverHeartBeatInterval, int maxAllowedClientHeartBeatInterval,
+  private GatewayServiceChannelConfig(int grpcServerPort, ChannelMode channelMode,  ChannelType participantConnectionChannelMode,
+      ChannelType shardStatenChannelMode, int serverHeartBeatInterval, int maxAllowedClientHeartBeatInterval,
       int clientTimeout, boolean enableReflectionService, int pollIntervalSec) {
     _grpcServerPort = grpcServerPort;
-    _participantConnectionChannelType = participantConnectionChannelType;
-    _shardStatenChannelType = shardStatenChannelType;
+    _channelType = channelMode;
+    _participantConnectionChannelMode = participantConnectionChannelMode;
+    _shardStatenChannelMode = shardStatenChannelMode;
     _serverHeartBeatInterval = serverHeartBeatInterval;
     _maxAllowedClientHeartBeatInterval = maxAllowedClientHeartBeatInterval;
     _clientTimeout = clientTimeout;
@@ -95,6 +110,8 @@ public class GatewayServiceChannelConfig {
   public static class GatewayServiceProcessorConfigBuilder {
 
     // service configs
+    private ChannelMode _channelMode = ChannelMode.PUSH_MODE;
+
     private ChannelType _participantConnectionChannelType = ChannelType.GRPC_SERVER;
     private ChannelType _shardStatenChannelType = ChannelType.GRPC_SERVER;
 
@@ -111,13 +128,19 @@ public class GatewayServiceChannelConfig {
 
     // poll mode file configs
 
-    public GatewayServiceProcessorConfigBuilder setParticipantConnectionChannelType(ChannelType channelType) {
-      _participantConnectionChannelType = channelType;
+
+    public GatewayServiceProcessorConfigBuilder setChannelMode(ChannelMode channelMode) {
+      _channelMode = channelMode;
       return this;
     }
 
-    public GatewayServiceProcessorConfigBuilder setShardStateProcessorType(ChannelType channelType) {
-      _shardStatenChannelType = channelType;
+    public GatewayServiceProcessorConfigBuilder setParticipantConnectionChannelType(ChannelType channelMode) {
+      _participantConnectionChannelType = channelMode;
+      return this;
+    }
+
+    public GatewayServiceProcessorConfigBuilder setShardStateProcessorType(ChannelType channelMode) {
+      _shardStatenChannelType = channelMode;
       return this;
     }
 
@@ -153,19 +176,14 @@ public class GatewayServiceChannelConfig {
     }
 
     public void validate() {
-      if ((_participantConnectionChannelType == ChannelType.POLL_GRPC
-          && _shardStatenChannelType != ChannelType.POLL_GRPC) || (
-          _participantConnectionChannelType != ChannelType.POLL_GRPC
-              && _shardStatenChannelType == ChannelType.POLL_GRPC)) {
-        throw new IllegalArgumentException(
-            "Unsupported channel type config: ConnectionChannelType: " + _participantConnectionChannelType
-                + " shardStatenChannelType: " + _shardStatenChannelType);
+      if ((_participantConnectionChannelType == ChannelType.GRPC_SERVER || _shardStatenChannelType == ChannelType.GRPC_SERVER) && _grpcServerPort == 0) {
+        throw new IllegalArgumentException("Grpc server port must be set for grpc server channel type");
       }
     }
 
     public GatewayServiceChannelConfig build() {
       validate();
-      return new GatewayServiceChannelConfig(_grpcServerPort, _participantConnectionChannelType,
+      return new GatewayServiceChannelConfig(_grpcServerPort, _channelMode, _participantConnectionChannelType,
           _shardStatenChannelType, _serverHeartBeatInterval, _maxAllowedClientHeartBeatInterval, _clientTimeout,
           _enableReflectionService, _pollIntervalSec);
     }

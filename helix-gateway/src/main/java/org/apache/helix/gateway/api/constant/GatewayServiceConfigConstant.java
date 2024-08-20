@@ -23,6 +23,5 @@ public class GatewayServiceConfigConstant {
   public static final int DEFAULT_SERVER_HEARTBEAT_INTERVAL = 60;
   public static final int DEFAULT_AMX_ALLOWED_CLIENT_HEARTBEAT_INTERVAL = 60;
   public static final int DEFAULT_CLIENT_TIMEOUT = 5 * 60;
-
   public static final int DEFAULT_POLL_INTERVAL_SEC = 60;
 }

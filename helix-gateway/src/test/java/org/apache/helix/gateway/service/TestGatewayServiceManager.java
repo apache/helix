@@ -17,7 +17,7 @@ public class TestGatewayServiceManager {
   public void testConnectionAndDisconnectionEvents() {
 
     manager = mock(GatewayServiceManager.class);
-    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder = new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
+    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder = new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder().setGrpcServerPort(50051);
     HelixGatewayServiceGrpcService grpcService = new HelixGatewayServiceGrpcService(manager,builder.build());
     // Mock a connection event
     HelixGatewayServiceOuterClass.ShardStateMessage connectionEvent =

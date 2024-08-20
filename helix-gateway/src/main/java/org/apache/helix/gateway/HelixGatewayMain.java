@@ -29,6 +29,8 @@ import static java.lang.Integer.*;
 /**
  * Main class for Helix Gateway.
  * It starts the Helix Gateway grpc service.
+ * args0:zk address
+ * args1: helix gateway groc server port
  */
 public final class HelixGatewayMain {
 
@@ -36,10 +38,11 @@ public final class HelixGatewayMain {
   }
 
   public static void main(String[] args) throws IOException {
-    // Create a new server to listen on port 50051
-    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder = new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
-    GatewayServiceManager manager = new GatewayServiceManager(args[0],
-        builder.setGrpcServerPort(parseInt(args[1])).build());
+    // Create a new server
+    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder =
+        new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
+    GatewayServiceManager manager =
+        new GatewayServiceManager(args[0], builder.setGrpcServerPort(parseInt(args[1])).build());
 
     manager.startService();
   }

@@ -28,15 +28,16 @@ public class HelixGatewayServiceChannelFactory {
 
   public static HelixGatewayServiceChannel createServiceChannel(GatewayServiceChannelConfig config,
       GatewayServiceManager manager) {
-    switch (config.getParticipantConnectionChannelType()) {
-      case GRPC_SERVER:
+
+    if (config.getChannelMode() == GatewayServiceChannelConfig.ChannelMode.PUSH_MODE) {
+      if (config.getParticipantConnectionChannelType() == GatewayServiceChannelConfig.ChannelType.GRPC_SERVER) {
         return new HelixGatewayServiceGrpcService(manager, config);
-      case POLL_GRPC:
-      case SHARED_FILE:
-        throw new NotImplementedException("Not implemented yet");
-      default:
-        throw new IllegalArgumentException(
-            "Unsupported processor type: " + config.getParticipantConnectionChannelType());
+      } else {
+        return new HelixGatewayServicePollModeChannel(config);
+      }
     }
+    throw new IllegalArgumentException(
+        "Unsupported channel mode and type combination: " + config.getChannelMode() + " , "
+            + config.getParticipantConnectionChannelType());
   }
 }

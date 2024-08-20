@@ -30,7 +30,8 @@ public class GatewayServiceChannelConfigTest {
     GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder =
         new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
 
-    builder.setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER)
+    builder.setChannelMode(GatewayServiceChannelConfig.ChannelMode.PUSH_MODE)
+        .setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER)
         .setShardStateProcessorType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER)
         .setGrpcServerPort(50051)
         .setServerHeartBeatInterval(30)
@@ -41,6 +42,7 @@ public class GatewayServiceChannelConfigTest {
 
     GatewayServiceChannelConfig config = builder.build();
 
+    Assert.assertEquals(config.getChannelMode(), GatewayServiceChannelConfig.ChannelMode.PUSH_MODE);
     Assert.assertEquals(config.getParticipantConnectionChannelType(), GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
     Assert.assertEquals(config.getShardStatenChannelType(), GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
     Assert.assertEquals(config.getGrpcServerPort(), 50051);
@@ -56,8 +58,7 @@ public class GatewayServiceChannelConfigTest {
     GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder =
         new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
 
-    builder.setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER)
-        .setShardStateProcessorType(GatewayServiceChannelConfig.ChannelType.POLL_GRPC);
+    builder.setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
 
     // assert er get an exception
     try {

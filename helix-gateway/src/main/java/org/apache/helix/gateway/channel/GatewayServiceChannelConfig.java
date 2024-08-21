@@ -33,7 +33,7 @@ public class GatewayServiceChannelConfig {
 
   // NOTE:
   // For outbound information - stateTransition request, Gateway service will always push the state transition message.
-  // We do not support participant poll mode as of now.
+  // We do not support participant poll mode for stateTransition request as of now.
 
   // channel type for the following 3 information - participant liveness detection, shard state transition request and response
   // By default, they are all grpc server, user could define them separately.
@@ -43,9 +43,10 @@ public class GatewayServiceChannelConfig {
     FILE_SHARE
   }
 
-  private ChannelMode _channelMode;
-
   // service configs
+
+  // service mode for inbound information.
+  private ChannelMode _channelMode;
   // channel type for participant liveness detection
   private ChannelType _participantConnectionChannelType;
   // channel for sending and receiving shard state transition request and shard state response
@@ -119,7 +120,6 @@ public class GatewayServiceChannelConfig {
 
     // service configs
     private ChannelMode _channelMode = ChannelMode.PUSH_MODE;
-
     private ChannelType _participantConnectionChannelType = ChannelType.GRPC_SERVER;
     private ChannelType _shardStatenChannelType = ChannelType.GRPC_SERVER;
 
@@ -184,7 +184,14 @@ public class GatewayServiceChannelConfig {
     }
 
     public void validate() {
-      if ((_participantConnectionChannelType == ChannelType.GRPC_SERVER || _shardStatenChannelType == ChannelType.GRPC_SERVER) && _grpcServerPort == 0) {
+      if ((_participantConnectionChannelType == ChannelType.GRPC_SERVER
+          && _shardStatenChannelType != ChannelType.GRPC_SERVER) || (
+          _participantConnectionChannelType != ChannelType.GRPC_SERVER
+              && _shardStatenChannelType == ChannelType.GRPC_SERVER)) {
+        throw new IllegalArgumentException(
+            "In caas of GRPC server, Participant connection channel type and shard state channel type must be the same");
+      }
+      if (_participantConnectionChannelType == ChannelType.GRPC_SERVER && _grpcServerPort == 0) {
         throw new IllegalArgumentException("Grpc server port must be set for grpc server channel type");
       }
     }

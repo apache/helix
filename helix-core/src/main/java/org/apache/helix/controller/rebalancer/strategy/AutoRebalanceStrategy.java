@@ -34,6 +34,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.slf4j.Logger;
@@ -82,7 +84,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes, final List<String> liveNodes,
       final Map<String, Map<String, String>> currentMapping, ResourceControllerDataProvider clusterData) {
-    int numReplicas = countStateReplicas();
+    int numReplicas = calculateStatesReplicaCount();
     ZNRecord znRecord = new ZNRecord(_resourceName);
     if (liveNodes.size() == 0) {
       return znRecord;
@@ -99,7 +101,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
 
     int distRemainder = (numReplicas * _partitions.size()) % sortedLiveNodes.size();
     int distFloor = (numReplicas * _partitions.size()) / sortedLiveNodes.size();
-    _nodeMap = new HashMap<String, Node>();
+    // Use linkedHashMao to preserve the sorted all instance order
+    _nodeMap = new LinkedHashMap<>();
     _liveNodesList = new ArrayList<Node>();
 
     for (String id : sortedAllNodes) {
@@ -127,7 +130,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     _stateMap = generateStateMap();
 
     // compute the preferred mapping if all nodes were up
-    _preferredAssignment = computePreferredPlacement(sortedAllNodes);
+    _preferredAssignment = computePreferredPlacement(sortedAllNodes, clusterData);
 
     // logger.info("preferred mapping:"+ preferredAssignment);
     // from current mapping derive the ones in preferred location
@@ -135,7 +138,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     _existingPreferredAssignment = computeExistingPreferredPlacement(currentMapping);
 
     // from current mapping derive the ones not in preferred location
-    _existingNonPreferredAssignment = computeExistingNonPreferredPlacement(currentMapping);
+    _existingNonPreferredAssignment =
+        computeExistingNonPreferredPlacement(currentMapping, clusterData);
 
     // compute orphaned replicas that are not assigned to any node
     _orphaned = computeOrphaned();
@@ -152,7 +156,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       forceToAssignOrphans();
     }
 
-    prepareResult(znRecord);
+    prepareResult(znRecord, clusterData, currentStateNodeComparator);
     return znRecord;
   }
 
@@ -301,7 +305,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * Update a ZNRecord with the results of the rebalancing.
    * @param znRecord
    */
-  private void prepareResult(ZNRecord znRecord) {
+  private void prepareResult(ZNRecord znRecord, ResourceControllerDataProvider clusterData,
+      Comparator<String> comparator) {
     // The map fields are keyed on partition name to a pair of node and state, i.e. it
     // indicates that the partition with given state is served by that node
     //
@@ -315,10 +320,16 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       newPreferences.put(partition, new ArrayList<String>());
     }
 
+    // We have to sort the node list by the current states so the preference list so that it could
+    // present higher priority than other instances that doesn't have current state.
+    List<String> sortedNodes = new ArrayList<>(_nodeMap.keySet());
+    sortedNodes.sort(comparator);
+
     // for preference lists, the rough priority that we want is:
     // [existing preferred, existing non-preferred, non-existing preferred, non-existing
     // non-preferred]
-    for (Node node : _liveNodesList) {
+    for (String nodeName : sortedNodes) {
+      Node node = _nodeMap.get(nodeName);
       for (Replica replica : node.preferred) {
         if (node.newReplicas.contains(replica)) {
           newPreferences.get(replica.partition).add(node.id);
@@ -327,7 +338,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         }
       }
     }
-    for (Node node : _liveNodesList) {
+    for (String nodeName : sortedNodes) {
+      Node node = _nodeMap.get(nodeName);
       for (Replica replica : node.nonPreferred) {
         if (node.newReplicas.contains(replica)) {
           newPreferences.get(replica.partition).add(node.id);
@@ -336,13 +348,21 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         }
       }
     }
-    normalizePreferenceLists(znRecord.getListFields(), newPreferences);
+    normalizePreferenceLists(znRecord.getListFields(), newPreferences, clusterData);
+
+    String stateModelDef = clusterData.getIdealState(_resourceName).getStateModelDefRef();
+    StateModelDefinition stateModel = clusterData.getStateModelDef(stateModelDef);
 
     // generate preference maps based on the preference lists
     for (String partition : _partitions) {
       List<String> preferenceList = znRecord.getListField(partition);
       int i = 0;
       for (String participant : preferenceList) {
+        // if the participant is not alive, assign it to the initial state
+        if (!_nodeMap.get(participant).isAlive) {
+          znRecord.getMapField(partition).put(participant, stateModel.getInitialState());
+          continue;
+        }
         znRecord.getMapField(partition).put(participant, _stateMap.get(i));
         i++;
       }
@@ -359,6 +379,9 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
             && receiver.currentlyAssigned < _maximumPerNode && receiver
             .canAddIfCapacity(replica)) {
           nodeToAssign = receiver;
+          // Should update the minOverloadedCapacity to find the node with minimum overloaded capacity
+          minOverloadedCapacity =
+              Math.min(receiver.currentlyAssigned - receiver.capacity, minOverloadedCapacity);
         }
       }
 
@@ -380,15 +403,15 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    *          assignment
    */
   private void normalizePreferenceLists(Map<String, List<String>> preferenceLists,
-      Map<String, List<String>> newPreferences) {
+      Map<String, List<String>> newPreferences, ResourceControllerDataProvider clusterData) {
 
     Map<String, Map<String, Integer>> nodeReplicaCounts =
         new HashMap<String, Map<String, Integer>>();
     for (String partition : preferenceLists.keySet()) {
-      normalizePreferenceList(preferenceLists.get(partition), nodeReplicaCounts);
+      normalizePreferenceList(preferenceLists.get(partition), nodeReplicaCounts, clusterData);
     }
     for (String partition : newPreferences.keySet()) {
-      normalizePreferenceList(newPreferences.get(partition), nodeReplicaCounts);
+      normalizePreferenceList(newPreferences.get(partition), nodeReplicaCounts, clusterData);
       preferenceLists.get(partition).addAll(newPreferences.get(partition));
     }
   }
@@ -399,9 +422,13 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * @param nodeReplicaCounts map of (node --> state --> count)
    */
   private void normalizePreferenceList(List<String> preferenceList,
-      Map<String, Map<String, Integer>> nodeReplicaCounts) {
+      Map<String, Map<String, Integer>> nodeReplicaCounts,
+      ResourceControllerDataProvider clusterData) {
     List<String> newPreferenceList = new ArrayList<String>();
-    int replicas = Math.min(countStateReplicas(), preferenceList.size());
+    // Use the expected replica count instead of relying on the _states map.
+    // This prevents the preference list from being truncated when ANY_LIVEINSTANCE
+    // is used as the replication factor.
+    int replicas = Math.min(calculateExpectedReplicaCount(clusterData), preferenceList.size());
 
     // make this a LinkedHashSet to preserve iteration order
     Set<String> notAssigned = new LinkedHashSet<String>(preferenceList);
@@ -468,9 +495,9 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * @return The current assignments that do not conform to the preferred assignment
    */
   private Map<Replica, Node> computeExistingNonPreferredPlacement(
-      Map<String, Map<String, String>> currentMapping) {
+      Map<String, Map<String, String>> currentMapping, ResourceControllerDataProvider clusterData) {
     Map<Replica, Node> existingNonPreferredAssignment = new TreeMap<Replica, Node>();
-    int count = countStateReplicas();
+    int count = calculateExpectedReplicaCount(clusterData);
     for (String partition : currentMapping.keySet()) {
       Map<String, String> nodeStateMap = currentMapping.get(partition);
       nodeStateMap.keySet().retainAll(_nodeMap.keySet());
@@ -496,12 +523,11 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
             throw new IllegalArgumentException("partition: " + replica + " is in currentMapping but not in partitions");
           }
 
-          if (_preferredAssignment.get(replica).id != node.id
+          if (_preferredAssignment.get(replica).id.equals(node.id)
               && !_existingPreferredAssignment.containsKey(replica)
               && !existingNonPreferredAssignment.containsKey(replica)) {
             existingNonPreferredAssignment.put(replica, node);
             node.nonPreferred.add(replica);
-
             break;
           }
         }
@@ -548,7 +574,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
   private Map<Replica, Node> computeExistingPreferredPlacement(
       final Map<String, Map<String, String>> currentMapping) {
     Map<Replica, Node> existingPreferredAssignment = new TreeMap<Replica, Node>();
-    int count = countStateReplicas();
+    int count = calculateStatesReplicaCount();
     for (String partition : currentMapping.keySet()) {
       Map<String, String> nodeStateMap = currentMapping.get(partition);
       nodeStateMap.keySet().retainAll(_nodeMap.keySet());
@@ -560,7 +586,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
           Replica replica = new Replica(partition, replicaId);
           if (_preferredAssignment.containsKey(replica)
               && !existingPreferredAssignment.containsKey(replica)
-              && _preferredAssignment.get(replica).id == node.id && node.isAlive) {
+              && _preferredAssignment.get(replica).id.equals(node.id)) {
             existingPreferredAssignment.put(replica, node);
             node.preferred.add(replica);
             break;
@@ -576,16 +602,18 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * Given a predefined set of all possible nodes, compute an assignment of replicas to
    * nodes that evenly assigns all replicas to nodes.
    * @param allNodes Identifiers to all nodes, live and non-live
+   * @param clusterData
    * @return Preferred assignment of replicas
    */
-  private Map<Replica, Node> computePreferredPlacement(final List<String> allNodes) {
+  private Map<Replica, Node> computePreferredPlacement(final List<String> allNodes,
+      ResourceControllerDataProvider clusterData) {
     Map<Replica, Node> preferredMapping;
     preferredMapping = new HashMap<Replica, Node>();
     int partitionId = 0;
-    int numReplicas = countStateReplicas();
-    int count = countStateReplicas();
+    // Count the total number of replicas that should be assigned assuming all nodes are up
+    int numReplicas = calculateExpectedReplicaCount(clusterData);
     for (String partition : _partitions) {
-      for (int replicaId = 0; replicaId < count; replicaId++) {
+      for (int replicaId = 0; replicaId < numReplicas; replicaId++) {
         Replica replica = new Replica(partition, replicaId);
         String nodeName =
             _placementScheme.getLocation(partitionId, replicaId, _partitions.size(), numReplicas,
@@ -598,12 +626,35 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
   }
 
   /**
-   * Counts the total number of replicas given a state-count mapping
+   * Calculates the total number of replicas based on the state-count mapping
+   * which only includes the states of live instances.
    * @return
    */
-  private int countStateReplicas() {
+  private int calculateStatesReplicaCount() {
     int total = 0;
     for (Integer count : _states.values()) {
+      total += count;
+    }
+    return total;
+  }
+
+  /**
+   * Calculates the expected total number of replicas assuming full cluster availability.
+   * @param clusterData the cache that stores all cluster data
+   * @return The total number of replicas that should be assigned
+   */
+  private int calculateExpectedReplicaCount(ResourceControllerDataProvider clusterData) {
+    IdealState currentIdealState = clusterData.getIdealState(_resourceName);
+    // Recompute the total number of replicas because for resources with ANY_LIVEINSTANCE,
+    // the replica count should match the total number of instances in the cluster.
+    // The _states map cannot be used for this calculation, as it only accounts for live instances.
+    int totalReplicaCount = currentIdealState.getReplicaCount(_nodeMap.keySet().size());
+    StateModelDefinition stateModelDef =
+        clusterData.getStateModelDef(currentIdealState.getStateModelDefRef());
+    LinkedHashMap<String, Integer> stateToCountMap =
+        stateModelDef.getStateCountMap(_nodeMap.keySet().size(), totalReplicaCount);
+    int total = 0;
+    for (Integer count : stateToCountMap.values()) {
       total += count;
     }
     return total;

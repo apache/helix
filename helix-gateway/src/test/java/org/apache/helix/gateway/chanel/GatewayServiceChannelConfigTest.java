@@ -23,6 +23,7 @@ import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class GatewayServiceChannelConfigTest {
 
   @Test
@@ -43,7 +44,8 @@ public class GatewayServiceChannelConfigTest {
     GatewayServiceChannelConfig config = builder.build();
 
     Assert.assertEquals(config.getChannelMode(), GatewayServiceChannelConfig.ChannelMode.PUSH_MODE);
-    Assert.assertEquals(config.getParticipantConnectionChannelType(), GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
+    Assert.assertEquals(config.getParticipantConnectionChannelType(),
+        GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
     Assert.assertEquals(config.getShardStateChannelType(), GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
     Assert.assertEquals(config.getGrpcServerPort(), 50051);
     Assert.assertEquals(config.getServerHeartBeatInterval(), 30);
@@ -54,7 +56,7 @@ public class GatewayServiceChannelConfigTest {
   }
 
   @Test
-  public void testInvalidConfig(){
+  public void testInvalidConfig() {
     GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder =
         new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
 

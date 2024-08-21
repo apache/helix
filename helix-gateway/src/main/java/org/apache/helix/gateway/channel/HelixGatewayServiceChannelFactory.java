@@ -32,9 +32,9 @@ public class HelixGatewayServiceChannelFactory {
     if (config.getChannelMode() == GatewayServiceChannelConfig.ChannelMode.PUSH_MODE) {
       if (config.getParticipantConnectionChannelType() == GatewayServiceChannelConfig.ChannelType.GRPC_SERVER) {
         return new HelixGatewayServiceGrpcService(manager, config);
-      } else {
-        return new HelixGatewayServicePollModeChannel(config);
       }
+    } else {
+      return new HelixGatewayServicePollModeChannel(config);
     }
     throw new IllegalArgumentException(
         "Unsupported channel mode and type combination: " + config.getChannelMode() + " , "

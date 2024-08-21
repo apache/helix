@@ -40,7 +40,7 @@ public class GatewayServiceChannelConfig {
   public enum ChannelType {
     GRPC_SERVER,
     GRPC_CLIENT,
-    FILE_SHARE
+    FILE
   }
 
   // service configs

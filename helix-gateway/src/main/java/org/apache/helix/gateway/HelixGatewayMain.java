@@ -29,7 +29,7 @@ import static java.lang.Integer.*;
 /**
  * Main class for Helix Gateway.
  * It starts the Helix Gateway grpc service.
- * args0:zk address
+ * args0: zk address
  * args1: helix gateway groc server port
  */
 public final class HelixGatewayMain {

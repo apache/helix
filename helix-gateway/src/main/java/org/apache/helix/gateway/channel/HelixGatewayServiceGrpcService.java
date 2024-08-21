@@ -203,7 +203,10 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     }
     _server = serverBuilder.build();
 
-    logger.info("Starting grpc server now....");
+    logger.info("Starting grpc server on port " + _config.getGrpcServerPort() + " now.... Server heart beat interval: "
+        + _config.getServerHeartBeatInterval() + " seconds, Max allowed client heart beat interval: "
+        + _config.getMaxAllowedClientHeartBeatInterval() + " seconds, Client timeout: " + _config.getClientTimeout()
+        + " seconds, Enable reflection service: " + _config.getEnableReflectionService());
     _server.start();
   }
 

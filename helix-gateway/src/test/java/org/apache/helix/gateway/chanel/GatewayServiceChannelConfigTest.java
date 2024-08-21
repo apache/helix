@@ -44,7 +44,7 @@ public class GatewayServiceChannelConfigTest {
 
     Assert.assertEquals(config.getChannelMode(), GatewayServiceChannelConfig.ChannelMode.PUSH_MODE);
     Assert.assertEquals(config.getParticipantConnectionChannelType(), GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
-    Assert.assertEquals(config.getShardStatenChannelType(), GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
+    Assert.assertEquals(config.getShardStateChannelType(), GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
     Assert.assertEquals(config.getGrpcServerPort(), 50051);
     Assert.assertEquals(config.getServerHeartBeatInterval(), 30);
     Assert.assertEquals(config.getMaxAllowedClientHeartBeatInterval(), 60);

@@ -24,24 +24,32 @@ import static org.apache.helix.gateway.api.constant.GatewayServiceConfigConstant
 
 
 public class GatewayServiceChannelConfig {
+  // Mode to get helix participant information (inbound information). This included health check and shard state transition response
+  // We do not support hybrid mode as of now, (i.e. have push mode for participant liveness detection and pull mode for shard state)
   public enum ChannelMode {
-    PUSH_MODE,
-    POLL_MODE
+    PUSH_MODE, // The gateway service passively receives participant information
+    POLL_MODE  // The gateway service actively polls participant information
   }
 
+  // NOTE:
+  // For outbound information - stateTransition request, Gateway service will always push the state transition message.
+  // We do not support participant poll mode as of now.
+
+  // channel type for the following 3 information - participant liveness detection, shard state transition request and response
+  // By default, they are all grpc server, user could define them separately.
   public enum ChannelType {
     GRPC_SERVER,
     GRPC_CLIENT,
     FILE_SHARE
   }
 
-  private ChannelMode _channelType;
+  private ChannelMode _channelMode;
 
   // service configs
   // channel type for participant liveness detection
-  private ChannelType _participantConnectionChannelMode;
+  private ChannelType _participantConnectionChannelType;
   // channel for sending and receiving shard state transition request and shard state response
-  private ChannelType _shardStatenChannelMode;
+  private ChannelType _shardStateChannelType;
 
   // grpc server configs
   private final int _grpcServerPort;
@@ -59,14 +67,14 @@ public class GatewayServiceChannelConfig {
   // getters
 
   public ChannelMode getChannelMode() {
-    return _channelType;
+    return _channelMode;
   }
   public ChannelType getParticipantConnectionChannelType() {
-    return _participantConnectionChannelMode;
+    return _participantConnectionChannelType;
   }
 
-  public ChannelType getShardStatenChannelType() {
-    return _shardStatenChannelMode;
+  public ChannelType getShardStateChannelType() {
+    return _shardStateChannelType;
   }
 
   public int getGrpcServerPort() {
@@ -93,13 +101,13 @@ public class GatewayServiceChannelConfig {
     return _pollIntervalSec;
   }
 
-  private GatewayServiceChannelConfig(int grpcServerPort, ChannelMode channelMode,  ChannelType participantConnectionChannelMode,
-      ChannelType shardStatenChannelMode, int serverHeartBeatInterval, int maxAllowedClientHeartBeatInterval,
+  private GatewayServiceChannelConfig(int grpcServerPort, ChannelMode channelMode,  ChannelType participantConnectionChannelType,
+      ChannelType shardStateChannelType, int serverHeartBeatInterval, int maxAllowedClientHeartBeatInterval,
       int clientTimeout, boolean enableReflectionService, int pollIntervalSec) {
     _grpcServerPort = grpcServerPort;
-    _channelType = channelMode;
-    _participantConnectionChannelMode = participantConnectionChannelMode;
-    _shardStatenChannelMode = shardStatenChannelMode;
+    _channelMode = channelMode;
+    _participantConnectionChannelType = participantConnectionChannelType;
+    _shardStateChannelType = shardStateChannelType;
     _serverHeartBeatInterval = serverHeartBeatInterval;
     _maxAllowedClientHeartBeatInterval = maxAllowedClientHeartBeatInterval;
     _clientTimeout = clientTimeout;

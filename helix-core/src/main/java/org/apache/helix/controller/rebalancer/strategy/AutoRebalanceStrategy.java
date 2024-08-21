@@ -101,8 +101,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
 
     int distRemainder = (numReplicas * _partitions.size()) % sortedLiveNodes.size();
     int distFloor = (numReplicas * _partitions.size()) / sortedLiveNodes.size();
-    // Use linkedHashMao to preserve the sorted all instance order
-    _nodeMap = new LinkedHashMap<>();
+    _nodeMap = new HashMap<>();
     _liveNodesList = new ArrayList<Node>();
 
     for (String id : sortedAllNodes) {

@@ -793,6 +793,9 @@ public class MaintenanceManagementService {
           healthStatus.put(HealthCheck.EMPTY_RESOURCE_ASSIGNMENT.name(),
               InstanceValidationUtil.isResourceAssigned(_dataAccessor, instanceName));
           break;
+        case MIN_ACTIVE_REPLICA_CHECK_FAILED:
+          // No-op as MIN_ACTIVE_REPLICA_CHECK_FAILED is handled separately afterward
+          break;
         default:
           LOG.error("Unsupported health check: {}", healthCheck);
           break;
@@ -805,8 +808,12 @@ public class MaintenanceManagementService {
   // Adds the result of the min_active replica check for each stoppable check passed in futureStoppableCheckByInstance
   private void addInstanceMinActiveReplicaCheck(Map<String, Future<StoppableCheck>> futureStoppableCheckByInstance,
       Set<String> toBeStoppedInstances) {
-    Set<String> possibleToStopInstances = new HashSet<>(toBeStoppedInstances);
+    // Do not perform check if in the skip list
+    if (_skipStoppableHealthCheckList.contains(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED)) {
+      return;
+    }
 
+    Set<String> possibleToStopInstances = new HashSet<>(toBeStoppedInstances);
     for (Map.Entry<String, Future<StoppableCheck>> entry : futureStoppableCheckByInstance.entrySet()) {
       try {
         String instanceName = entry.getKey();
@@ -816,7 +823,7 @@ public class MaintenanceManagementService {
         // add to possibleToStopInstances
         boolean minActiveCheckResult = InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor,
             instanceName, possibleToStopInstances);
-        stoppableCheck.add(new StoppableCheck(Collections.singletonMap(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED,
+        stoppableCheck.add(new StoppableCheck(Collections.singletonMap(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),
             minActiveCheckResult), StoppableCheck.Category.HELIX_OWN_CHECK));
         if (stoppableCheck.isStoppable()) {
           possibleToStopInstances.add(instanceName);

@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceControllerDataProvider> {
-  private static Logger logger = LoggerFactory.getLogger(StickyRebalanceStrategy.class);
+  private static final Logger logger = LoggerFactory.getLogger(StickyRebalanceStrategy.class);
   private String _resourceName;
   private List<String> _partitions;
   private LinkedHashMap<String, Integer> _states;
@@ -70,52 +70,51 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
       return znRecord;
     }
 
-    // Sort the assignable nodes by id
-    List<CapacityNode> assignableNodes = new ArrayList<>(clusterData.getSimpleCapacitySet());
-    assignableNodes.sort(Comparator.comparing(CapacityNode::getId));
-
     // Filter out the nodes if not in the liveNodes parameter
     // Note the liveNodes parameter here might be processed within the rebalancer, e.g. filter based on tags
+    Set<CapacityNode> assignableNodeSet = new HashSet<>(clusterData.getSimpleCapacitySet());
     Set<String> liveNodesSet = new HashSet<>(liveNodes);
-    assignableNodes.removeIf(n -> !liveNodesSet.contains(n.getId()));
+    assignableNodeSet.removeIf(n -> !liveNodesSet.contains(n.getId()));
 
     //  Populate valid state map given current mapping
-    Map<String, Map<String, String>> stateMap =
-        populateValidStateMapFromCurrentMapping(currentMapping, assignableNodes);
+    Map<String, Set<String>> stateMap =
+        populateValidAssignmentMapFromCurrentMapping(currentMapping, assignableNodeSet);
+
+    Map<String, Integer> stateMapCount = stateMap.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
 
     if (logger.isDebugEnabled()) {
       logger.debug("currentMapping: {}", currentMapping);
       logger.debug("stateMap: {}", stateMap);
     }
 
+    // Sort the assignable nodes by id
+    List<CapacityNode> assignableNodeList =
+        assignableNodeSet.stream().sorted(Comparator.comparing(CapacityNode::getId))
+            .collect(Collectors.toList());
+
     // Assign partitions to node by order.
     for (int i = 0, index = 0; i < _partitions.size(); i++) {
       int startIndex = index;
-      for (Map.Entry<String, Integer> entry : _states.entrySet()) {
-        String state = entry.getKey();
-        int stateReplicaNumber = entry.getValue();
-        // For this partition, compute existing number replicas
-        long existsReplicas =
-            stateMap.computeIfAbsent(_partitions.get(i), m -> new HashMap<>()).values().stream()
-                .filter(s -> s.equals(state)).count();
-        for (int j = 0; j < stateReplicaNumber - existsReplicas; j++) {
-          while (index - startIndex < assignableNodes.size()) {
-            CapacityNode node = assignableNodes.get(index++ % assignableNodes.size());
-            if (node.canAdd(_resourceName, _partitions.get(i))) {
-              stateMap.get(_partitions.get(i)).put(node.getId(), state);
-              break;
-            }
+      int remainingReplica =
+          _statesReplicaCount - stateMapCount.getOrDefault(_partitions.get(i), 0);
+      for (int j = 0; j < remainingReplica; j++) {
+        while (index - startIndex < assignableNodeList.size()) {
+          CapacityNode node = assignableNodeList.get(index++ % assignableNodeList.size());
+          if (node.canAdd(_resourceName, _partitions.get(i))) {
+            stateMap.computeIfAbsent(_partitions.get(i), m -> new HashSet<>()).add(node.getId());
+            break;
           }
+        }
 
-          if (index - startIndex >= assignableNodes.size()) {
-            // If the all nodes have been tried out, then no node can be assigned.
-            logger.warn("No enough assignable nodes for resource: {}", _resourceName);
-          }
+        if (index - startIndex >= assignableNodeList.size()) {
+          // If the all nodes have been tried out, then no node can be assigned.
+          logger.warn("No enough assignable nodes for resource: {}", _resourceName);
         }
       }
     }
-    for (Map.Entry<String, Map<String, String>> entry : stateMap.entrySet()) {
-      znRecord.setListField(entry.getKey(), new ArrayList<>(entry.getValue().keySet()));
+    for (Map.Entry<String, Set<String>> entry : stateMap.entrySet()) {
+      znRecord.setListField(entry.getKey(), new ArrayList<>(entry.getValue()));
     }
     if (logger.isDebugEnabled()) {
       logger.debug("znRecord: {}", znRecord);
@@ -129,12 +128,12 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
    *
    * @param currentMapping   the current mapping of partitions to node states
    * @param assignableNodes  the list of nodes that can be assigned
-   * @return a map of partitions to valid node states
+   * @return a map of partitions to valid nodes
    */
-  private Map<String, Map<String, String>> populateValidStateMapFromCurrentMapping(
+  private Map<String, Set<String>> populateValidAssignmentMapFromCurrentMapping(
       final Map<String, Map<String, String>> currentMapping,
-      final List<CapacityNode> assignableNodes) {
-    Map<String, Map<String, String>> validStateMap = new HashMap<>();
+      final Set<CapacityNode> assignableNodes) {
+    Map<String, Set<String>> validAssignmentMap = new HashMap<>();
     // Convert the assignableNodes to map for quick lookup
     Map<String, CapacityNode> assignableNodeMap =
         assignableNodes.stream().collect(Collectors.toMap(CapacityNode::getId, node -> node));
@@ -142,44 +141,14 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
       for (Map.Entry<String, Map<String, String>> entry : currentMapping.entrySet()) {
         String partition = entry.getKey();
         Map<String, String> currentNodeStateMap = new HashMap<>(entry.getValue());
-        // Skip if current node state is invalid with state model
-        if (!isValidStateMap(currentNodeStateMap)) {
-          continue;
-        }
         // Filter out invalid node assignment
         currentNodeStateMap.entrySet()
             .removeIf(e -> !isValidNodeAssignment(partition, e.getKey(), assignableNodeMap));
 
-        validStateMap.put(partition, currentNodeStateMap);
+        validAssignmentMap.put(partition, new HashSet<>(currentNodeStateMap.keySet()));
       }
     }
-    return validStateMap;
-  }
-
-  /**
-   * Validates whether the provided state mapping is valid according to the defined state model.
-   *
-   * @param currentNodeStateMap A map representing the actual state mapping where the key is the node ID and the value is the state.
-   * @return true if the state map is valid, false otherwise
-   */
-  private boolean isValidStateMap(final Map<String, String> currentNodeStateMap) {
-    // Check if the size of the current state map exceeds the total state count in state model
-    if (currentNodeStateMap.size() > _statesReplicaCount) {
-      return false;
-    }
-
-    Map<String, Integer> tmpStates = new HashMap<>(_states);
-    for (String state : currentNodeStateMap.values()) {
-      // Return invalid if:
-      // The state is not defined in the state model OR
-      // The state count exceeds the defined count in state model
-      if (!tmpStates.containsKey(state) || tmpStates.get(state) <= 0) {
-        return false;
-      }
-      tmpStates.put(state, tmpStates.get(state) - 1);
-    }
-
-    return true;
+    return validAssignmentMap;
   }
 
   /**

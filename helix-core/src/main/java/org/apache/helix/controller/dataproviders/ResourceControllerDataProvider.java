@@ -44,6 +44,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.rebalancer.strategy.StickyRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
 import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
@@ -51,6 +52,9 @@ import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -581,6 +585,38 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   public Set<CapacityNode> getSimpleCapacitySet() {
     return _simpleCapacitySet;
+  }
+
+  public void populateSimpleCapacitySetUsage(final Set<String> resourceNameSet,
+      final CurrentStateOutput currentStateOutput) {
+    Map<String, LiveInstance> instanceMap = getLiveInstances();
+    // Convert the assignableNodes to map for quick lookup
+    Map<String, CapacityNode> simpleCapacityMap =
+        _simpleCapacitySet.stream().collect(Collectors.toMap(CapacityNode::getId, node -> node));
+    for (String resourceName : resourceNameSet) {
+      // Process current state mapping
+      for (Map.Entry<Partition, Map<String, String>> entry : currentStateOutput.getCurrentStateMap(
+          resourceName).entrySet()) {
+        String partition = entry.getKey().getPartitionName();
+        for (Map.Entry<String, String> instanceState : entry.getValue().entrySet()) {
+          CapacityNode node = simpleCapacityMap.get(instanceState.getKey());
+          if (node != null) {
+            node.canAdd(resourceName, partition);
+          }
+        }
+      }
+      // Process pending state mapping
+      for (Map.Entry<Partition, Map<String, Message>> entry : currentStateOutput.getPendingMessageMap(
+          resourceName).entrySet()) {
+        String partition = entry.getKey().getPartitionName();
+        for (Map.Entry<String, Message> instanceState : entry.getValue().entrySet()) {
+          CapacityNode node = simpleCapacityMap.get(instanceState.getKey());
+          if (node != null) {
+            node.canAdd(resourceName, partition);
+          }
+        }
+      }
+    }
   }
 
   private void refreshDisabledInstancesForAllPartitionsSet() {

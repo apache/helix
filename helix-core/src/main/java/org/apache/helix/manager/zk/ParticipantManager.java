@@ -156,11 +156,11 @@ public class ParticipantManager {
     // This will help to prevent controller from sending any message prematurely.
     // Live instance creation also checks if the expected session is valid or not. Live instance
     // should not be created by an expired zk session.
-    createLiveInstance();
     if (shouldCarryOver()) {
       carryOverPreviousCurrentState(_dataAccessor, _instanceName, _sessionId,
           _manager.getStateMachineEngine(), true);
     }
+    createLiveInstance();
     removePreviousTaskCurrentStates();
 
     /**

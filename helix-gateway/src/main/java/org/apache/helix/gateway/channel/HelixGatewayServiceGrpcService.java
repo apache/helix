@@ -19,10 +19,15 @@ package org.apache.helix.gateway.channel;
  * under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
@@ -58,8 +63,13 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   // A fine grain lock register on instance level
   private final PerKeyLockRegistry _lockRegistry;
 
-  public HelixGatewayServiceGrpcService(GatewayServiceManager manager) {
+  private final GatewayServiceChannelConfig _config;
+
+  private Server _server;
+
+  public HelixGatewayServiceGrpcService(GatewayServiceManager manager, GatewayServiceChannelConfig config) {
     _manager = manager;
+    _config = config;
     _lockRegistry = new PerKeyLockRegistry();
   }
 
@@ -175,5 +185,41 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
       _observerMap.put(instanceName, streamObserver);
       _reversedObserverMap.put(streamObserver, new ImmutablePair<>(instanceName, clusterName));
     });
+  }
+
+  @Override
+  public void start() throws IOException {
+    ServerBuilder serverBuilder = ServerBuilder.forPort(_config.getGrpcServerPort())
+        .addService(this)
+        .keepAliveTime(_config.getServerHeartBeatInterval(),
+            TimeUnit.SECONDS)  // HeartBeat time
+        .keepAliveTimeout(_config.getClientTimeout(),
+            TimeUnit.SECONDS)  // KeepAlive client timeout
+        .permitKeepAliveTime(_config.getMaxAllowedClientHeartBeatInterval(),
+            TimeUnit.SECONDS)  // Permit min HeartBeat time
+        .permitKeepAliveWithoutCalls(true);  // Allow KeepAlive forever without active RPC
+    if (_config.getEnableReflectionService()) {
+      serverBuilder = serverBuilder.addService(io.grpc.protobuf.services.ProtoReflectionService.newInstance());
+    }
+    _server = serverBuilder.build();
+
+    logger.info("Starting grpc server on port " + _config.getGrpcServerPort() + " now.... Server heart beat interval: "
+        + _config.getServerHeartBeatInterval() + " seconds, Max allowed client heart beat interval: "
+        + _config.getMaxAllowedClientHeartBeatInterval() + " seconds, Client timeout: " + _config.getClientTimeout()
+        + " seconds, Enable reflection service: " + _config.getEnableReflectionService());
+    _server.start();
+  }
+
+  @Override
+  public void stop() {
+    if (_server != null) {
+      logger.info("Shutting down grpc server now....");
+      _server.shutdownNow();
+    }
+  }
+
+  @VisibleForTesting
+  Server getServer() {
+    return _server;
   }
 }

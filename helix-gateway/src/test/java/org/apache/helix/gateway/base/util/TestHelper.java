@@ -19,7 +19,6 @@ package org.apache.helix.gateway.base.util;
  * under the License.
  */
 
-import io.grpc.Server;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -44,9 +43,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.gateway.channel.HelixGatewayServiceGrpcService;
-import org.apache.helix.gateway.service.GatewayServiceManager;
-import org.apache.helix.gateway.util.HelixGatewayGrpcServerBuilder;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -797,11 +793,5 @@ public class TestHelper {
       }
       Thread.sleep(50);
     } while (true);
-  }
-
-  public static Server createHelixGatewayServer(int port, GatewayServiceManager manager) {
-    return new HelixGatewayGrpcServerBuilder().setPort(port)
-        .setGrpcService((HelixGatewayServiceGrpcService) manager.getHelixGatewayServiceProcessor())
-        .build();
   }
 }

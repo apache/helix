@@ -19,35 +19,32 @@ package org.apache.helix.gateway;
  * under the License.
  */
 
-import io.grpc.Server;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import org.apache.helix.gateway.channel.HelixGatewayServiceGrpcService;
 import org.apache.helix.gateway.service.GatewayServiceManager;
-import org.apache.helix.gateway.util.HelixGatewayGrpcServerBuilder;
+import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
+
+import static java.lang.Integer.*;
 
 
 /**
  * Main class for Helix Gateway.
  * It starts the Helix Gateway grpc service.
+ * args0: zk address
+ * args1: helix gateway groc server port
  */
 public final class HelixGatewayMain {
 
   private HelixGatewayMain() {
   }
 
-  public static void main(String[] args) throws InterruptedException, IOException {
-    // Create a new server to listen on port 50051
-    GatewayServiceManager manager = new GatewayServiceManager();
-    Server server = new HelixGatewayGrpcServerBuilder().setPort(50051)
-        .setGrpcService((HelixGatewayServiceGrpcService)manager.getHelixGatewayServiceProcessor())
-        .build();
+  public static void main(String[] args) throws IOException {
+    // Create a new server
+    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder =
+        new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
+    GatewayServiceManager manager =
+        new GatewayServiceManager(args[0], builder.setGrpcServerPort(parseInt(args[1])).build());
 
-    server.start();
-    System.out.println("Server started, listening on " + server.getPort());
-
-    // Wait for the server to shutdown
-    server.awaitTermination(365, TimeUnit.DAYS);
+    manager.startService();
   }
 }
 

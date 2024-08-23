@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.constant;
+package org.apache.helix.gateway.channel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,8 +19,38 @@ package org.apache.helix.gateway.constant;
  * under the License.
  */
 
-public enum GatewayServiceEventType {
-  CONNECT,    // init connection to gateway service
-  UPDATE,  // update state transition result
-  DISCONNECT // shutdown connection to gateway service.
+import java.io.IOException;
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
+import org.apache.helix.model.Message;
+
+// TODO: implement this class
+public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceChannel {
+
+  public HelixGatewayServicePollModeChannel(GatewayServiceChannelConfig config) {
+  }
+
+  @Override
+  public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
+
+  }
+
+  @Override
+  public void start() throws IOException {
+
+  }
+
+  @Override
+  public void stop() {
+
+  }
+
+  @Override
+  public void closeConnectionWithError(String instanceName, String reason) {
+
+  }
+
+  @Override
+  public void completeConnection(String instanceName) {
+
+  }
 }

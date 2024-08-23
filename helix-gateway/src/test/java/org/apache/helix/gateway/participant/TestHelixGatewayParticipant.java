@@ -19,6 +19,7 @@ package org.apache.helix.gateway.participant;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -354,6 +355,16 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     @Override
     public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
       _pendingMessageMap.put(instanceName, message);
+    }
+
+    @Override
+    public void start() throws IOException {
+
+    }
+
+    @Override
+    public void stop() {
+
     }
 
     @Override

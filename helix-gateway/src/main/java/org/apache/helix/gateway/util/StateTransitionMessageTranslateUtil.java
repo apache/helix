@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.gateway.constant.GatewayServiceEventType;
+import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.model.Message;

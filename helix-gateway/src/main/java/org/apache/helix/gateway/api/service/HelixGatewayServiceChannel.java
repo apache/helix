@@ -19,6 +19,7 @@ package org.apache.helix.gateway.api.service;
  * under the License.
  */
 
+import java.io.IOException;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.model.Message;
@@ -53,6 +54,19 @@ public interface HelixGatewayServiceChannel {
   default void pushClientEventToGatewayManager(GatewayServiceManager gatewayServiceManager, GatewayServiceEvent event) {
     gatewayServiceManager.onGatewayServiceEvent(event);
   }
+
+  /**
+   * Start the gateway service channel.
+   *
+   * @throws IOException if the channel cannot be started
+   */
+  public void start() throws IOException;
+
+  /**
+   * Stop the gateway service channel forcefully.
+   */
+  public void stop();
+
 
   // TODO: remove the following 2 apis in future changes
   /**

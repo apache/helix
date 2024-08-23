@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.util.stream.Collectors;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
@@ -133,11 +134,15 @@ public class AssignmentMetadataStore {
    * @param globalBaseline
    */
   public synchronized void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+    // Create defensive copy so that the in-memory assignment is not modified after it is persisted
+    Map<String, ResourceAssignment> baselineCopy = globalBaseline.entrySet().stream().collect(
+        Collectors.toMap(Map.Entry::getKey,
+            entry -> new ResourceAssignment(entry.getValue().getRecord())));
     // write to metadata store
-    persistAssignmentToMetadataStore(globalBaseline, _baselinePath, BASELINE_KEY);
+    persistAssignmentToMetadataStore(baselineCopy, _baselinePath, BASELINE_KEY);
     // write to memory
     getBaseline().clear();
-    getBaseline().putAll(globalBaseline);
+    getBaseline().putAll(baselineCopy);
   }
 
   /**
@@ -146,11 +151,15 @@ public class AssignmentMetadataStore {
    * @param bestPossibleAssignment
    */
   public synchronized void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
+    // Create defensive copy so that the in-memory assignment is not modified after it is persisted
+    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = bestPossibleAssignment.entrySet().stream().collect(
+        Collectors.toMap(Map.Entry::getKey,
+            entry -> new ResourceAssignment(entry.getValue().getRecord())));
     // write to metadata store
-    persistAssignmentToMetadataStore(bestPossibleAssignment, _bestPossiblePath, BEST_POSSIBLE_KEY);
+    persistAssignmentToMetadataStore(bestPossibleAssignmentCopy, _bestPossiblePath, BEST_POSSIBLE_KEY);
     // write to memory
     getBestPossibleAssignment().clear();
-    getBestPossibleAssignment().putAll(bestPossibleAssignment);
+    getBestPossibleAssignment().putAll(bestPossibleAssignmentCopy);
     _bestPossibleVersion++;
     _lastPersistedBestPossibleVersion = _bestPossibleVersion;
   }

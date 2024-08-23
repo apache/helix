@@ -364,10 +364,6 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         .filter(entry -> WagedValidationUtil.isWagedEnabled(cache.getIdealState(entry.getKey())))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    if (wagedEnabledResourceMap.isEmpty()) {
-      return;
-    }
-
     // Phase 1: Rebuild Always
     WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(cache);
     WagedResourceWeightsProvider weightProvider = new WagedResourceWeightsProvider(cache);
@@ -385,7 +381,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
    */
   static boolean skipCapacityCalculation(ResourceControllerDataProvider cache, Map<String, Resource> resourceMap,
       ClusterEvent event) {
-    if (resourceMap == null || resourceMap.isEmpty()) {
+    if (resourceMap == null) {
       return true;
     }
 

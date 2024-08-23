@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
@@ -255,6 +256,47 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testProcessStateTransitionMessageSuccess")
+  public void testOnlySendTargetState() throws Exception {
+    // Add a new participant and include it in the preference list
+    HelixGatewayParticipant participant = addParticipant();
+    addToPreferenceList(participant);
+    verifyPendingMessages(List.of(participant));
+
+    // Verify the pending message has the toState "ONLINE"
+    Message message = getPendingMessage(participant.getInstanceName());
+    Assert.assertNotNull(message);
+    Assert.assertEquals(message.getToState(), "ONLINE");
+
+    // Process the message with success
+    processPendingMessage(participant, true);
+
+    // Verify that the cluster converges
+    Assert.assertTrue(_clusterVerifier.verify());
+
+    // Remove the participant from the preference list and delete it
+    // This will cause an "OFFLINE" message to be sent to the gateway participant
+    // that should be modified to be "DROPPED" instead.
+    removeFromPreferenceList(participant);
+    verifyPendingMessages(List.of(participant));
+
+    // Verify that the pending message is "DROPPED" and not "OFFLINE"
+    Message message2 = getPendingMessage(participant.getInstanceName());
+    Assert.assertNotNull(message2);
+    Assert.assertEquals(message2.getToState(), HelixDefinedState.DROPPED.name());
+
+    // Process the message with success and verify the cluster converges
+    processPendingMessage(participant, true);
+    // Gateway participant will get another ST with "DROPPED" but it will
+    // be auto-completed since the participant is already processed the previous message
+    // which was modified to be the target state of "DROPPED"
+    Assert.assertTrue(_clusterVerifier.verify());
+    verifyGatewayStateMatchesHelixState();
+
+    // Delete the participant
+    deleteParticipant(participant);
+  }
+
+  @Test(dependsOnMethods = "testOnlySendTargetState")
   public void testProcessStateTransitionMessageFailure() throws Exception {
     // Add a new participant and include it in the preference list
     HelixGatewayParticipant participant = addParticipant();

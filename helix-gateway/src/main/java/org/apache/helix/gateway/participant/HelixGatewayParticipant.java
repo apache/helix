@@ -27,15 +27,24 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.api.listeners.BatchMode;
+import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateTransitionError;
+import org.apache.zookeeper.Watcher;
 
 /**
  * HelixGatewayParticipant encapsulates the Helix Participant Manager and handles tracking the state
@@ -43,12 +52,13 @@ import org.apache.helix.participant.statemachine.StateTransitionError;
  * for the participant and updates the state of the participant's shards upon successful state
  * transitions signaled by remote participant.
  */
-public class HelixGatewayParticipant implements HelixManagerStateListener {
+public class HelixGatewayParticipant implements HelixManagerStateListener, IdealStateChangeListener {
   public static final String UNASSIGNED_STATE = "UNASSIGNED";
   private final HelixGatewayServiceChannel _gatewayServiceChannel;
   private final HelixManager _helixManager;
   private final Runnable _onDisconnectedCallback;
   private final Map<String, Map<String, String>> _shardStateMap;
+  private final Map<String, IdealState> _idealStateMap;
   private final Map<String, CompletableFuture<Boolean>> _stateTransitionResultMap;
 
   private HelixGatewayParticipant(HelixGatewayServiceChannel gatewayServiceChannel,
@@ -58,6 +68,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     _helixManager = helixManager;
     _onDisconnectedCallback = onDisconnectedCallback;
     _shardStateMap = initialShardStateMap;
+    _idealStateMap = new ConcurrentHashMap<>();
     _stateTransitionResultMap = new ConcurrentHashMap<>();
   }
 
@@ -65,23 +76,28 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     String transitionId = message.getMsgId();
     String resourceId = message.getResourceName();
     String shardId = message.getPartitionName();
-    String toState = message.getToState();
 
     try {
-      if (isCurrentStateAlreadyTarget(resourceId, shardId, toState)) {
+      // If the current state is already the target, the client does not need to
+      // process the state transition.
+      if (isGatewayCurrentStateAlreadyTargetState(resourceId, shardId)) {
         return;
       }
 
+      // Create a new message with the target state instead of the actual toState
+      Message targetStateMessage = new Message(message.getRecord());
+      targetStateMessage.setToState(getTargetState(resourceId, shardId));
+
       CompletableFuture<Boolean> future = new CompletableFuture<>();
       _stateTransitionResultMap.put(transitionId, future);
-      _gatewayServiceChannel.sendStateTransitionMessage(_helixManager.getInstanceName(),
-          getCurrentState(resourceId, shardId), message);
+      _gatewayServiceChannel.sendStateTransitionMessage(getInstanceName(),
+          getCurrentState(resourceId, shardId), targetStateMessage);
 
       if (!future.get()) {
-        throw new Exception("Failed to transition to state " + toState);
+        throw new Exception("Failed to transition to state " + targetStateMessage.getToState());
       }
 
-      updateState(resourceId, shardId, toState);
+      updateGatewayCurrentState(resourceId, shardId, targetStateMessage.getToState());
     } finally {
       _stateTransitionResultMap.remove(transitionId);
     }
@@ -99,7 +115,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     _stateTransitionResultMap.remove(transitionId);
 
     // Set the replica state to ERROR
-    updateState(resourceId, shardId, HelixDefinedState.ERROR.name());
+    updateGatewayCurrentState(resourceId, shardId, HelixDefinedState.ERROR.name());
 
     // Notify the HelixGatewayParticipantClient that it is in ERROR state
     // TODO: We need a better way than sending the state transition with a toState of ERROR
@@ -127,11 +143,6 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     }
   }
 
-  private boolean isCurrentStateAlreadyTarget(String resourceId, String shardId,
-      String targetState) {
-    return getCurrentState(resourceId, shardId).equals(targetState);
-  }
-
   @VisibleForTesting
   Map<String, Map<String, String>> getShardStateMap() {
     return _shardStateMap;
@@ -149,11 +160,63 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
         .getOrDefault(shardId, UNASSIGNED_STATE);
   }
 
-  private void updateState(String resourceId, String shardId, String state) {
+  /**
+   * Get the target state of the shard.
+   *
+   * @param resourceId the helix resources id
+   * @param shardId    the shard id
+   * @return the target state of the shard
+   */
+  private String getTargetState(String resourceId, String shardId) {
+    // If it is not in the ideal state map, add it by getting the ideal state from helix
+    // and add a listener to update the ideal state map when the ideal state changes
+    if (!_idealStateMap.containsKey(resourceId)) {
+      registerIdealStateListener(resourceId);
+    }
+
+    // If the ideal state is null, return DROPPED
+    // If the instance is not in the ideal state map, return DROPPED
+    // If the instance is in the ideal state map, return the target state
+//    IdealState idealState = _idealStateMap.get(resourceId);
+    IdealState idealState = _helixManager.getClusterManagmentTool()
+        .getResourceIdealState(_helixManager.getClusterName(), resourceId);
+    return idealState != null ? idealState.getInstanceStateMap(shardId)
+        .getOrDefault(getInstanceName(), HelixDefinedState.DROPPED.name())
+        : HelixDefinedState.DROPPED.name();
+  }
+
+  /**
+   * Check if the gateway's current state is already the target state.
+   *
+   * @param resourceId the resource id
+   * @param shardId    the shard id
+   * @return true if the gateway's current state is already the target state, false otherwise
+   */
+  private boolean isGatewayCurrentStateAlreadyTargetState(String resourceId, String shardId) {
+    String currentState = getCurrentState(resourceId, shardId);
+    String targetState = getTargetState(resourceId, shardId);
+    // If the targetState is DROPPED and the currentState is UNASSIGNED_STATE, then the
+    // currentState is already the targetState. Otherwise, the currentState must equal the
+    // targetState.
+    return (targetState.equals(HelixDefinedState.DROPPED.name()) && currentState.equals(
+        UNASSIGNED_STATE)) || currentState.equals(targetState);
+  }
+
+  /**
+   * Update the gateways current state for the shard.
+   *
+   * @param resourceId the resource id
+   * @param shardId    the shard id
+   * @param state      the state to update to
+   */
+  private void updateGatewayCurrentState(String resourceId, String shardId, String state) {
     if (state.equals(HelixDefinedState.DROPPED.name())) {
       getShardStateMap().computeIfPresent(resourceId, (k, v) -> {
         v.remove(shardId);
         if (v.isEmpty()) {
+          // Resource no longer has any shards assigned to the participant,
+          // so we can stop listening for ideal state changes
+          unregisterIdealStateListener(resourceId);
           return null;
         }
         return v;
@@ -162,6 +225,32 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
       getShardStateMap().computeIfAbsent(resourceId, k -> new ConcurrentHashMap<>())
           .put(shardId, state);
     }
+  }
+
+  synchronized private void registerIdealStateListener(String resourceId) {
+    IdealState idealState = _helixManager.getClusterManagmentTool()
+        .getResourceIdealState(_helixManager.getClusterName(), resourceId);
+    if (idealState != null) {
+      _idealStateMap.put(resourceId, idealState);
+      _helixManager.addListener(this,
+          new PropertyKey.Builder(_helixManager.getClusterName()).idealStates(resourceId),
+          HelixConstants.ChangeType.IDEAL_STATE,
+          new Watcher.Event.EventType[]{Watcher.Event.EventType.NodeDataChanged});
+    }
+  }
+
+  synchronized private void unregisterIdealStateListener(String resourceId) {
+    _helixManager.removeListener(
+        new PropertyKey.Builder(_helixManager.getClusterName()).idealStates(resourceId), this);
+    // Also remove from the ideal state map
+    _idealStateMap.remove(resourceId);
+  }
+
+  @Override
+  @PreFetch(enabled = true)
+  public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext) {
+    // Update the ideal state map with the new ideal states
+    idealState.forEach(is -> _idealStateMap.put(is.getResourceName(), is));
   }
 
   /**
@@ -183,7 +272,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   @Override
   public void onDisconnected(HelixManager helixManager, Throwable error) throws Exception {
     _onDisconnectedCallback.run();
-    _gatewayServiceChannel.closeConnectionWithError(_helixManager.getInstanceName(),
+    _gatewayServiceChannel.closeConnectionWithError(getInstanceName(),
         error.getMessage());
   }
 
@@ -191,7 +280,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     if (_helixManager.isConnected()) {
       _helixManager.disconnect();
     }
-    _gatewayServiceChannel.completeConnection(_helixManager.getInstanceName());
+    _gatewayServiceChannel.completeConnection(getInstanceName());
   }
 
   public static class Builder {

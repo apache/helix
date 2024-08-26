@@ -129,6 +129,9 @@ public class TestMaintenanceManagementService {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
+            if (Collections.singletonList(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED).equals(healthChecks)) {
+              return Collections.emptyMap();
+            }
             return failedCheck;
           }
         };
@@ -367,6 +370,9 @@ public class TestMaintenanceManagementService {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
+            if (Collections.singletonList(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED).equals(healthChecks)) {
+              return Collections.emptyMap();
+            }
             return instanceHealthFailedCheck;
           }
         };

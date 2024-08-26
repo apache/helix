@@ -118,8 +118,10 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         distRemainder = distRemainder - 1;
         usingCeiling = true;
       }
-      Node node = _nodeMap.get(sortedLiveNodes.get(i));
+      String nodeName = sortedLiveNodes.get(i);
+      Node node = _nodeMap.get(nodeName);
       node.isAlive = true;
+      node._isDisabled = clusterData.getDisabledInstances().contains(nodeName);
       node.capacity = targetSize;
       node.hasCeilingCapacity = usingCeiling;
       _liveNodesList.add(node);
@@ -155,7 +157,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       forceToAssignOrphans();
     }
 
-    prepareResult(znRecord, clusterData, currentStateNodeComparator);
+    prepareResult(znRecord, clusterData);
     return znRecord;
   }
 
@@ -304,8 +306,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
    * Update a ZNRecord with the results of the rebalancing.
    * @param znRecord
    */
-  private void prepareResult(ZNRecord znRecord, ResourceControllerDataProvider clusterData,
-      Comparator<String> comparator) {
+  private void prepareResult(ZNRecord znRecord, ResourceControllerDataProvider clusterData) {
     // The map fields are keyed on partition name to a pair of node and state, i.e. it
     // indicates that the partition with given state is served by that node
     //
@@ -319,16 +320,10 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       newPreferences.put(partition, new ArrayList<String>());
     }
 
-    // We have to sort the node list by the current states so the preference list so that it could
-    // present higher priority than other instances that doesn't have current state.
-    List<String> sortedNodes = new ArrayList<>(_nodeMap.keySet());
-    sortedNodes.sort(comparator);
-
     // for preference lists, the rough priority that we want is:
     // [existing preferred, existing non-preferred, non-existing preferred, non-existing
     // non-preferred]
-    for (String nodeName : sortedNodes) {
-      Node node = _nodeMap.get(nodeName);
+    for (Node node : _liveNodesList) {
       for (Replica replica : node.preferred) {
         if (node.newReplicas.contains(replica)) {
           newPreferences.get(replica.partition).add(node.id);
@@ -337,8 +332,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
         }
       }
     }
-    for (String nodeName : sortedNodes) {
-      Node node = _nodeMap.get(nodeName);
+    for (Node node : _liveNodesList) {
       for (Replica replica : node.nonPreferred) {
         if (node.newReplicas.contains(replica)) {
           newPreferences.get(replica.partition).add(node.id);
@@ -358,7 +352,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       int i = 0;
       for (String participant : preferenceList) {
         // if the participant is not alive, assign it to the initial state
-        if (!_nodeMap.get(participant).isAlive) {
+        if (_nodeMap.get(participant)._isDisabled) {
           znRecord.getMapField(partition).put(participant, stateModel.getInitialState());
           continue;
         }
@@ -489,7 +483,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
 
   /**
    * Compute the subset of the current mapping where replicas are not mapped according to their
-   * preferred assignment.
+   * existing preferred assignment.
    * @param currentMapping Current mapping of replicas to nodes
    * @return The current assignments that do not conform to the preferred assignment
    */
@@ -686,6 +680,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     public boolean hasCeilingCapacity;
     private final String id;
     boolean isAlive;
+    boolean _isDisabled;
     private final List<Replica> preferred;
     private final List<Replica> nonPreferred;
     private final Set<Replica> newReplicas;
@@ -696,6 +691,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       newReplicas = new TreeSet<Replica>();
       currentlyAssigned = 0;
       isAlive = false;
+      _isDisabled = false;
       this.id = id;
     }
 

@@ -354,7 +354,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     }
 
     @Override
-    public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
+    public void sendStateTransitionMessage(String instanceName, Message message) {
       _pendingMessageMap.put(instanceName, message);
     }
 

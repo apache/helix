@@ -30,7 +30,7 @@ public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceCh
   }
 
   @Override
-  public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
+  public void sendStateTransitionMessage(String instanceName, Message message) {
 
   }
 

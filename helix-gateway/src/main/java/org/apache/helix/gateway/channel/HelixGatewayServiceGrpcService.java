@@ -118,15 +118,16 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
    * The instance must already have established a connection to the gateway service.
    *
    * @param instanceName the instance name to send the message to
-   * @param currentState the current state of shard
    * @param message the message to convert to the transition message
    */
   @Override
-  public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
+  public void sendStateTransitionMessage(String instanceName, Message message) {
     StreamObserver<TransitionMessage> observer;
     observer = _observerMap.get(instanceName);
     if (observer != null) {
       observer.onNext(StateTransitionMessageTranslateUtil.translateSTMsgToTransitionMessage(message));
+    } else {
+      logger.error("Instance {} is not connected to the gateway service", instanceName);
     }
   }
 

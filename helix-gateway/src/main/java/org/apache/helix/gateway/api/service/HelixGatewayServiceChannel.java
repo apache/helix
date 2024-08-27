@@ -35,10 +35,9 @@ public interface HelixGatewayServiceChannel {
    * Gateway service send a state transition message to a connected participant.
    *
    * @param instanceName the name of the participant
-   * @param currentState the current state of the shard
    * @param message      the message to send
    */
-  void sendStateTransitionMessage(String instanceName, String currentState, Message message);
+  void sendStateTransitionMessage(String instanceName,Message message);
 
   /**
    * Send a GatewayServiceEvent to gateway manager for helix instances changes.

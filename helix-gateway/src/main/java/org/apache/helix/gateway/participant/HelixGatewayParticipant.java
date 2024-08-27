@@ -77,10 +77,9 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
       CompletableFuture<String> future = new CompletableFuture<>();
 
       _stateTransitionResultMap.put(key,  future);
-      _gatewayServiceChannel.sendStateTransitionMessage(_helixManager.getInstanceName(),
-          getCurrentState(resourceId, shardId), message);
+      _gatewayServiceChannel.sendStateTransitionMessage(_helixManager.getInstanceName(), message);
 
-      if (!future.get().equals(toState)) {
+      if (!toState.equals(future.get())) {
         throw new Exception("Failed to transition to state " + toState);
       }
 

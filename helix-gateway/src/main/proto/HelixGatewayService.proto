@@ -26,11 +26,10 @@ message SingleTransitionMessage {
     DELETE_SHARD = 1;
     CHANGE_ROLE = 2;
   }
-  string transitionID = 1;    // ID of transition message
-  TransitionType transitionType = 2;   // Transition type for shard operations
-  string resourceID = 3;              // Resource ID
-  string shardID = 4;                 // Shard to perform operation
-  string targetState = 6;     // Shard target state.
+  TransitionType transitionType = 1;   // Transition type for shard operations
+  string resourceName = 2;              // Resource ID
+  string shardName = 3;                 // Shard to perform operation
+  string targetState = 4;     // Shard target state.
 }
 
 message TransitionMessage {
@@ -48,9 +47,9 @@ message SingleShardState {
 }
 
 message SingleShardTransitionStatus {
-  string transitionID = 1;       // ID of transition message
-  bool isSuccess = 2;           // Was transition successfully performed
-  optional string currentState = 3;   // If it failed, what is the current state it should reported as.
+  string resourceName = 1;        // resource name
+  string shardName = 2;           // shard name
+  string currentState = 3;   // If it failed, what is the current state it should reported as.
 }
 
 message ShardTransitionStatus{

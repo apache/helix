@@ -67,9 +67,9 @@ public final class StateTransitionMessageTranslateUtil {
   public static TransitionMessage translateSTMsgToTransitionMessage(Message message) {
     return TransitionMessage.newBuilder().addRequest(
         HelixGatewayServiceOuterClass.SingleTransitionMessage.newBuilder()
-            .setTransitionID(message.getMsgId()).setTransitionType(
+           .setTransitionType(
                 translateStatesToTransitionType(message.getFromState(), message.getToState()))
-            .setResourceID(message.getResourceName()).setShardID(message.getPartitionName())
+            .setResourceName(message.getResourceName()).setShardName(message.getPartitionName())
             .setTargetState(message.getToState()).build()).build();
   }
 
@@ -102,8 +102,8 @@ public final class StateTransitionMessageTranslateUtil {
       List<GatewayServiceEvent.StateTransitionResult> stResult = new ArrayList<>();
       for (HelixGatewayServiceOuterClass.SingleShardTransitionStatus shardTransition : status) {
         GatewayServiceEvent.StateTransitionResult result =
-            new GatewayServiceEvent.StateTransitionResult(shardTransition.getTransitionID(),
-                shardTransition.getIsSuccess(), shardTransition.getCurrentState());
+            new GatewayServiceEvent.StateTransitionResult(shardTransition.getResourceName(),
+                shardTransition.getShardName(), shardTransition.getCurrentState());
         stResult.add(result);
       }
       builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(

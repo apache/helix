@@ -171,9 +171,10 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   /**
    * Process the pending message for a participant.
    */
-  private void processPendingMessage(HelixGatewayParticipant participant, boolean isSuccess) {
+  private void processPendingMessage(HelixGatewayParticipant participant, boolean isSuccess, String toState) {
     Message message = _pendingMessageMap.remove(participant.getInstanceName());
-    participant.completeStateTransition(message.getMsgId(), isSuccess);
+    participant.completeStateTransition(message.getResourceName(), message.getPartitionName(),
+        isSuccess ? toState : "WRONG_STATE");
   }
 
   /**
@@ -247,7 +248,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
 
     // Process all pending messages successfully
     for (HelixGatewayParticipant participant : _participants) {
-      processPendingMessage(participant, true);
+      processPendingMessage(participant, true, "ONLINE");
     }
 
     // Verify that the cluster converges and all states are "ONLINE"
@@ -268,7 +269,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     Assert.assertEquals(message.getToState(), "ONLINE");
 
     // Process the message with failure
-    processPendingMessage(participant, false);
+    processPendingMessage(participant, false, "ONLINE");
 
     // Verify that the cluster converges and states reflect the failure (e.g., "OFFLINE")
     Assert.assertTrue(_clusterVerifier.verify());
@@ -311,7 +312,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     verifyPendingMessages(List.of(participantReplacement));
 
     // Process the pending message successfully
-    processPendingMessage(participantReplacement, true);
+    processPendingMessage(participantReplacement, true, "DROPPED");
 
     // Verify that the cluster converges and states are correctly updated to "ONLINE"
     Assert.assertTrue(_clusterVerifier.verify());

@@ -19,6 +19,7 @@ package org.apache.helix.gateway.participant;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +50,8 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   private final HelixManager _helixManager;
   private final Runnable _onDisconnectedCallback;
   private final Map<String, Map<String, String>> _shardStateMap;
-  private final Map<String, CompletableFuture<Boolean>> _stateTransitionResultMap;
+
+  private final Map<String, CompletableFuture<String>> _stateTransitionResultMap;
 
   private HelixGatewayParticipant(HelixGatewayServiceChannel gatewayServiceChannel,
       Runnable onDisconnectedCallback, HelixManager helixManager,
@@ -62,28 +64,29 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   }
 
   public void processStateTransitionMessage(Message message) throws Exception {
-    String transitionId = message.getMsgId();
     String resourceId = message.getResourceName();
     String shardId = message.getPartitionName();
     String toState = message.getToState();
+    String key = resourceId + shardId;
 
     try {
       if (isCurrentStateAlreadyTarget(resourceId, shardId, toState)) {
         return;
       }
 
-      CompletableFuture<Boolean> future = new CompletableFuture<>();
-      _stateTransitionResultMap.put(transitionId, future);
+      CompletableFuture<String> future = new CompletableFuture<>();
+
+      _stateTransitionResultMap.put(key,  future);
       _gatewayServiceChannel.sendStateTransitionMessage(_helixManager.getInstanceName(),
           getCurrentState(resourceId, shardId), message);
 
-      if (!future.get()) {
+      if (!future.get().equals(toState)) {
         throw new Exception("Failed to transition to state " + toState);
       }
 
       updateState(resourceId, shardId, toState);
     } finally {
-      _stateTransitionResultMap.remove(transitionId);
+      _stateTransitionResultMap.remove(key);
     }
   }
 
@@ -117,13 +120,12 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   /**
    * Completes the state transition with the given transitionId.
    *
-   * @param transitionId the transitionId to complete
-   * @param isSuccess    whether the state transition was successful
    */
-  public void completeStateTransition(String transitionId, boolean isSuccess) {
-    CompletableFuture<Boolean> future = _stateTransitionResultMap.get(transitionId);
+  public void completeStateTransition(String resourceId, String shardId, String currentState) {
+    String key = resourceId + shardId;
+    CompletableFuture<String> future = _stateTransitionResultMap.get(key);
     if (future != null) {
-      future.complete(isSuccess);
+      future.complete(currentState);
     }
   }
 

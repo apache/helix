@@ -104,8 +104,8 @@ public class GatewayServiceManager {
         return;
       }
       _event.getStateTransitionResult().forEach(stateTransitionResult -> {
-        participant.completeStateTransition(stateTransitionResult.getStateTransitionId(),
-            stateTransitionResult.getIsSuccess());
+        participant.completeStateTransition(stateTransitionResult.getResourceName(),
+            stateTransitionResult.getShardName(), stateTransitionResult.getShardState());
       });
     }
   }

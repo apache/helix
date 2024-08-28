@@ -19,7 +19,6 @@ package org.apache.helix.gateway.channel;
  * under the License.
  */
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.service.GatewayServiceManager;
 

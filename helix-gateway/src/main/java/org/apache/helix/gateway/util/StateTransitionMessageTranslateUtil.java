@@ -23,18 +23,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
 import org.apache.helix.model.Message;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardChangeRequests;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardTransitionStatus;
-import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.TransitionMessage;
-
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.SingleShardChangeRequest;
 
 public final class StateTransitionMessageTranslateUtil {
   /**
@@ -44,18 +43,18 @@ public final class StateTransitionMessageTranslateUtil {
    * @param toState      target state
    * @return TransitionType
    */
-  public static HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType translateStatesToTransitionType(
+  public static HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType translateStatesToTransitionType(
       String currentState, String toState) {
     boolean isUnassigned = HelixGatewayParticipant.UNASSIGNED_STATE.equals(currentState);
     boolean isToStateDropped = HelixDefinedState.DROPPED.name().equals(toState);
 
     if (isToStateDropped && !isUnassigned) {
-      return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.DELETE_SHARD;
+      return HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType.DELETE_SHARD;
     }
     if (!isToStateDropped && isUnassigned) {
-      return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.ADD_SHARD;
+      return HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType.ADD_SHARD;
     }
-    return HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.CHANGE_ROLE;
+    return HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType.CHANGE_ROLE;
   }
 
   /**
@@ -64,12 +63,12 @@ public final class StateTransitionMessageTranslateUtil {
    * @param message Message
    * @return TransitionMessage
    */
-  public static TransitionMessage translateSTMsgToTransitionMessage(Message message) {
-    return TransitionMessage.newBuilder().addRequest(
-        HelixGatewayServiceOuterClass.SingleTransitionMessage.newBuilder()
-            .setTransitionID(message.getMsgId()).setTransitionType(
+  public static ShardChangeRequests translateSTMsgToShardChangeRequests(Message message) {
+    return ShardChangeRequests.newBuilder().addRequest(
+        SingleShardChangeRequest.newBuilder()
+            .setStateChangeRequestType(
                 translateStatesToTransitionType(message.getFromState(), message.getToState()))
-            .setResourceID(message.getResourceName()).setShardID(message.getPartitionName())
+            .setResourceName(message.getResourceName()).setShardName(message.getPartitionName())
             .setTargetState(message.getToState()).build()).build();
   }
 
@@ -102,8 +101,8 @@ public final class StateTransitionMessageTranslateUtil {
       List<GatewayServiceEvent.StateTransitionResult> stResult = new ArrayList<>();
       for (HelixGatewayServiceOuterClass.SingleShardTransitionStatus shardTransition : status) {
         GatewayServiceEvent.StateTransitionResult result =
-            new GatewayServiceEvent.StateTransitionResult(shardTransition.getTransitionID(),
-                shardTransition.getIsSuccess(), shardTransition.getCurrentState());
+            new GatewayServiceEvent.StateTransitionResult(shardTransition.getResourceName(),
+                shardTransition.getShardName(), shardTransition.getCurrentState());
         stResult.add(result);
       }
       builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(

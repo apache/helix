@@ -36,7 +36,6 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -44,6 +43,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.collections.Lists;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardChangeRequests;
 
 
 public class TestHelixGatewayParticipant extends ZkTestBase {
@@ -58,7 +59,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   private ClusterControllerManager _controller;
   private int _nextStartPort = 12000;
   private final List<HelixGatewayParticipant> _participants = Lists.newArrayList();
-  private final Map<String, Message> _pendingMessageMap = new ConcurrentHashMap<>();
+  private final Map<String, ShardChangeRequests> _pendingMessageMap = new ConcurrentHashMap<>();
   private final AtomicInteger _onDisconnectCallbackCount = new AtomicInteger();
 
   @BeforeClass
@@ -164,16 +165,18 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   /**
    * Retrieve a pending message for a specific participant.
    */
-  private Message getPendingMessage(String instanceName) {
+  private ShardChangeRequests getPendingMessage(String instanceName) {
     return _pendingMessageMap.get(instanceName);
   }
 
   /**
    * Process the pending message for a participant.
    */
-  private void processPendingMessage(HelixGatewayParticipant participant, boolean isSuccess) {
-    Message message = _pendingMessageMap.remove(participant.getInstanceName());
-    participant.completeStateTransition(message.getMsgId(), isSuccess);
+  private void processPendingMessage(HelixGatewayParticipant participant, boolean isSuccess, String toState) {
+    ShardChangeRequests requests = _pendingMessageMap.remove(participant.getInstanceName());
+
+    participant.completeStateTransition(requests.getRequest(0).getResourceName(),requests.getRequest(0).getShardName(),
+        isSuccess ? toState : "WRONG_STATE");
   }
 
   /**
@@ -240,14 +243,14 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
 
     // Verify that all pending messages have the toState "ONLINE"
     for (HelixGatewayParticipant participant : _participants) {
-      Message message = getPendingMessage(participant.getInstanceName());
-      Assert.assertNotNull(message);
-      Assert.assertEquals(message.getToState(), "ONLINE");
+     HelixGatewayServiceOuterClass.SingleShardChangeRequest request = getPendingMessage(participant.getInstanceName()).getRequest(0);
+      Assert.assertNotNull(request);
+      Assert.assertEquals(request.getTargetState(), "ONLINE");
     }
 
     // Process all pending messages successfully
     for (HelixGatewayParticipant participant : _participants) {
-      processPendingMessage(participant, true);
+      processPendingMessage(participant, true, "ONLINE");
     }
 
     // Verify that the cluster converges and all states are "ONLINE"
@@ -263,12 +266,12 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     verifyPendingMessages(List.of(participant));
 
     // Verify the pending message has the toState "ONLINE"
-    Message message = getPendingMessage(participant.getInstanceName());
-    Assert.assertNotNull(message);
-    Assert.assertEquals(message.getToState(), "ONLINE");
+    HelixGatewayServiceOuterClass.SingleShardChangeRequest request = getPendingMessage(participant.getInstanceName()).getRequest(0);
+    Assert.assertNotNull(request);
+    Assert.assertEquals(request.getTargetState(), "ONLINE");
 
     // Process the message with failure
-    processPendingMessage(participant, false);
+    processPendingMessage(participant, false, "ONLINE");
 
     // Verify that the cluster converges and states reflect the failure (e.g., "OFFLINE")
     Assert.assertTrue(_clusterVerifier.verify());
@@ -311,7 +314,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     verifyPendingMessages(List.of(participantReplacement));
 
     // Process the pending message successfully
-    processPendingMessage(participantReplacement, true);
+    processPendingMessage(participantReplacement, true, "DROPPED");
 
     // Verify that the cluster converges and states are correctly updated to "ONLINE"
     Assert.assertTrue(_clusterVerifier.verify());
@@ -344,17 +347,18 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   }
 
   public static class MockHelixGatewayServiceChannel implements HelixGatewayServiceChannel {
-    private final Map<String, Message> _pendingMessageMap;
+    private final Map<String, ShardChangeRequests> _pendingMessageMap;
     private static final AtomicInteger _gracefulDisconnectCount = new AtomicInteger();
     private static final AtomicInteger _errorDisconnectCount = new AtomicInteger();
 
-    public MockHelixGatewayServiceChannel(Map<String, Message> pendingMessageMap) {
+    public MockHelixGatewayServiceChannel(Map<String, ShardChangeRequests> pendingMessageMap) {
       _pendingMessageMap = pendingMessageMap;
     }
 
     @Override
-    public void sendStateTransitionMessage(String instanceName, String currentState, Message message) {
-      _pendingMessageMap.put(instanceName, message);
+    public void sendStateChangeRequests(String instanceName,
+        HelixGatewayServiceOuterClass.ShardChangeRequests shardChangeRequests) {
+      _pendingMessageMap.put(instanceName, shardChangeRequests);
     }
 
     @Override

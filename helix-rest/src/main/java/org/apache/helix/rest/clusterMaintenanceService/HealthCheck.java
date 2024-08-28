@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
-import java.util.stream.Collectors;
 
 
 public enum HealthCheck {
@@ -65,7 +64,6 @@ public enum HealthCheck {
    * Pre-defined list of checks to test if an instance can be stopped at runtime.
    */
   public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.asList(HealthCheck.values());
-
   /**
    * Pre-defined list of checks to test if an instance is in healthy running state
    */

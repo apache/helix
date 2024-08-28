@@ -32,11 +32,11 @@ public class TestStateTransitionMessageTranslateUtil {
     String currentState = "ONLINE";
     String toState = HelixDefinedState.DROPPED.name();
 
-    HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType result =
+    HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType result =
         StateTransitionMessageTranslateUtil.translateStatesToTransitionType(currentState, toState);
 
     Assert.assertEquals(result,
-        HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.DELETE_SHARD,
+        HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType.DELETE_SHARD,
         "Expected DELETE_SHARD when transitioning to DROPPED state from a non-DROPPED state.");
   }
 
@@ -45,11 +45,11 @@ public class TestStateTransitionMessageTranslateUtil {
     String currentState = HelixGatewayParticipant.UNASSIGNED_STATE;
     String toState = "ONLINE";
 
-    HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType result =
+    HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType result =
         StateTransitionMessageTranslateUtil.translateStatesToTransitionType(currentState, toState);
 
     Assert.assertEquals(result,
-        HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.ADD_SHARD,
+        HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType.ADD_SHARD,
         "Expected ADD_SHARD when transitioning from DROPPED state to a non-DROPPED state.");
   }
 
@@ -58,11 +58,11 @@ public class TestStateTransitionMessageTranslateUtil {
     String currentState = "ONLINE";
     String toState = "OFFLINE";
 
-    HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType result =
+    HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType result =
         StateTransitionMessageTranslateUtil.translateStatesToTransitionType(currentState, toState);
 
     Assert.assertEquals(result,
-        HelixGatewayServiceOuterClass.SingleTransitionMessage.TransitionType.CHANGE_ROLE,
+        HelixGatewayServiceOuterClass.SingleShardChangeRequest.StateChangeRequestType.CHANGE_ROLE,
         "Expected CHANGE_ROLE when transitioning between non-DROPPED states.");
   }
 }

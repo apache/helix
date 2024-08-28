@@ -20,8 +20,8 @@ package org.apache.helix.gateway;
  */
 
 import java.io.IOException;
-import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
+import org.apache.helix.gateway.service.GatewayServiceManager;
 
 import static java.lang.Integer.*;
 

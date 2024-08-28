@@ -19,19 +19,19 @@ package org.apache.helix.gateway.participant;
  * under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
+import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.Message;
@@ -49,7 +49,8 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   private final HelixManager _helixManager;
   private final Runnable _onDisconnectedCallback;
   private final Map<String, Map<String, String>> _shardStateMap;
-  private final Map<String, CompletableFuture<Boolean>> _stateTransitionResultMap;
+
+  private final Map<String, CompletableFuture<String>> _stateTransitionResultMap;
 
   private HelixGatewayParticipant(HelixGatewayServiceChannel gatewayServiceChannel,
       Runnable onDisconnectedCallback, HelixManager helixManager,
@@ -62,28 +63,29 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   }
 
   public void processStateTransitionMessage(Message message) throws Exception {
-    String transitionId = message.getMsgId();
     String resourceId = message.getResourceName();
     String shardId = message.getPartitionName();
     String toState = message.getToState();
+    String concatenatedShardName = resourceId + shardId;
 
     try {
       if (isCurrentStateAlreadyTarget(resourceId, shardId, toState)) {
         return;
       }
 
-      CompletableFuture<Boolean> future = new CompletableFuture<>();
-      _stateTransitionResultMap.put(transitionId, future);
-      _gatewayServiceChannel.sendStateTransitionMessage(_helixManager.getInstanceName(),
-          getCurrentState(resourceId, shardId), message);
+      CompletableFuture<String> future = new CompletableFuture<>();
 
-      if (!future.get()) {
+      _stateTransitionResultMap.put(concatenatedShardName, future);
+      _gatewayServiceChannel.sendStateChangeRequests(_helixManager.getInstanceName(),
+          StateTransitionMessageTranslateUtil.translateSTMsgToShardChangeRequests(message));
+
+      if (!toState.equals(future.get())) {
         throw new Exception("Failed to transition to state " + toState);
       }
 
       updateState(resourceId, shardId, toState);
     } finally {
-      _stateTransitionResultMap.remove(transitionId);
+      _stateTransitionResultMap.remove(concatenatedShardName);
     }
   }
 
@@ -117,13 +119,12 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   /**
    * Completes the state transition with the given transitionId.
    *
-   * @param transitionId the transitionId to complete
-   * @param isSuccess    whether the state transition was successful
    */
-  public void completeStateTransition(String transitionId, boolean isSuccess) {
-    CompletableFuture<Boolean> future = _stateTransitionResultMap.get(transitionId);
+  public void completeStateTransition(String resourceId, String shardId, String currentState) {
+    String concatenatedShardName = resourceId + shardId;
+    CompletableFuture<String> future = _stateTransitionResultMap.get(concatenatedShardName);
     if (future != null) {
-      future.complete(isSuccess);
+      future.complete(currentState);
     }
   }
 

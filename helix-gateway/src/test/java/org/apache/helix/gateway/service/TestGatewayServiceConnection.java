@@ -91,9 +91,9 @@ public class TestGatewayServiceConnection extends HelixGatewayTestBase {
     }
 
     public void connect() {
-      _requestObserver = asyncStub.report(new StreamObserver<HelixGatewayServiceOuterClass.TransitionMessage>() {
+      _requestObserver = asyncStub.report(new StreamObserver<HelixGatewayServiceOuterClass.ShardChangeRequests>() {
         @Override
-        public void onNext(HelixGatewayServiceOuterClass.TransitionMessage value) {
+        public void onNext(HelixGatewayServiceOuterClass.ShardChangeRequests value) {
           // Handle response from server
         }
 

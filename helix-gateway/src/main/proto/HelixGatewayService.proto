@@ -20,21 +20,20 @@ syntax = "proto3";
 
 package proto.org.apache.helix.gateway;
 
-message SingleTransitionMessage {
-  enum TransitionType {
+message SingleShardChangeRequest {
+  enum StateChangeRequestType {
     ADD_SHARD = 0;
     DELETE_SHARD = 1;
     CHANGE_ROLE = 2;
   }
-  string transitionID = 1;    // ID of transition message
-  TransitionType transitionType = 2;   // Transition type for shard operations
-  string resourceID = 3;              // Resource ID
-  string shardID = 4;                 // Shard to perform operation
-  string targetState = 6;     // Shard target state.
+  StateChangeRequestType stateChangeRequestType = 1;   // Transition type for shard operations
+  string resourceName = 2;              // Resource ID
+  string shardName = 3;                 // Shard to perform operation
+  string targetState = 4;     // Shard target state.
 }
 
-message TransitionMessage {
-  repeated SingleTransitionMessage request = 1;
+message ShardChangeRequests {
+  repeated SingleShardChangeRequest request = 1;
 }
 
 message SingleResourceState {
@@ -48,9 +47,9 @@ message SingleShardState {
 }
 
 message SingleShardTransitionStatus {
-  string transitionID = 1;       // ID of transition message
-  bool isSuccess = 2;           // Was transition successfully performed
-  optional string currentState = 3;   // If it failed, what is the current state it should reported as.
+  string resourceName = 1;        // resource name
+  string shardName = 2;           // shard name
+  string currentState = 3;   // If it failed, what is the current state it should reported as.
 }
 
 message ShardTransitionStatus{
@@ -75,6 +74,6 @@ message ShardStateMessage{
 }
 
 service HelixGatewayService {
-  rpc report(stream ShardStateMessage) returns (stream TransitionMessage) {}
+  rpc report(stream ShardStateMessage) returns (stream ShardChangeRequests) {}
 }
 

@@ -19,18 +19,17 @@ package org.apache.helix.gateway.service;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import com.google.common.collect.ImmutableSet;
-import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
-import org.apache.helix.gateway.channel.HelixGatewayServiceChannelFactory;
 import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
+import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
+import org.apache.helix.gateway.channel.HelixGatewayServiceChannelFactory;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
 
@@ -104,8 +103,8 @@ public class GatewayServiceManager {
         return;
       }
       _event.getStateTransitionResult().forEach(stateTransitionResult -> {
-        participant.completeStateTransition(stateTransitionResult.getStateTransitionId(),
-            stateTransitionResult.getIsSuccess());
+        participant.completeStateTransition(stateTransitionResult.getResourceName(),
+            stateTransitionResult.getShardName(), stateTransitionResult.getShardState());
       });
     }
   }

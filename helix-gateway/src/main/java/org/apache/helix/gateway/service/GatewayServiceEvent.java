@@ -39,24 +39,25 @@ public class GatewayServiceEvent {
   private List<StateTransitionResult> _stateTransitionResult;
 
   public static class StateTransitionResult {
-    private String stateTransitionId;
-    private boolean isSuccess;
+
+    private String resourceName;
+    private String shardName;
     private String shardState;
 
-    public StateTransitionResult(String stateTransitionId, boolean isSuccess, String shardState) {
-      this.stateTransitionId = stateTransitionId;
-      this.isSuccess = isSuccess;
+    public StateTransitionResult(String resourceName,String shardName, String shardState) {
       this.shardState = shardState;
+      this.shardName = shardName;
+      this.resourceName = resourceName;
     }
 
-    public String getStateTransitionId() {
-      return stateTransitionId;
-    }
-    public boolean getIsSuccess() {
-      return isSuccess;
-    }
     public String getShardState() {
       return shardState;
+    }
+    public String getShardName() {
+      return shardName;
+    }
+    public String getResourceName() {
+      return resourceName;
     }
   }
 

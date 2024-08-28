@@ -313,6 +313,8 @@ public class InstancesAccessor extends AbstractHelixResource {
               .build();
       stoppableInstancesSelector.calculateOrderOfZone(instances, random);
       ObjectNode result;
+      // TODO: Add support for clusters that do not have topology set up.
+      // Issue #2893: https://github.com/apache/helix/issues/2893
       switch (selectionBase) {
         case zone_based:
           result = stoppableInstancesSelector.getStoppableInstancesInSingleZone(instances, toBeStoppedInstances);

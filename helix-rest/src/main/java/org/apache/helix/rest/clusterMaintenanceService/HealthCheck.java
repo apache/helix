@@ -60,9 +60,8 @@ public enum HealthCheck {
    * constraint if this instance is shutdown
    */
   MIN_ACTIVE_REPLICA_CHECK_FAILED;
-
   /**
-   * Pre-defined list of checks to test if an instance can be stopped at runtime
+   * Pre-defined list of checks to test if an instance can be stopped at runtime.
    */
   public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.asList(HealthCheck.values());
   /**

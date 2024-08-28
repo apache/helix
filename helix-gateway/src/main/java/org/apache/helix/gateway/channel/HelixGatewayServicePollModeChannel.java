@@ -21,7 +21,8 @@ package org.apache.helix.gateway.channel;
 
 import java.io.IOException;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
-import org.apache.helix.model.Message;
+import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
+
 
 // TODO: implement this class
 public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceChannel {
@@ -30,8 +31,8 @@ public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceCh
   }
 
   @Override
-  public void sendStateTransitionMessage(String instanceName, Message message) {
-
+  public void sendStateChangeRequests(String instanceName,
+      HelixGatewayServiceOuterClass.ShardChangeRequests shardChangeRequests) {
   }
 
   @Override

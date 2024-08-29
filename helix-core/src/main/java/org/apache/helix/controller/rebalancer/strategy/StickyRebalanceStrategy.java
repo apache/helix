@@ -80,9 +80,6 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     Map<String, Set<String>> stateMap =
         populateValidAssignmentMapFromCurrentMapping(currentMapping, assignableNodeSet);
 
-    Map<String, Integer> stateMapCount = stateMap.entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
-
     if (logger.isDebugEnabled()) {
       logger.debug("currentMapping: {}", currentMapping);
       logger.debug("stateMap: {}", stateMap);
@@ -96,8 +93,10 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     // Assign partitions to node by order.
     for (int i = 0, index = 0; i < _partitions.size(); i++) {
       int startIndex = index;
-      int remainingReplica =
-          _statesReplicaCount - stateMapCount.getOrDefault(_partitions.get(i), 0);
+      int remainingReplica = _statesReplicaCount;
+      if (stateMap.containsKey(_partitions.get(i))) {
+        remainingReplica = remainingReplica - stateMap.get(_partitions.get(i)).size();
+      }
       for (int j = 0; j < remainingReplica; j++) {
         while (index - startIndex < assignableNodeList.size()) {
           CapacityNode node = assignableNodeList.get(index++ % assignableNodeList.size());

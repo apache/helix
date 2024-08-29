@@ -52,7 +52,6 @@ import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -595,23 +594,21 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     }
     for (String resourceName : resourceNameSet) {
       // Process current state mapping
-      for (Map.Entry<Partition, Map<String, String>> entry : currentStateOutput.getCurrentStateMap(
-          resourceName).entrySet()) {
-        for (String instanceName : entry.getValue().keySet()) {
-          CapacityNode node = simpleCapacityMap.get(instanceName);
-          if (node != null) {
-            node.canAdd(resourceName, entry.getKey().getPartitionName());
-          }
-        }
-      }
+      populateCapacityNodeUsageFromStateMap(resourceName, simpleCapacityMap,
+          currentStateOutput.getCurrentStateMap(resourceName));
       // Process pending state mapping
-      for (Map.Entry<Partition, Map<String, Message>> entry : currentStateOutput.getPendingMessageMap(
-          resourceName).entrySet()) {
-        for (String instanceName : entry.getValue().keySet()) {
-          CapacityNode node = simpleCapacityMap.get(instanceName);
-          if (node != null) {
-            node.canAdd(resourceName, entry.getKey().getPartitionName());
-          }
+      populateCapacityNodeUsageFromStateMap(resourceName, simpleCapacityMap,
+          currentStateOutput.getPendingMessageMap(resourceName));
+    }
+  }
+
+  private <T> void populateCapacityNodeUsageFromStateMap(String resourceName,
+      Map<String, CapacityNode> simpleCapacityMap, Map<Partition, Map<String, T>> stateMap) {
+    for (Map.Entry<Partition, Map<String, T>> entry : stateMap.entrySet()) {
+      for (String instanceName : entry.getValue().keySet()) {
+        CapacityNode node = simpleCapacityMap.get(instanceName);
+        if (node != null) {
+          node.canAdd(resourceName, entry.getKey().getPartitionName());
         }
       }
     }

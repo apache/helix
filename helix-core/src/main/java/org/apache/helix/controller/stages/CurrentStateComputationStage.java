@@ -134,6 +134,14 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
       handleResourceCapacityCalculation(event, (ResourceControllerDataProvider) cache, currentStateOutput);
     }
+
+    // Populate the capacity for simple CapacityNode
+    if (cache.getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1
+        && cache instanceof ResourceControllerDataProvider) {
+      final ResourceControllerDataProvider dataProvider = (ResourceControllerDataProvider) cache;
+      dataProvider.populateSimpleCapacitySetUsage(resourceToRebalance.keySet(),
+          currentStateExcludingUnknown);
+    }
   }
 
   // update all pending messages to CurrentStateOutput.

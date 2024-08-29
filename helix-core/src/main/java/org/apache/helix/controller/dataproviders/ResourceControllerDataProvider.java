@@ -44,6 +44,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.rebalancer.strategy.StickyRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
 import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
@@ -51,6 +52,7 @@ import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -589,6 +591,35 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   public Set<CapacityNode> getSimpleCapacitySet() {
     return _simpleCapacitySet;
+  }
+
+  public void populateSimpleCapacitySetUsage(final Set<String> resourceNameSet,
+      final CurrentStateOutput currentStateOutput) {
+    // Convert the assignableNodes to map for quick lookup
+    Map<String, CapacityNode> simpleCapacityMap = new HashMap<>();
+    for (CapacityNode node : _simpleCapacitySet) {
+      simpleCapacityMap.put(node.getId(), node);
+    }
+    for (String resourceName : resourceNameSet) {
+      // Process current state mapping
+      populateCapacityNodeUsageFromStateMap(resourceName, simpleCapacityMap,
+          currentStateOutput.getCurrentStateMap(resourceName));
+      // Process pending state mapping
+      populateCapacityNodeUsageFromStateMap(resourceName, simpleCapacityMap,
+          currentStateOutput.getPendingMessageMap(resourceName));
+    }
+  }
+
+  private <T> void populateCapacityNodeUsageFromStateMap(String resourceName,
+      Map<String, CapacityNode> simpleCapacityMap, Map<Partition, Map<String, T>> stateMap) {
+    for (Map.Entry<Partition, Map<String, T>> entry : stateMap.entrySet()) {
+      for (String instanceName : entry.getValue().keySet()) {
+        CapacityNode node = simpleCapacityMap.get(instanceName);
+        if (node != null) {
+          node.canAdd(resourceName, entry.getKey().getPartitionName());
+        }
+      }
+    }
   }
 
   private void refreshDisabledInstancesForAllPartitionsSet() {

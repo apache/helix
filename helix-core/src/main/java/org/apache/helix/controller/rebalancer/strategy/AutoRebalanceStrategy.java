@@ -84,7 +84,6 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes, final List<String> liveNodes,
       final Map<String, Map<String, String>> currentMapping, ResourceControllerDataProvider clusterData) {
-    int numReplicas = calculateStatesReplicaCount();
     ZNRecord znRecord = new ZNRecord(_resourceName);
     if (liveNodes.size() == 0) {
       return znRecord;
@@ -99,8 +98,6 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     List<String> sortedLiveNodes = new ArrayList<String>(liveNodes);
     Collections.sort(sortedLiveNodes, currentStateNodeComparator);
 
-    int distRemainder = (numReplicas * _partitions.size()) % sortedLiveNodes.size();
-    int distFloor = (numReplicas * _partitions.size()) / sortedLiveNodes.size();
     _nodeMap = new HashMap<>();
     _liveNodesList = new ArrayList<Node>();
 
@@ -110,6 +107,10 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       node.hasCeilingCapacity = false;
       _nodeMap.put(id, node);
     }
+
+    int numReplicas = calculateExpectedReplicaCount(clusterData);
+    int distRemainder = (numReplicas * _partitions.size()) % sortedLiveNodes.size();
+    int distFloor = (numReplicas * _partitions.size()) / sortedLiveNodes.size();
     for (int i = 0; i < sortedLiveNodes.size(); i++) {
       boolean usingCeiling = false;
       int targetSize = (_maximumPerNode > 0) ? Math.min(distFloor, _maximumPerNode) : distFloor;

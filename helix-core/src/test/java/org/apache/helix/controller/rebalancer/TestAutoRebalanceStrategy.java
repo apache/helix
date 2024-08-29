@@ -988,7 +988,7 @@ public class TestAutoRebalanceStrategy {
       currentMapping.put(partition, new HashMap<String, String>());
     }
 
-    // make sure that when the first node joins, a single replica is assigned fairly
+    // make sure that when nodes join, all partitions is assigned fairly
     List<String> partitions = ImmutableList.copyOf(PARTITIONS);
     LinkedHashMap<String, Integer> stateCount =
         STATE_MODEL.getStateCountMap(liveNodes.size(), REPLICA_COUNT);
@@ -1017,12 +1017,13 @@ public class TestAutoRebalanceStrategy {
             allNodes, liveNodes, currentMapping, dataCache);
     preferenceLists = znRecord.getListFields();
     for (String partition : currentMapping.keySet()) {
-      // make sure these are all MASTER
+      // make sure the size is equal to the number of active nodes
       List<String> preferenceList = preferenceLists.get(partition);
       Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
       Assert.assertEquals(preferenceList.size(), 2, "invalid preference list for " + partition);
       // Since node 0 is disabled but active, it should appear in the preference list and it should
-      // be OFFLINE state for the all partitions
+      // be OFFLINE state for the all partitions. Since there are only 2 nodes, node 1 should be the
+      // top state for every partition
       Assert.assertTrue(znRecord.getListField(partition).contains(NODES[1]),
           "invalid preference list for " + partition);
       Assert.assertEquals(znRecord.getMapField(partition).get(NODES[1]), STATE_MODEL.getTopState());
@@ -1030,6 +1031,80 @@ public class TestAutoRebalanceStrategy {
           "invalid preference list for " + partition);
       Assert.assertEquals(znRecord.getMapField(partition).get(NODES[0]),
           STATE_MODEL.getInitialState());
+    }
+  }
+
+  @Test
+  public void testRebalanceWithErrorPartition() {
+    final String RESOURCE_NAME = "resource";
+    final String[] PARTITIONS = {"resource_0", "resource_1", "resource_2"};
+    final StateModelDefinition STATE_MODEL = LeaderStandbySMD.build();
+    final int REPLICA_COUNT = 2;
+    final String[] NODES = {"n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9"};
+
+    ResourceControllerDataProvider dataCache = buildMockDataCache(RESOURCE_NAME,
+        ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
+        STATE_MODEL, Collections.emptySet());
+    // initial state, 10 node, no mapping
+    List<String> allNodes = Lists.newArrayList(NODES);
+    List<String> liveNodes = Lists.newArrayList(NODES);
+    Map<String, Map<String, String>> currentMapping = Maps.newHashMap();
+    for (String partition : PARTITIONS) {
+      currentMapping.put(partition, new HashMap<String, String>());
+    }
+
+    // make sure that when nodes join, all partitions is assigned fairly
+    List<String> partitions = ImmutableList.copyOf(PARTITIONS);
+    LinkedHashMap<String, Integer> stateCount =
+        STATE_MODEL.getStateCountMap(liveNodes.size(), allNodes.size());
+    ZNRecord znRecord =
+        new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount).computePartitionAssignment(
+            allNodes, liveNodes, currentMapping, dataCache);
+    Map<String, List<String>> preferenceLists = znRecord.getListFields();
+    for (String partition : currentMapping.keySet()) {
+      List<String> preferenceList = preferenceLists.get(partition);
+      Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
+      Assert.assertEquals(preferenceList.size(), allNodes.size(),
+          "invalid preference list for " + partition);
+    }
+
+    // Suppose that one replica of partition 0 is in n0, and it has been in the ERROR state.
+
+    for (String partition : PARTITIONS) {
+      Map<String, String> idealStateMap = znRecord.getMapField(partition);
+      currentMapping.put(partition, idealStateMap);
+    }
+    currentMapping.get(PARTITIONS[0]).put(NODES[0], "ERROR");
+    // now disable node 0, and make sure the dataCache provides it. And add another node n10 to the
+    // cluster. We want to make sure the n10 can pick up another replica of partition 0,1,2.
+    allNodes = new ArrayList<>(allNodes);
+    liveNodes = new ArrayList<>(liveNodes);
+    liveNodes.remove(NODES[0]);
+    allNodes.add("n10");
+    liveNodes.add("n10");
+
+    dataCache = buildMockDataCache(RESOURCE_NAME,
+        ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
+        STATE_MODEL, Collections.emptySet());
+
+    // Even though we had 11 nodes, we only have 10 nodes in the liveNodes list. So the state
+    // count map should have 10 entries instead of 11 when using ANY_LIVEINSTANCE .
+    stateCount = STATE_MODEL.getStateCountMap(liveNodes.size(), 10);
+    znRecord =
+        new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount).computePartitionAssignment(
+            allNodes, liveNodes, currentMapping, dataCache);
+    preferenceLists = znRecord.getListFields();
+    for (String partition : currentMapping.keySet()) {
+      // make sure the size is equal to the number of live nodes
+      List<String> preferenceList = preferenceLists.get(partition);
+      Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
+      Assert.assertEquals(preferenceList.size(), liveNodes.size(),
+          "invalid preference list for " + partition);
+      // Since node 0 is disabled with ERROR state, it shouldn't appear in the IDEAL state
+      Assert.assertFalse(znRecord.getListField(partition).contains(NODES[0]),
+          "invalid preference list for " + partition);
+      Assert.assertFalse(znRecord.getMapField(partition).containsKey(NODES[0]),
+          "invalid ideal state mapping for " + partition);
     }
   }
 

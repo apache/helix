@@ -72,16 +72,12 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
-    if (!this._rebalanceConditions.stream()
+    ZNRecord cachedIdealState = clusterData.getCachedOndemandIdealState(resourceName);
+    // If previous placement list exists in cache && all condition met -> return cached value
+    if (cachedIdealState != null && cachedIdealState.getListFields() != null
+        && !cachedIdealState.getListFields().isEmpty() && !this._rebalanceConditions.stream()
         .allMatch(condition -> condition.shouldPerformRebalance(clusterData))) {
-      ZNRecord cachedIdealState = clusterData.getCachedOndemandIdealState(resourceName);
-      if (cachedIdealState != null) {
-        return new IdealState(cachedIdealState);
-      }
-      // In theory, the cache should be populated already if no rebalance is needed
-      LOG.warn(
-          "Cannot fetch the cached Ideal State for resource: {}, will recompute the Ideal State",
-          resourceName);
+      return new IdealState(cachedIdealState);
     }
 
     LOG.info("Computing IdealState for " + resourceName);
@@ -189,18 +185,16 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
   public ResourceAssignment computeBestPossiblePartitionState(ResourceControllerDataProvider cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     ZNRecord cachedIdealState = cache.getCachedOndemandIdealState(resource.getResourceName());
-    if (!this._rebalanceConditions.stream()
+    // If previous assignment map exists in cache && all condition met -> return cached value
+    if (cachedIdealState.getMapFields() != null && !cachedIdealState.getMapFields().isEmpty()
+        && !this._rebalanceConditions.stream()
         .allMatch(condition -> condition.shouldPerformRebalance(cache))) {
-      if (cachedIdealState != null && cachedIdealState.getMapFields() != null) {
-        ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
-        for (Partition partition : resource.getPartitions()) {
-          partitionMapping.addReplicaMap(partition, cachedIdealState.getMapFields().get(partition));
-        }
-        return new ResourceAssignment(cachedIdealState);
+      ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
+      for (Partition partition : resource.getPartitions()) {
+        partitionMapping.addReplicaMap(partition,
+            cachedIdealState.getMapFields().get(partition.getPartitionName()));
       }
-      // In theory, the cache should be populated already if no rebalance is needed
-      LOG.warn("Cannot fetch the cached assignment for resource: {}, will recompute the assignment",
-          resource.getResourceName());
+      return partitionMapping;
     }
 
     LOG.info("Computing BestPossibleMapping for " + resource.getResourceName());
@@ -212,6 +206,10 @@ public class ConditionBasedRebalancer extends AbstractRebalancer<ResourceControl
     cachedIdealState.setMapFields(assignment.getRecord().getMapFields());
     cache.setCachedOndemandIdealState(resource.getResourceName(), cachedIdealState);
 
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Processed resource: {}", resource.getResourceName());
+      LOG.debug("Final Mapping of resource : {}", assignment);
+    }
     return assignment;
   }
 }

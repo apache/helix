@@ -22,6 +22,7 @@ package org.apache.helix.gateway.service;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -72,7 +73,7 @@ public class GatewayServiceManager {
     _connectionEventProcessor =
         new PerKeyBlockingExecutor(CONNECTION_EVENT_THREAD_POOL_SIZE); // todo: make it configurable
     _gatewayServiceChannelConfig = gatewayServiceChannelConfig;
-    _currentStateCacheMap = new ConcurrentHashMap<>();
+    _currentStateCacheMap = new HashMap<>();
   }
 
   /**

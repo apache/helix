@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.gateway.util.GatewayCurrentStateCache;
 import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
@@ -70,8 +69,7 @@ public class TestGatewayCurrentStateCache {
 
     cache.updateTargetStateWithDiff(targetStateChange);
 
-    Assert.assertTrue(cache.isTargetStateChanged());
-    Assert.assertEquals(cache.getTargetStateMap().get("instance1").get("shard1"), "ONLINE");
+    Assert.assertEquals(cache.getTargetStateMapIfChanged().get("instance1").get("shard1"), "ONLINE");
   }
 
   @Test(dependsOnMethods = "testUpdateTargetStateWithDiff")

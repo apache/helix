@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 public class GatewayCurrentStateCache {
@@ -38,11 +37,13 @@ public class GatewayCurrentStateCache {
   Map<String, Map<String, String>> _targetStateMap;
 
   boolean _targetStateChanged = false;
+  final Object _targetStateLock;
 
   public GatewayCurrentStateCache(String clusterName) {
     _clusterName = clusterName;
-    _currentStateMap = new ConcurrentHashMap<>();
-    _targetStateMap = new ConcurrentHashMap<>();
+    _currentStateMap = new HashMap<>();
+    _targetStateMap = new HashMap<>();
+    _targetStateLock = new Object();
   }
 
   public String getCurrentState(String instance, String shard) {
@@ -56,19 +57,16 @@ public class GatewayCurrentStateCache {
    */
   public Map<String, Map<String, String>> updateCacheWithNewCurrentStateAndGetDiff(
       Map<String, Map<String, String>> newCurrentStateMap) {
-    Map<String, Map<String, String>> diff = null;
+    Map<String, Map<String, String>> diff = new HashMap<>();
     for (Map.Entry<String, Map<String, String>> entry : newCurrentStateMap.entrySet()) {
       String instance = entry.getKey();
       Map<String, String> newCurrentState = entry.getValue();
       Map<String, String> oldCurrentState = _currentStateMap.get(instance);
-      if (oldCurrentState == null || !oldCurrentState.equals(newCurrentState)) {
-        if (diff == null) {
-          diff = new HashMap<>();
-        }
-        if (oldCurrentState == null) {
-          diff.put(instance, newCurrentState);
-          continue;
-        }
+      if (oldCurrentState == null) {
+        diff.put(instance, newCurrentState);
+        continue;
+      }
+      if (!oldCurrentState.equals(newCurrentState)) {
         for (String shard : newCurrentState.keySet()) {
           if (oldCurrentState.get(shard) == null || !oldCurrentState.get(shard).equals(newCurrentState.get(shard))) {
             diff.computeIfAbsent(instance, k -> new HashMap<>()).put(shard, newCurrentState.get(shard));
@@ -90,32 +88,34 @@ public class GatewayCurrentStateCache {
    * @param targetStateChangeMap
    */
   public void updateTargetStateWithDiff(Map<String, Map<String, String>> targetStateChangeMap) {
-    _targetStateChanged = updateShardStateMapWithDiff(targetStateChangeMap, _targetStateMap);
+    synchronized (_targetStateLock) {
+      _targetStateChanged = updateShardStateMapWithDiff(targetStateChangeMap, _targetStateMap);
+    }
   }
 
-  public boolean isTargetStateChanged() {
-    return _targetStateChanged;
-  }
-
-  public void resetTargetStateChanged() {
-    _targetStateChanged = false;
-  }
-
-  public Map<String, Map<String, String>> getTargetStateMap() {
-    return _targetStateMap;
+  public Map<String, Map<String, String>> getTargetStateMapIfChanged() {
+    synchronized (_targetStateLock) {
+      if (_targetStateChanged) {
+        _targetStateChanged = false;
+        return _targetStateMap;
+      }
+      return null;
+    }
   }
 
   public String serializeTargetAssignments() {
     ObjectMapper mapper = new ObjectMapper();
     ObjectNode root = mapper.createObjectNode();
-    for (Map.Entry<String, Map<String, String>> entry : _targetStateMap.entrySet()) {
-      String instance = entry.getKey();
-      Map<String, String> assignments = entry.getValue();
-      ObjectNode instanceNode = mapper.createObjectNode();
-      for (Map.Entry<String, String> assignment : assignments.entrySet()) {
-        instanceNode.put(assignment.getKey(), assignment.getValue());
+    synchronized (_targetStateLock) {
+      for (Map.Entry<String, Map<String, String>> entry : _targetStateMap.entrySet()) {
+        String instance = entry.getKey();
+        Map<String, String> assignments = entry.getValue();
+        ObjectNode instanceNode = mapper.createObjectNode();
+        for (Map.Entry<String, String> assignment : assignments.entrySet()) {
+          instanceNode.put(assignment.getKey(), assignment.getValue());
+        }
+        root.set(instance, instanceNode);
       }
-      root.set(instance, instanceNode);
     }
     return root.toString();
   }

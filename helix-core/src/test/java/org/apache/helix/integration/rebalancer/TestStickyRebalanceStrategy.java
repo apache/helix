@@ -219,6 +219,51 @@ public class TestStickyRebalanceStrategy extends ZkTestBase {
   }
 
   @Test
+  public void testNoPartitionMovementWithInstanceRestart() throws Exception {
+    setGlobalMaxPartitionAllowedPerInstanceInCluster(_gZkClient, CLUSTER_NAME, 1);
+    // Create resource
+    Map<String, ExternalView> externalViewsBefore = createTestDBs();
+    // Shut down half of the nodes
+    for (int i = 0; i < _participants.size(); i++) {
+      if (i % 2 == 0) {
+        _participants.get(i).syncStop();
+      }
+    }
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    Map<String, ExternalView> externalViewsAfter = new HashMap<>();
+    Map<String, IdealState> idealStates = new HashMap<>();
+    for (String db : _testDBs) {
+      ExternalView ev =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      externalViewsAfter.put(db, ev);
+      idealStates.put(db, is);
+    }
+    validateNoPartitionMoveWithDiffCount(idealStates, externalViewsBefore, externalViewsAfter,
+        NUM_NODE / 2);
+
+    // Start all the nodes
+    for (int i = 0; i < _participants.size(); i++) {
+      if (!_participants.get(i).isConnected()) {
+        _participants.set(i, new MockParticipantManager(ZK_ADDR, CLUSTER_NAME,
+            _participants.get(i).getInstanceName()));
+        _participants.get(i).syncStart();
+      }
+    }
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    for (String db : _testDBs) {
+      ExternalView ev =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      validateNoPartitionMove(is, externalViewsBefore.get(db), ev);
+    }
+  }
+
+  @Test
   public void testFirstTimeAssignmentWithStackingPlacement() throws Exception {
     setGlobalMaxPartitionAllowedPerInstanceInCluster(_gZkClient, CLUSTER_NAME, 2);
     Map<String, ExternalView> externalViewsBefore = createTestDBs();

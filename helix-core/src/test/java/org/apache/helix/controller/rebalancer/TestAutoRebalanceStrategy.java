@@ -1039,7 +1039,6 @@ public class TestAutoRebalanceStrategy {
     final String RESOURCE_NAME = "resource";
     final String[] PARTITIONS = {"resource_0", "resource_1", "resource_2"};
     final StateModelDefinition STATE_MODEL = LeaderStandbySMD.build();
-    final int REPLICA_COUNT = 2;
     final String[] NODES = {"n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9"};
 
     ResourceControllerDataProvider dataCache = buildMockDataCache(RESOURCE_NAME,
@@ -1069,12 +1068,31 @@ public class TestAutoRebalanceStrategy {
     }
 
     // Suppose that one replica of partition 0 is in n0, and it has been in the ERROR state.
-
     for (String partition : PARTITIONS) {
       Map<String, String> idealStateMap = znRecord.getMapField(partition);
       currentMapping.put(partition, idealStateMap);
     }
     currentMapping.get(PARTITIONS[0]).put(NODES[0], "ERROR");
+
+    // Recalculate the ideal state, n0 shouldn't be dropped from the preference list.
+    stateCount = STATE_MODEL.getStateCountMap(liveNodes.size(), allNodes.size());
+    znRecord =
+        new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount).computePartitionAssignment(
+            allNodes, liveNodes, currentMapping, dataCache);
+    preferenceLists = znRecord.getListFields();
+    for (String partition : currentMapping.keySet()) {
+      // make sure the size is equal to the number of all nodes
+      List<String> preferenceList = preferenceLists.get(partition);
+      Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
+      Assert.assertEquals(preferenceList.size(), allNodes.size(),
+          "invalid preference list for " + partition);
+      // Even if n0 is in ERROR state, it should appear in the IDEAL state
+      Assert.assertTrue(znRecord.getListField(partition).contains(NODES[0]),
+          "invalid preference list for " + partition);
+      Assert.assertTrue(znRecord.getMapField(partition).containsKey(NODES[0]),
+          "invalid ideal state mapping for " + partition);
+    }
+
     // now disable node 0, and make sure the dataCache provides it. And add another node n10 to the
     // cluster. We want to make sure the n10 can pick up another replica of partition 0,1,2.
     allNodes = new ArrayList<>(allNodes);

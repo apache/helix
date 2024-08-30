@@ -118,7 +118,6 @@ public class AutoRebalanceStrategy {
     // compute the preferred mapping if all nodes were up
     _preferredAssignment = computePreferredPlacement(allNodes);
 
-    // logger.info("preferred mapping:"+ preferredAssignment);
     // from current mapping derive the ones in preferred location
     // this will update the nodes with their current fill status
     _existingPreferredAssignment = computeExistingPreferredPlacement(currentMapping);

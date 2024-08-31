@@ -517,7 +517,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
             throw new IllegalArgumentException("partition: " + replica + " is in currentMapping but not in partitions");
           }
 
-          if (_preferredAssignment.get(replica).id.equals(node.id)
+          if (!_preferredAssignment.get(replica).id.equals(node.id)
               && !_existingPreferredAssignment.containsKey(replica)
               && !existingNonPreferredAssignment.containsKey(replica)) {
             existingNonPreferredAssignment.put(replica, node);

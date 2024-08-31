@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,6 +42,7 @@ import com.google.common.collect.Sets;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
@@ -207,7 +209,7 @@ public class TestAutoRebalanceStrategy {
     public void runRepeatedly(int numIterations) {
       logger.info("~~~~ Initial State ~~~~~");
       ResourceControllerDataProvider dataProvider =
-          buildMockDataCache(RESOURCE_NAME, _numOfReplica, "MasterSlave", _stateModelDef,
+          TestHelper.buildMockDataCache(RESOURCE_NAME, _numOfReplica, "MasterSlave", _stateModelDef,
               Collections.emptySet());
       RebalanceStrategy strategy =
           new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode);
@@ -641,7 +643,7 @@ public class TestAutoRebalanceStrategy {
     }
 
     ResourceControllerDataProvider dataCache =
-        buildMockDataCache(RESOURCE_NAME, REPLICA_COUNT + "", "MasterSlave",
+        TestHelper.buildMockDataCache(RESOURCE_NAME, REPLICA_COUNT + "", "MasterSlave",
             MasterSlaveSMD.build(), Collections.emptySet());
 
     // make sure that when the first node joins, a single replica is assigned fairly
@@ -829,7 +831,7 @@ public class TestAutoRebalanceStrategy {
       partitions.add(Integer.toString(i));
     }
     ResourceControllerDataProvider dataCache =
-        buildMockDataCache(resourceName, nReplicas + "", DEFAULT_STATE_MODEL,
+        TestHelper.buildMockDataCache(resourceName, nReplicas + "", DEFAULT_STATE_MODEL,
             OnlineOfflineSMD.build(), Collections.emptySet());
 
     LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>(2);
@@ -875,7 +877,7 @@ public class TestAutoRebalanceStrategy {
     }
 
     ResourceControllerDataProvider dataCache =
-        buildMockDataCache(RESOURCE, 1 + "", DEFAULT_STATE_MODEL, OnlineOfflineSMD.build(),
+        TestHelper.buildMockDataCache(RESOURCE, 1 + "", DEFAULT_STATE_MODEL, OnlineOfflineSMD.build(),
             Collections.emptySet());
 
     ZNRecord znRecord =
@@ -916,7 +918,7 @@ public class TestAutoRebalanceStrategy {
     final int REPLICA_COUNT = 2;
     final String[] NODES = {"n0", "n1"};
 
-    ResourceControllerDataProvider dataCache = buildMockDataCache(RESOURCE_NAME,
+    ResourceControllerDataProvider dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
         ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
         STATE_MODEL, Collections.emptySet());
 
@@ -977,7 +979,7 @@ public class TestAutoRebalanceStrategy {
     final int REPLICA_COUNT = 2;
     final String[] NODES = {"n0", "n1"};
 
-    ResourceControllerDataProvider dataCache = buildMockDataCache(RESOURCE_NAME,
+    ResourceControllerDataProvider dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
         ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
         STATE_MODEL, Collections.emptySet());
     // initial state, 2 node, no mapping
@@ -1007,7 +1009,7 @@ public class TestAutoRebalanceStrategy {
       Map<String, String> idealStateMap = znRecord.getMapField(partition);
       currentMapping.put(partition, idealStateMap);
     }
-    dataCache = buildMockDataCache(RESOURCE_NAME,
+    dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
         ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
         STATE_MODEL, Sets.newHashSet(NODES[0]));
 
@@ -1041,7 +1043,7 @@ public class TestAutoRebalanceStrategy {
     final StateModelDefinition STATE_MODEL = LeaderStandbySMD.build();
     final String[] NODES = {"n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9"};
 
-    ResourceControllerDataProvider dataCache = buildMockDataCache(RESOURCE_NAME,
+    ResourceControllerDataProvider dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
         ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
         STATE_MODEL, Collections.emptySet());
     // initial state, 10 node, no mapping
@@ -1101,7 +1103,7 @@ public class TestAutoRebalanceStrategy {
     allNodes.add("n10");
     liveNodes.add("n10");
 
-    dataCache = buildMockDataCache(RESOURCE_NAME,
+    dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
         ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
         STATE_MODEL, Collections.emptySet());
 
@@ -1126,19 +1128,65 @@ public class TestAutoRebalanceStrategy {
     }
   }
 
-  private ResourceControllerDataProvider buildMockDataCache(String resourceName,
-      String numOfReplicas, String stateModelDef, StateModelDefinition stateModel,
-      Set<String> disabledYetActiveInstances) {
-    IdealState idealState = new IdealState(resourceName);
-    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
-    idealState.setReplicas(numOfReplicas);
-    idealState.setStateModelDefRef(stateModelDef);
-    idealState.setRebalanceStrategy(
-        "org.apache.helix.controller.rebalancer.strategy." + "AutoRebalanceStrategy");
-    ResourceControllerDataProvider dataCache = mock(ResourceControllerDataProvider.class);
-    when(dataCache.getStateModelDef(stateModelDef)).thenReturn(stateModel);
-    when(dataCache.getIdealState(resourceName)).thenReturn(idealState);
-    when(dataCache.getDisabledInstances()).thenReturn(disabledYetActiveInstances);
-    return dataCache;
+  @Test
+  public void testSlowlyBootstrapping() {
+    // Resource setup
+    final String RESOURCE_NAME = "resource";
+    final int PARTITIONS = 100;
+    final int NUM_NODES = 5;
+    final StateModelDefinition STATE_MODEL = LeaderStandbySMD.build();
+    ArrayList<String> partitions = new ArrayList<String>();
+    for (int i = 0; i < PARTITIONS; i++) {
+      partitions.add("resource_" + i);
+    }
+    ArrayList<String> allNodes = new ArrayList<String>();
+    ArrayList<String> liveNodes = new ArrayList<String>();
+    for (int i = 0; i < NUM_NODES; i++) {
+      allNodes.add("node-" + i);
+    }
+
+    ResourceControllerDataProvider dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
+        "1", "LeaderStandby",
+        STATE_MODEL, Collections.emptySet());
+    // initial state, 10 node, no mapping
+    Map<String, Map<String, String>> currentMapping = Maps.newHashMap();
+    for (String partition : partitions) {
+      currentMapping.put(partition, new HashMap<String, String>());
+    }
+
+    // Run rebalance with 5 nodes, 1 live instances
+    liveNodes.add(allNodes.get(0));
+    LinkedHashMap<String, Integer> stateCount =
+        STATE_MODEL.getStateCountMap(liveNodes.size(), 1);
+    RebalanceStrategy strategy = new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount, 25);
+    ZNRecord znRecord = strategy.computePartitionAssignment(allNodes, liveNodes, currentMapping,
+        dataCache);
+
+    // Suppose that we could only bootstrap a portion of the ideal state replicas and update the
+    // current state mapping
+    int i = 0;
+    for (String partition : partitions) {
+      List<String> preferenceList = znRecord.getListField(partition);
+      if (!preferenceList.isEmpty()) {
+        if (i % 2 == 0) {
+          currentMapping.get(partition).put(preferenceList.get(0), "LEADER");
+        }
+      }
+      i++;
+    }
+
+    // The result of the assignment should be the same as the previous assignment
+    int countOfNonEmptyPreferenceList = 0;
+    ZNRecord newRecord = strategy.computePartitionAssignment(allNodes, liveNodes, currentMapping, dataCache);
+    for (String partition : partitions) {
+      List<String> preferenceList = newRecord.getListField(partition);
+      Assert.assertEquals(newRecord.getMapField(partition), znRecord.getMapField(partition),
+          "The partition " + partition + " should have the same ideal state mapping");
+      if (!preferenceList.isEmpty()) {
+        countOfNonEmptyPreferenceList++;
+      }
+    }
+    // The number of non-empty preference list should be 25 because we set the MAX_PARTITION_PER_NODE = 25
+    Assert.assertEquals(countOfNonEmptyPreferenceList, 25);
   }
 }

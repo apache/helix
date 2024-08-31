@@ -20,11 +20,14 @@ package org.apache.helix.controller.rebalancer;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.TestHelper;
+import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
@@ -68,7 +71,9 @@ public class TestAutoRebalanceStrategyImbalanceAssignment {
 
     AutoRebalanceStrategy strategy = new AutoRebalanceStrategy(resourceName, partitions, states);
     ZNRecord record = strategy.computePartitionAssignment(instanceNames, instanceNames,
-        new HashMap<String, Map<String, String>>(0), new ResourceControllerDataProvider());
+        new HashMap<String, Map<String, String>>(0),
+        TestHelper.buildMockDataCache(resourceName, nReplicas + "", "OnlineOffline",
+            OnlineOfflineSMD.build(), Collections.emptySet()));
 
     for (Map<String, String> stateMapping : record.getMapFields().values()) {
       Assert.assertEquals(stateMapping.size(), nReplicas);

@@ -40,18 +40,18 @@ public class GatewayCurrentStateCache {
   // instance -> resource state (resource -> shard -> target state)
   Map<String, ShardStateMap> _targetStateMap;
 
-  boolean _targetStateChanged = false;
-  final Object _targetStateLock;
-
   public GatewayCurrentStateCache(String clusterName) {
     _clusterName = clusterName;
     _currentStateMap = new HashMap<>();
     _targetStateMap = new HashMap<>();
-    _targetStateLock = new Object();
   }
 
   public String getCurrentState(String instance, String resource, String shard) {
     return _currentStateMap.get(instance).getState(resource, shard);
+  }
+
+  public String getTargetState(String instance, String resource, String shard) {
+    return _targetStateMap.get(instance).getState(resource, shard);
   }
 
   /**
@@ -62,7 +62,7 @@ public class GatewayCurrentStateCache {
   public Map<String, Map<String, Map<String, String>>> updateCacheWithNewCurrentStateAndGetDiff(
       Map<String, Map<String, Map<String, String>>> newCurrentStateMap) {
     Map<String, Map<String, Map<String, String>>> diff = new HashMap<>();
-    for(String instance : newCurrentStateMap.keySet()) {
+    for (String instance : newCurrentStateMap.keySet()) {
       Map<String, Map<String, String>> newCurrentState = newCurrentStateMap.get(instance);
       diff.put(instance, _currentStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
           .updateMapAndGetDiff(newCurrentState));
@@ -89,50 +89,40 @@ public class GatewayCurrentStateCache {
    * @param targetStateChangeMap
    */
   public void updateTargetStateWithDiff(String instance, Map<String, Map<String, String>> targetStateChangeMap) {
-    synchronized (_targetStateLock) {
-      _targetStateChanged = _targetStateMap.get(instance).updateShardStateMapWithDiff(targetStateChangeMap);
-    }
+    _targetStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
+        .updateShardStateMapWithDiff(targetStateChangeMap);
   }
 
   /**
-   * Get the target state map if it has changed since last time and reset the _targetStateChanged flag in.
-   * @return The target state map if it has changed, otherwise return null.
-   */
-  public Map<String, ShardStateMap> getTargetStateMapIfChanged() {
-    synchronized (_targetStateLock) {
-      if (_targetStateChanged) {
-        _targetStateChanged = false;
-        return _targetStateMap;
-      }
-      return null;
-    }
-  }
-
-  /**
-   * Serialize the target state assignments to a JSON string.
+   * Serialize the target state assignments to a JSON Node.
    * example ： {"instance1":{"resource1":{"shard1":"ONLINE","shard2":"OFFLINE"}}}}
    */
-  public String serializeTargetAssignments() {
+  public ObjectNode serializeTargetAssignmentsToJSON() {
     ObjectNode root = mapper.createObjectNode();
     for (Map.Entry<String, ShardStateMap> entry : _targetStateMap.entrySet()) {
-      root.set(entry.getKey(), entry.getValue().serialize());
+      root.set(entry.getKey(), entry.getValue().toJSONNode());
     }
-    return root.toString();
+    return root;
   }
-
 
   public class ShardStateMap {
     Map<String, Map<String, String>> _stateMap;
+
     public ShardStateMap(Map<String, Map<String, String>> stateMap) {
       _stateMap = stateMap;
     }
+
     public String getState(String instance, String shard) {
       return _stateMap.get(instance).get(shard);
     }
 
-    private boolean updateShardStateMapWithDiff(Map<String, Map<String, String>> diffMap) {
+    private Map<String, Map<String, String>> getShardStateMap() {
+      return _stateMap;
+    }
+
+    private void updateShardStateMapWithDiff(Map<String, Map<String, String>> diffMap) {
       if (diffMap == null || diffMap.isEmpty()) {
-        return false;
+        return;
       }
       for (Map.Entry<String, Map<String, String>> diffEntry : diffMap.entrySet()) {
         String resource = diffEntry.getKey();
@@ -148,11 +138,9 @@ public class GatewayCurrentStateCache {
           _stateMap.put(resource, diffCurrentState);
         }
       }
-      return true;
     }
 
-    private Map<String, Map<String, String>> updateMapAndGetDiff(
-         Map<String, Map<String, String>> newCurrentStateMap) {
+    private Map<String, Map<String, String>> updateMapAndGetDiff(Map<String, Map<String, String>> newCurrentStateMap) {
       Map<String, Map<String, String>> diff = new HashMap<>();
       for (Map.Entry<String, Map<String, String>> entry : newCurrentStateMap.entrySet()) {
         String instance = entry.getKey();
@@ -178,7 +166,7 @@ public class GatewayCurrentStateCache {
      * Serialize the shard state map to a JSON object.
      * @return a JSON object representing the shard state map. Example: {"shard1":"ONLINE","shard2":"OFFLINE"}
      */
-    public ObjectNode serialize() {
+    public ObjectNode toJSONNode() {
       ObjectNode root = mapper.createObjectNode();
       for (Map.Entry<String, Map<String, String>> entry : _stateMap.entrySet()) {
         String resource = entry.getKey();
@@ -190,7 +178,5 @@ public class GatewayCurrentStateCache {
       }
       return root;
     }
-
   }
 }
-

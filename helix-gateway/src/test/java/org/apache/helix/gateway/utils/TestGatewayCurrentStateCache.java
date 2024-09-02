@@ -23,11 +23,60 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.gateway.util.GatewayCurrentStateCache;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
 public class TestGatewayCurrentStateCache {
-  private GatewayCurrentStateCache cache = new GatewayCurrentStateCache("TestCluster");;
+  private GatewayCurrentStateCache cache;
 
+  @BeforeMethod
+  public void setUp() {
+    cache = new GatewayCurrentStateCache("TestCluster");
+  }
 
+  @Test
+  public void testUpdateCacheWithNewCurrentStateAndGetDiff() {
+    Map<String, Map<String, Map<String, String>>> newState = new HashMap<>();
+    Map<String, Map<String, String>> instanceState = new HashMap<>();
+    Map<String, String> shardState = new HashMap<>();
+    shardState.put("shard1", "ONLINE");
+    instanceState.put("resource1", shardState);
+    newState.put("instance1", instanceState);
+
+    Map<String, Map<String, Map<String, String>>> diff = cache.updateCacheWithNewCurrentStateAndGetDiff(newState);
+
+    Assert.assertNotNull(diff);
+    Assert.assertEquals(diff.size(), 1);
+    Assert.assertEquals(diff.get("instance1").get("resource1").get("shard1"), "ONLINE");
+  }
+
+  @Test
+  public void testUpdateCacheWithCurrentStateDiff() {
+    Map<String, Map<String, Map<String, String>>> diff = new HashMap<>();
+    Map<String, Map<String, String>> instanceState = new HashMap<>();
+    Map<String, String> shardState = new HashMap<>();
+    shardState.put("shard2", "ONLINE");
+    shardState.put("shard1", "ONLINE");
+    instanceState.put("resource1", shardState);
+    diff.put("instance1", instanceState);
+
+    cache.updateCacheWithCurrentStateDiff(diff);
+
+    Assert.assertEquals(cache.getCurrentState("instance1", "resource1", "shard1"), "ONLINE");
+    Assert.assertEquals(cache.getCurrentState("instance1", "resource1", "shard2"), "ONLINE");
+  }
+
+  @Test
+  public void testUpdateTargetStateWithDiff() {
+    Map<String, Map<String, String>> targetStateChange = new HashMap<>();
+    Map<String, String> shardState = new HashMap<>();
+    shardState.put("shard1", "OFFLINE");
+    targetStateChange.put("resource1", shardState);
+
+    cache.updateTargetStateWithDiff("instance1", targetStateChange);
+
+    Assert.assertEquals(cache.getTargetState("instance1", "resource1", "shard1"), "OFFLINE");
+    Assert.assertEquals(cache.serializeTargetAssignmentsToJSON().toString(), "{\"instance1\":{\"resource1\":{\"shard1\":\"OFFLINE\"}}}");
+  }
 }

@@ -137,7 +137,6 @@ public class GatewayServiceManager {
     }
   }
 
-
   public void startService() throws IOException {
     _gatewayServiceChannel.start();
   }
@@ -147,10 +146,6 @@ public class GatewayServiceManager {
     _connectionEventProcessor.shutdown();
     _participantStateTransitionResultUpdator.shutdown();
     _helixGatewayParticipantMap.clear();
-  }
-
-  public GatewayCurrentStateCache getCurrentStateCache(String clusterName) {
-    return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
   }
 
   private void createHelixGatewayParticipant(String clusterName, String instanceName,

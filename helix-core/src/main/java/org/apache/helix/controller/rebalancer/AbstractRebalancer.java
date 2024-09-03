@@ -557,12 +557,25 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     protected final Map<String, String> _currentStateMap;
     protected final StateModelDefinition _stateModelDef;
     protected final List<String> _preferenceList;
+    protected final ResourceControllerDataProvider _cache;
+    protected final Map<String, Integer> _mzReplicaCountMap;
 
     public PreferenceListNodeComparator(Map<String, String> currentStateMap,
         StateModelDefinition stateModelDef, List<String> preferenceList) {
       _currentStateMap = currentStateMap;
       _stateModelDef = stateModelDef;
       _preferenceList = preferenceList;
+      _cache = null;
+      _mzReplicaCountMap = null;
+    }
+
+    public PreferenceListNodeComparator(Map<String, String> currentStateMap, StateModelDefinition stateModelDef,
+        List<String> preferenceList, ResourceControllerDataProvider cache) {
+      _currentStateMap = currentStateMap;
+      _stateModelDef = stateModelDef;
+      _preferenceList = preferenceList;
+      _cache = cache;
+      _mzReplicaCountMap = populateMzReplicaCountMap();
     }
 
     @Override
@@ -570,7 +583,9 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       // condition :
       // 1. both in preference list, keep the order in preference list
       // 2. one them in preference list, the one in preference list has higher priority
-      // 3. none of them in preference list, sort by state.
+      // 3. None of them in preference list, reverse sort by # of replicas in that mz
+        // a. node in MZ that has more replicas should be dropped first (lower priority)
+      // 4. Same # of replicas in each MZ, order by state
       if (_preferenceList.contains(ins1) && _preferenceList.contains(ins2)) {
         return _preferenceList.indexOf(ins1) - _preferenceList.indexOf(ins2);
       } else if (_preferenceList.contains(ins1)) {
@@ -581,6 +596,22 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       Integer p1 = Integer.MAX_VALUE;
       Integer p2 = Integer.MAX_VALUE;
 
+      // Order by MZ representation (overrepresented should be dropped first)
+      if (_mzReplicaCountMap != null && !_mzReplicaCountMap.isEmpty()) {
+        String faultZoneType = _cache.getClusterConfig().getFaultZoneType();
+        String mz1 = _cache.getInstanceConfigMap().get(ins1) != null ?
+            _cache.getInstanceConfigMap().get(ins1).getDomainAsMap().get(faultZoneType) : null;
+        String mz2 = _cache.getInstanceConfigMap().get(ins2) != null ?
+            _cache.getInstanceConfigMap().get(ins2).getDomainAsMap().get(faultZoneType) : null;
+
+        int mz1Count = _mzReplicaCountMap.getOrDefault(mz1, 0);
+        int mz2Count = _mzReplicaCountMap.getOrDefault(mz2, 0);
+        if (mz1Count != mz2Count) {
+          return mz1Count - mz2Count;
+        }
+      }
+
+      // Order by state priority
       Map<String, Integer> statesPriorityMap = _stateModelDef.getStatePriorityMap();
       String state1 = _currentStateMap.get(ins1);
       String state2 = _currentStateMap.get(ins2);
@@ -592,6 +623,25 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       }
 
       return p1.compareTo(p2);
+    }
+
+    private Map<String, Integer> populateMzReplicaCountMap() {
+      if (_cache == null || _cache.getInstanceConfigMap() == null ||
+          _cache.getClusterConfig() == null || !_cache.getClusterConfig().isTopologyAwareEnabled() ) {
+        return Collections.emptyMap();
+      }
+      String faultZoneType = _cache.getClusterConfig().getFaultZoneType();
+
+      Map<String, Integer> mzReplicaCountMap = new HashMap<>();
+      for (String instance : _currentStateMap.keySet()) {
+        String mz = _cache.getInstanceConfigMap().get(instance).getDomainAsMap().get(faultZoneType);
+        if (mzReplicaCountMap.containsKey(mz)) {
+          mzReplicaCountMap.put(mz, mzReplicaCountMap.get(mz) + 1);
+        } else {
+          mzReplicaCountMap.put(mz, 1);
+        }
+      }
+      return mzReplicaCountMap;
     }
   }
 

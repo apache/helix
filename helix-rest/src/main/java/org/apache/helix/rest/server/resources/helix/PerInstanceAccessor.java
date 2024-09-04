@@ -511,7 +511,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
         case forceKillInstance:
           boolean instanceForceKilled = admin.forceKillInstance(clusterId, instanceName, reason, instanceOperationSource);
           if (!instanceForceKilled) {
-            return serverError("Failed to forcefully kill instance: " + instanceName);
+            return serverError("Failed to forcefully kill instance: " + instanceName +
+                ". Possible that instance was already stopped.");
           }
           return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", instanceForceKilled)));
         default:

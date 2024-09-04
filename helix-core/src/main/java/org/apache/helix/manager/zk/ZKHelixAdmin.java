@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,6 +28,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,6 +108,8 @@ import org.apache.helix.zookeeper.zkclient.NetworkUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -740,26 +744,23 @@ public class ZKHelixAdmin implements HelixAdmin {
   public boolean forceKillInstance(String clusterName, String instanceName, String reason,
       InstanceConstants.InstanceOperationSource operationSource) {
     logger.info("Force kill instance {} in cluster {}.", instanceName, clusterName);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
 
-    // TODO: Can we batch Instance Operation change and LIVEINSTANCES znode deletion?
-    // Set instance to UNKNOWN so it excluded from assignments
     InstanceConfig.InstanceOperation instanceOperationObj = new InstanceConfig.InstanceOperation.Builder()
         .setOperation(InstanceConstants.InstanceOperation.UNKNOWN).setReason(reason)
         .setSource(operationSource != null ? operationSource : InstanceConstants.InstanceOperationSource.USER).build();
-    InstanceUtil.setInstanceOperation(_configAccessor, _baseDataAccessor, clusterName, instanceName,
-        instanceOperationObj);
+    InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
+    instanceConfig.setInstanceOperation(instanceOperationObj);
 
-    // Check if node already dead. Node will still be removed from assignment due to UNKNOWN operation, but should throw
-    // error to signal forceKill was not responsible for removing liveInstance znode.
-    if (accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName)) == null) {
-      throw new HelixException("Instance " + instanceName + " in cluster " + clusterName + " is not alive. "
-          + "Cannot force kill.");
-    }
-    // Attempt to delete participant's LIVEINSTANCES znode
-    return accessor.removeProperty(accessor.keyBuilder().liveInstance(instanceName));
+    // Set instance operation to unknown and delete live instance in one operation
+    List<Op> operations = Arrays.asList(
+      Op.setData(PropertyPathBuilder.instanceConfig(clusterName, instanceName),
+          _zkClient.serialize(instanceConfig.getRecord(),
+          PropertyPathBuilder.instanceConfig(clusterName, instanceName)), -1),
+      Op.delete(PropertyPathBuilder.liveInstance(clusterName, instanceName), -1));
+
+    List< OpResult> opResults = _zkClient.multi(operations);
+    return opResults.stream().noneMatch(result -> result instanceof OpResult.ErrorResult);
   }
-
 
   /**
    * Return true if Instance has any current state or pending message. Otherwise, return false if instance is offline,

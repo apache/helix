@@ -50,6 +50,7 @@ public class TestForceKillInstance extends ZkTestBase {
   private static final int NUM_MIN_ACTIVE_REPLICAS = 2;
   private static final int NUM_NODES = 3;
   private BestPossibleExternalViewVerifier _bestPossibleClusterVerifier;
+  private ZkHelixClusterVerifier _clusterVerifier;
   private HelixAdmin _admin;
   private HelixDataAccessor _dataAccessor;
   private List<MockParticipantManager> _participants = new ArrayList<>();

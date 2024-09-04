@@ -122,7 +122,6 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       String nodeName = sortedLiveNodes.get(i);
       Node node = _nodeMap.get(nodeName);
       node.isAlive = true;
-      node._isDisabled = clusterData.getDisabledInstances().contains(nodeName);
       node.capacity = targetSize;
       node.hasCeilingCapacity = usingCeiling;
       _liveNodesList.add(node);
@@ -352,11 +351,6 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       List<String> preferenceList = znRecord.getListField(partition);
       int i = 0;
       for (String participant : preferenceList) {
-        // if the participant is not alive, assign it to the initial state
-        if (_nodeMap.get(participant)._isDisabled) {
-          znRecord.getMapField(partition).put(participant, stateModel.getInitialState());
-          continue;
-        }
         znRecord.getMapField(partition).put(participant, _stateMap.get(i));
         i++;
       }
@@ -681,7 +675,6 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
     public boolean hasCeilingCapacity;
     private final String id;
     boolean isAlive;
-    boolean _isDisabled;
     private final List<Replica> preferred;
     private final List<Replica> nonPreferred;
     private final Set<Replica> newReplicas;
@@ -692,7 +685,6 @@ public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControll
       newReplicas = new TreeSet<Replica>();
       currentlyAssigned = 0;
       isAlive = false;
-      _isDisabled = false;
       this.id = id;
     }
 

@@ -65,7 +65,7 @@ public class GatewayCurrentStateCache {
     for (String instance : newCurrentStateMap.keySet()) {
       Map<String, Map<String, String>> newCurrentState = newCurrentStateMap.get(instance);
       diff.put(instance, _currentStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
-          .updateMapAndGetDiff(newCurrentState));
+          .updateAndGetDiff(newCurrentState));
     }
     return diff;
   }
@@ -78,8 +78,7 @@ public class GatewayCurrentStateCache {
   public void updateCacheWithCurrentStateDiff(Map<String, Map<String, Map<String, String>>> currentStateDiff) {
     for (String instance : currentStateDiff.keySet()) {
       Map<String, Map<String, String>> currentStateDiffMap = currentStateDiff.get(instance);
-      _currentStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
-          .updateShardStateMapWithDiff(currentStateDiffMap);
+      updateShardStateMapWithDiff(_currentStateMap, instance, currentStateDiffMap);
     }
   }
 
@@ -89,8 +88,7 @@ public class GatewayCurrentStateCache {
    * @param targetStateChangeMap
    */
   public void updateTargetStateWithDiff(String instance, Map<String, Map<String, String>> targetStateChangeMap) {
-    _targetStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
-        .updateShardStateMapWithDiff(targetStateChangeMap);
+    updateShardStateMapWithDiff(_targetStateMap, instance, targetStateChangeMap);
   }
 
   /**
@@ -105,7 +103,15 @@ public class GatewayCurrentStateCache {
     return root;
   }
 
-  public class ShardStateMap {
+  private void updateShardStateMapWithDiff(Map<String, ShardStateMap> stateMap, String instance,
+      Map<String, Map<String, String>> diffMap) {
+    if (diffMap == null || diffMap.isEmpty()) {
+      return;
+    }
+    stateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>())).updateWithDiff(diffMap);
+  }
+
+  public static class ShardStateMap {
     Map<String, Map<String, String>> _stateMap;
 
     public ShardStateMap(Map<String, Map<String, String>> stateMap) {
@@ -120,10 +126,7 @@ public class GatewayCurrentStateCache {
       return _stateMap;
     }
 
-    private void updateShardStateMapWithDiff(Map<String, Map<String, String>> diffMap) {
-      if (diffMap == null || diffMap.isEmpty()) {
-        return;
-      }
+    private void updateWithDiff(Map<String, Map<String, String>> diffMap) {
       for (Map.Entry<String, Map<String, String>> diffEntry : diffMap.entrySet()) {
         String resource = diffEntry.getKey();
         Map<String, String> diffCurrentState = diffEntry.getValue();
@@ -140,20 +143,20 @@ public class GatewayCurrentStateCache {
       }
     }
 
-    private Map<String, Map<String, String>> updateMapAndGetDiff(Map<String, Map<String, String>> newCurrentStateMap) {
+    private Map<String, Map<String, String>> updateAndGetDiff(Map<String, Map<String, String>> newCurrentStateMap) {
       Map<String, Map<String, String>> diff = new HashMap<>();
       for (Map.Entry<String, Map<String, String>> entry : newCurrentStateMap.entrySet()) {
-        String instance = entry.getKey();
+        String resource = entry.getKey();
         Map<String, String> newCurrentState = entry.getValue();
-        Map<String, String> oldCurrentState = _stateMap.get(instance);
+        Map<String, String> oldCurrentState = _stateMap.get(resource);
         if (oldCurrentState == null) {
-          diff.put(instance, newCurrentState);
+          diff.put(resource, newCurrentState);
           continue;
         }
         if (!oldCurrentState.equals(newCurrentState)) {
           for (String shard : newCurrentState.keySet()) {
             if (oldCurrentState.get(shard) == null || !oldCurrentState.get(shard).equals(newCurrentState.get(shard))) {
-              diff.computeIfAbsent(instance, k -> new HashMap<>()).put(shard, newCurrentState.get(shard));
+              diff.computeIfAbsent(resource, k -> new HashMap<>()).put(shard, newCurrentState.get(shard));
             }
           }
         }

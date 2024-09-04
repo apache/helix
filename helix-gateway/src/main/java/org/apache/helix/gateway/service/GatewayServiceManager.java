@@ -22,15 +22,18 @@ package org.apache.helix.gateway.service;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
 import org.apache.helix.gateway.channel.HelixGatewayServiceChannelFactory;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
+import org.apache.helix.gateway.util.GatewayCurrentStateCache;
 import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
 
 
@@ -60,6 +63,8 @@ public class GatewayServiceManager {
 
   private final GatewayServiceChannelConfig _gatewayServiceChannelConfig;
 
+  private final Map<String, GatewayCurrentStateCache> _currentStateCacheMap;
+
   public GatewayServiceManager(String zkAddress, GatewayServiceChannelConfig gatewayServiceChannelConfig) {
     _helixGatewayParticipantMap = new ConcurrentHashMap<>();
     _zkAddress = zkAddress;
@@ -68,6 +73,7 @@ public class GatewayServiceManager {
     _connectionEventProcessor =
         new PerKeyBlockingExecutor(CONNECTION_EVENT_THREAD_POOL_SIZE); // todo: make it configurable
     _gatewayServiceChannelConfig = gatewayServiceChannelConfig;
+    _currentStateCacheMap = new HashMap<>();
   }
 
   /**
@@ -130,7 +136,6 @@ public class GatewayServiceManager {
       }
     }
   }
-
 
   public void startService() throws IOException {
     _gatewayServiceChannel.start();

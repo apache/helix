@@ -55,6 +55,8 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -1060,6 +1062,104 @@ public class TestAutoRebalanceStrategy {
           "invalid preference list for " + partition);
       Assert.assertFalse(znRecord.getMapField(partition).containsKey(NODES[0]),
           "invalid ideal state mapping for " + partition);
+    }
+  }
+
+  @Test
+  public void testAutoRebalanceStrategyWorkWithDisabledButActiveInstances() {
+    final String RESOURCE_NAME = "resource";
+    final String[] PARTITIONS = {"resource_0", "resource_1", "resource_2"};
+    final StateModelDefinition STATE_MODEL = LeaderStandbySMD.build();
+    final int REPLICA_COUNT = 2;
+    final String[] NODES = {"n0", "n1"};
+
+    ResourceControllerDataProvider dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
+        ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
+        STATE_MODEL, Collections.emptySet());
+    Map<String, LiveInstance> liveInstances = new HashMap<>();
+    liveInstances.put(NODES[0], new LiveInstance(NODES[0]));
+    liveInstances.put(NODES[1], new LiveInstance(NODES[1]));
+    when(dataCache.getLiveInstances()).thenReturn(liveInstances);
+    // initial state, 2 node, no mapping
+    List<String> allNodes = Lists.newArrayList(NODES[0], NODES[1]);
+    List<String> liveNodes = Lists.newArrayList(NODES[0], NODES[1]);
+    Map<String, Map<String, String>> currentMapping = Maps.newHashMap();
+    for (String partition : PARTITIONS) {
+      currentMapping.put(partition, new HashMap<String, String>());
+    }
+
+    // make sure that when nodes join, all partitions is assigned fairly
+    List<String> partitions = ImmutableList.copyOf(PARTITIONS);
+    LinkedHashMap<String, Integer> stateCount =
+        STATE_MODEL.getStateCountMap(liveNodes.size(), REPLICA_COUNT);
+    ZNRecord znRecord =
+        new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount).computePartitionAssignment(
+            allNodes, liveNodes, currentMapping, dataCache);
+    Map<String, List<String>> preferenceLists = znRecord.getListFields();
+    for (String partition : currentMapping.keySet()) {
+      List<String> preferenceList = preferenceLists.get(partition);
+      Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
+      Assert.assertEquals(preferenceList.size(), 2, "invalid preference list for " + partition);
+    }
+
+    // now disable node 0, and make sure the dataCache provides it
+    for (String partition : PARTITIONS) {
+      Map<String, String> idealStateMap = znRecord.getMapField(partition);
+      currentMapping.put(partition, idealStateMap);
+    }
+    dataCache = TestHelper.buildMockDataCache(RESOURCE_NAME,
+        ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.toString(), "LeaderStandby",
+        STATE_MODEL, Sets.newHashSet(NODES[0]));
+    liveInstances.put(NODES[0], new LiveInstance(NODES[0]));
+    liveInstances.put(NODES[1], new LiveInstance(NODES[1]));
+    when(dataCache.getLiveInstances()).thenReturn(liveInstances);
+
+    stateCount = STATE_MODEL.getStateCountMap(liveNodes.size(), 2);
+    znRecord =
+        new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount).computePartitionAssignment(
+            allNodes, liveNodes, currentMapping, dataCache);
+    preferenceLists = znRecord.getListFields();
+
+    for (String partition : currentMapping.keySet()) {
+      // make sure the size is equal to the number of active nodes
+      List<String> preferenceList = preferenceLists.get(partition);
+      Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
+      Assert.assertEquals(preferenceList.size(), 2, "invalid preference list for " + partition);
+      Assert.assertTrue(znRecord.getListField(partition).contains(NODES[1]),
+          "invalid preference list for " + partition);
+      Assert.assertTrue(znRecord.getListField(partition).contains(NODES[0]),
+          "invalid preference list for " + partition);
+    }
+
+    // Genera the new ideal state
+    IdealState currentIdealState = dataCache.getIdealState(RESOURCE_NAME);
+    IdealState newIdealState = new IdealState(RESOURCE_NAME);
+    newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
+    newIdealState.setRebalanceMode(currentIdealState.getRebalanceMode());
+    newIdealState.getRecord().setListFields(znRecord.getListFields());
+
+    // Mimic how the Rebalancer would react to the new ideal state and update the current mapping
+    Resource resource = new Resource(RESOURCE_NAME);
+    for (String partition : PARTITIONS) {
+      resource.addPartition(partition);
+    }
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    currentStateOutput.setCurrentState(RESOURCE_NAME, resource.getPartition(PARTITIONS[0]), NODES[0], "LEADER");
+    currentStateOutput.setCurrentState(RESOURCE_NAME, resource.getPartition(PARTITIONS[0]), NODES[1], "STANDBY");
+    currentStateOutput.setCurrentState(RESOURCE_NAME, resource.getPartition(PARTITIONS[1]), NODES[0], "STANDBY");
+    currentStateOutput.setCurrentState(RESOURCE_NAME, resource.getPartition(PARTITIONS[1]), NODES[1], "LEADER");
+    currentStateOutput.setCurrentState(RESOURCE_NAME, resource.getPartition(PARTITIONS[2]), NODES[0], "LEADER");
+    currentStateOutput.setCurrentState(RESOURCE_NAME, resource.getPartition(PARTITIONS[2]), NODES[1], "STANDBY");
+
+    DelayedAutoRebalancer autoRebalancer = new DelayedAutoRebalancer();
+    ResourceAssignment assignment = autoRebalancer.computeBestPossiblePartitionState(dataCache, newIdealState, resource,
+        currentStateOutput);
+
+    // Assert that the new assignment will move the node 0 as the OFFLINE state. And the node 1 as
+    // the top state LEADER.
+    for (String partition : PARTITIONS) {
+      Assert.assertEquals(assignment.getReplicaMap(resource.getPartition(partition)).get(NODES[0]), "OFFLINE");
+      Assert.assertEquals(assignment.getReplicaMap(resource.getPartition(partition)).get(NODES[1]), "LEADER");
     }
   }
 

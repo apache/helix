@@ -383,6 +383,7 @@ public final class HelixUtil {
       instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
     }
 
+    // TODO: Consider full cache refresh to prevent needing to manually set necessary fields
     StateModelDefinition stateModelDefinition =
         BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
             .getStateModelDefinition();

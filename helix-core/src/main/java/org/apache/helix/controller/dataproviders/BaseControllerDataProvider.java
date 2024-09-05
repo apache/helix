@@ -950,6 +950,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return _stateModelDefinitionCache.getPropertyMap();
   }
 
+  public void setStateModelDefMap(Map<String, StateModelDefinition> stateModelDefMap) {
+    _stateModelDefinitionCache.setPropertyMap(stateModelDefMap);
+  }
+
   /**
    * Provides the idealstate for a given resource
    * @param resourceName

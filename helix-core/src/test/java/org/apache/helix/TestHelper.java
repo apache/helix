@@ -40,6 +40,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.integration.manager.ZkTestManager;
@@ -48,8 +50,10 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
@@ -73,6 +77,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
@@ -863,5 +870,27 @@ public class TestHelper {
       }
     }
     System.out.println("}");
+  }
+
+  public static ResourceControllerDataProvider buildMockDataCache(String resourceName,
+      String numOfReplicas, String stateModelDef, StateModelDefinition stateModel,
+      Set<String> disabledInstances) {
+    ClusterConfig config = new ClusterConfig("cluster");
+    config.setRebalanceDelayTime(0);
+    IdealState idealState = new IdealState(resourceName);
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    idealState.setReplicas(numOfReplicas);
+    idealState.setStateModelDefRef(stateModelDef);
+    idealState.setRebalanceStrategy(
+        "org.apache.helix.controller.rebalancer.strategy." + "AutoRebalanceStrategy");
+    ResourceControllerDataProvider dataCache = mock(ResourceControllerDataProvider.class);
+    when(dataCache.getStateModelDef(stateModelDef)).thenReturn(stateModel);
+    when(dataCache.getIdealState(resourceName)).thenReturn(idealState);
+    when(dataCache.getDisabledInstances()).thenReturn(disabledInstances);
+    when(dataCache.getClusterConfig()).thenReturn(config);
+    when(dataCache.getAbnormalStateResolver(any()))
+        .thenReturn(MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER);
+    when(dataCache.getDisabledInstancesForPartition(any(), any())).thenReturn(disabledInstances);
+    return dataCache;
   }
 }

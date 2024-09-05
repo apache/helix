@@ -164,7 +164,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
         ZK_ADDR);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testDropResourceAutoRebalance")
   public void testAutoRebalance() throws Exception {
     // kill 1 node
     _participants[0].syncStop();

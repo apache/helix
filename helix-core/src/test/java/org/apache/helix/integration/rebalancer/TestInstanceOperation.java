@@ -68,7 +68,7 @@ import org.testng.annotations.Test;
 
 
 public class TestInstanceOperation extends ZkTestBase {
-  private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestInstanceOperation.class);
   public static final int TIMEOUT = 10000;
   private final int ZONE_COUNT = 4;
   protected final int START_NUM_NODE = 10;

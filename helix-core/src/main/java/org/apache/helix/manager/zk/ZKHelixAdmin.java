@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,6 +28,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,6 +108,8 @@ import org.apache.helix.zookeeper.zkclient.NetworkUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -729,6 +733,33 @@ public class ZKHelixAdmin implements HelixAdmin {
           config.getInstanceOperation().getOperation());
     }
     return false;
+  }
+
+  @Override
+  public boolean forceKillInstance(String clusterName, String instanceName) {
+    return forceKillInstance(clusterName, instanceName, "Force kill instance", null);
+  }
+
+  @Override
+  public boolean forceKillInstance(String clusterName, String instanceName, String reason,
+      InstanceConstants.InstanceOperationSource operationSource) {
+    logger.info("Force kill instance {} in cluster {}.", instanceName, clusterName);
+
+    InstanceConfig.InstanceOperation instanceOperationObj = new InstanceConfig.InstanceOperation.Builder()
+        .setOperation(InstanceConstants.InstanceOperation.UNKNOWN).setReason(reason)
+        .setSource(operationSource != null ? operationSource : InstanceConstants.InstanceOperationSource.USER).build();
+    InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
+    instanceConfig.setInstanceOperation(instanceOperationObj);
+
+    // Set instance operation to unknown and delete live instance in one operation
+    List<Op> operations = Arrays.asList(
+      Op.setData(PropertyPathBuilder.instanceConfig(clusterName, instanceName),
+          _zkClient.serialize(instanceConfig.getRecord(),
+          PropertyPathBuilder.instanceConfig(clusterName, instanceName)), -1),
+      Op.delete(PropertyPathBuilder.liveInstance(clusterName, instanceName), -1));
+
+    List< OpResult> opResults = _zkClient.multi(operations);
+    return opResults.stream().noneMatch(result -> result instanceof OpResult.ErrorResult);
   }
 
   /**

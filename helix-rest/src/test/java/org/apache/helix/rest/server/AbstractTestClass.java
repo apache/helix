@@ -323,7 +323,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   }
 
   protected void setupHelixResources() throws Exception {
-    _clusters = createClusters(5);
+    _clusters = createClusters(6);
     _gSetupTool.addCluster(_superCluster, true);
     _gSetupTool.addCluster(TASK_TEST_CLUSTER, true);
     _clusters.add(_superCluster);
@@ -336,10 +336,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _configAccessor.setClusterConfig(cluster, clusterConfig);
       createResourceConfigs(cluster, 8);
       _workflowMap.put(cluster, createWorkflows(cluster, 3));
-      Set<String> resources = createResources(cluster, 8, MIN_ACTIVE_REPLICA, NUM_REPLICA);
+      createResources(cluster, 8, MIN_ACTIVE_REPLICA, NUM_REPLICA);
       _instancesMap.put(cluster, instances);
       _liveInstancesMap.put(cluster, liveInstances);
-      _resourcesMap.put(cluster, resources);
       _clusterControllerManagers.add(startController(cluster));
     }
     preSetupForParallelInstancesStoppableTest(STOPPABLE_CLUSTER, STOPPABLE_INSTANCES);
@@ -356,20 +355,60 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     return instances;
   }
 
-  protected Set<String> createResources(String cluster, int numResources, int minActiveReplica,
+  protected void addParticipant(String cluster, String instanceName) {
+    // Create instance
+    _gSetupTool.addInstanceToCluster(cluster, instanceName);
+    _instancesMap.get(cluster).add(instanceName);
+
+    // Start participant
+    MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, cluster, instanceName);
+    Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
+    taskFactoryReg.put(MockTask.TASK_COMMAND, MockTask::new);
+    StateMachineEngine stateMachineEngine = participant.getStateMachineEngine();
+
+    stateMachineEngine.registerStateModelFactory("Task",
+        new TaskStateModelFactory(participant, taskFactoryReg));
+    participant.syncStart();
+    _mockParticipantManagers.add(participant);
+    _liveInstancesMap.get(cluster).add(instanceName);
+  }
+
+  protected void dropParticipant(String cluster, String instanceName) {
+    // find mock participant manager with instanceName and remove it from _mockParticipantManagers.
+    MockParticipantManager toRemoveManager = _mockParticipantManagers.stream()
+        .filter(manager -> manager.getInstanceName().equals(instanceName)).findFirst().orElse(null);
+    if (toRemoveManager != null) {
+      toRemoveManager.syncStop();
+      _mockParticipantManagers.remove(toRemoveManager);
+    }
+
+    InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(cluster, instanceName);
+    _gSetupTool.getClusterManagementTool().dropInstance(cluster, instanceConfig);
+    _instancesMap.get(cluster).remove(instanceName);
+    _liveInstancesMap.get(cluster).remove(instanceName);
+  }
+
+  protected void createResources(String cluster, int numResources, int minActiveReplica,
       int replicationFactor) {
-    Set<String> resources = new HashSet<>();
     for (int i = 0; i < numResources; i++) {
       String resource = cluster + "_db_" + i;
-      _gSetupTool.addResourceToCluster(cluster, resource, NUM_PARTITIONS, "MasterSlave");
-      IdealState idealState =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
-      idealState.setMinActiveReplicas(minActiveReplica);
-      _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
-      _gSetupTool.rebalanceStorageCluster(cluster, resource, replicationFactor);
-      resources.add(resource);
+      addResource(cluster, resource, NUM_PARTITIONS, "MasterSlave", minActiveReplica,
+          replicationFactor);
     }
-    return resources;
+  }
+
+  protected void addResource(String cluster, String resource, int numPartitions, String stateModel,
+      int minActiveReplica, int replicationFactor) {
+    _gSetupTool.addResourceToCluster(cluster, resource, numPartitions, stateModel);
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
+    idealState.setMinActiveReplicas(minActiveReplica);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
+    _gSetupTool.rebalanceStorageCluster(cluster, resource, replicationFactor);
+    if (!_resourcesMap.containsKey(cluster)) {
+      _resourcesMap.put(cluster, new HashSet<>());
+    }
+    _resourcesMap.get(cluster).add(resource);
   }
 
   protected Set<String> createResourceConfigs(String cluster, int numResources) {

@@ -56,6 +56,7 @@ import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -64,11 +65,14 @@ import org.testng.annotations.Test;
 public class TestPerInstanceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_4";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
+  private BestPossibleExternalViewVerifier _bestPossibleClusterVerifier;
 
   private MockParticipantManager _instanceToDisable;
 
   @BeforeClass
   public void beforeClass() {
+    _bestPossibleClusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+        .setZkAddr(ZK_ADDR).build();
     int indexToDisable = -1;
     for (int i = 0; i < _mockParticipantManagers.size(); i++) {
       if (_mockParticipantManagers.get(i).getInstanceName().equals(INSTANCE_NAME)) {
@@ -874,7 +878,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testValidateDeltaInstanceConfigForUpdate")
-  public void testGetResourcesOnInstance() throws JsonProcessingException, InterruptedException {
+  public void testGetResourcesOnInstance() throws JsonProcessingException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources")
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
@@ -888,5 +892,140 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources/{}")
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME, dbName).get(this);
     System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetResourcesOnInstance")
+  public void testForceKillInstance() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // Fix rebalance failures due to settings from previous tests
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setTopologyAwareEnabled(false);
+    clusterConfig.getRecord().setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), null);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    String instanceToKill = "localhost_" + TestHelper.getTestMethodName();
+    String resourceToAdd = "TestDB_"+TestHelper.getTestMethodName();
+    addParticipant(CLUSTER_NAME, instanceToKill);
+    addResource(CLUSTER_NAME, resourceToAdd, NUM_PARTITIONS, "OnlineOffline", 2, 3);
+
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+
+    Assert.assertTrue(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should exist before force kill");
+
+    // Get assignments on node, assert it has at least one assignment
+    Map<String, String> originalAssignment = getInstanceCurrentStates(instanceToKill);
+    Assert.assertFalse(originalAssignment.isEmpty());
+
+    Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance")
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+
+    // Assert instance operation updated
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceToKill);
+    InstanceConfig.InstanceOperation instanceOperation = instanceConfig.getInstanceOperation();
+    Assert.assertEquals(instanceOperation.getOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+    Assert.assertEquals(instanceOperation.getSource(), InstanceConstants.InstanceOperationSource.USER);
+
+    // ensure no live instance znode
+    Assert.assertFalse(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should not exist after force kill");
+
+    // make sure no assignments on the instance
+    Map<String, String> postKillAssignment = getInstanceCurrentStates(instanceToKill);
+    Assert.assertTrue(postKillAssignment.isEmpty());
+
+    // Drop the instance we killed, remove test resource to return cluster to original state
+    dropParticipant(CLUSTER_NAME, instanceToKill);
+    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resourceToAdd);
+    _resourcesMap.get(CLUSTER_NAME).remove(resourceToAdd);
+    _bestPossibleClusterVerifier.verifyByPolling();
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testForceKillInstance")
+  public void testForceKillInstanceWithParameters() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String instanceToKill = "localhost_" + TestHelper.getTestMethodName();
+    addParticipant(CLUSTER_NAME, instanceToKill);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    String reason = "reason-foobar";
+    InstanceConstants.InstanceOperationSource source = InstanceConstants.InstanceOperationSource.AUTOMATION;
+
+    Entity entity =
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + source.name())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceToKill);
+    InstanceConfig.InstanceOperation instanceOperation = instanceConfig.getInstanceOperation();
+    Assert.assertEquals(instanceOperation.getOperation(), InstanceConstants.InstanceOperation.UNKNOWN);
+    Assert.assertEquals(instanceOperation.getReason(),reason);
+    Assert.assertEquals(instanceOperation.getSource(), source);
+
+    // Drop instance we killed to return cluster to original state
+    dropParticipant(CLUSTER_NAME, instanceToKill);
+    _bestPossibleClusterVerifier.verifyByPolling();
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testForceKillInstanceWithParameters")
+  public void testForceKillInvalidInputs() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String instanceToKill = "localhost_" + TestHelper.getTestMethodName();
+    addParticipant(CLUSTER_NAME, instanceToKill);
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    String reason = "reason-foobar";
+    InstanceConstants.InstanceOperationSource validSource = InstanceConstants.InstanceOperationSource.AUTOMATION;
+    String invalidSource = "INVALID_SOURCE";
+
+    // Test invalid source
+    Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + invalidSource)
+        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertTrue(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should exist because force kill failed");
+
+    // Calling on a node that has already been force killed (no live instance znode)
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + validSource.name())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+    Assert.assertFalse(_gZkClient.exists("/" + CLUSTER_NAME + "/LIVEINSTANCES/" + instanceToKill),
+        "Instance znode should not exist after force kill");
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=forceKillInstance&reason="
+        + reason + "&instanceOperationSource=" + validSource.name())
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode())
+        .format(CLUSTER_NAME, instanceToKill).post(this, entity);
+
+    dropParticipant(CLUSTER_NAME, instanceToKill);
+    _bestPossibleClusterVerifier.verifyByPolling();
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  private Map<String, ExternalView> getEVs() {
+    Map<String, ExternalView> externalViews = new HashMap<String, ExternalView>();
+    for (String db : _resourcesMap.get(CLUSTER_NAME)) {
+      ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      externalViews.put(db, ev);
+    }
+    return externalViews;
+  }
+
+  private Map<String, String> getInstanceCurrentStates(String instanceName) {
+    Map<String, String> assignment = new HashMap<>();
+    for (ExternalView ev : getEVs().values()) {
+      for (String partition : ev.getPartitionSet()) {
+        Map<String, String> stateMap = ev.getStateMap(partition);
+        if (stateMap.containsKey(instanceName)) {
+          assignment.put(partition, stateMap.get(instanceName));
+        }
+      }
+    }
+    return assignment;
   }
 }

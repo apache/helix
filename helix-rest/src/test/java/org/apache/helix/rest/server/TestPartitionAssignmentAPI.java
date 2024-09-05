@@ -59,7 +59,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestPartitionAssignmentAPI extends AbstractTestClass {
-  private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestPartitionAssignmentAPI.class);
 
   private static final int REPLICAS = 3;
   private static final int MIN_ACTIVE_REPLICAS = 2;

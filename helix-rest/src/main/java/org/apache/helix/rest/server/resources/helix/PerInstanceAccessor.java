@@ -45,7 +45,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -509,6 +508,13 @@ public class PerInstanceAccessor extends AbstractHelixResource {
             return serverError(e);
           }
           return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", evacuateFinished)));
+        case forceKillInstance:
+          boolean instanceForceKilled = admin.forceKillInstance(clusterId, instanceName, reason, instanceOperationSource);
+          if (!instanceForceKilled) {
+            return serverError("Failed to forcefully kill instance: " + instanceName +
+                ". Possible that instance was already stopped.");
+          }
+          return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", instanceForceKilled)));
         default:
           LOG.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);

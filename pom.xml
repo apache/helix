@@ -29,7 +29,7 @@
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>1.4.1</version>
+  <version>1.4.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -429,7 +429,7 @@
   <properties>
     <revision>1.1.1-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.build.outputTimestamp>1725604200</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1725604427</project.build.outputTimestamp>
 
     <sonar.host.url>https://analysis.apache.org/</sonar.host.url>
 

@@ -382,13 +382,16 @@ public final class HelixUtil {
       allNodes.add(instanceConfig.getInstanceName());
       instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
     }
-    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
-    cache.setClusterConfig(clusterConfig);
-    cache.setInstanceConfigMap(instanceConfigMap);
 
+    // TODO: Consider full cache refresh to prevent needing to manually set necessary fields
     StateModelDefinition stateModelDefinition =
         BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
             .getStateModelDefinition();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider(clusterConfig.getClusterName());
+    cache.setClusterConfig(clusterConfig);
+    cache.setInstanceConfigMap(instanceConfigMap);
+    cache.setIdealStates(Collections.singletonList(idealState));
+    cache.setStateModelDefMap(Collections.singletonMap(stateModelDefinition.getId(), stateModelDefinition));
 
     RebalanceStrategy strategy =
         RebalanceStrategy.class.cast(loadClass(HelixUtil.class, strategyClassName).newInstance());

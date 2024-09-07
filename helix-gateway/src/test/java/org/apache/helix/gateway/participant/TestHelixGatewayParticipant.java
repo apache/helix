@@ -372,11 +372,11 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     }
 
     @Override
-    public void closeConnectionWithError(String instanceName, String reason) {
+    public void closeConnectionWithError(String clusterName, String instanceName, String reason) {
       _errorDisconnectCount.incrementAndGet();
     }
     @Override
-    public void completeConnection(String instanceName) {
+    public void completeConnection(String clusterName, String instanceName) {
       _gracefulDisconnectCount.incrementAndGet();
     }
   }

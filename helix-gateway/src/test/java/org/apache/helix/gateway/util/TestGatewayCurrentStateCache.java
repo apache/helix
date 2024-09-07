@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.utils;
+package org.apache.helix.gateway.util;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -21,7 +21,6 @@ package org.apache.helix.gateway.utils;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.helix.gateway.util.GatewayCurrentStateCache;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -77,6 +76,6 @@ public class TestGatewayCurrentStateCache {
     cache.updateTargetStateWithDiff("instance1", targetStateChange);
 
     Assert.assertEquals(cache.getTargetState("instance1", "resource1", "shard1"), "OFFLINE");
-    Assert.assertEquals(cache.serializeTargetAssignmentsToJSON().toString(), "{\"instance1\":{\"resource1\":{\"shard1\":\"OFFLINE\"}}}");
+    Assert.assertEquals(cache.serializeTargetAssignmentsToJSONNode().toString(), "{\"instance1\":{\"resource1\":{\"shard1\":\"OFFLINE\"}}}");
   }
 }

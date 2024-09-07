@@ -19,6 +19,8 @@ package org.apache.helix.gateway.service;
  * under the License.
  */
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
@@ -27,7 +29,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
@@ -45,6 +46,7 @@ import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
  *  4. For ST reply message, update the tracker
  */
 public class GatewayServiceManager {
+  private static final ObjectMapper objectMapper = new ObjectMapper();
   public static final int CONNECTION_EVENT_THREAD_POOL_SIZE = 10;
   public static final ImmutableSet<String> SUPPORTED_MULTI_STATE_MODEL_TYPES =
       ImmutableSet.of("OnlineOffline");
@@ -87,6 +89,29 @@ public class GatewayServiceManager {
     } else {
       _connectionEventProcessor.offerEvent(event.getInstanceName(), new ParticipantConnectionProcessor(event));
     }
+  }
+
+  private GatewayCurrentStateCache getCache(String clusterName) {
+    return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
+  }
+
+  public Map<String, GatewayCurrentStateCache> getCacheMap() {
+    return _currentStateCacheMap;
+  }
+
+  public  Map<String, Map<String, Map<String, String>>> updateCacheWithNewCurrentStateAndGetDiff(String clusterName,
+      Map<String, Map<String, Map<String, String>>> newCurrentStateMap) {
+   return  getCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
+  }
+
+  public String serializeTargetState() {
+    ObjectNode targetStateNode = new ObjectMapper().createObjectNode();
+    for (String clusterName : getCacheMap().keySet()) {
+      // add the json node to the target state node
+      targetStateNode.set(clusterName, getCache(clusterName).serializeTargetAssignmentsToJSONNode());
+    }
+    targetStateNode.set("timestamp", objectMapper.valueToTree(System.currentTimeMillis()));
+    return targetStateNode.toString();
   }
 
   /**

@@ -19,8 +19,11 @@ package org.apache.helix.gateway.channel;
  * under the License.
  */
 
+import java.util.Map;
+import java.util.Properties;
 
 import static org.apache.helix.gateway.api.constant.GatewayServiceConfigConstant.*;
+import static org.apache.helix.gateway.channel.GatewayServiceChannelConfig.FileBasedConfigType.*;
 
 
 public class GatewayServiceChannelConfig {
@@ -46,11 +49,11 @@ public class GatewayServiceChannelConfig {
   // service configs
 
   // service mode for inbound information.
-  private ChannelMode _channelMode;
+  private final ChannelMode _channelMode;
   // channel type for participant liveness detection
-  private ChannelType _participantConnectionChannelType;
+  private final ChannelType _participantConnectionChannelType;
   // channel for sending and receiving shard state transition request and shard state response
-  private ChannelType _shardStateChannelType;
+  private final ChannelType _shardStateChannelType;
 
   // grpc server configs
   private final int _grpcServerPort;
@@ -61,15 +64,22 @@ public class GatewayServiceChannelConfig {
 
   // poll mode config
   private final int _pollIntervalSec;
-  // TODO: configs for pull mode grpc client
+  private final int _pollStartDelaySec;
+  private final int _pollHealthCheckTimeoutSec;
+  private final int _targetFileUpdateIntervalSec;
+  private final Map<String, Map<String, String>> _participantLivenessEndpointMap;
+  private final Properties _pollModeConfigs;
 
-  // TODO: configs for pull mode with file
+  public enum FileBasedConfigType {
+    PARTICIPANT_CURRENT_STATE_PATH,
+    SHARD_TARGET_STATE_PATH
+  }
 
   // getters
-
   public ChannelMode getChannelMode() {
     return _channelMode;
   }
+
   public ChannelType getParticipantConnectionChannelType() {
     return _participantConnectionChannelType;
   }
@@ -102,9 +112,31 @@ public class GatewayServiceChannelConfig {
     return _pollIntervalSec;
   }
 
-  private GatewayServiceChannelConfig(int grpcServerPort, ChannelMode channelMode,  ChannelType participantConnectionChannelType,
-      ChannelType shardStateChannelType, int serverHeartBeatInterval, int maxAllowedClientHeartBeatInterval,
-      int clientTimeout, boolean enableReflectionService, int pollIntervalSec) {
+  public Map<String, Map<String, String>> getParticipantLivenessEndpointMap() {
+    return _participantLivenessEndpointMap;
+  }
+
+  public int getPollStartDelaySec() {
+    return _pollStartDelaySec;
+  }
+
+  public int getPollHealthCheckTimeoutSec() {
+    return _pollHealthCheckTimeoutSec;
+  }
+
+  public int getTargetFileUpdateIntervalSec() {
+    return _targetFileUpdateIntervalSec;
+  }
+
+  public String getPollModeConfig(FileBasedConfigType type) {
+    return _pollModeConfigs.getProperty(type.toString());
+  }
+
+  private GatewayServiceChannelConfig(int grpcServerPort, ChannelMode channelMode,
+      ChannelType participantConnectionChannelType, ChannelType shardStateChannelType, int serverHeartBeatInterval,
+      int maxAllowedClientHeartBeatInterval, int clientTimeout, boolean enableReflectionService, int pollIntervalSec,
+      int pollStartDelaySec, int pollHealthCheckTimeoutSec, int targetFileUpdateIntervalSec,
+      Properties pollModeConfigs, Map<String, Map<String, String>> participantLivenessEndpointMap) {
     _grpcServerPort = grpcServerPort;
     _channelMode = channelMode;
     _participantConnectionChannelType = participantConnectionChannelType;
@@ -114,6 +146,11 @@ public class GatewayServiceChannelConfig {
     _clientTimeout = clientTimeout;
     _enableReflectionService = enableReflectionService;
     _pollIntervalSec = pollIntervalSec;
+    _pollStartDelaySec = pollStartDelaySec;
+    _pollHealthCheckTimeoutSec = pollHealthCheckTimeoutSec;
+    _targetFileUpdateIntervalSec = targetFileUpdateIntervalSec;
+    _pollModeConfigs = pollModeConfigs;
+    _participantLivenessEndpointMap = participantLivenessEndpointMap;
   }
 
   public static class GatewayServiceProcessorConfigBuilder {
@@ -132,10 +169,12 @@ public class GatewayServiceChannelConfig {
 
     // poll mode config
     private int _pollIntervalSec = DEFAULT_POLL_INTERVAL_SEC;
-    // poll mode grpc client configs
-
-    // poll mode file configs
-
+    // poll mode config
+    private Properties _pollModeConfigs;
+    private int _pollStartDelaySec = DEFAULT_POLL_INTERVAL_SEC;
+    private int _pollHealthCheckTimeoutSec = DEFAULT_HEALTH_TIMEOUT_SEC;
+    private int _targetFileUpdateIntervalSec = DEFAULT_POLL_INTERVAL_SEC;
+    private Map<String, Map<String, String>> _healthCheckEndpointMap;
 
     public GatewayServiceProcessorConfigBuilder setChannelMode(ChannelMode channelMode) {
       _channelMode = channelMode;
@@ -183,16 +222,69 @@ public class GatewayServiceChannelConfig {
       return this;
     }
 
-    public void validate() {
-      if ((_participantConnectionChannelType == ChannelType.GRPC_SERVER
-          && _shardStatenChannelType != ChannelType.GRPC_SERVER) || (
-          _participantConnectionChannelType != ChannelType.GRPC_SERVER
-              && _shardStatenChannelType == ChannelType.GRPC_SERVER)) {
-        throw new IllegalArgumentException(
-            "In caas of GRPC server, Participant connection channel type and shard state channel type must be the same");
+    public GatewayServiceProcessorConfigBuilder addPollModeConfig(FileBasedConfigType type, String value) {
+      if (_pollModeConfigs == null) {
+        _pollModeConfigs = new Properties();
       }
-      if (_participantConnectionChannelType == ChannelType.GRPC_SERVER && _grpcServerPort == 0) {
-        throw new IllegalArgumentException("Grpc server port must be set for grpc server channel type");
+      _pollModeConfigs.put(type.toString(), value);
+      return this;
+    }
+
+    public GatewayServiceProcessorConfigBuilder setPollStartDelaySec(int pollStartDelaySec) {
+      _pollStartDelaySec = pollStartDelaySec;
+      return this;
+    }
+
+    public GatewayServiceProcessorConfigBuilder setPollHealthCheckTimeout(int pollHealthCheckTimeout) {
+      _pollHealthCheckTimeoutSec = pollHealthCheckTimeout;
+      return this;
+    }
+
+    public GatewayServiceProcessorConfigBuilder setTargetFileUpdateIntervalSec(int targetFileUpdateIntervalSec) {
+      _targetFileUpdateIntervalSec = targetFileUpdateIntervalSec;
+      return this;
+    }
+
+    public GatewayServiceProcessorConfigBuilder setHealthCheckEndpointMap(Map<String, Map<String, String>> healthCheckEndpointMap) {
+      _healthCheckEndpointMap = healthCheckEndpointMap;
+      return this;
+    }
+
+    public void validate() {
+      switch (_participantConnectionChannelType) {
+        case GRPC_SERVER:
+          if (_grpcServerPort == 0) {
+            throw new IllegalArgumentException("Grpc server port must be set for grpc server channel type");
+          }
+          if (_shardStatenChannelType != ChannelType.GRPC_SERVER) {
+            throw new IllegalArgumentException(
+                "In case of GRPC server, Participant connection channel type and shard state channel type must be the same");
+          }
+          break;
+        case FILE:
+          if (_healthCheckEndpointMap == null || _healthCheckEndpointMap.isEmpty()) {
+            throw new IllegalArgumentException("Health check endpoint map must be set for file channel type");
+          }
+          break;
+        default:
+          break;
+      }
+
+      switch (_shardStatenChannelType) {
+        case GRPC_SERVER:
+          if (_participantConnectionChannelType != ChannelType.GRPC_SERVER) {
+            throw new IllegalArgumentException(
+                "In case of GRPC server, Participant connection channel type and shard state channel type must be the same");
+          }
+          break;
+        case FILE:
+          if (_pollModeConfigs == null || _pollModeConfigs.getProperty(SHARD_TARGET_STATE_PATH.name()) == null
+              || _pollModeConfigs.getProperty(SHARD_TARGET_STATE_PATH.name()).isEmpty()) {
+            throw new IllegalArgumentException("Current state and target state path must be set for file channel type");
+          }
+          break;
+        default:
+          break;
       }
     }
 
@@ -200,7 +292,8 @@ public class GatewayServiceChannelConfig {
       validate();
       return new GatewayServiceChannelConfig(_grpcServerPort, _channelMode, _participantConnectionChannelType,
           _shardStatenChannelType, _serverHeartBeatInterval, _maxAllowedClientHeartBeatInterval, _clientTimeout,
-          _enableReflectionService, _pollIntervalSec);
+          _enableReflectionService, _pollIntervalSec, _pollStartDelaySec, _pollHealthCheckTimeoutSec,
+          _targetFileUpdateIntervalSec, _pollModeConfigs, _healthCheckEndpointMap);
     }
   }
 }

@@ -95,8 +95,8 @@ public class GatewayServiceManager {
     return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
   }
 
-  public Map<String, GatewayCurrentStateCache> getCacheMap() {
-    return _currentStateCacheMap;
+  public void resetTargetStateCache(String clusterName, String instanceName) {
+    getCache(clusterName).resetTargetStateCache(instanceName);
   }
 
   public  Map<String, Map<String, Map<String, String>>> updateCacheWithNewCurrentStateAndGetDiff(String clusterName,
@@ -106,7 +106,7 @@ public class GatewayServiceManager {
 
   public String serializeTargetState() {
     ObjectNode targetStateNode = new ObjectMapper().createObjectNode();
-    for (String clusterName : getCacheMap().keySet()) {
+    for (String clusterName : _currentStateCacheMap.keySet()) {
       // add the json node to the target state node
       targetStateNode.set(clusterName, getCache(clusterName).serializeTargetAssignmentsToJSONNode());
     }
@@ -175,6 +175,7 @@ public class GatewayServiceManager {
 
   private void createHelixGatewayParticipant(String clusterName, String instanceName,
       Map<String, Map<String, String>> initialShardStateMap) {
+    resetTargetStateCache(clusterName, instanceName);
     // Create and add the participant to the participant map
     HelixGatewayParticipant.Builder participantBuilder =
         new HelixGatewayParticipant.Builder(_gatewayServiceChannel, instanceName, clusterName,

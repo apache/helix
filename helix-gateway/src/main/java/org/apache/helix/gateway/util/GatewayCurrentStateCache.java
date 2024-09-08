@@ -115,6 +115,10 @@ public class GatewayCurrentStateCache {
     stateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>())).updateWithDiff(diffMap);
   }
 
+  public void resetTargetStateCache(String instance) {
+    _targetStateMap.put(instance, new ShardStateMap(new HashMap<>()));
+  }
+
   public static class ShardStateMap {
     Map<String, Map<String, String>> _stateMap;
 

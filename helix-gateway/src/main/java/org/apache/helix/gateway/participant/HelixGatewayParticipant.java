@@ -19,23 +19,22 @@ package org.apache.helix.gateway.participant;
  * under the License.
  */
 
-import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
+import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateTransitionError;
+
 
 /**
  * HelixGatewayParticipant encapsulates the Helix Participant Manager and handles tracking the state
@@ -52,14 +51,17 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
 
   private final Map<String, CompletableFuture<String>> _stateTransitionResultMap;
 
-  private HelixGatewayParticipant(HelixGatewayServiceChannel gatewayServiceChannel,
-      Runnable onDisconnectedCallback, HelixManager helixManager,
-      Map<String, Map<String, String>> initialShardStateMap) {
+  private final GatewayServiceManager _gatewayServiceManager;
+
+  private HelixGatewayParticipant(HelixGatewayServiceChannel gatewayServiceChannel, Runnable onDisconnectedCallback,
+      HelixManager helixManager, Map<String, Map<String, String>> initialShardStateMap,
+      GatewayServiceManager gatewayServiceManager) {
     _gatewayServiceChannel = gatewayServiceChannel;
     _helixManager = helixManager;
     _onDisconnectedCallback = onDisconnectedCallback;
     _shardStateMap = initialShardStateMap;
     _stateTransitionResultMap = new ConcurrentHashMap<>();
+    _gatewayServiceManager = gatewayServiceManager;
   }
 
   public void processStateTransitionMessage(Message message) throws Exception {
@@ -75,6 +77,10 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
 
       CompletableFuture<String> future = new CompletableFuture<>();
 
+      // update the target state in cache
+      _gatewayServiceManager.updateTargetState(_helixManager.getClusterName(), _helixManager.getInstanceName(),
+          resourceId, shardId, toState);
+
       _stateTransitionResultMap.put(concatenatedShardName, future);
       _gatewayServiceChannel.sendStateChangeRequests(_helixManager.getInstanceName(),
           StateTransitionMessageTranslateUtil.translateSTMsgToShardChangeRequests(message));
@@ -82,8 +88,6 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
       if (!toState.equals(future.get())) {
         throw new Exception("Failed to transition to state " + toState);
       }
-
-      updateState(resourceId, shardId, toState);
     } finally {
       _stateTransitionResultMap.remove(concatenatedShardName);
     }
@@ -92,16 +96,11 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   public void handleStateTransitionError(Message message, StateTransitionError error) {
     // Remove the stateTransitionResultMap future for the message
     String transitionId = message.getMsgId();
-    String resourceId = message.getResourceName();
-    String shardId = message.getPartitionName();
 
     // Remove the future from the stateTransitionResultMap since we are no longer able
     // to process the state transition due to participant manager either timing out
     // or failing to process the state transition
     _stateTransitionResultMap.remove(transitionId);
-
-    // Set the replica state to ERROR
-    updateState(resourceId, shardId, HelixDefinedState.ERROR.name());
 
     // Notify the HelixGatewayParticipantClient that it is in ERROR state
     // TODO: We need a better way than sending the state transition with a toState of ERROR
@@ -109,7 +108,6 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
 
   /**
    * Get the instance name of the participant.
-   *
    * @return participant instance name
    */
   public String getInstanceName() {
@@ -118,7 +116,6 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
 
   /**
    * Completes the state transition with the given transitionId.
-   *
    */
   public void completeStateTransition(String resourceId, String shardId, String currentState) {
     String concatenatedShardName = resourceId + shardId;
@@ -128,14 +125,8 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     }
   }
 
-  private boolean isCurrentStateAlreadyTarget(String resourceId, String shardId,
-      String targetState) {
+  private boolean isCurrentStateAlreadyTarget(String resourceId, String shardId, String targetState) {
     return getCurrentState(resourceId, shardId).equals(targetState);
-  }
-
-  @VisibleForTesting
-  Map<String, Map<String, String>> getShardStateMap() {
-    return _shardStateMap;
   }
 
   /**
@@ -146,23 +137,10 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
    * @return the current state of the shard or DROPPED if it does not exist
    */
   public String getCurrentState(String resourceId, String shardId) {
-    return getShardStateMap().getOrDefault(resourceId, Collections.emptyMap())
-        .getOrDefault(shardId, UNASSIGNED_STATE);
-  }
-
-  private void updateState(String resourceId, String shardId, String state) {
-    if (state.equals(HelixDefinedState.DROPPED.name())) {
-      getShardStateMap().computeIfPresent(resourceId, (k, v) -> {
-        v.remove(shardId);
-        if (v.isEmpty()) {
-          return null;
-        }
-        return v;
-      });
-    } else {
-      getShardStateMap().computeIfAbsent(resourceId, k -> new ConcurrentHashMap<>())
-          .put(shardId, state);
-    }
+    String currentState =
+        _gatewayServiceManager.getCurrentState(_helixManager.getClusterName(), _helixManager.getInstanceName(),
+            resourceId, shardId);
+    return currentState == null ? UNASSIGNED_STATE : currentState;
   }
 
   /**
@@ -203,13 +181,15 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     private final Runnable _onDisconnectedCallback;
     private final List<String> _multiTopStateModelDefinitions;
     private final Map<String, Map<String, String>> _initialShardStateMap;
+    private final GatewayServiceManager _gatewayServiceManager;
 
-    public Builder(HelixGatewayServiceChannel helixGatewayServiceChannel, String instanceName,
-        String clusterName, String zkAddress, Runnable onDisconnectedCallback) {
+    public Builder(HelixGatewayServiceChannel helixGatewayServiceChannel, String instanceName, String clusterName,
+        String zkAddress, Runnable onDisconnectedCallback, GatewayServiceManager gatewayServiceManager) {
       _helixGatewayServiceChannel = helixGatewayServiceChannel;
       _instanceName = instanceName;
       _clusterName = clusterName;
       _zkAddress = zkAddress;
+      _gatewayServiceManager = gatewayServiceManager;
       _onDisconnectedCallback = onDisconnectedCallback;
       _multiTopStateModelDefinitions = new ArrayList<>();
       _initialShardStateMap = new ConcurrentHashMap<>();
@@ -259,13 +239,11 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
       HelixManager participantManager =
           new ZKHelixManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, _zkAddress);
       HelixGatewayParticipant participant =
-          new HelixGatewayParticipant(_helixGatewayServiceChannel, _onDisconnectedCallback,
-              participantManager,
-              _initialShardStateMap);
-      _multiTopStateModelDefinitions.forEach(
-          stateModelDefinition -> participantManager.getStateMachineEngine()
-              .registerStateModelFactory(stateModelDefinition,
-                  new HelixGatewayMultiTopStateStateModelFactory(participant)));
+          new HelixGatewayParticipant(_helixGatewayServiceChannel, _onDisconnectedCallback, participantManager,
+              _initialShardStateMap, _gatewayServiceManager);
+      _multiTopStateModelDefinitions.forEach(stateModelDefinition -> participantManager.getStateMachineEngine()
+          .registerStateModelFactory(stateModelDefinition,
+              new HelixGatewayMultiTopStateStateModelFactory(participant)));
       try {
         participantManager.connect();
       } catch (Exception e) {

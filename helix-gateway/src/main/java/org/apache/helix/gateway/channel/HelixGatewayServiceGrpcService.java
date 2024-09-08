@@ -25,9 +25,10 @@ import io.grpc.ServerBuilder;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
@@ -38,7 +39,6 @@ import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.org.apache.helix.gateway.HelixGatewayServiceGrpc;
-import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardChangeRequests;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
@@ -52,10 +52,10 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   private static final Logger logger = LoggerFactory.getLogger(HelixGatewayServiceGrpcService.class);
 
   // Map to store the observer for each instance
-  private final Map<String, StreamObserver<ShardChangeRequests>> _observerMap = new HashMap<>();
+  private final Map<String, StreamObserver<ShardChangeRequests>> _observerMap = new ConcurrentHashMap<>();
   // A reverse map to store the instance name for each observer. It is used to find the instance when connection is closed.
   // map<observer, pair<instance, cluster>>
-  private final Map<StreamObserver<ShardChangeRequests>, Pair<String, String>> _reversedObserverMap = new HashMap<>();
+  private final Map<StreamObserver<ShardChangeRequests>, Pair<String, String>> _reversedObserverMap = new ConcurrentHashMap<>();
 
   private final GatewayServiceManager _manager;
 
@@ -93,7 +93,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
           updateObserver(shardState.getInstanceName(), shardState.getClusterName(), responseObserver);
         }
         pushClientEventToGatewayManager(_manager,
-            StateTransitionMessageTranslateUtil.translateShardStateMessageToEvent(request));
+            StateTransitionMessageTranslateUtil.translateShardStateMessageToEventAndUpdateCache(_manager, request));
       }
 
       @Override
@@ -121,9 +121,8 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
    */
   @Override
   public void sendStateChangeRequests(String instanceName, ShardChangeRequests requests) {
-    StreamObserver<HelixGatewayServiceOuterClass.ShardChangeRequests> observer;
-    observer = _observerMap.get(instanceName);
-    if (observer != null) {
+    StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
+    if (observer!= null) {
       observer.onNext(requests);
     } else {
       logger.error("Instance {} is not connected to the gateway service", instanceName);
@@ -152,8 +151,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   }
 
   private void closeConnectionHelper(String instanceName, String errorReason, boolean withError) {
-    StreamObserver<ShardChangeRequests> observer;
-    observer = _observerMap.get(instanceName);
+    StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
     if (observer != null) {
       if (withError) {
         observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());
@@ -163,7 +161,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     }
   }
 
-  public void onClientClose(String clusterName, String instanceName) {
+   private void onClientClose(String clusterName, String instanceName) {
     if (instanceName == null || clusterName == null) {
       // TODO: log error;
       return;

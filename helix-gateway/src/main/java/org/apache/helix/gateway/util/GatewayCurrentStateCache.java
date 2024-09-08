@@ -23,35 +23,42 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.helix.gateway.channel.HelixGatewayServiceGrpcService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * A cache to store the current target assignment, and the reported current state of the instances in a cluster.
  */
 public class GatewayCurrentStateCache {
+  private static final Logger logger = LoggerFactory.getLogger(GatewayCurrentStateCache.class);
   static ObjectMapper mapper = new ObjectMapper();
   String _clusterName;
 
   // A cache of current state. It should be updated by the HelixGatewayServiceChannel
   // instance -> resource state (resource -> shard -> target state)
-  Map<String, ShardStateMap> _currentStateMap;
+  final Map<String, ShardStateMap> _currentStateMap;
 
   // A cache of target state.
   // instance -> resource state (resource -> shard -> target state)
-  Map<String, ShardStateMap> _targetStateMap;
+  final Map<String, ShardStateMap> _targetStateMap;
 
   public GatewayCurrentStateCache(String clusterName) {
     _clusterName = clusterName;
-    _currentStateMap = new HashMap<>();
-    _targetStateMap = new HashMap<>();
+    _currentStateMap = new ConcurrentHashMap<>();
+    _targetStateMap = new ConcurrentHashMap<>();
   }
 
   public String getCurrentState(String instance, String resource, String shard) {
-    return _currentStateMap.get(instance).getState(resource, shard);
+    ShardStateMap shardStateMap = _currentStateMap.get(instance);
+    return shardStateMap == null ? null : shardStateMap.getState(resource, shard);
   }
 
   public String getTargetState(String instance, String resource, String shard) {
-    return _targetStateMap.get(instance).getState(resource, shard);
+    ShardStateMap shardStateMap = _targetStateMap.get(instance);
+    return shardStateMap == null ? null : shardStateMap.getState(resource, shard);
   }
 
   /**
@@ -63,6 +70,10 @@ public class GatewayCurrentStateCache {
       Map<String, Map<String, Map<String, String>>> newCurrentStateMap) {
     Map<String, Map<String, Map<String, String>>> diff = new HashMap<>();
     for (String instance : newCurrentStateMap.keySet()) {
+      if (!_currentStateMap.containsKey(instance)) {
+        logger.warn("Instance {} is not in the state map, skip updating", instance);
+        continue;
+      }
       Map<String, Map<String, String>> newCurrentState = newCurrentStateMap.get(instance);
       Map<String, Map<String, String>> resourceStateDiff =
           _currentStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
@@ -75,24 +86,19 @@ public class GatewayCurrentStateCache {
   }
 
   /**
-   * Update the cache with the current state diff.
-   * All existing target states remains the same
-   * @param currentStateDiff
+   * Update the current state with the changed current state maps.
    */
-  public void updateCacheWithCurrentStateDiff(Map<String, Map<String, Map<String, String>>> currentStateDiff) {
-    for (String instance : currentStateDiff.keySet()) {
-      Map<String, Map<String, String>> currentStateDiffMap = currentStateDiff.get(instance);
-      updateShardStateMapWithDiff(_currentStateMap, instance, currentStateDiffMap);
-    }
+  public void updateCurrentStateOfExistingInstance(String instance, String resource, String shard, String shardState) {
+    updateShardStateMapWithDiff(_currentStateMap, instance, Map.of(resource, Map.of(shard, shardState)));
   }
 
   /**
    * Update the target state with the changed target state maps.
    * All existing target states remains the same
-   * @param targetStateChangeMap
+   * @param diff
    */
-  public void updateTargetStateWithDiff(String instance, Map<String, Map<String, String>> targetStateChangeMap) {
-    updateShardStateMapWithDiff(_targetStateMap, instance, targetStateChangeMap);
+  public void updateTargetStateWithDiff(String instance, Map<String, Map<String, String>> diff) {
+      updateShardStateMapWithDiff(_targetStateMap, instance, diff);
   }
 
   /**
@@ -107,12 +113,25 @@ public class GatewayCurrentStateCache {
     return root;
   }
 
+  public void removeInstanceFromCache(String instance) {
+    _currentStateMap.remove(instance);
+    _targetStateMap.remove(instance);
+  }
+
+  public void addInstanceToCache(String instance) {
+    _currentStateMap.put(instance, new ShardStateMap(new HashMap<>()));
+    _targetStateMap.put(instance, new ShardStateMap(new HashMap<>()));
+  }
+
   private void updateShardStateMapWithDiff(Map<String, ShardStateMap> stateMap, String instance,
       Map<String, Map<String, String>> diffMap) {
     if (diffMap == null || diffMap.isEmpty()) {
       return;
     }
-    stateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>())).updateWithDiff(diffMap);
+    if (!stateMap.containsKey(instance)) {
+      logger.warn("Instance {} is not in the state map, skip updating", instance);
+    }
+    stateMap.get(instance).updateWithDiff(diffMap);
   }
 
   public void resetTargetStateCache(String instance) {
@@ -123,15 +142,12 @@ public class GatewayCurrentStateCache {
     Map<String, Map<String, String>> _stateMap;
 
     public ShardStateMap(Map<String, Map<String, String>> stateMap) {
-      _stateMap = stateMap;
+      _stateMap = new ConcurrentHashMap<>(stateMap);
     }
 
     public String getState(String instance, String shard) {
-      return _stateMap.get(instance).get(shard);
-    }
-
-    private Map<String, Map<String, String>> getShardStateMap() {
-      return _stateMap;
+      Map<String, String> shardStateMap = _stateMap.get(instance);
+      return shardStateMap == null ? null : shardStateMap.get(shard);
     }
 
     private void updateWithDiff(Map<String, Map<String, String>> diffMap) {
@@ -169,7 +185,7 @@ public class GatewayCurrentStateCache {
           }
         }
       }
-      _stateMap = newCurrentStateMap;
+      _stateMap = new ConcurrentHashMap<>(newCurrentStateMap);
       return diff;
     }
 

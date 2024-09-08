@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -75,7 +74,7 @@ public class GatewayServiceManager {
     _connectionEventProcessor =
         new PerKeyBlockingExecutor(CONNECTION_EVENT_THREAD_POOL_SIZE); // todo: make it configurable
     _gatewayServiceChannelConfig = gatewayServiceChannelConfig;
-    _currentStateCacheMap = new HashMap<>();
+    _currentStateCacheMap = new ConcurrentHashMap<>();
   }
 
   /**
@@ -99,9 +98,23 @@ public class GatewayServiceManager {
     getCache(clusterName).resetTargetStateCache(instanceName);
   }
 
+  public void addInstanceToCache(String clusterName, String instanceName) {
+    getCache(clusterName).addInstanceToCache(instanceName);
+  }
+
+  /**
+   * Overwrite the current state cache with the new current state map, and return the diff of the change.
+   * @param clusterName
+   * @param newCurrentStateMap
+   * @return
+   */
   public  Map<String, Map<String, Map<String, String>>> updateCacheWithNewCurrentStateAndGetDiff(String clusterName,
       Map<String, Map<String, Map<String, String>>> newCurrentStateMap) {
    return  getCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
+  }
+
+  public void updateCurrentState(String clusterName, String instanceName, String resourceId, String shardId, String toState) {
+    getCache(clusterName).updateCurrentStateOfExistingInstance(instanceName, resourceId, shardId, toState);
   }
 
   public String serializeTargetState() {
@@ -112,6 +125,14 @@ public class GatewayServiceManager {
     }
     targetStateNode.set("timestamp", objectMapper.valueToTree(System.currentTimeMillis()));
     return targetStateNode.toString();
+  }
+
+  public void updateTargetState(String clusterName, String instanceName, String resourceId, String shardId, String toState) {
+    getCache(clusterName).updateTargetStateWithDiff(instanceName, Map.of(resourceId, Map.of(shardId, toState)));
+  }
+
+  public String getCurrentState(String clusterName, String instanceName, String resourceId, String shardId) {
+    return getCache(clusterName).getCurrentState(instanceName, resourceId, shardId);
   }
 
   /**
@@ -178,12 +199,10 @@ public class GatewayServiceManager {
     resetTargetStateCache(clusterName, instanceName);
     // Create and add the participant to the participant map
     HelixGatewayParticipant.Builder participantBuilder =
-        new HelixGatewayParticipant.Builder(_gatewayServiceChannel, instanceName, clusterName,
-            _zkAddress,
-            () -> removeHelixGatewayParticipant(clusterName, instanceName)).setInitialShardState(
+        new HelixGatewayParticipant.Builder(_gatewayServiceChannel, instanceName, clusterName, _zkAddress,
+            () -> removeHelixGatewayParticipant(clusterName, instanceName), this).setInitialShardState(
             initialShardStateMap);
-    SUPPORTED_MULTI_STATE_MODEL_TYPES.forEach(
-        participantBuilder::addMultiTopStateStateModelDefinition);
+    SUPPORTED_MULTI_STATE_MODEL_TYPES.forEach(participantBuilder::addMultiTopStateStateModelDefinition);
     _helixGatewayParticipantMap.computeIfAbsent(clusterName, k -> new ConcurrentHashMap<>())
         .put(instanceName, participantBuilder.build());
   }
@@ -195,6 +214,7 @@ public class GatewayServiceManager {
       participant.disconnect();
       _helixGatewayParticipantMap.get(clusterName).remove(instanceName);
     }
+    _currentStateCacheMap.get(clusterName).removeInstanceFromCache(instanceName);
   }
 
   private HelixGatewayParticipant getHelixGatewayParticipant(String clusterName,

@@ -52,15 +52,13 @@ public class TestGatewayCurrentStateCache {
 
   @Test
   public void testUpdateCacheWithCurrentStateDiff() {
-    Map<String, Map<String, Map<String, String>>> diff = new HashMap<>();
     Map<String, Map<String, String>> instanceState = new HashMap<>();
     Map<String, String> shardState = new HashMap<>();
     shardState.put("shard2", "ONLINE");
     shardState.put("shard1", "ONLINE");
     instanceState.put("resource1", shardState);
-    diff.put("instance1", instanceState);
 
-    cache.updateCacheWithCurrentStateDiff(diff);
+    cache.updateCurrentStateOfExistingInstance("instance1", "resource1", "shard1", "ONLINE");
 
     Assert.assertEquals(cache.getCurrentState("instance1", "resource1", "shard1"), "ONLINE");
     Assert.assertEquals(cache.getCurrentState("instance1", "resource1", "shard2"), "ONLINE");

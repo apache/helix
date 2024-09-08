@@ -27,6 +27,7 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.service.GatewayServiceEvent;
+import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.model.Message;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardChangeRequests;
@@ -79,7 +80,8 @@ public final class StateTransitionMessageTranslateUtil {
    *                contains the state of each shard upon connection or result of state transition request.
    * @return GatewayServiceEvent
    */
-  public static GatewayServiceEvent translateShardStateMessageToEvent(ShardStateMessage request) {
+  public static GatewayServiceEvent translateShardStateMessageToEventAndUpdateCache(
+      GatewayServiceManager manager, ShardStateMessage request) {
     GatewayServiceEvent.GateWayServiceEventBuilder builder;
     if (request.hasShardState()) { // init connection to gateway service
       ShardState shardState = request.getShardState();
@@ -90,6 +92,9 @@ public final class StateTransitionMessageTranslateUtil {
               .put(state.getShardName(), state.getCurrentState());
         }
       }
+      manager.addInstanceToCache(shardState.getClusterName(), shardState.getInstanceName());
+      // update current state cache. We always overwrite the current state map for initial connection
+      manager.updateCacheWithNewCurrentStateAndGetDiff(shardState.getClusterName(), Map.of(shardState.getInstanceName(), shardStateMap));
       builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(
               shardState.getClusterName()).setParticipantName(shardState.getInstanceName())
           .setShardStateMap(shardStateMap);
@@ -103,6 +108,9 @@ public final class StateTransitionMessageTranslateUtil {
         GatewayServiceEvent.StateTransitionResult result =
             new GatewayServiceEvent.StateTransitionResult(shardTransition.getResourceName(),
                 shardTransition.getShardName(), shardTransition.getCurrentState());
+        // update current state cache
+        manager.updateCurrentState(shardTransitionStatus.getClusterName(), shardTransitionStatus.getInstanceName(),
+            shardTransition.getResourceName(), shardTransition.getShardName(), shardTransition.getCurrentState());
         stResult.add(result);
       }
       builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(

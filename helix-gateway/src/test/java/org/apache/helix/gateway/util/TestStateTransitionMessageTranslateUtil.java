@@ -1,4 +1,6 @@
-package org.apache.helix.gateway.utils;/*
+package org.apache.helix.gateway.util;
+
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -20,7 +22,6 @@ package org.apache.helix.gateway.utils;/*
 import org.apache.helix.HelixDefinedState;
 
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
-import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;

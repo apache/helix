@@ -73,12 +73,12 @@ public interface HelixGatewayServiceChannel {
    * @param instanceName  instance name
    * @param reason  reason for closing connection
    */
-  public void closeConnectionWithError(String instanceName, String reason);
+  public void closeConnectionWithError(String clusterName, String instanceName, String reason);
 
   /**
    * Gateway service close client connection with success. This function is called when manager wants to close client
    * connection gracefully, e.g., when gateway service is shutting down.
    * @param instanceName  instance name
    */
-  public void completeConnection(String instanceName);
+  public void completeConnection(String clusterName, String instanceName);
 }

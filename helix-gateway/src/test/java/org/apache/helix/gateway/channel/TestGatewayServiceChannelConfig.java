@@ -1,4 +1,4 @@
-package org.apache.helix.gateway.chanel;
+package org.apache.helix.gateway.channel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,12 +19,11 @@ package org.apache.helix.gateway.chanel;
  * under the License.
  */
 
-import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class GatewayServiceChannelConfigTest {
+public class TestGatewayServiceChannelConfig {
 
   @Test
   public void testGatewayServiceChannelConfigBuilder() {
@@ -56,11 +55,27 @@ public class GatewayServiceChannelConfigTest {
   }
 
   @Test
-  public void testInvalidConfig() {
+  public void testInvalidConfigForGrpc() {
     GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder =
         new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
 
     builder.setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER);
+
+    // assert er get an exception
+    try {
+      builder.build();
+      Assert.fail("Should have thrown an exception");
+    } catch (IllegalArgumentException e) {
+      // expected
+    }
+  }
+
+  @Test
+  public void testInvalidConfigForFile() {
+    GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder builder =
+        new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder();
+
+    builder.setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.FILE);
 
     // assert er get an exception
     try {

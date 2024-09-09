@@ -188,7 +188,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     refreshStablePartitionList(getIdealStates());
     refreshDisabledInstancesForAllPartitionsSet();
 
-    if (getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1) {
+    if (getClusterConfig() != null
+        && getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1) {
       buildSimpleCapacityMap(getClusterConfig().getGlobalMaxPartitionAllowedPerInstance());
       // Remove all cached IdealState because it is a global computation cannot partially be
       // performed for some resources. The computation is simple as well not taking too much resource

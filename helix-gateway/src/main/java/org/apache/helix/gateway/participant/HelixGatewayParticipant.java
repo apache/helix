@@ -184,7 +184,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   @Override
   public void onDisconnected(HelixManager helixManager, Throwable error) throws Exception {
     _onDisconnectedCallback.run();
-    _gatewayServiceChannel.closeConnectionWithError(_helixManager.getInstanceName(),
+    _gatewayServiceChannel.closeConnectionWithError(_helixManager.getClusterName(), _helixManager.getInstanceName(),
         error.getMessage());
   }
 
@@ -192,7 +192,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     if (_helixManager.isConnected()) {
       _helixManager.disconnect();
     }
-    _gatewayServiceChannel.completeConnection(_helixManager.getInstanceName());
+    _gatewayServiceChannel.completeConnection(_helixManager.getClusterName(), _helixManager.getInstanceName());
   }
 
   public static class Builder {

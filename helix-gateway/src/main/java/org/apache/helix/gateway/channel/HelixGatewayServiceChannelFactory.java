@@ -33,7 +33,7 @@ public class HelixGatewayServiceChannelFactory {
         return new HelixGatewayServiceGrpcService(manager, config);
       }
     } else {
-      return new HelixGatewayServicePollModeChannel(config);
+      return new HelixGatewayServicePollModeChannel(manager, config);
     }
     throw new IllegalArgumentException(
         "Unsupported channel mode and type combination: " + config.getChannelMode() + " , "

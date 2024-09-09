@@ -136,7 +136,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     // Populate the capacity for simple CapacityNode
-    if (cache.getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1
+    if (cache.getClusterConfig() != null
+        && cache.getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1
         && cache instanceof ResourceControllerDataProvider) {
       final ResourceControllerDataProvider dataProvider = (ResourceControllerDataProvider) cache;
       dataProvider.populateSimpleCapacitySetUsage(resourceToRebalance.keySet(),

@@ -49,7 +49,6 @@ import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMe
  */
 public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.HelixGatewayServiceImplBase
     implements HelixGatewayServiceChannel {
-  // create LOGGER
   private static final Logger logger = LoggerFactory.getLogger(HelixGatewayServiceGrpcService.class);
 
   // Map to store the observer for each instance
@@ -118,7 +117,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
    * The instance must already have established a connection to the gateway service.
    *
    * @param instanceName the instance name to send the message to
-   * @param message the message to convert to the transition message
+   * @param requests the state transition request to send
    */
   @Override
   public void sendStateChangeRequests(String instanceName, ShardChangeRequests requests) {
@@ -137,7 +136,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
    * @param errorReason   error reason for close
    */
   @Override
-  public void closeConnectionWithError(String instanceName, String errorReason) {
+  public void closeConnectionWithError(String clusterName, String instanceName, String errorReason) {
     logger.info("Close connection for instance: {} with error reason: {}", instanceName, errorReason);
     closeConnectionHelper(instanceName, errorReason, true);
   }
@@ -147,7 +146,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
    * @param instanceName instance name
    */
   @Override
-  public void completeConnection(String instanceName) {
+  public void completeConnection(String clusterName, String instanceName) {
     logger.info("Complete connection for instance: {}", instanceName);
     closeConnectionHelper(instanceName, null, false);
   }

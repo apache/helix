@@ -64,8 +64,12 @@ public class GatewayCurrentStateCache {
     Map<String, Map<String, Map<String, String>>> diff = new HashMap<>();
     for (String instance : newCurrentStateMap.keySet()) {
       Map<String, Map<String, String>> newCurrentState = newCurrentStateMap.get(instance);
-      diff.put(instance, _currentStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
-          .updateAndGetDiff(newCurrentState));
+      Map<String, Map<String, String>> resourceStateDiff =
+          _currentStateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>()))
+              .updateAndGetDiff(newCurrentState);
+      if (resourceStateDiff != null && !resourceStateDiff.isEmpty()) {
+        diff.put(instance, resourceStateDiff);
+      }
     }
     return diff;
   }
@@ -95,7 +99,7 @@ public class GatewayCurrentStateCache {
    * Serialize the target state assignments to a JSON Node.
    * example ： {"instance1":{"resource1":{"shard1":"ONLINE","shard2":"OFFLINE"}}}}
    */
-  public ObjectNode serializeTargetAssignmentsToJSON() {
+  public ObjectNode serializeTargetAssignmentsToJSONNode() {
     ObjectNode root = mapper.createObjectNode();
     for (Map.Entry<String, ShardStateMap> entry : _targetStateMap.entrySet()) {
       root.set(entry.getKey(), entry.getValue().toJSONNode());
@@ -109,6 +113,10 @@ public class GatewayCurrentStateCache {
       return;
     }
     stateMap.computeIfAbsent(instance, k -> new ShardStateMap(new HashMap<>())).updateWithDiff(diffMap);
+  }
+
+  public void resetTargetStateCache(String instance) {
+    _targetStateMap.put(instance, new ShardStateMap(new HashMap<>()));
   }
 
   public static class ShardStateMap {

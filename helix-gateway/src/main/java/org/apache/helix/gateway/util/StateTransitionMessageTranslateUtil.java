@@ -126,4 +126,41 @@ public final class StateTransitionMessageTranslateUtil {
             clusterName).setParticipantName(instanceName);
     return builder.build();
   }
+
+  /**
+   * Translate from current state change to Helix Gateway Service event.
+   * @param instanceName
+   * @param clusterName
+   * @param shardStateMap
+   * @return
+   */
+  public static GatewayServiceEvent translateCurrentStateChangeToEvent(String instanceName, String clusterName,
+      Map<String, Map<String, String>> shardStateMap) {
+    List<GatewayServiceEvent.StateTransitionResult> stResult = new ArrayList<>();
+    shardStateMap.forEach((resourceName, value) -> value.forEach((key, value1) -> {
+      GatewayServiceEvent.StateTransitionResult result =
+          new GatewayServiceEvent.StateTransitionResult(resourceName, key, value1);
+      stResult.add(result);
+    }));
+    GatewayServiceEvent.GateWayServiceEventBuilder builder =
+        new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.UPDATE).setClusterName(
+            clusterName).setParticipantName(instanceName).setStateTransitionStatusMap(stResult);
+    return builder.build();
+  }
+
+  /**
+   * Create a GatewayServiceEvent to notify the GatewayServiceManager to create a new HelixGatewayParticipant.
+   * @param instanceName the instance name of the newly connected participant
+   * @param clusterName  the cluster nam
+   * @param shardStateMap the initial state of shards on the participant. Could be empty map
+   * @return
+   */
+  public static GatewayServiceEvent translateCurrentStateDiffToInitConnectEvent(String instanceName, String clusterName,
+      Map<String, Map<String, String>> shardStateMap) {
+    GatewayServiceEvent.GateWayServiceEventBuilder builder =
+        new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(
+            clusterName).setParticipantName(instanceName).setShardStateMap(shardStateMap);
+    return builder.build();
+  }
+
 }

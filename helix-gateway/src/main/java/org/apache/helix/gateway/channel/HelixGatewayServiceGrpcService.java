@@ -25,10 +25,9 @@ import io.grpc.ServerBuilder;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
@@ -52,10 +51,10 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   private static final Logger logger = LoggerFactory.getLogger(HelixGatewayServiceGrpcService.class);
 
   // Map to store the observer for each instance
-  private final Map<String, StreamObserver<ShardChangeRequests>> _observerMap = new ConcurrentHashMap<>();
+  private final Map<String, StreamObserver<ShardChangeRequests>> _observerMap = new HashMap<>();
   // A reverse map to store the instance name for each observer. It is used to find the instance when connection is closed.
   // map<observer, pair<instance, cluster>>
-  private final Map<StreamObserver<ShardChangeRequests>, Pair<String, String>> _reversedObserverMap = new ConcurrentHashMap<>();
+  private final Map<StreamObserver<ShardChangeRequests>, Pair<String, String>> _reversedObserverMap = new HashMap<>();
 
   private final GatewayServiceManager _manager;
 

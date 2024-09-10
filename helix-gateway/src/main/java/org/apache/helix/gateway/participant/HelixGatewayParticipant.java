@@ -47,8 +47,6 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   private final HelixGatewayServiceChannel _gatewayServiceChannel;
   private final HelixManager _helixManager;
   private final Runnable _onDisconnectedCallback;
-  private final Map<String, Map<String, String>> _shardStateMap;
-
   private final Map<String, CompletableFuture<String>> _stateTransitionResultMap;
 
   private final GatewayServiceManager _gatewayServiceManager;
@@ -59,7 +57,6 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     _gatewayServiceChannel = gatewayServiceChannel;
     _helixManager = helixManager;
     _onDisconnectedCallback = onDisconnectedCallback;
-    _shardStateMap = initialShardStateMap;
     _stateTransitionResultMap = new ConcurrentHashMap<>();
     _gatewayServiceManager = gatewayServiceManager;
   }
@@ -71,16 +68,14 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
     String concatenatedShardName = resourceId + shardId;
 
     try {
-      if (isCurrentStateAlreadyTarget(resourceId, shardId, toState)) {
-        return;
-      }
-
-      CompletableFuture<String> future = new CompletableFuture<>();
-
       // update the target state in cache
       _gatewayServiceManager.updateTargetState(_helixManager.getClusterName(), _helixManager.getInstanceName(),
           resourceId, shardId, toState);
 
+      if (isCurrentStateAlreadyTarget(resourceId, shardId, toState)) {
+        return;
+      }
+      CompletableFuture<String> future = new CompletableFuture<>();
       _stateTransitionResultMap.put(concatenatedShardName, future);
       _gatewayServiceChannel.sendStateChangeRequests(_helixManager.getInstanceName(),
           StateTransitionMessageTranslateUtil.translateSTMsgToShardChangeRequests(message));

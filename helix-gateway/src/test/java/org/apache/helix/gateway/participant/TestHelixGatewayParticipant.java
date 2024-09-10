@@ -21,6 +21,7 @@ package org.apache.helix.gateway.participant;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +65,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   private final Map<String, ShardChangeRequests> _pendingMessageMap = new ConcurrentHashMap<>();
   private final AtomicInteger _onDisconnectCallbackCount = new AtomicInteger();
 
-  private GatewayServiceManager gatewayServiceManager;
+  private GatewayServiceManager _gatewayServiceManager;
 
   @BeforeClass
   public void beforeClass() {
@@ -73,7 +74,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
 
     builder.setParticipantConnectionChannelType(GatewayServiceChannelConfig.ChannelType.GRPC_SERVER).setGrpcServerPort(5001);
     GatewayServiceChannelConfig config = builder.build();
-    gatewayServiceManager = new GatewayServiceManager(ZK_ADDR, config);
+    _gatewayServiceManager = new GatewayServiceManager(ZK_ADDR, config);
 
     // Set up the Helix cluster
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
@@ -111,11 +112,11 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
    */
   private HelixGatewayParticipant addParticipant(String participantName,
       Map<String, Map<String, String>> initialShardMap) {
+    _gatewayServiceManager.resetTargetStateCache(CLUSTER_NAME, participantName);
     HelixGatewayParticipant participant =
         new HelixGatewayParticipant.Builder(new MockHelixGatewayServiceChannel(_pendingMessageMap), participantName,
-            CLUSTER_NAME, ZK_ADDR, _onDisconnectCallbackCount::incrementAndGet, gatewayServiceManager).addMultiTopStateStateModelDefinition(
+            CLUSTER_NAME, ZK_ADDR, _onDisconnectCallbackCount::incrementAndGet, _gatewayServiceManager).addMultiTopStateStateModelDefinition(
             TEST_STATE_MODEL).setInitialShardState(initialShardMap).build();
-    gatewayServiceManager.addInstanceToCache(CLUSTER_NAME, participantName);
     _participants.add(participant);
     return participant;
   }
@@ -184,13 +185,29 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
   /**
    * Process the pending message for a participant.
    */
-  private void processPendingMessage(HelixGatewayParticipant participant,
-      boolean isSuccess, String toState) {
+  private void processPendingMessage(HelixGatewayParticipant participant, boolean isSuccess, String toState) {
     ShardChangeRequests requests = _pendingMessageMap.remove(participant.getInstanceName());
-    gatewayServiceManager.updateCurrentState( CLUSTER_NAME, participant.getInstanceName(), requests.getRequest(0).getResourceName(),
-        requests.getRequest(0).getShardName(), isSuccess ? toState : "ERROR");
+
+    Map<String, Map<String, Map<String, String>>> newSInstanceStateMap = new HashMap<>();
+    newSInstanceStateMap.put(participant.getInstanceName(),
+        createSingleShardStateMap(requests.getRequest(0).getResourceName(), requests.getRequest(0).getShardName(),
+            isSuccess ? toState : "ERROR"));
+    _gatewayServiceManager.updateCacheWithNewCurrentStateAndGetDiff(CLUSTER_NAME, newSInstanceStateMap);
+
     participant.completeStateTransition(requests.getRequest(0).getResourceName(), requests.getRequest(0).getShardName(),
         isSuccess ? toState : "ERROR");
+  }
+
+  /**
+   * Create a single shard state map.
+   */
+   Map<String, Map<String, String>> createSingleShardStateMap( String resource, String shard, String state) {
+
+    Map<String, Map<String, String>> resourceStateMap = new HashMap<>();
+    Map<String, String> shardStateMap = new HashMap<>();
+    shardStateMap.put(shard, state);
+    resourceStateMap.put(resource, shardStateMap);
+    return resourceStateMap;
   }
 
   /**
@@ -223,13 +240,37 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
             .getResourceIdealState(CLUSTER_NAME, resourceName)
             .getPartitionSet()) {
           String helixCurrentState = getHelixCurrentState(instanceName, resourceName, shardId);
-          if (!participant.getCurrentState(resourceName, shardId).equals(helixCurrentState)) {
+          if (!participant.getCurrentState(resourceName, shardId).equals(helixCurrentState) && !(
+              participant.getCurrentState(resourceName, shardId).equals("DROPPED") && helixCurrentState.equals(
+                  "UNASSIGNED"))) {
             return false;
           }
         }
       }
       return true;
     }), TestHelper.WAIT_DURATION));
+  }
+
+  private void verifyGatewayTargetStateMatchHelixTargetState() throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> _participants.stream().allMatch(participant -> {
+      String instanceName = participant.getInstanceName();
+      for (String resourceName : _gSetupTool.getClusterManagementTool().getResourcesInCluster(CLUSTER_NAME)) {
+        for (String shardId : _gSetupTool.getClusterManagementTool()
+            .getResourceIdealState(CLUSTER_NAME, resourceName)
+            .getPartitionSet()) {
+          String helixTargetState = getHelixCurrentState(instanceName, resourceName, shardId);
+          if (_gatewayServiceManager.getTargetState(CLUSTER_NAME, instanceName, resourceName, shardId) == null) {
+            System.out.println("Gateway target state is null for instance: " + instanceName + ", resource: " + resourceName + ", shard: " + shardId);
+          }
+          if (!participant.getCurrentState(resourceName, shardId).equals(helixTargetState) && !(
+              participant.getCurrentState(resourceName, shardId).equals("DROPPED") && helixTargetState.equals(
+                  "UNASSIGNED"))) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }), 6000L));
   }
 
   /**
@@ -270,6 +311,7 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     // Verify that the cluster converges and all states are "ONLINE"
     Assert.assertTrue(_clusterVerifier.verify());
     verifyGatewayStateMatchesHelixState();
+    verifyGatewayTargetStateMatchHelixTargetState();
   }
 
   @Test(dependsOnMethods = "testProcessStateTransitionMessageSuccess")
@@ -307,7 +349,9 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
     verifyHelixPartitionStates(participant.getInstanceName(), HelixGatewayParticipant.UNASSIGNED_STATE);
 
     // Re-add the participant with its initial state
-    addParticipant(participant.getInstanceName(), Map.of());
+    addParticipant(participant.getInstanceName(),  createSingleShardStateMap(TEST_DB, "TestDB_0",
+        _gatewayServiceManager.getCurrentState(CLUSTER_NAME, participant.getInstanceName(), TEST_DB,
+            "TestDB_0")));
     Assert.assertTrue(_clusterVerifier.verify());
 
     // Verify the Helix state is "ONLINE"
@@ -323,8 +367,10 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
 
     // Remove shard preference and re-add the participant
     removeFromPreferenceList(participant);
-   /*HelixGatewayParticipant participantReplacement =
-        addParticipant(participant.getInstanceName(), participant.getShardStateMap());
+    HelixGatewayParticipant participantReplacement = addParticipant(participant.getInstanceName(),
+        createSingleShardStateMap(TEST_DB, "TestDB_0",
+            _gatewayServiceManager.getCurrentState(CLUSTER_NAME, participant.getInstanceName(), TEST_DB,
+                "TestDB_0")));
     verifyPendingMessages(List.of(participantReplacement));
 
     // Process the pending message successfully
@@ -332,7 +378,8 @@ public class TestHelixGatewayParticipant extends ZkTestBase {
 
     // Verify that the cluster converges and states are correctly updated to "ONLINE"
     Assert.assertTrue(_clusterVerifier.verify());
-    verifyGatewayStateMatchesHelixState();*/
+    verifyGatewayStateMatchesHelixState();
+    verifyGatewayTargetStateMatchHelixTargetState();
   }
 
   @Test(dependsOnMethods = "testProcessStateTransitionAfterReconnectAfterDroppingPartition")

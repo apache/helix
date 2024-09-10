@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -74,7 +75,7 @@ public class GatewayServiceManager {
     _connectionEventProcessor =
         new PerKeyBlockingExecutor(CONNECTION_EVENT_THREAD_POOL_SIZE); // todo: make it configurable
     _gatewayServiceChannelConfig = gatewayServiceChannelConfig;
-    _currentStateCacheMap = new ConcurrentHashMap<>();
+    _currentStateCacheMap = new HashMap<>();
   }
 
   /**
@@ -90,16 +91,8 @@ public class GatewayServiceManager {
     }
   }
 
-  private GatewayCurrentStateCache getCache(String clusterName) {
-    return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
-  }
-
   public void resetTargetStateCache(String clusterName, String instanceName) {
     getCache(clusterName).resetTargetStateCache(instanceName);
-  }
-
-  public void addInstanceToCache(String clusterName, String instanceName) {
-    getCache(clusterName).addInstanceToCache(instanceName);
   }
 
   /**
@@ -117,7 +110,7 @@ public class GatewayServiceManager {
     getCache(clusterName).updateCurrentStateOfExistingInstance(instanceName, resourceId, shardId, toState);
   }
 
-  public String serializeTargetState() {
+  public synchronized String serializeTargetState() {
     ObjectNode targetStateNode = new ObjectMapper().createObjectNode();
     for (String clusterName : _currentStateCacheMap.keySet()) {
       // add the json node to the target state node
@@ -127,12 +120,17 @@ public class GatewayServiceManager {
     return targetStateNode.toString();
   }
 
-  public void updateTargetState(String clusterName, String instanceName, String resourceId, String shardId, String toState) {
-    getCache(clusterName).updateTargetStateWithDiff(instanceName, Map.of(resourceId, Map.of(shardId, toState)));
+  public void updateTargetState(String clusterName, String instanceName, String resourceId, String shardId,
+      String toState) {
+    getCache(clusterName).updateTargetStateOfExistingInstance(instanceName, resourceId, shardId, toState);
   }
 
   public String getCurrentState(String clusterName, String instanceName, String resourceId, String shardId) {
     return getCache(clusterName).getCurrentState(instanceName, resourceId, shardId);
+  }
+
+  public String getTargetState(String clusterName, String instanceName, String resourceId, String shardId) {
+    return getCache(clusterName).getTargetState(instanceName, resourceId, shardId);
   }
 
   /**
@@ -214,12 +212,16 @@ public class GatewayServiceManager {
       participant.disconnect();
       _helixGatewayParticipantMap.get(clusterName).remove(instanceName);
     }
-    _currentStateCacheMap.get(clusterName).removeInstanceFromCache(instanceName);
+    _currentStateCacheMap.get(clusterName).removeInstanceTargetDataFromCache(instanceName);
   }
 
   private HelixGatewayParticipant getHelixGatewayParticipant(String clusterName,
       String instanceName) {
     return _helixGatewayParticipantMap.getOrDefault(clusterName, Collections.emptyMap())
         .get(instanceName);
+  }
+
+  private synchronized GatewayCurrentStateCache getCache(String clusterName) {
+    return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
   }
 }

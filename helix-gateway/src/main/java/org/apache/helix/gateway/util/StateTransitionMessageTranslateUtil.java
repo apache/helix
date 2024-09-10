@@ -92,9 +92,11 @@ public final class StateTransitionMessageTranslateUtil {
               .put(state.getShardName(), state.getCurrentState());
         }
       }
-      manager.addInstanceToCache(shardState.getClusterName(), shardState.getInstanceName());
       // update current state cache. We always overwrite the current state map for initial connection
-      manager.updateCacheWithNewCurrentStateAndGetDiff(shardState.getClusterName(), Map.of(shardState.getInstanceName(), shardStateMap));
+      Map<String, Map<String, Map<String, String>>> newShardStateMap = new HashMap<>();
+      newShardStateMap.put(shardState.getInstanceName(), shardStateMap);
+      manager.updateCacheWithNewCurrentStateAndGetDiff(shardState.getClusterName(), newShardStateMap);
+
       builder = new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(
               shardState.getClusterName()).setParticipantName(shardState.getInstanceName())
           .setShardStateMap(shardStateMap);

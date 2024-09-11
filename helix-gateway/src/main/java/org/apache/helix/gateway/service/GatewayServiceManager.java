@@ -92,7 +92,7 @@ public class GatewayServiceManager {
   }
 
   public void resetTargetStateCache(String clusterName, String instanceName) {
-    getCache(clusterName).resetTargetStateCache(instanceName);
+    getOrCreateCache(clusterName).resetTargetStateCache(instanceName);
   }
 
   /**
@@ -103,18 +103,18 @@ public class GatewayServiceManager {
    */
   public  Map<String, Map<String, Map<String, String>>> updateCacheWithNewCurrentStateAndGetDiff(String clusterName,
       Map<String, Map<String, Map<String, String>>> newCurrentStateMap) {
-   return  getCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
+   return  getOrCreateCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
   }
 
   public void updateCurrentState(String clusterName, String instanceName, String resourceId, String shardId, String toState) {
-    getCache(clusterName).updateCurrentStateOfExistingInstance(instanceName, resourceId, shardId, toState);
+    getOrCreateCache(clusterName).updateCurrentStateOfExistingInstance(instanceName, resourceId, shardId, toState);
   }
 
   public synchronized String serializeTargetState() {
     ObjectNode targetStateNode = new ObjectMapper().createObjectNode();
     for (String clusterName : _currentStateCacheMap.keySet()) {
       // add the json node to the target state node
-      targetStateNode.set(clusterName, getCache(clusterName).serializeTargetAssignmentsToJSONNode());
+      targetStateNode.set(clusterName, getOrCreateCache(clusterName).serializeTargetAssignmentsToJSONNode());
     }
     targetStateNode.set("timestamp", objectMapper.valueToTree(System.currentTimeMillis()));
     return targetStateNode.toString();
@@ -122,15 +122,15 @@ public class GatewayServiceManager {
 
   public void updateTargetState(String clusterName, String instanceName, String resourceId, String shardId,
       String toState) {
-    getCache(clusterName).updateTargetStateOfExistingInstance(instanceName, resourceId, shardId, toState);
+    getOrCreateCache(clusterName).updateTargetStateOfExistingInstance(instanceName, resourceId, shardId, toState);
   }
 
   public String getCurrentState(String clusterName, String instanceName, String resourceId, String shardId) {
-    return getCache(clusterName).getCurrentState(instanceName, resourceId, shardId);
+    return getOrCreateCache(clusterName).getCurrentState(instanceName, resourceId, shardId);
   }
 
   public String getTargetState(String clusterName, String instanceName, String resourceId, String shardId) {
-    return getCache(clusterName).getTargetState(instanceName, resourceId, shardId);
+    return getOrCreateCache(clusterName).getTargetState(instanceName, resourceId, shardId);
   }
 
   /**
@@ -221,7 +221,7 @@ public class GatewayServiceManager {
         .get(instanceName);
   }
 
-  private synchronized GatewayCurrentStateCache getCache(String clusterName) {
+  private synchronized GatewayCurrentStateCache getOrCreateCache(String clusterName) {
     return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
   }
 }

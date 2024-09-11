@@ -33,8 +33,7 @@ import org.slf4j.LoggerFactory;
  */
 public class GatewayCurrentStateCache {
   private static final Logger logger = LoggerFactory.getLogger(GatewayCurrentStateCache.class);
-  static ObjectMapper mapper = new ObjectMapper();
-  String _clusterName;
+  private static final ObjectMapper mapper = new ObjectMapper();
 
   // A cache of current state. It should be updated by the HelixGatewayServiceChannel
   // instance -> resource state (resource -> shard -> target state)
@@ -45,7 +44,6 @@ public class GatewayCurrentStateCache {
   final Map<String, ShardStateMap> _targetStateMap;
 
   public GatewayCurrentStateCache(String clusterName) {
-    _clusterName = clusterName;
     _currentStateMap = new HashMap<>();
     _targetStateMap = new HashMap<>();
   }

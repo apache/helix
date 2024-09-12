@@ -194,7 +194,7 @@
         <version>3.3.0</version>
         <executions>
           <execution>
-            <id>default-package-jdk11</id>
+            <id>default-package-jdk8</id>
             <phase>package</phase>
             <goals>
               <goal>jar</goal>
@@ -202,6 +202,17 @@
             <configuration>
               <classesDirectory>${project.build.outputDirectory}_jdk8</classesDirectory>
               <classifier>jdk8</classifier>
+            </configuration>
+          </execution>
+          <execution>
+            <id>default-package-jdk11</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+              <classifier>jdk11</classifier>
             </configuration>
           </execution>
         </executions>

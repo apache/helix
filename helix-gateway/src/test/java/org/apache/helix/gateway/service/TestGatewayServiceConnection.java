@@ -25,9 +25,12 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import org.apache.helix.gateway.base.HelixGatewayTestBase;
 import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
 import org.apache.helix.gateway.api.constant.GatewayServiceEventType;
+import org.apache.helix.gateway.channel.HelixGatewayServiceChannelFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import proto.org.apache.helix.gateway.HelixGatewayServiceGrpc;
@@ -40,7 +43,7 @@ public class TestGatewayServiceConnection extends HelixGatewayTestBase {
   CountDownLatch disconnectLatch = new CountDownLatch(1);
 
   @Test
-  public void TestLivenessDetection() throws IOException, InterruptedException {
+  public void testLivenessDetection() throws IOException, InterruptedException {
     // start the gateway service
     GatewayServiceChannelConfig config =
         new GatewayServiceChannelConfig.GatewayServiceProcessorConfigBuilder().setGrpcServerPort(50051).build();
@@ -136,7 +139,10 @@ public class TestGatewayServiceConnection extends HelixGatewayTestBase {
   class DummyGatewayServiceManager extends GatewayServiceManager {
 
     public DummyGatewayServiceManager(GatewayServiceChannelConfig gatewayServiceChannelConfig) {
-      super("dummyZkAddress", gatewayServiceChannelConfig);
+      super("dummyZkAddress");
+      this.setGatewayServiceChannel(
+          HelixGatewayServiceChannelFactory.createServiceChannel(gatewayServiceChannelConfig,
+              this));
     }
 
     @Override

@@ -57,25 +57,42 @@ public class GatewayServiceManager {
   private final ExecutorService _participantStateTransitionResultUpdator;
 
   // link to grpc service
-  private final HelixGatewayServiceChannel _gatewayServiceChannel;
+  private HelixGatewayServiceChannel _gatewayServiceChannel;
 
   // a per key executor for connection event. All event for the same instance will be executed in sequence.
   // It is used to ensure for each instance, the connect/disconnect event won't start until the previous one is done.
   private final PerKeyBlockingExecutor _connectionEventProcessor;
 
-  private final GatewayServiceChannelConfig _gatewayServiceChannelConfig;
-
   private final Map<String, GatewayCurrentStateCache> _currentStateCacheMap;
 
-  public GatewayServiceManager(String zkAddress, GatewayServiceChannelConfig gatewayServiceChannelConfig) {
+  public GatewayServiceManager(String zkAddress) {
     _helixGatewayParticipantMap = new ConcurrentHashMap<>();
     _zkAddress = zkAddress;
     _participantStateTransitionResultUpdator = Executors.newSingleThreadExecutor();
-    _gatewayServiceChannel = HelixGatewayServiceChannelFactory.createServiceChannel(gatewayServiceChannelConfig, this);
     _connectionEventProcessor =
         new PerKeyBlockingExecutor(CONNECTION_EVENT_THREAD_POOL_SIZE); // todo: make it configurable
-    _gatewayServiceChannelConfig = gatewayServiceChannelConfig;
     _currentStateCacheMap = new HashMap<>();
+  }
+
+  public GatewayServiceManager(String zkAddress, GatewayServiceChannelConfig gatewayServiceChannelConfig) {
+    this(zkAddress);
+    _gatewayServiceChannel = HelixGatewayServiceChannelFactory.createServiceChannel(gatewayServiceChannelConfig, this);
+  }
+
+  /**
+   * Set the gateway service channel. This can only be called once.
+   * The channel is used to send state transition message to the participant.
+   *
+   * @param channel the gateway service channel
+   * @throws IllegalStateException if the channel is already set
+   */
+  public void setGatewayServiceChannel(HelixGatewayServiceChannel channel) {
+    if (_gatewayServiceChannel != null) {
+      _gatewayServiceChannel.stop();
+      return;
+    }
+    throw new IllegalStateException(
+        "Gateway service channel is already set, it can only be set once.");
   }
 
   /**
@@ -85,7 +102,7 @@ public class GatewayServiceManager {
    */
   public void onGatewayServiceEvent(GatewayServiceEvent event) {
     if (event.getEventType().equals(GatewayServiceEventType.UPDATE)) {
-      _participantStateTransitionResultUpdator.submit(new shardStateUpdator(event));
+      _participantStateTransitionResultUpdator.submit(new ShardStateUpdator(event));
     } else {
       _connectionEventProcessor.offerEvent(event.getInstanceName(), new ParticipantConnectionProcessor(event));
     }
@@ -117,11 +134,11 @@ public class GatewayServiceManager {
   /**
    * Update in memory shard state
    */
-  class shardStateUpdator implements Runnable {
+  class ShardStateUpdator implements Runnable {
 
     private final GatewayServiceEvent _event;
 
-    private shardStateUpdator(GatewayServiceEvent event) {
+    private ShardStateUpdator(GatewayServiceEvent event) {
       _event = event;
     }
 
@@ -162,15 +179,19 @@ public class GatewayServiceManager {
     }
   }
 
+  public void stopManager() {
+    _connectionEventProcessor.shutdown();
+    _participantStateTransitionResultUpdator.shutdown();
+    _helixGatewayParticipantMap.clear();
+  }
+
   public void startService() throws IOException {
     _gatewayServiceChannel.start();
   }
 
   public void stopService() {
     _gatewayServiceChannel.stop();
-    _connectionEventProcessor.shutdown();
-    _participantStateTransitionResultUpdator.shutdown();
-    _helixGatewayParticipantMap.clear();
+    stopManager();
   }
 
   private void createHelixGatewayParticipant(String clusterName, String instanceName,

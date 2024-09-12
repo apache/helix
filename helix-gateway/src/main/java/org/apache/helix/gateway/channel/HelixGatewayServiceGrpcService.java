@@ -60,7 +60,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   private final GatewayServiceManager _manager;
 
   // A fine grain lock register on instance level
-  private final PerKeyLockRegistry _lockRegistry;
+  private final PerKeyLockRegistry _lockRegistry = new PerKeyLockRegistry();;
 
   private final GatewayServiceChannelConfig _config;
 
@@ -69,7 +69,6 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   public HelixGatewayServiceGrpcService(GatewayServiceManager manager, GatewayServiceChannelConfig config) {
     _manager = manager;
     _config = config;
-    _lockRegistry = new PerKeyLockRegistry();
   }
 
   /**

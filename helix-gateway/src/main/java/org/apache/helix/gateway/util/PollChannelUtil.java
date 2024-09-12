@@ -30,7 +30,6 @@ import io.grpc.health.v1.HealthGrpc;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;

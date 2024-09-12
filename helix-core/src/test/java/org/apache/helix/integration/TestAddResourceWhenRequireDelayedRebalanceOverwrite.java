@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.constants.InstanceConstants;
@@ -23,8 +22,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestAddResourceWhenNodesOffline extends ZkTestBase {
+// This test was created to reproduce issue seen in https://github.com/apache/helix/issues/2909
+public class TestAddResourceWhenRequireDelayedRebalanceOverwrite extends ZkTestBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestForceKillInstance.class);
   protected final String CLASS_NAME = getShortClassName();
@@ -66,6 +65,7 @@ public class TestAddResourceWhenNodesOffline extends ZkTestBase {
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
   }
 
+  // Control test to verify that the cluster is in a good state and is not failing for other reasons
   @Test
   public void testAddResourceNewCluster() {
     System.out.println("START " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
@@ -80,16 +80,21 @@ public class TestAddResourceWhenNodesOffline extends ZkTestBase {
     Assert.assertTrue(isMinActiveSatisfied());
   }
 
+  // This test was created to reproduce issue seen in https://github.com/apache/helix/issues/2909
+  // When delay rebalance overwrites are required, adding a new resource to the cluster will cause an NPE
+  // and rebalance pipeline will fail until delay rebalance overwrites are no longer needed
+  // Delay rebalance overwrites are typically needed when sufficient number of instances are disabled within the delay window
   @Test (dependsOnMethods = "testAddResourceNewCluster")
   public void testAddResourceWhenInstancesDisabledWithinWindow() {
     System.out.println("START " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
 
-    // Disable 2 instances
+    // Disable 2 instances to require delay rebalance overwrites
     for (int i = 0; i < 2; i++) {
       _admin.setInstanceOperation(CLUSTER_NAME, _participants.get(i).getInstanceName(),
           InstanceConstants.InstanceOperation.DISABLE);
     }
+    // Wait for cluster to converge
     Assert.assertTrue(_bestPossibleClusterVerifier.verify());
     Assert.assertTrue(isMinActiveSatisfied());
 
@@ -99,6 +104,7 @@ public class TestAddResourceWhenNodesOffline extends ZkTestBase {
     createResourceWithWagedRebalance(CLUSTER_NAME, resourceName, "MasterSlave", NUM_PARTITIONS, NUM_REPLICAS,
         NUM_MIN_ACTIVE_REPLICAS);
 
+    // Cluster should be able to converge
     Assert.assertTrue(_bestPossibleClusterVerifier.verify());
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));

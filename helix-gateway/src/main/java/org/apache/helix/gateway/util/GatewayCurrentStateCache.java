@@ -42,6 +42,7 @@ public class GatewayCurrentStateCache {
   // A cache of target state.
   // instance -> resource state (resource -> shard -> target state)
   final Map<String, ShardStateMap> _targetStateMap;
+  ObjectNode root = mapper.createObjectNode();
 
   public GatewayCurrentStateCache(String clusterName) {
     _currentStateMap = new HashMap<>();
@@ -115,7 +116,6 @@ public class GatewayCurrentStateCache {
    * example ： {"instance1":{"resource1":{"shard1":"ONLINE","shard2":"OFFLINE"}}}}
    */
   public synchronized ObjectNode serializeTargetAssignmentsToJSONNode() {
-    ObjectNode root = mapper.createObjectNode();
     for (Map.Entry<String, ShardStateMap> entry : _targetStateMap.entrySet()) {
       root.set(entry.getKey(), entry.getValue().toJSONNode());
     }
@@ -128,6 +128,7 @@ public class GatewayCurrentStateCache {
   public synchronized void removeInstanceTargetDataFromCache(String instance) {
     logger.info("Remove instance target data from cache for instance: {}", instance);
     _targetStateMap.remove(instance);
+    root.remove(instance);
   }
 
   /**
@@ -140,6 +141,7 @@ public class GatewayCurrentStateCache {
 
   public static class ShardStateMap {
     Map<String, Map<String, String>> _stateMap;
+    ObjectNode root = mapper.createObjectNode();
 
     public ShardStateMap(Map<String, Map<String, String>> stateMap) {
       _stateMap = new HashMap<>(stateMap);
@@ -181,7 +183,6 @@ public class GatewayCurrentStateCache {
      * @return a JSON object representing the shard state map. Example: {"shard1":"ONLINE","shard2":"OFFLINE"}
      */
     public synchronized ObjectNode toJSONNode() {
-      ObjectNode root = mapper.createObjectNode();
       for (Map.Entry<String, Map<String, String>> entry : _stateMap.entrySet()) {
         String resource = entry.getKey();
         ObjectNode resourceNode = mapper.createObjectNode();

@@ -19,6 +19,8 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Optional;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -61,12 +63,12 @@ public class RESTConfig extends HelixProperty {
   }
 
   /**
-   * Get the base restful endpoint of the instance
+   * Resolves the customized health URL by replacing the wildcard with the instance's name
    *
    * @param instance The instance
    * @return The base restful endpoint
    */
-  public String getBaseUrl(String instance) {
+  public String resolveInstanceHealthUrl(String instance) {
     String baseUrl = get(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL);
 
     // pre-assumption of the url, must be format of "http://*/path", the wildcard is replaceable by
@@ -82,5 +84,19 @@ public class RESTConfig extends HelixProperty {
     }
 
     return baseUrl.replace("*", instanceVip);
+  }
+
+  /**
+   * Retrieves the configured health URL if no wildcard is present.
+   * Returns an empty Optional if the URL contains a wildcard.
+   *
+   * @return Optional containing the exact configured URL, or empty if a wildcard is present.
+   */
+  public Optional<String> getConfiguredHealthUrl() {
+    String baseUrl = get(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL);
+    if (baseUrl == null || baseUrl.contains("*")) {
+      return Optional.empty();
+    }
+    return Optional.of(baseUrl);
   }
 }

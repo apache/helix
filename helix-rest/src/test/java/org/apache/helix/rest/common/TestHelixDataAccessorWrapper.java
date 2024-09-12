@@ -81,7 +81,7 @@ public class TestHelixDataAccessorWrapper {
   public void beforeMethod() throws IOException {
     _dataAccessor = mock(MockHelixDataAccessorWrapper.class, CALLS_REAL_METHODS);
     _restConfig = mock(RESTConfig.class);
-    when(_restConfig.getBaseUrl(anyString())).thenReturn("http://localhost:1000");
+    when(_restConfig.resolveInstanceHealthUrl(anyString())).thenReturn("http://localhost:1000");
     _restClient = mock(CustomRestClient.class);
     _dataAccessor.setRestClient(_restClient);
     _dataAccessor.setNamespace("test");

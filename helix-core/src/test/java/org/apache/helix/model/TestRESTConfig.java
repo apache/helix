@@ -32,8 +32,8 @@ public class TestRESTConfig {
     ZNRecord record = new ZNRecord("test");
     record.setSimpleField(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL.name(), "http://*:8080");
     RESTConfig restConfig = new RESTConfig(record);
-    Assert.assertEquals(restConfig.getBaseUrl("instance0"), "http://instance0:8080");
-    Assert.assertEquals(restConfig.getBaseUrl("instance1_9090"), "http://instance1:8080");
+    Assert.assertEquals(restConfig.resolveInstanceHealthUrl("instance0"), "http://instance0:8080");
+    Assert.assertEquals(restConfig.resolveInstanceHealthUrl("instance1_9090"), "http://instance1:8080");
   }
 
   @Test(expectedExceptions = HelixException.class)
@@ -41,6 +41,6 @@ public class TestRESTConfig {
     ZNRecord record = new ZNRecord("test");
     record.setSimpleField(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL.name(), "http://foo:8080");
     RESTConfig restConfig = new RESTConfig(record);
-    restConfig.getBaseUrl("instance0");
+    restConfig.resolveInstanceHealthUrl("instance0");
   }
 }

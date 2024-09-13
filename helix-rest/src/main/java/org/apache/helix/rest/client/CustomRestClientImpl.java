@@ -51,7 +51,7 @@ class CustomRestClientImpl implements CustomRestClient {
   // postfix used to append at the end of base url
   private static final String INSTANCE_HEALTH_STATUS = "/instanceHealthStatus";
   private static final String PARTITION_HEALTH_STATUS = "/partitionHealthStatus";
-  private static final String CLUSTER_HEALTH_STATUS = "/clusterHealthStatus";
+  private static final String AGGREGATED_HEALTH_STATUS = "/aggregatedHealthStatus";
 
   private static final String IS_HEALTHY_FIELD = "IS_HEALTHY";
   private static final String PARTITIONS = "partitions";
@@ -103,11 +103,11 @@ class CustomRestClientImpl implements CustomRestClient {
   }
 
   @Override
-  public Map<String, List<String>> getClusterStoppableCheck(String baseUrl, List<String> instances,
-      Set<String> toBeStoppedInstances, String clusterId, Map<String, String> customPayloads)
-      throws IOException {
+  public Map<String, List<String>> getAggregatedStoppableCheck(String baseUrl,
+      List<String> instances, Set<String> toBeStoppedInstances, String clusterId,
+      Map<String, String> customPayloads) throws IOException {
     /*
-     * example url: http://<baseUrl>/clusterHealthStatus -d {
+     * example url: http://<baseUrl>/aggregatedHealthStatus -d {
      * "instances" : ["n1", "n3", "n9"],
      * "to_be_stopped_instances": "["n2", "n4"]",
      * "cluster_name": "cluster1",
@@ -127,7 +127,7 @@ class CustomRestClientImpl implements CustomRestClient {
      * "n4": "reason3"
      * }
      */
-    String url = baseUrl + CLUSTER_HEALTH_STATUS;
+    String url = baseUrl + AGGREGATED_HEALTH_STATUS;
     Map<String, Object> payLoads = new HashMap<>(customPayloads);
     if (instances != null && !instances.isEmpty()) {
       payLoads.put("instances", instances);
@@ -140,7 +140,7 @@ class CustomRestClientImpl implements CustomRestClient {
     }
 
     // JsonConverter to handle the response and map instance health status
-    JsonConverter<List<String>> converter = this::extractClusterStatus;
+    JsonConverter<List<String>> converter = this::extractAggregatedStatus;
     return handleResponse(post(url, payLoads), converter);
   }
 
@@ -233,7 +233,7 @@ class CustomRestClientImpl implements CustomRestClient {
     return result;
   }
 
-  private Map<String, List<String>> extractClusterStatus(JsonNode jsonNode) {
+  private Map<String, List<String>> extractAggregatedStatus(JsonNode jsonNode) {
     Map<String, List<String>> result = new HashMap<>();
     jsonNode.fields().forEachRemaining(response -> {
       String key = response.getKey();

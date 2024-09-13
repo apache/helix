@@ -85,7 +85,7 @@ public class MaintenanceManagementService {
   public static final Set<StoppableCheck.Category> SKIPPABLE_HEALTH_CHECK_CATEGORIES =
       ImmutableSet.of(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK,
           StoppableCheck.Category.CUSTOM_PARTITION_CHECK,
-          StoppableCheck.Category.CUSTOM_CLUSTER_CHECK);
+          StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK);
 
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
@@ -506,12 +506,12 @@ public class MaintenanceManagementService {
     // perform the custom check at cluster level.
     if (restConfig.getConfiguredHealthUrl().isPresent()) {
       if (_skipHealthCheckCategories.contains(
-          StoppableCheck.Category.CUSTOM_CLUSTER_CHECK)) {
+          StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)) {
         return instances;
       }
 
       Map<String, StoppableCheck> clusterLevelCustomCheckResult =
-          performClusterLevelCustomCheck(clusterId, instances, restConfig.getConfiguredHealthUrl().get(),
+          performAggregatedCustomCheck(clusterId, instances, restConfig.getConfiguredHealthUrl().get(),
               customPayLoads, toBeStoppedInstances);
       List<String> instancesForNextCheck = new ArrayList<>();
       clusterLevelCustomCheckResult.forEach((instance, stoppableCheck) -> {
@@ -723,27 +723,27 @@ public class MaintenanceManagementService {
     return instanceStoppableChecks;
   }
 
-  private Map<String, StoppableCheck> performClusterLevelCustomCheck(String clusterId,
+  private Map<String, StoppableCheck> performAggregatedCustomCheck(String clusterId,
       List<String> instances, String url, Map<String, String> customPayLoads,
       Set<String> toBeStoppedInstances) {
-    Map<String, StoppableCheck> clusterLevelStoppableChecks = new HashMap<>();
+    Map<String, StoppableCheck> aggregatedStoppableChecks = new HashMap<>();
     try {
-      Map<String, List<String>> clusterLevelCustomCheck =
-          _customRestClient.getClusterStoppableCheck(url, instances, toBeStoppedInstances,
+      Map<String, List<String>> customCheckResult =
+          _customRestClient.getAggregatedStoppableCheck(url, instances, toBeStoppedInstances,
               clusterId, customPayLoads);
-      for (Map.Entry<String, List<String>> entry : clusterLevelCustomCheck.entrySet()) {
+      for (Map.Entry<String, List<String>> entry : customCheckResult.entrySet()) {
         // If the list is empty, it means the instance is stoppable.
-        clusterLevelStoppableChecks.put(entry.getKey(),
+        aggregatedStoppableChecks.put(entry.getKey(),
             new StoppableCheck(entry.getValue().isEmpty(), entry.getValue(),
-                StoppableCheck.Category.CUSTOM_CLUSTER_CHECK));
+                StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK));
       }
     } catch (IOException ex) {
-      LOG.error("Custom client side cluster level health check for {} failed.", clusterId, ex);
+      LOG.error("Custom client side aggregated health check for {} failed.", clusterId, ex);
       return instances.stream().collect(Collectors.toMap(Function.identity(),
           instance -> new StoppableCheck(false, Collections.singletonList(instance),
-              StoppableCheck.Category.CUSTOM_CLUSTER_CHECK)));
+              StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)));
     }
-    return clusterLevelStoppableChecks;
+    return aggregatedStoppableChecks;
   }
 
   public static Map<String, String> getMapFromJsonPayload(String jsonContent) throws IOException {

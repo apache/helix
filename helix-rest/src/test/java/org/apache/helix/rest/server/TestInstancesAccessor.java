@@ -591,11 +591,13 @@ public class TestInstancesAccessor extends AbstractTestClass {
 
     // Change instance config of instance1 & instance0 to be evacuating
     String instance0 = "instance0";
-    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance0);
+    InstanceConfig instanceConfig =
+        _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance0);
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance0, instanceConfig);
     String instance1 = "instance1";
-    InstanceConfig instanceConfig1 = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance1);
+    InstanceConfig instanceConfig1 =
+        _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance1);
     instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance1, instanceConfig1);
     RESTConfig restConfig = new RESTConfig(STOPPABLE_CLUSTER2);
@@ -607,14 +609,14 @@ public class TestInstancesAccessor extends AbstractTestClass {
     Assert.assertTrue(verifier.verifyByPolling());
 
     Response response = new JerseyUriRequestBuilder(
-        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_CLUSTER_CHECK").format(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_AGGREGATED_CHECK").format(
         STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
     JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
 
     Set<String> stoppableSet = getStringSet(jsonNode,
         InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
-    Assert.assertTrue(stoppableSet.contains("instance12")
-        && stoppableSet.contains("instance11") && stoppableSet.contains("instance10"));
+    Assert.assertTrue(stoppableSet.contains("instance12") && stoppableSet.contains("instance11")
+        && stoppableSet.contains("instance10"));
 
     JsonNode nonStoppableInstances = jsonNode.get(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());

@@ -226,7 +226,7 @@ public class TestCustomRestClient {
     customRestClient.setJsonResponse(jsonResponse);
     when(_httpClient.execute(any(HttpPost.class))).thenReturn(httpResponse);
 
-    Map<String, List<String>> clusterHealth = customRestClient.getClusterStoppableCheck(HTTP_LOCALHOST,
+    Map<String, List<String>> clusterHealth = customRestClient.getAggregatedStoppableCheck(HTTP_LOCALHOST,
         ImmutableList.of("n1", "n2", "n3", "n4", "n10"),
         ImmutableSet.of("n7", "n8"), clusterId, Collections.emptyMap());
 

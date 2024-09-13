@@ -62,7 +62,7 @@ public interface CustomRestClient {
    * @return a map where key is instance name and value is a list of failed checks
    * @throws IOException
    */
-  Map<String, List<String>> getClusterStoppableCheck(String baseUrl, List<String> instances,
+  Map<String, List<String>> getAggregatedStoppableCheck(String baseUrl, List<String> instances,
       Set<String> toBeStoppedInstances, String clusterId, Map<String, String> customPayloads)
       throws IOException;
 }

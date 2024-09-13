@@ -53,8 +53,9 @@ public interface CustomRestClient {
       Map<String, String> customPayloads) throws IOException;
 
   /**
-   * Get the cluster level stoppable check result for each of the given instances.
-   * @param baseUrl the base url of the cluster health status check endpoint
+   * Get the stoppable check result for each of the given instances from the aggregated health
+   * check endpoint.
+   * @param baseUrl the base url of the aggregated health status check endpoint
    * @param instances a list of instances to check
    * @param toBeStoppedInstances a set of instances which are assumed stopped
    * @param clusterId the cluster id

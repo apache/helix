@@ -209,7 +209,7 @@ public class TestCustomRestClient {
   }
 
   @Test
-  public void testGetClusterLevelStoppableCheck() throws IOException {
+  public void testGetAggregatedStoppableCheck() throws IOException {
     MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
     String jsonResponse = "{\n \"stoppableInstances\" : [\"n1\", \"n2\", \"n3\"],\n \"nonStoppableInstancesWithReasons\": "
         + "{\n    \"n4\": \"ERROR_PARTITION STILL_BOOTSTRAPPING\",\n    \"n10\": \"NOT_READY\"\n  }\n}";

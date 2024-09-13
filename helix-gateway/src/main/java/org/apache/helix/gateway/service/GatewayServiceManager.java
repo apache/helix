@@ -108,27 +108,46 @@ public class GatewayServiceManager {
     }
   }
 
-  private GatewayCurrentStateCache getCache(String clusterName) {
-    return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
-  }
-
   public void resetTargetStateCache(String clusterName, String instanceName) {
-    getCache(clusterName).resetTargetStateCache(instanceName);
+    getOrCreateCache(clusterName).resetTargetStateCache(instanceName);
   }
 
+  /**
+   * Overwrite the current state cache with the new current state map, and return the diff of the change.
+   * @param clusterName
+   * @param newCurrentStateMap
+   * @return
+   */
   public  Map<String, Map<String, Map<String, String>>> updateCacheWithNewCurrentStateAndGetDiff(String clusterName,
       Map<String, Map<String, Map<String, String>>> newCurrentStateMap) {
-   return  getCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
+   return  getOrCreateCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
   }
 
-  public String serializeTargetState() {
+  public void updateCurrentState(String clusterName, String instanceName, String resourceId, String shardId, String toState) {
+    getOrCreateCache(clusterName).updateCurrentStateOfExistingInstance(instanceName, resourceId, shardId, toState);
+  }
+
+  public synchronized String serializeTargetState() {
     ObjectNode targetStateNode = new ObjectMapper().createObjectNode();
     for (String clusterName : _currentStateCacheMap.keySet()) {
       // add the json node to the target state node
-      targetStateNode.set(clusterName, getCache(clusterName).serializeTargetAssignmentsToJSONNode());
+      targetStateNode.set(clusterName, getOrCreateCache(clusterName).serializeTargetAssignmentsToJSONNode());
     }
     targetStateNode.set("timestamp", objectMapper.valueToTree(System.currentTimeMillis()));
     return targetStateNode.toString();
+  }
+
+  public void updateTargetState(String clusterName, String instanceName, String resourceId, String shardId,
+      String toState) {
+    getOrCreateCache(clusterName).updateTargetStateOfExistingInstance(instanceName, resourceId, shardId, toState);
+  }
+
+  public String getCurrentState(String clusterName, String instanceName, String resourceId, String shardId) {
+    return getOrCreateCache(clusterName).getCurrentState(instanceName, resourceId, shardId);
+  }
+
+  public String getTargetState(String clusterName, String instanceName, String resourceId, String shardId) {
+    return getOrCreateCache(clusterName).getTargetState(instanceName, resourceId, shardId);
   }
 
   /**
@@ -199,12 +218,10 @@ public class GatewayServiceManager {
     resetTargetStateCache(clusterName, instanceName);
     // Create and add the participant to the participant map
     HelixGatewayParticipant.Builder participantBuilder =
-        new HelixGatewayParticipant.Builder(_gatewayServiceChannel, instanceName, clusterName,
-            _zkAddress,
-            () -> removeHelixGatewayParticipant(clusterName, instanceName)).setInitialShardState(
+        new HelixGatewayParticipant.Builder(_gatewayServiceChannel, instanceName, clusterName, _zkAddress,
+            () -> removeHelixGatewayParticipant(clusterName, instanceName), this).setInitialShardState(
             initialShardStateMap);
-    SUPPORTED_MULTI_STATE_MODEL_TYPES.forEach(
-        participantBuilder::addMultiTopStateStateModelDefinition);
+    SUPPORTED_MULTI_STATE_MODEL_TYPES.forEach(participantBuilder::addMultiTopStateStateModelDefinition);
     _helixGatewayParticipantMap.computeIfAbsent(clusterName, k -> new ConcurrentHashMap<>())
         .put(instanceName, participantBuilder.build());
   }
@@ -216,11 +233,16 @@ public class GatewayServiceManager {
       participant.disconnect();
       _helixGatewayParticipantMap.get(clusterName).remove(instanceName);
     }
+    _currentStateCacheMap.get(clusterName).removeInstanceTargetDataFromCache(instanceName);
   }
 
   private HelixGatewayParticipant getHelixGatewayParticipant(String clusterName,
       String instanceName) {
     return _helixGatewayParticipantMap.getOrDefault(clusterName, Collections.emptyMap())
         .get(instanceName);
+  }
+
+  private synchronized GatewayCurrentStateCache getOrCreateCache(String clusterName) {
+    return _currentStateCacheMap.computeIfAbsent(clusterName, k -> new GatewayCurrentStateCache(clusterName));
   }
 }

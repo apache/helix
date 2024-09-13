@@ -51,31 +51,28 @@ public class TestGatewayCurrentStateCache {
   }
 
   @Test
-  public void testUpdateCacheWithCurrentStateDiff() {
-    Map<String, Map<String, Map<String, String>>> diff = new HashMap<>();
+  public void testUpdateCacheWithExistingStateAndGetDiff() {
+    // Initial state
+    Map<String, Map<String, Map<String, String>>> initialState = new HashMap<>();
     Map<String, Map<String, String>> instanceState = new HashMap<>();
     Map<String, String> shardState = new HashMap<>();
-    shardState.put("shard2", "ONLINE");
     shardState.put("shard1", "ONLINE");
     instanceState.put("resource1", shardState);
-    diff.put("instance1", instanceState);
+    initialState.put("instance1", instanceState);
+    cache.updateCacheWithNewCurrentStateAndGetDiff(initialState);
 
-    cache.updateCacheWithCurrentStateDiff(diff);
+    // New state with a change
+    Map<String, Map<String, Map<String, String>>> newState = new HashMap<>();
+    Map<String, Map<String, String>> newInstanceState = new HashMap<>();
+    Map<String, String> newShardState = new HashMap<>();
+    newShardState.put("shard1", "OFFLINE");
+    newInstanceState.put("resource1", newShardState);
+    newState.put("instance1", newInstanceState);
 
-    Assert.assertEquals(cache.getCurrentState("instance1", "resource1", "shard1"), "ONLINE");
-    Assert.assertEquals(cache.getCurrentState("instance1", "resource1", "shard2"), "ONLINE");
-  }
+    Map<String, Map<String, Map<String, String>>> diff = cache.updateCacheWithNewCurrentStateAndGetDiff(newState);
 
-  @Test
-  public void testUpdateTargetStateWithDiff() {
-    Map<String, Map<String, String>> targetStateChange = new HashMap<>();
-    Map<String, String> shardState = new HashMap<>();
-    shardState.put("shard1", "OFFLINE");
-    targetStateChange.put("resource1", shardState);
-
-    cache.updateTargetStateWithDiff("instance1", targetStateChange);
-
-    Assert.assertEquals(cache.getTargetState("instance1", "resource1", "shard1"), "OFFLINE");
-    Assert.assertEquals(cache.serializeTargetAssignmentsToJSONNode().toString(), "{\"instance1\":{\"resource1\":{\"shard1\":\"OFFLINE\"}}}");
+    Assert.assertNotNull(diff);
+    Assert.assertEquals(diff.size(), 1);
+    Assert.assertEquals(diff.get("instance1").get("resource1").get("shard1"), "OFFLINE");
   }
 }

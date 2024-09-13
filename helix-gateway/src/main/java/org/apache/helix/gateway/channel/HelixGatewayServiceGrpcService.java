@@ -38,7 +38,6 @@ import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.org.apache.helix.gateway.HelixGatewayServiceGrpc;
-import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardChangeRequests;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardState;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass.ShardStateMessage;
@@ -92,7 +91,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
           updateObserver(shardState.getInstanceName(), shardState.getClusterName(), responseObserver);
         }
         pushClientEventToGatewayManager(_manager,
-            StateTransitionMessageTranslateUtil.translateShardStateMessageToEvent(request));
+            StateTransitionMessageTranslateUtil.translateShardStateMessageToEventAndUpdateCache(_manager, request));
       }
 
       @Override
@@ -120,9 +119,8 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
    */
   @Override
   public void sendStateChangeRequests(String instanceName, ShardChangeRequests requests) {
-    StreamObserver<HelixGatewayServiceOuterClass.ShardChangeRequests> observer;
-    observer = _observerMap.get(instanceName);
-    if (observer != null) {
+    StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
+    if (observer!= null) {
       observer.onNext(requests);
     } else {
       logger.error("Instance {} is not connected to the gateway service", instanceName);
@@ -151,8 +149,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   }
 
   private void closeConnectionHelper(String instanceName, String errorReason, boolean withError) {
-    StreamObserver<ShardChangeRequests> observer;
-    observer = _observerMap.get(instanceName);
+    StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
     if (observer != null) {
       if (withError) {
         observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());
@@ -162,7 +159,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     }
   }
 
-  public void onClientClose(String clusterName, String instanceName) {
+   private void onClientClose(String clusterName, String instanceName) {
     if (instanceName == null || clusterName == null) {
       // TODO: log error;
       return;

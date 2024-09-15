@@ -130,7 +130,7 @@ public final class StateTransitionMessageTranslateUtil {
    * @param clusterName the cluster name
    * @return GatewayServiceEvent
    */
-  public static GatewayServiceEvent translateClientCloseToEvent(String instanceName, String clusterName) {
+  public static GatewayServiceEvent translateClientCloseToEvent( String clusterName, String instanceName) {
     GatewayServiceEvent.GateWayServiceEventBuilder builder =
         new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.DISCONNECT).setClusterName(
             clusterName).setParticipantName(instanceName);
@@ -144,7 +144,7 @@ public final class StateTransitionMessageTranslateUtil {
    * @param shardStateMap
    * @return
    */
-  public static GatewayServiceEvent translateCurrentStateChangeToEvent(String instanceName, String clusterName,
+  public static GatewayServiceEvent translateCurrentStateChangeToEvent( String clusterName, String instanceName,
       Map<String, Map<String, String>> shardStateMap) {
     List<GatewayServiceEvent.StateTransitionResult> stResult = new ArrayList<>();
     shardStateMap.forEach((resourceName, value) -> value.forEach((key, value1) -> {
@@ -165,7 +165,7 @@ public final class StateTransitionMessageTranslateUtil {
    * @param shardStateMap the initial state of shards on the participant. Could be empty map
    * @return
    */
-  public static GatewayServiceEvent translateCurrentStateDiffToInitConnectEvent(String instanceName, String clusterName,
+  public static GatewayServiceEvent translateCurrentStateDiffToInitConnectEvent( String clusterName, String instanceName,
       Map<String, Map<String, String>> shardStateMap) {
     GatewayServiceEvent.GateWayServiceEventBuilder builder =
         new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(

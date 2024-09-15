@@ -19,7 +19,9 @@ package org.apache.helix.gateway.channel;
  * under the License.
  */
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
 import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
@@ -110,7 +112,6 @@ public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceCh
         boolean prevLiveness =
             _livenessResults.get(clusterName) != null && _livenessResults.get(clusterName).get(instanceName);
         boolean liveness = fetchInstanceLivenessStatus(clusterName, instanceName);
-
         if (prevLiveness && !liveness) {  // previously connected, now disconnected
           logger.warn("Host {} is not healthy, sending event to gateway manager", instanceName);
           pushClientEventToGatewayManager(_manager,
@@ -172,7 +173,6 @@ public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceCh
   public void stop() {
     logger.info("Stopping Helix Gateway Service Poll Mode Channel...");
     // Shutdown the scheduler gracefully when done (e.g., on app termination)
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       _scheduler.shutdown();
       try {
         if (!_scheduler.awaitTermination(1, TimeUnit.MINUTES)) {
@@ -181,7 +181,12 @@ public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceCh
       } catch (InterruptedException e) {
         _scheduler.shutdownNow();
       }
-    }));
+    // remove files
+    if (_shardStateChannelType == GatewayServiceChannelConfig.ChannelType.FILE) {
+      File file = new File(_targetStateFilePath);
+      boolean res = file.delete();
+      logger.info("Delete target state file: " + file + " res :" + res);
+    }
   }
 
   @Override

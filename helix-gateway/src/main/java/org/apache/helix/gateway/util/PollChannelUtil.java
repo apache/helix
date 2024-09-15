@@ -69,6 +69,7 @@ public class PollChannelUtil {
   public static void flushAssignmentToFile(String targetAssignment, String filePath) {
     try (FileWriter fileWriter = new FileWriter(filePath)) {
       fileWriter.write(targetAssignment);
+      fileWriter.close();
     } catch (IOException e) {
       logger.warn("Failed to write to file: " + filePath, e);
     }

@@ -38,7 +38,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -321,7 +320,8 @@ public class DelayedRebalanceUtil {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
 
     for (String resourceName : resources) {
-      ResourceAssignment resourceAssignment = currentAssignment.get(resourceName);
+      ResourceAssignment resourceAssignment = currentAssignment.getOrDefault(resourceName,
+          new ResourceAssignment(resourceName));
       IdealState idealState = clusterData.getIdealState(resourceName);
       String modelDef = idealState.getStateModelDefRef();
       Map<String, Integer> statePriorityMap = clusterData.getStateModelDef(modelDef).getStatePriorityMap();

@@ -165,12 +165,12 @@ public final class StateTransitionMessageTranslateUtil {
    * @param shardStateMap the initial state of shards on the participant. Could be empty map
    * @return
    */
-  public static GatewayServiceEvent translateCurrentStateDiffToInitConnectEvent( String clusterName, String instanceName,
+  public static GatewayServiceEvent translateCurrentStateDiffToInitConnectEvent(String clusterName, String instanceName,
       Map<String, Map<String, String>> shardStateMap) {
     GatewayServiceEvent.GateWayServiceEventBuilder builder =
-        new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(
-            clusterName).setParticipantName(instanceName).setShardStateMap(shardStateMap);
+        new GatewayServiceEvent.GateWayServiceEventBuilder(GatewayServiceEventType.CONNECT).setClusterName(clusterName)
+            .setParticipantName(instanceName)
+            .setShardStateMap(shardStateMap);
     return builder.build();
   }
-
 }

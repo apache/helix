@@ -200,7 +200,7 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     // Total requests metric is included as an attribute(Count) in timers
     try (final Timer.Context timer = metrics.timer(CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_DURATION)
         .time()) {
-      return _restClient.getPartitionStoppableCheck(restConfig.resolveInstanceHealthUrl(instance), partitions,
+      return _restClient.getPartitionStoppableCheck(restConfig.getBaseUrl(instance), partitions,
           customPayLoads);
     } catch (IOException e) {
       LOG.error("Failed to get partition status on instance {}, partitions: {}", instance,

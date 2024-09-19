@@ -110,7 +110,7 @@ class CustomRestClientImpl implements CustomRestClient {
      * example url: http://<baseUrl>/aggregatedHealthStatus -d {
      * "instances" : ["n1", "n3", "n9"],
      * "to_be_stopped_instances": "["n2", "n4"]",
-     * "cluster_name": "cluster1",
+     * "cluster_id": "cluster1",
      * "<key>": "<value>"
      * ...
      * }
@@ -136,7 +136,7 @@ class CustomRestClientImpl implements CustomRestClient {
       payLoads.put("to_be_stopped_instances", toBeStoppedInstances);
     }
     if (clusterId != null) {
-      payLoads.put("cluster_name", clusterId);
+      payLoads.put("cluster_id", clusterId);
     }
 
     // JsonConverter to handle the response and map instance health status
@@ -211,10 +211,6 @@ class CustomRestClientImpl implements CustomRestClient {
         postRequest.releaseConnection();
         throw e;
       }
-    }
-
-    if (retries >= MAX_REDIRECT) {
-      throw new IOException("Maximum redirect retries reached.");
     }
 
     return response;

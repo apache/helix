@@ -504,15 +504,15 @@ public class MaintenanceManagementService {
 
     // If the config has exactUrl and the CLUSTER level customer check is not skipped, we will
     // perform the custom check at cluster level.
-    if (restConfig.getConfiguredHealthUrl().isPresent()) {
-      if (_skipHealthCheckCategories.contains(
-          StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)) {
+    if (restConfig.getCompleteConfiguredHealthUrl().isPresent()) {
+      if (_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)) {
         return instances;
       }
 
       Map<String, StoppableCheck> clusterLevelCustomCheckResult =
-          performAggregatedCustomCheck(clusterId, instances, restConfig.getConfiguredHealthUrl().get(),
-              customPayLoads, toBeStoppedInstances);
+          performAggregatedCustomCheck(clusterId, instances,
+              restConfig.getCompleteConfiguredHealthUrl().get(), customPayLoads,
+              toBeStoppedInstances);
       List<String> instancesForNextCheck = new ArrayList<>();
       clusterLevelCustomCheckResult.forEach((instance, stoppableCheck) -> {
         addStoppableCheck(finalStoppableChecks, instance, stoppableCheck);
@@ -530,7 +530,7 @@ public class MaintenanceManagementService {
     if (!_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)) {
       Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
           Collectors.toMap(Function.identity(), instance -> POOL.submit(
-              () -> performCustomInstanceCheck(clusterId, instance, restConfig.resolveInstanceHealthUrl(instance),
+              () -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance),
                   customPayLoads))));
       instancesForCustomPartitionLevelChecks =
           filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);

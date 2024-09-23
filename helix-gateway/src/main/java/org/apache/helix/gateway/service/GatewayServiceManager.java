@@ -88,11 +88,10 @@ public class GatewayServiceManager {
    */
   public void setGatewayServiceChannel(HelixGatewayServiceChannel channel) {
     if (_gatewayServiceChannel != null) {
-      _gatewayServiceChannel.stop();
-      return;
+      throw new IllegalStateException(
+          "Gateway service channel is already set, it can only be set once.");
     }
-    throw new IllegalStateException(
-        "Gateway service channel is already set, it can only be set once.");
+    _gatewayServiceChannel = channel;
   }
 
   /**
@@ -163,6 +162,7 @@ public class GatewayServiceManager {
 
     @Override
     public void run() {
+      System.out.println("Processing state transition result " + _event.getInstanceName());
       HelixGatewayParticipant participant =
           getHelixGatewayParticipant(_event.getClusterName(), _event.getInstanceName());
       if (participant == null) {
@@ -201,7 +201,11 @@ public class GatewayServiceManager {
   public void stopManager() {
     _connectionEventProcessor.shutdown();
     _participantStateTransitionResultUpdator.shutdown();
-    _helixGatewayParticipantMap.clear();
+    _helixGatewayParticipantMap.forEach((clusterName, participantMap) -> {
+      participantMap.forEach((instanceName, participant) -> {
+        participant.disconnect();
+      });
+    });
   }
 
   public void startService() throws IOException {
@@ -231,9 +235,13 @@ public class GatewayServiceManager {
     HelixGatewayParticipant participant = getHelixGatewayParticipant(clusterName, instanceName);
     if (participant != null) {
       participant.disconnect();
-      _helixGatewayParticipantMap.get(clusterName).remove(instanceName);
+      if (_helixGatewayParticipantMap.containsKey(clusterName)) {
+        _helixGatewayParticipantMap.get(clusterName).remove(instanceName);
+      }
     }
-    _currentStateCacheMap.get(clusterName).removeInstanceTargetDataFromCache(instanceName);
+    if (_currentStateCacheMap.containsKey(clusterName)) {
+      _currentStateCacheMap.get(clusterName).removeInstanceTargetDataFromCache(instanceName);
+    }
   }
 
   private HelixGatewayParticipant getHelixGatewayParticipant(String clusterName,

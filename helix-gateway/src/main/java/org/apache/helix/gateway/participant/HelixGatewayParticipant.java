@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.gateway.api.service.HelixGatewayServiceChannel;
+import org.apache.helix.gateway.channel.HelixGatewayServicePollModeChannel;
 import org.apache.helix.gateway.service.GatewayServiceManager;
 import org.apache.helix.gateway.statemodel.HelixGatewayMultiTopStateStateModelFactory;
 import org.apache.helix.gateway.util.StateTransitionMessageTranslateUtil;
@@ -34,6 +35,8 @@ import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateTransitionError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -43,6 +46,7 @@ import org.apache.helix.participant.statemachine.StateTransitionError;
  * transitions signaled by remote participant.
  */
 public class HelixGatewayParticipant implements HelixManagerStateListener {
+  private static final Logger logger = LoggerFactory.getLogger(HelixGatewayParticipant.class);
   public static final String UNASSIGNED_STATE = "UNASSIGNED";
   private final HelixGatewayServiceChannel _gatewayServiceChannel;
   private final HelixManager _helixManager;
@@ -113,6 +117,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
    * Completes the state transition with the given transitionId.
    */
   public void completeStateTransition(String resourceId, String shardId, String currentState) {
+    logger.info("Completing state transition for shard: {}{} to state: {}", resourceId, shardId, currentState);
     String concatenatedShardName = resourceId + shardId;
     CompletableFuture<String> future = _stateTransitionResultMap.get(concatenatedShardName);
     if (future != null) {

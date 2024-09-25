@@ -19,6 +19,8 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Optional;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -61,7 +63,7 @@ public class RESTConfig extends HelixProperty {
   }
 
   /**
-   * Get the base restful endpoint of the instance
+   * Resolves the customized health URL by replacing the wildcard with the instance's name
    *
    * @param instance The instance
    * @return The base restful endpoint
@@ -82,5 +84,28 @@ public class RESTConfig extends HelixProperty {
     }
 
     return baseUrl.replace("*", instanceVip);
+  }
+
+  /**
+   * Retrieves the complete configured health URL if no wildcard is present.
+   * <p>
+   * For complete URL, only aggregated customized health check is supported. For
+   * partition/instance health check, the URL should have the wildcard. The example of the complete
+   * URL is "http://localhost:8080/healthcheck". The example of the URL with wildcard is
+   * "http://*\/path".
+   * <p>
+   * This method is useful when aggregated health checks are required and individual partition or
+   * instance checks need to be excluded.
+   * <p>
+   * Returns an empty Optional if the URL contains a wildcard.
+   *
+   * @return Optional containing the exact configured URL, or empty if a wildcard is present.
+   */
+  public Optional<String> getCompleteConfiguredHealthUrl() {
+    String baseUrl = get(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL);
+    if (baseUrl == null || baseUrl.contains("*")) {
+      return Optional.empty();
+    }
+    return Optional.of(baseUrl);
   }
 }

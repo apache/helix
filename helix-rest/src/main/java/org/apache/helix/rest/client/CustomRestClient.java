@@ -22,6 +22,7 @@ package org.apache.helix.rest.client;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Interacting with participant side to query for its health checks
@@ -50,4 +51,19 @@ public interface CustomRestClient {
    */
   Map<String, Boolean> getPartitionStoppableCheck(String baseUrl, List<String> partitions,
       Map<String, String> customPayloads) throws IOException;
+
+  /**
+   * Get the stoppable check result for each of the given instances from the aggregated health
+   * check endpoint.
+   * @param baseUrl the base url of the aggregated health status check endpoint
+   * @param instances a list of instances to check
+   * @param toBeStoppedInstances a set of instances which are assumed stopped
+   * @param clusterId the cluster id
+   * @param customPayloads generic payloads required from client side and helix only works as proxy
+   * @return a map where key is instance name and value is a list of failed checks
+   * @throws IOException
+   */
+  Map<String, List<String>> getAggregatedStoppableCheck(String baseUrl, List<String> instances,
+      Set<String> toBeStoppedInstances, String clusterId, Map<String, String> customPayloads)
+      throws IOException;
 }

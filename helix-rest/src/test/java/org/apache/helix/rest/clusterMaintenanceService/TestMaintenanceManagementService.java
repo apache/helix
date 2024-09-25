@@ -20,6 +20,7 @@ package org.apache.helix.rest.clusterMaintenanceService;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +56,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
@@ -414,4 +416,126 @@ public class TestMaintenanceManagementService {
     verify(_customRestClient, times(1)).getInstanceStoppableCheck(any(), any());
   }
 
+  @Test
+  public void testGetAggregatedStoppableCheckWithFailedInstances() throws IOException {
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+
+    Set<String> toBeStoppedInstances = ImmutableSet.of("n2", "n4");
+    List<String> instances = List.of(TEST_INSTANCE);
+    RESTConfig restConfig = new RESTConfig(TEST_CLUSTER);
+    // Set the customized health URL to a fake address which contains exact URI
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://fakeAddress:123/path");
+    when(_configAccessor.getRESTConfig(TEST_CLUSTER)).thenReturn(restConfig);
+    when(
+        _customRestClient.getAggregatedStoppableCheck(anyString(), anyList(), anySet(), anyString(),
+            anyMap())).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, Collections.singletonList("FAILED_FAKE_CHECK")));
+
+    Map<String, StoppableCheck> result =
+        service.batchGetInstancesStoppableChecks(TEST_CLUSTER, instances, "", toBeStoppedInstances);
+
+    Assert.assertEquals(result.size(), 1);
+    Assert.assertTrue(result.containsKey(TEST_INSTANCE));
+    Assert.assertFalse(result.get(TEST_INSTANCE).isStoppable());
+
+    // Since the cluster level check is not skipped, getAggregatedStoppableCheck should be called
+    verify(_customRestClient, times(1)).getAggregatedStoppableCheck(any(), any(), any(), any(),
+        any());
+    // Since the rest URI uses the exact URI, no instance/partition level check should be performed
+    verify(_customRestClient, times(0)).getInstanceStoppableCheck(any(), any());
+    verify(_customRestClient, times(0)).getPartitionStoppableCheck(any(), any(), any());
+  }
+
+  @Test
+  public void testGetAggregatedStoppableCheckWithStoppableInstances() throws IOException {
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+
+    Set<String> toBeStoppedInstances = ImmutableSet.of("n2", "n4");
+    List<String> instances = new ArrayList<>(Arrays.asList("n1", "n3", "n5"));
+    RESTConfig restConfig = new RESTConfig(TEST_CLUSTER);
+    // Set the customized health URL to a fake address which contains exact URI
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://fakeAddress:123/path");
+
+    Map<String, List<String>> stoppableCheckResult = new HashMap<>();
+    stoppableCheckResult.put("n1", Collections.emptyList()); // n1 is stoppable
+    stoppableCheckResult.put("n3",
+        List.of("FAILED_FAKE_CHECK", "FAILED_FAKE_CHECK2")); // n3 is not stoppable
+    stoppableCheckResult.put("n5", Collections.emptyList()); // n5 is stoppable
+    when(_configAccessor.getRESTConfig(TEST_CLUSTER)).thenReturn(restConfig);
+    when(
+        _customRestClient.getAggregatedStoppableCheck(anyString(), anyList(), anySet(), anyString(),
+            anyMap())).thenReturn(stoppableCheckResult);
+
+    Map<String, StoppableCheck> result =
+        service.batchGetInstancesStoppableChecks(TEST_CLUSTER, instances, "", toBeStoppedInstances);
+
+    Assert.assertEquals(result.size(), 3);
+    instances.forEach(instance -> {
+      Assert.assertTrue(result.containsKey(instance));
+      if (instance.equals("n1") || instance.equals("n5")) {
+        Assert.assertTrue(result.get(instance).isStoppable());
+      } else {
+        Assert.assertFalse(result.get(instance).isStoppable());
+        Assert.assertEquals(result.get(instance).getFailedChecks().size(), 2);
+      }
+    });
+
+    // Since the cluster level check is not skipped, getAggregatedStoppableCheck should be called
+    verify(_customRestClient, times(1)).getAggregatedStoppableCheck(any(), any(), any(), any(),
+        any());
+    // Since the rest URI uses the exact URI, no instance/partition level check should be performed
+    verify(_customRestClient, times(0)).getInstanceStoppableCheck(any(), any());
+    verify(_customRestClient, times(0)).getPartitionStoppableCheck(any(), any(), any());
+  }
+
+  @Test
+  public void testNewRestConfigBackwardCompatibilityWithRestURIWithWildcard() throws IOException {
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false,
+            Set.of(StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK),
+            HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    Set<String> toBeStoppedInstances = ImmutableSet.of("n2", "n4");
+    List<String> instances = List.of(TEST_INSTANCE);
+    RESTConfig restConfig = new RESTConfig(TEST_CLUSTER);
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://fakeAddress:123/path");
+    when(_configAccessor.getRESTConfig(TEST_CLUSTER)).thenReturn(restConfig);
+    when(
+        _customRestClient.getAggregatedStoppableCheck(anyString(), anyList(), anySet(), anyString(),
+            anyMap())).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, Collections.singletonList("FAILED_FAKE_CHECK")));
+
+    service.batchGetInstancesStoppableChecks(TEST_CLUSTER, instances, "", toBeStoppedInstances);
+    // Since the cluster level check is skipped, getAggregatedStoppableCheck should not be called
+    verify(_customRestClient, times(0)).getAggregatedStoppableCheck(any(), any(), any(), any(),
+        any());
+    verify(_customRestClient, times(0)).getInstanceStoppableCheck(any(), any());
+    verify(_customRestClient, times(0)).getPartitionStoppableCheck(any(), any(), any());
+  }
+
+  @Test
+  public void testRestConfigWorkWithInstancesAndPartitionChecks() throws IOException {
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(_dataAccessorWrapper, _configAccessor,
+            _customRestClient, false, false, Set.of(StoppableCheck.Category.CUSTOM_PARTITION_CHECK),
+            HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    Set<String> toBeStoppedInstances = ImmutableSet.of("n2", "n4");
+    List<String> instances = List.of(TEST_INSTANCE);
+    RESTConfig restConfig = new RESTConfig(TEST_CLUSTER);
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:123/path");
+    when(_configAccessor.getRESTConfig(TEST_CLUSTER)).thenReturn(restConfig);
+    when(_customRestClient.getInstanceStoppableCheck(anyString(), anyMap())).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, true));
+
+    service.batchGetInstancesStoppableChecks(TEST_CLUSTER, instances, "", toBeStoppedInstances);
+    // Since the cluster level check is skipped, getAggregatedStoppableCheck should not be called
+    verify(_customRestClient, times(0)).getAggregatedStoppableCheck(any(), any(), any(), any(),
+        any());
+    verify(_customRestClient, times(1)).getInstanceStoppableCheck(any(), any());
+    verify(_customRestClient, times(0)).getPartitionStoppableCheck(any(), any(), any());
+  }
 }

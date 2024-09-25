@@ -20,12 +20,15 @@ package org.apache.helix.rest.client;
  */
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -203,5 +206,32 @@ public class TestCustomRestClient {
     protected JsonNode getJsonObject(HttpResponse httpResponse) throws IOException {
       return new ObjectMapper().readTree(_jsonResponse);
     }
+  }
+
+  @Test
+  public void testGetAggregatedStoppableCheck() throws IOException {
+    MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
+    String jsonResponse = "{\n \"stoppableInstances\" : [\"n1\", \"n2\", \"n3\"],\n \"nonStoppableInstancesWithReasons\": "
+        + "{\n    \"n4\": \"ERROR_PARTITION STILL_BOOTSTRAPPING\",\n    \"n10\": \"NOT_READY\"\n  }\n}";
+    String clusterId = "cluster1";
+    String[] instances = {"n1", "n2", "n3", "n4", "n10"};
+    String[] healthyInstances = {"n1", "n2", "n3"};
+    String[] nonStoppableInstances = {"n4", "n10"};
+
+    HttpResponse httpResponse = mock(HttpResponse.class);
+    StatusLine statusLine = mock(StatusLine.class);
+
+    when(statusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+    when(httpResponse.getStatusLine()).thenReturn(statusLine);
+    customRestClient.setJsonResponse(jsonResponse);
+    when(_httpClient.execute(any(HttpPost.class))).thenReturn(httpResponse);
+
+    Map<String, List<String>> clusterHealth = customRestClient.getAggregatedStoppableCheck(HTTP_LOCALHOST,
+        ImmutableList.of("n1", "n2", "n3", "n4", "n10"),
+        ImmutableSet.of("n7", "n8"), clusterId, Collections.emptyMap());
+
+    Assert.assertTrue(Arrays.stream(instances).allMatch(clusterHealth::containsKey));
+    Assert.assertTrue(Arrays.stream(healthyInstances).allMatch(instance -> clusterHealth.get(instance).isEmpty()));
+    Assert.assertTrue(Arrays.stream(nonStoppableInstances).noneMatch(instance -> clusterHealth.get(instance).isEmpty()));
   }
 }

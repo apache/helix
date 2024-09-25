@@ -38,6 +38,7 @@ import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
@@ -574,6 +575,61 @@ public class TestInstancesAccessor extends AbstractTestClass {
         .contains("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
     Assert.assertTrue(getStringSet(nonStoppableInstances, "instance2")
         .contains("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testMultipleReplicasInSameMZ")
+  public void testSkipClusterLevelHealthCheck() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\", \"%s\", \"%s\", \"%s\",\"%s\", \"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1", "instance3",
+        "instance6", "instance9", "instance10", "instance11", "instance12", "instance13",
+        "instance14", "invalidInstance");
+
+    // Change instance config of instance1 & instance0 to be evacuating
+    String instance0 = "instance0";
+    InstanceConfig instanceConfig =
+        _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance0);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance0, instanceConfig);
+    String instance1 = "instance1";
+    InstanceConfig instanceConfig1 =
+        _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance1);
+    instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance1, instanceConfig1);
+    RESTConfig restConfig = new RESTConfig(STOPPABLE_CLUSTER2);
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://localhost:1234");
+    _configAccessor.setRESTConfig(STOPPABLE_CLUSTER2, restConfig);
+    // It takes time to reflect the changes.
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER2).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_AGGREGATED_CHECK").format(
+        STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    Set<String> stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertTrue(stoppableSet.contains("instance12") && stoppableSet.contains("instance11")
+        && stoppableSet.contains("instance10"));
+
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance13"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance14"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance0, instanceConfig);
+    instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance1, instanceConfig1);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

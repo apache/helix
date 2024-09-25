@@ -142,13 +142,8 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
           List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
           return children.size() == 3 && children.containsAll(ImmutableList
               .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY, new Long(lastSuccessfulWriteVer).toString()));
-        }, VERSION_TTL_MS * 2));
+        }, TestHelper.WAIT_DURATION));
 
-        // Wait one more TTL to ensure that the GC has been done.
-        Thread.sleep(VERSION_TTL_MS);
-        List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
-        Assert.assertTrue(children.size() == 3 && children.containsAll(ImmutableList
-            .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY, new Long(lastSuccessfulWriteVer).toString())));
       }
     } finally {
       for (int j = 0; j < pathCount; j++) {

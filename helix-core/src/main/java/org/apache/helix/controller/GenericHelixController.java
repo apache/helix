@@ -88,6 +88,7 @@ import org.apache.helix.controller.stages.ManagementModeStage;
 import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
+import org.apache.helix.controller.stages.ParticipantDeregistrationStage;
 import org.apache.helix.controller.stages.PersistAssignmentStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
@@ -534,6 +535,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       rebalancePipeline.addStage(new ResourceMessageDispatchStage());
       rebalancePipeline.addStage(new PersistAssignmentStage());
       rebalancePipeline.addStage(new TargetExteralViewCalcStage());
+      rebalancePipeline.addStage(new ParticipantDeregistrationStage());
 
       // external view generation
       Pipeline externalViewPipeline = new Pipeline(pipelineName);

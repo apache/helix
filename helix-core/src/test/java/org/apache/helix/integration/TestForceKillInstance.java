@@ -132,7 +132,7 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should not have any assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -166,7 +166,7 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should not have any assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -203,7 +203,7 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should not have any assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -236,7 +236,7 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should not have any assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -271,7 +271,7 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should have assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -309,7 +309,7 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should not have any assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -341,7 +341,7 @@ public class TestForceKillInstance extends ZkTestBase {
     _dataAccessor.removeProperty(_dataAccessor.keyBuilder().liveInstance(instanceToKillName));
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -375,7 +375,7 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should not have any assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
@@ -411,13 +411,14 @@ public class TestForceKillInstance extends ZkTestBase {
         "Instance should not have any assignments");
 
     // Reset state of cluster
-    dropParticipant(CLUSTER_NAME, instanceToKillName);
+    dropParticipant(CLUSTER_NAME, instanceToKill);
     addParticipant(CLUSTER_NAME, instanceToKillName);
     System.out.println("END " + TestHelper.getTestClassName() + "." + TestHelper.getTestMethodName() + " at "
         + new Date(System.currentTimeMillis()));
   }
 
-    private MockParticipantManager addParticipant(String cluster, String instanceName) {
+    @Override
+    public MockParticipantManager addParticipant(String cluster, String instanceName) {
       _gSetupTool.addInstanceToCluster(cluster, instanceName);
       MockParticipantManager toAddParticipant =
           new MockParticipantManager(ZK_ADDR, cluster, instanceName);
@@ -429,19 +430,10 @@ public class TestForceKillInstance extends ZkTestBase {
       return toAddParticipant;
     }
 
-    protected void dropParticipant(String cluster, String instanceName) {
-      // find mock participant manager with instanceName and remove it from _mockParticipantManagers.
-      MockParticipantManager toRemoveManager = _participants.stream()
-          .filter(manager -> manager.getInstanceName().equals(instanceName))
-          .findFirst()
-          .orElse(null);
-      if (toRemoveManager != null) {
-        toRemoveManager.syncStop();
-        _participants.remove(toRemoveManager);
-      }
-
-      InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(cluster, instanceName);
-      _gSetupTool.getClusterManagementTool().dropInstance(cluster, instanceConfig);
+  @Override
+  public void dropParticipant(String cluster, MockParticipantManager participant) {
+    _participants.remove(participant);
+    super.dropParticipant(cluster, participant);
     }
 
   private Map<String, ExternalView> getEVs() {

@@ -419,10 +419,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     return result._retCode == RetCode.OK;
   }
 
+  public AccessResult doUpdate(String path, DataUpdater<T> updater, int options) {
+    return doUpdate(path, updater, options, ZkClient.TTL_NOT_SET);
+  }
+
   /**
    * sync update
    */
-  public AccessResult doUpdate(String path, DataUpdater<T> updater, int options) {
+  public AccessResult doUpdate(String path, DataUpdater<T> updater, int options, long ttl) {
     AccessResult result = new AccessResult();
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
@@ -452,7 +456,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           T newData = updater.update(null);
           RetCode rc;
           if (newData != null) {
-            AccessResult res = doCreate(path, newData, options);
+            AccessResult res = doCreate(path, newData, options, ttl);
             result._pathCreated.addAll(res._pathCreated);
             rc = res._retCode;
           } else {
@@ -979,11 +983,20 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     return set(paths, records, null, null, options);
   }
 
+  public boolean[] setChildren(List<String> paths, List<T> records, int options, long ttl) {
+    return set(paths, records, null, null, options, ttl);
+  }
+
+  boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
+      List<Stat> stats, int options) {
+    return set(paths, records, pathsCreated, stats, options, ZkClient.TTL_NOT_SET);
+  }
+
   /**
    * async set, give up on error other than NoNode
    */
   boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
-      List<Stat> stats, int options) {
+      List<Stat> stats, int options, long ttl) {
     if (paths == null || paths.size() == 0) {
       return new boolean[0];
     }
@@ -1051,7 +1064,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         // if failOnNoNode, try create
         if (failOnNoNode) {
           boolean[] needCreate = Arrays.copyOf(needSet, needSet.length);
-          createCbList = create(paths, records, needCreate, pathsCreated, options);
+          createCbList = create(paths, records, needCreate, pathsCreated, options, ttl);
           for (int i = 0; i < createCbList.length; i++) {
             ZkAsyncCallbacks.CreateCallbackHandler createCb = createCbList[i];
             if (createCb == null) {

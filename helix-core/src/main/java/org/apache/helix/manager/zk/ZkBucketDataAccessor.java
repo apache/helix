@@ -48,6 +48,7 @@ import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.slf4j.Logger;
@@ -76,6 +77,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   private final int _bucketSize;
   private final long _versionTTLms;
+  private final long _znodeTTLms;
   private final ZkSerializer _zkSerializer;
   private final RealmAwareZkClient _zkClient;
   private final ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
@@ -89,25 +91,30 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param versionTTLms in ms
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTLms) {
-    this(createRealmAwareZkClient(zkAddr), bucketSize, versionTTLms, false);
+    this(createRealmAwareZkClient(zkAddr), bucketSize, versionTTLms, false, ZkClient.TTL_NOT_SET);
   }
 
   public ZkBucketDataAccessor(RealmAwareZkClient zkClient) {
-    this(zkClient, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL, true);
+    this(zkClient, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL, true, ZkClient.TTL_NOT_SET);
   }
 
   public ZkBucketDataAccessor(RealmAwareZkClient zkClient, int bucketSize, long versionTTLms) {
-    this(zkClient, bucketSize, versionTTLms, true);
+    this(zkClient, bucketSize, versionTTLms, true, ZkClient.TTL_NOT_SET);
+  }
+
+  public ZkBucketDataAccessor(RealmAwareZkClient zkClient, int bucketSize, long versionTTLms, long znodeTTLms) {
+    this(zkClient, bucketSize, versionTTLms, true, znodeTTLms);
   }
 
   private ZkBucketDataAccessor(RealmAwareZkClient zkClient, int bucketSize, long versionTTLms,
-      boolean usesExternalZkClient) {
+      boolean usesExternalZkClient, long znodeTTLms) {
     _zkClient = zkClient;
     _zkBaseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
     _zkSerializer = new ZNRecordJacksonSerializer();
     _bucketSize = bucketSize;
     _versionTTLms = versionTTLms;
     _usesExternalZkClient = usesExternalZkClient;
+    _znodeTTLms = znodeTTLms;
   }
 
   /**
@@ -159,7 +166,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
     // 1. Increment lastWriteVersion using DataUpdater
     ZkBaseDataAccessor.AccessResult result = _zkBaseDataAccessor.doUpdate(
-        rootPath + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater, AccessOption.PERSISTENT);
+        rootPath + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater, AccessOption.PERSISTENT, _znodeTTLms);
     if (result._retCode != ZkBaseDataAccessor.RetCode.OK) {
       throw new HelixException(
           String.format("Failed to write the write version at path: %s!", rootPath));
@@ -206,7 +213,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     buckets.add(binaryMetadata);
 
     // Do an async set to ZK
-    boolean[] success = _zkBaseDataAccessor.setChildren(paths, buckets, AccessOption.PERSISTENT);
+    boolean[] success = _zkBaseDataAccessor.setChildren(paths, buckets, AccessOption.PERSISTENT, _znodeTTLms);
     // Exception and fail the write if any failed
     for (boolean s : success) {
       if (!s) {

@@ -197,7 +197,7 @@ public class TestTopologyMigration extends ZkTestBase {
    * Tests topology migration with and without domain updates, ensuring no shuffling occurs.
    */
   @Test
-  public void testTopologyMigration() {
+  public void testTopologyMigrationByResourceGroup() {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Step 1: Migrate to new topology in maintenance mode

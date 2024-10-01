@@ -27,6 +27,7 @@ import java.util.Map;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
@@ -67,7 +68,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   @Test
   public void testExists()
       throws IOException {
-    String path = "/path";
+    String path = "/" + TestHelper.getTestMethodName();
     Assert.assertFalse(_testBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
     Map<String, Boolean> result;
     String data = new JerseyUriRequestBuilder("zookeeper{}?command=exists").format(path)
@@ -95,7 +96,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   @Test
   public void testGetData()
       throws IOException {
-    String path = "/path";
+    String path = "/" + TestHelper.getTestMethodName();
     String content = "testGetData";
 
     Assert.assertFalse(_testBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
@@ -140,18 +141,18 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   @Test
   public void testGetChildren()
       throws IOException {
-    String path = "/path";
+    String parentPath = "/" + TestHelper.getTestMethodName();
     String childrenKey = "/children";
     int numChildren = 20;
 
     // Create a ZNode and its children
     for (int i = 0; i < numChildren; i++) {
-      _testBaseDataAccessor.create(path + childrenKey, null, AccessOption.PERSISTENT_SEQUENTIAL);
+      _testBaseDataAccessor.create(parentPath + childrenKey, null, AccessOption.PERSISTENT_SEQUENTIAL);
     }
 
     // Verify
     String getChildrenKey = "getChildren";
-    String data = new JerseyUriRequestBuilder("zookeeper{}?command=getChildren").format(path)
+    String data = new JerseyUriRequestBuilder("zookeeper{}?command=getChildren").format(parentPath)
         .isBodyReturnExpected(true).get(this);
     Map<String, List<String>> result = OBJECT_MAPPER.readValue(data, HashMap.class);
     Assert.assertTrue(result.containsKey(getChildrenKey));
@@ -163,12 +164,12 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
     });
 
     // Clean up
-    _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+    _testBaseDataAccessor.remove(parentPath, AccessOption.PERSISTENT);
   }
 
   @Test
   public void testGetStat() throws IOException {
-    String path = "/path/getStat";
+    String path = "/" + TestHelper.getTestMethodName();
 
     // Make sure it returns a NOT FOUND if there is no ZNode
     String data = new JerseyUriRequestBuilder("zookeeper{}?command=getStat").format(path)
@@ -194,8 +195,8 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
 
   @Test
   public void testDelete() {
-    String path = "/path";
-    String deletePath = path + "/delete";
+    String parentPath = "/" + TestHelper.getTestMethodName();
+    String deletePath = parentPath + "/delete";
 
     try {
       // 1. Create a persistent node. Delete shall fail.
@@ -215,7 +216,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
       Assert.assertFalse(_testBaseDataAccessor.exists(deletePath, AccessOption.PERSISTENT));
     } finally {
       // Clean up
-      _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+      _testBaseDataAccessor.remove(parentPath, AccessOption.PERSISTENT);
     }
   }
 }

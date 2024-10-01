@@ -419,12 +419,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     return result._retCode == RetCode.OK;
   }
 
+  /**
+   * sync update
+   */
   public AccessResult doUpdate(String path, DataUpdater<T> updater, int options) {
     return doUpdate(path, updater, options, ZkClient.TTL_NOT_SET);
   }
 
   /**
-   * sync update
+   * sync update with ttl
    */
   public AccessResult doUpdate(String path, DataUpdater<T> updater, int options, long ttl) {
     AccessResult result = new AccessResult();
@@ -983,17 +986,23 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     return set(paths, records, null, null, options);
   }
 
+  /**
+  * async setChildren with TTL
+   */
   public boolean[] setChildren(List<String> paths, List<T> records, int options, long ttl) {
     return set(paths, records, null, null, options, ttl);
   }
 
+  /**
+   * async set, give up on error other than NoNode
+   */
   boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
       List<Stat> stats, int options) {
     return set(paths, records, pathsCreated, stats, options, ZkClient.TTL_NOT_SET);
   }
 
   /**
-   * async set, give up on error other than NoNode
+   * async set with ttl, give up on error other than NoNode
    */
   boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
       List<Stat> stats, int options, long ttl) {

@@ -121,7 +121,11 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   public void sendStateChangeRequests(String instanceName, ShardChangeRequests requests) {
     StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
     if (observer!= null) {
-      observer.onNext(requests);
+      // Synchronize on the observer to ensure no concurrent calls to onNext
+      // since onNext is not thread safe
+      synchronized (observer) {
+        observer.onNext(requests);
+      }
     } else {
       logger.error("Instance {} is not connected to the gateway service", instanceName);
     }
@@ -151,10 +155,14 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   private void closeConnectionHelper(String instanceName, String errorReason, boolean withError) {
     StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
     if (observer != null) {
-      if (withError) {
-        observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());
-      } else {
-        observer.onCompleted();
+      // Synchronize on the observer to ensure no concurrent calls to onError or onCompleted
+      // since onError and onCompleted are not thread safe
+      synchronized (observer) {
+        if (withError) {
+          observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());
+        } else {
+          observer.onCompleted();
+        }
       }
     }
   }

@@ -31,21 +31,16 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
 import org.apache.helix.examples.LeaderStandbyStateModelFactory;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -84,8 +79,6 @@ public class TestTopologyMigration extends ZkTestBase {
   private final Set<String> _allDBs = new HashSet<>(); // Set of all databases
   private ZkHelixClusterVerifier _clusterVerifier; // Cluster verifier
   private ConfigAccessor _configAccessor; // Config accessor
-  private HelixDataAccessor _dataAccessor; // Data accessor
-  protected AssignmentMetadataStore _assignmentMetadataStore; // Metadata store for assignments
 
   /**
    * Sets up the test cluster and initializes participants before running tests.
@@ -100,15 +93,12 @@ public class TestTopologyMigration extends ZkTestBase {
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
-
-    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     _configAccessor = new ConfigAccessor(_gZkClient);
-    _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
 
     // Set up cluster configuration and participants
+    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     setupClusterConfig(INIT_TOPOLOGY, RACK);
     setupInitResourcesAndParticipants();
-    setUpWagedBaseline();
 
     // Initialize cluster verifier for validating state
     _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
@@ -146,6 +136,10 @@ public class TestTopologyMigration extends ZkTestBase {
     clusterConfig.setTopology(topology);
     clusterConfig.setFaultZoneType(faultZoneType);
     clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setInstanceCapacityKeys(Collections.singletonList(TEST_CAPACITY_KEY));
+    clusterConfig.setDefaultInstanceCapacityMap(
+        Collections.singletonMap(TEST_CAPACITY_KEY, TEST_CAPACITY_VALUE));
+    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(TEST_CAPACITY_KEY, 1));
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
   }
 
@@ -257,32 +251,6 @@ public class TestTopologyMigration extends ZkTestBase {
       }
     }
     return true;
-  }
-
-  private void setUpWagedBaseline() {
-    _assignmentMetadataStore =
-        new AssignmentMetadataStore(new ZkBucketDataAccessor(ZK_ADDR), CLUSTER_NAME) {
-          public Map<String, ResourceAssignment> getBaseline() {
-            // Ensure this metadata store always read from the ZK without using cache.
-            super.reset();
-            return super.getBaseline();
-          }
-
-          public synchronized Map<String, ResourceAssignment> getBestPossibleAssignment() {
-            // Ensure this metadata store always read from the ZK without using cache.
-            super.reset();
-            return super.getBestPossibleAssignment();
-          }
-        };
-
-    // Set test instance capacity and partition weights
-    ClusterConfig clusterConfig =
-        _dataAccessor.getProperty(_dataAccessor.keyBuilder().clusterConfig());
-    clusterConfig.setInstanceCapacityKeys(Collections.singletonList(TEST_CAPACITY_KEY));
-    clusterConfig.setDefaultInstanceCapacityMap(
-        Collections.singletonMap(TEST_CAPACITY_KEY, TEST_CAPACITY_VALUE));
-    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(TEST_CAPACITY_KEY, 1));
-    _dataAccessor.setProperty(_dataAccessor.keyBuilder().clusterConfig(), clusterConfig);
   }
 
   private void validateNoShufflingOccurred(Map<String, ExternalView> originalEVs,

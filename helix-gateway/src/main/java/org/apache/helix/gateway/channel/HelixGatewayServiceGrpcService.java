@@ -120,7 +120,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   @Override
   public void sendStateChangeRequests(String instanceName, ShardChangeRequests requests) {
     StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
-    if (observer!= null) {
+    if (observer != null) {
       // Synchronize on the observer to ensure no concurrent calls to onNext
       // since onNext is not thread safe
       synchronized (observer) {

@@ -160,6 +160,43 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
+  public void testAsyncSetChildrenWithTTL() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String root = _rootPath;
+    long ttl = 4000L;
+    List<ZNRecord> records = new ArrayList<>();
+    List<String> paths = new ArrayList<>();
+    ZkBaseDataAccessor<ZNRecord> accessor = Mockito.spy(new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      // Example path: /TestZkBaseDataAccessor/INSTANCES/host_1/MESSAGES/msg_id
+      paths.add(PropertyPathBuilder.instanceMessage(root, "host_1", msgId));
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key1", "value1");
+      records.add(newRecord);
+    }
+    boolean[] success = accessor.setChildren(paths, records, AccessOption.PERSISTENT_WITH_TTL, ttl);
+    for (int i = 0; i < 10; i++) {
+      String msgId = "msg_" + i;
+      Assert.assertTrue(success[i], "Should succeed in set " + msgId);
+    }
+
+    // Verify if all 5 subpaths to be created are configured with TTL
+    Mockito.verify(accessor, Mockito.times(5)).create(Mockito.any(),
+        Mockito.any(), Mockito.any(), Mockito.any(), Mockito.eq(AccessOption.PERSISTENT_WITH_TTL), Mockito.eq(ttl));
+
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
   public void testSyncDoSet() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -417,6 +454,46 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
 
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSyncDoUpdateWithTTL() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    long ttl = 4000L;
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+    ZNRecord record = new ZNRecord("msg_0");
+    ZkBaseDataAccessor<ZNRecord> accessor = Mockito.spy(new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+
+    AccessResult result = accessor.doUpdate(path, new ZNRecordUpdater(record), AccessOption.PERSISTENT_WITH_TTL);
+    Assert.assertEquals(result._retCode, RetCode.ERROR);
+
+    result = accessor.doUpdate(path, new ZNRecordUpdater(record), AccessOption.PERSISTENT_WITH_TTL, ttl);
+    Assert.assertEquals(result._retCode, RetCode.OK);
+    ZNRecord getRecord = _gZkClient.readData(path);
+    Assert.assertNotNull(getRecord);
+    Assert.assertEquals(getRecord.getId(), "msg_0");
+    Mockito.verify(accessor, Mockito.times(1)).doCreate(Mockito.anyString(), Mockito.any(ZNRecord.class), Mockito.eq(AccessOption.PERSISTENT_WITH_TTL), Mockito.eq(ttl));
+
+    Mockito.reset(accessor);
+
+    record.setSimpleField("key0", "value0");
+    result = accessor.doUpdate(path, new ZNRecordUpdater(record), AccessOption.PERSISTENT_WITH_TTL, ttl);
+    Assert.assertEquals(result._retCode, RetCode.OK);
+    getRecord = _gZkClient.readData(path);
+    Assert.assertNotNull(getRecord);
+    Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
+    Assert.assertNotNull(getRecord.getSimpleField("key0"));
+    Assert.assertEquals(getRecord.getSimpleField("key0"), "value0");
+    Mockito.verify(accessor, Mockito.times(0)).doCreate(Mockito.anyString(), Mockito.any(ZNRecord.class), Mockito.eq(AccessOption.PERSISTENT_WITH_TTL), Mockito.eq(ttl));
+
+    System.clearProperty("zookeeper.extendedTypesEnabled");
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 

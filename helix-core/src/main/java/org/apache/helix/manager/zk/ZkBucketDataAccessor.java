@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,7 +78,8 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   private final int _bucketSize;
   private final long _versionTTLms;
-  private final long _znodeTTLms;
+  private long _znodeTTLms;
+  private int _accessOption;
   private final ZkSerializer _zkSerializer;
   private final RealmAwareZkClient _zkClient;
   private final ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
@@ -115,6 +117,11 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     _versionTTLms = versionTTLms;
     _usesExternalZkClient = usesExternalZkClient;
     _znodeTTLms = znodeTTLms;
+    if(_znodeTTLms > 0) {
+      _accessOption = AccessOption.PERSISTENT_WITH_TTL;
+    } else {
+      _accessOption = AccessOption.PERSISTENT;
+    }
   }
 
   /**
@@ -124,6 +131,17 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   public ZkBucketDataAccessor(String zkAddr) {
     this(zkAddr, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL);
   }
+
+  @VisibleForTesting
+  void setZnodeTTLms(long znodeTTLms) {
+    _znodeTTLms = znodeTTLms;
+  }
+
+  @VisibleForTesting
+  void setAccessOption(int accessOption) {
+    _accessOption = accessOption;
+  }
+
 
   private static RealmAwareZkClient createRealmAwareZkClient(String zkAddr) {
     RealmAwareZkClient zkClient;
@@ -163,10 +181,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       lastWriteVersion++;
       return String.valueOf(lastWriteVersion).getBytes();
     };
-
     // 1. Increment lastWriteVersion using DataUpdater
     ZkBaseDataAccessor.AccessResult result = _zkBaseDataAccessor.doUpdate(
-        rootPath + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater, AccessOption.PERSISTENT, _znodeTTLms);
+        rootPath + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater, _accessOption, _znodeTTLms);
     if (result._retCode != ZkBaseDataAccessor.RetCode.OK) {
       throw new HelixException(
           String.format("Failed to write the write version at path: %s!", rootPath));
@@ -213,7 +230,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     buckets.add(binaryMetadata);
 
     // Do an async set to ZK
-    boolean[] success = _zkBaseDataAccessor.setChildren(paths, buckets, AccessOption.PERSISTENT, _znodeTTLms);
+    boolean[] success = _zkBaseDataAccessor.setChildren(paths, buckets, _accessOption, _znodeTTLms);
     // Exception and fail the write if any failed
     for (boolean s : success) {
       if (!s) {
@@ -240,7 +257,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       }
     };
     if (!_zkBaseDataAccessor.update(rootPath + "/" + LAST_SUCCESSFUL_WRITE_KEY,
-        lastSuccessfulWriteVersionUpdater, AccessOption.PERSISTENT)) {
+        lastSuccessfulWriteVersionUpdater, _accessOption)) {
       throw new HelixException(String
           .format("Failed to write the last successful write metadata at path: %s!", rootPath));
     }
@@ -258,7 +275,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   @Override
   public void compressedBucketDelete(String path) {
-    if (!_zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
+    if (!_zkBaseDataAccessor.remove(path, _accessOption)) {
       throw new HelixException(String.format("Failed to delete the bucket data! Path: %s", path));
     }
     synchronized (this) {
@@ -279,7 +296,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
     // 2. Get the metadata map
     byte[] binaryMetadata = _zkBaseDataAccessor.get(path + "/" + versionToRead + "/" + METADATA_KEY,
-        null, AccessOption.PERSISTENT);
+        null, _accessOption);
     if (binaryMetadata == null) {
       throw new ZkNoNodeException(
           String.format("Metadata ZNode does not exist for path: %s", path));
@@ -316,7 +333,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
 
     // Async get
-    List<byte[]> buckets = _zkBaseDataAccessor.get(paths, null, AccessOption.PERSISTENT, true);
+    List<byte[]> buckets = _zkBaseDataAccessor.get(paths, null, _accessOption, true);
 
     // Combine buckets into one byte array
     int copyPtr = 0;
@@ -380,7 +397,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     String currentVersionStr = getLastSuccessfulWriteVersion(rootPath);
 
     // Get all children names under path
-    List<String> children = _zkBaseDataAccessor.getChildNames(rootPath, AccessOption.PERSISTENT);
+    List<String> children = _zkBaseDataAccessor.getChildNames(rootPath, _accessOption);
     if (children == null || children.isEmpty()) {
       // The whole path has been deleted so return immediately
       return;
@@ -389,7 +406,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
         getPathsToDelete(rootPath, filterChildrenNames(children, Long.parseLong(currentVersionStr)));
     for (String pathToDelete : pathsToDelete) {
       // TODO: Should be batch delete but it doesn't work. It's okay since this runs async
-      _zkBaseDataAccessor.remove(pathToDelete, AccessOption.PERSISTENT);
+      _zkBaseDataAccessor.remove(pathToDelete, _accessOption);
     }
   }
 
@@ -437,7 +454,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   private String getLastSuccessfulWriteVersion(String path) {
     byte[] binaryVersionToRead = _zkBaseDataAccessor.get(path + "/" + LAST_SUCCESSFUL_WRITE_KEY,
-        null, AccessOption.PERSISTENT);
+        null, _accessOption);
     if (binaryVersionToRead == null) {
       throw new ZkNoNodeException(
           String.format("Last successful write ZNode does not exist for path: %s", path));

@@ -428,6 +428,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   /**
    * sync update with ttl
+   *
+   * ttl is only used when creating new znode, hence if znode is already created with a ttl, further
+   * update operations will not update the znode ttl even if ttl is provided in the options
    */
   public AccessResult doUpdate(String path, DataUpdater<T> updater, int options, long ttl) {
     AccessResult result = new AccessResult();
@@ -1003,6 +1006,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   /**
    * async set with ttl, give up on error other than NoNode
+   *
+   * ttl is only used when creating new znode, hence if znode is already created with a ttl, further
+   * set operations will not update the znode ttl even if ttl is provided in the options
    */
   boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
       List<Stat> stats, int options, long ttl) {

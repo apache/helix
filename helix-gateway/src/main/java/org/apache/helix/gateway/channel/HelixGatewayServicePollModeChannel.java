@@ -82,7 +82,7 @@ public class HelixGatewayServicePollModeChannel implements HelixGatewayServiceCh
    * 1. Get the diff of previous and current shard states, and send the state change event to the gateway manager.
    * 2. Compare previous liveness and current liveness, and send the connection event to the gateway manager.
    */
- protected  void fetchUpdates() {
+ protected void fetchUpdates() {
     // 1.  get the shard state change
     Map<String, Map<String, Map<String, Map<String, String>>>> currentShardStates =
         getChangedParticipantsCurrentState(_userCurrentStateFilePath);

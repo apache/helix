@@ -123,6 +123,8 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   public void sendStateChangeRequests(String instanceName, ShardChangeRequests requests) {
     _lockRegistry.withLock(instanceName, () -> {
       StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
+
+      // If observer is null, this means that the connection is already closed.
       if (observer != null) {
         observer.onNext(requests);
       } else {
@@ -157,8 +159,9 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   private void closeConnectionHelper(String instanceName, String errorReason, boolean withError) {
     _lockRegistry.withLock(instanceName, () -> {
       StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
-      if (observer != null) {
 
+      // If observer is null, this means that the connection is already closed.
+      if (observer != null) {
         // Depending on whether the connection is closed with error, send different status
         if (withError) {
           observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());

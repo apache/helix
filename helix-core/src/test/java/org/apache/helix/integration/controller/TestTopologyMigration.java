@@ -191,7 +191,7 @@ public class TestTopologyMigration extends ZkTestBase {
    * Tests topology migration with and without domain updates, ensuring no shuffling occurs.
    */
   @Test
-  public void testTopologyMigrationByResourceGroup() {
+  public void testTopologyMigrationByResourceGroup() throws Exception {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Step 1: Migrate to new topology in maintenance mode
@@ -201,10 +201,10 @@ public class TestTopologyMigration extends ZkTestBase {
             instanceName -> _gSetupTool.getClusterManagementTool()
                 .getInstanceConfig(CLUSTER_NAME, instanceName)).collect(Collectors.toList());
 
-    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true);
+    setAndVerifyMaintenanceMode(true);
     setupClusterConfig(MIGRATED_TOPOLOGY, MZ);
     migrateInstanceConfigTopology(instanceConfigs);
-    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, false);
+    setAndVerifyMaintenanceMode(false);
 
     // Verify cluster state after topology migration
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -216,6 +216,17 @@ public class TestTopologyMigration extends ZkTestBase {
       migrateDomainForResourceGroup(updatingDb);
       validateNoShufflingOccurred(preMigrationEVs, updatingDb);
     }
+  }
+
+  /**
+   * Set MaintenanceMode and verify that controller has processed it.
+   */
+  private void setAndVerifyMaintenanceMode(boolean enable) throws Exception {
+    _gSetupTool.getClusterManagementTool()
+        .manuallyEnableMaintenanceMode(CLUSTER_NAME, enable, "", Collections.emptyMap());
+    TestHelper.verify(
+        () -> _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME) == enable,
+        2000L);
   }
 
   /**
@@ -267,9 +278,10 @@ public class TestTopologyMigration extends ZkTestBase {
     }
   }
 
-  private void migrateInstanceConfigTopology(List<InstanceConfig> instanceConfigs) {
+  private void migrateInstanceConfigTopology(List<InstanceConfig> instanceConfigs)
+      throws Exception {
     // Enter maintenance mode to update instance configurations
-    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true);
+    setAndVerifyMaintenanceMode(true);
 
     for (InstanceConfig instanceConfig : instanceConfigs) {
       String rackId = instanceConfig.getDomainAsMap().get(RACK);
@@ -287,13 +299,13 @@ public class TestTopologyMigration extends ZkTestBase {
     }
 
     // Exit maintenance mode after updating instance configurations
-    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, false);
+    setAndVerifyMaintenanceMode(false);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
-  private void migrateDomainForResourceGroup(String resourceGroup) {
+  private void migrateDomainForResourceGroup(String resourceGroup) throws Exception {
     // Enter maintenance mode to update domain values
-    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true);
+    setAndVerifyMaintenanceMode(true);
 
     int instanceIndex = 0;
     for (MockParticipantManager participant : _participants) {
@@ -311,7 +323,7 @@ public class TestTopologyMigration extends ZkTestBase {
     }
 
     // Exit maintenance mode after updating domain values
-    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, false);
+    setAndVerifyMaintenanceMode(false);
 
     // Verify cluster state after domain update
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

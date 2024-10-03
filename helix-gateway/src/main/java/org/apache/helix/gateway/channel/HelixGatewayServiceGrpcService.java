@@ -124,7 +124,8 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     _lockRegistry.withLock(instanceName, () -> {
       StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
 
-      // If observer is null, this means that the connection is already closed.
+      // If observer is null, this means that the connection is already closed and
+      // we should not send a ShardChangeRequest
       if (observer != null) {
         observer.onNext(requests);
       } else {
@@ -160,7 +161,8 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
     _lockRegistry.withLock(instanceName, () -> {
       StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
 
-      // If observer is null, this means that the connection is already closed.
+      // If observer is null, this means that the connection is already closed and
+      // we should not try and close it again.
       if (observer != null) {
         // Depending on whether the connection is closed with error, send different status
         if (withError) {

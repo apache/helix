@@ -22,7 +22,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -59,11 +57,13 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
   private final Map<SoftConstraint, Float> _softConstraints;
+  private boolean _enabledConstraintLogging;
 
   ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
       Map<SoftConstraint, Float> softConstraints) {
     _hardConstraints = hardConstraints;
     _softConstraints = softConstraints;
+    _enabledConstraintLogging = false;
   }
 
   @Override
@@ -128,7 +128,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       // need to record all the failure reasons and it gives us the ability to debug/fix the runtime
       // cluster environment
       for (HardConstraint hardConstraint : _hardConstraints) {
-        if (!hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext)) {
+        if (!hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext, _enabledConstraintLogging)) {
           hardConstraintFailures.computeIfAbsent(candidateNode, node -> new ArrayList<>())
               .add(hardConstraint);
           isValid = false;
@@ -138,15 +138,12 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }).collect(Collectors.toList());
 
     if (candidateNodes.isEmpty()) {
-      LOG.info("Found no eligible candidate nodes. Enabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
-      enableFullLoggingForCluster();
+      setConstraintLevelLoggingEnabled(true, clusterContext.getClusterName());
       optimalAssignment.recordAssignmentFailure(replica,
           Maps.transformValues(hardConstraintFailures, this::convertFailureReasons));
       return Optional.empty();
     }
-
-    LOG.info("Disabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
-    removeFullLoggingForCluster();
+    setConstraintLevelLoggingEnabled(false, clusterContext.getClusterName());
 
     return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,
         getAssignmentNormalizedScore(node, replica, clusterContext)))
@@ -187,20 +184,13 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   }
 
   /**
-   * Enables logging of failures in all hard constraints
+   * Enables logging of failures for all hard constraints
    */
-  private void enableFullLoggingForCluster() {
-    for (HardConstraint hardConstraint : _hardConstraints) {
-      hardConstraint.setEnableLogging(true);
-    }
-  }
-
-  /**
-   * Removes the cluster from full logging in all hard constraints (if added previously)
-   */
-  private void removeFullLoggingForCluster() {
-    for (HardConstraint hardConstraint : _hardConstraints) {
-      hardConstraint.setEnableLogging(false);
+  private void setConstraintLevelLoggingEnabled(boolean enabled, String clusterName) {
+    if (_enabledConstraintLogging != enabled) {
+      LOG.info("Logging of hard constraint is now: {}, triggered by cluster {}",
+          enabled ? "enabled" : "disabled", clusterName);
+      _enabledConstraintLogging = enabled;
     }
   }
 

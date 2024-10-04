@@ -38,6 +38,12 @@ abstract class HardConstraint {
   abstract boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext, boolean loggingEnabled) {
+    enableLogging = loggingEnabled;
+    return isAssignmentValid(node, replica, clusterContext);
+  }
+
   /**
    * Return class name by default as description if it's explanatory enough, child class could override
    * the method and add more detailed descriptions

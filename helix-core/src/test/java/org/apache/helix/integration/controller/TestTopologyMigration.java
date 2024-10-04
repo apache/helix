@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.examples.LeaderStandbyStateModelFactory;
@@ -38,9 +40,11 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -101,9 +105,9 @@ public class TestTopologyMigration extends ZkTestBase {
     setupInitResourcesAndParticipants();
 
     // Initialize cluster verifier for validating state
-    _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setDeactivatedNodeAwareness(true).setResources(_allDBs)
-        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
+    _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        .setResources(_allDBs).setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
   }
 
   /**
@@ -206,14 +210,18 @@ public class TestTopologyMigration extends ZkTestBase {
     migrateInstanceConfigTopology(instanceConfigs);
     setAndVerifyMaintenanceMode(false);
 
-    // Verify cluster state after topology migration
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    // Verify cluster did not have shuffling anywhere after
+    // the migration to the new topology
     validateNoShufflingOccurred(originalEVs, null);
 
     // Step 2: Update domain values for one resource group at a time
     for (String updatingDb : _allDBs) {
       Map<String, ExternalView> preMigrationEVs = getEVs();
+      setAndVerifyMaintenanceMode(true);
       migrateDomainForResourceGroup(updatingDb);
+      setAndVerifyMaintenanceMode(false);
+
+      // Verify cluster only had shuffling in the resource group that was updated
       validateNoShufflingOccurred(preMigrationEVs, updatingDb);
     }
   }
@@ -222,11 +230,20 @@ public class TestTopologyMigration extends ZkTestBase {
    * Set MaintenanceMode and verify that controller has processed it.
    */
   private void setAndVerifyMaintenanceMode(boolean enable) throws Exception {
+    if (enable) {
+      // Check that the cluster converged to the best possible state that should be calculated
+      // by the controller before we change the maintenance mode.
+      Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    }
+
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, enable, "", Collections.emptyMap());
-    TestHelper.verify(
-        () -> _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME) == enable,
-        2000L);
+
+    if (!enable) {
+      // Check that the cluster converged to the best possible state that should be calculated
+      // by the controller after we have changed the maintenance mode.
+      Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    }
   }
 
   /**
@@ -280,8 +297,6 @@ public class TestTopologyMigration extends ZkTestBase {
 
   private void migrateInstanceConfigTopology(List<InstanceConfig> instanceConfigs)
       throws Exception {
-    // Enter maintenance mode to update instance configurations
-    setAndVerifyMaintenanceMode(true);
 
     for (InstanceConfig instanceConfig : instanceConfigs) {
       String rackId = instanceConfig.getDomainAsMap().get(RACK);
@@ -297,16 +312,9 @@ public class TestTopologyMigration extends ZkTestBase {
       _gSetupTool.getClusterManagementTool()
           .setInstanceConfig(CLUSTER_NAME, instanceConfig.getInstanceName(), instanceConfig);
     }
-
-    // Exit maintenance mode after updating instance configurations
-    setAndVerifyMaintenanceMode(false);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   private void migrateDomainForResourceGroup(String resourceGroup) throws Exception {
-    // Enter maintenance mode to update domain values
-    setAndVerifyMaintenanceMode(true);
-
     int instanceIndex = 0;
     for (MockParticipantManager participant : _participants) {
       InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool()
@@ -321,11 +329,5 @@ public class TestTopologyMigration extends ZkTestBase {
         instanceIndex++;
       }
     }
-
-    // Exit maintenance mode after updating domain values
-    setAndVerifyMaintenanceMode(false);
-
-    // Verify cluster state after domain update
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 }

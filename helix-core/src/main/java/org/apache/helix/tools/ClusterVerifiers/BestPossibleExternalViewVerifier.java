@@ -284,9 +284,15 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
           idealStates.keySet().retainAll(_resources);
           extViews.keySet().retainAll(_resources);
         } else {
-          // If any of the resources is a waged resource, we need to verify all resources
-          // because the best possible state calculation is done for all resources
-          _resources.clear();
+          // If waged-enabled resources are found, retain all the waged-enabled resources and the
+          // user requested resources.
+          Set<String> resourcesToRetain = idealStates.keySet().stream().filter(
+                  resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)))
+              .collect(Collectors.toSet());
+          resourcesToRetain.addAll(_resources);
+
+          idealStates.keySet().retainAll(resourcesToRetain);
+          extViews.keySet().retainAll(resourcesToRetain);
         }
       }
 
@@ -302,7 +308,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       // calculate best possible state
-      BestPossibleStateOutput bestPossOutput = calcBestPossState(_dataProvider, _resources);
+      BestPossibleStateOutput bestPossOutput = calcBestPossState(_dataProvider, idealStates);
       Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
           bestPossOutput.getStateMap();
 
@@ -420,26 +426,26 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    * kick off the BestPossibleStateCalcStage we are providing an empty current state map
    *
    * @param cache
-   * @param resources
+   * @param resourceToIdealStateMap
    * @return
    * @throws Exception
    */
-  private BestPossibleStateOutput calcBestPossState(ResourceControllerDataProvider cache, Set<String> resources)
-      throws Exception {
+  private BestPossibleStateOutput calcBestPossState(ResourceControllerDataProvider cache,
+      Map<String, IdealState> resourceToIdealStateMap) throws Exception {
     ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.StateVerifier);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     RebalanceUtil.runStage(event, new ResourceComputationStage());
 
-    if (resources != null && !resources.isEmpty()) {
+    if (resourceToIdealStateMap != null && !resourceToIdealStateMap.isEmpty()) {
       // Filtering out all non-required resources
       final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-      resourceMap.keySet().retainAll(resources);
+      resourceMap.keySet().retainAll(resourceToIdealStateMap.keySet());
       event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
 
       final Map<String, Resource> resourceMapToRebalance =
           event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-      resourceMapToRebalance.keySet().retainAll(resources);
+      resourceMapToRebalance.keySet().retainAll(resourceToIdealStateMap.keySet());
       event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMapToRebalance);
     }
 

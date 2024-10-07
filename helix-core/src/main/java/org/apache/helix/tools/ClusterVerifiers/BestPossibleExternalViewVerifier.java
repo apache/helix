@@ -276,24 +276,22 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       // Filter resources if requested
       if (_resources != null && !_resources.isEmpty()) {
-        Set<String> wagedResource = _resources.stream().filter(
+        // Find waged-enabled resources among the requested resources
+        Set<String> requestedWagedResources = _resources.stream().filter(
                 resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)))
             .collect(Collectors.toSet());
-        if (wagedResource.isEmpty()) {
-          // If no waged-enabled resources are found, retain only the provided resources
-          idealStates.keySet().retainAll(_resources);
-          extViews.keySet().retainAll(_resources);
-        } else {
+        Set<String> resourcesToRetain = new HashSet<>(_resources);
+
+        if (!requestedWagedResources.isEmpty()) {
           // If waged-enabled resources are found, retain all the waged-enabled resources and the
           // user requested resources.
-          Set<String> resourcesToRetain = idealStates.keySet().stream().filter(
+          resourcesToRetain.addAll(idealStates.keySet().stream().filter(
                   resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)))
-              .collect(Collectors.toSet());
-          resourcesToRetain.addAll(_resources);
-
-          idealStates.keySet().retainAll(resourcesToRetain);
-          extViews.keySet().retainAll(resourcesToRetain);
+              .collect(Collectors.toSet()));
         }
+
+        idealStates.keySet().retainAll(resourcesToRetain);
+        extViews.keySet().retainAll(resourcesToRetain);
       }
 
       // if externalView is not empty and idealState doesn't exist

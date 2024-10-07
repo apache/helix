@@ -28,11 +28,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
@@ -274,8 +276,18 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       // Filter resources if requested
       if (_resources != null && !_resources.isEmpty()) {
-        idealStates.keySet().retainAll(_resources);
-        extViews.keySet().retainAll(_resources);
+        Set<String> wagedResource = _resources.stream().filter(
+                resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)))
+            .collect(Collectors.toSet());
+        if (wagedResource.isEmpty()) {
+          // If no waged-enabled resources are found, retain only the provided resources
+          idealStates.keySet().retainAll(_resources);
+          extViews.keySet().retainAll(_resources);
+        } else {
+          // If any of the resources is a waged resource, we need to verify all resources
+          // because the best possible state calculation is done for all resources
+          _resources.clear();
+        }
       }
 
       // if externalView is not empty and idealState doesn't exist

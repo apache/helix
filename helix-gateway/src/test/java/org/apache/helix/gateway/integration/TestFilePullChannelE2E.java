@@ -89,7 +89,7 @@ public class TestFilePullChannelE2E extends HelixGatewayTestBase {
       for (int i = 0; i < START_NUM_NODE; i++) {
         csPaths.add(createTempFile(currentStatePath + i, ".txt", ""));
         targetPaths.add(createTempFile(targetStatePath + i, ".txt", ""));
-        String currentTime = String.valueOf(System.currentTimeMillis());
+        String currentTime = String.valueOf(System.currentTimeMillis()/1000);
         String content = "{\"IsAlive\":" + true + ",\"LastUpdateTime\":" + currentTime + "}";
         healthPaths.add(createTempFile("tmphealthCheck" + i, ".txt", content));
       }
@@ -158,15 +158,18 @@ public class TestFilePullChannelE2E extends HelixGatewayTestBase {
     // check no pending messages for partitions
     verifyNoPendingMessages(List.of("instance0", "instance1", "instance2"));
 
-    // change health state to false on one instance
-    String currentTime = String.valueOf(System.currentTimeMillis());
-    String content = "{\"IsAlive\":" + false + ",\"LastUpdateTime\":" + currentTime + "}";
+    // change health state to false on two instances
+    String currentTime = String.valueOf(System.currentTimeMillis()/1000 - 100);
+    String content = "{\"IsAlive\":" + true + ",\"LastUpdateTime\":" + currentTime + "}";
     Files.write(healthPaths.get(0), content.getBytes());
+
+    String content2 = "{\"IsAlive\":" + false + ",\"LastUpdateTime\":" + currentTime + "}";
+    Files.write(healthPaths.get(1), content2.getBytes());
 
     // check live instance for that instance is gone
     Assert.assertTrue(TestHelper.verify(() -> {
       List<String> liveInstance = getLiveInstances();
-      return !liveInstance.contains("instance0") && liveInstance.contains("instance1") && liveInstance.contains(
+      return !liveInstance.contains("instance0") && !liveInstance.contains("instance1") && liveInstance.contains(
           "instance2");
     }, TestHelper.WAIT_DURATION));
 

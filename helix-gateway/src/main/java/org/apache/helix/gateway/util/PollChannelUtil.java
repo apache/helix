@@ -87,7 +87,7 @@ public class PollChannelUtil {
           new TypeReference<Map<String, Map<String, Map<String, Map<String, String>>>>>() {
           });
     } catch (IOException e) {
-      logger.warn("Failed to read from file: " + filePath);
+      logger.warn("Failed to read from file: " + filePath, e);
       return new HashMap<>();
     }
   }
@@ -107,7 +107,7 @@ public class PollChannelUtil {
       });
       return status.isHealthy() && (System.currentTimeMillis()/1000 - status.getLastUpdatedTime()) < timeoutInSec;
     } catch (IOException e) {
-      logger.warn("Failed to read from file: " + filePath);
+      logger.warn("Failed to read from file: " + filePath, e);
       return false;
     }
   }

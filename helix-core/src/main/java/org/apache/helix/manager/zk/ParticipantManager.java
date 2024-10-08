@@ -394,7 +394,7 @@ public class ParticipantManager {
           continue;
         }
 
-        // If the the current state is related to tasks, there is no need to carry it over to new session.
+        // If the current state is related to tasks, there is no need to carry it over to new session.
         // Note: this check is not necessary due to TaskCurrentStates, but keep it for backwards compatibility
         if (stateModelDefRef.equals(TaskConstants.STATE_MODEL_NAME)) {
           continue;

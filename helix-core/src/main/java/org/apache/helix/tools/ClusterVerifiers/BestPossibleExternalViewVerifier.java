@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -276,13 +277,12 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       // Filter resources if requested
       if (_resources != null && !_resources.isEmpty()) {
-        // Find waged-enabled resources among the requested resources
-        Set<String> requestedWagedResources = _resources.stream().filter(
-                resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)))
-            .collect(Collectors.toSet());
+        // Find if there are waged-enabled resources among the requested resources
+        boolean hasRequestedWagedResources = _resources.stream().anyMatch(
+            resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)));
         Set<String> resourcesToRetain = new HashSet<>(_resources);
 
-        if (!requestedWagedResources.isEmpty()) {
+        if (hasRequestedWagedResources) {
           // If waged-enabled resources are found, retain all the waged-enabled resources and the
           // user requested resources.
           resourcesToRetain.addAll(idealStates.keySet().stream().filter(

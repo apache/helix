@@ -86,6 +86,38 @@ public class TestDeleteWorkflow extends TaskTestBase {
   }
 
   @Test
+  public void testDeleteWorkflowAndRecreate() throws InterruptedException {
+    String jobQueueName = TestHelper.getTestMethodName();
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100000"));
+
+    JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
+    jobQueue.enqueueJob("job1", jobBuilder);
+    _driver.start(jobQueue.build());
+    _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job1"),
+        TaskState.IN_PROGRESS);
+
+    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job
+    // queue
+    Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
+    Assert.assertNotNull(_driver.getWorkflowContext(jobQueueName));
+
+    _driver.deleteAndWaitForCompletion(jobQueueName, DELETE_DELAY);
+    Assert.assertNull(_driver.getWorkflowConfig(jobQueueName));
+
+    _driver.deleteAndWaitForCompletion(jobQueueName, DELETE_DELAY);
+    Assert.assertNull(_driver.getWorkflowConfig(jobQueueName));
+
+    jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
+    jobQueue.enqueueJob("job1", jobBuilder);
+    _driver.start(jobQueue.build());
+
+    // Check that the creation operation completed
+    Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
+  }
+
+  @Test
   public void testDeleteWorkflowForcefully() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)

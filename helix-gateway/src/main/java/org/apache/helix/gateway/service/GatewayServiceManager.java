@@ -119,7 +119,7 @@ public class GatewayServiceManager {
    */
   public  Map<String, Map<String, Map<String, String>>> updateCacheWithNewCurrentStateAndGetDiff(String clusterName,
       Map<String, Map<String, Map<String, String>>> newCurrentStateMap) {
-   return  getOrCreateCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
+   return getOrCreateCache(clusterName).updateCacheWithNewCurrentStateAndGetDiff(newCurrentStateMap);
   }
 
   public void updateCurrentState(String clusterName, String instanceName, String resourceId, String shardId, String toState) {

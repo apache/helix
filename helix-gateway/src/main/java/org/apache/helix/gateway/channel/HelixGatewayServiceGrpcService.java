@@ -97,6 +97,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
       @Override
       public void onError(Throwable t) {
         logger.info("Receive on error, reason: {} message: {}", Status.fromThrowable(t).getCode(), t.getMessage());
+        // Notify the gateway manager that the client is closed
         Pair<String, String> instanceInfo = _reversedObserverMap.get(responseObserver);
         onClientClose(instanceInfo.getRight(), instanceInfo.getLeft());
       }
@@ -104,6 +105,7 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
       @Override
       public void onCompleted() {
         logger.info("Receive on complete message");
+        // Notify the gateway manager that the client is closed
         Pair<String, String> instanceInfo = _reversedObserverMap.get(responseObserver);
         onClientClose(instanceInfo.getRight(), instanceInfo.getLeft());
       }
@@ -119,12 +121,19 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
    */
   @Override
   public void sendStateChangeRequests(String instanceName, ShardChangeRequests requests) {
-    StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
-    if (observer!= null) {
-      observer.onNext(requests);
-    } else {
-      logger.error("Instance {} is not connected to the gateway service", instanceName);
-    }
+    _lockRegistry.withLock(instanceName, () -> {
+      StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
+
+      // If observer is null, this means that the connection is already closed and
+      // we should not send a ShardChangeRequest
+      if (observer != null) {
+        observer.onNext(requests);
+      } else {
+        logger.error("Instance {} is not connected to the gateway service", instanceName);
+        // If the observer is null, we should remove the lock, so we don't keep unnecessary locks
+        _lockRegistry.removeLock(instanceName);
+      }
+    });
   }
 
   /**
@@ -149,30 +158,39 @@ public class HelixGatewayServiceGrpcService extends HelixGatewayServiceGrpc.Heli
   }
 
   private void closeConnectionHelper(String instanceName, String errorReason, boolean withError) {
-    StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
-    if (observer != null) {
-      if (withError) {
-        observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());
-      } else {
-        observer.onCompleted();
+    _lockRegistry.withLock(instanceName, () -> {
+      StreamObserver<ShardChangeRequests> observer = _observerMap.get(instanceName);
+
+      // If observer is null, this means that the connection is already closed and
+      // we should not try and close it again.
+      if (observer != null) {
+        // Depending on whether the connection is closed with error, send different status
+        if (withError) {
+          observer.onError(Status.UNAVAILABLE.withDescription(errorReason).asRuntimeException());
+        } else {
+          observer.onCompleted();
+        }
+
+        // Clean up the observer and lock
+        _reversedObserverMap.remove(_observerMap.get(instanceName));
+        _observerMap.remove(instanceName);
       }
-    }
+
+      // We always remove the lock after the connection is closed regardless of if observer is null or not
+      _lockRegistry.removeLock(instanceName);
+    });
   }
 
    private void onClientClose(String clusterName, String instanceName) {
     if (instanceName == null || clusterName == null) {
-      // TODO: log error;
+      logger.error("Cluster: {} or instance: {} is null while handling onClientClose", clusterName,
+          instanceName);
       return;
     }
     logger.info("Client close connection for instance: {}", instanceName);
     GatewayServiceEvent event =
         StateTransitionMessageTranslateUtil.translateClientCloseToEvent(clusterName, instanceName);
     pushClientEventToGatewayManager(_manager, event);
-    _lockRegistry.withLock(instanceName, () -> {
-      _reversedObserverMap.remove(_observerMap.get(instanceName));
-      _observerMap.remove(instanceName);
-      _lockRegistry.removeLock(instanceName);
-    });
   }
 
   private void updateObserver(String instanceName, String clusterName,

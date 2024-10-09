@@ -27,12 +27,15 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
@@ -274,8 +277,21 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       // Filter resources if requested
       if (_resources != null && !_resources.isEmpty()) {
-        idealStates.keySet().retainAll(_resources);
-        extViews.keySet().retainAll(_resources);
+        // Find if there are waged-enabled resources among the requested resources
+        boolean hasRequestedWagedResources = _resources.stream().anyMatch(
+            resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)));
+        Set<String> resourcesToRetain = new HashSet<>(_resources);
+
+        if (hasRequestedWagedResources) {
+          // If waged-enabled resources are found, retain all the waged-enabled resources and the
+          // user requested resources.
+          resourcesToRetain.addAll(idealStates.keySet().stream().filter(
+                  resourceEntry -> WagedValidationUtil.isWagedEnabled(idealStates.get(resourceEntry)))
+              .collect(Collectors.toSet()));
+        }
+
+        idealStates.keySet().retainAll(resourcesToRetain);
+        extViews.keySet().retainAll(resourcesToRetain);
       }
 
       // if externalView is not empty and idealState doesn't exist
@@ -290,7 +306,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       // calculate best possible state
-      BestPossibleStateOutput bestPossOutput = calcBestPossState(_dataProvider, _resources);
+      BestPossibleStateOutput bestPossOutput = calcBestPossState(_dataProvider, idealStates);
       Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
           bestPossOutput.getStateMap();
 
@@ -408,26 +424,26 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    * kick off the BestPossibleStateCalcStage we are providing an empty current state map
    *
    * @param cache
-   * @param resources
+   * @param resourceToIdealStateMap
    * @return
    * @throws Exception
    */
-  private BestPossibleStateOutput calcBestPossState(ResourceControllerDataProvider cache, Set<String> resources)
-      throws Exception {
+  private BestPossibleStateOutput calcBestPossState(ResourceControllerDataProvider cache,
+      Map<String, IdealState> resourceToIdealStateMap) throws Exception {
     ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.StateVerifier);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     RebalanceUtil.runStage(event, new ResourceComputationStage());
 
-    if (resources != null && !resources.isEmpty()) {
+    if (resourceToIdealStateMap != null && !resourceToIdealStateMap.isEmpty()) {
       // Filtering out all non-required resources
       final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-      resourceMap.keySet().retainAll(resources);
+      resourceMap.keySet().retainAll(resourceToIdealStateMap.keySet());
       event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
 
       final Map<String, Resource> resourceMapToRebalance =
           event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-      resourceMapToRebalance.keySet().retainAll(resources);
+      resourceMapToRebalance.keySet().retainAll(resourceToIdealStateMap.keySet());
       event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMapToRebalance);
     }
 

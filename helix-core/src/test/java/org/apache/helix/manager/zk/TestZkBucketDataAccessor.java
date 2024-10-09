@@ -61,7 +61,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
   private HelixZkClient _zkClient;
   private ZkBucketDataAccessor _bucketDataAccessor;
-  private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
+  private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
   private BucketDataAccessor _fastGCBucketDataAccessor;
 
   @BeforeClass

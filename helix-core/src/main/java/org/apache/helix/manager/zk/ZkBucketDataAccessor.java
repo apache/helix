@@ -117,11 +117,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     _versionTTLms = versionTTLms;
     _usesExternalZkClient = usesExternalZkClient;
     _znodeTTLms = znodeTTLms;
-    if(_znodeTTLms > 0) {
-      _accessOption = AccessOption.PERSISTENT_WITH_TTL;
-    } else {
-      _accessOption = AccessOption.PERSISTENT;
-    }
+    _accessOption = getAccessOption(znodeTTLms);
   }
 
   /**
@@ -131,17 +127,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   public ZkBucketDataAccessor(String zkAddr) {
     this(zkAddr, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL);
   }
-
-  @VisibleForTesting
-  void setZnodeTTLms(long znodeTTLms) {
-    _znodeTTLms = znodeTTLms;
-  }
-
-  @VisibleForTesting
-  void setAccessOption(int accessOption) {
-    _accessOption = accessOption;
-  }
-
 
   private static RealmAwareZkClient createRealmAwareZkClient(String zkAddr) {
     RealmAwareZkClient zkClient;
@@ -370,6 +355,14 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   public void finalize() {
     _zkBaseDataAccessor.close();
     close();
+  }
+
+  int getAccessOption(long znodeTTLms) {
+    if(znodeTTLms > 0) {
+      return AccessOption.PERSISTENT_WITH_TTL;
+    } else {
+      return AccessOption.PERSISTENT;
+    }
   }
 
   private synchronized void scheduleStaleVersionGC(String rootPath) {

@@ -40,6 +40,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -59,8 +60,8 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private final ZNRecord record = new ZNRecord(NAME_KEY);
 
   private HelixZkClient _zkClient;
-  private BucketDataAccessor _bucketDataAccessor;
-  private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
+  private ZkBucketDataAccessor _bucketDataAccessor;
+  private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
   private BucketDataAccessor _fastGCBucketDataAccessor;
 
   @BeforeClass
@@ -217,6 +218,27 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     Assert.assertTrue(children.size() < writeCount,
         "Expecting stale versions to cleaned up. Children were: " + children);
     System.out.print("Children after GC: " + children);
+  }
+
+  /**
+   *  Test to ensure that the correct AccessOption is returned based on the znodeTTLms value.
+   */
+  @Test
+  public void testGetAccessOption() {
+    long ttl = 1000L;  // Example of a positive TTL
+    int result = _bucketDataAccessor.getAccessOption(ttl);
+    Assert.assertEquals(AccessOption.PERSISTENT_WITH_TTL, result,
+        "Expected PERSISTENT_WITH_TTL for positive znodeTTLms");
+
+    ttl = 0L;  // Example of a zero TTL
+    result = _bucketDataAccessor.getAccessOption(ttl);
+    Assert.assertEquals(AccessOption.PERSISTENT, result,
+        "Expected PERSISTENT for zero znodeTTLms");
+
+    ttl = -100L;  // Example of a negative TTL
+    result = _bucketDataAccessor.getAccessOption(ttl);
+    Assert.assertEquals(AccessOption.PERSISTENT, result,
+        "Expected PERSISTENT for zero znodeTTLms");
   }
 
   private HelixProperty createLargeHelixProperty(String name, int numEntries) {

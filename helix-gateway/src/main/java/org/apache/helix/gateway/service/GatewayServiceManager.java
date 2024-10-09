@@ -158,6 +158,10 @@ public class GatewayServiceManager {
     return getOrCreateCache(clusterName).getTargetState(instanceName, resourceId, shardId);
   }
 
+  public Map<String, Map<String, Map<String, String>>> getAllTargetStates(String clusterName) {
+    return getOrCreateCache(clusterName).getAllTargetStates();
+  }
+
   /**
    * Update in memory shard state
    */

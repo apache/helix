@@ -1,5 +1,7 @@
 package org.apache.helix.gateway.service;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.helix.gateway.channel.GatewayServiceChannelConfig;
 import org.apache.helix.gateway.channel.HelixGatewayServiceGrpcService;
 import org.testng.annotations.Test;
@@ -7,6 +9,7 @@ import proto.org.apache.helix.gateway.HelixGatewayServiceOuterClass;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 
 public class TestGatewayServiceManager {
@@ -46,5 +49,31 @@ public class TestGatewayServiceManager {
     verify(manager, times(2)).onGatewayServiceEvent(any());
 
     grpcService.stop();
+  }
+  @Test
+  public void testGetAllTargetStates() {
+    GatewayServiceManager gatewayServiceManager = new GatewayServiceManager("localhost:2181");
+    String clusterName = "TestCluster";
+    String instanceName = "instance1";
+    String resourceId = "resource1";
+    String shardId = "shard1";
+    String state = "ONLINE";
+
+    // Add target state
+    gatewayServiceManager.updateTargetState(clusterName, instanceName, resourceId, shardId, state);
+
+    // Expected target states
+    Map<String, Map<String, Map<String, String>>> expectedTargetStates = new HashMap<>();
+    Map<String, Map<String, String>> instanceMap = new HashMap<>();
+    Map<String, String> shardMap = new HashMap<>();
+    shardMap.put(shardId, state);
+    instanceMap.put(resourceId, shardMap);
+    expectedTargetStates.put(instanceName, instanceMap);
+
+    // Get all target states
+    Map<String, Map<String, Map<String, String>>> actualTargetStates = gatewayServiceManager.getAllTargetStates(clusterName);
+
+    // Verify the target states
+    assertEquals(actualTargetStates, expectedTargetStates);
   }
 }

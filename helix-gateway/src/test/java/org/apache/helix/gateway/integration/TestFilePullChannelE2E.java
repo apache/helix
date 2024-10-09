@@ -228,7 +228,7 @@ public class TestFilePullChannelE2E extends HelixGatewayTestBase {
       int finalI = i;
       Assert.assertTrue(TestHelper.verify(() -> {
         String content = Files.readString(targetPaths.get(finalI));
-        return content.contains("{\"TestDB\":{\"TestDB_0\":\"ONLINE\"}}}");
+        return content.contains("{\"TestDB\":{\"TestDB_0\":\"ONLINE\"}}");
       }, TestHelper.WAIT_DURATION));
     }
   }

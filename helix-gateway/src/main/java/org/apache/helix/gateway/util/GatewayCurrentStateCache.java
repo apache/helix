@@ -21,6 +21,7 @@ package org.apache.helix.gateway.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,6 +58,14 @@ public class GatewayCurrentStateCache {
   public String getTargetState(String instance, String resource, String shard) {
     ShardStateMap shardStateMap = _targetStateMap.get(instance);
     return shardStateMap == null ? null : shardStateMap.getState(resource, shard);
+  }
+
+  public synchronized Map<String, Map<String, Map<String, String>>> getAllTargetStates() {
+    Map<String, Map<String, Map<String, String>>> result = new HashMap<>();
+    for (Map.Entry<String, ShardStateMap> entry : _targetStateMap.entrySet()) {
+      result.put(entry.getKey(), new HashMap<>(entry.getValue()._stateMap));
+    }
+    return result;
   }
 
   /**
@@ -141,8 +150,8 @@ public class GatewayCurrentStateCache {
   }
 
   public static class ShardStateMap {
+    // resource -> shard -> state
     Map<String, Map<String, String>> _stateMap;
-    ObjectNode root = mapper.createObjectNode();
 
     public ShardStateMap(Map<String, Map<String, String>> stateMap) {
       _stateMap = new HashMap<>(stateMap);

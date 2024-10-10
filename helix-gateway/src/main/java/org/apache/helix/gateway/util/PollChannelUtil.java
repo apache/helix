@@ -128,4 +128,20 @@ public class PollChannelUtil {
       return _lastUpdatedTime;
     }
   }
+
+  /**
+   * Target assignments representation as JSON
+   */
+  public static class TargetAssignment {
+    // cluster -> instance -> resource -> shard -> state
+    @JsonProperty ("Assignment")
+    String _targetAssignment;
+    @JsonProperty ("Timestamp")
+    long _timestamp;
+
+    public TargetAssignment(String targetAssignment, long timestamp){
+      _targetAssignment = targetAssignment;
+      _timestamp = timestamp;
+    }
+  }
 }

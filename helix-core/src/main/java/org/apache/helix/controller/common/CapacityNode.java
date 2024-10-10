@@ -168,6 +168,8 @@ public class CapacityNode implements Comparable<CapacityNode> {
    * the domain is "zone=2, instance=testInstance" and the fault zone type is "zone", this function
    * returns "2".
    * If cannot find the fault zone type, this function leaves the fault zone id as the instance name.
+   * TODO: change the return value to logical id when no fault zone type found. Also do the same for
+   *  waged rebalancer in helix-core/src/main/java/org/apache/helix/controller/rebalancer/waged/model/AssignableNode.java
    */
   private String computeFaultZone(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
     LinkedHashMap<String, String> instanceTopologyMap =

@@ -19,6 +19,7 @@ package org.apache.helix.gateway.service;
  * under the License.
  */
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +37,11 @@ import org.apache.helix.gateway.channel.HelixGatewayServiceChannelFactory;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.util.GatewayCurrentStateCache;
 import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
+import org.apache.helix.gateway.util.PollChannelUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.apache.helix.gateway.api.constant.gatewayServiceManagerConstant.*;
 
 
 /**
@@ -46,6 +52,7 @@ import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
  *  4. For ST reply message, update the tracker
  */
 public class GatewayServiceManager {
+  private static final Logger logger = LoggerFactory.getLogger(GatewayServiceManager.class);
   private static final ObjectMapper objectMapper = new ObjectMapper();
   public static final int CONNECTION_EVENT_THREAD_POOL_SIZE = 10;
   public static final ImmutableSet<String> SUPPORTED_MULTI_STATE_MODEL_TYPES =
@@ -128,12 +135,14 @@ public class GatewayServiceManager {
 
   public synchronized String serializeTargetState() {
     ObjectNode targetStateNode = new ObjectMapper().createObjectNode();
+    ObjectNode res = new ObjectMapper().createObjectNode();
     for (String clusterName : _currentStateCacheMap.keySet()) {
       // add the json node to the target state node
       targetStateNode.set(clusterName, getOrCreateCache(clusterName).serializeTargetAssignmentsToJSONNode());
     }
-    targetStateNode.set("timestamp", objectMapper.valueToTree(System.currentTimeMillis()));
-    return targetStateNode.toString();
+    res.set(TARGET_STATE_ASSIGNMENT_KEY_NAME, targetStateNode);
+    res.set(TIMESTAMP_KEY, objectMapper.valueToTree(System.currentTimeMillis()));
+    return res.toString();
   }
 
   public void updateTargetState(String clusterName, String instanceName, String resourceId, String shardId,
@@ -149,6 +158,10 @@ public class GatewayServiceManager {
     return getOrCreateCache(clusterName).getTargetState(instanceName, resourceId, shardId);
   }
 
+  public Map<String, Map<String, Map<String, String>>> getAllTargetStates(String clusterName) {
+    return getOrCreateCache(clusterName).getAllTargetStates();
+  }
+
   /**
    * Update in memory shard state
    */
@@ -162,7 +175,7 @@ public class GatewayServiceManager {
 
     @Override
     public void run() {
-      System.out.println("Processing state transition result " + _event.getInstanceName());
+      logger.info("Processing state transition result " + _event.getInstanceName());
       HelixGatewayParticipant participant =
           getHelixGatewayParticipant(_event.getClusterName(), _event.getInstanceName());
       if (participant == null) {

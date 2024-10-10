@@ -95,27 +95,26 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     // Assign partitions to node by order.
     for (int i = 0, index = 0; i < _partitions.size(); i++) {
       int startIndex = index;
-      Set<String> currentFaultZones = new HashSet<>();
+      Map<String, Integer> currentFaultZoneCountMap = new HashMap<>();
       int remainingReplica = _statesReplicaCount;
       if (stateMap.containsKey(_partitions.get(i))) {
         Set<String> existingReplicas = stateMap.get(_partitions.get(i));
         remainingReplica = remainingReplica - existingReplicas.size();
         for (String instanceName : existingReplicas) {
-          currentFaultZones.add(assignableNodeMap.get(instanceName).getFaultZone());
+          String faultZone = assignableNodeMap.get(instanceName).getFaultZone();
+          currentFaultZoneCountMap.put(faultZone,
+              currentFaultZoneCountMap.getOrDefault(faultZone, 0) + 1);
         }
       }
       for (int j = 0; j < remainingReplica; j++) {
         while (index - startIndex < assignableNodeList.size()) {
           CapacityNode node = assignableNodeList.get(index++ % assignableNodeList.size());
-          // Valid assignment when following conditions match:
-          // 1. Replica is not within the same fault zones of other replicas
-          // 2. Node has capacity to hold the replica
-          if (!currentFaultZones.contains(node.getFaultZone()) && node.canAdd(_resourceName,
-              _partitions.get(i))) {
+          if (this.canAdd(node, _partitions.get(i), currentFaultZoneCountMap)) {
             stateMap.computeIfAbsent(_partitions.get(i), m -> new HashSet<>())
                 .add(node.getInstanceName());
             if (node.getFaultZone() != null) {
-              currentFaultZones.add(node.getFaultZone());
+              currentFaultZoneCountMap.put(node.getFaultZone(),
+                  currentFaultZoneCountMap.getOrDefault(node.getFaultZone(), 0) + 1);
             }
             break;
           }
@@ -179,4 +178,22 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     return node != null && (node.hasPartition(_resourceName, partition) || node.canAdd(
         _resourceName, partition));
   }
+
+  /**
+   * Checks if it's valid to assign the partition to node
+   *
+   * @param node           node to assign partition
+   * @param partition      partition name
+   * @param currentFaultZoneCountMap   the map of fault zones -> count
+   * @return true if it's valid to assign the partition to node, false otherwise
+   */
+  protected boolean canAdd(CapacityNode node, String partition,
+      Map<String, Integer> currentFaultZoneCountMap) {
+    // Valid assignment when following conditions match:
+    // 1. Replica is not within the same fault zones of other replicas
+    // 2. Node has capacity to hold the replica
+    return !currentFaultZoneCountMap.containsKey(node.getFaultZone()) && node.canAdd(_resourceName,
+        partition);
+  }
 }
+

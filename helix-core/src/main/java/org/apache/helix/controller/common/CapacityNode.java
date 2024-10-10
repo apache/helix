@@ -115,7 +115,7 @@ public class CapacityNode implements Comparable<CapacityNode> {
 
   /**
    * Get the instance name of this node
-   * @return The ID of this node
+   * @return The instance name of this node
    */
   public String getInstanceName() {
     return _instanceName;
@@ -123,7 +123,7 @@ public class CapacityNode implements Comparable<CapacityNode> {
 
   /**
    * Get the logical id of this node
-   * @return The ID of this node
+   * @return The logical id of this node
    */
   public String getLogicalId() {
     return _logicaId;
@@ -131,7 +131,7 @@ public class CapacityNode implements Comparable<CapacityNode> {
 
   /**
    * Get the fault zone of this node
-   * @return The ID of this node
+   * @return The fault zone of this node
    */
   public String getFaultZone() {
     return _faultZone;

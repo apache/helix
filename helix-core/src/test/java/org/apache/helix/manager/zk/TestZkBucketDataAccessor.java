@@ -238,7 +238,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     ttl = -100L;  // Example of a negative TTL
     result = _bucketDataAccessor.getAccessOption(ttl);
     Assert.assertEquals(AccessOption.PERSISTENT, result,
-        "Expected PERSISTENT for zero znodeTTLms");
+        "Expected PERSISTENT for negative znodeTTLms");
   }
 
   private HelixProperty createLargeHelixProperty(String name, int numEntries) {

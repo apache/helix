@@ -366,14 +366,6 @@ public class ZkTestBase {
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
-  protected void setGlobalMaxPartitionAllowedPerInstanceInCluster(HelixZkClient zkClient,
-      String clusterName, int maxPartitionAllowed) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setGlobalMaxPartitionAllowedPerInstance(maxPartitionAllowed);
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
-  }
-
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
       String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
     return createResourceWithDelayedRebalance(clusterName, db, stateModel, numPartition, replica,

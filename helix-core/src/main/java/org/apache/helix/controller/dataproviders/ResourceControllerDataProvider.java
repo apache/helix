@@ -46,6 +46,8 @@ import org.apache.helix.controller.rebalancer.waged.WagedInstanceCapacity;
 import org.apache.helix.controller.rebalancer.waged.WagedResourceWeightsProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
@@ -190,7 +192,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
     if (getClusterConfig() != null
         && getClusterConfig().getGlobalMaxPartitionAllowedPerInstance() != -1) {
-      buildSimpleCapacityMap(getClusterConfig().getGlobalMaxPartitionAllowedPerInstance());
+      buildSimpleCapacityMap();
       // Remove all cached IdealState because it is a global computation cannot partially be
       // performed for some resources. The computation is simple as well not taking too much resource
       // to recompute the assignments.
@@ -573,11 +575,16 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     return _wagedInstanceCapacity;
   }
 
-  private void buildSimpleCapacityMap(int globalMaxPartitionAllowedPerInstance) {
+  private void buildSimpleCapacityMap() {
+    ClusterConfig clusterConfig = getClusterConfig();
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
+    Map<String, InstanceConfig> instanceConfigMap = getAssignableInstanceConfigMap();
     _simpleCapacitySet = new HashSet<>();
-    for (String instance : getEnabledLiveInstances()) {
-      CapacityNode capacityNode = new CapacityNode(instance);
-      capacityNode.setCapacity(globalMaxPartitionAllowedPerInstance);
+    for (String instanceName : getAssignableInstances()) {
+      CapacityNode capacityNode =
+          new CapacityNode(instanceName, clusterConfig, clusterTopologyConfig,
+              instanceConfigMap.getOrDefault(instanceName, new InstanceConfig(instanceName)));
       _simpleCapacitySet.add(capacityNode);
     }
   }
@@ -591,7 +598,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // Convert the assignableNodes to map for quick lookup
     Map<String, CapacityNode> simpleCapacityMap = new HashMap<>();
     for (CapacityNode node : _simpleCapacitySet) {
-      simpleCapacityMap.put(node.getId(), node);
+      simpleCapacityMap.put(node.getInstanceName(), node);
     }
     for (String resourceName : resourceNameSet) {
       // Process current state mapping

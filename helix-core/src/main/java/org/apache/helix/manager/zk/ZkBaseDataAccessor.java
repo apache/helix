@@ -423,6 +423,16 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * sync update
    */
   public AccessResult doUpdate(String path, DataUpdater<T> updater, int options) {
+    return doUpdate(path, updater, options, ZkClient.TTL_NOT_SET);
+  }
+
+  /**
+   * sync update with ttl
+   *
+   * ttl is only used when creating new znode, hence if znode is already created with a ttl, further
+   * update operations will not update the znode ttl even if ttl is provided in the options
+   */
+  public AccessResult doUpdate(String path, DataUpdater<T> updater, int options, long ttl) {
     AccessResult result = new AccessResult();
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
@@ -452,7 +462,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           T newData = updater.update(null);
           RetCode rc;
           if (newData != null) {
-            AccessResult res = doCreate(path, newData, options);
+            AccessResult res = doCreate(path, newData, options, ttl);
             result._pathCreated.addAll(res._pathCreated);
             rc = res._retCode;
           } else {
@@ -980,10 +990,28 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
+  * async setChildren with TTL
+   */
+  public boolean[] setChildren(List<String> paths, List<T> records, int options, long ttl) {
+    return set(paths, records, null, null, options, ttl);
+  }
+
+  /**
    * async set, give up on error other than NoNode
    */
   boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
       List<Stat> stats, int options) {
+    return set(paths, records, pathsCreated, stats, options, ZkClient.TTL_NOT_SET);
+  }
+
+  /**
+   * async set with ttl, give up on error other than NoNode
+   *
+   * ttl is only used when creating new znode, hence if znode is already created with a ttl, further
+   * set operations will not update the znode ttl even if ttl is provided in the options
+   */
+  boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
+      List<Stat> stats, int options, long ttl) {
     if (paths == null || paths.size() == 0) {
       return new boolean[0];
     }
@@ -1051,7 +1079,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         // if failOnNoNode, try create
         if (failOnNoNode) {
           boolean[] needCreate = Arrays.copyOf(needSet, needSet.length);
-          createCbList = create(paths, records, needCreate, pathsCreated, options);
+          createCbList = create(paths, records, needCreate, pathsCreated, options, ttl);
           for (int i = 0; i < createCbList.length; i++) {
             ZkAsyncCallbacks.CreateCallbackHandler createCb = createCbList[i];
             if (createCb == null) {

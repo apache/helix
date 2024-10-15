@@ -159,6 +159,10 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
+  /**
+   *  Test to ensure async setChildren fn with ttl configured works as expected. Test verifies general setChildren functionality
+   *  and also verifies if the znodes created are configured with correct TTL.
+   */
   @Test
   public void testAsyncSetChildrenWithTTL() {
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
@@ -457,6 +461,10 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
+  /**
+   * Test to ensure sync doUpdate fn with ttl configured works as expected. Test verifies general doUpdate functionality
+   * and also verifies if znode created are configured with correct TTL.
+   */
   @Test
   public void testSyncDoUpdateWithTTL() {
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
@@ -472,6 +480,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZkBaseDataAccessor<ZNRecord> accessor = Mockito.spy(new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
     AccessResult result = accessor.doUpdate(path, new ZNRecordUpdater(record), AccessOption.PERSISTENT_WITH_TTL);
+    // Fails as ttl is not provided when AccessOption.PERSISTENT_WITH_TTL is used
     Assert.assertEquals(result._retCode, RetCode.ERROR);
 
     result = accessor.doUpdate(path, new ZNRecordUpdater(record), AccessOption.PERSISTENT_WITH_TTL, ttl);

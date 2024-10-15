@@ -165,7 +165,9 @@ public class ClusterConfig extends HelixProperty {
     LAST_ON_DEMAND_REBALANCE_TIMESTAMP,
 
     // List of Preferred scoring keys used in evenness score computation
-    PREFERRED_SCORING_KEYS
+    PREFERRED_SCORING_KEYS,
+    PARTICIPANT_DEREGISTRATION_ENABLED,
+    PARTICIPANT_DEREGISTRATION_TIMEOUT
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -1254,5 +1256,23 @@ public class ClusterConfig extends HelixProperty {
   public void setPreferredScoringKeys(List<String> preferredScoringKeys) {
     _record.setListField(ClusterConfigProperty.PREFERRED_SCORING_KEYS.name(),
         preferredScoringKeys);
+  }
+
+  public boolean isParticipantDeregistrationEnabled() {
+    return _record.getBooleanField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_ENABLED.name(),
+        false);
+  }
+
+  public void setParticipantDeregistrationEnabled(boolean enabled) {
+    _record.setBooleanField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_ENABLED.name(), enabled);
+  }
+
+  public long getParticipantDeregistrationTimeout() {
+    return _record.getLongField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_TIMEOUT.name(),
+        -1);
+  }
+
+  public void setParticipantDeregistrationTimeout(long timeout) {
+    _record.setLongField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_TIMEOUT.name(), timeout);
   }
 }

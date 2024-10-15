@@ -581,7 +581,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
         ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
     Map<String, InstanceConfig> instanceConfigMap = getAssignableInstanceConfigMap();
     _simpleCapacitySet = new HashSet<>();
-    for (String instanceName : getEnabledLiveInstances()) {
+    for (String instanceName : getAssignableInstances()) {
       CapacityNode capacityNode =
           new CapacityNode(instanceName, clusterConfig, clusterTopologyConfig,
               instanceConfigMap.getOrDefault(instanceName, new InstanceConfig(instanceName)));

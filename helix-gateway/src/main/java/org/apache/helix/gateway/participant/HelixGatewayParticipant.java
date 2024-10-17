@@ -88,6 +88,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
         throw new Exception("Failed to transition to state " + toState);
       }
     } finally {
+      logger.info("State transition finished for shard: {}{}", resourceId, shardId);
       _stateTransitionResultMap.remove(concatenatedShardName);
     }
   }
@@ -167,6 +168,7 @@ public class HelixGatewayParticipant implements HelixManagerStateListener {
   }
 
   public void disconnect() {
+    logger.info("Disconnecting from HelixManager {}", _helixManager.getInstanceName() );
     if (_helixManager.isConnected()) {
       _helixManager.disconnect();
     }

@@ -19,7 +19,6 @@ package org.apache.helix.gateway.service;
  * under the License.
  */
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
@@ -37,11 +36,10 @@ import org.apache.helix.gateway.channel.HelixGatewayServiceChannelFactory;
 import org.apache.helix.gateway.participant.HelixGatewayParticipant;
 import org.apache.helix.gateway.util.GatewayCurrentStateCache;
 import org.apache.helix.gateway.util.PerKeyBlockingExecutor;
-import org.apache.helix.gateway.util.PollChannelUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.gateway.api.constant.gatewayServiceManagerConstant.*;
+import static org.apache.helix.gateway.api.constant.GatewayServiceManagerConstant.*;
 
 
 /**
@@ -115,6 +113,7 @@ public class GatewayServiceManager {
   }
 
   public void resetTargetStateCache(String clusterName, String instanceName) {
+    logger.info("Resetting target state cache for cluster: {}, instance: {}", clusterName, instanceName);
     getOrCreateCache(clusterName).resetTargetStateCache(instanceName);
   }
 
@@ -244,6 +243,7 @@ public class GatewayServiceManager {
   }
 
   private void removeHelixGatewayParticipant(String clusterName, String instanceName) {
+    logger.info("Removing participant: {} from cluster: {}", instanceName, clusterName);
     // Disconnect and remove the participant from the participant map
     HelixGatewayParticipant participant = getHelixGatewayParticipant(clusterName, instanceName);
     if (participant != null) {

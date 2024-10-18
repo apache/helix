@@ -53,13 +53,12 @@ public class TestStickyRebalanceStrategy {
 
     Set<CapacityNode> capacityNodeSet = new HashSet<>();
     for (int i = 0; i < 5; i++) {
-      CapacityNode capacityNode = new CapacityNode("Node-" + i);
-      capacityNode.setCapacity(1);
+      CapacityNode capacityNode = new CapacityNode("Node-" + i, 1);
       capacityNodeSet.add(capacityNode);
     }
 
     List<String> liveNodes =
-        capacityNodeSet.stream().map(CapacityNode::getId).collect(Collectors.toList());
+        capacityNodeSet.stream().map(CapacityNode::getInstanceName).collect(Collectors.toList());
 
     List<String> partitions = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
@@ -97,13 +96,12 @@ public class TestStickyRebalanceStrategy {
 
     Set<CapacityNode> capacityNodeSet = new HashSet<>();
     for (int i = 0; i < nNode; i++) {
-      CapacityNode capacityNode = new CapacityNode("Node-" + i);
-      capacityNode.setCapacity(1);
+      CapacityNode capacityNode = new CapacityNode("Node-" + i, 1);
       capacityNodeSet.add(capacityNode);
     }
 
     List<String> liveNodes =
-        capacityNodeSet.stream().map(CapacityNode::getId).collect(Collectors.toList());
+        capacityNodeSet.stream().map(CapacityNode::getInstanceName).collect(Collectors.toList());
 
     List<String> partitions = new ArrayList<>();
     for (int i = 0; i < nPartitions; i++) {
@@ -150,13 +148,12 @@ public class TestStickyRebalanceStrategy {
 
     Set<CapacityNode> capacityNodeSet = new HashSet<>();
     for (int i = 0; i < nNode; i++) {
-      CapacityNode capacityNode = new CapacityNode("Node-" + i);
-      capacityNode.setCapacity(1);
+      CapacityNode capacityNode = new CapacityNode("Node-" + i, 1);
       capacityNodeSet.add(capacityNode);
     }
 
     List<String> liveNodes =
-        capacityNodeSet.stream().map(CapacityNode::getId).collect(Collectors.toList());
+        capacityNodeSet.stream().map(CapacityNode::getInstanceName).collect(Collectors.toList());
 
     List<String> partitions = new ArrayList<>();
     for (int i = 0; i < nPartitions; i++) {
@@ -164,13 +161,13 @@ public class TestStickyRebalanceStrategy {
     }
     when(clusterDataCache.getSimpleCapacitySet()).thenReturn(capacityNodeSet);
 
-    StickyRebalanceStrategy greedyRebalanceStrategy = new StickyRebalanceStrategy();
-    greedyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 0, partitions, states, 1);
+    StickyRebalanceStrategy stickyRebalanceStrategy = new StickyRebalanceStrategy();
+    stickyRebalanceStrategy.init(TEST_RESOURCE_PREFIX + 0, partitions, states, 1);
     // First round assignment computation:
     // 1. Without previous assignment (currentMapping is null)
     // 2. Without enough assignable nodes
     ZNRecord firstRoundShardAssignment =
-        greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, null, clusterDataCache);
+        stickyRebalanceStrategy.computePartitionAssignment(null, liveNodes, null, clusterDataCache);
 
     // Assert only 3 partitions are fulfilled with assignment
     Assert.assertEquals(firstRoundShardAssignment.getListFields().entrySet().stream()
@@ -178,12 +175,12 @@ public class TestStickyRebalanceStrategy {
 
     // Assign 4 more nodes which is used in second round assignment computation
     for (int i = nNode; i < nNode + 4; i++) {
-      CapacityNode capacityNode = new CapacityNode("Node-" + i);
-      capacityNode.setCapacity(1);
+      CapacityNode capacityNode = new CapacityNode("Node-" + i, 1);
       capacityNodeSet.add(capacityNode);
     }
 
-    liveNodes = capacityNodeSet.stream().map(CapacityNode::getId).collect(Collectors.toList());
+    liveNodes =
+        capacityNodeSet.stream().map(CapacityNode::getInstanceName).collect(Collectors.toList());
 
     // Populate previous assignment (currentMapping) with first round assignment computation result
     Map<String, Map<String, String>> currentMapping = new HashMap<>();
@@ -199,7 +196,7 @@ public class TestStickyRebalanceStrategy {
     // 1. With previous assignment (currentMapping)
     // 2. With enough assignable nodes
     ZNRecord secondRoundShardAssignment =
-        greedyRebalanceStrategy.computePartitionAssignment(null, liveNodes, currentMapping,
+        stickyRebalanceStrategy.computePartitionAssignment(null, liveNodes, currentMapping,
             clusterDataCache);
 
     // Assert all partitions have been assigned with enough replica

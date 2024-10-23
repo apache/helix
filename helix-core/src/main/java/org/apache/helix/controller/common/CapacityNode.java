@@ -48,16 +48,12 @@ public class CapacityNode implements Comparable<CapacityNode> {
    * @param capacity  The capacity of this node
    */
   public CapacityNode(String instanceName, int capacity) {
-    this._instanceName = instanceName;
-    this._logicaId = null;
-    this._faultZone = null;
-    this._partitionMap = new HashMap<>();
+    this(instanceName, null, null, null);
     this._capacity = capacity;
-    this._currentlyAssigned = 0;
   }
 
   /**
-   * Constructor used for non-topology-aware use case
+   * Constructor used for topology-aware use case
    * @param instanceName  The instance name of this node
    * @param clusterConfig  The cluster config for current helix cluster
    * @param clusterTopologyConfig  The cluster topology config for current helix cluster
@@ -68,9 +64,11 @@ public class CapacityNode implements Comparable<CapacityNode> {
     this._instanceName = instanceName;
     this._logicaId = clusterTopologyConfig != null ? instanceConfig.getLogicalId(
         clusterTopologyConfig.getEndNodeType()) : instanceName;
-    this._faultZone = computeFaultZone(clusterConfig, instanceConfig);
+    this._faultZone =
+        clusterConfig != null ? computeFaultZone(clusterConfig, instanceConfig) : null;
     this._partitionMap = new HashMap<>();
-    this._capacity = clusterConfig.getGlobalMaxPartitionAllowedPerInstance();
+    this._capacity =
+        clusterConfig != null ? clusterConfig.getGlobalMaxPartitionAllowedPerInstance() : 0;
     this._currentlyAssigned = 0;
   }
 

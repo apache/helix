@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer.strategy;
  */
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -74,11 +73,15 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     // Note the liveNodes parameter here might be processed within the rebalancer, e.g. filter based on tags
     Set<CapacityNode> assignableNodeSet = new HashSet<>(clusterData.getSimpleCapacitySet());
     Set<String> liveNodesSet = new HashSet<>(liveNodes);
-    assignableNodeSet.removeIf(n -> !liveNodesSet.contains(n.getId()));
+    assignableNodeSet.removeIf(n -> !liveNodesSet.contains(n.getInstanceName()));
+
+    // Convert the assignableNodes to map for quick lookup
+    Map<String, CapacityNode> assignableNodeMap = assignableNodeSet.stream()
+        .collect(Collectors.toMap(CapacityNode::getInstanceName, node -> node));
 
     //  Populate valid state map given current mapping
     Map<String, Set<String>> stateMap =
-        populateValidAssignmentMapFromCurrentMapping(currentMapping, assignableNodeSet);
+        populateValidAssignmentMapFromCurrentMapping(currentMapping, assignableNodeMap);
 
     if (logger.isDebugEnabled()) {
       logger.debug("currentMapping: {}", currentMapping);
@@ -86,22 +89,33 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     }
 
     // Sort the assignable nodes by id
-    List<CapacityNode> assignableNodeList =
-        assignableNodeSet.stream().sorted(Comparator.comparing(CapacityNode::getId))
+    List<CapacityNode> assignableNodeList = assignableNodeSet.stream().sorted()
             .collect(Collectors.toList());
 
     // Assign partitions to node by order.
     for (int i = 0, index = 0; i < _partitions.size(); i++) {
       int startIndex = index;
+      Map<String, Integer> currentFaultZoneCountMap = new HashMap<>();
       int remainingReplica = _statesReplicaCount;
       if (stateMap.containsKey(_partitions.get(i))) {
-        remainingReplica = remainingReplica - stateMap.get(_partitions.get(i)).size();
+        Set<String> existingReplicas = stateMap.get(_partitions.get(i));
+        remainingReplica = remainingReplica - existingReplicas.size();
+        for (String instanceName : existingReplicas) {
+          String faultZone = assignableNodeMap.get(instanceName).getFaultZone();
+          currentFaultZoneCountMap.put(faultZone,
+              currentFaultZoneCountMap.getOrDefault(faultZone, 0) + 1);
+        }
       }
       for (int j = 0; j < remainingReplica; j++) {
         while (index - startIndex < assignableNodeList.size()) {
           CapacityNode node = assignableNodeList.get(index++ % assignableNodeList.size());
-          if (node.canAdd(_resourceName, _partitions.get(i))) {
-            stateMap.computeIfAbsent(_partitions.get(i), m -> new HashSet<>()).add(node.getId());
+          if (this.canAdd(node, _partitions.get(i), currentFaultZoneCountMap)) {
+            stateMap.computeIfAbsent(_partitions.get(i), m -> new HashSet<>())
+                .add(node.getInstanceName());
+            if (node.getFaultZone() != null) {
+              currentFaultZoneCountMap.put(node.getFaultZone(),
+                  currentFaultZoneCountMap.getOrDefault(node.getFaultZone(), 0) + 1);
+            }
             break;
           }
         }
@@ -126,16 +140,13 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
    * Populates a valid state map from the current mapping, filtering out invalid nodes.
    *
    * @param currentMapping   the current mapping of partitions to node states
-   * @param assignableNodes  the list of nodes that can be assigned
+   * @param assignableNodeMap  the map of instance name -> nodes that can be assigned
    * @return a map of partitions to valid nodes
    */
   private Map<String, Set<String>> populateValidAssignmentMapFromCurrentMapping(
       final Map<String, Map<String, String>> currentMapping,
-      final Set<CapacityNode> assignableNodes) {
+      final Map<String, CapacityNode> assignableNodeMap) {
     Map<String, Set<String>> validAssignmentMap = new HashMap<>();
-    // Convert the assignableNodes to map for quick lookup
-    Map<String, CapacityNode> assignableNodeMap =
-        assignableNodes.stream().collect(Collectors.toMap(CapacityNode::getId, node -> node));
     if (currentMapping != null) {
       for (Map.Entry<String, Map<String, String>> entry : currentMapping.entrySet()) {
         String partition = entry.getKey();
@@ -167,4 +178,22 @@ public class StickyRebalanceStrategy implements RebalanceStrategy<ResourceContro
     return node != null && (node.hasPartition(_resourceName, partition) || node.canAdd(
         _resourceName, partition));
   }
+
+  /**
+   * Checks if it's valid to assign the partition to node
+   *
+   * @param node           node to assign partition
+   * @param partition      partition name
+   * @param currentFaultZoneCountMap   the map of fault zones -> count
+   * @return true if it's valid to assign the partition to node, false otherwise
+   */
+  protected boolean canAdd(CapacityNode node, String partition,
+      Map<String, Integer> currentFaultZoneCountMap) {
+    // Valid assignment when following conditions match:
+    // 1. Replica is not within the same fault zones of other replicas
+    // 2. Node has capacity to hold the replica
+    return !currentFaultZoneCountMap.containsKey(node.getFaultZone()) && node.canAdd(_resourceName,
+        partition);
+  }
 }
+

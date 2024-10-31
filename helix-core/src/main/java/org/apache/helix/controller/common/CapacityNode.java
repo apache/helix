@@ -21,23 +21,55 @@ package org.apache.helix.controller.common;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.helix.controller.rebalancer.topology.Topology;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
+import org.apache.helix.model.InstanceConfig;
 
 /**
  * A Node is an entity that can serve capacity recording purpose. It has a capacity and knowledge
  * of partitions assigned to it, so it can decide if it can receive additional partitions.
  */
-public class CapacityNode {
+public class CapacityNode implements Comparable<CapacityNode> {
   private int _currentlyAssigned;
   private int _capacity;
-  private final String _id;
+  private final String _instanceName;
+  private final String _logicaId;
+  private final String _faultZone;
   private final Map<String, Set<String>> _partitionMap;
 
-  public CapacityNode(String id) {
-    _partitionMap = new HashMap<>();
-    _currentlyAssigned = 0;
-    this._id = id;
+  /**
+   * Constructor used for non-topology-aware use case
+   * @param instanceName  The instance name of this node
+   * @param capacity  The capacity of this node
+   */
+  public CapacityNode(String instanceName, int capacity) {
+    this(instanceName, null, null, null);
+    this._capacity = capacity;
+  }
+
+  /**
+   * Constructor used for topology-aware use case
+   * @param instanceName  The instance name of this node
+   * @param clusterConfig  The cluster config for current helix cluster
+   * @param clusterTopologyConfig  The cluster topology config for current helix cluster
+   * @param instanceConfig  The instance config for current instance
+   */
+  public CapacityNode(String instanceName, ClusterConfig clusterConfig,
+      ClusterTopologyConfig clusterTopologyConfig, InstanceConfig instanceConfig) {
+    this._instanceName = instanceName;
+    this._logicaId = clusterTopologyConfig != null ? instanceConfig.getLogicalId(
+        clusterTopologyConfig.getEndNodeType()) : instanceName;
+    this._faultZone =
+        clusterConfig != null ? computeFaultZone(clusterConfig, instanceConfig) : null;
+    this._partitionMap = new HashMap<>();
+    this._capacity =
+        clusterConfig != null ? clusterConfig.getGlobalMaxPartitionAllowedPerInstance() : 0;
+    this._currentlyAssigned = 0;
   }
 
   /**
@@ -80,11 +112,27 @@ public class CapacityNode {
   }
 
   /**
-   * Get the ID of this node
-   * @return The ID of this node
+   * Get the instance name of this node
+   * @return The instance name of this node
    */
-  public String getId() {
-    return _id;
+  public String getInstanceName() {
+    return _instanceName;
+  }
+
+  /**
+   * Get the logical id of this node
+   * @return The logical id of this node
+   */
+  public String getLogicalId() {
+    return _logicaId;
+  }
+
+  /**
+   * Get the fault zone of this node
+   * @return The fault zone of this node
+   */
+  public String getFaultZone() {
+    return _faultZone;
   }
 
   /**
@@ -98,8 +146,40 @@ public class CapacityNode {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("##########\nname=").append(_id).append("\nassigned:").append(_currentlyAssigned)
-        .append("\ncapacity:").append(_capacity);
+    sb.append("##########\nname=").append(_instanceName).append("\nassigned:")
+        .append(_currentlyAssigned).append("\ncapacity:").append(_capacity).append("\nlogicalId:")
+        .append(_logicaId).append("\nfaultZone:").append(_faultZone);
     return sb.toString();
+  }
+
+  @Override
+  public int compareTo(CapacityNode o) {
+    if (_logicaId != null) {
+      return _logicaId.compareTo(o.getLogicalId());
+    }
+    return _instanceName.compareTo(o.getInstanceName());
+  }
+
+  /**
+   * Computes the fault zone id based on the domain and fault zone type when topology is enabled.
+   * For example, when
+   * the domain is "zone=2, instance=testInstance" and the fault zone type is "zone", this function
+   * returns "2".
+   * If cannot find the fault zone type, this function leaves the fault zone id as the instance name.
+   * TODO: change the return value to logical id when no fault zone type found. Also do the same for
+   *  waged rebalancer in helix-core/src/main/java/org/apache/helix/controller/rebalancer/waged/model/AssignableNode.java
+   */
+  private String computeFaultZone(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
+    LinkedHashMap<String, String> instanceTopologyMap =
+        Topology.computeInstanceTopologyMap(clusterConfig, instanceConfig.getInstanceName(),
+            instanceConfig, true /*earlyQuitTillFaultZone*/);
+
+    StringBuilder faultZoneStringBuilder = new StringBuilder();
+    for (Map.Entry<String, String> entry : instanceTopologyMap.entrySet()) {
+      faultZoneStringBuilder.append(entry.getValue());
+      faultZoneStringBuilder.append('/');
+    }
+    faultZoneStringBuilder.setLength(faultZoneStringBuilder.length() - 1);
+    return faultZoneStringBuilder.toString();
   }
 }

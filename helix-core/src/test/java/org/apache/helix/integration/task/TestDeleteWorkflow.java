@@ -29,6 +29,7 @@ import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.Workflow;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -83,6 +84,36 @@ public class TestDeleteWorkflow extends TaskTestBase {
     // Check that the deletion operation completed
     Assert.assertNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNull(_driver.getWorkflowContext(jobQueueName));
+  }
+
+  @Test
+  public void testDeleteWorkflowAndRecreate() throws Exception {
+    String workflowId_1 = TestHelper.getTestMethodName();
+    String workflowId_2 = TestHelper.getTestMethodName() + "1";
+    String workflowId_3 = TestHelper.getTestMethodName() + "2";
+
+    Workflow.Builder builder_1 = WorkflowGenerator.generateDefaultSingleJobWorkflowBuilder(workflowId_1);
+    Workflow.Builder builder_2 = WorkflowGenerator.generateDefaultSingleJobWorkflowBuilder(workflowId_2);
+    Workflow.Builder builder_3 = WorkflowGenerator.generateDefaultSingleJobWorkflowBuilder(workflowId_3);
+
+    _driver.start(builder_1.build());
+
+    TaskState polledState =  _driver.pollForWorkflowState(workflowId_1, 2_000L, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(TaskState.COMPLETED, polledState);
+    Assert.assertNotNull(_driver.getWorkflowConfig(workflowId_1));
+
+    // delete workflowId_1 and start other workflows
+    _driver.start(builder_2.build());
+    _driver.deleteAndWaitForCompletion(workflowId_1, 2_000);
+    _driver.start(builder_3.build());
+    Assert.assertNull(_driver.getWorkflowConfig(workflowId_1));
+
+    // re-create workflowId_1
+    _driver.start(builder_1.build());
+    TaskState recreatedPolledState =  _driver.pollForWorkflowState(workflowId_1, 40_000L, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(TaskState.COMPLETED, recreatedPolledState);
+    Assert.assertNotNull(_driver.getWorkflowConfig(workflowId_1));
+    Assert.assertNotNull(_driver.getWorkflowContext(workflowId_1));
   }
 
   @Test

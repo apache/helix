@@ -525,6 +525,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         // clean all the contexts even if Configs and IdealStates are exists. Then all the workflows
         // and jobs will rescheduled again.
         removeContexts(workflow, jobs, _clusterDataCache.getTaskDataCache());
+        // Request for full-data refresh to re-fetch workflow resource configs.
+        _clusterDataCache.requireFullRefresh();
       }
     } else {
       LOG.info(

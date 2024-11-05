@@ -60,7 +60,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private final ZNRecord record = new ZNRecord(NAME_KEY);
 
   private HelixZkClient _zkClient;
-  private ZkBucketDataAccessor _bucketDataAccessor;
+  private BucketDataAccessor _bucketDataAccessor;
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
   private BucketDataAccessor _fastGCBucketDataAccessor;
 
@@ -226,17 +226,17 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   @Test
   public void testGetAccessOption() {
     long ttl = 1000L;  // Example of a positive TTL
-    int result = _bucketDataAccessor.getAccessOption(ttl);
+    int result = ZkBucketDataAccessor.getAccessOption(ttl);
     Assert.assertEquals(AccessOption.PERSISTENT_WITH_TTL, result,
         "Expected PERSISTENT_WITH_TTL for positive znodeTTLms");
 
     ttl = 0L;  // Example of a zero TTL
-    result = _bucketDataAccessor.getAccessOption(ttl);
+    result = ZkBucketDataAccessor.getAccessOption(ttl);
     Assert.assertEquals(AccessOption.PERSISTENT, result,
         "Expected PERSISTENT for zero znodeTTLms");
 
     ttl = -100L;  // Example of a negative TTL
-    result = _bucketDataAccessor.getAccessOption(ttl);
+    result = ZkBucketDataAccessor.getAccessOption(ttl);
     Assert.assertEquals(AccessOption.PERSISTENT, result,
         "Expected PERSISTENT for negative znodeTTLms");
   }

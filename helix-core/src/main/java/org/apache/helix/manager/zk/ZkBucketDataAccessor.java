@@ -356,7 +356,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     close();
   }
 
-  int getAccessOption(long znodeTTLms) {
+  static int getAccessOption(long znodeTTLms) {
     if(znodeTTLms > 0) {
       return AccessOption.PERSISTENT_WITH_TTL;
     } else {

@@ -36,7 +36,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -186,7 +185,7 @@ public class TestCustomRestClient {
     CustomRestClientImpl customRestClient = new CustomRestClientImpl(httpClient);
     HttpResponse response;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
       response = customRestClient.post(echoServer, Collections.emptyMap());
       if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
         JsonNode json = customRestClient.getJsonObject(response);

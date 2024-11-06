@@ -175,7 +175,6 @@ public class TestCustomRestClient {
   @Test (description = "Validate if the post request has memory leak or no")
   public void testMultiplePost() throws IOException {
     // a popular echo server that echos all the inputs
-    // TODO: add a mock rest server
     final String echoServer = "https://httpbin.org/redirect-to?url=http://httpbin.org/post";
     HttpClientBuilder httpClientBuilder = HttpClients.custom()
         .evictExpiredConnections()

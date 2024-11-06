@@ -20,10 +20,12 @@ package org.apache.helix.rest.client;
  */
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,8 +36,10 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ConnectTimeoutException;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.Assert;
 import org.mockito.Mock;
@@ -166,6 +170,30 @@ public class TestCustomRestClient {
 
       Assert.assertEquals(json.get("headers").get("Accept").asText(), "application/json");
       Assert.assertEquals(json.get("data").asText(), "{}");
+    }
+  }
+
+  @Test (description = "Validate if the post request has memory leak or no")
+  public void testMultiplePost() throws IOException {
+    // a popular echo server that echos all the inputs
+    // TODO: add a mock rest server
+    final String echoServer = "https://httpbin.org/redirect-to?url=http://httpbin.org/post";
+    HttpClientBuilder httpClientBuilder = HttpClients.custom()
+        .evictExpiredConnections()
+        .setMaxConnPerRoute(1)
+        .evictIdleConnections(Duration.ofSeconds(30).toMillis(), TimeUnit.MILLISECONDS);
+    HttpClient httpClient = httpClientBuilder.build();
+    CustomRestClientImpl customRestClient = new CustomRestClientImpl(httpClient);
+    HttpResponse response;
+
+    for (int i = 0; i < 10; i++) {
+      response = customRestClient.post(echoServer, Collections.emptyMap());
+      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+        JsonNode json = customRestClient.getJsonObject(response);
+
+        Assert.assertEquals(json.get("headers").get("Accept").asText(), "application/json");
+        Assert.assertEquals(json.get("data").asText(), "{}");
+      }
     }
   }
 

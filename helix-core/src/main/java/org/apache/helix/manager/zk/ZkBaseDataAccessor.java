@@ -432,7 +432,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * ttl is only used when creating new znode, hence if znode is already created with a ttl, further
    * update operations will not update the znode ttl even if ttl is provided in the options
    */
-  public AccessResult doUpdate(String path, DataUpdater<T> updater, int options, long ttl) {
+  AccessResult doUpdate(String path, DataUpdater<T> updater, int options, long ttl) {
     AccessResult result = new AccessResult();
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {

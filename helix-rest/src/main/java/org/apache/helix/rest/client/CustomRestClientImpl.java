@@ -202,6 +202,7 @@ class CustomRestClientImpl implements CustomRestClient {
             LOG.warn("Received 302 but no Location header is present, stopping retries.");
             break;  // Break out if there is no valid redirect location
           }
+          EntityUtils.consumeQuietly(response.getEntity());
         } else {
           LOG.warn("Received non-200 and non-302 status code: {}, payloads: {}", status, payloads);
           return response;  // Return response without retry

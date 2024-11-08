@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.TimeZone;
 
 import com.google.common.collect.Lists;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
@@ -77,6 +78,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       LOG.debug("Workflow is marked as deleted {} cleaning up the workflow context.", workflow);
       updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       cleanupWorkflow(workflow);
+      // Request for complete resource config refresh, when a workflow is explicitly marked as DELETED.
+      _clusterDataCache.notifyDataChange(HelixConstants.ChangeType.RESOURCE_CONFIG);
       return;
     }
 
@@ -525,8 +528,6 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         // clean all the contexts even if Configs and IdealStates are exists. Then all the workflows
         // and jobs will rescheduled again.
         removeContexts(workflow, jobs, _clusterDataCache.getTaskDataCache());
-        // Request for full-data refresh to re-fetch workflow resource configs.
-        _clusterDataCache.requireFullRefresh();
       }
     } else {
       LOG.info(

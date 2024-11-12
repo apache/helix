@@ -794,6 +794,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       return;
     }
 
+    System.out.println("gspencerTest - handling event: " + event.getEventType());
+
     // Event handling happens in a different thread from the onControllerChange processing thread.
     // Thus, there are several possible conditions.
     // 1. Event handled after leadership acquired. So we will have a valid rebalancer for the
@@ -1021,6 +1023,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     notifyCaches(changeContext, ChangeType.CURRENT_STATE);
     pushToEventQueues(ClusterEventType.CurrentStateChange, changeContext, Collections
         .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
+    System.out.println("gspencerTest - currentStateChange for instance: " + instanceName);
     logger.info("END: GenericClusterController.onStateChange()");
   }
 

@@ -136,6 +136,40 @@ public class StoppableInstancesSelector {
     return result;
   }
 
+  /**
+   * Evaluates and collects stoppable instances without respecting the zone order.
+   * The method iterates through instances, performing stoppable checks, and records reasons for
+   * non-stoppability.
+   *
+   * @param instances A list of instance to be evaluated.
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
+   * @return An ObjectNode containing:
+   *         - 'stoppableNode': List of instances that can be stopped.
+   *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
+   *         a list of reasons for non-stoppability as the value.
+   * @throws IOException
+   */
+  public ObjectNode getStoppableInstancesWithoutTopology(List<String> instances,
+      List<String> toBeStoppedInstances) throws IOException {
+    ObjectNode result = JsonNodeFactory.instance.objectNode();
+    ArrayNode stoppableInstances =
+        result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    ObjectNode failedStoppableInstances = result.putObject(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
+    collectEvacuatingInstances(toBeStoppedInstancesSet);
+
+    // Because zone order calculation is omitted, we must verify each instance's existence
+    // to ensure we only process valid instances before performing stoppable check.
+    Set<String> nonExistingInstances = processNonexistentInstances(instances, failedStoppableInstances);
+    List<String> instancesToCheck = new ArrayList<>(instances);
+    instancesToCheck.removeAll(nonExistingInstances);
+    populateStoppableInstances(instancesToCheck, toBeStoppedInstancesSet, stoppableInstances,
+        failedStoppableInstances);
+
+    return result;
+  }
+
   private void populateStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances,
       ArrayNode stoppableInstances, ObjectNode failedStoppableInstances) throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
@@ -159,7 +193,7 @@ public class StoppableInstancesSelector {
     }
   }
 
-  private void processNonexistentInstances(List<String> instances, ObjectNode failedStoppableInstances) {
+  private Set<String> processNonexistentInstances(List<String> instances, ObjectNode failedStoppableInstances) {
     // Adding following logic to check whether instances exist or not. An instance exist could be
     // checking following scenario:
     // 1. Instance got dropped. (InstanceConfig is gone.)
@@ -174,6 +208,7 @@ public class StoppableInstancesSelector {
       ArrayNode failedReasonsNode = failedStoppableInstances.putArray(nonSelectedInstance);
       failedReasonsNode.add(JsonNodeFactory.instance.textNode(INSTANCE_NOT_EXIST));
     }
+    return nonSelectedInstances;
   }
 
   /**

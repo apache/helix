@@ -48,6 +48,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.MessageUtil;
 import org.slf4j.Logger;
@@ -401,7 +402,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   private void schedulePendingMessageCleanUp(
       final Map<String, Map<String, Message>> pendingMessagesToPurge, ExecutorService workerPool,
       final HelixDataAccessor accessor) {
-    workerPool.submit(new Callable<Object>() {
+    workerPool.submit(ExecutorTaskUtil.wrap(new Callable<Object>() {
       @Override
       public Object call() {
         for (Map.Entry<String, Map<String, Message>> entry : pendingMessagesToPurge.entrySet()) {
@@ -415,7 +416,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         }
         return null;
       }
-    });
+    }));
   }
 
   private boolean shouldCleanUpPendingMessage(Message pendingMsg, Map<String, String> sessionIdMap,

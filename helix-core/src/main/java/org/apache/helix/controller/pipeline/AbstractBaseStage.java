@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.util.ExecutorTaskUtil;
 
 public class AbstractBaseStage implements Stage {
   protected String _eventId;
@@ -64,9 +65,9 @@ public class AbstractBaseStage implements Stage {
     return className;
   }
 
-  public static <T> Future asyncExecute(ExecutorService service, Callable<T> task) {
+  public static <T> Future<T> asyncExecute(ExecutorService service, Callable<T> task) {
     if (service != null) {
-      return service.submit(task);
+      return service.submit(ExecutorTaskUtil.wrap(task));
     }
     return null;
   }

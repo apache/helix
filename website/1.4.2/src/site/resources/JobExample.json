@@ -1,0 +1,19 @@
+{
+  "id" : "TestJob",
+  "simpleFields": {
+    "JobID":"Job2",
+    "WorkflowID":"Workflow1"
+  },
+  "mapFields":{
+     "Task1" : {
+       "TASK_ID":"Task1",
+       "TASK_COMMAND":"Backup",
+       "TASK_TARGET_PARTITION":"p1"
+     },
+     "Task2" : { 
+       "TASK_ID":"Task2",
+       "TASK_COMMAND":"ReIndex",
+     }
+  },
+  "listFields":{}
+}

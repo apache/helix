@@ -356,6 +356,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       CurrentStateOutput currentStateOutput) {
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     if (skipCapacityCalculation(cache, resourceMap, event)) {
+      // Ensure instance capacity is null if there are no resources. This prevents using a stale map when all resources
+      // are removed and then a new resource is added.
+      if (resourceMap == null || resourceMap.isEmpty()) {
+        cache.setWagedCapacityProviders(null, null);
+      }
       return;
     }
 
@@ -363,6 +368,12 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         .parallelStream()
         .filter(entry -> WagedValidationUtil.isWagedEnabled(cache.getIdealState(entry.getKey())))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    // Ensure instance capacity is null if there are no WAGED enabled instances
+    if (wagedEnabledResourceMap.isEmpty()) {
+      cache.setWagedCapacityProviders(null, null);
+      return;
+    }
 
     // Phase 1: Rebuild Always
     WagedInstanceCapacity capacityProvider = new WagedInstanceCapacity(cache);
@@ -381,7 +392,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
    */
   static boolean skipCapacityCalculation(ResourceControllerDataProvider cache, Map<String, Resource> resourceMap,
       ClusterEvent event) {
-    if (resourceMap == null) {
+    if (resourceMap == null || resourceMap.isEmpty()) {
       return true;
     }
 

@@ -7,6 +7,8 @@ import java.util.List;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -22,7 +24,7 @@ import org.testng.annotations.Test;
 public class TestWagedNPE extends ZkTestBase  {
 
   public static String CLUSTER_NAME = TestHelper.getTestClassName() + "_cluster";
-  public static int PARTICIPANT_COUNT = 10;
+  public static int PARTICIPANT_COUNT = 3;
   public static List<MockParticipantManager> _participants = new ArrayList<>();
   public static ClusterControllerManager _controller;
   public static ConfigAccessor _configAccessor;
@@ -48,13 +50,19 @@ public class TestWagedNPE extends ZkTestBase  {
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
   }
 
+  // This test was constructed to capture the bug described in issue 2891
+  // https://github.com/apache/helix/issues/2891
   @Test
   public void testNPE() throws Exception {
+    int numPartition = 3;
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
+
+    // Create 1 WAGED Resource
     String firstDB = "firstDB";
-    int numPartition = 10;
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, firstDB, numPartition, "LeaderStandby",
         IdealState.RebalanceMode.FULL_AUTO.name(), null);
-
     IdealState idealStateOne =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, firstDB);
     idealStateOne.setMinActiveReplicas(2);
@@ -62,25 +70,22 @@ public class TestWagedNPE extends ZkTestBase  {
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, firstDB, idealStateOne);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, firstDB, 3);
 
-    BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(Collections.singleton(firstDB))
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
-
+    // Wait for cluster to converge
     Assert.assertTrue(verifier.verifyByPolling());
 
-    // drop resource
+    // Drop resource
     _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, firstDB);
 
-    // add instance
-    MockParticipantManager participantToAdd = addParticipant("instance_to_add");
-     verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<>(_gSetupTool.getClusterManagementTool().getResourcesInCluster(CLUSTER_NAME)))
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
+    // Wait for cluster to converge
     Assert.assertTrue(verifier.verifyByPolling());
 
-    // add resource again
+    // add instance
+    addParticipant("instance_to_add");
+
+    // Wait for cluster to converge
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    // Add a new resource
     String secondDb = "secondDB";
     _configAccessor.setResourceConfig(CLUSTER_NAME, secondDb, new ResourceConfig(secondDb));
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, secondDb, numPartition, "LeaderStandby",
@@ -92,11 +97,7 @@ public class TestWagedNPE extends ZkTestBase  {
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, secondDb, idealStateTwo);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, secondDb, 3);
 
-
-    verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(Collections.singleton(secondDb))
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
+    // Confirm cluster can converge. Cluster will not converge if NPE occurs during pipeline run
     Assert.assertTrue(verifier.verifyByPolling());
   }
 
@@ -106,19 +107,5 @@ public class TestWagedNPE extends ZkTestBase  {
     participant.syncStart();
     _participants.add(participant);
     return participant;
-  }
-
-  public void dropParticipant(String instanceName) {
-    MockParticipantManager participantToDrop = _participants.stream()
-        .filter(p -> p.getInstanceName().equals(instanceName)).findFirst().get();
-    dropParticipant(participantToDrop);
-
-  }
-
-  public void dropParticipant(MockParticipantManager participantToDrop) {
-    participantToDrop.syncStop();
-    _gSetupTool.getClusterManagementTool().dropInstance(CLUSTER_NAME,
-        _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, participantToDrop.getInstanceName()));
-    _participants.remove(participantToDrop);
   }
 }

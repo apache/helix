@@ -166,7 +166,6 @@ public class ClusterConfig extends HelixProperty {
 
     // List of Preferred scoring keys used in evenness score computation
     PREFERRED_SCORING_KEYS,
-    PARTICIPANT_DEREGISTRATION_ENABLED,
     PARTICIPANT_DEREGISTRATION_TIMEOUT
   }
 
@@ -1258,15 +1257,6 @@ public class ClusterConfig extends HelixProperty {
         preferredScoringKeys);
   }
 
-  public boolean isParticipantDeregistrationEnabled() {
-    return _record.getBooleanField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_ENABLED.name(),
-        false);
-  }
-
-  public void setParticipantDeregistrationEnabled(boolean enabled) {
-    _record.setBooleanField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_ENABLED.name(), enabled);
-  }
-
   public long getParticipantDeregistrationTimeout() {
     return _record.getLongField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_TIMEOUT.name(),
         -1);
@@ -1274,5 +1264,9 @@ public class ClusterConfig extends HelixProperty {
 
   public void setParticipantDeregistrationTimeout(long timeout) {
     _record.setLongField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_TIMEOUT.name(), timeout);
+  }
+
+  public boolean isParticipantDeregistrationEnabled() {
+    return getParticipantDeregistrationTimeout() > -1;
   }
 }

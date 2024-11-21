@@ -52,7 +52,7 @@ public class TestParticipantDeregistrationStage extends ZkTestBase {
     _admin = _gSetupTool.getClusterManagementTool();
     _dataAccessor = _controller.getHelixDataAccessor();
 
-    setAutoDeregisterConfigs(CLUSTER_NAME, true, DEREGISTER_TIMEOUT);
+    setAutoDeregisterConfigs(CLUSTER_NAME, DEREGISTER_TIMEOUT);
   }
 
   // Asserts that a node will be removed from the cluster after it exceedsthe deregister timeout set in the cluster config
@@ -169,7 +169,7 @@ public class TestParticipantDeregistrationStage extends ZkTestBase {
 
     // Set to deregister to disabled
     long testDeregisterTimeout = 1000;
-    setAutoDeregisterConfigs(CLUSTER_NAME, false, testDeregisterTimeout);
+    setAutoDeregisterConfigs(CLUSTER_NAME, -1);
 
     // Create and immediately kill participants
     List<MockParticipantManager> killedParticipants = new ArrayList<>();
@@ -182,7 +182,7 @@ public class TestParticipantDeregistrationStage extends ZkTestBase {
     // Sleep so that participant offline time exceeds deregister timeout
     Thread.sleep(testDeregisterTimeout);
     // Trigger on disable --> enable deregister
-    setAutoDeregisterConfigs(CLUSTER_NAME, true, testDeregisterTimeout);
+    setAutoDeregisterConfigs(CLUSTER_NAME, DEREGISTER_TIMEOUT);
 
     // Assert participants have been deregistered
     boolean result = TestHelper.verify(() -> {
@@ -208,7 +208,7 @@ public class TestParticipantDeregistrationStage extends ZkTestBase {
         + new Date(System.currentTimeMillis()));
     long longDeregisterTimeout = 1000*60*60*24;
     long shortDeregisterTimeout = 1000;
-    setAutoDeregisterConfigs(CLUSTER_NAME, true, longDeregisterTimeout);
+    setAutoDeregisterConfigs(CLUSTER_NAME, DEREGISTER_TIMEOUT);
 
     // Create and immediately kill participants
     List<MockParticipantManager> killedParticipants = new ArrayList<>();
@@ -222,7 +222,7 @@ public class TestParticipantDeregistrationStage extends ZkTestBase {
     Thread.sleep(shortDeregisterTimeout);
 
     // Trigger on shorten deregister timeout
-    setAutoDeregisterConfigs(CLUSTER_NAME, true, shortDeregisterTimeout);
+    setAutoDeregisterConfigs(CLUSTER_NAME, DEREGISTER_TIMEOUT);
 
     // Assert participants have been deregistered
     boolean result = TestHelper.verify(() -> {
@@ -253,9 +253,8 @@ public class TestParticipantDeregistrationStage extends ZkTestBase {
     return toAddParticipant;
   }
 
-  private void setAutoDeregisterConfigs(String clusterName, boolean enabled, long timeout) {
+  private void setAutoDeregisterConfigs(String clusterName, long timeout) {
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setParticipantDeregistrationEnabled(enabled);
     clusterConfig.setParticipantDeregistrationTimeout(timeout);
     _configAccessor.setClusterConfig(clusterName, clusterConfig);
     // Allow participant to ensure compatibility with nodes re-joining when they re-establish connection

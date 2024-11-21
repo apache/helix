@@ -40,7 +40,7 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
     long deregisterDelay = clusterConfig.getParticipantDeregistrationTimeout();
     long stageStartTime = System.currentTimeMillis();
     Set<String> participantsToDeregister = new HashSet<>();
-    long earliestDeregisterTime = Long.MAX_VALUE;
+    long nextDeregisterTime = Long.MAX_VALUE;
 
 
     for (Map.Entry<String, Long> entry : offlineTimeMap.entrySet()) {
@@ -49,7 +49,7 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
       long deregisterTime = offlineTime + deregisterDelay;
 
       // Skip if instance is still online
-      if (offlineTime == ParticipantHistory.ONLINE) {
+      if (cache.getLiveInstances().containsKey(instanceName)) {
         continue;
       }
 
@@ -58,9 +58,7 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
         participantsToDeregister.add(instanceName);
       } else {
         // Otherwise, find the next earliest deregister time
-        if (deregisterTime < earliestDeregisterTime) {
-          earliestDeregisterTime = deregisterTime;
-        }
+        nextDeregisterTime = Math.min(nextDeregisterTime, deregisterTime);
       }
     }
 
@@ -73,8 +71,8 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
       }
     }
     // Schedule the next deregister task
-    if (earliestDeregisterTime != Long.MAX_VALUE) {
-      long delay = earliestDeregisterTime - stageStartTime;
+    if (nextDeregisterTime != Long.MAX_VALUE) {
+      long delay = Math.max(nextDeregisterTime - System.currentTimeMillis(), 0);
       scheduleOnDemandPipeline(manager.getClusterName(), delay);
     }
   }
@@ -107,7 +105,7 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
         manager.getClusterManagmentTool().dropInstance(cache.getClusterName(), instanceConfig);
         successfullyDeregisteredInstances.add(instanceName);
       } catch (HelixException e) {
-        LOG.error("Failed to deregister instance {} from cluster {}", instanceName, cache.getClusterName(), e);
+        LOG.warn("Failed to deregister instance {} from cluster {}", instanceName, cache.getClusterName(), e);
       }
     }
 

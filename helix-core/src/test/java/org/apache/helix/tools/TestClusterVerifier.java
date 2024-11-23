@@ -20,6 +20,7 @@ package org.apache.helix.tools;
  */
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -262,5 +263,61 @@ public class TestClusterVerifier extends ZkUnitTestBase {
 
     // The new participant causes rebalance, but the state transitions are all stuck
     Assert.assertFalse(strictMatchVerifier.verify(3000));
+  }
+
+  @Test
+  public void testExternalViewBestPossibleVerifierWorkWithWaged() throws InterruptedException {
+    // Create a WAGED resource with 2 replicas and verify that it is balanced
+    String testDB1 = "resource-wagedDB1";
+    _setupTool.addResourceToCluster(_clusterName, testDB1, 1,
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.toString());
+    _admin.enableWagedRebalance(_clusterName, Collections.singletonList(testDB1));
+    IdealState db1IdealState = _admin.getResourceIdealState(_clusterName, testDB1);
+    db1IdealState.setReplicas(Integer.toString(2));
+    db1IdealState.getRecord().setListField(testDB1 + "_0",
+        Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()));
+    _admin.setResourceIdealState(_clusterName, testDB1, db1IdealState);
+
+    // Verify that the resource is balanced
+    BestPossibleExternalViewVerifier bestPossibleVerifier =
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setResources(Sets.newHashSet(testDB1))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    Assert.assertTrue(bestPossibleVerifier.verify(10000));
+
+    // Re-start a new participant with sleeping transition(all state model transition cannot finish)
+    // This should fail the verification of the second resource
+    _participants[2].syncStop();
+    Thread.sleep(1000);
+
+    _participants[2] = new MockParticipantManager(ZK_ADDR, _clusterName, _participants[2].getInstanceName());
+    _participants[2].setTransition(new SleepTransition(99999999));
+    _participants[2].syncStart();
+
+    // Create the second WAGED resource with 2 replicas and verify that it is NOT balanced
+    String testDB2 = "resource-wagedDB2";
+    _setupTool.addResourceToCluster(_clusterName, testDB2, 1,
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.toString());
+    _admin.enableWagedRebalance(_clusterName, Collections.singletonList(testDB2));
+    IdealState db2IdealState = _admin.getResourceIdealState(_clusterName, testDB2);
+    db2IdealState.setReplicas(Integer.toString(2));
+    db2IdealState.getRecord().setListField(testDB2 + "_0",
+        Arrays.asList(_participants[1].getInstanceName(), _participants[2].getInstanceName()));
+    _admin.setResourceIdealState(_clusterName, testDB2, db2IdealState);
+
+    // Verify that the resource is NOT balanced
+    bestPossibleVerifier = new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+        .setResources(Sets.newHashSet(testDB2))
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    Assert.assertFalse(bestPossibleVerifier.verify(3000));
+
+    // The verification of the first resource should still pass
+    bestPossibleVerifier = new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+        .setResources(Sets.newHashSet(testDB1))
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    Assert.assertTrue(bestPossibleVerifier.verify(10000));
   }
 }

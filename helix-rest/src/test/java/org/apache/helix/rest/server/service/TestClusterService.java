@@ -96,6 +96,30 @@ public class TestClusterService {
     Assert.assertEquals(clusterTopology.getClusterId(), TEST_CLUSTER);
   }
 
+  @Test
+  public void testCheckTopologyAware() {
+    Mock mock = new Mock();
+    Assert.assertFalse(mock.clusterService.isClusterTopologyAware(TEST_CLUSTER));
+
+    ClusterConfig config = new ClusterConfig(TEST_CLUSTER);
+    config.setTopology("/zone");
+    when(mock.configAccessor.getClusterConfig(TEST_CLUSTER)).thenReturn(config);
+    Assert.assertFalse(mock.clusterService.isClusterTopologyAware(TEST_CLUSTER));
+
+    config = new ClusterConfig(TEST_CLUSTER);
+    config.setFaultZoneType("zone");
+    config.setTopology("/zone");
+    when(mock.configAccessor.getClusterConfig(TEST_CLUSTER)).thenReturn(config);
+    Assert.assertFalse(mock.clusterService.isClusterTopologyAware(TEST_CLUSTER));
+
+    config = new ClusterConfig(TEST_CLUSTER);
+    config.setFaultZoneType("zone");
+    config.setTopology("/zone");
+    config.setTopologyAwareEnabled(true);
+    when(mock.configAccessor.getClusterConfig(TEST_CLUSTER)).thenReturn(config);
+    Assert.assertTrue(mock.clusterService.isClusterTopologyAware(TEST_CLUSTER));
+  }
+
   private final class Mock {
     private HelixDataAccessor dataAccessor = mock(HelixDataAccessor.class);
     private ConfigAccessor configAccessor = mock(ConfigAccessor.class);

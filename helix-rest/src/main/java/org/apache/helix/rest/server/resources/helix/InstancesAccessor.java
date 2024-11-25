@@ -82,7 +82,7 @@ public class InstancesAccessor extends AbstractHelixResource {
   }
 
   public enum InstanceHealthSelectionBase {
-    non_topo_based,
+    non_zone_based,
     zone_based,
     cross_zone_based
   }
@@ -224,15 +224,17 @@ public class InstancesAccessor extends AbstractHelixResource {
       boolean random) throws IOException {
     try {
       // TODO: Process input data from the content
+      // TODO: Implement the logic to automatically detect the selection base. https://github.com/apache/helix/issues/2968#issue-2691677799
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
-          InstancesAccessor.InstanceHealthSelectionBase.valueOf(
+          node.get(InstancesAccessor.InstancesProperties.selection_base.name()) == null
+              ? InstanceHealthSelectionBase.non_zone_based : InstanceHealthSelectionBase.valueOf(
               node.get(InstancesAccessor.InstancesProperties.selection_base.name()).textValue());
+
       List<String> instances = OBJECT_MAPPER.readValue(
           node.get(InstancesAccessor.InstancesProperties.instances.name()).toString(),
           OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
       ClusterService clusterService =
           new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
-      ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
 
       List<String> orderOfZone = null;
       String customizedInput = null;
@@ -255,9 +257,9 @@ public class InstancesAccessor extends AbstractHelixResource {
           _logger.error(message);
           return badRequest(message);
         }
-        if (!orderOfZone.isEmpty() && selectionBase == InstanceHealthSelectionBase.non_topo_based) {
+        if (!orderOfZone.isEmpty() && selectionBase == InstanceHealthSelectionBase.non_zone_based) {
           String message =
-              "'zone_order' is set but 'selection_base' is 'non_topo_based'. Please set 'selection_base' to 'zone_based' or 'cross_zone_based'.";
+              "'zone_order' is set but 'selection_base' is 'non_zone_based'. Please set 'selection_base' to 'zone_based' or 'cross_zone_based'.";
           _logger.error(message);
           return badRequest(message);
         }
@@ -294,12 +296,26 @@ public class InstancesAccessor extends AbstractHelixResource {
         }
       }
 
-      if (selectionBase != InstanceHealthSelectionBase.non_topo_based && clusterTopology.getZones()
-          .isEmpty()) {
-        String message = "Cluster " + clusterId
-            + " does not have any zone information. Please set zone information in cluster config.";
-        _logger.error(message);
-        return badRequest(message);
+      ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
+      if (selectionBase != InstanceHealthSelectionBase.non_zone_based) {
+        if (!clusterService.isClusterTopologyAware(clusterId)) {
+          String message = "Cluster " + clusterId
+              + " is not topology aware. Please enable the topology in cluster config or set "
+              + "'selection_base' to 'non_zone_based'.";
+          _logger.error(message);
+          return badRequest(message);
+        }
+
+        // Find instances that lack topology information
+        Set<String> topologyUnawareInstances =
+            findTopologyUnawareInstances(clusterTopology, instances);
+        if (!topologyUnawareInstances.isEmpty()) {
+          String message = "Instances " + topologyUnawareInstances
+              + " do not have topology information. Please set topology information in instance config or"
+              + " set 'selection_base' to 'non_zone_based'.";
+          _logger.error(message);
+          return badRequest(message);
+        }
       }
 
       String namespace = getNamespace();
@@ -336,8 +352,8 @@ public class InstancesAccessor extends AbstractHelixResource {
           stoppableInstancesSelector.calculateOrderOfZone(instances, random);
           result = stoppableInstancesSelector.getStoppableInstancesCrossZones(instances, toBeStoppedInstances);
           break;
-        case non_topo_based:
-          result = stoppableInstancesSelector.getStoppableInstancesWithoutTopology(instances, toBeStoppedInstances);
+        case non_zone_based:
+          result = stoppableInstancesSelector.getStoppableInstancesNonZoneBased(instances, toBeStoppedInstances);
           break;
         default:
           throw new UnsupportedOperationException("instance_based selection is not supported yet!");
@@ -353,5 +369,22 @@ public class InstancesAccessor extends AbstractHelixResource {
               clusterId), e);
       throw e;
     }
+  }
+
+  /**
+   * Find the topology unaware instances in the given list of instances.
+   * @param topology The cluster topology
+   * @param instances The list of instances to check
+   * @return The set of instances that do not have topology information but are present in the cluster.
+   */
+  private Set<String> findTopologyUnawareInstances(ClusterTopology topology,
+      List<String> instances) {
+    Set<String> instancesWithTopology =
+        topology.toZoneMapping().entrySet().stream().flatMap(entry -> entry.getValue().stream())
+            .collect(Collectors.toSet());
+    Set<String> allInstances = topology.getAllInstances();
+    return new HashSet<>(instances).stream().filter(
+            instance -> !instancesWithTopology.contains(instance) && allInstances.contains(instance))
+        .collect(Collectors.toSet());
   }
 }

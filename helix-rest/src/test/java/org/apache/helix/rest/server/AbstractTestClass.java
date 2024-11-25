@@ -604,6 +604,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     _gSetupTool.addCluster(clusterName, true);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     clusterConfig.setFaultZoneType("helixZoneId");
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/helixZoneId/instance");
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(clusterName, clusterConfig);
     // Create instance configs
@@ -661,6 +663,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     _gSetupTool.addCluster(clusterName, true);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     clusterConfig.setFaultZoneType("helixZoneId");
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/helixZoneId/instance");
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(clusterName, clusterConfig);
     // Create instance configs

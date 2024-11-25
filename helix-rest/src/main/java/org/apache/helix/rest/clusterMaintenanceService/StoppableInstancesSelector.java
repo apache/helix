@@ -290,8 +290,13 @@ public class StoppableInstancesSelector {
   }
 
   /**
+<<<<<<< HEAD
    * Collect instances within the cluster where the instance operation is set to EVACUATE, SWAP_IN, or UNKNOWN.
    * And return them as a set.
+=======
+   * Collect instances marked for evacuation, swap, or unkown in the current topology and add
+   * them into the given set
+>>>>>>> 13950a671 (Address comments)
    *
    * @param toBeStoppedInstances A list of instances we presume to be stopped.
    */

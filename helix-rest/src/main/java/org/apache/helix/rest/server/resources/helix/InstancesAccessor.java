@@ -375,4 +375,21 @@ public class InstancesAccessor extends AbstractHelixResource {
       throw e;
     }
   }
+
+  /**
+   * Find the topology unaware instances in the given list of instances.
+   * @param topology The cluster topology
+   * @param instances The list of instances to check
+   * @return The set of instances that do not have topology information but are present in the cluster.
+   */
+  private Set<String> findTopologyUnawareInstances(ClusterTopology topology,
+      List<String> instances) {
+    Set<String> instancesWithTopology =
+        topology.toZoneMapping().entrySet().stream().flatMap(entry -> entry.getValue().stream())
+            .collect(Collectors.toSet());
+    Set<String> allInstances = topology.getAllInstances();
+    return new HashSet<>(instances).stream().filter(
+            instance -> !instancesWithTopology.contains(instance) && allInstances.contains(instance))
+        .collect(Collectors.toSet());
+  }
 }

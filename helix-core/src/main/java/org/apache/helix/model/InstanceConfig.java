@@ -642,8 +642,8 @@ public class InstanceConfig extends HelixProperty {
               .build();
     }
 
-    // Always respect the HELIX_ENABLED being set to false when instance operation is unset
-    // for backwards compatibility.
+    // if instance operation is not DISABLED, we always respect the HELIX_ENABLED being set to false
+    // when instance operation is unset for backwards compatibility.
     if (!_record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
         HELIX_ENABLED_DEFAULT_VALUE)
         && (InstanceConstants.INSTANCE_DISABLED_OVERRIDABLE_OPERATIONS.contains(
@@ -654,6 +654,17 @@ public class InstanceConfig extends HelixProperty {
               InstanceConstants.InstanceOperationSource.instanceDisabledTypeToInstanceOperationSource(
                   InstanceConstants.InstanceDisabledType.valueOf(getInstanceDisabledType())))
           .build();
+    }
+
+    // if instance operation id DISABLE, we override it to ENABLE if instance is enabled
+    if (activeInstanceOperation.getOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
+      // it is not likely that instanceEnabled is unset, because when we set operation to disable,
+      // we always set instanceEnabled to false
+      // If instance is enabled by old version helix (not having instance operation), the instance config
+      // will have HELIX_ENABLED set to true. In this case, we should override the instance operation to ENABLE
+      if ("true".equals(_record.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.name()))) {
+        return new InstanceOperation.Builder().setOperation(InstanceConstants.InstanceOperation.ENABLE).build();
+      }
     }
 
     return activeInstanceOperation;

@@ -865,7 +865,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         if (!value.getToState().equals(HelixDefinedState.DROPPED.name())) {
           intermediateStateMap.setState(entry.getKey(), value.getTgtName(), value.getToState());
         } else {
-          intermediateStateMap.getStateMap().get(entry.getKey()).remove(value.getTgtName());
+          if (intermediateStateMap.getStateMap().containsKey(entry.getKey())) {
+            intermediateStateMap.getStateMap().get(entry.getKey()).remove(value.getTgtName());
+          }
         }
       });
     }

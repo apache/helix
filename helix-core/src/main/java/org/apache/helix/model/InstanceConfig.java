@@ -658,8 +658,8 @@ public class InstanceConfig extends HelixProperty {
 
     // if instance operation id DISABLE, we override it to ENABLE if instance is enabled
     if (activeInstanceOperation.getOperation().equals(InstanceConstants.InstanceOperation.DISABLE)) {
-      // it is not likely that instanceEnabled is unset, because when we set operation to disable,
-      // we always set instanceEnabled to false
+      // it is not likely that HELIX_ENABLED is unset, because when we set operation to disable,
+      // we always set HELIX_ENABLED to false
       // If instance is enabled by old version helix (not having instance operation), the instance config
       // will have HELIX_ENABLED set to true. In this case, we should override the instance operation to ENABLE
       if ("true".equals(_record.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.name()))) {

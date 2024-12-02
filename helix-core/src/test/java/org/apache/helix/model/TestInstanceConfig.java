@@ -71,7 +71,22 @@ public class TestInstanceConfig {
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_REASON.toString()), reasonCode);
     Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), reasonCode);
     Assert.assertEquals(instanceConfig.getInstanceDisabledType(),
-        InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());
+        InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());}
+
+  @Test
+  public void testEnabledInstanceBackwardCompatibility() {
+    // if instance is disabled by instanceOperation, and enabled by HELIX_ENABLED, the instance should be enabled
+    InstanceConfig instanceConfig = new InstanceConfig.Builder().setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE)
+        .build("id");
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    // assume an old version client enabled the instance by setting HELIX_ENABLED to true
+    instanceConfig.getRecord().setSimpleField(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.name(), "true");
+    Assert.assertTrue(instanceConfig.getInstanceEnabled());
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+
+    // disable the instance by setting HELIX_ENABLED to false
+    instanceConfig.getRecord().setSimpleField(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.name(), "false");
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
   }
 
   @Test

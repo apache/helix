@@ -825,12 +825,18 @@ public abstract class AbstractTaskDispatcher {
           // disabled. If instance is disabled and current state still exist on the instance,
           // then controller needs to drop the current state, otherwise, the task can be marked as
           // dropped and be reassigned to other instances
-          if (disableInstances.contains(assignedParticipant)
-              && currStateOutput.getCurrentState(jobResource, new Partition(partitionName),
+          if (disableInstances.contains(assignedParticipant) &&
+              currStateOutput.getCurrentState(jobResource, new Partition(partitionName),
                   assignedParticipant) != null) {
             paMap.put(partitionNumber,
                 new PartitionAssignment(assignedParticipant, TaskPartitionState.DROPPED.name()));
           } else {
+            if (_manager.getHelixDataAccessor().getProperty(
+                _manager.getHelixDataAccessor().keyBuilder().liveInstance(assignedParticipant))
+                != null && !disableInstances.contains(assignedParticipant)) {
+              continue;
+            }
+            // Only drop the task if the instance is not alive, otherwise, the task will be continued
             jobContext.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
             filteredTasks.add(partitionNumber);
           }

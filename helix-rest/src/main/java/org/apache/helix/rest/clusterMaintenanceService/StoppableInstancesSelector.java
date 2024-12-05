@@ -293,8 +293,8 @@ public class StoppableInstancesSelector {
   }
 
   /**
-   * Collect instances marked for evacuation, swap, or unkown in the current topology and add
-   * them into the given set
+   * Collect instances within the cluster where the instance operation is set to EVACUATE, SWAP_IN, or UNKNOWN.
+   * And add them into the given toBeStoppedInstances set.
    *
    * @param toBeStoppedInstances A set of instances we presume to be stopped.
    */

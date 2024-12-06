@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -330,6 +329,11 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         }
       }
 
+      // Process resources to retain only those requested
+      if (_resources != null && !_resources.isEmpty()) {
+        idealStates.keySet().retainAll(_resources);
+        extViews.keySet().retainAll(_resources);
+      }
       for (String resourceName : idealStates.keySet()) {
         IdealState is = idealStates.get(resourceName);
         ExternalView extView = extViews.get(resourceName);

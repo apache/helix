@@ -240,7 +240,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     Map<String, Set<Integer>> tasksToDrop = new HashMap<>();
 
     Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments =
-        getCurrentInstanceToTaskAssignments(liveInstances, currStateOutput, jobResource, tasksToDrop);
+        getCurrentInstanceToTaskAssignments(cache.getEnabledLiveInstances(), currStateOutput,
+            jobResource, tasksToDrop);
 
     updateInstanceToTaskAssignmentsFromContext(jobCtx, currentInstanceToTaskAssignments);
 

@@ -87,7 +87,7 @@ public class StoppableInstancesSelector {
     ObjectNode failedStoppableInstances = result.putObject(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
     Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
-    collectEvacuatingInstances(toBeStoppedInstancesSet);
+    findToBeStoppedInstances(toBeStoppedInstancesSet);
 
     List<String> zoneBasedInstance =
         getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
@@ -119,7 +119,7 @@ public class StoppableInstancesSelector {
     ObjectNode failedStoppableInstances = result.putObject(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
     Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
-    collectEvacuatingInstances(toBeStoppedInstancesSet);
+    findToBeStoppedInstances(toBeStoppedInstancesSet);
 
     Map<String, Set<String>> zoneMapping = _clusterTopology.toZoneMapping();
     for (String zone : _orderOfZone) {
@@ -133,6 +133,40 @@ public class StoppableInstancesSelector {
           failedStoppableInstances);
     }
     processNonexistentInstances(instances, failedStoppableInstances);
+    return result;
+  }
+
+  /**
+   * Evaluates and collects stoppable instances not based on the zone order.
+   * The method iterates through instances, performing stoppable checks, and records reasons for
+   * non-stoppability.
+   *
+   * @param instances A list of instance to be evaluated.
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
+   * @return An ObjectNode containing:
+   *         - 'stoppableNode': List of instances that can be stopped.
+   *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
+   *         a list of reasons for non-stoppability as the value.
+   * @throws IOException
+   */
+  public ObjectNode getStoppableInstancesNonZoneBased(List<String> instances,
+      List<String> toBeStoppedInstances) throws IOException {
+    ObjectNode result = JsonNodeFactory.instance.objectNode();
+    ArrayNode stoppableInstances =
+        result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    ObjectNode failedStoppableInstances = result.putObject(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
+    findToBeStoppedInstances(toBeStoppedInstancesSet);
+
+    // Because zone order calculation is omitted, we must verify each instance's existence
+    // to ensure we only process valid instances before performing stoppable check.
+    Set<String> nonExistingInstances = processNonexistentInstances(instances, failedStoppableInstances);
+    List<String> instancesToCheck = new ArrayList<>(instances);
+    instancesToCheck.removeAll(nonExistingInstances);
+    populateStoppableInstances(instancesToCheck, toBeStoppedInstancesSet, stoppableInstances,
+        failedStoppableInstances);
+
     return result;
   }
 
@@ -159,7 +193,7 @@ public class StoppableInstancesSelector {
     }
   }
 
-  private void processNonexistentInstances(List<String> instances, ObjectNode failedStoppableInstances) {
+  private Set<String> processNonexistentInstances(List<String> instances, ObjectNode failedStoppableInstances) {
     // Adding following logic to check whether instances exist or not. An instance exist could be
     // checking following scenario:
     // 1. Instance got dropped. (InstanceConfig is gone.)
@@ -174,6 +208,7 @@ public class StoppableInstancesSelector {
       ArrayNode failedReasonsNode = failedStoppableInstances.putArray(nonSelectedInstance);
       failedReasonsNode.add(JsonNodeFactory.instance.textNode(INSTANCE_NOT_EXIST));
     }
+    return nonSelectedInstances;
   }
 
   /**
@@ -258,18 +293,21 @@ public class StoppableInstancesSelector {
   }
 
   /**
-   * Collect instances marked for evacuation in the current topology and add them into the given set
+   * Collect instances within the cluster where the instance operation is set to EVACUATE, SWAP_IN, or UNKNOWN.
+   * And add them into the given toBeStoppedInstances set.
    *
    * @param toBeStoppedInstances A set of instances we presume to be stopped.
    */
-  private void collectEvacuatingInstances(Set<String> toBeStoppedInstances) {
+  private void findToBeStoppedInstances(Set<String> toBeStoppedInstances) {
     Set<String> allInstances = _clusterTopology.getAllInstances();
     for (String instance : allInstances) {
       PropertyKey.Builder propertyKeyBuilder = _dataAccessor.keyBuilder();
       InstanceConfig instanceConfig =
           _dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instance));
-      if (InstanceConstants.InstanceOperation.EVACUATE.equals(
-          instanceConfig.getInstanceOperation().getOperation())) {
+      InstanceConstants.InstanceOperation operation = instanceConfig.getInstanceOperation().getOperation();
+      if (operation == InstanceConstants.InstanceOperation.EVACUATE
+          || operation == InstanceConstants.InstanceOperation.SWAP_IN
+          || operation == InstanceConstants.InstanceOperation.UNKNOWN) {
         toBeStoppedInstances.add(instance);
       }
     }

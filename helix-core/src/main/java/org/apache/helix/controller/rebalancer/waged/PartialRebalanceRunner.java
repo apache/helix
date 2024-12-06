@@ -39,6 +39,7 @@ import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.implementation.BaselineDivergenceGauge;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +100,7 @@ class PartialRebalanceRunner implements AutoCloseable {
       return;
     }
 
-    _asyncPartialRebalanceResult = _bestPossibleCalculateExecutor.submit(() -> {
+    _asyncPartialRebalanceResult = _bestPossibleCalculateExecutor.submit(ExecutorTaskUtil.wrap(() -> {
       try {
         doPartialRebalance(clusterData, resourceMap, activeNodes, algorithm,
             currentStateOutput);
@@ -111,7 +112,7 @@ class PartialRebalanceRunner implements AutoCloseable {
         return false;
       }
       return true;
-    });
+    }));
     if (!_asyncPartialRebalanceEnabled) {
       try {
         if (!_asyncPartialRebalanceResult.get()) {

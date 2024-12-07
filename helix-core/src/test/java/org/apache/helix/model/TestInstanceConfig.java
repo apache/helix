@@ -21,6 +21,7 @@ package org.apache.helix.model;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
@@ -88,6 +89,16 @@ public class TestInstanceConfig {
     // disable the instance by setting HELIX_ENABLED to false
     instanceConfig.getRecord().setSimpleField(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.name(), "false");
     Assert.assertFalse(instanceConfig.getInstanceEnabled());
+  }
+
+  @Test
+  public void testInstanceOperationDeserialize() {
+    ZNRecord znRecord = new ZNRecord("id");
+    znRecord.setListField("HELIX_INSTANCE_OPERATIONS",
+        List.of("{\"OPERATION\":\"EVACUATE\",\"TIMESTAMP\":\"1733518029415\",\"SOURCE\":\"USER\",\"REASON\":\"\"}"));
+    InstanceConfig instanceConfig = new InstanceConfig(znRecord);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.EVACUATE);
   }
 
   @Test

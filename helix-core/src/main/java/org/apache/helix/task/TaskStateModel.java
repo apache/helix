@@ -31,6 +31,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +70,7 @@ public class TaskStateModel extends StateModel {
     reset();
   }
 
-  public boolean awaitTermination(long timeout, TimeUnit unit)
-      throws InterruptedException {
+  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
     return _taskExecutor.awaitTermination(timeout, unit);
   }
 
@@ -83,8 +83,9 @@ public class TaskStateModel extends StateModel {
   public String onBecomeStoppedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+      throw new IllegalStateException(
+          String.format("Invalid state transition. There is no running task for partition %s.",
+              taskPartition));
     }
 
     _taskRunner.cancel();
@@ -100,8 +101,9 @@ public class TaskStateModel extends StateModel {
   public String onBecomeCompletedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+      throw new IllegalStateException(
+          String.format("Invalid state transition. There is no running task for partition %s.",
+              taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -120,8 +122,9 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTimedOutFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+      throw new IllegalStateException(
+          String.format("Invalid state transition. There is no running task for partition %s.",
+              taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -140,8 +143,9 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTaskErrorFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+      throw new IllegalStateException(
+          String.format("Invalid state transition. There is no running task for partition %s.",
+              taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -160,13 +164,15 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTaskAbortedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+      throw new IllegalStateException(
+          String.format("Invalid state transition. There is no running task for partition %s.",
+              taskPartition));
     }
 
     _taskRunner.cancel();
     TaskResult r = _taskRunner.waitTillDone();
-    if (r.getStatus() != TaskResult.Status.FATAL_FAILED && r.getStatus() != TaskResult.Status.CANCELED) {
+    if (r.getStatus() != TaskResult.Status.FATAL_FAILED
+        && r.getStatus() != TaskResult.Status.CANCELED) {
       throw new IllegalStateException(String.format(
           "Partition %s received a state transition to %s but the result status code is %s.",
           taskPartition, msg.getToState(), r.getStatus()));
@@ -236,8 +242,9 @@ public class TaskStateModel extends StateModel {
   public void onBecomeInitFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+      throw new IllegalStateException(
+          String.format("Invalid state transition. There is no running task for partition %s.",
+              taskPartition));
     }
 
     _taskRunner.cancel();
@@ -313,23 +320,25 @@ public class TaskStateModel extends StateModel {
     callbackContext.setTaskConfig(taskConfig);
 
     // Create a task instance with this command
-    if (command == null || _taskFactoryRegistry == null
-        || !_taskFactoryRegistry.containsKey(command)) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+    if (command == null || _taskFactoryRegistry == null || !_taskFactoryRegistry.containsKey(
+        command)) {
+      throw new IllegalStateException(
+          String.format("Invalid state transition. There is no running task for partition %s.",
+              taskPartition));
     }
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);
 
     if (task instanceof UserContentStore) {
-      ((UserContentStore) task).init(_manager, cfg.getWorkflow(), msg.getResourceName(), taskPartition);
+      ((UserContentStore) task).init(_manager, cfg.getWorkflow(), msg.getResourceName(),
+          taskPartition);
     }
 
     // Submit the task for execution
     _taskRunner =
         new TaskRunner(task, msg.getResourceName(), taskPartition, msg.getTgtName(), _manager,
             msg.getTgtSessionId(), this);
-    _taskExecutor.submit(_taskRunner);
+    _taskExecutor.submit(ExecutorTaskUtil.wrap(_taskRunner));
     _taskRunner.waitTillStarted();
 
     // Set up a timer to cancel the task when its time out expires.

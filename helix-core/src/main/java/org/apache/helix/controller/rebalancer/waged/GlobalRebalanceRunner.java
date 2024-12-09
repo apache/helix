@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
@@ -35,18 +36,16 @@ import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.ClusterTopologyConfig;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.MetricCollector;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * Global Rebalance does the baseline recalculation when certain changes happen.
@@ -61,9 +60,9 @@ class GlobalRebalanceRunner implements AutoCloseable {
   // When any of the following change happens, the rebalancer needs to do a global rebalance which
   // contains 1. baseline recalculate, 2. partial rebalance that is based on the new baseline.
   private static final Set<HelixConstants.ChangeType> GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES =
-      ImmutableSet
-          .of(HelixConstants.ChangeType.RESOURCE_CONFIG, HelixConstants.ChangeType.IDEAL_STATE,
-              HelixConstants.ChangeType.CLUSTER_CONFIG, HelixConstants.ChangeType.INSTANCE_CONFIG);
+      ImmutableSet.of(HelixConstants.ChangeType.RESOURCE_CONFIG,
+          HelixConstants.ChangeType.IDEAL_STATE, HelixConstants.ChangeType.CLUSTER_CONFIG,
+          HelixConstants.ChangeType.INSTANCE_CONFIG);
 
   // To calculate the baseline asynchronously
   private final ExecutorService _baselineCalculateExecutor;
@@ -78,10 +77,8 @@ class GlobalRebalanceRunner implements AutoCloseable {
   private boolean _asyncGlobalRebalanceEnabled;
 
   public GlobalRebalanceRunner(AssignmentManager assignmentManager,
-      AssignmentMetadataStore assignmentMetadataStore,
-      MetricCollector metricCollector,
-      LatencyMetric writeLatency,
-      CountMetric rebalanceFailureCount,
+      AssignmentMetadataStore assignmentMetadataStore, MetricCollector metricCollector,
+      LatencyMetric writeLatency, CountMetric rebalanceFailureCount,
       boolean isAsyncGlobalRebalanceEnabled) {
     _baselineCalculateExecutor = Executors.newSingleThreadExecutor();
     _assignmentManager = assignmentManager;
@@ -107,17 +104,20 @@ class GlobalRebalanceRunner implements AutoCloseable {
    * @param algorithm
    * @throws HelixRebalanceException
    */
-  public void globalRebalance(ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      final CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm) throws HelixRebalanceException {
+  public void globalRebalance(ResourceControllerDataProvider clusterData,
+      Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput,
+      RebalanceAlgorithm algorithm) throws HelixRebalanceException {
     _changeDetector.updateSnapshots(clusterData);
     // Get all the changed items' information. Filter for the items that have content changed.
-    final Map<HelixConstants.ChangeType, Set<String>> clusterChanges = _changeDetector.getAllChanges();
+    final Map<HelixConstants.ChangeType, Set<String>> clusterChanges =
+        _changeDetector.getAllChanges();
     Set<String> allAssignableInstances = clusterData.getAssignableInstances();
 
-    if (clusterChanges.keySet().stream().anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
+    if (clusterChanges.keySet().stream()
+        .anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
       final boolean waitForGlobalRebalance = !_asyncGlobalRebalanceEnabled;
       // Calculate the Baseline assignment for global rebalance.
-      Future<Boolean> result = _baselineCalculateExecutor.submit(() -> {
+      Future<Boolean> result = _baselineCalculateExecutor.submit(ExecutorTaskUtil.wrap(() -> {
         try {
           // If the synchronous thread does not wait for the baseline to be calculated, the synchronous thread should
           // be triggered again after baseline is finished.
@@ -132,7 +132,7 @@ class GlobalRebalanceRunner implements AutoCloseable {
           return false;
         }
         return true;
-      });
+      }));
       if (waitForGlobalRebalance) {
         try {
           if (!result.get()) {
@@ -154,8 +154,8 @@ class GlobalRebalanceRunner implements AutoCloseable {
    */
   private void doGlobalRebalance(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, Set<String> allAssignableInstances,
-      RebalanceAlgorithm algorithm, CurrentStateOutput currentStateOutput, boolean shouldTriggerMainPipeline,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges)
+      RebalanceAlgorithm algorithm, CurrentStateOutput currentStateOutput,
+      boolean shouldTriggerMainPipeline, Map<HelixConstants.ChangeType, Set<String>> clusterChanges)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
     _baselineCalcCounter.increment(1L);
@@ -166,7 +166,8 @@ class GlobalRebalanceRunner implements AutoCloseable {
     // 1. Ignore node status (disable/offline).
     // 2. Use the previous Baseline as the only parameter about the previous assignment.
     Map<String, ResourceAssignment> currentBaseline =
-        _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
+        _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput,
+            resourceMap.keySet());
     ClusterModel clusterModel;
     try {
       clusterModel = ClusterModelProvider.generateClusterModelForBaseline(clusterData, resourceMap,
@@ -176,7 +177,8 @@ class GlobalRebalanceRunner implements AutoCloseable {
           HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
     }
 
-    Map<String, ResourceAssignment> newBaseline = WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
+    Map<String, ResourceAssignment> newBaseline =
+        WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
     boolean isBaselineChanged =
         _assignmentMetadataStore != null && _assignmentMetadataStore.isBaselineChanged(newBaseline);
     // Write the new baseline to metadata store

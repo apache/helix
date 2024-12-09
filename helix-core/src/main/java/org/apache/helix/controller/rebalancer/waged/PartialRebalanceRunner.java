@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
@@ -43,7 +44,6 @@ import org.apache.helix.util.ExecutorTaskUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * Compute the best possible assignment based on the Baseline and the previous Best Possible assignment.
@@ -68,10 +68,8 @@ class PartialRebalanceRunner implements AutoCloseable {
   private Future<Boolean> _asyncPartialRebalanceResult;
 
   public PartialRebalanceRunner(AssignmentManager assignmentManager,
-      AssignmentMetadataStore assignmentMetadataStore,
-      MetricCollector metricCollector,
-      CountMetric rebalanceFailureCount,
-      boolean isAsyncPartialRebalanceEnabled) {
+      AssignmentMetadataStore assignmentMetadataStore, MetricCollector metricCollector,
+      CountMetric rebalanceFailureCount, boolean isAsyncPartialRebalanceEnabled) {
     _assignmentManager = assignmentManager;
     _assignmentMetadataStore = assignmentMetadataStore;
     _bestPossibleCalculateExecutor = Executors.newSingleThreadExecutor();
@@ -82,16 +80,16 @@ class PartialRebalanceRunner implements AutoCloseable {
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
         CountMetric.class);
     _partialRebalanceLatency = metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge
-            .name(),
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge.name(),
         LatencyMetric.class);
     _baselineDivergenceGauge = metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
         BaselineDivergenceGauge.class);
   }
 
-  public void partialRebalance(ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      Set<String> activeNodes, final CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
+  public void partialRebalance(ResourceControllerDataProvider clusterData,
+      Map<String, Resource> resourceMap, Set<String> activeNodes,
+      final CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
     // If partial rebalance is async and the previous result is not completed yet,
     // do not start another partial rebalance.
@@ -100,19 +98,20 @@ class PartialRebalanceRunner implements AutoCloseable {
       return;
     }
 
-    _asyncPartialRebalanceResult = _bestPossibleCalculateExecutor.submit(ExecutorTaskUtil.wrap(() -> {
-      try {
-        doPartialRebalance(clusterData, resourceMap, activeNodes, algorithm,
-            currentStateOutput);
-      } catch (HelixRebalanceException e) {
-        if (_asyncPartialRebalanceEnabled) {
-          _rebalanceFailureCount.increment(1L);
-        }
-        LOG.error("Failed to calculate best possible assignment!", e);
-        return false;
-      }
-      return true;
-    }));
+    _asyncPartialRebalanceResult =
+        _bestPossibleCalculateExecutor.submit(ExecutorTaskUtil.wrap(() -> {
+          try {
+            doPartialRebalance(clusterData, resourceMap, activeNodes, algorithm,
+                currentStateOutput);
+          } catch (HelixRebalanceException e) {
+            if (_asyncPartialRebalanceEnabled) {
+              _rebalanceFailureCount.increment(1L);
+            }
+            LOG.error("Failed to calculate best possible assignment!", e);
+            return false;
+          }
+          return true;
+        }));
     if (!_asyncPartialRebalanceEnabled) {
       try {
         if (!_asyncPartialRebalanceResult.get()) {
@@ -131,9 +130,9 @@ class PartialRebalanceRunner implements AutoCloseable {
    * If the result differ from the persisted result, persist it to memory (only if the version is not stale);
    * If persisted, trigger the pipeline so that main thread logic can run again.
    */
-  private void doPartialRebalance(ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      Set<String> activeNodes, RebalanceAlgorithm algorithm, CurrentStateOutput currentStateOutput)
-      throws HelixRebalanceException {
+  private void doPartialRebalance(ResourceControllerDataProvider clusterData,
+      Map<String, Resource> resourceMap, Set<String> activeNodes, RebalanceAlgorithm algorithm,
+      CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
     LOG.info("Start calculating the new best possible assignment.");
     _partialRebalanceCounter.increment(1L);
     _partialRebalanceLatency.startMeasuringLatency();
@@ -142,12 +141,14 @@ class PartialRebalanceRunner implements AutoCloseable {
     if (_assignmentMetadataStore != null) {
       newBestPossibleAssignmentVersion = _assignmentMetadataStore.getBestPossibleVersion() + 1;
     } else {
-      LOG.debug("Assignment Metadata Store is null. Skip getting best possible assignment version.");
+      LOG.debug(
+          "Assignment Metadata Store is null. Skip getting best possible assignment version.");
     }
 
     // Read the baseline from metadata store
     Map<String, ResourceAssignment> currentBaseline =
-        _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
+        _assignmentManager.getBaselineAssignment(_assignmentMetadataStore, currentStateOutput,
+            resourceMap.keySet());
 
     // Read the best possible assignment from metadata store
     Map<String, ResourceAssignment> currentBestPossibleAssignment =
@@ -155,14 +156,15 @@ class PartialRebalanceRunner implements AutoCloseable {
             resourceMap.keySet());
     ClusterModel clusterModel;
     try {
-      clusterModel = ClusterModelProvider
-          .generateClusterModelForPartialRebalance(clusterData, resourceMap, activeNodes,
-              currentBaseline, currentBestPossibleAssignment);
+      clusterModel =
+          ClusterModelProvider.generateClusterModelForPartialRebalance(clusterData, resourceMap,
+              activeNodes, currentBaseline, currentBestPossibleAssignment);
     } catch (Exception ex) {
       throw new HelixRebalanceException("Failed to generate cluster model for partial rebalance.",
           HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
     }
-    Map<String, ResourceAssignment> newAssignment = WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
+    Map<String, ResourceAssignment> newAssignment =
+        WagedRebalanceUtil.calculateAssignment(clusterModel, algorithm);
 
     // Asynchronously report baseline divergence metric before persisting to metadata store,
     // just in case if persisting fails, we still have the metric.
@@ -177,12 +179,14 @@ class PartialRebalanceRunner implements AutoCloseable {
         currentBaseline, newAssignmentCopy);
 
     boolean bestPossibleUpdateSuccessful = false;
-    if (_assignmentMetadataStore != null && _assignmentMetadataStore.isBestPossibleChanged(newAssignment)) {
+    if (_assignmentMetadataStore != null && _assignmentMetadataStore.isBestPossibleChanged(
+        newAssignment)) {
       // This will not persist the new Best Possible Assignment into ZK. It will only update the in-memory cache.
       // If this is done successfully, the new Best Possible Assignment will be persisted into ZK the next time that
       // the pipeline is triggered. We schedule the pipeline to run below.
-      bestPossibleUpdateSuccessful = _assignmentMetadataStore.asyncUpdateBestPossibleAssignmentCache(newAssignment,
-          newBestPossibleAssignmentVersion);
+      bestPossibleUpdateSuccessful =
+          _assignmentMetadataStore.asyncUpdateBestPossibleAssignmentCache(newAssignment,
+              newBestPossibleAssignmentVersion);
     } else {
       LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
     }

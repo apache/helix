@@ -65,8 +65,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   // at MASTER state, we wait for timeout and if the message is still not cleaned up by
   // participant, controller will cleanup them proactively to unblock further state
   // transition
-  public final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY = HelixUtil
-      .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
+  public final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY =
+      HelixUtil.getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY,
+          60 * 1000);
   private final static String PENDING_MESSAGE = "pending message";
   private final static String STALE_MESSAGE = "stale message";
 
@@ -186,9 +187,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
           if (desiredState.equals(HelixDefinedState.DROPPED.name())) {
-            LogUtil.logDebug(logger, _eventId, String
-                .format("No current state for partition %s in resource %s, skip the drop message",
-                    partition.getPartitionName(), resourceName));
+            LogUtil.logDebug(logger, _eventId, String.format(
+                "No current state for partition %s in resource %s, skip the drop message",
+                partition.getPartitionName(), resourceName));
 
             message =
                 generateCancellationMessageForPendingMessage(desiredState, currentState, nextState,
@@ -199,8 +200,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
             // TODO: separate logic of resource/task message generation
             if (cache instanceof ResourceControllerDataProvider) {
-              ((ResourceControllerDataProvider) cache)
-                  .invalidateCachedIdealStateMapping(resourceName);
+              ((ResourceControllerDataProvider) cache).invalidateCachedIdealStateMapping(
+                  resourceName);
             }
             continue;
           }
@@ -214,10 +215,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
         for (Message staleMessage : staleMessages) {
           // staleMessage can be simple or batch mode
-          if ((System.currentTimeMillis() - currentStateOutput
-              .getEndTime(resourceName, partition, instanceName) > DEFAULT_OBSELETE_MSG_PURGE_DELAY)
-              && staleMessage.getResourceName().equals(resourceName) && sessionIdMap
-              .containsKey(instanceName) && (
+          if ((System.currentTimeMillis() - currentStateOutput.getEndTime(resourceName, partition,
+              instanceName) > DEFAULT_OBSELETE_MSG_PURGE_DELAY) && staleMessage.getResourceName()
+              .equals(resourceName) && sessionIdMap.containsKey(instanceName) && (
               staleMessage.getPartitionName().equals(partition.getPartitionName()) || (
                   staleMessage.getBatchMessageMode() && staleMessage.getPartitionNames()
                       .contains(partition.getPartitionName())))) {
@@ -229,8 +229,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
           if (shouldCreateSTCancellation(pendingMessage, desiredState,
               stateModelDef.getInitialState())) {
-            message = MessageUtil
-                .createStateTransitionCancellationMessage(manager.getInstanceName(),
+            message =
+                MessageUtil.createStateTransitionCancellationMessage(manager.getInstanceName(),
                     manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
                     sessionIdMap.get(instanceName), stateModelDef.getId(),
                     pendingMessage.getFromState(), pendingMessage.getToState(), null,
@@ -252,10 +252,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     stateModelDef, cancellationMessage, isCancellationEnabled);
           } else {
             // Create new state transition message
-            message = MessageUtil
-                .createStateTransitionMessage(manager.getInstanceName(), manager.getSessionId(),
-                    resource, partition.getPartitionName(), instanceName, currentState, nextState,
-                    sessionIdMap.get(instanceName), stateModelDef.getId());
+            message = MessageUtil.createStateTransitionMessage(manager.getInstanceName(),
+                manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
+                currentState, nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
 
             if (logger.isDebugEnabled()) {
               LogUtil.logDebug(logger, _eventId, String.format(
@@ -279,8 +278,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
               LogUtil.logError(logger, _eventId, String.format(
                   "An invalid message was generated! Discarding this message. sessionIdMap: %s, CurrentStateMap: %s, InstanceStateMap: %s, AllInstances: %s, LiveInstances: %s, Message: %s",
                   sessionIdMap, currentStateOutput.getCurrentStateMap(resourceName, partition),
-                  instanceStateMap, cache.getAllInstances(),
-                  cache.getLiveInstances().keySet(),
+                  instanceStateMap, cache.getAllInstances(), cache.getLiveInstances().keySet(),
                   message));
               continue; // Do not add this message
             }
@@ -304,8 +302,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     // 1. pending message toState is desired state
     // 2. pending message is an ERROR reset: ERROR -> initState (eg. OFFLINE)
     return !desiredState.equalsIgnoreCase(pendingMessage.getToState()) && !(
-        HelixDefinedState.ERROR.name().equals(pendingMessage.getFromState()) && initialState
-            .equals(pendingMessage.getToState()));
+        HelixDefinedState.ERROR.name().equals(pendingMessage.getFromState()) && initialState.equals(
+            pendingMessage.getToState()));
   }
 
   private void logAndAddToCleanUp(Map<String, Map<String, Message>> messagesToCleanUp,
@@ -335,15 +333,16 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       String pendingState = pendingMessage.getToState();
       if (nextState.equalsIgnoreCase(pendingState)) {
         LogUtil.logInfo(logger, _eventId,
-            "Message already exists for " + instanceName + " to transit " + resource
-                .getResourceName() + "." + partition.getPartitionName() + " from " + currentState
-                + " to " + nextState + ", isRelay: " + pendingMessage.isRelayMessage());
+            "Message already exists for " + instanceName + " to transit "
+                + resource.getResourceName() + "." + partition.getPartitionName() + " from "
+                + currentState + " to " + nextState + ", isRelay: "
+                + pendingMessage.isRelayMessage());
       } else if (currentState.equalsIgnoreCase(pendingState)) {
         LogUtil.logDebug(logger, _eventId,
-            "Message hasn't been removed for " + instanceName + " to transit " + resource
-                .getResourceName() + "." + partition.getPartitionName() + " to " + pendingState
-                + ", desiredState: " + desiredState + ", isRelay: " + pendingMessage
-                .isRelayMessage());
+            "Message hasn't been removed for " + instanceName + " to transit "
+                + resource.getResourceName() + "." + partition.getPartitionName() + " to "
+                + pendingState + ", desiredState: " + desiredState + ", isRelay: "
+                + pendingMessage.isRelayMessage());
       } else {
         LogUtil.logDebug(logger, _eventId,
             "IdealState changed before state transition completes for " + resource.getResourceName()
@@ -409,8 +408,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           String instanceName = entry.getKey();
           for (Message msg : entry.getValue().values()) {
             if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
-              LogUtil.logInfo(logger, _eventId, String
-                  .format("Deleted message %s from instance %s", msg.getMsgId(), instanceName));
+              LogUtil.logInfo(logger, _eventId,
+                  String.format("Deleted message %s from instance %s", msg.getMsgId(),
+                      instanceName));
             }
           }
         }
@@ -442,8 +442,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       String currentState, String nextState, IdealState idealState, Partition partition) {
     StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
         clusterConfig.getStateTransitionTimeoutConfig();
-    int timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
-        .getStateTransitionTimeout(currentState, nextState) : -1;
+    int timeout = stateTransitionTimeoutConfig != null
+        ? stateTransitionTimeoutConfig.getStateTransitionTimeout(currentState, nextState) : -1;
 
     String timeOutStr = null;
     // Check IdealState whether has timeout set
@@ -470,8 +470,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     if (resourceConfig != null) {
       // If resource config has timeout, replace the cluster timeout.
       stateTransitionTimeoutConfig = resourceConfig.getStateTransitionTimeoutConfig();
-      timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
-          .getStateTransitionTimeout(currentState, nextState) : -1;
+      timeout = stateTransitionTimeoutConfig != null
+          ? stateTransitionTimeoutConfig.getStateTransitionTimeout(currentState, nextState) : -1;
     }
 
     return timeout;

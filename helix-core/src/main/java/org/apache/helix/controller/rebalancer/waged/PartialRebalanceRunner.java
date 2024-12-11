@@ -100,20 +100,19 @@ class PartialRebalanceRunner implements AutoCloseable {
       return;
     }
 
-    _asyncPartialRebalanceResult =
-        _bestPossibleCalculateExecutor.submit(ExecutorTaskUtil.wrap(() -> {
-          try {
-            doPartialRebalance(clusterData, resourceMap, activeNodes, algorithm,
-                currentStateOutput);
-          } catch (HelixRebalanceException e) {
-            if (_asyncPartialRebalanceEnabled) {
-              _rebalanceFailureCount.increment(1L);
-            }
-            LOG.error("Failed to calculate best possible assignment!", e);
-            return false;
-          }
-          return true;
-        }));
+    _asyncPartialRebalanceResult = _bestPossibleCalculateExecutor.submit(ExecutorTaskUtil.wrap(() -> {
+      try {
+        doPartialRebalance(clusterData, resourceMap, activeNodes, algorithm,
+            currentStateOutput);
+      } catch (HelixRebalanceException e) {
+        if (_asyncPartialRebalanceEnabled) {
+          _rebalanceFailureCount.increment(1L);
+        }
+        LOG.error("Failed to calculate best possible assignment!", e);
+        return false;
+      }
+      return true;
+    }));
     if (!_asyncPartialRebalanceEnabled) {
       try {
         if (!_asyncPartialRebalanceResult.get()) {

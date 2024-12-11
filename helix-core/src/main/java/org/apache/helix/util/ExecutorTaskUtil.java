@@ -40,8 +40,7 @@ public class ExecutorTaskUtil {
       try {
         return callable.call();
       } catch (Throwable t) {
-        LOG.error("Callable run on thread {} raised an exception and exited",
-            Thread.currentThread().getName(), t);
+        LOG.error("Callable run on thread {} raised an exception and exited", Thread.currentThread().getName(), t);
         throw t;
       }
     };
@@ -51,8 +50,7 @@ public class ExecutorTaskUtil {
    * Wrap a runnable so that any raised exception is logged
    * (can be interesting in case the callable is used as a completely asynchronous task
    * fed to an {@link java.util.concurrent.ExecutorService}), for which we are never
-   * calling any of the {@link java.util.concurrent.Future#get()} or
-   * {@link java.util.concurrent.Future#get(long, java.util.concurrent.TimeUnit)}
+   * calling any of the {@link java.util.concurrent.Future#get()} or {@link java.util.concurrent.Future#get(long, java.util.concurrent.TimeUnit)}
    * methods.
    */
   public static Runnable wrap(Runnable runnable) {
@@ -60,8 +58,7 @@ public class ExecutorTaskUtil {
       try {
         runnable.run();
       } catch (Throwable t) {
-        LOG.error("Runnable run on thread {} raised an exception and exited",
-            Thread.currentThread().getName(), t);
+        LOG.error("Runnable run on thread {} raised an exception and exited", Thread.currentThread().getName(), t);
         throw t;
       }
     };

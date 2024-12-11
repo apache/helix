@@ -235,8 +235,10 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     if (clusterName != null) {
       ImmutableSet<GenericHelixController> controllers = _helixControllerFactory.get(clusterName);
       if (controllers != null) {
-        return controllers.stream().filter(controller -> controller._helixManager != null)
-            .filter(controller -> controller._helixManager.isLeader()).findAny().orElse(null);
+        return controllers.stream()
+            .filter(controller -> controller._helixManager != null)
+            .filter(controller -> controller._helixManager.isLeader())
+            .findAny().orElse(null);
       }
     }
     return null;

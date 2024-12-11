@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.netty.util.internal.StringUtil;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.rest.server.json.cluster.ClusterInfo;
@@ -101,5 +103,12 @@ public class ClusterServiceImpl implements ClusterService {
         .idealStates(_dataAccessor.getChildNames(keyBuilder.idealStates()))
         .instances(_dataAccessor.getChildNames(keyBuilder.instances()))
         .liveInstances(_dataAccessor.getChildNames(keyBuilder.liveInstances())).build();
+  }
+
+  @Override
+  public boolean isClusterTopologyAware(String clusterId) {
+    ClusterConfig config = _configAccessor.getClusterConfig(clusterId);
+    return config.isTopologyAwareEnabled() && !StringUtil.isNullOrEmpty(config.getFaultZoneType())
+        && !StringUtil.isNullOrEmpty(config.getTopology());
   }
 }

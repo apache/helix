@@ -41,4 +41,11 @@ public interface ClusterService {
    * @return
    */
   ClusterInfo getClusterInfo(String clusterId);
+
+  /**
+   * Check if the cluster is topology aware
+   * @param clusterId
+   * @return
+   */
+  boolean isClusterTopologyAware(String clusterId);
 }

@@ -30,6 +30,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -630,6 +631,137 @@ public class TestInstancesAccessor extends AbstractTestClass {
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance0, instanceConfig);
     instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance1, instanceConfig1);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testSkipClusterLevelHealthCheck")
+  public void testNonTopoAwareStoppableCheck() throws JsonProcessingException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    // STOPPABLE_CLUSTER3 is a cluster is non topology aware cluster
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\", \"%s\", \"%s\", \"%s\",\"%s\", \"%s\", \"%s\"], \"%s\":[\"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.non_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1", "instance3",
+        "instance6", "instance9", "instance10", "instance11", "instance12", "instance13",
+        "instance14", "invalidInstance",
+        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ENABLED", "INSTANCE_NOT_STABLE");
+
+    // Change instance config of instance1 & instance0 to be evacuating
+    String instance0 = "instance0";
+    InstanceConfig instanceConfig =
+        _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER3, instance0);
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.EVACUATE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER3, instance0, instanceConfig);
+    String instance1 = "instance1";
+    InstanceConfig instanceConfig1 =
+        _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER3, instance1);
+    instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.SWAP_IN);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER3, instance1, instanceConfig1);
+
+    // It takes time to reflect the changes.
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER3).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER3).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    Set<String> stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertTrue(stoppableSet.contains("instance12") && stoppableSet.contains("instance3")
+        && stoppableSet.contains("instance10"));
+
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance13"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "instance14"),
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER3, instance0, instanceConfig);
+    instanceConfig1.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER3, instance1, instanceConfig1);
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testSkipClusterLevelHealthCheck")
+  public void testNonTopoAwareStoppableCheckWithException() throws JsonProcessingException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    // STOPPABLE_CLUSTER3 is a cluster is non topology aware cluster
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\", \"%s\", \"%s\", \"%s\",\"%s\", \"%s\", \"%s\"], \"%s\":[\"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1", "instance3",
+        "instance6", "instance9", "instance10", "instance11", "instance12", "instance13",
+        "instance14", "invalidInstance",
+        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ENABLED", "INSTANCE_NOT_STABLE");
+
+    // It takes time to reflect the changes.
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER3).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    // Making the REST Call to cross zone stoppable check while the cluster has no topology aware
+    // setup. The call should return an error.
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER3)
+        .isBodyReturnExpected(true)
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode())
+        .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(description = "Test zone selection base with instance that don't have topology set in the config",
+   dependsOnMethods = "testNonTopoAwareStoppableCheckWithException")
+  public void testZoneSelectionBaseWithInstanceThatDontHaveTopologySet() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    // STOPPABLE_CLUSTER3 is a cluster is non topology aware cluster
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\", \"%s\", \"%s\", \"%s\",\"%s\", \"%s\", \"%s\"], \"%s\":[\"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance1", "instance3",
+        "instance6", "instance9", "instance10", "instance11", "instance12", "instance13",
+        "instance14", "invalidInstance",
+        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ENABLED", "INSTANCE_NOT_STABLE");
+
+    String instance1 = "instance1";
+    InstanceConfig instanceConfig1 =
+        _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER2, instance1);
+    String domain = instanceConfig1.getDomainAsString();
+    instanceConfig1.setDomain("FALSE_DOMAIN");
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER2, instance1, instanceConfig1);
+
+    // It takes time to reflect the changes.
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER3).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    // Making the REST Call to cross zone stoppable check while the cluster has no topology aware
+    // setup. The call should return an error.
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+            STOPPABLE_CLUSTER3)
+        .isBodyReturnExpected(true)
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode())
+        .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+
+    // Restore the changes on instance 1
+    instanceConfig1.setDomain(domain);
+    _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER3, instance1, instanceConfig1);
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

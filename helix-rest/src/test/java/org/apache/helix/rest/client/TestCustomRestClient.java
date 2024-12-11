@@ -40,14 +40,18 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestCustomRestClient {
@@ -259,5 +263,40 @@ public class TestCustomRestClient {
     Assert.assertTrue(Arrays.stream(instances).allMatch(clusterHealth::containsKey));
     Assert.assertTrue(Arrays.stream(healthyInstances).allMatch(instance -> clusterHealth.get(instance).isEmpty()));
     Assert.assertTrue(Arrays.stream(nonStoppableInstances).noneMatch(instance -> clusterHealth.get(instance).isEmpty()));
+  }
+
+  @Test(description = "Test if the aggregated stoppable check request has the correct format when there"
+      + "are duplicate instances in the instances list and the toBeStoppedInstances list.")
+  public void testAggregatedCheckRemoveDuplicateInstances()
+      throws IOException {
+    String clusterId = "cluster1";
+
+    MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
+    HttpResponse httpResponse = mock(HttpResponse.class);
+    StatusLine statusLine = mock(StatusLine.class);
+
+    when(statusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+    when(httpResponse.getStatusLine()).thenReturn(statusLine);
+    when(_httpClient.execute(any(HttpPost.class))).thenReturn(httpResponse);
+
+    customRestClient.getAggregatedStoppableCheck(HTTP_LOCALHOST,
+        ImmutableList.of("n1", "n2"),
+        ImmutableSet.of("n1"), clusterId, Collections.emptyMap());
+
+    // Make sure that the duplicate instances are removed from the toBeStoppedInstances list
+    ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    verify(_httpClient).execute(argThat(x -> {
+      String request = null;
+      try {
+        request = EntityUtils.toString(((HttpPost) x).getEntity());
+        JsonNode node = OBJECT_MAPPER.readTree(request);
+        String instancesInRequest = node.get("instances").toString();
+        Assert.assertEquals(instancesInRequest, "[\"n1\",\"n2\"]");
+        Assert.assertNull(node.get("to_be_stopped_instances"));
+        return true;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }));
   }
 }

@@ -65,7 +65,7 @@ public class AbstractBaseStage implements Stage {
     return className;
   }
 
-  public static <T> Future<T> asyncExecute(ExecutorService service, Callable<T> task) {
+  public static <T> Future asyncExecute(ExecutorService service, Callable<T> task) {
     if (service != null) {
       return service.submit(ExecutorTaskUtil.wrap(task));
     }

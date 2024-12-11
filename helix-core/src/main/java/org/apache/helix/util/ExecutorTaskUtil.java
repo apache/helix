@@ -40,8 +40,7 @@ public class ExecutorTaskUtil {
       try {
         return callable.call();
       } catch (Throwable t) {
-        LOG.error("Callable run on thread {} raised an exception and exited",
-            Thread.currentThread().getName(), t);
+        LOG.error("Callable run on thread {} raised an exception and exited", Thread.currentThread().getName(), t);
         throw t;
       }
     };
@@ -59,8 +58,7 @@ public class ExecutorTaskUtil {
       try {
         runnable.run();
       } catch (Throwable t) {
-        LOG.error("Runnable run on thread {} raised an exception and exited",
-            Thread.currentThread().getName(), t);
+        LOG.error("Runnable run on thread {} raised an exception and exited", Thread.currentThread().getName(), t);
         throw t;
       }
     };

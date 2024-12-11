@@ -84,6 +84,7 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /**
    * Put together all registration information about a message handler factory
@@ -93,8 +94,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     private final int _threadPoolSize;
     private final int _resetTimeout;
 
-    public MsgHandlerFactoryRegistryItem(MessageHandlerFactory factory, int threadPoolSize,
-        int resetTimeout) {
+    public MsgHandlerFactoryRegistryItem(MessageHandlerFactory factory, int threadPoolSize, int resetTimeout) {
       if (factory == null) {
         throw new NullPointerException("Message handler factory is null");
       }
@@ -224,14 +224,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   }
 
   @Override
-  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
-      int threadpoolSize) {
-    registerMessageHandlerFactory(type, factory, threadpoolSize,
-        DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS);
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory, int threadpoolSize) {
+    registerMessageHandlerFactory(type, factory, threadpoolSize, DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS);
   }
 
-  private void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
-      int threadpoolSize, int resetTimeoutMs) {
+  private void registerMessageHandlerFactory(String type, MessageHandlerFactory factory, int threadpoolSize,
+      int resetTimeoutMs) {
     if (factory instanceof MultiTypeMessageHandlerFactory) {
       if (!((MultiTypeMessageHandlerFactory) factory).getMessageTypes().contains(type)) {
         throw new HelixException("Message factory type mismatch. Type: " + type + ", factory: "
@@ -239,15 +237,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     } else {
       if (!factory.getMessageType().equals(type)) {
-        throw new HelixException("Message factory type mismatch. Type: " + type + ", factory: "
-            + factory.getMessageType());
+        throw new HelixException(
+            "Message factory type mismatch. Type: " + type + ", factory: " + factory
+                .getMessageType());
       }
     }
 
     _isShuttingDown = false;
 
-    MsgHandlerFactoryRegistryItem newItem =
-        new MsgHandlerFactoryRegistryItem(factory, threadpoolSize, resetTimeoutMs);
+    MsgHandlerFactoryRegistryItem newItem = new MsgHandlerFactoryRegistryItem(factory, threadpoolSize, resetTimeoutMs);
     MsgHandlerFactoryRegistryItem prevItem = _hdlrFtyRegistry.putIfAbsent(type, newItem);
     if (prevItem == null) {
       _executorMap.computeIfAbsent(type, msgType -> {
@@ -256,9 +254,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         _monitor.createExecutorMonitor(type, newPool);
         return newPool;
       });
-      LOG.info(
-          "Registered message handler factory for type: {}, poolSize: {}, factory: {}, pool: {}",
-          type, threadpoolSize, factory, _executorMap.get(type));
+      LOG.info("Registered message handler factory for type: {}, poolSize: {}, factory: {}, pool: {}", type,
+          threadpoolSize, factory, _executorMap.get(type));
     } else {
       LOG.info(
           "Skip register message handler factory for type: {}, poolSize: {}, factory: {}, already existing factory: {}",
@@ -311,19 +308,17 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     }
 
-    String perStateTransitionTypeKey = msgInfo.getMessageIdentifier(
-        Message.MessageInfo.MessageIdentifierBase.PER_STATE_TRANSITION_TYPE);
-    if (perStateTransitionTypeKey != null && stateModelFactory != null
-        && !_transitionTypeThreadpoolChecked.contains(perStateTransitionTypeKey)) {
+    String perStateTransitionTypeKey =
+        msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_STATE_TRANSITION_TYPE);
+    if (perStateTransitionTypeKey != null && stateModelFactory != null && !_transitionTypeThreadpoolChecked.contains(
+        perStateTransitionTypeKey)) {
       ExecutorService perStateTransitionTypeExecutor =
-          stateModelFactory.getExecutorService(resourceName, message.getFromState(),
-              message.getToState());
+          stateModelFactory.getExecutorService(resourceName, message.getFromState(), message.getToState());
       _transitionTypeThreadpoolChecked.add(perStateTransitionTypeKey);
 
       if (perStateTransitionTypeExecutor != null) {
         _executorMap.put(perStateTransitionTypeKey, perStateTransitionTypeExecutor);
-        LOG.info(String.format(
-            "Added client specified dedicate threadpool for resource %s from %s to %s",
+        LOG.info(String.format("Added client specified dedicate threadpool for resource %s from %s to %s",
             msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE),
             message.getFromState(), message.getToState()));
         return;
@@ -336,8 +331,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       // Changes to this configuration on thread pool size will only take effect after the participant get restarted.
       if (configAccessor != null) {
         HelixConfigScope scope =
-            new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(
-                manager.getClusterName()).forResource(resourceName).build();
+            new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(manager.getClusterName())
+                .forResource(resourceName)
+                .build();
 
         String threadpoolSizeStr = configAccessor.get(scope, MAX_THREADS);
         try {
@@ -345,17 +341,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             threadpoolSize = Integer.parseInt(threadpoolSizeStr);
           }
         } catch (Exception e) {
-          LOG.error(
-              "Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
+          LOG.error("Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
         }
       }
-      final String key =
-          msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE);
+      final String key = msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.PER_RESOURCE);
       if (threadpoolSize > 0) {
         _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize,
             r -> new Thread(r, "GenericHelixController-message_handle_" + key)));
-        LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: "
-            + threadpoolSize);
+        LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: " + threadpoolSize);
       } else {
         // if threadpool is not configured
         // check whether client specifies customized threadpool.
@@ -387,8 +380,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       } else {
         Message.MessageInfo msgInfo = new Message.MessageInfo(message);
         for (int i = Message.MessageInfo.MessageIdentifierBase.values().length - 1; i >= 0; i--) {
-          String msgIdentifer =
-              msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.values()[i]);
+          String msgIdentifer = msgInfo.getMessageIdentifier(Message.MessageInfo.MessageIdentifierBase.values()[i]);
           if (msgIdentifer != null && _executorMap.containsKey(msgIdentifer)) {
             LOG.info(String.format("Find customized threadpool for %s", msgIdentifer));
             executorService = _executorMap.get(msgIdentifer);
@@ -457,8 +449,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       LOG.info("Scheduling message {}: {}:{}, {}->{}", taskId, message.getResourceName(),
           message.getPartitionName(), message.getFromState(), message.getToState());
 
-      _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Message handling task scheduled",
-          manager);
+      _statusUpdateUtil
+          .logInfo(message, HelixTaskExecutor.class, "Message handling task scheduled", manager);
 
       // this sync guarantees that ExecutorService.submit() task and put taskInfo into map are
       // sync'ed
@@ -467,8 +459,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           ExecutorService exeSvc = findExecutorServiceForMsg(message);
 
           if (exeSvc == null) {
-            LOG.warn(
-                String.format("Threadpool is null for type %s of message %s", message.getMsgType(),
+            LOG.warn(String
+                .format("Threadpool is null for type %s of message %s", message.getMsgType(),
                     message.getMsgId()));
             return false;
           }
@@ -476,15 +468,17 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           LOG.info("Submit task: " + taskId + " to pool: " + exeSvc);
           Future<HelixTaskResult> future = exeSvc.submit(ExecutorTaskUtil.wrap(task));
 
-          _messageTaskMap.putIfAbsent(
-              getMessageTarget(message.getResourceName(), message.getPartitionName()), taskId);
+          _messageTaskMap
+              .putIfAbsent(getMessageTarget(message.getResourceName(), message.getPartitionName()),
+                  taskId);
 
           TimerTask timerTask = null;
           if (message.getExecutionTimeout() > 0) {
             timerTask = new MessageTimeoutTask(this, task);
             _timer.schedule(timerTask, message.getExecutionTimeout());
-            LOG.info("Message starts with timeout " + message.getExecutionTimeout() + " MsgId: "
-                + task.getTaskId());
+            LOG.info(
+                "Message starts with timeout " + message.getExecutionTimeout() + " MsgId: " + task
+                    .getTaskId());
           } else {
             LOG.debug("Message does not have timeout. MsgId: " + task.getTaskId());
           }
@@ -499,8 +493,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     } catch (Throwable t) {
       LOG.error("Error while executing task. " + message, t);
-      _statusUpdateUtil.logError(message, HelixTaskExecutor.class, t,
-          "Error while executing task " + t, manager);
+      _statusUpdateUtil
+          .logError(message, HelixTaskExecutor.class, t, "Error while executing task " + t,
+              manager);
     }
     return false;
   }
@@ -534,8 +529,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           _taskMap.remove(taskId);
           return true;
         } else {
-          _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
-              "fail to cancel task: " + taskId, notificationContext.getManager());
+          _statusUpdateUtil
+              .logInfo(message, HelixTaskExecutor.class, "fail to cancel task: " + taskId,
+                  notificationContext.getManager());
         }
       } else {
         _statusUpdateUtil.logWarning(message, HelixTaskExecutor.class,
@@ -550,8 +546,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   public void finishTask(MessageTask task) {
     Message message = task.getMessage();
     String taskId = task.getTaskId();
-    LOG.info("message finished: " + taskId + ", took " + (new Date().getTime()
-        - message.getExecuteStartTimeStamp()));
+    LOG.info("message finished: " + taskId + ", took " + (new Date().getTime() - message
+        .getExecuteStartTimeStamp()));
 
     synchronized (_lock) {
       if (_taskMap.containsKey(taskId)) {
@@ -623,19 +619,18 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
-  private void shutdownAndAwaitTermination(ExecutorService pool,
-      MsgHandlerFactoryRegistryItem handlerItem) {
+  private void shutdownAndAwaitTermination(ExecutorService pool, MsgHandlerFactoryRegistryItem handlerItem) {
     LOG.info("Shutting down pool: " + pool);
 
-    int timeout =
-        handlerItem == null ? DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS : handlerItem.getResetTimeout();
+    int timeout = handlerItem == null? DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS : handlerItem.getResetTimeout();
 
     pool.shutdown(); // Disable new tasks from being submitted
     try {
       // Wait a while for existing tasks to terminate
       if (!pool.awaitTermination(timeout, TimeUnit.MILLISECONDS)) {
         List<Runnable> waitingTasks = pool.shutdownNow(); // Cancel currently executing tasks
-        LOG.info("Tasks that never commenced execution after {}: {}", timeout, waitingTasks);
+        LOG.info("Tasks that never commenced execution after {}: {}", timeout,
+            waitingTasks);
         // Wait a while for tasks to respond to being cancelled
         if (!pool.awaitTermination(timeout, TimeUnit.MILLISECONDS)) {
           LOG.error("Pool did not fully terminate in {} ms. pool: {}", timeout, pool);
@@ -727,8 +722,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     shutdownExecutors();
 
     synchronized (_hdlrFtyRegistry) {
-      _hdlrFtyRegistry.values().stream().map(MsgHandlerFactoryRegistryItem::factory).distinct()
-          .filter(Objects::nonNull).forEach(factory -> {
+      _hdlrFtyRegistry.values()
+          .stream()
+          .map(MsgHandlerFactoryRegistryItem::factory)
+          .distinct()
+          .filter(Objects::nonNull)
+          .forEach(factory -> {
             try {
               factory.reset();
             } catch (Exception ex) {
@@ -743,8 +742,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // Log all tasks that fail to terminate
     for (String taskId : _taskMap.keySet()) {
       MessageTaskInfo info = _taskMap.get(taskId);
-      sb.append(
-          "Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
+      sb.append("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
     }
 
     LOG.info(sb.toString());
@@ -786,8 +784,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       PropertyKey key = new Builder(manager.getClusterName()).controllerMessage(SESSION_SYNC);
       if (accessor.getProperty(key) == null) {
-        LOG.info(String.format("Participant %s syncs session with controller",
-            manager.getInstanceName()));
+        LOG.info(String
+            .format("Participant %s syncs session with controller", manager.getInstanceName()));
         Message msg = new Message(MessageType.PARTICIPANT_SESSION_CHANGE, SESSION_SYNC);
         msg.setSrcName(manager.getInstanceName());
         msg.setTgtSessionId("*");
@@ -997,8 +995,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             && !createCurStateNames.contains(resourceName)) {
           createCurStateNames.add(resourceName);
           PropertyKey curStateKey = keyBuilder.currentState(instanceName, sessionId, resourceName);
-          if (TaskConstants.STATE_MODEL_NAME.equals(message.getStateModelDef())
-              && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)) {
+          if (TaskConstants.STATE_MODEL_NAME.equals(message.getStateModelDef()) && !Boolean
+              .getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)) {
             curStateKey = keyBuilder.taskCurrentState(instanceName, sessionId, resourceName);
           }
           createCurStateKeys.add(curStateKey);
@@ -1045,8 +1043,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
          */
         try {
           // Record error state to the message handler.
-          handler.onError(new HelixException(
-                  String.format("Failed to schedule the task for executing message handler for %s.",
+          handler.onError(new HelixException(String
+                  .format("Failed to schedule the task for executing message handler for %s.",
                       handler._message.getMsgId())), MessageHandler.ErrorCode.ERROR,
               MessageHandler.ErrorType.FRAMEWORK);
         } catch (Exception ex) {
@@ -1094,8 +1092,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             + ", tgtSessionId in message: " + tgtSessionId + ", messageId: " + message.getMsgId();
         LOG.warn(warningMessage);
         reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
-        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage,
-            manager);
+        _statusUpdateUtil
+            .logWarning(message, HelixStateMachineEngine.class, warningMessage, manager);
 
         // Proactively send a session sync message from participant to controller
         // upon session mismatch after a new session is established
@@ -1364,8 +1362,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // we will keep the message and the message will be handled when
     // the corresponding MessageHandlerFactory is registered
     if (item == null) {
-      LOG.warn("Fail to find message handler factory for type: " + msgType + " msgId: "
-          + message.getMsgId());
+      LOG.warn("Fail to find message handler factory for type: " + msgType + " msgId: " + message
+          .getMsgId());
       return null;
     }
     MessageHandlerFactory handlerFactory = item.factory();
@@ -1462,8 +1460,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
       nopMsg.setSrcName(instanceName);
       nopMsg.setTgtName(instanceName);
-      accessor.setProperty(accessor.keyBuilder().message(nopMsg.getTgtName(), nopMsg.getId()),
-          nopMsg);
+      accessor
+          .setProperty(accessor.keyBuilder().message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
       LOG.info("Send NO_OP message to {}, msgId: {}.", nopMsg.getTgtName(), nopMsg.getId());
     } catch (Exception e) {
       LOG.error("Failed to send NO_OP message to {}.", instanceName, e);

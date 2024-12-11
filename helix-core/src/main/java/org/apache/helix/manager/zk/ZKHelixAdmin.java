@@ -244,16 +244,17 @@ public class ZKHelixAdmin implements HelixAdmin {
     // existing instance with matching logical ID (see
     // InstanceUtil.findInstancesWithMatchingLogicalId call above, where finding an incomplete
     // "INSTANCE" node is a killer)
-    final List<Op> ops = Arrays.asList(
-        createPersistentNodeOp(PropertyPathBuilder.instance(clusterName, nodeId)),
-        createPersistentNodeOp(PropertyPathBuilder.instanceMessage(clusterName, nodeId)),
-        createPersistentNodeOp(PropertyPathBuilder.instanceCurrentState(clusterName, nodeId)),
-        createPersistentNodeOp(PropertyPathBuilder.instanceTaskCurrentState(clusterName, nodeId)),
-        createPersistentNodeOp(PropertyPathBuilder.instanceCustomizedState(clusterName, nodeId)),
-        createPersistentNodeOp(PropertyPathBuilder.instanceError(clusterName, nodeId)),
-        createPersistentNodeOp(PropertyPathBuilder.instanceStatusUpdate(clusterName, nodeId)),
-        createPersistentNodeOp(PropertyPathBuilder.instanceHistory(clusterName, nodeId))
-    );
+    final List<Op> ops =
+        Arrays.asList(createPersistentNodeOp(PropertyPathBuilder.instance(clusterName, nodeId)),
+            createPersistentNodeOp(PropertyPathBuilder.instanceMessage(clusterName, nodeId)),
+            createPersistentNodeOp(PropertyPathBuilder.instanceCurrentState(clusterName, nodeId)),
+            createPersistentNodeOp(
+                PropertyPathBuilder.instanceTaskCurrentState(clusterName, nodeId)),
+            createPersistentNodeOp(
+                PropertyPathBuilder.instanceCustomizedState(clusterName, nodeId)),
+            createPersistentNodeOp(PropertyPathBuilder.instanceError(clusterName, nodeId)),
+            createPersistentNodeOp(PropertyPathBuilder.instanceStatusUpdate(clusterName, nodeId)),
+            createPersistentNodeOp(PropertyPathBuilder.instanceHistory(clusterName, nodeId)));
     _zkClient.multi(ops);
 
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);

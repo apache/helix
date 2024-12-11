@@ -89,8 +89,8 @@ public class CallbackEventExecutor {
         logger.error("Failed to process callback. CallbackEventExecutor is already shut down.");
       }
       if (_futureCallBackProcessEvent == null || _futureCallBackProcessEvent.isDone()) {
-        _futureCallBackProcessEvent =
-            _threadPoolExecutor.submit(ExecutorTaskUtil.wrap(new CallbackProcessor(handler, event)));
+        _futureCallBackProcessEvent = _threadPoolExecutor.submit(
+            ExecutorTaskUtil.wrap(new CallbackProcessor(handler, event)));
       } else {
         _callBackEventQueue.put(eventType, event);
       }
@@ -102,8 +102,8 @@ public class CallbackEventExecutor {
       if (_callBackEventQueue.size() != 0) {
         try {
           NotificationContext event = _callBackEventQueue.take();
-          _futureCallBackProcessEvent =
-              _threadPoolExecutor.submit(ExecutorTaskUtil.wrap(new CallbackProcessor(handler, event)));
+          _futureCallBackProcessEvent = _threadPoolExecutor.submit(
+              ExecutorTaskUtil.wrap(new CallbackProcessor(handler, event)));
         } catch (InterruptedException e) {
           logger
               .error("Error when submitting pending HandleCallBackEvent to manager thread pool", e);

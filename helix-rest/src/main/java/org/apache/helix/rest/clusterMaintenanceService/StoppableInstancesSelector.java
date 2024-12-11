@@ -86,8 +86,7 @@ public class StoppableInstancesSelector {
         result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
     ObjectNode failedStoppableInstances = result.putObject(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
-    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
-    findToBeStoppedInstances(toBeStoppedInstancesSet);
+    Set<String> toBeStoppedInstancesSet = findToBeStoppedInstances(toBeStoppedInstances);
 
     List<String> zoneBasedInstance =
         getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
@@ -118,8 +117,7 @@ public class StoppableInstancesSelector {
         result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
     ObjectNode failedStoppableInstances = result.putObject(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
-    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
-    findToBeStoppedInstances(toBeStoppedInstancesSet);
+    Set<String> toBeStoppedInstancesSet = findToBeStoppedInstances(toBeStoppedInstances);
 
     Map<String, Set<String>> zoneMapping = _clusterTopology.toZoneMapping();
     for (String zone : _orderOfZone) {
@@ -156,8 +154,7 @@ public class StoppableInstancesSelector {
         result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
     ObjectNode failedStoppableInstances = result.putObject(
         InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
-    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
-    findToBeStoppedInstances(toBeStoppedInstancesSet);
+    Set<String> toBeStoppedInstancesSet = findToBeStoppedInstances(toBeStoppedInstances);
 
     // Because zone order calculation is omitted, we must verify each instance's existence
     // to ensure we only process valid instances before performing stoppable check.
@@ -294,11 +291,12 @@ public class StoppableInstancesSelector {
 
   /**
    * Collect instances within the cluster where the instance operation is set to EVACUATE, SWAP_IN, or UNKNOWN.
-   * And add them into the given toBeStoppedInstances set.
+   * And return them as a set.
    *
-   * @param toBeStoppedInstances A set of instances we presume to be stopped.
+   * @param toBeStoppedInstances A list of instances we presume to be stopped.
    */
-  private void findToBeStoppedInstances(Set<String> toBeStoppedInstances) {
+  private Set<String> findToBeStoppedInstances(List<String> toBeStoppedInstances) {
+    Set<String> toBeStoppedInstancesSet = new HashSet<>(toBeStoppedInstances);
     Set<String> allInstances = _clusterTopology.getAllInstances();
     for (String instance : allInstances) {
       PropertyKey.Builder propertyKeyBuilder = _dataAccessor.keyBuilder();
@@ -308,9 +306,10 @@ public class StoppableInstancesSelector {
       if (operation == InstanceConstants.InstanceOperation.EVACUATE
           || operation == InstanceConstants.InstanceOperation.SWAP_IN
           || operation == InstanceConstants.InstanceOperation.UNKNOWN) {
-        toBeStoppedInstances.add(instance);
+        toBeStoppedInstancesSet.add(instance);
       }
     }
+    return toBeStoppedInstancesSet;
   }
 
   public static class StoppableInstancesSelectorBuilder {

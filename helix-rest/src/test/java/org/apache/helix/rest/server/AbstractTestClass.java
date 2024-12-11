@@ -132,6 +132,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static BaseDataAccessor<ZNRecord> _baseAccessorTestNS;
   protected static final String STOPPABLE_CLUSTER = "StoppableTestCluster";
   protected static final String STOPPABLE_CLUSTER2 = "StoppableTestCluster2";
+  protected static final String STOPPABLE_CLUSTER3 = "StoppableTestCluster3";
   protected static final String TASK_TEST_CLUSTER = "TaskTestCluster";
   protected static final List<String> STOPPABLE_INSTANCES =
       Arrays.asList("instance0", "instance1", "instance2", "instance3", "instance4", "instance5");
@@ -343,6 +344,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     }
     preSetupForParallelInstancesStoppableTest(STOPPABLE_CLUSTER, STOPPABLE_INSTANCES);
     preSetupForCrosszoneParallelInstancesStoppableTest(STOPPABLE_CLUSTER2, STOPPABLE_INSTANCES2);
+    preSetupForNonTopoAwareInstancesStoppableTest(STOPPABLE_CLUSTER3, STOPPABLE_INSTANCES2);
   }
 
   protected Set<String> createInstances(String cluster, int numInstances) {
@@ -602,6 +604,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     _gSetupTool.addCluster(clusterName, true);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     clusterConfig.setFaultZoneType("helixZoneId");
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/helixZoneId/instance");
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(clusterName, clusterConfig);
     // Create instance configs
@@ -659,6 +663,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     _gSetupTool.addCluster(clusterName, true);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     clusterConfig.setFaultZoneType("helixZoneId");
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/helixZoneId/instance");
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(clusterName, clusterConfig);
     // Create instance configs
@@ -671,6 +677,62 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       if (++curZoneCount >= perZoneInstancesCount) {
         curZoneCount = 0;
         zoneId++;
+      }
+      instanceConfigs.add(instanceConfig);
+    }
+
+    for (InstanceConfig instanceConfig : instanceConfigs) {
+      _gSetupTool.getClusterManagementTool().addInstance(clusterName, instanceConfig);
+    }
+
+    // Start participant
+    startInstances(clusterName, new TreeSet<>(instances), instances.size());
+    createResources(clusterName, 1, 2, 3);
+    _clusterControllerManagers.add(startController(clusterName));
+
+    // Make sure that cluster config exists
+    boolean isClusterConfigExist = TestHelper.verify(() -> {
+      ClusterConfig stoppableClusterConfig;
+      try {
+        stoppableClusterConfig = _configAccessor.getClusterConfig(clusterName);
+      } catch (Exception e) {
+        return false;
+      }
+      return (stoppableClusterConfig != null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isClusterConfigExist);
+    // Make sure that instance config exists for the instance0 to instance5
+    for (String instance: instances) {
+      boolean isinstanceConfigExist = TestHelper.verify(() -> {
+        InstanceConfig instanceConfig;
+        try {
+          instanceConfig = _configAccessor.getInstanceConfig(clusterName, instance);
+        } catch (Exception e) {
+          return false;
+        }
+        return (instanceConfig != null);
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isinstanceConfigExist);
+    }
+    _clusters.add(clusterName);
+    _workflowMap.put(clusterName, createWorkflows(clusterName, 3));
+  }
+
+  private void preSetupForNonTopoAwareInstancesStoppableTest(String clusterName,
+      List<String> instances) throws Exception {
+    _gSetupTool.addCluster(clusterName, true);
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setFaultZoneType("helixZoneId");
+    clusterConfig.setPersistIntermediateAssignment(true);
+    _configAccessor.setClusterConfig(clusterName, clusterConfig);
+    // Create instance configs that do not include the domain field
+    List<InstanceConfig> instanceConfigs = new ArrayList<>();
+    int perZoneInstancesCount = 3;
+    int curZoneCount = 0;
+    for (int i = 0; i < instances.size(); i++) {
+      InstanceConfig instanceConfig = new InstanceConfig(instances.get(i));
+      if (++curZoneCount >= perZoneInstancesCount) {
+        curZoneCount = 0;
       }
       instanceConfigs.add(instanceConfig);
     }

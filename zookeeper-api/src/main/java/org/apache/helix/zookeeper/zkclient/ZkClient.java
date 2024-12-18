@@ -20,13 +20,16 @@ package org.apache.helix.zookeeper.zkclient;
  */
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -1792,7 +1795,9 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Delete the path as well as all its children.
+   * Delete the path as well as all its children. This operation is not atomic and may result in a partial deletion.
+   * This operation will handle concurrent deletions to the tree by another agent, but will not be able to handle
+   * concurrent creations.
    * @param path
    * @throws ZkClientException
    */
@@ -1818,6 +1823,74 @@ public class ZkClient implements Watcher {
       LOG.error("zkclient {}, Failed to delete {}, exception {}", _uid, path, e);
       throw new ZkClientException("Failed to delete " + path, e);
     }
+  }
+
+  /**
+   * Delete the path as well as all its children. This operation is atomic and will either delete all nodes or none.
+   * This operation may fail if another agent is concurrently creating or deleting nodes under the path.
+   * @param path ZK path to delete
+   */
+  public void deleteRecursivelyAtomic(String path) {
+    List<Op> ops = getOpsForRecursiveDelete(path);
+    try {
+      multi(ops);
+    }
+    catch (Exception e) {
+      LOG.error("zkclient {}, Failed to delete {}, exception {}", _uid, path, e);
+      throw new ZkClientException("Failed to delete " + path, e);
+    }
+  }
+
+  /**
+   * Delete all provided paths as well as all their children. This operation is atomic and will either delete all nodes
+   * or none. This operation may fail if another agent is concurrently creating or deleting nodes under any of the paths
+   * @param paths ZK paths to delete
+   */
+  public void deleteRecursivelyAtomic(List<String> paths) {
+    List<Op> ops = new ArrayList<>();
+    for (String path : paths) {
+      ops.addAll(getOpsForRecursiveDelete(path));
+    }
+    try {
+      multi(ops);
+    }
+    catch (Exception e) {
+      LOG.error("zkclient {}, Failed to delete paths {}, exception {}", _uid, paths, e);
+      throw new ZkClientException("Failed to delete paths " + paths, e);
+    }
+  }
+
+  /**
+   * Get the list of operations to delete the given root and all its children. Performs simple BFS to put delete
+   * operations for leaf nodes first before parent nodes.
+   * @param root the root node to delete
+   * @return the list of ZK operations to delete the given root and all its children
+   */
+  private List<Op> getOpsForRecursiveDelete(String root) {
+    List<Op> ops = new ArrayList<>();
+    // Return early if the root does not exist
+    if (!exists(root)) {
+      return ops;
+    }
+
+    HashSet<String> visited = new HashSet<>();
+    Stack<String> nodes = new Stack<>();
+    nodes.push(root);
+
+    while (!nodes.isEmpty()) {
+      String node = nodes.peek();
+      List<String> children = getChildren(node, false);
+      if (children.isEmpty() || visited.contains(node)) {
+        nodes.pop();
+        ops.add(Op.delete(node, -1));
+      } else {
+        for (String child : children) {
+          nodes.push(node + "/" + child);
+        }
+      }
+      visited.add(node);
+    }
+    return ops;
   }
 
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {

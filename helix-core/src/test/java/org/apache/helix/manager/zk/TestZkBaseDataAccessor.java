@@ -49,6 +49,7 @@ import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
+import org.apache.zookeeper.Op;
 
 public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   // serialize/deserialize integer list to byte array

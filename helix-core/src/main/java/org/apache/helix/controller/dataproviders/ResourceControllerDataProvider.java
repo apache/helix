@@ -516,6 +516,14 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
+   * Clears the WAGED algorithm specific instance capacity provider and resource weight provider.
+   */
+  public void clearWagedCapacityProviders() {
+    _wagedInstanceCapacity = null;
+    _wagedPartitionWeightProvider = null;
+  }
+
+  /**
    * Check and reduce the capacity of an instance for a resource partition
    * @param instance - the instance to check
    * @param resourceName - the resource name

@@ -359,7 +359,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       // Ensure instance capacity is null if there are no resources. This prevents using a stale map when all resources
       // are removed and then a new resource is added.
       if (resourceMap == null || resourceMap.isEmpty()) {
-        cache.setWagedCapacityProviders(null, null);
+        cache.clearWagedCapacityProviders();
       }
       return;
     }
@@ -371,7 +371,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
     // Ensure instance capacity is null if there are no WAGED enabled instances
     if (wagedEnabledResourceMap.isEmpty()) {
-      cache.setWagedCapacityProviders(null, null);
+      cache.clearWagedCapacityProviders();
       return;
     }
 

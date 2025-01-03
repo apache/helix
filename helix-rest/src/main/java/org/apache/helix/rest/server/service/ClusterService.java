@@ -36,6 +36,13 @@ public interface ClusterService {
   ClusterTopology getClusterTopology(String cluster);
 
   /**
+   * Get virtual cluster topology of the given cluster
+   * @param cluster
+   * @return virtual cluster topology
+   */
+  ClusterTopology getVirtualClusterTopology(String cluster);
+
+  /**
    * Get cluster basic information
    * @param clusterId
    * @return

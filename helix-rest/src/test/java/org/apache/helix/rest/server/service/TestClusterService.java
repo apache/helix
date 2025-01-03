@@ -120,6 +120,28 @@ public class TestClusterService {
     Assert.assertTrue(mock.clusterService.isClusterTopologyAware(TEST_CLUSTER));
   }
 
+  @Test
+  public void testGetVirtualTopology() {
+    InstanceConfig instanceConfig1 = new InstanceConfig("instance0");
+    instanceConfig1.setDomain("helixZoneId=zone0, helixZoneId_virtualZone=virtualZone0");
+    InstanceConfig instanceConfig2 = new InstanceConfig("instance1");
+    instanceConfig2.setDomain("helixZoneId=zone1, helixZoneId_virtualZone=virtualZone1");
+    InstanceConfig instanceConfig3 = new InstanceConfig("instance3");
+    instanceConfig3.setDomain("helixZoneId=zone3");
+    List<HelixProperty> instanceConfigs = ImmutableList.of(instanceConfig1, instanceConfig2, instanceConfig3);
+
+    Mock mock = new Mock();
+    when(mock.dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
+    when(mock.dataAccessor.getChildValues(any(PropertyKey.class), anyBoolean()))
+        .thenReturn(instanceConfigs);
+
+    ClusterTopology clusterTopology = mock.clusterService.getVirtualClusterTopology(TEST_CLUSTER);
+    Assert.assertEquals(clusterTopology.getZones().size(), 3);
+
+    Assert.assertEquals(clusterTopology.getClusterId(), TEST_CLUSTER);
+    Assert.assertEquals(clusterTopology.getZones().get(0).getInstances().size(), 1);
+  }
+
   private final class Mock {
     private HelixDataAccessor dataAccessor = mock(HelixDataAccessor.class);
     private ConfigAccessor configAccessor = mock(ConfigAccessor.class);

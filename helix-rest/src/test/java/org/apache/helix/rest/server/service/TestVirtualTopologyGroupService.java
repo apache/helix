@@ -45,7 +45,9 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.cloud.azure.AzureConstants.AZURE_FAULT_ZONE_TYPE;
 import static org.apache.helix.cloud.constants.VirtualTopologyGroupConstants.*;
+import static org.apache.helix.util.VirtualTopologyUtil.computeVirtualFaultZoneTypeKey;
 import static org.mockito.Mockito.*;
 
 
@@ -53,6 +55,7 @@ public class TestVirtualTopologyGroupService {
   private static final String TEST_CLUSTER = "Test_Cluster";
   private static final String TEST_CLUSTER0 = "TestCluster_0";
   private static final String TEST_CLUSTER1 = "TestCluster_1";
+  private static final String FAULT_ZONE_TYPE = "helixZoneId";
 
   private final ConfigAccessor _configAccessor = mock(ConfigAccessor.class);
   private final HelixDataAccessor _dataAccessor = mock(HelixDataAccessor.class);
@@ -75,13 +78,18 @@ public class TestVirtualTopologyGroupService {
 
     assignment.put("virtual_group_0", ImmutableSet.of("instance_0", "instance_1"));
     assignment.put("virtual_group_1", ImmutableSet.of("instance_2"));
-    _updaterMap = VirtualTopologyGroupService.createInstanceConfigUpdater(TEST_CLUSTER, assignment);
+    ClusterConfig testClusterConfig = new ClusterConfig(TEST_CLUSTER);
+    testClusterConfig.setFaultZoneType(FAULT_ZONE_TYPE);
+    testClusterConfig.setTopology("/helixZoneId");
+    testClusterConfig.setTopologyAwareEnabled(true);
+    when(_configAccessor.getClusterConfig(TEST_CLUSTER)).thenReturn(testClusterConfig);
+    _updaterMap = VirtualTopologyGroupService.createInstanceConfigUpdater(testClusterConfig, assignment);
 
-    ClusterConfig clusterConfig = new ClusterConfig(TEST_CLUSTER0);
-    clusterConfig.setFaultZoneType(AzureConstants.AZURE_FAULT_ZONE_TYPE);
-    clusterConfig.setTopology(AzureConstants.AZURE_TOPOLOGY);
-    clusterConfig.setTopologyAwareEnabled(true);
-    when(_configAccessor.getClusterConfig(TEST_CLUSTER0)).thenReturn(clusterConfig);
+    ClusterConfig testClusterConfig0 = new ClusterConfig(TEST_CLUSTER0);
+    testClusterConfig0.setFaultZoneType(AZURE_FAULT_ZONE_TYPE);
+    testClusterConfig0.setTopology(AzureConstants.AZURE_TOPOLOGY);
+    testClusterConfig0.setTopologyAwareEnabled(true);
+    when(_configAccessor.getClusterConfig(TEST_CLUSTER0)).thenReturn(testClusterConfig0);
 
     _helixAdmin = mock(HelixAdmin.class);
     when(_helixAdmin.isInMaintenanceMode(anyString())).thenReturn(true);
@@ -91,6 +99,7 @@ public class TestVirtualTopologyGroupService {
     when(_dataAccessor.updateChildren(anyList(), anyList(), anyInt())).thenReturn(results);
     ClusterService clusterService = mock(ClusterService.class);
     when(clusterService.getClusterTopology(anyString())).thenReturn(prepareClusterTopology());
+    when(clusterService.getVirtualClusterTopology(anyString())).thenReturn(prepareClusterTopology());
     _service = new VirtualTopologyGroupService(_helixAdmin, clusterService, _configAccessor, _dataAccessor);
   }
 
@@ -134,6 +143,14 @@ public class TestVirtualTopologyGroupService {
         GROUP_NAME, "test-group", GROUP_NUMBER, "10", AUTO_MAINTENANCE_MODE_DISABLED, "true"));
   }
 
+  @Test(expectedExceptions = IllegalArgumentException.class,
+      expectedExceptionsMessageRegExp = "Number of virtual groups cannot be greater than the number of zones.*")
+  public void testFaultZoneBasedVirtualGroupAssignment() {
+    _service.addVirtualTopologyGroup(TEST_CLUSTER0, ImmutableMap.of(
+        GROUP_NAME, "test-group", GROUP_NUMBER, "3", AUTO_MAINTENANCE_MODE_DISABLED, "true",
+        ASSIGNMENT_ALGORITHM, "ZONE_BASED"));
+  }
+
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void testParamValidation() {
     _service.addVirtualTopologyGroup(TEST_CLUSTER0, ImmutableMap.of(GROUP_NUMBER, "2"));
@@ -150,11 +167,11 @@ public class TestVirtualTopologyGroupService {
   public Object[][] instanceTestProvider() {
     return new Object[][] {
         {computeZkPath("instance_0"), _instanceConfig0,
-            ImmutableMap.of("helixZoneId", "zone0", VIRTUAL_FAULT_ZONE_TYPE, "virtual_group_0")},
+            ImmutableMap.of(FAULT_ZONE_TYPE, "zone0", computeVirtualFaultZoneTypeKey(FAULT_ZONE_TYPE), "virtual_group_0")},
         {computeZkPath("instance_1"), _instanceConfig1,
-            ImmutableMap.of("helixZoneId", "zone0", VIRTUAL_FAULT_ZONE_TYPE, "virtual_group_0")},
+            ImmutableMap.of(FAULT_ZONE_TYPE, "zone0", computeVirtualFaultZoneTypeKey(FAULT_ZONE_TYPE), "virtual_group_0")},
         {computeZkPath("instance_2"), _instanceConfig2,
-            ImmutableMap.of("helixZoneId", "zone1", VIRTUAL_FAULT_ZONE_TYPE, "virtual_group_1")}
+            ImmutableMap.of(FAULT_ZONE_TYPE, "zone1", computeVirtualFaultZoneTypeKey(FAULT_ZONE_TYPE), "virtual_group_1")}
     };
   }
 
@@ -163,8 +180,9 @@ public class TestVirtualTopologyGroupService {
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.setTopologyAwareEnabled(true);
     testConfig.setTopology("/zone/instance");
+    testConfig.setFaultZoneType("zone");
     Assert.assertEquals(VirtualTopologyGroupService.computeVirtualTopologyString(testConfig),
-        "/virtualZone/instance");
+        "/zone_virtualZone/instance");
   }
 
   private static ClusterTopology prepareClusterTopology() {

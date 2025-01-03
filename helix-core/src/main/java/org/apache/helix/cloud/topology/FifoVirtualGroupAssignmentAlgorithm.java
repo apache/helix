@@ -30,6 +30,7 @@ import java.util.Set;
 import org.apache.helix.cloud.constants.VirtualTopologyGroupConstants;
 import org.apache.helix.util.HelixUtil;
 
+import static org.apache.helix.util.VirtualTopologyUtil.computeVirtualGroupId;
 
 /**
  * A strategy that densely assign virtual groups with input instance list, it doesn't move to the next one until
@@ -71,9 +72,5 @@ public class FifoVirtualGroupAssignmentAlgorithm implements VirtualGroupAssignme
     }
     Preconditions.checkState(numInstances.stream().mapToInt(Integer::intValue).sum() == sortedInstances.size());
     return ImmutableMap.copyOf(assignment);
-  }
-
-  private static String computeVirtualGroupId(int groupIndex, String virtualGroupName) {
-    return virtualGroupName + VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER + groupIndex;
   }
 }

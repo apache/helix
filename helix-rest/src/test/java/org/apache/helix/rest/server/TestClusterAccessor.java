@@ -75,6 +75,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.cloud.azure.AzureConstants.AZURE_FAULT_ZONE_TYPE;
+
 public class TestClusterAccessor extends AbstractTestClass {
 
   private static final String VG_CLUSTER = "vgCluster";
@@ -233,16 +235,17 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(((List) topology.get("zones")).size(), numGroups);
 
     ClusterConfig clusterConfig = getClusterConfigFromRest(VG_CLUSTER);
-    String expectedTopology = "/" + VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE + "/hostname";
+    String expectedFaultZoneType = AZURE_FAULT_ZONE_TYPE + "_" + VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE;
+    String expectedTopology = "/" + expectedFaultZoneType + "/hostname";
     Assert.assertEquals(clusterConfig.getTopology(), expectedTopology);
-    Assert.assertEquals(clusterConfig.getFaultZoneType(), VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE);
+    Assert.assertEquals(clusterConfig.getFaultZoneType(), expectedFaultZoneType);
 
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(VG_CLUSTER, _baseAccessor);
     for (Map.Entry<String, String> entry : instanceToGroup.entrySet()) {
       InstanceConfig instanceConfig =
           helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(entry.getKey()));
       String expectedGroup = entry.getValue();
-      Assert.assertEquals(instanceConfig.getDomainAsMap().get(VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE),
+      Assert.assertEquals(instanceConfig.getDomainAsMap().get(expectedFaultZoneType),
           expectedGroup);
     }
   }
@@ -281,6 +284,11 @@ public class TestClusterAccessor extends AbstractTestClass {
     setupClusterForVirtualTopology(VG_CLUSTER);
     String test1 = "{\"virtualTopologyGroupNumber\":\"7\",\"virtualTopologyGroupName\":\"vgTest\"}";
     String test2 = "{\"virtualTopologyGroupNumber\":\"9\",\"virtualTopologyGroupName\":\"vgTest\"}";
+    // Split 5 zones into 2 virtual groups, expect 0-1-2 in virtual group 0, 3-4 in virtual group 1
+    String test3 = "{\"virtualTopologyGroupNumber\":\"2\",\"virtualTopologyGroupName\":\"vgTest\","
+        + "\"virtualTopologyAssignmentAlgorithm\":\"ZONE_BASED\"}";
+    String test4 = "{\"virtualTopologyGroupNumber\":\"5\",\"virtualTopologyGroupName\":\"vgTest\","
+        + "\"virtualTopologyAssignmentAlgorithm\":\"ZONE_BASED\"}";
     return new Object[][] {
         {test1, 7, ImmutableMap.of(
             "vgCluster_localhost_12918", "vgTest_0",
@@ -297,7 +305,23 @@ public class TestClusterAccessor extends AbstractTestClass {
             "vgCluster_localhost_12918", "vgTest_0",
             "vgCluster_localhost_12919", "vgTest_0",
             "vgCluster_localhost_12925", "vgTest_4",
-            "vgCluster_localhost_12927", "vgTest_6")}
+            "vgCluster_localhost_12927", "vgTest_6")},
+        {test3, 2, ImmutableMap.of(
+            "vgCluster_localhost_12918", "vgTest_0",
+            "vgCluster_localhost_12919", "vgTest_0",
+            "vgCluster_localhost_12925", "vgTest_1",
+            "vgCluster_localhost_12927", "vgTest_1")},
+        {test4, 5, ImmutableMap.of(
+            "vgCluster_localhost_12918", "vgTest_0",
+            "vgCluster_localhost_12919", "vgTest_0",
+            "vgCluster_localhost_12925", "vgTest_3",
+            "vgCluster_localhost_12927", "vgTest_4")},
+        // repeat test3 for deterministic and test for decreasing numGroups
+        {test3, 2, ImmutableMap.of(
+            "vgCluster_localhost_12918", "vgTest_0",
+            "vgCluster_localhost_12919", "vgTest_0",
+            "vgCluster_localhost_12925", "vgTest_1",
+            "vgCluster_localhost_12927", "vgTest_1")},
     };
   }
 
@@ -940,7 +964,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     ClusterConfig clusterConfigFromZk = _configAccessor.getClusterConfig(clusterName);
     Assert.assertEquals(clusterConfigFromZk.getTopology(), AzureConstants.AZURE_TOPOLOGY);
-    Assert.assertEquals(clusterConfigFromZk.getFaultZoneType(), AzureConstants.AZURE_FAULT_ZONE_TYPE);
+    Assert.assertEquals(clusterConfigFromZk.getFaultZoneType(), AZURE_FAULT_ZONE_TYPE);
     Assert.assertTrue(clusterConfigFromZk.isTopologyAwareEnabled());
   }
 

@@ -30,9 +30,9 @@ public class VirtualTopologyUtil {
     }
 
     // Otherwise, remove any existing suffix parts beyond the first splitter, if needed
-     String[] segments = oldFaultZoneType.split(VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER);
-     String baseName = segments[0];
+    String[] segments = oldFaultZoneType.split(VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER);
+    String baseName = segments[0];
 
-     return baseName + suffix;
+    return baseName + suffix;
   }
 }

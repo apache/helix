@@ -125,7 +125,7 @@ under the License.
         <version>3.3.0</version>
         <executions>
           <execution>
-            <id>default-package-jdk11</id>
+            <id>default-package-jdk8</id>
             <phase>package</phase>
             <goals>
               <goal>jar</goal>

@@ -26,11 +26,12 @@ import org.testng.annotations.Test;
 
 public class TestMissedEventAfterReconnect extends ZkTestBase  {
 
-  public static String CLUSTER_NAME = TestHelper.getTestClassName() + "_cluster";
-  public static int PARTICIPANT_COUNT = 10;
-  public static List<MockParticipantManager> _participants = new ArrayList<>();
-  public static ClusterControllerManager _controller;
-  public static ConfigAccessor _configAccessor;
+  protected static String CLUSTER_NAME = TestHelper.getTestClassName() + "_cluster";
+  protected static int PARTICIPANT_COUNT = 10;
+  protected List<MockParticipantManager> _participants = new ArrayList<>();
+  protected ClusterControllerManager _controller;
+  protected ConfigAccessor _configAccessor;
+  protected static int HELIX_MANAGER_TIMEOUT = 11 * 1000; //11 seconds
 
   @BeforeClass
   public void beforeClass() {
@@ -82,10 +83,10 @@ public class TestMissedEventAfterReconnect extends ZkTestBase  {
     helixManagerZkClient.process(event);
 
     System.out.println("Killing participant 0");
-    _participants.get(0).syncStop();
+    participantToKill.syncStop();
 
     System.out.println("Sleeping for timeout");
-    Thread.sleep(60000);
+    Thread.sleep(HELIX_MANAGER_TIMEOUT);
 
     System.out.println("Reconnecting");
     //reconnect
@@ -99,6 +100,9 @@ public class TestMissedEventAfterReconnect extends ZkTestBase  {
 
     System.out.println("Killing participant 1");
     _participants.get(1).syncStop();
+    Assert.assertTrue(verifier.verifyByPolling());
+    Assert.assertFalse(hasAssignment(participantToKill.getInstanceName()), "Should not have assignments after reconnect");
+    Assert.assertFalse(hasAssignment(_participants.get(1).getInstanceName()), "Should have assignments after reconnect");
 
     System.out.println("end test");
   }

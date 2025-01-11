@@ -115,7 +115,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
   private static final int FLAPPING_TIME_WINDOW = 300000; // Default to 300 sec
   public static final int DEFAULT_MAX_DISCONNECT_THRESHOLD = 600; // Default to be a large number
-  private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 60 * 1000;  // wait until connected for up to 10 seconds.
+  private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
 
   protected final String _zkAddress;
   private final String _clusterName;
@@ -151,6 +151,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   protected LiveInstanceInfoProvider _liveInstanceInfoProvider = null;
 
   private volatile String _sessionId;
+  private boolean _managerDisconnectedPastTimeout;
 
   /**
    * Keep track of timestamps that zk State has become Disconnected If in a _timeWindowLengthMs
@@ -406,14 +407,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     boolean isConnected = isConnected();
     if (!isConnected && timeout > 0) {
-      System.out.println("gspencerTest - warning not connected");
       LOG.warn("zkClient to " + getZkConnectionInfo() + " is not connected, wait for "
           + _waitForConnectedTimeout + "ms.");
       isConnected = _zkclient.waitUntilConnected(_waitForConnectedTimeout, TimeUnit.MILLISECONDS);
     }
 
     if (!isConnected) {
-      System.out.println("gspencerTest - error not connected");
+      _managerDisconnectedPastTimeout = true;
       LOG.error("zkClient is not connected after waiting " + timeout + "ms."
           + ", clusterName: " + _clusterName + ", zkAddress: " + getZkConnectionInfo());
       throw new HelixException(
@@ -1225,7 +1225,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public void handleStateChanged(KeeperState state) {
     switch (state) {
     case SyncConnected:
+      // If manager is disconnected and is the leader controller, then reset and init leaderElectionHandler. This
+      // will force the controller to refresh and pick up any events that were missed during disconnect.
+      if (_managerDisconnectedPastTimeout && _controller != null && isLeader()) {
+        _controller.scheduleOnDemandRebalance(0, true);
+      }
       LOG.info("KeeperState: " + state + ", instance: " + _instanceName + ", type: " + _instanceType);
+      _managerDisconnectedPastTimeout = false;
       break;
     case Disconnected:
       /**

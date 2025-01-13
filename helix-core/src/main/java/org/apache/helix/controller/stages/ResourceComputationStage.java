@@ -91,7 +91,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
       Map<String, IdealState> idealStates, boolean isTaskCache) {
     if (idealStates != null && idealStates.size() > 0) {
       for (IdealState idealState : idealStates.values()) {
-        if (idealState == null || idealState.getNumPartitions() == 0) {
+        if (idealState == null) {
           continue;
         }
 

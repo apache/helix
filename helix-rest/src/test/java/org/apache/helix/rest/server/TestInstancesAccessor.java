@@ -248,7 +248,34 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dependsOnMethods = "testInstanceStoppableCrossZoneBasedWithSelectedCheckList")
+  @Test(dependsOnMethods = "testCrossZoneStoppableWithoutZoneOrder")
+  public void testSkipCustomChecksIfInstanceNotAlive() throws JsonProcessingException {
+    // Instance 4 and 5 in stoppable cluster 1 are not alive
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\", \"%s\", \"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance4", "instance5", "invalidInstance",
+        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ALIVE", "EMPTY_RESOURCE_ASSIGNMENT", "INSTANCE_NOT_STABLE");
+    // Even if we don't skip custom stoppable checks, the instance is not alive so it should be stoppable
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable").format(
+        STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+    Set<String> stoppableSet = getStringSet(jsonNode,
+        InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
+    Assert.assertTrue(stoppableSet.contains("instance4"));
+    Assert.assertTrue(stoppableSet.contains("instance5"));
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+
+    Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testSkipCustomChecksIfInstanceNotAlive")
   public void testInstanceStoppableCrossZoneBasedWithEvacuatingInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String content = String.format(

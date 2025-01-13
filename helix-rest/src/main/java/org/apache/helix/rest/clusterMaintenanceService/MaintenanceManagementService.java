@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -502,6 +503,10 @@ public class MaintenanceManagementService {
       return instances;
     }
 
+    // If the instance-not-alive check is skipped, any dead instance wouldn’t perform a custom check.
+    // This is because we do not attempt custom checks for instances that are already down.
+    List<String> liveInstanceIds = filterOutDeadInstancesIfNeeded(instances);
+
     // If the config has exactUrl and the CLUSTER level customer check is not skipped, we will
     // perform the custom check at cluster level.
     if (restConfig.getCompleteConfiguredHealthUrl().isPresent()) {
@@ -510,7 +515,7 @@ public class MaintenanceManagementService {
       }
 
       Map<String, StoppableCheck> clusterLevelCustomCheckResult =
-          performAggregatedCustomCheck(clusterId, instances,
+          performAggregatedCustomCheck(clusterId, liveInstanceIds,
               restConfig.getCompleteConfiguredHealthUrl().get(), customPayLoads,
               toBeStoppedInstances);
       List<String> instancesForNextCheck = new ArrayList<>();
@@ -526,7 +531,7 @@ public class MaintenanceManagementService {
 
     // Reaching here means the rest config requires instances/partition level checks. We will
     // perform the custom check at instance/partition level if they are not skipped.
-    List<String> instancesForCustomPartitionLevelChecks = instances;
+    List<String> instancesForCustomPartitionLevelChecks = liveInstanceIds;
     if (!_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)) {
       Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
           Collectors.toMap(Function.identity(), instance -> POOL.submit(
@@ -558,6 +563,40 @@ public class MaintenanceManagementService {
 
     // This means that we skipped
     return instancesForCustomPartitionLevelChecks;
+  }
+
+  /**
+   * Helper Methods
+   * <p>
+   * If we are skipping the "instance not alive" check, filter out dead instances
+   * to avoid running custom checks on them.
+   *
+   * @param instanceIds  the list of instances
+   * @return either the original list or a filtered list of only live instances
+   */
+  private List<String> filterOutDeadInstancesIfNeeded(List<String> instanceIds) {
+    if (!_skipStoppableHealthCheckList.contains(HealthCheck.INSTANCE_NOT_ALIVE)) {
+      // We are not skipping the not-alive check, so just return all instances.
+      return instanceIds;
+    }
+
+    // Retrieve the set of currently live instances
+    PropertyKey.Builder keyBuilder = _dataAccessor.keyBuilder();
+    List<String> liveNodes = _dataAccessor.getChildNames(keyBuilder.liveInstances());
+
+    // Filter out instances that are not in the live list
+    List<String> filtered = instanceIds.stream()
+        .filter(liveNodes::contains)
+        .collect(Collectors.toList());
+
+    // Log the ones we are skipping
+    List<String> skipped = instanceIds.stream()
+        .filter(id -> !liveNodes.contains(id))
+        .collect(Collectors.toList());
+    if (!skipped.isEmpty()) {
+      LOG.info("Skipping any custom checks for instances: {}", skipped);
+    }
+    return filtered;
   }
 
   private Map<String, MaintenanceManagementInstanceInfo> batchInstanceHealthCheck(String clusterId,

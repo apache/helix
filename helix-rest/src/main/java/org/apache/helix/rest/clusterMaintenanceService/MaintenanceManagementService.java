@@ -99,6 +99,8 @@ public class MaintenanceManagementService {
   // maintain the backward compatibility with users who don't use MaintenanceManagementServiceBuilder
   // to create the MaintenanceManagementService object.
   private List<HealthCheck> _skipStoppableHealthCheckList = Collections.emptyList();
+  // default value false to maintain backward compatibility
+  private boolean _skipCustomChecksIfNoLiveness = false;
 
   public MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, boolean skipZKRead, String namespace) {
@@ -153,7 +155,7 @@ public class MaintenanceManagementService {
   private MaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
       ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
       Set<String> nonBlockingHealthChecks, Set<StoppableCheck.Category> skipHealthCheckCategories,
-      List<HealthCheck> skipStoppableHealthCheckList, String namespace) {
+      List<HealthCheck> skipStoppableHealthCheckList, String namespace, boolean skipCustomChecksIfNoLiveness) {
     _dataAccessor =
         new HelixDataAccessorWrapper(dataAccessor, customRestClient,
             namespace);
@@ -167,6 +169,7 @@ public class MaintenanceManagementService {
     _skipStoppableHealthCheckList = skipStoppableHealthCheckList == null ? Collections.emptyList()
             : skipStoppableHealthCheckList;
     _namespace = namespace;
+    _skipCustomChecksIfNoLiveness = skipCustomChecksIfNoLiveness;
   }
 
   /**
@@ -503,14 +506,15 @@ public class MaintenanceManagementService {
       return instances;
     }
 
-    // If the instance-not-alive check is skipped, any dead instance wouldn’t perform a custom check.
-    // This is because we do not attempt custom checks for instances that are already down.
+    // Skip performing a custom check on any dead instance if the user set _skipCustomCheckIfInstanceNotAlive
+    // to true. This is because we do not attempt custom checks for instances that are already down.
     List<String> liveInstanceIds = filterOutDeadInstancesIfNeeded(instances);
 
     // If the config has exactUrl and the CLUSTER level customer check is not skipped, we will
     // perform the custom check at cluster level.
     if (restConfig.getCompleteConfiguredHealthUrl().isPresent()) {
-      if (_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)) {
+      if (_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)
+          || liveInstanceIds.isEmpty()) {
         return instances;
       }
 
@@ -568,14 +572,14 @@ public class MaintenanceManagementService {
   /**
    * Helper Methods
    * <p>
-   * If we are skipping the "instance not alive" check, filter out dead instances
+   * If users set skipCustomCheckIfInstanceNotAlive to true, filter out dead instances
    * to avoid running custom checks on them.
    *
    * @param instanceIds  the list of instances
    * @return either the original list or a filtered list of only live instances
    */
   private List<String> filterOutDeadInstancesIfNeeded(List<String> instanceIds) {
-    if (!_skipStoppableHealthCheckList.contains(HealthCheck.INSTANCE_NOT_ALIVE)) {
+    if (!_skipCustomChecksIfNoLiveness) {
       // We are not skipping the not-alive check, so just return all instances.
       return instanceIds;
     }
@@ -929,6 +933,7 @@ public class MaintenanceManagementService {
   public static class MaintenanceManagementServiceBuilder {
     private ConfigAccessor _configAccessor;
     private boolean _skipZKRead;
+    private boolean _skipCustomChecksIfNoLiveness = false;
     private String _namespace;
     private ZKHelixDataAccessor _dataAccessor;
     private CustomRestClient _customRestClient;
@@ -981,11 +986,17 @@ public class MaintenanceManagementService {
       return this;
     }
 
+    public MaintenanceManagementServiceBuilder setSkipCustomChecksIfNoLiveness(
+        boolean skipCustomChecksIfNoLiveness) {
+      _skipCustomChecksIfNoLiveness = skipCustomChecksIfNoLiveness;
+      return this;
+    }
+
     public MaintenanceManagementService build() {
       validate();
       return new MaintenanceManagementService(_dataAccessor, _configAccessor, _customRestClient,
           _skipZKRead, _nonBlockingHealthChecks, _skipHealthCheckCategories,
-          _skipStoppableHealthCheckList, _namespace);
+          _skipStoppableHealthCheckList, _namespace, _skipCustomChecksIfNoLiveness);
     }
 
     private void validate() throws IllegalArgumentException {

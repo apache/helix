@@ -1886,7 +1886,6 @@ public class ZkClient implements Watcher {
     return ops;
   }
 
-
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {
     final String path = event.getPath();
     final boolean pathExists = event.getType() != EventType.NodeDeleted;

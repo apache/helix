@@ -1344,7 +1344,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
   }
 
   @Test
-  public void testDropInstanceAtomic() {
+  public void testDropInstance() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     int numInstances = 5;
     final String clusterName = getShortClassName();

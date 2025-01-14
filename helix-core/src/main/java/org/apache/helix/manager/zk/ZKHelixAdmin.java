@@ -273,10 +273,12 @@ public class ZKHelixAdmin implements HelixAdmin {
           "Node " + instanceName + " is still alive for cluster " + clusterName + ", can't drop.");
     }
 
-    dropInstancePathsRecursively(instanceName, instancePath, instanceConfigPath);
+    dropInstancePathsRecursively(clusterName, instanceName);
   }
 
-  private void dropInstancePathsRecursively(String instanceName, String instancePath, String instanceConfigPath) {
+  private void dropInstancePathsRecursively(String clusterName, String instanceName) {
+    String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+    String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
     int retryCnt = 0;
     while (true) {
       try {
@@ -328,9 +330,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   private void purgeInstance(String clusterName, String instanceName) {
     logger.info("Purge instance {} from cluster {}.", instanceName, clusterName);
-    String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
-    String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
-    dropInstancePathsRecursively(instanceName, instancePath, instanceConfigPath);
+    dropInstancePathsRecursively(clusterName, instanceName);
   }
 
   @Override

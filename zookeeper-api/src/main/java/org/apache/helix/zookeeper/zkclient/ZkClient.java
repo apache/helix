@@ -22,14 +22,15 @@ package org.apache.helix.zookeeper.zkclient;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
+import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -1861,8 +1862,8 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Get the list of operations to delete the given root and all its children. Performs simple BFS to put delete
-   * operations for leaf nodes first before parent nodes.
+   * Get the list of operations to delete the given root and all its children. Ops will be ordered so that deletion of
+   * children will come before parent nodes.
    * @param root the root node to delete
    * @return the list of ZK operations to delete the given root and all its children
    */
@@ -1873,25 +1874,18 @@ public class ZkClient implements Watcher {
       return ops;
     }
 
-    HashSet<String> visited = new HashSet<>();
-    Stack<String> nodes = new Stack<>();
-    nodes.push(root);
-
+    Queue<String> nodes = new LinkedList<>();
+    nodes.offer(root);
     while (!nodes.isEmpty()) {
-      String node = nodes.peek();
-      List<String> children = getChildren(node, false);
-      if (children.isEmpty() || visited.contains(node)) {
-        nodes.pop();
-        ops.add(Op.delete(node, -1));
-      } else {
-        for (String child : children) {
-          nodes.push(node + "/" + child);
-        }
-      }
-      visited.add(node);
+      String node = nodes.poll();
+      getChildren(node, false).stream().forEach(child -> nodes.offer(node + "/" + child));
+      ops.add(Op.delete(node, -1));
     }
+
+    Collections.reverse(ops);
     return ops;
   }
+
 
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {
     final String path = event.getPath();

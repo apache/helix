@@ -1267,6 +1267,11 @@ public class TestRawZkClient extends ZkTestBase {
       // Caught expected exception
     }
 
+    // Test calling delete on single node
+    Assert.assertTrue(_zkClient.exists(child2));
+    _zkClient.deleteRecursivelyAtomic(child2);
+    Assert.assertFalse(_zkClient.exists(child2));
+
     Assert.assertTrue(_zkClient.exists(grandParent));
     Assert.assertFalse(_zkClient.getChildren(parent).isEmpty());
 

@@ -1832,19 +1832,12 @@ public class ZkClient implements Watcher {
    * @param path ZK path to delete
    */
   public void deleteRecursivelyAtomic(String path) {
-    List<Op> ops = getOpsForRecursiveDelete(path);
-    try {
-      multi(ops);
-    }
-    catch (Exception e) {
-      LOG.error("zkclient {}, Failed to delete {}, exception {}", _uid, path, e);
-      throw new ZkClientException("Failed to delete " + path, e);
-    }
+    deleteRecursivelyAtomic(Arrays.asList(path));
   }
 
   /**
-   * Delete all provided paths as well as all their children. This operation is atomic and will either delete all nodes
-   * or none. This operation may fail if another agent is concurrently creating or deleting nodes under any of the paths
+   * Delete the paths as well as all their children. This operation is atomic and will either delete all nodes or none.
+   * This operation may fail if another agent is concurrently creating or deleting nodes under any of the paths.
    * @param paths ZK paths to delete
    */
   public void deleteRecursivelyAtomic(List<String> paths) {
@@ -1874,6 +1867,8 @@ public class ZkClient implements Watcher {
       return ops;
     }
 
+    // Level order traversal of tree, adding deleting operation for each node
+    // This will produce list of operations ordered from parent to children nodes
     Queue<String> nodes = new LinkedList<>();
     nodes.offer(root);
     while (!nodes.isEmpty()) {
@@ -1881,7 +1876,7 @@ public class ZkClient implements Watcher {
       getChildren(node, false).stream().forEach(child -> nodes.offer(node + "/" + child));
       ops.add(Op.delete(node, -1));
     }
-
+   // Reverse the list so that operations are ordered from children to parent nodes
     Collections.reverse(ops);
     return ops;
   }

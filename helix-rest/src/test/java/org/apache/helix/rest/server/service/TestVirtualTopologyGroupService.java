@@ -31,10 +31,7 @@ import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.cloud.azure.AzureConstants;
-import org.apache.helix.cloud.constants.CloudProvider;
-import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
@@ -154,7 +151,7 @@ public class TestVirtualTopologyGroupService {
   public void testFaultZoneBasedVirtualGroupAssignment() {
     _service.addVirtualTopologyGroup(TEST_CLUSTER0, ImmutableMap.of(
         GROUP_NAME, "test-group", GROUP_NUMBER, "3", AUTO_MAINTENANCE_MODE_DISABLED, "true",
-        ASSIGNMENT_ALGORITHM, "ZONE_BASED"));
+        ASSIGNMENT_ALGORITHM_TYPE, "ZONE_BASED"));
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)

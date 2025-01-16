@@ -289,11 +289,11 @@ public class TestClusterAccessor extends AbstractTestClass {
     String test2 = "{\"virtualTopologyGroupNumber\":\"9\",\"virtualTopologyGroupName\":\"vgTest\"}";
     // Split 5 zones into 2 virtual groups, expect 0-1-2 in virtual group 0, 3-4 in virtual group 1
     String test3 = "{\"virtualTopologyGroupNumber\":\"2\",\"virtualTopologyGroupName\":\"vgTest\","
-        + "\"virtualTopologyAssignmentAlgorithm\":\"ZONE_BASED\"}";
+        + "\"assignmentAlgorithmType\":\"ZONE_BASED\"}";
     String test4 = "{\"virtualTopologyGroupNumber\":\"5\",\"virtualTopologyGroupName\":\"vgTest\","
-        + "\"virtualTopologyAssignmentAlgorithm\":\"ZONE_BASED\"}";
+        + "\"assignmentAlgorithmType\":\"ZONE_BASED\"}";
     String test5 = "{\"virtualTopologyGroupNumber\":\"2\",\"virtualTopologyGroupName\":\"vgTest\","
-        + "\"virtualTopologyAssignmentAlgorithm\":\"ZONE_BASED\",\"forceRecompute\""
+        + "\"assignmentAlgorithmType\":\"ZONE_BASED\",\"forceRecompute\""
         + ":\"true\"}";
     return new Object[][] {
         {test1, 7, ImmutableMap.of(

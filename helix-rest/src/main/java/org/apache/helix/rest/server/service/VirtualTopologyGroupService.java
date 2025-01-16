@@ -88,7 +88,7 @@ public class VirtualTopologyGroupService {
    *                     -- if set false or not set, the cluster will automatically enter maintenance mode and exit after
    *                     the call succeeds. It won't proceed if the cluster is already in maintenance mode.
    *                     Either case, the cluster must be in maintenance mode before config change.
-   *                     {@link VirtualTopologyGroupConstants#ASSIGNMENT_ALGORITHM} is optional, default to INSTANCE_BASED.
+   *                     {@link VirtualTopologyGroupConstants#ASSIGNMENT_ALGORITHM_TYPE} is optional, default to INSTANCE_BASED.
    *                     {@link VirtualTopologyGroupConstants#FORCE_RECOMPUTE} is optional, default to false.
    *                     -- if set true, the virtual topology group will be recomputed from scratch by ignoring the existing
    *                     virtual topology group information.
@@ -123,7 +123,7 @@ public class VirtualTopologyGroupService {
       throw new IllegalArgumentException("virtualTopologyGroupNumber " + groupNumberStr + " is not an integer.", ex);
     }
 
-    String algorithm = customFields.get(VirtualTopologyGroupConstants.ASSIGNMENT_ALGORITHM);
+    String algorithm = customFields.get(VirtualTopologyGroupConstants.ASSIGNMENT_ALGORITHM_TYPE);
     algorithm = algorithm == null ? VirtualTopologyGroupConstants.VirtualGroupAssignmentAlgorithm.INSTANCE_BASED.toString() : algorithm;
     if (algorithm != null) {
       VirtualTopologyGroupConstants.VirtualGroupAssignmentAlgorithm algorithmEnum = null;

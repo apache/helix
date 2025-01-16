@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,10 +54,22 @@ public class ClusterServiceImpl implements ClusterService {
   }
 
   @Override
-  public ClusterTopology getVirtualClusterTopology(String cluster) {
-    String concatenatedKey = _configAccessor.getClusterConfig(cluster).getFaultZoneType();
-    String faultZone = concatenatedKey.split(VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER)[0];
-    return getTopologyUnderDomainType(faultZone, cluster);
+  public ClusterTopology getTopologyOfVirtualCluster(String cluster, boolean useRealTopology) {
+    String virtualZoneField = _configAccessor.getClusterConfig(cluster).getFaultZoneType();
+    String faultZone = virtualZoneField.split(VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER)[0];
+    if (useRealTopology) {
+      // If the user requested to use real topology, return the real topology
+      return getTopologyUnderDomainType(faultZone, cluster);
+    }
+
+    String virtualZoneSuffix = VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER
+        + VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE;
+    // If the cluster doesn't have a virtual topology but the user requested, return empty
+    // topology, indicating that virtual topology is not enabled
+    if (!virtualZoneField.endsWith(virtualZoneSuffix)) {
+      return new ClusterTopology(cluster, new ArrayList<>(), new HashSet<>());
+    }
+    return getTopologyUnderDomainType(virtualZoneField, cluster);
   }
 
   private ClusterTopology getTopologyUnderDomainType(String faultZone, String clusterId) {

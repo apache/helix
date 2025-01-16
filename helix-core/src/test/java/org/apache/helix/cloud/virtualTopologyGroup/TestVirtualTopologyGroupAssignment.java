@@ -21,6 +21,7 @@ package org.apache.helix.cloud.virtualTopologyGroup;
 
 import com.google.common.collect.Sets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,8 @@ public class TestVirtualTopologyGroupAssignment {
   @Test(dataProvider = "getMappingTests")
   public void testAssignmentScheme(int numGroups, Map<String, Set<String>> expected,
       VirtualGroupAssignmentAlgorithm algorithm) {
-    Assert.assertEquals(algorithm.computeAssignment(numGroups, GROUP_NAME, _zoneMapping), expected);
+    Assert.assertEquals(algorithm.computeAssignment(numGroups, GROUP_NAME, _zoneMapping,
+        Collections.emptyMap()), expected);
   }
 
   @DataProvider
@@ -73,7 +75,7 @@ public class TestVirtualTopologyGroupAssignment {
     virtualMapping.put(computeVirtualGroupId(0, GROUP_NAME), Sets.newHashSet("1", "2", "3", "4", "5"));
     virtualMapping.put(computeVirtualGroupId(1, GROUP_NAME), Sets.newHashSet("6", "7", "8", "9"));
     virtualMapping.put(computeVirtualGroupId(2, GROUP_NAME), Sets.newHashSet("a", "b", "c", "d"));
-    Assert.assertEquals(algorithm.computeAssignment(3, GROUP_NAME, _zoneMapping),
+    Assert.assertEquals(algorithm.computeAssignment(3, GROUP_NAME, _zoneMapping, Collections.emptyMap()),
         virtualMapping);
     Map<String, Set<String>> virtualMapping2 = new HashMap<>();
     virtualMapping2.put(computeVirtualGroupId(0, GROUP_NAME), Sets.newHashSet("1", "2"));

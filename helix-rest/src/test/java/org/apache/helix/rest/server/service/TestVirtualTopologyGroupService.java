@@ -22,6 +22,8 @@ package org.apache.helix.rest.server.service;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +42,7 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.mockito.ArgumentMatchers;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
@@ -99,7 +102,10 @@ public class TestVirtualTopologyGroupService {
     when(_dataAccessor.updateChildren(anyList(), anyList(), anyInt())).thenReturn(results);
     ClusterService clusterService = mock(ClusterService.class);
     when(clusterService.getClusterTopology(anyString())).thenReturn(prepareClusterTopology());
-    when(clusterService.getVirtualClusterTopology(anyString())).thenReturn(prepareClusterTopology());
+    when(clusterService.getTopologyOfVirtualCluster(anyString(), ArgumentMatchers.eq(true))).thenReturn(
+        prepareClusterTopology());
+    when(clusterService.getTopologyOfVirtualCluster(anyString(), ArgumentMatchers.eq(false))).thenReturn(
+        new ClusterTopology(TEST_CLUSTER0, Collections.emptyList(), Collections.emptySet()));
     _service = new VirtualTopologyGroupService(_helixAdmin, clusterService, _configAccessor, _dataAccessor);
   }
 

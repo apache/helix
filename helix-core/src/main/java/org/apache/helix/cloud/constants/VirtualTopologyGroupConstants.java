@@ -28,6 +28,7 @@ public class VirtualTopologyGroupConstants {
   public static final String GROUP_NAME_SPLITTER = "_";
   public static final String PATH_NAME_SPLITTER = "/";
   public static final String VIRTUAL_FAULT_ZONE_TYPE = "virtualZone";
+  public static final String FORCE_RECOMPUTE = "forceRecompute";
 
   public enum VirtualGroupAssignmentAlgorithm {
     ZONE_BASED, INSTANCE_BASED

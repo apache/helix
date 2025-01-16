@@ -131,15 +131,31 @@ public class TestClusterService {
     List<HelixProperty> instanceConfigs = ImmutableList.of(instanceConfig1, instanceConfig2, instanceConfig3);
 
     Mock mock = new Mock();
+    ClusterConfig mockConfig = new ClusterConfig(TEST_CLUSTER);
+    mockConfig.setFaultZoneType("helixZoneId_virtualZone");
+    when(mock.configAccessor.getClusterConfig(TEST_CLUSTER)).thenReturn(mockConfig);
     when(mock.dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
     when(mock.dataAccessor.getChildValues(any(PropertyKey.class), anyBoolean()))
         .thenReturn(instanceConfigs);
 
-    ClusterTopology clusterTopology = mock.clusterService.getVirtualClusterTopology(TEST_CLUSTER);
-    Assert.assertEquals(clusterTopology.getZones().size(), 3);
-
+    // When use `getClusterTopology` on a virtual topology cluster, it shall return topology
+    // based on the configured fault zone type
+    ClusterTopology clusterTopology = mock.clusterService.getClusterTopology(TEST_CLUSTER);
+    Assert.assertEquals(clusterTopology.getZones().size(), 2);
     Assert.assertEquals(clusterTopology.getClusterId(), TEST_CLUSTER);
     Assert.assertEquals(clusterTopology.getZones().get(0).getInstances().size(), 1);
+
+    // When use `getVirtualClusterTopology` on a virtual topology cluster, it shall return the
+    // virtual topology
+    clusterTopology = mock.clusterService.getTopologyOfVirtualCluster(TEST_CLUSTER, true);
+    Assert.assertEquals(clusterTopology.getZones().size(), 3);
+    Assert.assertEquals(clusterTopology.getClusterId(), TEST_CLUSTER);
+
+    // When use `getVirtualClusterTopology` on a virtual topology cluster, it shall return the
+    // virtual topology
+    clusterTopology = mock.clusterService.getTopologyOfVirtualCluster(TEST_CLUSTER, false);
+    Assert.assertEquals(clusterTopology.getZones().size(), 2);
+    Assert.assertEquals(clusterTopology.getClusterId(), TEST_CLUSTER);
   }
 
   private final class Mock {

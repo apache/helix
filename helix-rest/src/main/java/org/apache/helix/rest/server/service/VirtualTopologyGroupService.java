@@ -22,6 +22,7 @@ package org.apache.helix.rest.server.service;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,11 +88,27 @@ public class VirtualTopologyGroupService {
    *                     -- if set false or not set, the cluster will automatically enter maintenance mode and exit after
    *                     the call succeeds. It won't proceed if the cluster is already in maintenance mode.
    *                     Either case, the cluster must be in maintenance mode before config change.
+   *                     {@link VirtualTopologyGroupConstants#ASSIGNMENT_ALGORITHM} is optional, default to INSTANCE_BASED.
+   *                     {@link VirtualTopologyGroupConstants#FORCE_RECOMPUTE} is optional, default to false.
+   *                     -- if set true, the virtual topology group will be recomputed from scratch by ignoring the existing
+   *                     virtual topology group information.
+   *                     -- if set false or not set, the virtual topology group will be incrementally computed based on the
+   *                     existing virtual topology group information if possible.
    */
   public void addVirtualTopologyGroup(String clusterName, Map<String, String> customFields) {
     // validation
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
-    ClusterTopology clusterTopology = _clusterService.getVirtualClusterTopology(clusterName);
+    // Collect the real topology of the cluster and the virtual topology of the cluster
+    ClusterTopology clusterTopology = _clusterService.getTopologyOfVirtualCluster(clusterName, true);
+    // If forceRecompute is set to true, we will recompute the virtual topology group from scratch
+    // by ignoring the existing virtual topology group information.
+    String forceRecompute = customFields.getOrDefault(VirtualTopologyGroupConstants.FORCE_RECOMPUTE, "false");
+    boolean forceRecomputeFlag = Boolean.parseBoolean(forceRecompute);
+    ClusterTopology virtualTopology =
+        forceRecomputeFlag ? new ClusterTopology(clusterName, Collections.emptyList(),
+            Collections.emptySet())
+            : _clusterService.getTopologyOfVirtualCluster(clusterName, false);
+
     Preconditions.checkState(clusterConfig.isTopologyAwareEnabled(),
         "Topology-aware rebalance is not enabled in cluster " + clusterName);
     String groupName = customFields.get(VirtualTopologyGroupConstants.GROUP_NAME);
@@ -136,7 +153,8 @@ public class VirtualTopologyGroupService {
 
     // compute group assignment
     Map<String, Set<String>> assignment =
-        _assignmentAlgorithm.computeAssignment(numGroups, groupName, clusterTopology.toZoneMapping());
+        _assignmentAlgorithm.computeAssignment(numGroups, groupName,
+            clusterTopology.toZoneMapping(), virtualTopology.toZoneMapping());
 
     boolean autoMaintenanceModeDisabled = Boolean.parseBoolean(
         customFields.getOrDefault(VirtualTopologyGroupConstants.AUTO_MAINTENANCE_MODE_DISABLED, "false"));

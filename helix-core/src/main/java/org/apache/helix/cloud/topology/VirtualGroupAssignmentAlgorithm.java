@@ -34,5 +34,5 @@ public interface VirtualGroupAssignmentAlgorithm {
    * @return the assignment as mapping from virtual group ID to instanceIds
    */
   Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
-      Map<String, Set<String>> zoneMapping);
+      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> virtualZoneMapping);
 }

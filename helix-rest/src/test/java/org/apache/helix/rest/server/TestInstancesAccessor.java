@@ -249,8 +249,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-//  @Test(dependsOnMethods = "testCrossZoneStoppableWithoutZoneOrder")
-  @Test
+  @Test(dependsOnMethods = "testCrossZoneStoppableWithoutZoneOrder")
   public void testSkipCustomChecksIfInstanceNotAlive() throws JsonProcessingException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

@@ -159,8 +159,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
-      @DefaultValue("false") @QueryParam("random") boolean random,
-      String content) {
+      @DefaultValue("false") @QueryParam("random") boolean random, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);

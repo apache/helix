@@ -249,17 +249,20 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dependsOnMethods = "testCrossZoneStoppableWithoutZoneOrder")
+//  @Test(dependsOnMethods = "testCrossZoneStoppableWithoutZoneOrder")
+  @Test
   public void testSkipCustomChecksIfInstanceNotAlive() throws JsonProcessingException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
     // Instance 4 and 5 in stoppable cluster 1 are not alive
     String content = String.format(
-        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\", \"%s\", \"%s\"]}",
+        "{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\", \"%s\"], \"%s\":[\"%s\", \"%s\", \"%s\"], \"%s"
+            + "\": \"%b\"}",
         InstancesAccessor.InstancesProperties.selection_base.name(),
         InstancesAccessor.InstanceHealthSelectionBase.cross_zone_based.name(),
         InstancesAccessor.InstancesProperties.instances.name(), "instance4", "instance5", "invalidInstance",
-        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ALIVE", "EMPTY_RESOURCE_ASSIGNMENT", "INSTANCE_NOT_STABLE");
+        InstancesAccessor.InstancesProperties.skip_stoppable_check_list.name(), "INSTANCE_NOT_ALIVE", "EMPTY_RESOURCE_ASSIGNMENT", "INSTANCE_NOT_STABLE",
+        InstancesAccessor.InstancesProperties.skip_custom_check_if_instance_not_alive.name(), true);
 
     // Set the dummy custom checks for the cluster. The custom checks should be skipped.
     ConfigAccessor configAccessor = new ConfigAccessor(ZK_ADDR);
@@ -271,7 +274,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
 
     // Even if we don't skip custom stoppable checks, the instance is not alive so it should be stoppable
     Response response = new JerseyUriRequestBuilder(
-        "clusters/{}/instances?command=stoppable&skipCustomChecksIfNoLiveness=true").format(
+        "clusters/{}/instances?command=stoppable").format(
         STOPPABLE_CLUSTER).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
     JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
     Set<String> stoppableSet = getStringSet(jsonNode,

@@ -160,7 +160,6 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
       @DefaultValue("false") @QueryParam("random") boolean random,
-      @DefaultValue("false") @QueryParam("skipCustomChecksIfNoLiveness") boolean skipCustomChecksIfNoLiveness,
       String content) {
     Command cmd;
     try {
@@ -206,7 +205,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           break;
         case stoppable:
           return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures,
-              skipHealthCheckCategorySet, random, skipCustomChecksIfNoLiveness);
+              skipHealthCheckCategorySet, random);
         default:
           _logger.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);
@@ -224,7 +223,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
       boolean continueOnFailures, Set<StoppableCheck.Category> skipHealthCheckCategories,
-      boolean random, boolean skipCustomChecksIfNoLiveness) throws IOException {
+      boolean random) throws IOException {
     try {
       // TODO: Process input data from the content
       // TODO: Implement the logic to automatically detect the selection base. https://github.com/apache/helix/issues/2968#issue-2691677799
@@ -297,6 +296,13 @@ public class InstancesAccessor extends AbstractHelixResource {
           _logger.error(message, e);
           return badRequest(message);
         }
+      }
+
+      boolean skipCustomChecksIfNoLiveness = false;
+      if (node.get(InstancesProperties.skip_custom_check_if_instance_not_alive.name()) != null) {
+        skipCustomChecksIfNoLiveness = node.get(
+                InstancesAccessor.InstancesProperties.skip_custom_check_if_instance_not_alive.name())
+            .asBoolean();
       }
 
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);

@@ -54,7 +54,9 @@ public class InstanceConstants {
      *
      * @param disabledType InstanceDisabledType
      * @return InstanceOperationTrigger
+     * @deprecated The concept of InstanceDisabledType mapping directly to an InstanceOperationSource is no longer used.
      */
+    @Deprecated
     public static InstanceOperationSource instanceDisabledTypeToInstanceOperationSource(
         InstanceDisabledType disabledType) {
       switch (disabledType) {

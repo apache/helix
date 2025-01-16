@@ -53,7 +53,7 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
         .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
     Assert.assertEquals(_manager.getConfigAccessor()
         .getInstanceConfig(CLUSTER_NAME, _instanceManager.getInstanceName()).getInstanceOperation()
-        .getSource(), InstanceConstants.InstanceOperationSource.AUTOMATION);
+        .getSource(), InstanceConstants.InstanceOperationSource.USER);
 
     _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), false);
     _impl.disableInstance(_instanceManager, null);

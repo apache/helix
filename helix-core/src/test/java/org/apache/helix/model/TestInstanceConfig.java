@@ -56,7 +56,7 @@ public class TestInstanceConfig {
     instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
 
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
-        .get(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()), "true");
+        .get(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()), null);
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_REASON.toString()), null);
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
@@ -81,14 +81,114 @@ public class TestInstanceConfig {
     InstanceConfig instanceConfig =
         new InstanceConfig.Builder().setInstanceOperation(InstanceConstants.InstanceOperation.DISABLE).build("id");
     Assert.assertFalse(instanceConfig.getInstanceEnabled());
-    // assume an old version client enabled the instance by setting HELIX_ENABLED to true
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
+
+    // Assume an old version client enabled the instance by setting HELIX_ENABLED to true
     instanceConfig.getRecord().setSimpleField(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.name(), "true");
     Assert.assertTrue(instanceConfig.getInstanceEnabled());
-    instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
 
-    // disable the instance by setting HELIX_ENABLED to false
+    // Automation source then disables the instance and writes the HELIX_ENABLED field to USER source's
+    // instance operation
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setSource(
+            InstanceConstants.InstanceOperationSource.AUTOMATION)
+        .setOperation(InstanceConstants.InstanceOperation.DISABLE).setReason("disableReason")
+        .build());
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.AUTOMATION);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "disableReason");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledType(),
+        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "disableReason");
+
+    // Automation source then enables the instance
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setSource(
+            InstanceConstants.InstanceOperationSource.AUTOMATION)
+        .setOperation(InstanceConstants.InstanceOperation.ENABLE).build());
+    // This should be enabled because we write the currently set legacy HELIX_ENABLED field into the instance operation
+    // associated with its source before the AUTOMATION source's operation is set.
+    Assert.assertTrue(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.AUTOMATION);
+
+    // Disable the instance with legacy HELIX_ENABLED field set to false
     instanceConfig.getRecord().setSimpleField(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.name(), "false");
     Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
+
+    // Enable the instance with automation source which should not override the HELIX_ENABLED field
+    // because the source that set HELIX_ENABLED is USER
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setSource(
+            InstanceConstants.InstanceOperationSource.AUTOMATION)
+        .setOperation(InstanceConstants.InstanceOperation.ENABLE).build());
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
+
+    // Enable the instance with user source which should override the HELIX_ENABLED
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setSource(
+            InstanceConstants.InstanceOperationSource.USER)
+        .setOperation(InstanceConstants.InstanceOperation.ENABLE).build());
+    Assert.assertTrue(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.ENABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
+
+    // Disable the instance with legacy HELIX_ENABLED field set to false
+    instanceConfig.getRecord()
+        .setSimpleField(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.name(), "false");
+    instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
+    instanceConfig.setInstanceDisabledReason("foo");
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
+
+    // Disable with automation source
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setSource(
+            InstanceConstants.InstanceOperationSource.AUTOMATION)
+        .setOperation(InstanceConstants.InstanceOperation.DISABLE).setReason("bar").build());
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.AUTOMATION);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "bar");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledType(),
+        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "bar");
+
+    // Enable with automation source and return the instance to DISABLE with user source
+    instanceConfig.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setSource(
+            InstanceConstants.InstanceOperationSource.AUTOMATION)
+        .setOperation(InstanceConstants.InstanceOperation.ENABLE).build());
+    Assert.assertFalse(instanceConfig.getInstanceEnabled());
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getOperation(),
+        InstanceConstants.InstanceOperation.DISABLE);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getSource(),
+        InstanceConstants.InstanceOperationSource.USER);
+    Assert.assertEquals(instanceConfig.getInstanceOperation().getReason(), "foo");
+    Assert.assertEquals(instanceConfig.getInstanceDisabledType(),
+        InstanceConstants.InstanceDisabledType.USER_OPERATION.name());
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), "foo");
   }
 
   @Test

@@ -51,14 +51,9 @@ public class DefaultCloudEventCallbackImpl {
     LOG.info("DefaultCloudEventCallbackImpl disable Instance {}", manager.getInstanceName());
     if (InstanceValidationUtil
         .isEnabled(manager.getHelixDataAccessor(), manager.getInstanceName())) {
-      InstanceUtil.setInstanceOperation(manager.getConfigAccessor(),
-          manager.getHelixDataAccessor().getBaseDataAccessor(), manager.getClusterName(),
-          manager.getInstanceName(),
-              new InstanceConfig.InstanceOperation.Builder().setOperation(
-                      InstanceConstants.InstanceOperation.DISABLE)
-                  .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION)
-                  .setReason(message)
-                  .build());
+      manager.getClusterManagmentTool()
+          .enableInstance(manager.getClusterName(), manager.getInstanceName(), false,
+              InstanceConstants.InstanceDisabledType.CLOUD_EVENT, message);
     }
     HelixEventHandlingUtil.updateCloudEventOperationInClusterConfig(manager.getClusterName(),
         manager.getInstanceName(), manager.getHelixDataAccessor().getBaseDataAccessor(), false,
@@ -79,13 +74,10 @@ public class DefaultCloudEventCallbackImpl {
     HelixEventHandlingUtil
         .updateCloudEventOperationInClusterConfig(manager.getClusterName(), instanceName,
             manager.getHelixDataAccessor().getBaseDataAccessor(), true, message);
-    InstanceUtil.setInstanceOperation(manager.getConfigAccessor(),
-        manager.getHelixDataAccessor().getBaseDataAccessor(), manager.getClusterName(),
-        manager.getInstanceName(),
-            new InstanceConfig.InstanceOperation.Builder().setOperation(
-                    InstanceConstants.InstanceOperation.ENABLE)
-                .setSource(InstanceConstants.InstanceOperationSource.AUTOMATION).setReason(message)
-                .build());
+    if (HelixEventHandlingUtil.isInstanceDisabledForCloudEvent(instanceName, accessor)) {
+      manager.getClusterManagmentTool().enableInstance(manager.getClusterName(), instanceName, true,
+          InstanceConstants.InstanceDisabledType.CLOUD_EVENT, message);
+    }
   }
 
   /**

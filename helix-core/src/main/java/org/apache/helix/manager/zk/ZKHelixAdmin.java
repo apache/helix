@@ -2374,9 +2374,6 @@ public class ZKHelixAdmin implements HelixAdmin {
             config.setInstanceDisabledType(disabledType);
           }
         }
-//        config.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
-//            enabled ? InstanceConstants.InstanceOperation.ENABLE
-//                : InstanceConstants.InstanceOperation.DISABLE).setReason(reason).build());
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);

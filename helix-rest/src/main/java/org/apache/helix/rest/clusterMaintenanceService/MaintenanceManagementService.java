@@ -507,19 +507,19 @@ public class MaintenanceManagementService {
     }
 
     // Skip performing a custom check on any dead instance if the user set _skipCustomCheckIfInstanceNotAlive
-    // to true. This is because we do not attempt custom checks for instances that are already down.
-    List<String> liveInstanceIds = filterOutDeadInstancesIfNeeded(instances);
+    // to true.
+    List<String> instanceIdsForCustomCheck = filterOutDeadInstancesIfNeeded(instances);
 
     // If the config has exactUrl and the CLUSTER level customer check is not skipped, we will
     // perform the custom check at cluster level.
     if (restConfig.getCompleteConfiguredHealthUrl().isPresent()) {
       if (_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)
-          || liveInstanceIds.isEmpty()) {
+          || instanceIdsForCustomCheck.isEmpty()) {
         return instances;
       }
 
       Map<String, StoppableCheck> clusterLevelCustomCheckResult =
-          performAggregatedCustomCheck(clusterId, liveInstanceIds,
+          performAggregatedCustomCheck(clusterId, instanceIdsForCustomCheck,
               restConfig.getCompleteConfiguredHealthUrl().get(), customPayLoads,
               toBeStoppedInstances);
       List<String> instancesForNextCheck = new ArrayList<>();
@@ -535,7 +535,7 @@ public class MaintenanceManagementService {
 
     // Reaching here means the rest config requires instances/partition level checks. We will
     // perform the custom check at instance/partition level if they are not skipped.
-    List<String> instancesForCustomPartitionLevelChecks = liveInstanceIds;
+    List<String> instancesForCustomPartitionLevelChecks = instanceIdsForCustomCheck;
     if (!_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)) {
       Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
           Collectors.toMap(Function.identity(), instance -> POOL.submit(
@@ -589,16 +589,18 @@ public class MaintenanceManagementService {
     List<String> liveNodes = _dataAccessor.getChildNames(keyBuilder.liveInstances());
 
     // Filter out instances that are not in the live list
-    List<String> filtered = instanceIds.stream()
-        .filter(liveNodes::contains)
-        .collect(Collectors.toList());
+    List<String> filtered = new ArrayList<>();
+    List<String> skipped = new ArrayList<>();
+    for (String instanceId : instanceIds) {
+      if (liveNodes.contains(instanceId)) {
+        filtered.add(instanceId);
+      } else {
+        skipped.add(instanceId);
+      }
+    }
 
-    // Log the ones we are skipping
-    List<String> skipped = instanceIds.stream()
-        .filter(id -> !liveNodes.contains(id))
-        .collect(Collectors.toList());
     if (!skipped.isEmpty()) {
-      LOG.info("Skipping any custom checks for instances: {}", skipped);
+      LOG.info("Skipping any custom checks for instances due to liveness: {}", skipped);
     }
     return filtered;
   }

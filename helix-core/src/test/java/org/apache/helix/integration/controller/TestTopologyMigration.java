@@ -31,8 +31,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.examples.LeaderStandbyStateModelFactory;
@@ -40,12 +38,10 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -55,6 +51,7 @@ import org.testng.annotations.Test;
 public class TestTopologyMigration extends ZkTestBase {
   private static final int START_PORT = 12918; // Starting port for mock participants
   private static int _nextStartPort = START_PORT; // Incremental port for participants
+  private static final String RESOURCE_PREFIX = "TestDB"; // Prefix for resource names
   private static final String TEST_CAPACITY_KEY = "TestCapacityKey";
   private static final int TEST_CAPACITY_VALUE = 100; // Default instance capacity for testing
   private static final String RACK = "rack"; // Rack identifier in topology
@@ -65,12 +62,12 @@ public class TestTopologyMigration extends ZkTestBase {
   // Initial topology format
   private static final String MIGRATED_TOPOLOGY =
       String.format("/%s/%s/%s", MZ, HOST, APPLICATION_INSTANCE_ID); // New topology format
-  private static final int INIT_ZONE_COUNT = 12; // Initial zone count
-  private static final int MIGRATE_ZONE_COUNT = 6; // Zone count post-migration
+  private static final int INIT_ZONE_COUNT = 6; // Initial zone count
+  private static final int MIGRATE_ZONE_COUNT = 3; // Zone count post-migration
   private static final int RESOURCE_COUNT = 2; // Number of resources in the cluster
-  private static final int INSTANCES_PER_RESOURCE = 12; // Number of instances per resource
-  private static final int PARTITIONS = 3; // Number of partitions
-  private static final int REPLICA = 6; // Number of replicas
+  private static final int INSTANCES_PER_RESOURCE = 6; // Number of instances per resource
+  private static final int PARTITIONS = 10; // Number of partitions
+  private static final int REPLICA = 3; // Number of replicas
   private static final long DEFAULT_RESOURCE_DELAY_TIME = 1800000L;
   // Delay time for resource rebalance
 
@@ -102,12 +99,15 @@ public class TestTopologyMigration extends ZkTestBase {
     // Set up cluster configuration and participants
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     setupClusterConfig(INIT_TOPOLOGY, RACK);
-    setupInitResourcesAndParticipants();
 
     // Initialize cluster verifier for validating state
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setResources(_allDBs).setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
+
+    // Setup the participants and resources for the test
+    setupInitParticipants();
+    setupInitResources();
   }
 
   /**
@@ -150,9 +150,9 @@ public class TestTopologyMigration extends ZkTestBase {
   /**
    * Sets up initial resources and mock participants for the cluster.
    */
-  private void setupInitResourcesAndParticipants() throws Exception {
+  private void setupInitParticipants() throws Exception {
     for (int i = 0; i < RESOURCE_COUNT; i++) {
-      String dbName = "TestDB_" + i;
+      String dbName = RESOURCE_PREFIX + i;
 
       // Create and start participants for the resource
       for (int j = 0; j < INSTANCES_PER_RESOURCE; j++) {
@@ -169,15 +169,20 @@ public class TestTopologyMigration extends ZkTestBase {
         _nextStartPort++;
         _participants.add(participant);
       }
+    }
+  }
 
-      // Set up IdealState for the resource
+  private void setupInitResources() throws Exception {
+    setAndVerifyMaintenanceMode(true);
+    for (int i = 0; i < RESOURCE_COUNT; i++) {
+      String dbName = RESOURCE_PREFIX + i;
+      _allDBs.add(dbName);
       IdealState is = createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
           BuiltInStateModelDefinitions.LeaderStandby.name(), PARTITIONS, REPLICA, REPLICA - 1);
-      is.setResourceGroupName(dbName);
+      is.setInstanceGroupTag(dbName);
       _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
-
-      _allDBs.add(dbName);
     }
+    setAndVerifyMaintenanceMode(false);
   }
 
   /**
@@ -186,8 +191,9 @@ public class TestTopologyMigration extends ZkTestBase {
   private MockParticipantManager createParticipant(String participantName) throws Exception {
     MockParticipantManager participant =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName, 10, null);
-    participant.getStateMachineEngine()
-        .registerStateModelFactory("LeaderStandby", new LeaderStandbyStateModelFactory());
+    LeaderStandbyStateModelFactory factory = new LeaderStandbyStateModelFactory();
+    factory.setInstanceName(participantName);
+    participant.getStateMachineEngine().registerStateModelFactory("LeaderStandby", factory);
     return participant;
   }
 
@@ -198,6 +204,7 @@ public class TestTopologyMigration extends ZkTestBase {
   public void testTopologyMigrationByResourceGroup() throws Exception {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
+    System.out.println("Capturing initial external views");
     // Step 1: Migrate to new topology in maintenance mode
     Map<String, ExternalView> originalEVs = getEVs();
     List<InstanceConfig> instanceConfigs =
@@ -205,9 +212,14 @@ public class TestTopologyMigration extends ZkTestBase {
             instanceName -> _gSetupTool.getClusterManagementTool()
                 .getInstanceConfig(CLUSTER_NAME, instanceName)).collect(Collectors.toList());
 
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    System.out.println("Setting MM to true");
     setAndVerifyMaintenanceMode(true);
     setupClusterConfig(MIGRATED_TOPOLOGY, MZ);
     migrateInstanceConfigTopology(instanceConfigs);
+    validateNoShufflingOccurred(originalEVs, null);
+    System.out.println("Setting MM to false");
     setAndVerifyMaintenanceMode(false);
 
     // Verify cluster did not have shuffling anywhere after
@@ -216,9 +228,10 @@ public class TestTopologyMigration extends ZkTestBase {
 
     // Step 2: Update domain values for one resource group at a time
     for (String updatingDb : _allDBs) {
+      System.out.println("Begin resource group migration for: " + updatingDb);
       Map<String, ExternalView> preMigrationEVs = getEVs();
       setAndVerifyMaintenanceMode(true);
-      migrateDomainForResourceGroup(updatingDb);
+      migrateDomainForInstanceTag(updatingDb);
       setAndVerifyMaintenanceMode(false);
 
       // Verify cluster only had shuffling in the resource group that was updated
@@ -314,7 +327,7 @@ public class TestTopologyMigration extends ZkTestBase {
     }
   }
 
-  private void migrateDomainForResourceGroup(String resourceGroup) throws Exception {
+  private void migrateDomainForInstanceTag(String resourceGroup) throws Exception {
     int instanceIndex = 0;
     for (MockParticipantManager participant : _participants) {
       InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool()

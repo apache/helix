@@ -232,7 +232,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                 cache.getStateModelDef(resourceMap.get(resourceName).getStateModelDefRef()),
                 stateMap, swapInToSwapOutInstancePairs.get(swapInInstance), swapInInstance, resourceName,
                 partition.getPartitionName(), cache);
-            if (stateMap != null) {
+            if (selectedState != null) {
               bestPossibleStateOutput.setState(resourceName, partition, swapInInstance,
                   selectedState);
             }

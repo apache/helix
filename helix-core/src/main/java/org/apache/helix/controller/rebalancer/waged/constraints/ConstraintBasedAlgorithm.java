@@ -22,7 +22,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -218,7 +216,13 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           .containsKey(replica.getResourceName());
       _isInBaselineAssignment =
           clusterModel.getContext().getBaselineAssignment().containsKey(replica.getResourceName());
-      _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableLogicalIds());
+
+      // _replicaHash is used to randomize the replicas order so that the same replicas are not
+      // always moved in each rebalance. We only use instances which satisfy the replica's instance
+      // group tag to calculate the hash code because topology changes to a single instance group tag
+      // should be isolated from other instance group tags. Assignable replica ordering changes only
+      // change when the topology of the instance group tag changes.
+      _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableNodesForInstanceGroupTag(replica.getResourceInstanceGroupTag()));
       computeScore(overallClusterRemainingCapacityMap);
     }
 

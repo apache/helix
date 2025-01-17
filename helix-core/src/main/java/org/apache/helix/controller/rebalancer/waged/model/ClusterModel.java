@@ -20,6 +20,8 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +40,7 @@ public class ClusterModel {
   private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
   private final Map<String, AssignableNode> _assignableNodeMap;
   private final Set<String> _assignableNodeLogicalIds;
+  private final Map<String, Set<String>> _assignableLogicalIdsByInstanceTag;
 
   /**
    * @param clusterContext         The initialized cluster context.
@@ -64,6 +67,15 @@ public class ClusterModel {
     _assignableNodeLogicalIds =
         assignableNodes.parallelStream().map(AssignableNode::getLogicalId)
             .collect(Collectors.toSet());
+
+    // Index all the instances by their instance tags
+    _assignableLogicalIdsByInstanceTag = new HashMap<>();
+    assignableNodes.forEach(node -> {
+      node.getInstanceTags().forEach(tag -> {
+        _assignableLogicalIdsByInstanceTag.computeIfAbsent(tag, key -> new HashSet<>())
+            .add(node.getLogicalId());
+      });
+    });
   }
 
   public ClusterContext getContext() {
@@ -76,6 +88,20 @@ public class ClusterModel {
 
   public Set<String> getAssignableLogicalIds() {
     return _assignableNodeLogicalIds;
+  }
+
+  /**
+   * Get the assignable nodes for the given instance tag.
+   * If the instance tag is null, return all the assignable nodes.
+   *
+   * @param instanceTag The instance tag.
+   * @return The set of assignable logical IDs.
+   */
+  public Set<String> getAssignableNodesForInstanceGroupTag(String instanceTag) {
+    if (instanceTag == null) {
+      return getAssignableLogicalIds();
+    }
+    return _assignableLogicalIdsByInstanceTag.getOrDefault(instanceTag, getAssignableLogicalIds());
   }
 
   public Map<String, Set<AssignableReplica>> getAssignableReplicaMap() {

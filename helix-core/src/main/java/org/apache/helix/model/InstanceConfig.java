@@ -22,12 +22,14 @@ package org.apache.helix.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -533,45 +535,35 @@ public class InstanceConfig extends HelixProperty {
     return _deserializedInstanceOperations;
   }
 
-  private void setInstanceOperationHelper(InstanceOperation operation) {
-    List<InstanceOperation> deserializedInstanceOperations = getInstanceOperations();
-
-    if (operation.getSource() == InstanceConstants.InstanceOperationSource.ADMIN) {
-      deserializedInstanceOperations.clear();
-    } else {
-      // Remove the instance operation with the same source if it exists.
-      deserializedInstanceOperations.removeIf(
-          instanceOperation -> instanceOperation.getSource() == operation.getSource());
-    }
-
+  private void insertInstanceOperation(List<InstanceOperation> operations,
+      InstanceOperation operation) {
     if (operation.getOperation() == InstanceConstants.InstanceOperation.ENABLE) {
-      // Insert the operation after the last ENABLE or at the beginning if there isn't ENABLE in the list.
-      int insertIndex = 0;
-      for (int i = deserializedInstanceOperations.size() - 1; i >= 0; i--) {
-        if (deserializedInstanceOperations.get(i).getOperation()
-            == InstanceConstants.InstanceOperation.ENABLE) {
-          insertIndex = i + 1;
-          break;
-        }
-      }
-      deserializedInstanceOperations.add(insertIndex, operation);
+      // Insert ENABLE operation after the last existing ENABLE, or at the beginning.
+      int insertIndex = (int) IntStream.range(0, operations.size()).filter(
+              i -> operations.get(i).getOperation() == InstanceConstants.InstanceOperation.ENABLE)
+          .reduce((first, second) -> second).orElse(-1) + 1;
+
+      operations.add(insertIndex, operation);
     } else {
-      deserializedInstanceOperations.add(operation);
+      operations.add(operation);
     }
+  }
 
-    // Set the actual field in the ZnRecord
-    _record.setListField(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name(),
-        deserializedInstanceOperations.stream().map(instanceOperation -> {
-          try {
-            return _objectMapper.writeValueAsString(instanceOperation.getProperties());
-          } catch (JsonProcessingException e) {
-            throw new HelixException(
-                "Failed to serialize instance operation for instance: " + _record.getId()
-                    + " Can't set the instance operation to: " + operation.getOperation(), e);
-          }
-        }).collect(Collectors.toList()));
+  private List<String> serializeInstanceOperations(List<InstanceOperation> operations) {
+    return operations.stream().map(op -> {
+      try {
+        return _objectMapper.writeValueAsString(op.getProperties());
+      } catch (JsonProcessingException e) {
+        throw new HelixException(
+            "Failed to serialize instance operation for instance: " + _record.getId()
+                + ". Can't set the instance operation to: " + op.getOperation(), e);
+      }
+    }).collect(Collectors.toList());
+  }
 
-    // TODO: Remove this when we are sure that all users are using the new InstanceOperation only and HELIX_ENABLED is removed.
+  private void setLegacyFieldsForInstanceOperation(InstanceOperation operation) {
+    // TODO: Remove this when we are sure that all users are using the new InstanceOperation only
+    //  and HELIX_ENABLED is removed.
     if (operation.getOperation() == InstanceConstants.InstanceOperation.DISABLE) {
       // We are still setting the HELIX_ENABLED field for backwards compatibility.
       // It is possible that users will be using earlier version of HelixAdmin or helix-rest
@@ -586,17 +578,10 @@ public class InstanceConfig extends HelixProperty {
       setInstanceDisabledReason(operation.getReason());
       setInstanceDisabledType(operation.getLegacyDisabledType());
     } else if (operation.getOperation() == InstanceConstants.InstanceOperation.ENABLE) {
-      // If any of the other InstanceOperations are of type DISABLE, set that in the HELIX_ENABLED,
-      // HELIX_DISABLED_REASON, and HELIX_DISABLED_TYPE fields.
-
-      InstanceOperation latestDisableInstanceOperation = null;
-      for (InstanceOperation instanceOperation : getInstanceOperations()) {
-        if (instanceOperation.getOperation() == InstanceConstants.InstanceOperation.DISABLE && (
-            latestDisableInstanceOperation == null || instanceOperation.getTimestamp()
-                > latestDisableInstanceOperation.getTimestamp())) {
-          latestDisableInstanceOperation = instanceOperation;
-        }
-      }
+      // Ensure HELIX_ENABLED reflects the latest disable operation if applicable.
+      InstanceOperation latestDisableInstanceOperation = getInstanceOperations().stream()
+          .filter(op -> op.getOperation() == InstanceConstants.InstanceOperation.DISABLE)
+          .max(Comparator.comparingLong(InstanceOperation::getTimestamp)).orElse(null);
 
       if (!_record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.name(),
           HELIX_ENABLED_DEFAULT_VALUE)) {
@@ -610,6 +595,25 @@ public class InstanceConfig extends HelixProperty {
         }
       }
     }
+  }
+
+  private void setInstanceOperationHelper(InstanceOperation operation) {
+    List<InstanceOperation> operations = getInstanceOperations();
+
+    if (operation.getSource() == InstanceConstants.InstanceOperationSource.ADMIN) {
+      operations.clear();
+    } else {
+      // Remove existing operation with the same source.
+      operations.removeIf(op -> op.getSource() == operation.getSource());
+    }
+
+    insertInstanceOperation(operations, operation);
+
+    // Serialize and update ZnRecord.
+    _record.setListField(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name(),
+        serializeInstanceOperations(operations));
+
+    setLegacyFieldsForInstanceOperation(operation);
   }
 
   /**

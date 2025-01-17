@@ -97,7 +97,7 @@ public class ClusterModel {
    * @param instanceTag The instance tag.
    * @return The set of assignable logical IDs.
    */
-  public Set<String> getAssignableNodesForInstanceTag(String instanceTag) {
+  public Set<String> getAssignableNodesForInstanceGroupTag(String instanceTag) {
     if (instanceTag == null) {
       return getAssignableLogicalIds();
     }

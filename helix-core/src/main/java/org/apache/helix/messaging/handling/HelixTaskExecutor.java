@@ -769,7 +769,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
       ExecutorService pool = _executorMap.computeIfAbsent(msgType, type -> {
         ExecutorService newPool = Executors.newFixedThreadPool(item.threadPoolSize(),
-            r -> new Thread(r, "HelixTaskExecutor-message_handle_" + type));
+            r -> new Thread(r, "HelixTaskExecutor-message_handle_" + thread_uid.getAndIncrement()));
         _monitor.createExecutorMonitor(type, newPool);
         return newPool;
       });

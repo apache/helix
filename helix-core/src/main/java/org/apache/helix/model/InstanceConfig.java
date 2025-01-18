@@ -51,6 +51,8 @@ import org.slf4j.LoggerFactory;
  * Instance configurations
  */
 public class InstanceConfig extends HelixProperty {
+  private static final Logger logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
+
   /**
    * Configurable characteristics of an instance
    */
@@ -75,6 +77,8 @@ public class InstanceConfig extends HelixProperty {
   }
 
   public static class InstanceOperation {
+    private static final String DEFAULT_INSTANCE_OPERATION_SOURCE =
+        InstanceConstants.InstanceOperationSource.USER.name();
     private final Map<String, String> _properties;
 
     private enum InstanceOperationProperties {
@@ -115,7 +119,11 @@ public class InstanceConfig extends HelixProperty {
        * @param reason the reason for this instance operation.
        */
       public Builder setReason(String reason) {
-        _properties.put(InstanceOperationProperties.REASON.name(), reason != null ? reason : "");
+        if (reason == null) {
+          logger.error("Reason cannot be set to null. Skipped setting the field.");
+          return this;
+        }
+        _properties.put(InstanceOperationProperties.REASON.name(), reason);
         return this;
       }
 
@@ -127,7 +135,7 @@ public class InstanceConfig extends HelixProperty {
        */
       public Builder setSource(InstanceConstants.InstanceOperationSource source) {
         _properties.put(InstanceOperationProperties.SOURCE.name(),
-            source == null ? InstanceConstants.InstanceOperationSource.USER.name() : source.name());
+            source == null ? DEFAULT_INSTANCE_OPERATION_SOURCE : source.name());
         return this;
       }
 
@@ -140,6 +148,7 @@ public class InstanceConfig extends HelixProperty {
        */
       private Builder setLegacyDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
         if (disabledType == null) {
+          logger.error("LEGACY_DISABLED_TYPE cannot be set to null. Skipped setting the field.");
           return this;
         }
         _properties.put(InstanceOperationProperties.LEGACY_DISABLED_TYPE.name(),
@@ -153,7 +162,7 @@ public class InstanceConfig extends HelixProperty {
               "Instance operation type is not set, this is a required field.");
         }
         _properties.putIfAbsent(InstanceOperationProperties.SOURCE.name(),
-            InstanceConstants.InstanceOperationSource.USER.name());
+            DEFAULT_INSTANCE_OPERATION_SOURCE);
         _properties.put(InstanceOperationProperties.TIMESTAMP.name(),
             String.valueOf(System.currentTimeMillis()));
         return new InstanceOperation(_properties);

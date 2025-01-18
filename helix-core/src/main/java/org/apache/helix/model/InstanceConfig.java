@@ -544,8 +544,15 @@ public class InstanceConfig extends HelixProperty {
     return _deserializedInstanceOperations;
   }
 
-  private void insertInstanceOperation(List<InstanceOperation> operations,
+  private void updateInstanceOperation(List<InstanceOperation> operations,
       InstanceOperation operation) {
+    if (operation.getSource() == InstanceConstants.InstanceOperationSource.ADMIN) {
+      operations.clear();
+    } else {
+      // Remove existing operation with the same source.
+      operations.removeIf(op -> op.getSource() == operation.getSource());
+    }
+
     if (operation.getOperation() == InstanceConstants.InstanceOperation.ENABLE) {
       // Insert ENABLE operation after the last existing ENABLE, or at the beginning.
       int insertIndex = (int) IntStream.range(0, operations.size()).filter(
@@ -606,25 +613,6 @@ public class InstanceConfig extends HelixProperty {
     }
   }
 
-  private void setInstanceOperationHelper(InstanceOperation operation) {
-    List<InstanceOperation> operations = getInstanceOperations();
-
-    if (operation.getSource() == InstanceConstants.InstanceOperationSource.ADMIN) {
-      operations.clear();
-    } else {
-      // Remove existing operation with the same source.
-      operations.removeIf(op -> op.getSource() == operation.getSource());
-    }
-
-    insertInstanceOperation(operations, operation);
-
-    // Serialize and update ZnRecord.
-    _record.setListField(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name(),
-        serializeInstanceOperations(operations));
-
-    setLegacyFieldsForInstanceOperation(operation);
-  }
-
   /**
    * Set the instance operation for this instance. This method also sets the HELIX_ENABLED,
    * HELIX_DISABLED_REASON, and HELIX_DISABLED_TYPE fields for backwards compatibility.
@@ -632,6 +620,8 @@ public class InstanceConfig extends HelixProperty {
    * @param operation the instance operation
    */
   public void setInstanceOperation(InstanceOperation operation) {
+    List<InstanceOperation> operations = getInstanceOperations();
+
     // TODO: This can be removed when HELIX_ENABLED is removed.
     // This is used for backwards compatibility. getInstanceOperation will respect the old
     // legacy field of HELIX_ENABLED which could have been set by older versions of Helix.
@@ -639,12 +629,18 @@ public class InstanceConfig extends HelixProperty {
     // new InstanceOperation field when any new instance operation is set.
     // We only need to do this if there is already an instance operation set. If there isn't, then
     // the default is ENABLE with a source of DEFAULT.
-    if (!getInstanceOperations().isEmpty()) {
-      setInstanceOperationHelper(getInstanceOperation());
+    if (!operations.isEmpty()) {
+      updateInstanceOperation(operations, getInstanceOperation());
     }
 
     // Set the instance operation passed in.
-    setInstanceOperationHelper(operation);
+    updateInstanceOperation(operations, operation);
+
+    // Serialize and update ZnRecord.
+    _record.setListField(InstanceConfigProperty.HELIX_INSTANCE_OPERATIONS.name(),
+        serializeInstanceOperations(operations));
+
+    setLegacyFieldsForInstanceOperation(operation);
   }
 
   /**

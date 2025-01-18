@@ -747,7 +747,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     InstanceConfig.InstanceOperation instanceOperationObj = new InstanceConfig.InstanceOperation.Builder()
         .setOperation(InstanceConstants.InstanceOperation.UNKNOWN).setReason(reason)
-        .setSource(operationSource != null ? operationSource : InstanceConstants.InstanceOperationSource.USER).build();
+        .setSource(operationSource).build();
     InstanceConfig instanceConfig = getInstanceConfig(clusterName, instanceName);
     instanceConfig.setInstanceOperation(instanceOperationObj);
 
@@ -2363,12 +2363,17 @@ public class ZKHelixAdmin implements HelixAdmin {
         }
 
         InstanceConfig config = new InstanceConfig(currentData);
-        config.setInstanceOperation(new InstanceConfig.InstanceOperation.Builder().setOperation(
-            enabled ? InstanceConstants.InstanceOperation.ENABLE
-                : InstanceConstants.InstanceOperation.DISABLE).setReason(reason).setSource(
-            disabledType != null
-                ? InstanceConstants.InstanceOperationSource.instanceDisabledTypeToInstanceOperationSource(
-                disabledType) : null).build());
+        config.setInstanceEnabled(enabled);
+        if (!enabled) {
+          // new disabled type and reason will overwrite existing ones.
+          config.resetInstanceDisabledTypeAndReason();
+          if (reason != null) {
+            config.setInstanceDisabledReason(reason);
+          }
+          if (disabledType != null) {
+            config.setInstanceDisabledType(disabledType);
+          }
+        }
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);

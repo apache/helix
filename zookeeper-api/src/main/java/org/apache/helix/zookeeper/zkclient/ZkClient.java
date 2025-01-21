@@ -1842,15 +1842,29 @@ public class ZkClient implements Watcher {
    */
   public void deleteRecursivelyAtomic(List<String> paths) {
     List<Op> ops = new ArrayList<>();
+    List<OpResult> opResults;
     for (String path : paths) {
       ops.addAll(getOpsForRecursiveDelete(path));
     }
     try {
-      multi(ops);
-    }
-    catch (Exception e) {
+      opResults = multi(ops);
+    } catch (Exception e) {
       LOG.error("zkclient {}, Failed to delete paths {}, exception {}", _uid, paths, e);
       throw new ZkClientException("Failed to delete paths " + paths, e);
+    }
+
+    List<KeeperException.Code> opResultErrorCodes = new ArrayList<>();
+    for (OpResult result : opResults) {
+      if (result instanceof OpResult.ErrorResult) {
+        opResultErrorCodes.add(KeeperException.Code.get(((OpResult.ErrorResult) result).getErr()));
+      }
+    }
+
+    if (!opResultErrorCodes.isEmpty()) {
+      LOG.error("zkclient {}, Failed to delete paths {}, multi returned with error codes {}",
+          _uid, paths, opResultErrorCodes);
+      throw new ZkClientException("Failed to delete paths " + paths + " with ZK KeeperException error codes: "
+          + opResultErrorCodes);
     }
   }
 

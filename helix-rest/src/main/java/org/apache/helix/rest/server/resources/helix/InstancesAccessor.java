@@ -73,6 +73,7 @@ public class InstancesAccessor extends AbstractHelixResource {
     online,
     disabled,
     selection_base,
+    skip_custom_check_if_instance_not_alive,
     zone_order,
     to_be_stopped_instances,
     skip_stoppable_check_list,
@@ -296,6 +297,13 @@ public class InstancesAccessor extends AbstractHelixResource {
         }
       }
 
+      boolean skipCustomChecksIfNoLiveness = false;
+      if (node.get(InstancesProperties.skip_custom_check_if_instance_not_alive.name()) != null) {
+        skipCustomChecksIfNoLiveness = node.get(
+                InstancesAccessor.InstancesProperties.skip_custom_check_if_instance_not_alive.name())
+            .asBoolean();
+      }
+
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       if (selectionBase != InstanceHealthSelectionBase.non_zone_based) {
         if (!clusterService.isClusterTopologyAware(clusterId)) {
@@ -335,6 +343,7 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setSkipHealthCheckCategories(skipHealthCheckCategories)
               .setNamespace(namespace)
               .setSkipStoppableHealthCheckList(skipStoppableCheckList)
+              .setSkipCustomChecksIfNoLiveness(skipCustomChecksIfNoLiveness)
               .build();
 
       StoppableInstancesSelector stoppableInstancesSelector =

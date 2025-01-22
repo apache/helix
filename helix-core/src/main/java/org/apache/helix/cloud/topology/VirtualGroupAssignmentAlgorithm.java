@@ -46,6 +46,7 @@ public interface VirtualGroupAssignmentAlgorithm {
    * @param zoneMapping current zone mapping from zoneId to instanceIds
    * @return the assignment as mapping from virtual group ID to instanceIds
    */
+  @Deprecated
   Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
       Map<String, Set<String>> zoneMapping);
 }

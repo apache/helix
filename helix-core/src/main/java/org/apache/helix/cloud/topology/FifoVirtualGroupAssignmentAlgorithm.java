@@ -50,7 +50,7 @@ public class FifoVirtualGroupAssignmentAlgorithm implements VirtualGroupAssignme
 
   @Override
   public Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
-      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> virtualZoneMapping) {
+      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> virtualGroupToInstancesMap) {
     List<String> sortedInstances = HelixUtil.sortAndFlattenZoneMapping(zoneMapping);
     Map<String, Set<String>> assignment = new HashMap<>();
     // #instances = instancesPerGroupBase * numGroups + residuals
@@ -72,5 +72,11 @@ public class FifoVirtualGroupAssignmentAlgorithm implements VirtualGroupAssignme
     }
     Preconditions.checkState(numInstances.stream().mapToInt(Integer::intValue).sum() == sortedInstances.size());
     return ImmutableMap.copyOf(assignment);
+  }
+
+  @Override
+  public Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
+      Map<String, Set<String>> zoneMapping) {
+    return computeAssignment(numGroups, virtualGroupName, zoneMapping, new HashMap<>());
   }
 }

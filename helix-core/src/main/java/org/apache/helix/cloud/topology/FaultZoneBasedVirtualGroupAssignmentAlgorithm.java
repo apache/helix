@@ -59,7 +59,20 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
 
   @Override
   public Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
-      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> virtualZoneMapping) {
+      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> virtualGroupToInstancesMap) {
+    // 1. If the number of requested virtual groups differs from the current assignment size,
+    //    we must do a fresh assignment (the existing distribution is invalid).
+    if (numGroups != virtualGroupToInstancesMap.size()) {
+      Map<String, Set<String>> newAssignment = new HashMap<>();
+      for (int i = 0; i < numGroups; i++) {
+        newAssignment.put(computeVirtualGroupId(i, virtualGroupName), new HashSet<>());
+      }
+
+      // Assign all zones from scratch in a balanced manner.
+      distributeUnassignedZones(newAssignment, new ArrayList<>(zoneMapping.keySet()), zoneMapping);
+      return constructResult(newAssignment, zoneMapping);
+    }
+
     // Build instance-to-zone mapping for quick zone lookups.
     Map<String, String> instanceToZoneMapping = new HashMap<>();
     for (Map.Entry<String, Set<String>> entry : zoneMapping.entrySet()) {
@@ -67,129 +80,106 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
         instanceToZoneMapping.put(instance, entry.getKey());
       }
     }
-    // Collect all instances from zoneMapping
-    Set<String> allInstances = zoneMapping.values()
-        .stream()
-        .flatMap(Set::stream)
-        .collect(Collectors.toSet());
 
-    // 1. If the number of requested virtual groups differs from the current assignment size,
-    //    we must do a fresh assignment (the existing distribution is invalid).
-    if (numGroups != virtualZoneMapping.size()) {
-      Map<String, Set<String>> newAssignment = new HashMap<>();
-      for (int i = 0; i < numGroups; i++) {
-        newAssignment.put(computeVirtualGroupId(i, virtualGroupName), new HashSet<>());
-      }
+    // Copy zoneMapping for tracking which zones are unassigned.
+    Map<String, Set<String>> unassignedZoneToInstances = copyZoneMapping(zoneMapping);
 
-      // Assign all instances from scratch in a balanced manner.
-      return distributeUnassignedZones(newAssignment, allInstances, instanceToZoneMapping);
-    }
-
-    // Build a deep copy of the current assignment to avoid mutating it directly.
-    Map<String, Set<String>> updatedAssignment = deepCopy(virtualZoneMapping);
-
-    // 2. Identify unassigned instances.
-    // Based on the existing assignment, build zone -> virtual group mapping for quick reference.
-    Map<String, String> zoneToVirtualGroupMapping = new HashMap<>();
-    Set<String> assignedInstances = new HashSet<>();
-    for (Map.Entry<String, Set<String>> entry : updatedAssignment.entrySet()) {
+    // Build virtual group -> zone mapping and remove assigned zones from the unassigned list
+    Map<String, Set<String>> virtualGroupToZoneMapping = new HashMap<>();
+    for (Map.Entry<String, Set<String>> entry : virtualGroupToInstancesMap.entrySet()) {
+      virtualGroupToZoneMapping.putIfAbsent(entry.getKey(), new HashSet<>());
       for (String instance : entry.getValue()) {
         String zone = instanceToZoneMapping.get(instance);
-        assignedInstances.add(instance);
-        zoneToVirtualGroupMapping.put(zone, entry.getKey());
-      }
-    }
-    Set<String> unassigned = new HashSet<>(allInstances);
-    unassigned.removeAll(assignedInstances);
-
-    // 3. Attempt to place unassigned instances in existing virtual groups if their zones are
-    //    already present in the assignment.
-    Iterator<String> iterator = unassigned.iterator();
-    while (iterator.hasNext()) {
-      String instance = iterator.next();
-      String zone = instanceToZoneMapping.get(instance);
-      if (zoneToVirtualGroupMapping.containsKey(zone)) {
-        updatedAssignment.get(zoneToVirtualGroupMapping.get(zone)).add(instance);
-        iterator.remove();
+        virtualGroupToZoneMapping.get(entry.getKey()).add(zone);
+        unassignedZoneToInstances.remove(zone);
       }
     }
 
-    // 4. If unassigned instances remain, do an incremental assignment computation while not
-    //    shuffling the existing assignment
-    if (!unassigned.isEmpty()) {
-      return distributeUnassignedZones(updatedAssignment, unassigned, instanceToZoneMapping);
+    // If there are no unassigned zones, return the result as is.
+    if (unassignedZoneToInstances.isEmpty()) {
+      return constructResult(virtualGroupToZoneMapping, zoneMapping);
     }
 
-    return updatedAssignment;
+    // 2. Distribute unassigned zones to keep the overall distribution balanced.
+    distributeUnassignedZones(virtualGroupToZoneMapping,
+        new ArrayList<>(unassignedZoneToInstances.keySet()), zoneMapping);
+    return constructResult(virtualGroupToZoneMapping, zoneMapping);
+  }
+
+  @Override
+  public Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
+      Map<String, Set<String>> zoneMapping) {
+    return computeAssignment(numGroups, virtualGroupName, zoneMapping, new HashMap<>());
   }
 
   /**
-   * Distributes unassigned zones (and all their instances) across virtual groups in a balanced
-   * manner. Each zone is treated as an indivisible unit, so instances from the same zone
-   * always end up in the same virtual group. This ensures that no zone is split across multiple
-   * groups.
+   * Distributes unassigned zones across virtual groups in a balanced manner.
+   * Assigns heavier zones first to the current least-loaded group.
    *
-   * @param virtualZoneMapping     Current or partially completed assignment.
-   * @param unassigned             The set of unassigned instances needing distribution.
-   * @param instanceToZoneMapping  A quick-lookup map of instance -> zone.
-   * @return                       Updated assignment of virtual group -> set of instances.
+   * @param virtualGroupToZoneMapping Current assignment of virtual group -> set of zones.
+   * @param unassignedZones            List of zones that have not been assigned to any group.
+   * @param zoneMapping                Mapping of physical zone -> set of instances.
    */
-  private Map<String, Set<String>> distributeUnassignedZones(
-      Map<String, Set<String>> virtualZoneMapping, Set<String> unassigned,
-      Map<String, String> instanceToZoneMapping) {
+  private void distributeUnassignedZones(
+      Map<String, Set<String>> virtualGroupToZoneMapping, List<String> unassignedZones,
+      Map<String, Set<String>> zoneMapping) {
 
-    // Create a deep copy so that we do not mutate the original mapping.
-    Map<String, Set<String>> assignment = deepCopy(virtualZoneMapping);
-
-    // Min-heap for load balancing: (virtualGroupId, currentLoad), sorted by currentLoad.
+    // Priority queue sorted by current load of the virtual group
     // We always assign new zones to the group with the smallest load to keep them balanced.
-    Queue<Pair<String, Integer>> minHeap =
-        new PriorityQueue<>(Comparator.comparingInt(Pair::getValue));
-    for (Map.Entry<String, Set<String>> entry : assignment.entrySet()) {
-      minHeap.add(new Pair<>(entry.getKey(), entry.getValue().size()));
+    Queue<String> minHeap = new PriorityQueue<>(
+        Comparator.comparingInt(vg ->
+            virtualGroupToZoneMapping.get(vg).stream()
+                .map(zoneMapping::get)
+                .mapToInt(Set::size)
+                .sum()
+        )
+    );
+    // Seed the min-heap with existing groups
+    minHeap.addAll(virtualGroupToZoneMapping.keySet());
+
+    // Sort unassigned zones by descending number of unassigned instances, assigning "heavier" zones first.
+    unassignedZones.sort(Comparator.comparingInt(zone -> zoneMapping.get(zone).size())
+        .reversed());
+
+    // Assign each zone to the least-loaded group
+    for (String zone : unassignedZones) {
+      String leastLoadVg = minHeap.poll();
+      virtualGroupToZoneMapping.get(leastLoadVg).add(zone);
+      minHeap.offer(leastLoadVg);
     }
-
-    // Create unassigned zone -> instances mapping for chunk assignment.
-    Map<String, Set<String>> unassignedZoneToInstances = new HashMap<>();
-    for (String instance : unassigned) {
-      unassignedZoneToInstances
-          .computeIfAbsent(instanceToZoneMapping.get(instance), k -> new HashSet<>())
-          .add(instance);
-    }
-
-    // Sort zones by descending number of unassigned instances, assigning "heavier" zones first.
-    List<String> sortedUnassignedZones = new ArrayList<>(unassignedZoneToInstances.keySet());
-    sortedUnassignedZones.sort((zone1, zone2) -> {
-      int size1 = unassignedZoneToInstances.get(zone1).size();
-      int size2 = unassignedZoneToInstances.get(zone2).size();
-      return Integer.compare(size2, size1);
-    });
-
-    // Assign each unassigned zone to the current least-loaded virtual group in the heap.
-    for (String zone : sortedUnassignedZones) {
-      Pair<String, Integer> virtualGroupLoadPair = minHeap.poll();
-      String virtualGroupId = virtualGroupLoadPair.getKey();
-      assignment.get(virtualGroupId).addAll(unassignedZoneToInstances.get(zone));
-
-      // Update the load and push the pair back to the min-heap.
-      int newLoad = virtualGroupLoadPair.getValue() + unassignedZoneToInstances.get(zone).size();
-      minHeap.offer(new Pair<>(virtualGroupId, newLoad));
-    }
-
-    return assignment;
   }
 
   /**
-   * Creates a deep copy of a map of virtual group -> set of instances,
+   * Creates a deep copy of the given map
    *
-   * @param virtualZoneMapping Original map to copy.
+   * @param zoneMapping Original map to copy.
    * @return A fully independent copy of the given map.
    */
-  private Map<String, Set<String>> deepCopy(Map<String, Set<String>> virtualZoneMapping) {
+  private Map<String, Set<String>> copyZoneMapping(Map<String, Set<String>> zoneMapping) {
     Map<String, Set<String>> copy = new HashMap<>();
-    for (Map.Entry<String, Set<String>> entry : virtualZoneMapping.entrySet()) {
+    for (Map.Entry<String, Set<String>> entry : zoneMapping.entrySet()) {
       copy.put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
     return copy;
+  }
+
+  /**
+   * Constructs the final result by mapping virtual groups to their instances.
+   *
+   * @param vgToZonesMapping    Mapping of virtual group -> set of zones.
+   * @param zoneToInstancesMapping Mapping of zone -> set of instances.
+   * @return Mapping of virtual group -> set of instances.
+   */
+  private Map<String, Set<String>> constructResult(Map<String, Set<String>> vgToZonesMapping,
+      Map<String, Set<String>> zoneToInstancesMapping) {
+    Map<String, Set<String>> result = new HashMap<>();
+    for (Map.Entry<String, Set<String>> entry : vgToZonesMapping.entrySet()) {
+      Set<String> instances = new HashSet<>();
+      for (String zone : entry.getValue()) {
+        instances.addAll(zoneToInstancesMapping.get(zone));
+      }
+      result.put(entry.getKey(), instances);
+    }
+    return result;
   }
 }

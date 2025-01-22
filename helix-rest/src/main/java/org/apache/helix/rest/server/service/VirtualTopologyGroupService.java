@@ -70,7 +70,7 @@ public class VirtualTopologyGroupService {
     _clusterService = clusterService;
     _configAccessor = configAccessor;
     _dataAccessor = dataAccessor;
-    _assignmentAlgorithm = FaultZoneBasedVirtualGroupAssignmentAlgorithm.getInstance(); // default assignment algorithm
+    _assignmentAlgorithm = FifoVirtualGroupAssignmentAlgorithm.getInstance(); // default assignment algorithm
   }
 
   /**

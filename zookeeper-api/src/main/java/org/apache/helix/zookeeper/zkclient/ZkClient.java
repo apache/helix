@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1796,9 +1797,7 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Delete the path as well as all its children. This operation is not atomic and may result in a partial deletion.
-   * This operation will handle concurrent deletions to the tree by another agent, but will not be able to handle
-   * concurrent creations.
+   * Delete the path as well as all its children.
    * @param path
    * @throws ZkClientException
    */
@@ -1846,6 +1845,12 @@ public class ZkClient implements Watcher {
     for (String path : paths) {
       ops.addAll(getOpsForRecursiveDelete(path));
     }
+
+    // Return early if no operations to execute
+    if (ops.isEmpty()) {
+      return;
+    }
+
     try {
       opResults = multi(ops);
     } catch (Exception e) {
@@ -1853,18 +1858,21 @@ public class ZkClient implements Watcher {
       throw new ZkClientException("Failed to delete paths " + paths, e);
     }
 
-    List<KeeperException.Code> opResultErrorCodes = new ArrayList<>();
-    for (OpResult result : opResults) {
-      if (result instanceof OpResult.ErrorResult) {
-        opResultErrorCodes.add(KeeperException.Code.get(((OpResult.ErrorResult) result).getErr()));
+    // Check if any of the operations failed. Create mapping of failed paths to error codes
+    Map<String, KeeperException.Code> failedPathsMap = new HashMap<>();
+    for (int i = 0; i < opResults.size(); i++) {
+      if (opResults.get(i) instanceof OpResult.ErrorResult) {
+        failedPathsMap.put(ops.get(i).getPath(),
+            KeeperException.Code.get(((OpResult.ErrorResult) opResults.get(i)).getErr()));
       }
     }
 
-    if (!opResultErrorCodes.isEmpty()) {
-      LOG.error("zkclient {}, Failed to delete paths {}, multi returned with error codes {}",
-          _uid, paths, opResultErrorCodes);
+    // Log and throw exception if any of the operations failed
+    if (!failedPathsMap.isEmpty()) {
+      LOG.error("zkclient {}, Failed to delete paths {}, multi returned with error codes {} for sub-paths {}",
+          _uid, paths, failedPathsMap.keySet(), failedPathsMap.values());
       throw new ZkClientException("Failed to delete paths " + paths + " with ZK KeeperException error codes: "
-          + opResultErrorCodes);
+          + failedPathsMap.keySet() + " for paths: " + failedPathsMap.values());
     }
   }
 
@@ -1876,7 +1884,7 @@ public class ZkClient implements Watcher {
    */
   private List<Op> getOpsForRecursiveDelete(String root) {
     List<Op> ops = new ArrayList<>();
-    // Return early if the root does not exist
+    // Return empty list if the root does not exist
     if (!exists(root)) {
       return ops;
     }

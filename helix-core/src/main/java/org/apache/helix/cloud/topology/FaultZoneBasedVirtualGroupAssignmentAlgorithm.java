@@ -73,6 +73,8 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
       return constructResult(newAssignment, zoneMapping);
     }
 
+    // 2. Find unassigned zones. If there is any, incrementally assign them to the least-loaded
+    //    virtual group.
     // Build instance-to-zone mapping for quick zone lookups.
     Map<String, String> instanceToZoneMapping = new HashMap<>();
     for (Map.Entry<String, Set<String>> entry : zoneMapping.entrySet()) {
@@ -82,7 +84,7 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
     }
 
     // Copy zoneMapping for tracking which zones are unassigned.
-    Map<String, Set<String>> unassignedZoneToInstances = copyZoneMapping(zoneMapping);
+    Set<String> unassignedZones = zoneMapping.keySet();
 
     // Build virtual group -> zone mapping and remove assigned zones from the unassigned list
     Map<String, Set<String>> virtualGroupToZoneMapping = new HashMap<>();
@@ -91,18 +93,18 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
       for (String instance : entry.getValue()) {
         String zone = instanceToZoneMapping.get(instance);
         virtualGroupToZoneMapping.get(entry.getKey()).add(zone);
-        unassignedZoneToInstances.remove(zone);
+        unassignedZones.remove(zone);
       }
     }
 
     // If there are no unassigned zones, return the result as is.
-    if (unassignedZoneToInstances.isEmpty()) {
+    if (unassignedZones.isEmpty()) {
       return constructResult(virtualGroupToZoneMapping, zoneMapping);
     }
 
-    // 2. Distribute unassigned zones to keep the overall distribution balanced.
-    distributeUnassignedZones(virtualGroupToZoneMapping,
-        new ArrayList<>(unassignedZoneToInstances.keySet()), zoneMapping);
+    // Distribute unassigned zones to keep the overall distribution balanced.
+    distributeUnassignedZones(virtualGroupToZoneMapping, new ArrayList<>(unassignedZones),
+        zoneMapping);
     return constructResult(virtualGroupToZoneMapping, zoneMapping);
   }
 
@@ -147,20 +149,6 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
       virtualGroupToZoneMapping.get(leastLoadVg).add(zone);
       minHeap.offer(leastLoadVg);
     }
-  }
-
-  /**
-   * Creates a deep copy of the given map
-   *
-   * @param zoneMapping Original map to copy.
-   * @return A fully independent copy of the given map.
-   */
-  private Map<String, Set<String>> copyZoneMapping(Map<String, Set<String>> zoneMapping) {
-    Map<String, Set<String>> copy = new HashMap<>();
-    for (Map.Entry<String, Set<String>> entry : zoneMapping.entrySet()) {
-      copy.put(entry.getKey(), new HashSet<>(entry.getValue()));
-    }
-    return copy;
   }
 
   /**

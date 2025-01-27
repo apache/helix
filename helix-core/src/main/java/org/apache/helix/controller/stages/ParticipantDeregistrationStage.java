@@ -88,15 +88,8 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
     // Perform safety checks before deregistering the instances
     for (String instanceName : instancesToDeregister) {
       InstanceConfig instanceConfig = cache.getInstanceConfigMap().get(instanceName);
-      LiveInstance liveInstance = cache.getLiveInstances().get(instanceName);
-
       if (instanceConfig == null) {
         LOG.debug("Instance config is null for instance {}, skip deregistering the instance", instanceName);
-        continue;
-      }
-
-      if (liveInstance != null) {
-        LOG.debug("Instance {} is still alive, skip deregistering the instance", instanceName);
         continue;
       }
 

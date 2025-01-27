@@ -30,7 +30,7 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     ClusterConfig clusterConfig = manager.getConfigAccessor().getClusterConfig(manager.getClusterName());
     if (clusterConfig == null || !clusterConfig.isParticipantDeregistrationEnabled()) {
-      LOG.info("Cluster config is null or participant deregistration is not enabled. "
+      LOG.debug("Cluster config is null or participant deregistration is not enabled. "
           + "Skipping participant deregistration.");
       return;
     }

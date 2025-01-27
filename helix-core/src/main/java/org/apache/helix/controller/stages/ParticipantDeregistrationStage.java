@@ -62,14 +62,8 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
       }
     }
 
-    if (!participantsToDeregister.isEmpty()) {
-      Set<String> successfullyDeregisteredParticipants =
-        deregisterParticipants(manager, cache, participantsToDeregister);
-      if (!successfullyDeregisteredParticipants.isEmpty()) {
-        LOG.info("Successfully deregistered {} participants from cluster {}",
-              successfullyDeregisteredParticipants.size(), cache.getClusterName());
-      }
-    }
+    deregisterParticipants(manager, cache, participantsToDeregister);
+
     // Schedule the next deregister task
     if (nextDeregisterTime != Long.MAX_VALUE) {
       long delay = Math.max(nextDeregisterTime - System.currentTimeMillis(), 0);
@@ -77,13 +71,18 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
     }
   }
 
-  private Set<String> deregisterParticipants(HelixManager manager, ResourceControllerDataProvider cache,
+  private void deregisterParticipants(HelixManager manager, ResourceControllerDataProvider cache,
       Set<String> instancesToDeregister) {
     Set<String> successfullyDeregisteredInstances = new HashSet<>();
 
     if (manager == null || !manager.isConnected() || cache == null || instancesToDeregister == null) {
-      LOG.info("ParticipantDeregistrationStage failed due to HelixManager being null or not connected!");
-      return successfullyDeregisteredInstances;
+      LOG.warn("ParticipantDeregistrationStage failed due to HelixManager being null or not connected!");
+      return;
+    }
+
+    if (instancesToDeregister.isEmpty()) {
+      LOG.debug("There are no instances to deregister from cluster {}", cache.getClusterName());
+      return;
     }
 
     // Perform safety checks before deregistering the instances
@@ -104,11 +103,10 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
       try {
         manager.getClusterManagmentTool().dropInstance(cache.getClusterName(), instanceConfig);
         successfullyDeregisteredInstances.add(instanceName);
+        LOG.info("Successfully deregistered instance {} from cluster {}", instanceName, cache.getClusterName());
       } catch (HelixException e) {
         LOG.warn("Failed to deregister instance {} from cluster {}", instanceName, cache.getClusterName(), e);
       }
     }
-
-    return successfullyDeregisteredInstances;
   }
 }

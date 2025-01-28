@@ -58,7 +58,7 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
         participantsToDeregister.add(instanceName);
       } else {
         // Otherwise, find the next earliest deregister time
-        nextDeregisterTime = nextDeregisterTime != -1 ? Math.min(nextDeregisterTime, deregisterTime) : deregisterTime;
+        nextDeregisterTime = nextDeregisterTime == -1 ? deregisterTime : Math.min(nextDeregisterTime, deregisterTime);
       }
     }
 

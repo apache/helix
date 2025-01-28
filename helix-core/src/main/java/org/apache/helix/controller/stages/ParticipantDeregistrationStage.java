@@ -40,7 +40,7 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
     long deregisterDelay = clusterConfig.getParticipantDeregistrationTimeout();
     long stageStartTime = System.currentTimeMillis();
     Set<String> participantsToDeregister = new HashSet<>();
-    long nextDeregisterTime = Long.MAX_VALUE;
+    long nextDeregisterTime = -1;
 
 
     for (Map.Entry<String, Long> entry : offlineTimeMap.entrySet()) {
@@ -58,14 +58,14 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
         participantsToDeregister.add(instanceName);
       } else {
         // Otherwise, find the next earliest deregister time
-        nextDeregisterTime = Math.min(nextDeregisterTime, deregisterTime);
+        nextDeregisterTime = nextDeregisterTime != -1 ? Math.min(nextDeregisterTime, deregisterTime) : deregisterTime;
       }
     }
 
     deregisterParticipants(manager, cache, participantsToDeregister);
 
     // Schedule the next deregister task
-    if (nextDeregisterTime != Long.MAX_VALUE) {
+    if (nextDeregisterTime != -1) {
       long delay = Math.max(nextDeregisterTime - System.currentTimeMillis(), 0);
       scheduleOnDemandPipeline(manager.getClusterName(), delay);
     }

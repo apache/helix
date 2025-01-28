@@ -237,7 +237,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         new ZkException("ZkException: failed to delete " + instancePath,
             new KeeperException.NotEmptyException(
                 "NotEmptyException: directory" + instancePath + " is not empty"))))
-        .when(mockZkClient).deleteRecursively(instancePath);
+        .when(mockZkClient).deleteRecursivelyAtomic(Arrays.asList(instancePath, instanceConfigPath));
 
     HelixAdmin helixAdminMock = new ZKHelixAdmin(mockZkClient);
     try {
@@ -1341,5 +1341,30 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       controller.syncStop();
       _gSetupTool.deleteCluster(clusterName);
     }
+  }
+
+  @Test
+  public void testDropInstance() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    int numInstances = 5;
+    final String clusterName = getShortClassName();
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
+
+    // Add instances to cluster
+    for (int i = 0; i < numInstances; i++) {
+      admin.addInstance(clusterName, new InstanceConfig("localhost_" + i));
+      // Create dummy message nodes
+      _gZkClient.createPersistent(PropertyPathBuilder.instanceMessage(clusterName, "localhost_" + i, ""+i));
+    }
+    Assert.assertTrue(admin.getInstancesInCluster(clusterName).size() == numInstances, "Instances should be added");
+
+    for (int i = 0; i < 5; i++) {
+      admin.dropInstance(clusterName, new InstanceConfig("localhost_" + i));
+    }
+    Assert.assertTrue(admin.getInstancesInCluster(clusterName).isEmpty(), "Instances should be removed");
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

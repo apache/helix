@@ -20,12 +20,17 @@ package org.apache.helix.zookeeper.zkclient;
  */
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1818,6 +1823,84 @@ public class ZkClient implements Watcher {
       LOG.error("zkclient {}, Failed to delete {}, exception {}", _uid, path, e);
       throw new ZkClientException("Failed to delete " + path, e);
     }
+  }
+
+  /**
+   * Delete the path as well as all its children. This operation is atomic and will either delete all nodes or none.
+   * This operation may fail if another agent is concurrently creating or deleting nodes under the path.
+   * @param path ZK path to delete
+   */
+  public void deleteRecursivelyAtomic(String path) {
+    deleteRecursivelyAtomic(Arrays.asList(path));
+  }
+
+  /**
+   * Delete the paths as well as all their children. This operation is atomic and will either delete all nodes or none.
+   * This operation may fail if another agent is concurrently creating or deleting nodes under any of the paths.
+   * @param paths ZK paths to delete
+   */
+  public void deleteRecursivelyAtomic(List<String> paths) {
+    List<Op> ops = new ArrayList<>();
+    List<OpResult> opResults;
+    for (String path : paths) {
+      ops.addAll(getOpsForRecursiveDelete(path));
+    }
+
+    // Return early if no operations to execute
+    if (ops.isEmpty()) {
+      return;
+    }
+
+    try {
+      opResults = multi(ops);
+    } catch (Exception e) {
+      LOG.error("zkclient {}, Failed to delete paths {}, exception {}", _uid, paths, e);
+      throw new ZkClientException("Failed to delete paths " + paths, e);
+    }
+
+    // Check if any of the operations failed. Create mapping of failed paths to error codes
+    Map<String, KeeperException.Code> failedPathsMap = new HashMap<>();
+    for (int i = 0; i < opResults.size(); i++) {
+      if (opResults.get(i) instanceof OpResult.ErrorResult) {
+        failedPathsMap.put(ops.get(i).getPath(),
+            KeeperException.Code.get(((OpResult.ErrorResult) opResults.get(i)).getErr()));
+      }
+    }
+
+    // Log and throw exception if any of the operations failed
+    if (!failedPathsMap.isEmpty()) {
+      LOG.error("zkclient {}, Failed to delete paths {}, multi returned with error codes {} for sub-paths {}",
+          _uid, paths, failedPathsMap.keySet(), failedPathsMap.values());
+      throw new ZkClientException("Failed to delete paths " + paths + " with ZK KeeperException error codes: "
+          + failedPathsMap.keySet() + " for paths: " + failedPathsMap.values());
+    }
+  }
+
+  /**
+   * Get the list of operations to delete the given root and all its children. Ops will be ordered so that deletion of
+   * children will come before parent nodes.
+   * @param root the root node to delete
+   * @return the list of ZK operations to delete the given root and all its children
+   */
+  private List<Op> getOpsForRecursiveDelete(String root) {
+    List<Op> ops = new ArrayList<>();
+    // Return empty list if the root does not exist
+    if (!exists(root)) {
+      return ops;
+    }
+
+    // Level order traversal of tree, adding deleting operation for each node
+    // This will produce list of operations ordered from parent to children nodes
+    Queue<String> nodes = new LinkedList<>();
+    nodes.offer(root);
+    while (!nodes.isEmpty()) {
+      String node = nodes.poll();
+      getChildren(node, false).stream().forEach(child -> nodes.offer(node + "/" + child));
+      ops.add(Op.delete(node, -1));
+    }
+   // Reverse the list so that operations are ordered from children to parent nodes
+    Collections.reverse(ops);
+    return ops;
   }
 
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {

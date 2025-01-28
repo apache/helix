@@ -413,6 +413,20 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public void deleteRecursivelyAtomic(String path) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.deleteRecursivelyAtomic(path);
+  }
+
+  @Override
+  public void deleteRecursivelyAtomic(List<String> paths) {
+    for (String path : paths) {
+      checkIfPathContainsShardingKey(path);
+    }
+    _innerSharedZkClient.deleteRecursivelyAtomic(paths);
+  }
+
+  @Override
   public boolean delete(String path) {
     return delete(path, -1);
   }

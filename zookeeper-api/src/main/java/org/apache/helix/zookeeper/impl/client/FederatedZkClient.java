@@ -44,6 +44,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
 import org.apache.zookeeper.ZooDefs;
@@ -368,6 +369,20 @@ public class FederatedZkClient implements RealmAwareZkClient {
   @Override
   public void deleteRecursively(String path) {
     getZkClient(path).deleteRecursively(path);
+  }
+
+  @Override
+  public void deleteRecursivelyAtomic(String path) {
+    getZkClient(path).deleteRecursivelyAtomic(path);
+  }
+
+  @Override
+  public void deleteRecursivelyAtomic(List<String> paths) {
+    // Check if all paths are in the same realm. If not, throw error as we cannot guarantee atomicity across clients.
+    if (paths.stream().map(this::getZkRealm).distinct().count() > 1) {
+      throw new IllegalArgumentException("Cannot atomically delete paths across different realms");
+    }
+    getZkClient(paths.get(0)).deleteRecursivelyAtomic(paths);
   }
 
   @Override

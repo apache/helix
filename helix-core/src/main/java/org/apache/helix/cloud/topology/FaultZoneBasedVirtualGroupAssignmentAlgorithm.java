@@ -84,7 +84,7 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
     }
 
     // Copy zoneMapping for tracking which zones are unassigned.
-    Set<String> unassignedZones = zoneMapping.keySet();
+    Set<String> unassignedZones = new HashSet<>(zoneMapping.keySet());
 
     // Build virtual group -> zone mapping and remove assigned zones from the unassigned list
     Map<String, Set<String>> virtualGroupToZoneMapping = new HashMap<>();

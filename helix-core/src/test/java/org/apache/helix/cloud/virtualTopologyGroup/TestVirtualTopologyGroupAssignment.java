@@ -21,11 +21,12 @@ package org.apache.helix.cloud.virtualTopologyGroup;
 
 import com.google.common.collect.Sets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.helix.cloud.constants.VirtualTopologyGroupConstants;
+
 import org.apache.helix.cloud.topology.FifoVirtualGroupAssignmentAlgorithm;
 import org.apache.helix.cloud.topology.VirtualGroupAssignmentAlgorithm;
 import org.apache.helix.util.HelixUtil;
@@ -33,6 +34,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import static org.apache.helix.util.VirtualTopologyUtil.computeVirtualGroupId;
 
 public class TestVirtualTopologyGroupAssignment {
 
@@ -61,34 +64,32 @@ public class TestVirtualTopologyGroupAssignment {
   @Test(dataProvider = "getMappingTests")
   public void testAssignmentScheme(int numGroups, Map<String, Set<String>> expected,
       VirtualGroupAssignmentAlgorithm algorithm) {
-    Assert.assertEquals(algorithm.computeAssignment(numGroups, GROUP_NAME, _zoneMapping), expected);
+    Assert.assertEquals(algorithm.computeAssignment(numGroups, GROUP_NAME, _zoneMapping,
+        Collections.emptyMap()), expected);
   }
 
   @DataProvider
   public Object[][] getMappingTests() {
     Map<String, Set<String>> virtualMapping = new HashMap<>();
     VirtualGroupAssignmentAlgorithm algorithm = FifoVirtualGroupAssignmentAlgorithm.getInstance();
-    virtualMapping.put(computeVirtualGroupId(0), Sets.newHashSet("1", "2", "3", "4", "5"));
-    virtualMapping.put(computeVirtualGroupId(1), Sets.newHashSet("6", "7", "8", "9"));
-    virtualMapping.put(computeVirtualGroupId(2), Sets.newHashSet("a", "b", "c", "d"));
-    Assert.assertEquals(algorithm.computeAssignment(3, GROUP_NAME, _zoneMapping),
+    virtualMapping.put(computeVirtualGroupId(0, GROUP_NAME), Sets.newHashSet("1", "2", "3", "4", "5"));
+    virtualMapping.put(computeVirtualGroupId(1, GROUP_NAME), Sets.newHashSet("6", "7", "8", "9"));
+    virtualMapping.put(computeVirtualGroupId(2, GROUP_NAME), Sets.newHashSet("a", "b", "c", "d"));
+    Assert.assertEquals(algorithm.computeAssignment(3, GROUP_NAME, _zoneMapping, Collections.emptyMap()),
         virtualMapping);
     Map<String, Set<String>> virtualMapping2 = new HashMap<>();
-    virtualMapping2.put(computeVirtualGroupId(0), Sets.newHashSet("1", "2"));
-    virtualMapping2.put(computeVirtualGroupId(1), Sets.newHashSet("3", "4"));
-    virtualMapping2.put(computeVirtualGroupId(2), Sets.newHashSet("5", "6"));
-    virtualMapping2.put(computeVirtualGroupId(3), Sets.newHashSet("7", "8"));
-    virtualMapping2.put(computeVirtualGroupId(4), Sets.newHashSet("9", "a"));
-    virtualMapping2.put(computeVirtualGroupId(5), Sets.newHashSet("b"));
-    virtualMapping2.put(computeVirtualGroupId(6), Sets.newHashSet("c"));
-    virtualMapping2.put(computeVirtualGroupId(7), Sets.newHashSet("d"));
+    virtualMapping2.put(computeVirtualGroupId(0, GROUP_NAME), Sets.newHashSet("1", "2"));
+    virtualMapping2.put(computeVirtualGroupId(1, GROUP_NAME), Sets.newHashSet("3", "4"));
+    virtualMapping2.put(computeVirtualGroupId(2, GROUP_NAME), Sets.newHashSet("5", "6"));
+    virtualMapping2.put(computeVirtualGroupId(3, GROUP_NAME), Sets.newHashSet("7", "8"));
+    virtualMapping2.put(computeVirtualGroupId(4, GROUP_NAME), Sets.newHashSet("9", "a"));
+    virtualMapping2.put(computeVirtualGroupId(5, GROUP_NAME), Sets.newHashSet("b"));
+    virtualMapping2.put(computeVirtualGroupId(6, GROUP_NAME), Sets.newHashSet("c"));
+    virtualMapping2.put(computeVirtualGroupId(7, GROUP_NAME), Sets.newHashSet("d"));
+
     return new Object[][] {
         {3, virtualMapping, algorithm},
         {8, virtualMapping2, algorithm}
     };
-  }
-
-  private static String computeVirtualGroupId(int groupIndex) {
-    return GROUP_NAME + VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER + groupIndex;
   }
 }

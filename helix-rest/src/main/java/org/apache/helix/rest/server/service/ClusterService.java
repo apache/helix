@@ -36,6 +36,15 @@ public interface ClusterService {
   ClusterTopology getClusterTopology(String cluster);
 
   /**
+   * Get the topology of a virtual cluster. If useRealTopology is true, return the real topology
+   * of the cluster. If useRealTopology is false, return the virtual topology of the cluster.
+   * @param cluster the cluster name
+   * @param useRealTopology whether to use the real topology or the virtual topology
+   * @return the cluster topology
+   */
+  ClusterTopology getTopologyOfVirtualCluster(String cluster, boolean useRealTopology);
+
+  /**
    * Get cluster basic information
    * @param clusterId
    * @return

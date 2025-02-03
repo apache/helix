@@ -24,6 +24,19 @@ import java.util.Set;
 
 
 public interface VirtualGroupAssignmentAlgorithm {
+  /**
+   * Compute the assignment for each virtual topology group.
+   *
+   * @param numGroups number of the virtual groups
+   * @param virtualGroupName virtual group name
+   * @param zoneMapping current zone mapping from zoneId to instanceIds
+   * @param virtualGroupToInstancesMap  current virtual group mapping from virtual group Id to instancesIds
+   * @return the assignment as mapping from virtual group ID to instanceIds
+   */
+  default Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
+      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> virtualGroupToInstancesMap) {
+    return computeAssignment(numGroups, virtualGroupName, zoneMapping);
+  }
 
   /**
    * Compute the assignment for each virtual topology group.
@@ -33,6 +46,7 @@ public interface VirtualGroupAssignmentAlgorithm {
    * @param zoneMapping current zone mapping from zoneId to instanceIds
    * @return the assignment as mapping from virtual group ID to instanceIds
    */
+  @Deprecated
   Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
       Map<String, Set<String>> zoneMapping);
 }

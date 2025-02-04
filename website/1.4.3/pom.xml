@@ -26,9 +26,9 @@
     <version>1.4.4-SNAPSHOT</version>
   </parent>
 
-  <artifactId>0.9.9-docs</artifactId>
+  <artifactId>1.4.3-docs</artifactId>
   <packaging>bundle</packaging>
-  <name>Apache Helix :: Website :: 0.9.9</name>
+  <name>Apache Helix :: Website :: 1.4.3</name>
 
   <licenses>
     <license>

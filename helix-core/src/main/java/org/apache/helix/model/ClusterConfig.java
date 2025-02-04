@@ -166,6 +166,7 @@ public class ClusterConfig extends HelixProperty {
 
     // List of Preferred scoring keys used in evenness score computation
     PREFERRED_SCORING_KEYS,
+    // How long offline nodes will stay in the cluster before they are automatically purged, in milliseconds
     PARTICIPANT_DEREGISTRATION_TIMEOUT
   }
 
@@ -1257,15 +1258,30 @@ public class ClusterConfig extends HelixProperty {
         preferredScoringKeys);
   }
 
+  /**
+   * Get the PARTICIPANT_DEREGISTRATION_TIMEOUT for cluster, which determines how long offline nodes will stay in the
+   * cluster before they are automatically purged. If not set, returns -1.
+   *
+   * @return PARTICIPANT_DEREGISTRATION_TIMEOUT value in milliseconds
+   */
   public long getParticipantDeregistrationTimeout() {
     return _record.getLongField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_TIMEOUT.name(),
         -1);
   }
 
+/**
+ * Set the PARTICIPANT_DEREGISTRATION_TIMEOUT for cluster, which determines how long offline nodes will stay in the
+ * cluster before they are automatically purged.
+ *
+ * @param timeout PARTICIPANT_DEREGISTRATION_TIMEOUT value in milliseconds
+ */
   public void setParticipantDeregistrationTimeout(long timeout) {
     _record.setLongField(ClusterConfigProperty.PARTICIPANT_DEREGISTRATION_TIMEOUT.name(), timeout);
   }
 
+  /**
+   * @return true if PARTICIPANT_DEREGISTRATION_TIMEOUT is greater than -1, false otherwise
+   */
   public boolean isParticipantDeregistrationEnabled() {
     return getParticipantDeregistrationTimeout() > -1;
   }

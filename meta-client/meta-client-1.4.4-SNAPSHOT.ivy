@@ -19,10 +19,10 @@ under the License.
 -->
 <ivy-module version="1.0">
 	<info organisation="org.apache.helix"
-		module="metrics-common"
-		revision="1.4.3-SNAPSHOT"
+		module="meta-client"
+		revision="1.4.4-SNAPSHOT"
 		status="integration"
-		publication="20170128141623"
+		publication="202001.4.35923"
 	/>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -34,7 +34,7 @@ under the License.
 		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
 	</configurations>
 	<publications>
-		<artifact name="metrics-common" type="jar" ext="jar" conf="master"/>
+		<artifact name="meta-client" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
 	  <dependency org="org.slf4j" name="slf4j-api" rev="1.7.32" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
@@ -43,5 +43,6 @@ under the License.
     <dependency org="org.apache.logging.log4j" name="log4j-slf4j-impl" rev="2.17.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
+		<dependency org="org.apache.helix" name="zookeeper-api" rev="1.4.4-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

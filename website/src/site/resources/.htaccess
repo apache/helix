@@ -17,7 +17,7 @@
 # under the License.
 #
 
-Redirect /download.html /download.cgi
-Redirect /0.9.9-docs/download.html /0.9.9-docs/download.cgi
-Redirect /1.4.2-docs/download.html /1.4.2-docs/download.cgi
-Redirect /1.4.1-docs/download.html /1.4.1-docs/download.cgi
+Redirect /download.html https://downloads.apache.org/helix/
+Redirect /0.9.9-docs/download.html https://downloads.apache.org/helix/0.9.10
+Redirect /1.4.2-docs/download.html https://downloads.apache.org/helix/1.4.2
+Redirect /1.4.3-docs/download.html https://downloads.apache.org/helix/1.4.3

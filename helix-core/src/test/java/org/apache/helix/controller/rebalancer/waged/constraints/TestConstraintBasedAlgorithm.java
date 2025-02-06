@@ -27,18 +27,19 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixRebalanceException;
+import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
+import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelTestHelper;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,7 +51,8 @@ public class TestConstraintBasedAlgorithm {
   public void testCalculateNoValidAssignment() throws IOException {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
-    when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(false);
+    when(mockHardConstraint.isAssignmentValid(any(AssignableNode.class), any(AssignableReplica.class), any(
+        ClusterContext.class), anyBoolean())).thenReturn(false);
     when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
     ConstraintBasedAlgorithm algorithm =
         new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
@@ -62,8 +64,8 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
 
-    verify(mockHardConstraint, times(1)).setEnableLogging(eq(true));
-    verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
+    verify(mockHardConstraint, times(1)).isAssignmentValid(any(AssignableNode.class), any(AssignableReplica.class), any(
+        ClusterContext.class), eq(false));
   }
 
   @Test
@@ -84,19 +86,25 @@ public class TestConstraintBasedAlgorithm {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
 
-    verify(mockHardConstraint, times(1)).setEnableLogging(eq(true));
-    verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
+    verify(mockHardConstraint, times(1)).isAssignmentValid(any(AssignableNode.class), any(AssignableReplica.class), any(
+        ClusterContext.class), eq(false));
 
     // calling again for recovery (no exception)
-    algorithm.calculate(clusterModel);
-    verify(mockHardConstraint, atLeastOnce()).setEnableLogging(eq(false));
+    try {
+      algorithm.calculate(clusterModel);
+    } catch (HelixRebalanceException ex) {
+      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+    }
+    verify(mockHardConstraint, times(1)).isAssignmentValid(any(AssignableNode.class), any(AssignableReplica.class), any(
+        ClusterContext.class), eq(true));
   }
 
   @Test
   public void testCalculateWithValidAssignment() throws IOException, HelixRebalanceException {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
-    when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
+    when(mockHardConstraint.isAssignmentValid(any(AssignableNode.class), any(AssignableReplica.class), any(
+        ClusterContext.class), anyBoolean())).thenReturn(true);
     when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
     ConstraintBasedAlgorithm algorithm =
         new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
@@ -111,7 +119,8 @@ public class TestConstraintBasedAlgorithm {
   public void testCalculateScoreDeterminism() throws IOException, HelixRebalanceException {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
-    when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
+    when(mockHardConstraint.isAssignmentValid(any(AssignableNode.class), any(AssignableReplica.class), any(
+        ClusterContext.class), anyBoolean())).thenReturn(true);
     when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
     ConstraintBasedAlgorithm algorithm =
         new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),

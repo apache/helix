@@ -55,6 +55,7 @@ import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -828,6 +829,29 @@ public class ZkTestBase {
     @Override
     public String getClusterName() {
       return _clusterName;
+    }
+  }
+
+  public MockParticipantManager addParticipant(String cluster, String instanceName) {
+    _gSetupTool.addInstanceToCluster(cluster, instanceName);
+    MockParticipantManager toAddParticipant =
+        new MockParticipantManager(ZK_ADDR, cluster, instanceName);
+    toAddParticipant.syncStart();
+    return toAddParticipant;
+  }
+
+  public void dropParticipant(String cluster, MockParticipantManager participant) {
+    if (participant == null) {
+      return;
+    }
+
+    try {
+      participant.syncStop();
+      InstanceConfig instanceConfig =
+          _gSetupTool.getClusterManagementTool().getInstanceConfig(cluster, participant.getInstanceName());
+      _gSetupTool.getClusterManagementTool().dropInstance(cluster, instanceConfig);
+    } catch (Exception e) {
+      LOG.warn("Error dropping participant " + participant.getInstanceName(), e);
     }
   }
 }

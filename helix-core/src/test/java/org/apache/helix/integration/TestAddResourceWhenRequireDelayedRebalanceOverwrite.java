@@ -110,12 +110,10 @@ public class TestAddResourceWhenRequireDelayedRebalanceOverwrite extends ZkTestB
         + new Date(System.currentTimeMillis()));
   }
 
-  private MockParticipantManager addParticipant(String cluster, String instanceName) {
-    _gSetupTool.addInstanceToCluster(cluster, instanceName);
-    MockParticipantManager toAddParticipant =
-        new MockParticipantManager(ZK_ADDR, cluster, instanceName);
+  @Override
+  public MockParticipantManager addParticipant(String clusterName, String instanceName) {
+    MockParticipantManager toAddParticipant = super.addParticipant(clusterName, instanceName);
     _participants.add(toAddParticipant);
-    toAddParticipant.syncStart();
     return toAddParticipant;
   }
 

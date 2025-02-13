@@ -143,7 +143,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       return Optional.empty();
     }
 
-    LOG.info("Disabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
+    LOG.debug("Disabling hard constraint level logging for cluster: {}", clusterContext.getClusterName());
     removeFullLoggingForCluster();
 
     return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,

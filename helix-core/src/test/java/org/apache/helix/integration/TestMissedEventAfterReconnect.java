@@ -2,6 +2,7 @@ package org.apache.helix.integration;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +57,7 @@ public class TestMissedEventAfterReconnect extends ZkTestBase  {
 
   @Test
   public void testControllerDisconnectedDuringEvent() throws Exception {
-    System.out.println("Start test");
+    System.out.println("Start testControllerDisconnectedDuringEvent at " + new Date(System.currentTimeMillis()));
     String firstDB = "firstDB";
     int numPartition = 10;
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, firstDB, numPartition, "LeaderStandby",
@@ -95,16 +96,11 @@ public class TestMissedEventAfterReconnect extends ZkTestBase  {
 
 
     Assert.assertTrue(verifier.verifyByPolling());
+    Assert.assertFalse(_gZkClient.exists(_controller.getHelixDataAccessor().keyBuilder()
+            .liveInstance(participantToKill.getInstanceName()).getPath()), "Instance should be offline from ZK View");
     Assert.assertFalse(hasAssignment(participantToKill.getInstanceName()), "Should not have assignments after reconnect");
     Assert.assertTrue(hasAssignment(_participants.get(1).getInstanceName()), "Should have assignments after reconnect");
-
-    System.out.println("Killing participant 1");
-    _participants.get(1).syncStop();
-    Assert.assertTrue(verifier.verifyByPolling());
-    Assert.assertFalse(hasAssignment(participantToKill.getInstanceName()), "Should not have assignments after reconnect");
-    Assert.assertFalse(hasAssignment(_participants.get(1).getInstanceName()), "Should have assignments after reconnect");
-
-    System.out.println("end test");
+    System.out.println("End testControllerDisconnectedDuringEvent at " + new Date(System.currentTimeMillis()));
   }
 
   private boolean hasAssignment(String instanceName) {

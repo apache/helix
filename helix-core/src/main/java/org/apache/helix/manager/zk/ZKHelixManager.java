@@ -151,6 +151,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   protected LiveInstanceInfoProvider _liveInstanceInfoProvider = null;
 
   private volatile String _sessionId;
+  private boolean _managerDisconnectedPastTimeout;
 
   /**
    * Keep track of timestamps that zk State has become Disconnected If in a _timeWindowLengthMs
@@ -412,6 +413,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     if (!isConnected) {
+      _managerDisconnectedPastTimeout = true;
       LOG.error("zkClient is not connected after waiting " + timeout + "ms."
           + ", clusterName: " + _clusterName + ", zkAddress: " + getZkConnectionInfo());
       throw new HelixException(
@@ -1223,7 +1225,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public void handleStateChanged(KeeperState state) {
     switch (state) {
     case SyncConnected:
+      // If manager is disconnected and is the leader controller, then reset and init leaderElectionHandler. This
+      // will force the controller to refresh and pick up any events that were missed during disconnect.
+      if (_managerDisconnectedPastTimeout && _controller != null && isLeader()) {
+        _controller.scheduleOnDemandRebalance(0, true);
+      }
       LOG.info("KeeperState: " + state + ", instance: " + _instanceName + ", type: " + _instanceType);
+      _managerDisconnectedPastTimeout = false;
       break;
     case Disconnected:
       /**

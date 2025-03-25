@@ -1049,6 +1049,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   private void updateOfflineInstanceHistory(HelixDataAccessor accessor) {
     if (!_updateInstanceOfflineTime) {
+      // Clean up entries for nodes that have been removed from the cluster. This prevents a stale offline time from
+      // being used when the node is re-added to the cluster but before it updates its offline time.
+      _instanceOfflineTimeMap.keySet().retainAll(_allInstanceConfigCache.getPropertyMap().keySet());
       return;
     }
     List<String> offlineNodes = new ArrayList<>(_allInstanceConfigCache.getPropertyMap().keySet());

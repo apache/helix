@@ -321,6 +321,18 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             .format("Failed to calculate best possible states for %d resources.",
                 failureResources.size()));
 
+    // Fall back to current states for resources that cannot be computed
+    failureResources.parallelStream().forEach(resourceName -> {
+      if (currentStateOutput.getCurrentStateMap(resourceName).isEmpty()) {
+        return;
+      }
+      IdealState fakeIS = new IdealState(resourceName);
+      currentStateOutput.getCurrentStateMap(resourceName).forEach((partition, stateMap) ->
+          fakeIS.setInstanceStateMap(partition.getPartitionName(), stateMap != null ? stateMap : new HashMap<>())
+      );
+      updateBestPossibleStateOutput(output, resourceMap.get(resourceName), fakeIS);
+    });
+
     return output;
   }
 

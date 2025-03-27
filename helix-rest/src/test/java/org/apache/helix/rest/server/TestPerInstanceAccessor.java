@@ -580,6 +580,12 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
     Assert.assertTrue(evacuateFinishedResult.get("successful"));
 
+    response = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=isInstanceDrained")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    Map<String, Boolean> instanceDrainedResult = OBJECT_MAPPER.readValue(response.readEntity(String.class), Map.class);
+    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+    Assert.assertTrue(instanceDrainedResult.get("successful"));
+
     // test isEvacuateFinished on instance with EVACUATE and no currentState
     // Create new instance so no currentState or messages assigned to it
     String test_instance_name = INSTANCE_NAME + "_foo";

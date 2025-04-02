@@ -10,8 +10,6 @@ import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.ParticipantHistory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.helix.util.RebalanceUtil.scheduleOnDemandPipeline;

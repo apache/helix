@@ -30,6 +30,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -212,14 +213,11 @@ public class InstanceUtil {
       InstanceConfig instanceConfig) {
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(clusterName, baseDataAccessor);
 
-    List<ClusterConfig> clusterConfigs =
-        helixDataAccessor.getChildValues(helixDataAccessor.keyBuilder().clusterConfig(), true);
-    if (clusterConfigs.isEmpty()) {
-      throw new HelixException("Cluster " + clusterName + " does not exist");
-    }
-
+    ClusterConfig clusterConfig =
+        helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().clusterConfig());
     String logicalIdKey =
-        ClusterTopologyConfig.createFromClusterConfig(clusterConfigs.get(0)).getEndNodeType();
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig).getEndNodeType();
+    
     List<InstanceConfig> instanceConfigs =
         helixDataAccessor.getChildValues(helixDataAccessor.keyBuilder().instanceConfigs(), true);
 

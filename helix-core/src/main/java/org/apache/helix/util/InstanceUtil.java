@@ -33,6 +33,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
@@ -51,9 +52,8 @@ public class InstanceUtil {
   private static final InstanceOperationValidator ALL_MATCHES_ARE_UNKNOWN =
       (baseDataAccessor, configAccessor, clusterName, instanceConfig) -> {
         List<InstanceConfig> matchingInstances =
-            baseDataAccessor != null ? findInstancesWithMatchingLogicalId(baseDataAccessor,
-                configAccessor, clusterName, instanceConfig)
-                : findInstancesWithMatchingLogicalId(configAccessor, clusterName, instanceConfig);
+            findInstancesWithMatchingLogicalId(baseDataAccessor, configAccessor, clusterName,
+                instanceConfig);
         return matchingInstances.isEmpty() || matchingInstances.stream().allMatch(
             instance -> instance.getInstanceOperation().getOperation()
                 .equals(InstanceConstants.InstanceOperation.UNKNOWN));
@@ -61,9 +61,8 @@ public class InstanceUtil {
   private static final InstanceOperationValidator ALL_MATCHES_ARE_UNKNOWN_OR_EVACUATE =
       (baseDataAccessor, configAccessor, clusterName, instanceConfig) -> {
         List<InstanceConfig> matchingInstances =
-            baseDataAccessor != null ? findInstancesWithMatchingLogicalId(baseDataAccessor,
-                configAccessor, clusterName, instanceConfig)
-                : findInstancesWithMatchingLogicalId(configAccessor, clusterName, instanceConfig);
+            findInstancesWithMatchingLogicalId(baseDataAccessor, configAccessor, clusterName,
+                instanceConfig);
         return matchingInstances.isEmpty() || matchingInstances.stream().allMatch(instance ->
             instance.getInstanceOperation().getOperation()
                 .equals(InstanceConstants.InstanceOperation.UNKNOWN)
@@ -73,9 +72,8 @@ public class InstanceUtil {
   private static final InstanceOperationValidator ANY_MATCH_ENABLE_OR_DISABLE =
       (baseDataAccessor, configAccessor, clusterName, instanceConfig) -> {
         List<InstanceConfig> matchingInstances =
-            baseDataAccessor != null ? findInstancesWithMatchingLogicalId(baseDataAccessor,
-                configAccessor, clusterName, instanceConfig)
-                : findInstancesWithMatchingLogicalId(configAccessor, clusterName, instanceConfig);
+            findInstancesWithMatchingLogicalId(baseDataAccessor, configAccessor, clusterName,
+                instanceConfig);
         return !matchingInstances.isEmpty() && matchingInstances.stream().anyMatch(instance ->
             instance.getInstanceOperation().getOperation()
                 .equals(InstanceConstants.InstanceOperation.ENABLE)
@@ -120,7 +118,7 @@ public class InstanceUtil {
    * @param instanceConfig   The current instance configuration
    * @param currentOperation The current operation
    * @param targetOperation  The target operation
-   * @deprecated Use {@link #validateInstanceOperationTransition(BaseDataAccessor, ConfigAccessor, String, InstanceConfig, InstanceConstants.InstanceOperation, InstanceConstants.InstanceOperation)}
+   * @deprecated Use {@link #validateInstanceOperationTransition(BaseDataAccessor, String, InstanceConfig, InstanceConstants.InstanceOperation, InstanceConstants.InstanceOperation)}
    *        instead for better performance.
    */
   @Deprecated
@@ -137,18 +135,26 @@ public class InstanceUtil {
    * Validates if the transition from the current operation to the target operation is valid.
    *
    * @param baseDataAccessor The BaseDataAccessor instance
-   * @param configAccessor   The ConfigAccessor instance
    * @param clusterName      The cluster name
    * @param instanceConfig   The current instance configuration
    * @param currentOperation The current operation
    * @param targetOperation  The target operation
    */
   public static void validateInstanceOperationTransition(
-      BaseDataAccessor<ZNRecord> baseDataAccessor, ConfigAccessor configAccessor,
-      String clusterName, InstanceConfig instanceConfig,
+      BaseDataAccessor<ZNRecord> baseDataAccessor, String clusterName,
+      InstanceConfig instanceConfig,
       InstanceConstants.InstanceOperation currentOperation,
       InstanceConstants.InstanceOperation targetOperation) {
 
+    validateInstanceOperationTransition(baseDataAccessor, null, clusterName, instanceConfig,
+        currentOperation, targetOperation);
+  }
+
+  private static void validateInstanceOperationTransition(
+      @Nullable BaseDataAccessor<ZNRecord> baseDataAccessor,
+      @Nullable ConfigAccessor configAccessor, String clusterName, InstanceConfig instanceConfig,
+      InstanceConstants.InstanceOperation currentOperation,
+      InstanceConstants.InstanceOperation targetOperation) {
     ImmutableMap<InstanceConstants.InstanceOperation, InstanceOperationValidator> transitionMap =
         VALID_INSTANCE_OPERATION_TRANSITIONS.get(currentOperation);
 
@@ -197,19 +203,23 @@ public class InstanceUtil {
   /**
    * Finds the instances that have a matching logical ID with the given instance.
    *
-   * @param configAccessor  The ConfigAccessor instance
-   * @param clusterName     The cluster name
-   * @param instanceConfig  The instance configuration to match
+   * @param clusterName    The cluster name
+   * @param instanceConfig The instance configuration to match
    * @return A list of matching instances
    */
   public static List<InstanceConfig> findInstancesWithMatchingLogicalId(
-      BaseDataAccessor<ZNRecord> baseDataAccessor, ConfigAccessor configAccessor,
-      String clusterName, InstanceConfig instanceConfig) {
-    String logicalIdKey =
-        ClusterTopologyConfig.createFromClusterConfig(configAccessor.getClusterConfig(clusterName))
-            .getEndNodeType();
-
+      BaseDataAccessor<ZNRecord> baseDataAccessor, String clusterName,
+      InstanceConfig instanceConfig) {
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(clusterName, baseDataAccessor);
+
+    List<ClusterConfig> clusterConfigs =
+        helixDataAccessor.getChildValues(helixDataAccessor.keyBuilder().clusterConfig(), true);
+    if (clusterConfigs.isEmpty()) {
+      throw new HelixException("Cluster " + clusterName + " does not exist");
+    }
+
+    String logicalIdKey =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfigs.get(0)).getEndNodeType();
     List<InstanceConfig> instanceConfigs =
         helixDataAccessor.getChildValues(helixDataAccessor.keyBuilder().instanceConfigs(), true);
 
@@ -218,6 +228,19 @@ public class InstanceUtil {
         !potentialInstanceConfig.getInstanceName().equals(instanceConfig.getInstanceName())
             && potentialInstanceConfig.getLogicalId(logicalIdKey)
             .equals(instanceConfig.getLogicalId(logicalIdKey))).collect(Collectors.toList());
+  }
+
+  private static List<InstanceConfig> findInstancesWithMatchingLogicalId(
+      @Nullable BaseDataAccessor<ZNRecord> baseDataAccessor,
+      @Nullable ConfigAccessor configAccessor, String clusterName, InstanceConfig instanceConfig) {
+    if (baseDataAccessor != null) {
+      return findInstancesWithMatchingLogicalId(baseDataAccessor, clusterName, instanceConfig);
+    } else if (configAccessor != null) {
+      return findInstancesWithMatchingLogicalId(configAccessor, clusterName, instanceConfig);
+    } else {
+      throw new HelixException(
+          "Both BaseDataAccessor and ConfigAccessor cannot be null at the same time");
+    }
   }
 
   /**
@@ -268,6 +291,6 @@ public class InstanceUtil {
 
   private interface InstanceOperationValidator {
     boolean validate(@Nullable BaseDataAccessor<ZNRecord> baseDataAccessor,
-        ConfigAccessor configAccessor, String clusterName, InstanceConfig instanceConfig);
+        @Nullable ConfigAccessor configAccessor, String clusterName, InstanceConfig instanceConfig);
   }
 }

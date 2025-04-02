@@ -544,6 +544,51 @@ public class TestInstanceValidationUtil {
     InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
   }
 
+  // Test that min active replica check only run on partitions where removing the instance's replica would reduce
+  // the partition's availability. This means min active check will not be performed on partitions where the instance's
+  // replica is in an unhealthy state
+  @Test
+  public void TestSiblingNodesActiveReplicaCheckSuccessWithReplicaInErrorState() {
+    String resource = "resource";
+    Mock mock = new Mock();
+    doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
+        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+
+    ExternalView externalView = mock(ExternalView.class);
+    when(externalView.getMinActiveReplicas()).thenReturn(3);
+    when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(externalView.getPartitionSet()).thenReturn(ImmutableSet.of("db0"));
+    when(externalView.getStateMap("db0")).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, "ERROR", "instance1", "ERROR", "instance2", "ERROR"));
+    doReturn(externalView).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    StateModelDefinition stateModelDefinition = mock(StateModelDefinition.class);
+    when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
+    doReturn(stateModelDefinition).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
+
+    // This min active replica check should pass as the instance's replica is in ERROR state, so it will not affect
+    // availability of the partition even though partition does not meet healthy min active replica count
+    boolean result =
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
+    Assert.assertTrue(result);
+
+    // This min active replica check should fail as the instance is in a healthy state and removing it would reduce
+    // availability of the partition and partition would not meet the healthy min active replica count
+    when(externalView.getStateMap("db0")).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, "Master", "instance1", "ERROR", "instance2", "ERROR"));
+
+    result =
+        InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
+    Assert.assertFalse(result);
+  }
+
   private class Mock {
     HelixDataAccessor dataAccessor;
     ConfigAccessor configAccessor;

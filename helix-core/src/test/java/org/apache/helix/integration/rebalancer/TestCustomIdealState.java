@@ -19,11 +19,15 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Date;
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.TestDriver;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.annotations.Test;
 
@@ -123,6 +127,41 @@ public class TestCustomIdealState extends ZkTestBase {
         "TestDB0", TestHelper.setOf("localhost_12918", "localhost_12919",
             "localhost_12920", "localhost_12921", "localhost_12922"),
         ZK_ADDR);
+
+    TestDriver.stopCluster(uniqClusterName);
+    deleteCluster(uniqClusterName);
+    System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testCustomIdealState() throws Exception {
+    int numInstance = 5;
+
+    String uniqClusterName = "TestCustomISForOFFLINEState";
+    TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, 1, 1, numInstance, 1);
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+
+    admin.addResource(uniqClusterName, "OFFLINE_TEST", 1, "LeaderStandby",
+        IdealState.RebalanceMode.CUSTOMIZED.name());
+    IdealState idealState = admin.getResourceIdealState(uniqClusterName, "OFFLINE_TEST");
+    idealState.setPreferenceList("p0",
+        Arrays.asList("localhost_12918")); // clear the preference list
+    idealState.setPartitionState("p0", "localhost_12918", "OFFLINE");
+    admin.updateIdealState(uniqClusterName, "OFFLINE_TEST", idealState);
+    for (int i = 0; i < numInstance; i++) {
+      TestDriver.startDummyParticipant(uniqClusterName, i);
+    }
+    TestDriver.startController(uniqClusterName);// set the partition state to OFFLINE
+    TestDriver.verifyCluster(uniqClusterName, 3000, 50 * 1000);
+
+    // drop resource group
+    ClusterSetup setup = new ClusterSetup(ZK_ADDR);
+    setup.dropResourceFromCluster(uniqClusterName, "TestDB0");
+
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, uniqClusterName,
+        "TestDB0",
+        TestHelper.setOf("localhost_12918", "localhost_12919", "localhost_12920", "localhost_12921",
+            "localhost_12922"), ZK_ADDR);
 
     TestDriver.stopCluster(uniqClusterName);
     deleteCluster(uniqClusterName);

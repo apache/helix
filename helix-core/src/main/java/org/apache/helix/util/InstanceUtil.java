@@ -30,7 +30,6 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -217,7 +216,7 @@ public class InstanceUtil {
         helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().clusterConfig());
     String logicalIdKey =
         ClusterTopologyConfig.createFromClusterConfig(clusterConfig).getEndNodeType();
-    
+
     List<InstanceConfig> instanceConfigs =
         helixDataAccessor.getChildValues(helixDataAccessor.keyBuilder().instanceConfigs(), true);
 
@@ -231,14 +230,14 @@ public class InstanceUtil {
   private static List<InstanceConfig> findInstancesWithMatchingLogicalId(
       @Nullable BaseDataAccessor<ZNRecord> baseDataAccessor,
       @Nullable ConfigAccessor configAccessor, String clusterName, InstanceConfig instanceConfig) {
-    if (baseDataAccessor != null) {
-      return findInstancesWithMatchingLogicalId(baseDataAccessor, clusterName, instanceConfig);
-    } else if (configAccessor != null) {
-      return findInstancesWithMatchingLogicalId(configAccessor, clusterName, instanceConfig);
-    } else {
+    if (baseDataAccessor == null && configAccessor == null) {
       throw new HelixException(
           "Both BaseDataAccessor and ConfigAccessor cannot be null at the same time");
     }
+
+    return baseDataAccessor != null ? findInstancesWithMatchingLogicalId(baseDataAccessor,
+        clusterName, instanceConfig)
+        : findInstancesWithMatchingLogicalId(configAccessor, clusterName, instanceConfig);
   }
 
   /**

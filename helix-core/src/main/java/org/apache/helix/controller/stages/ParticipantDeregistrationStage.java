@@ -26,14 +26,14 @@ public class ParticipantDeregistrationStage extends AbstractAsyncBaseStage {
   @Override
   public void execute(ClusterEvent event) throws Exception {
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
-    ClusterConfig clusterConfig = manager.getConfigAccessor().getClusterConfig(manager.getClusterName());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
+    ClusterConfig clusterConfig = cache.getClusterConfig();
     if (clusterConfig == null || !clusterConfig.isParticipantDeregistrationEnabled()) {
       LOG.debug("Cluster config is null or participant deregistration is not enabled. "
           + "Skipping participant deregistration.");
       return;
     }
 
-    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     Map<String, Long> offlineTimeMap = cache.getInstanceOfflineTimeMap();
     long deregisterDelay = clusterConfig.getParticipantDeregistrationTimeout();
     long stageStartTime = System.currentTimeMillis();

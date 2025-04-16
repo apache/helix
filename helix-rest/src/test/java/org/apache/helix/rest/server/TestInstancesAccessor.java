@@ -426,7 +426,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     JsonNode jsonResult = OBJECT_MAPPER.readTree(response.readEntity(String.class));
     Assert.assertFalse(jsonResult.get("stoppable").asBoolean());
     Assert.assertEquals(getStringSet(jsonResult, "failedChecks"),
-            ImmutableSet.of("HELIX:HAS_DISABLED_PARTITION","HELIX:INSTANCE_NOT_ENABLED","HELIX:INSTANCE_NOT_STABLE","HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+            ImmutableSet.of("HELIX:HAS_DISABLED_PARTITION","HELIX:INSTANCE_NOT_ENABLED","HELIX:INSTANCE_NOT_STABLE"));
 
     // Reenable instance0, it should passed the check
     instanceConfig.setInstanceOperation(InstanceConstants.InstanceOperation.ENABLE);

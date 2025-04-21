@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -48,6 +49,7 @@ import org.testng.annotations.Test;
 
 public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
   String db2 = TEST_DB + "2";
+  String db3 = TEST_DB + "3";
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;
 
@@ -97,6 +99,45 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
+    ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
+    Assert.assertEquals(ev.getPartitionSet().size(), 60);
+    for (String partition : ev.getPartitionSet()) {
+      Assert.assertEquals(ev.getStateMap(partition).size(), 1);
+    }
+    IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
+    for (String partition : is.getPartitionSet()) {
+      Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
+      Assert.assertEquals(is.getInstanceStateMap(partition).size(), 0);
+    }
+    Assert.assertTrue(testRebalancerCreated);
+    Assert.assertTrue(testRebalancerInvoked);
+  }
+
+  @Test
+  public void testCustomizedIdealStateRebalancer2() throws InterruptedException {
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+    idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.idealStates(TEST_DB), idealState);
+
+    // stop  one participant , no longer in liveinstance;
+    _participants[0].syncStop();
+
+    // enable that participant
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, _participants[0].getClusterName(),
+            _participants[0].getInstanceName());
+    participant.syncStart();
+
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, db2));
+    Assert.assertTrue(result);
+    Thread.sleep(1000);
+
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Assert.assertEquals(ev.getPartitionSet().size(), 60);
     for (String partition : ev.getPartitionSet()) {

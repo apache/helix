@@ -78,6 +78,7 @@ public class InstancesAccessor extends AbstractHelixResource {
     to_be_stopped_instances,
     skip_stoppable_check_list,
     customized_values,
+    preserve_order,
     instance_stoppable_parallel,
     instance_not_stoppable_with_reasons
   }
@@ -304,6 +305,11 @@ public class InstancesAccessor extends AbstractHelixResource {
             .asBoolean();
       }
 
+      boolean preserveOrder = false;
+      if (node.get(InstancesProperties.preserve_order.name()) != null) {
+        preserveOrder = node.get(InstancesProperties.preserve_order.name()).asBoolean();
+      }
+
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       if (selectionBase != InstanceHealthSelectionBase.non_zone_based) {
         if (!clusterService.isClusterTopologyAware(clusterId)) {
@@ -354,6 +360,7 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setMaintenanceService(maintenanceService)
               .setClusterTopology(clusterTopology)
               .setDataAccessor((ZKHelixDataAccessor) getDataAccssor(clusterId))
+              .setPreserveOrder(preserveOrder)
               .build();
       ObjectNode result;
 

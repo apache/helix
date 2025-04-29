@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -374,16 +375,23 @@ public class MaintenanceManagementService {
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent) throws IOException {
     return batchGetInstancesStoppableChecks(clusterId, instances, jsonContent,
-        Collections.emptySet());
+        Collections.emptySet(), false);
   }
 
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent, Set<String> toBeStoppedInstances) throws IOException {
-    Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
+    return batchGetInstancesStoppableChecks(clusterId, instances, jsonContent, toBeStoppedInstances,
+        false);
+  }
+
+  public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+      List<String> instances, String jsonContent, Set<String> toBeStoppedInstances,
+      boolean preserveOrder) throws IOException {
+    Map<String, StoppableCheck> finalStoppableChecks = new LinkedHashMap<>();
     // helix instance check.
     List<String> instancesForCustomInstanceLevelChecks =
         batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks,
-            toBeStoppedInstances);
+            toBeStoppedInstances, preserveOrder);
     // custom check, includes partition check.
     batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
         toBeStoppedInstances, finalStoppableChecks, getMapFromJsonPayload(jsonContent));
@@ -476,12 +484,16 @@ public class MaintenanceManagementService {
 
   private List<String> batchHelixInstanceStoppableCheck(String clusterId,
       Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks,
-      Set<String> toBeStoppedInstances) {
+      Set<String> toBeStoppedInstances, boolean preserveOrder) {
 
     // Perform all but min_active replicas check in parallel
     Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(
-        Collectors.toMap(Function.identity(), instance -> POOL.submit(
-            () -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances))));
+        Collectors.toMap(
+            Function.identity(),
+            instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances)),
+            (existing, replacement) -> existing,
+            preserveOrder ? LinkedHashMap::new : HashMap::new
+        ));
 
     // Perform min_active replicas check sequentially
     addMinActiveReplicaChecks(clusterId, helixInstanceChecks, toBeStoppedInstances);
@@ -618,7 +630,7 @@ public class MaintenanceManagementService {
         // this is helix own check
         instancesForNext =
             batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
-                Collections.emptySet());
+                Collections.emptySet(), false);
       } else if (healthCheck.equals(HELIX_CUSTOM_STOPPABLE_CHECK)) {
         // custom check, includes custom Instance check and partition check.
         instancesForNext =

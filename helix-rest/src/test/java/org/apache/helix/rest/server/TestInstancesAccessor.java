@@ -659,15 +659,16 @@ public class TestInstancesAccessor extends AbstractTestClass {
 
     // Run stoppable check against the 3 instances where SemiAuto DB was assigned
     String content =
-        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\"],\"%s\":%s}",
+        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\"]}",
             InstancesAccessor.InstancesProperties.selection_base.name(),
             InstancesAccessor.InstanceHealthSelectionBase.zone_based.name(),
-            InstancesAccessor.InstancesProperties.instances.name(), "instance1", "instance2", "instance0",
-            InstancesAccessor.InstancesProperties.preserve_order.name(),
-            preserveOrder);
-    Response response =
-        new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
-            STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+            InstancesAccessor.InstancesProperties.instances.name(), "instance1", "instance2", "instance0");
+    Response response = new JerseyUriRequestBuilder(String.format(
+        "clusters/%s/instances?command=stoppable&skipHealthCheckCategories=%s&preserveOrder=%s",
+        STOPPABLE_CLUSTER2,
+        "CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK",
+        preserveOrder))
+        .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
     JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
 
     String stoppableNode = "instance0";

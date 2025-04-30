@@ -63,19 +63,16 @@ public class StoppableInstancesSelector {
   private final MaintenanceManagementService _maintenanceService;
   private final ClusterTopology _clusterTopology;
   private final ZKHelixDataAccessor _dataAccessor;
-  private final boolean _preserveOrder;
 
   private StoppableInstancesSelector(String clusterId, List<String> orderOfZone,
       String customizedInput, MaintenanceManagementService maintenanceService,
-      ClusterTopology clusterTopology, ZKHelixDataAccessor dataAccessor,
-      boolean preserveOrder) {
+      ClusterTopology clusterTopology, ZKHelixDataAccessor dataAccessor) {
     _clusterId = clusterId;
     _orderOfZone = orderOfZone;
     _customizedInput = customizedInput;
     _maintenanceService = maintenanceService;
     _clusterTopology = clusterTopology;
     _dataAccessor = dataAccessor;
-    _preserveOrder = preserveOrder;
   }
 
   /**
@@ -86,14 +83,15 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be already stopped
+   * @param preserveOrder Indicates whether to preserve the original order of instances
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
-   *         a list of getZoneBasedInstancesreasons for non-stoppability as the value.
+   *         a list of reasons for non-stoppability as the value.
    * @throws IOException
    */
   public ObjectNode getStoppableInstancesInSingleZone(List<String> instances,
-      List<String> toBeStoppedInstances) throws IOException {
+      List<String> toBeStoppedInstances, boolean preserveOrder) throws IOException {
     ObjectNode result = JsonNodeFactory.instance.objectNode();
     ArrayNode stoppableInstances =
         result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
@@ -102,9 +100,9 @@ public class StoppableInstancesSelector {
     Set<String> toBeStoppedInstancesSet = findToBeStoppedInstances(toBeStoppedInstances);
 
     List<String> zoneBasedInstance =
-        getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
+        getZoneBasedInstances(instances, _clusterTopology.toZoneMapping(), preserveOrder);
     populateStoppableInstances(zoneBasedInstance, toBeStoppedInstancesSet, stoppableInstances,
-        failedStoppableInstances, _preserveOrder);
+        failedStoppableInstances, preserveOrder);
     processNonexistentInstances(instances, failedStoppableInstances);
 
     return result;
@@ -117,6 +115,7 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be already stopped
+   * @param preserveOrder Indicates whether to preserve the original order of instances
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
@@ -154,6 +153,7 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be already stopped
+   * @param preserveOrder Indicates whether to preserve the original order of instances
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
@@ -266,36 +266,37 @@ public class StoppableInstancesSelector {
    *
    * @param instances List of instances to be considered
    * @param zoneMapping Mapping from zone to instances
+   * @param preserveOrder Indicates whether to preserve the original order of instances
    * @return List of instances in the first non-empty zone. If preserveOrder is true, the original order
    *         of instances is maintained. If preserveOrder is false (default), instances are sorted lexicographically.
    */
   private List<String> getZoneBasedInstances(List<String> instances,
-      Map<String, Set<String>> zoneMapping) {
+      Map<String, Set<String>> zoneMapping, boolean preserveOrder) {
     if (_orderOfZone.isEmpty()) {
-      return _orderOfZone;
+      return Collections.emptyList();
     }
 
-    Set<String> instanceSet = null;
     for (String zone : _orderOfZone) {
-      if (_preserveOrder) {
-        List<String> filteredInstances = new ArrayList<>(instances);
-        Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone));
-        filteredInstances.removeIf(instance -> !currentZoneInstanceSet.contains(instance));
-        if (!filteredInstances.isEmpty()) {
-          return filteredInstances;
+      Set<String> currentZoneInstanceSet = zoneMapping.get(zone);
+      if (currentZoneInstanceSet == null || currentZoneInstanceSet.isEmpty()) {
+        continue;
+      }
+
+      // Filter instances based on current zone
+      List<String> filteredInstances = instances.stream()
+          .filter(currentZoneInstanceSet::contains)
+          .collect(Collectors.toList());
+
+      if (!filteredInstances.isEmpty()) {
+        // If preserve order is not required, return sorted list
+        if (!preserveOrder) {
+          Collections.sort(filteredInstances); // Lexicographical order
         }
-      } else {
-        // Original behavior - lexicographical ordering via TreeSet
-        instanceSet = new TreeSet<>(instances);
-        Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone));
-        instanceSet.retainAll(currentZoneInstanceSet);
-        if (!instanceSet.isEmpty()) {
-          return new ArrayList<>(instanceSet);
-        }
+        return filteredInstances;
       }
     }
 
-    return Collections.EMPTY_LIST;
+    return Collections.emptyList();
   }
 
   /**
@@ -343,7 +344,6 @@ public class StoppableInstancesSelector {
     private MaintenanceManagementService _maintenanceService;
     private ClusterTopology _clusterTopology;
     private ZKHelixDataAccessor _dataAccessor;
-    private boolean _preserveOrder = false; // Default to false for backward compatibility
 
     public StoppableInstancesSelectorBuilder setClusterId(String clusterId) {
       _clusterId = clusterId;
@@ -376,14 +376,9 @@ public class StoppableInstancesSelector {
       return this;
     }
 
-    public StoppableInstancesSelectorBuilder setPreserveOrder(boolean preserveOrder) {
-      _preserveOrder = preserveOrder;
-      return this;
-    }
-
     public StoppableInstancesSelector build() {
       return new StoppableInstancesSelector(_clusterId, _orderOfZone, _customizedInput,
-          _maintenanceService, _clusterTopology, _dataAccessor, _preserveOrder);
+          _maintenanceService, _clusterTopology, _dataAccessor);
     }
   }
 }

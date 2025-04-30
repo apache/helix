@@ -387,7 +387,7 @@ public class MaintenanceManagementService {
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent, Set<String> toBeStoppedInstances,
       boolean preserveOrder) throws IOException {
-    Map<String, StoppableCheck> finalStoppableChecks = new LinkedHashMap<>();
+    Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
     // helix instance check.
     List<String> instancesForCustomInstanceLevelChecks =
         batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks,

@@ -185,12 +185,7 @@ public class StoppableInstancesSelector {
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,
             _customizedInput, toBeStoppedInstances, preserveOrder);
-    // Print each instance and its isStoppable status
-    instancesStoppableChecks.forEach((instance, check) ->
-        System.out.println(instance + " -> isStoppable: " + check.isStoppable())
-    );
 
-    System.out.println("Just a BP");
     for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
       String instance = instanceStoppableCheck.getKey();
       StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();

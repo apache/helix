@@ -633,7 +633,8 @@ public class TestInstancesAccessor extends AbstractTestClass {
   }
 
   @Test(dataProvider = "preserveOrderProvider",
-        dependsOnMethods = "testMultipleReplicasInSameMZ")
+        dependsOnMethods = "testMultipleReplicasInSameMZ"
+  )
   public void testMultipleReplicasInSameMZWithPreserveOrder(boolean preserveOrder) throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Create SemiAuto DB so that we can control assignment

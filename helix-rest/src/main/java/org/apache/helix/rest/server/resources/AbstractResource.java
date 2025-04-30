@@ -90,6 +90,7 @@ public class AbstractResource {
     completeSwapIfPossible,
     onDemandRebalance,
     isEvacuateFinished,
+    isInstanceDrained,
     setPartitionsToError,
     forceKillInstance
   }

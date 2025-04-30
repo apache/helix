@@ -30,12 +30,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
@@ -75,6 +77,7 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -445,6 +448,36 @@ public class ZkTestBase {
       is.setPreferenceList(p, preferenceList);
     }
     clusterSetup.getClusterManagementTool().setResourceIdealState(clusterName, dbName, is);
+  }
+
+  protected void createResourceInCustomizedMode(ClusterSetup clusterSetup, String clusterName, String resourceName,
+      Map<Integer, String> partitionInstanceMap) {
+    IdealState idealState = new IdealState(resourceName);
+    idealState.setNumPartitions(partitionInstanceMap.size());
+    idealState.setStateModelDefRef(OnlineOfflineSMD.name);
+    idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
+    partitionInstanceMap.forEach((partitionID, instanceName) -> {
+      idealState.setPartitionState(resourceName + "_" + partitionID,
+          instanceName, OnlineOfflineSMD.States.ONLINE.toString());
+    });
+    clusterSetup.addResourceToCluster(clusterName, resourceName, idealState);
+  }
+
+  protected void removeAllResourcesFromInstance(MockParticipantManager participant, Set<String> excludeResourceNames) {
+    RealmAwareZkClient zkClient = participant.getZkClient();
+    String clusterName = participant.getClusterName();
+    String instanceName = participant.getInstanceName();
+    String sessionId = zkClient.getChildren(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName)).get(0);
+    List<String> resourceNames = zkClient.getChildren(
+        PropertyPathBuilder.instanceCurrentState(clusterName, instanceName, sessionId)
+    );
+    for (String resourceName : resourceNames) {
+      if (!excludeResourceNames.contains(resourceName)) {
+          String resourcePath = PropertyPathBuilder.instanceCurrentState(clusterName,
+              instanceName, sessionId, resourceName);
+          zkClient.delete(resourcePath);
+      }
+    }
   }
 
   /**

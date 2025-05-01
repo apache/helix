@@ -19,9 +19,11 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.Date;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
@@ -30,7 +32,11 @@ import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.rebalancer.TestAutoRebalance;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
@@ -41,6 +47,7 @@ import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -60,6 +67,11 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     createResourceWithDelayedRebalance(CLUSTER_NAME, TEST_DB, MasterSlaveSMD.name, _PARTITIONS,
         _replica, _replica - 1, 1800000, CrushEdRebalanceStrategy.class.getName());
+
+    // Create customized resource
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "db-customized", 64, MasterSlaveSMD.name,
+        IdealState.RebalanceMode.CUSTOMIZED.name());
+
     for (int i = 0; i < numNode; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
@@ -83,6 +95,8 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "db-customized", _replica);
+
     boolean result = ClusterStateVerifier.verifyByZkCallback(
         new TestAutoRebalance.ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
 
@@ -103,7 +117,7 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setErrorPartitionThresholdForLoadBalance(100000);
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    
+
     for (int i = 0; i < (NODE_NR + 1) / 2; i++) {
       _participants[i].syncStop();
       Thread.sleep(2000);
@@ -116,8 +130,10 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
       participant.syncStart();
       _participants[i] = participant;
     }
+    // verify full auto converged
     HelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).setResources(
+                Collections.singleton(TEST_DB))
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(((BestPossibleExternalViewVerifier) verifier).verifyByPolling());
@@ -127,6 +143,17 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
     }
 
     Assert.assertTrue(((BestPossibleExternalViewVerifier) verifier).verifyByPolling());
+
+    // verify customized external view has 3 replica for each partition
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    ExternalView externalView =
+        accessor
+            .getProperty( accessor.keyBuilder().externalView("db-customized"));
+    Assert.assertEquals(externalView.getRecord().getMapFields().size(), 64);
+    for(String partition : externalView.getRecord().getMapFields().keySet()) {
+      Assert.assertEquals(externalView.getRecord().getMapField(partition).size(), 3);
+    }
   }
 
 

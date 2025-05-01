@@ -122,6 +122,33 @@ public class TestClusterAccessor extends AbstractTestClass {
       updateClusterConfigFromRest(cluster, newConfig, Command.update);
     }
 
+    // Update the topology path string to NULL. This request should go through since the
+    // topology aware is not enabled.
+    {
+      ClusterConfig newConfig = new ClusterConfig(config.getRecord());
+      newConfig.setTopology(null);
+      newConfig.setFaultZoneType(null);
+      newConfig.setTopologyAwareEnabled(false);
+      updateClusterConfigFromRest(cluster, newConfig, Command.update);
+    }
+
+    // Now update the config while keeping the topology path and fault zone unchanged (it's still NULL)
+    {
+      ClusterConfig newConfig = new ClusterConfig(config.getClusterName());
+      newConfig.setTopologyAwareEnabled(true);
+      _auditLogger.clearupLogs();
+      Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()),
+          MediaType.APPLICATION_JSON_TYPE);
+      post("clusters/" + cluster + "/configs", ImmutableMap.of("command", Command.update.name()),
+          entity, Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+
+      validateAuditLogSize(1);
+      AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
+      Assert.assertEquals(auditLog.getHttpMethod(), HTTPMethods.POST.name());
+      Assert.assertEquals(auditLog.getRequestPath(), "clusters/" + cluster + "/configs");
+      Assert.assertEquals(auditLog.getExceptions().size(), 1);
+    }
+
     // Restore the cluster config
     updateClusterConfigFromRest(cluster, config, Command.update);
 

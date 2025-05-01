@@ -1279,18 +1279,27 @@ public class ClusterAccessor extends AbstractHelixResource {
       updatedConfig.getRecord().update(newClusterConfig.getRecord());
     }
 
-    boolean isTopologySettingChanged =
-        (!oldConfig.isTopologyAwareEnabled() && updatedConfig.isTopologyAwareEnabled())
-            || (oldConfig.getTopology() != null && !oldConfig.getTopology().equals(updatedConfig.getTopology()))
-            || (oldConfig.getFaultZoneType() != null && !oldConfig.getFaultZoneType().equals(updatedConfig.getFaultZoneType()));
+    // Only validate the topology related settings if the topology aware is enabled.
+    if (updatedConfig.isTopologyAwareEnabled()) {
+      boolean isTopologyAwareChanged =
+          !oldConfig.isTopologyAwareEnabled() && updatedConfig.isTopologyAwareEnabled();
+      boolean isTopologyPathChanged =
+          (oldConfig.getTopology() == null && newClusterConfig.getTopology() != null) || (
+              oldConfig.getTopology() != null && !oldConfig.getTopology()
+                  .equals(updatedConfig.getTopology()));
+      boolean isFaultZoneTypeChanged =
+          (oldConfig.getFaultZoneType() == null && newClusterConfig.getFaultZoneType() != null) || (
+              oldConfig.getFaultZoneType() != null && !oldConfig.getFaultZoneType()
+                  .equals(updatedConfig.getFaultZoneType()));
 
-    if (updatedConfig.isTopologyAwareEnabled() && isTopologySettingChanged) {
-      HelixDataAccessor dataAccessor = getDataAccssor(clusterName);
-      PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
-      List<InstanceConfig> instanceConfigs = dataAccessor.getChildValues(keyBuilder.instanceConfigs(), true);
-      for (InstanceConfig instanceConfig : instanceConfigs) {
-        instanceConfig.validateTopologySettingInInstanceConfig(newClusterConfig,
-            instanceConfig.getInstanceName());
+      if (isTopologyAwareChanged || isTopologyPathChanged || isFaultZoneTypeChanged) {
+        HelixDataAccessor dataAccessor = getDataAccssor(clusterName);
+        PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+        List<InstanceConfig> instanceConfigs = dataAccessor.getChildValues(keyBuilder.instanceConfigs(), true);
+        for (InstanceConfig instanceConfig : instanceConfigs) {
+          instanceConfig.validateTopologySettingInInstanceConfig(newClusterConfig,
+              instanceConfig.getInstanceName());
+        }
       }
     }
   }

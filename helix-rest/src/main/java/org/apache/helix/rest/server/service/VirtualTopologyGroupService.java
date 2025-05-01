@@ -202,10 +202,11 @@ public class VirtualTopologyGroupService {
 
   @VisibleForTesting
   static String computeVirtualTopologyString(ClusterConfig clusterConfig) {
-    ClusterTopologyConfig clusterTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
-    String endNodeType = clusterTopologyConfig.getEndNodeType();
-    String[] splits = new String[] {"", computeVirtualFaultZoneTypeKey(clusterConfig.getFaultZoneType()), endNodeType};
-    return String.join(VirtualTopologyGroupConstants.PATH_NAME_SPLITTER, splits);
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
+    String topologyString = clusterConfig.getTopology();
+    return clusterTopologyConfig.replaceFaultZoneInTopologyString(topologyString,
+        computeVirtualFaultZoneTypeKey(clusterConfig.getFaultZoneType()));
   }
 
   /**

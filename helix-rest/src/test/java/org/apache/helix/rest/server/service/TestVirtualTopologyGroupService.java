@@ -188,6 +188,16 @@ public class TestVirtualTopologyGroupService {
         "/zone_virtualZone/instance");
   }
 
+  @Test
+  public void testVirtualTopologyStringMulti() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setTopologyAwareEnabled(true);
+    testConfig.setTopology("/testZone/instance/appInstance");
+    testConfig.setFaultZoneType("testZone");
+    Assert.assertEquals(VirtualTopologyGroupService.computeVirtualTopologyString(testConfig),
+        "/testZone_virtualZone/instance/appInstance");
+  }
+
   private static ClusterTopology prepareClusterTopology() {
     List<ClusterTopology.Zone> zones = ImmutableList.of(
         new ClusterTopology.Zone("zone0", ImmutableList.of(

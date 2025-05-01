@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 
-
 public class ClusterTopologyConfig {
   private static final String DEFAULT_DOMAIN_PREFIX = "Helix_default_";
   private static final String TOPOLOGY_SPLITTER = "/";
@@ -81,6 +80,26 @@ public class ClusterTopologyConfig {
       }
     }
     return new ClusterTopologyConfig(true, endNodeType, faultZoneType, topologyKeyDefaultValue);
+  }
+
+  /**
+   * Replace the fault zone in the given topology string with the new fault zone.
+   *
+   * @param topologyString the topology string to be modified
+   * @param newFaultZone the new fault zone to be set
+   * @return the modified topology string
+   */
+  public String replaceFaultZoneInTopologyString(String topologyString, String newFaultZone) {
+    if (topologyString == null || topologyString.isEmpty()) {
+      throw new IllegalArgumentException("Topology string cannot be null or empty");
+    }
+    String[] newTopologyString = topologyString.split(TOPOLOGY_SPLITTER);
+    for (int i = 0; i < newTopologyString.length; i++) {
+      if (newTopologyString[i].equals(_faultZoneType)) {
+        newTopologyString[i] = newFaultZone;
+      }
+    }
+    return String.join(TOPOLOGY_SPLITTER, newTopologyString);
   }
 
   public boolean isTopologyAwareEnabled() {

@@ -118,18 +118,19 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   }
 
   private Optional<AssignableNode> getNodeWithHighestPoints(AssignableReplica replica,
-      List<AssignableNode> assignableNodes, ClusterContext clusterContext,
-      Set<String> busyInstances, OptimalAssignment optimalAssignment) {
-    Map<AssignableNode, List<HardConstraint>> hardConstraintFailures = new ConcurrentHashMap<>();
+      List<AssignableNode> assignableNodes, ClusterContext clusterContext, Set<String> busyInstances,
+      OptimalAssignment optimalAssignment) {
+    Map<AssignableNode, List<HardConstraint>> hardConstraintFailures = new ConcurrentHashMap<>(assignableNodes.size());
     List<AssignableNode> candidateNodes = assignableNodes.parallelStream().filter(candidateNode -> {
       boolean isValid = true;
-      // need to record all the failure reasons and it gives us the ability to debug/fix the runtime
-      // cluster environment
       for (HardConstraint hardConstraint : _hardConstraints) {
         if (!hardConstraint.isAssignmentValid(candidateNode, replica, clusterContext)) {
-          hardConstraintFailures.computeIfAbsent(candidateNode, node -> new ArrayList<>())
-              .add(hardConstraint);
+          if (!hardConstraintFailures.containsKey(candidateNode)) {
+            hardConstraintFailures.put(candidateNode, new ArrayList<>());
+          }
+          hardConstraintFailures.get(candidateNode).add(hardConstraint);
           isValid = false;
+          break;
         }
       }
       return isValid;

@@ -1281,23 +1281,26 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     // Only validate the topology related settings if the topology aware is enabled.
     if (updatedConfig.isTopologyAwareEnabled()) {
+      if (updatedConfig.getTopology() == null || updatedConfig.getFaultZoneType() == null) {
+        throw new IllegalArgumentException(
+            "Topology and fault zone type must be set when topology aware is enabled.");
+      }
+
       boolean isTopologyAwareChanged =
           !oldConfig.isTopologyAwareEnabled() && updatedConfig.isTopologyAwareEnabled();
       boolean isTopologyPathChanged =
-          (oldConfig.getTopology() == null && newClusterConfig.getTopology() != null) || (
-              oldConfig.getTopology() != null && !oldConfig.getTopology()
-                  .equals(updatedConfig.getTopology()));
+          oldConfig.getTopology() == null || (oldConfig.getTopology() != null
+              && !oldConfig.getTopology().equals(updatedConfig.getTopology()));
       boolean isFaultZoneTypeChanged =
-          (oldConfig.getFaultZoneType() == null && newClusterConfig.getFaultZoneType() != null) || (
-              oldConfig.getFaultZoneType() != null && !oldConfig.getFaultZoneType()
-                  .equals(updatedConfig.getFaultZoneType()));
+          oldConfig.getFaultZoneType() == null || (oldConfig.getFaultZoneType() != null
+              && !oldConfig.getFaultZoneType().equals(updatedConfig.getFaultZoneType()));
 
       if (isTopologyAwareChanged || isTopologyPathChanged || isFaultZoneTypeChanged) {
         HelixDataAccessor dataAccessor = getDataAccssor(clusterName);
         PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
         List<InstanceConfig> instanceConfigs = dataAccessor.getChildValues(keyBuilder.instanceConfigs(), true);
         for (InstanceConfig instanceConfig : instanceConfigs) {
-          instanceConfig.validateTopologySettingInInstanceConfig(newClusterConfig,
+          instanceConfig.validateTopologySettingInInstanceConfig(updatedConfig,
               instanceConfig.getInstanceName());
         }
       }

@@ -1179,7 +1179,15 @@ public class ZKHelixAdmin implements HelixAdmin {
       Map<String, String> customFields) {
     processMaintenanceMode(clusterName, enabled, reason,
         MaintenanceSignal.AutoTriggerReason.NOT_APPLICABLE, customFields,
-        MaintenanceSignal.TriggeringEntity.USER);
+        MaintenanceSignal.TriggeringEntity.USER, -1);
+  }
+
+  @Override
+  public void manuallyEnableMaintenanceModeWithTimeout(String clusterName, boolean enabled,
+      String reason, long timeout, Map<String, String> customFields) {
+    processMaintenanceMode(clusterName, enabled, reason,
+        MaintenanceSignal.AutoTriggerReason.NOT_APPLICABLE, customFields,
+        MaintenanceSignal.TriggeringEntity.USER, timeout);
   }
 
   /**
@@ -1195,6 +1203,26 @@ public class ZKHelixAdmin implements HelixAdmin {
       final String reason, final MaintenanceSignal.AutoTriggerReason internalReason,
       final Map<String, String> customFields,
       final MaintenanceSignal.TriggeringEntity triggeringEntity) {
+    processMaintenanceMode(clusterName, enabled, reason, internalReason, customFields,
+        triggeringEntity, -1);
+  }
+
+  /**
+   * Helper method for enabling/disabling maintenance mode.
+   * @param clusterName
+   * @param enabled
+   * @param reason
+   * @param internalReason
+   * @param customFields
+   * @param triggeringEntity
+   * @param timeout time in milliseconds after which maintenance mode should be exited automatically.
+   *                Only applicable when enabled is true. Set to -1 for no automatic exit.
+   */
+  private void processMaintenanceMode(String clusterName, final boolean enabled,
+      final String reason, final MaintenanceSignal.AutoTriggerReason internalReason,
+      final Map<String, String> customFields,
+      final MaintenanceSignal.TriggeringEntity triggeringEntity,
+      final long timeout) {
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
@@ -1212,6 +1240,15 @@ public class ZKHelixAdmin implements HelixAdmin {
       }
       maintenanceSignal.setTimestamp(currentTime);
       maintenanceSignal.setTriggeringEntity(triggeringEntity);
+
+      // Set end time if timeout is provided
+      if (timeout > 0) {
+        long endTime = currentTime + timeout;
+        maintenanceSignal.setEndTime(endTime);
+      } else {
+        maintenanceSignal.setEndTime(-1); // No automatic exit
+      }
+
       switch (triggeringEntity) {
         case CONTROLLER:
           // autoEnable
@@ -1233,6 +1270,23 @@ public class ZKHelixAdmin implements HelixAdmin {
       }
       if (!accessor.createMaintenance(maintenanceSignal)) {
         throw new HelixException("Failed to create maintenance signal!");
+      }
+
+      // If timeout is provided, create a /CONTROLLER/MAINTENANCE_TTL that is a PERSISTENT_WITH_TTL znode
+      if (timeout > 0) {
+        try {
+          String maintenanceTTLPath = "/" + clusterName + "/CONTROLLER/MAINTENANCE_TTL";
+          ZNRecord record = new ZNRecord("MAINTENANCE_TTL");
+
+          boolean success = ((ZkBaseDataAccessor<ZNRecord>) accessor.getBaseDataAccessor())
+              .create(maintenanceTTLPath, record, AccessOption.PERSISTENT_WITH_TTL, (int)(timeout / 1000));
+
+          if (!success) {
+            logger.warn("Failed to create TTL znode for maintenance mode. Auto exit may not work.");
+          }
+        } catch (Exception e) {
+          logger.warn("Failed to create TTL znode for maintenance mode. Auto exit may not work. ", e);
+        }
       }
     }
 

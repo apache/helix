@@ -1241,14 +1241,6 @@ public class ZKHelixAdmin implements HelixAdmin {
       maintenanceSignal.setTimestamp(currentTime);
       maintenanceSignal.setTriggeringEntity(triggeringEntity);
 
-      // Set end time if timeout is provided
-      if (timeout > 0) {
-        long endTime = currentTime + timeout;
-        maintenanceSignal.setEndTime(endTime);
-      } else {
-        maintenanceSignal.setEndTime(-1); // No automatic exit
-      }
-
       switch (triggeringEntity) {
         case CONTROLLER:
           // autoEnable
@@ -1268,18 +1260,19 @@ public class ZKHelixAdmin implements HelixAdmin {
           }
           break;
       }
-      if (!accessor.createMaintenance(maintenanceSignal)) {
-        throw new HelixException("Failed to create maintenance signal!");
-      }
 
-      // If timeout is provided, create a /CONTROLLER/MAINTENANCE_TTL that is a PERSISTENT_WITH_TTL znode
       if (timeout > 0) {
+        // Set end time if timeout is provided
+        long endTime = currentTime + timeout;
+        maintenanceSignal.setEndTime(endTime);
+
+        // If timeout is provided, create a /CONTROLLER/MAINTENANCE_TTL that is a PERSISTENT_WITH_TTL znode
         try {
           String maintenanceTTLPath = "/" + clusterName + "/CONTROLLER/MAINTENANCE_TTL";
           ZNRecord record = new ZNRecord("MAINTENANCE_TTL");
 
           boolean success = ((ZkBaseDataAccessor<ZNRecord>) accessor.getBaseDataAccessor())
-              .create(maintenanceTTLPath, record, AccessOption.PERSISTENT_WITH_TTL, (int)(timeout / 1000));
+              .create(maintenanceTTLPath, record, AccessOption.PERSISTENT_WITH_TTL, timeout);
 
           if (!success) {
             logger.warn("Failed to create TTL znode for maintenance mode. Auto exit may not work.");
@@ -1287,6 +1280,10 @@ public class ZKHelixAdmin implements HelixAdmin {
         } catch (Exception e) {
           logger.warn("Failed to create TTL znode for maintenance mode. Auto exit may not work. ", e);
         }
+      }
+
+      if (!accessor.createMaintenance(maintenanceSignal)) {
+        throw new HelixException("Failed to create maintenance signal!");
       }
     }
 

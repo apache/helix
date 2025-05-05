@@ -1,14 +1,11 @@
 package org.apache.helix.integration;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -36,6 +33,7 @@ public class TestPreserveAssignmentsOnRebalanceFailure extends ZkTestBase {
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     for (int i = 0; i < PARTICIPANT_COUNT; i++) {
       String instanceName = "localhost_" + i;
+      addParticipant(CLUSTER_NAME, instanceName);
       InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName);
       instanceConfig.setDomain("zone=zone" + i);
       _configAccessor.setInstanceConfig(CLUSTER_NAME, instanceName, instanceConfig);

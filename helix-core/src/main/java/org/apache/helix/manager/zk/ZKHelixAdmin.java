@@ -1270,7 +1270,8 @@ public class ZKHelixAdmin implements HelixAdmin {
         try {
           String maintenanceTTLPath = "/" + clusterName + "/CONTROLLER/MAINTENANCE_TTL";
           ZNRecord record = new ZNRecord("MAINTENANCE_TTL");
-
+          record.setLongField("TIMEOUT_MS", timeout);
+          record.setLongField("END_TIME", currentTime + timeout);
           boolean success = ((ZkBaseDataAccessor<ZNRecord>) accessor.getBaseDataAccessor())
               .create(maintenanceTTLPath, record, AccessOption.PERSISTENT_WITH_TTL, timeout);
 

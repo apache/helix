@@ -492,6 +492,9 @@ public class MaintenanceManagementService {
             Function.identity(),
             instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances)),
             (existing, replacement) -> existing,
+            // Use LinkedHashMap when preserveOrder is true as we need to preserve the order of instances.
+            // This is important for addMinActiveReplicaChecks which processes instances sequentially,
+            // and the order of processing can affect which instances pass the min active replica check
             preserveOrder ? LinkedHashMap::new : HashMap::new
         ));
 

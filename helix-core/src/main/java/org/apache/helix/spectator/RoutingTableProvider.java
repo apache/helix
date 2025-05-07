@@ -64,6 +64,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.RoutingTableProviderMonitor;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -971,7 +972,7 @@ public class RoutingTableProvider
       // restrict running report task count to be 1.
       // Any parallel tasks will be skipped. So the reporting metric data is sampled.
       if (_reportingTask == null || _reportingTask.isDone()) {
-        _reportingTask = _reportExecutor.submit(new Callable<Object>() {
+        _reportingTask = _reportExecutor.submit(ExecutorTaskUtil.wrap(new Callable<Object>() {
           @Override
           public Object call() {
             // getNewCurrentStateEndTimes() needs to iterate all current states. Make it async to
@@ -1000,7 +1001,7 @@ public class RoutingTableProvider
             }
             return null;
           }
-        });
+        }));
       }
     }
 

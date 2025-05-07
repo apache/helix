@@ -47,6 +47,7 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.helix.cloud.constants.VirtualTopologyGroupConstants.PATH_NAME_SPLITTER;
 import static org.apache.helix.util.VirtualTopologyUtil.computeVirtualFaultZoneTypeKey;
 
 /**
@@ -200,12 +201,31 @@ public class VirtualTopologyGroupService {
     LOG.info("Successfully update instance and cluster config for {}", clusterName);
   }
 
+  /**
+   * Compute the virtual topology string based on the cluster config by replacing the old fault zone
+   * with the new virtual topology fault zone key.
+   *
+   * @param clusterConfig cluster config for the cluster.
+   * @return the updated virtual topology string.
+   */
   @VisibleForTesting
   static String computeVirtualTopologyString(ClusterConfig clusterConfig) {
-    ClusterTopologyConfig clusterTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
-    String endNodeType = clusterTopologyConfig.getEndNodeType();
-    String[] splits = new String[] {"", computeVirtualFaultZoneTypeKey(clusterConfig.getFaultZoneType()), endNodeType};
-    return String.join(VirtualTopologyGroupConstants.PATH_NAME_SPLITTER, splits);
+    ClusterTopologyConfig clusterTopologyConfig =
+        ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
+    String topologyString = clusterConfig.getTopology();
+
+    if (topologyString == null || topologyString.isEmpty()) {
+      throw new IllegalArgumentException("Topology string cannot be null or empty");
+    }
+
+    String newFaultZone = computeVirtualFaultZoneTypeKey(clusterConfig.getFaultZoneType());
+    String[] newTopologyString = topologyString.split(PATH_NAME_SPLITTER);
+    for (int i = 0; i < newTopologyString.length; i++) {
+      if (newTopologyString[i].equals(clusterTopologyConfig.getFaultZoneType())) {
+        newTopologyString[i] = newFaultZone;
+      }
+    }
+    return String.join(PATH_NAME_SPLITTER, newTopologyString);
   }
 
   /**

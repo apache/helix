@@ -797,7 +797,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // see if instance has pending message.
-    List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName), true);
+    List<String> messages = accessor.getChildNames(keyBuilder.messages(instanceName));
     if (messages != null && !messages.isEmpty()) {
       logger.warn("Instance {} in cluster {} has pending messages.", instanceName, clusterName);
       return true;

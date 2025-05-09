@@ -86,6 +86,7 @@ public class PropertyKey {
   public PropertyType _type;
   private final String[] _params;
   Class<? extends HelixProperty> _typeClazz;
+  private String _path;
 
   // if type is CONFIGS, set configScope; otherwise null
   ConfigScopeProperty _configScope;
@@ -110,15 +111,18 @@ public class PropertyKey {
    */
   public PropertyKey(PropertyType type, ConfigScopeProperty configScope,
       Class<? extends HelixProperty> typeClazz, String... params) {
-    _type = type;
     if (params == null || params.length == 0 || Arrays.asList(params).contains(null)) {
       throw new IllegalArgumentException("params cannot be null");
     }
 
+    _type = type;
     _params = params;
     _typeClazz = typeClazz;
-
     _configScope = configScope;
+    _path = PropertyPathBuilder.getPath(_type, _params[0], Arrays.copyOfRange(_params, 1, _params.length));
+    if (_path == null) {
+      LOG.error("Invalid property key with type: {} subKeys: {}", _type, Arrays.toString(_params));
+    }
   }
 
   @Override
@@ -165,13 +169,7 @@ public class PropertyKey {
    * @return absolute path to the property
    */
   public String getPath() {
-    String clusterName = _params[0];
-    String[] subKeys = Arrays.copyOfRange(_params, 1, _params.length);
-    String path = PropertyPathBuilder.getPath(_type, clusterName, subKeys);
-    if (path == null) {
-      LOG.error("Invalid property key with type:" + _type + "subKeys:" + Arrays.toString(_params));
-    }
-    return path;
+    return _path;
   }
 
   /**

@@ -135,12 +135,13 @@ public class CustomRebalancer extends AbstractRebalancer<ResourceControllerDataP
           && !HelixDefinedState.ERROR.toString().equals(currentStateMap.get(instance));
       boolean enabled = !disabledInstancesForPartition.contains(instance) && isResourceEnabled;
       InstanceConfig instanceConfig = cache.getInstanceConfigMap().get(instance);
-      boolean isInstanceEvacuated = instanceConfig != null &&
+      boolean hasEvacuatedOp = instanceConfig != null &&
           instanceConfig.getInstanceOperation().getOperation() == InstanceConstants.InstanceOperation.EVACUATE;
+      boolean isAssignableForCustomizedResource = cache.getLiveInstances().containsKey(instance) && hasEvacuatedOp;
       // Note: if instance is not live, the mapping for that instance will not show up in
       // BestPossibleMapping (and ExternalView)
       // if instance is evacuated keep the instanceStateMap same as idealStateMap
-      if ((assignableLiveInstancesMap.containsKey(instance) || isInstanceEvacuated) && notInErrorState) {
+      if ((assignableLiveInstancesMap.containsKey(instance) || isAssignableForCustomizedResource) && notInErrorState) {
         if (enabled) {
           instanceStateMap.put(instance, idealStateMap.get(instance));
         } else {

@@ -317,6 +317,8 @@ public class ClusterAccessor extends AbstractHelixResource {
         // Try to parse the content string. If parseable, use it as a KV mapping. Otherwise, treat it
         // as a REASON String
         Map<String, String> customFieldsMap = null;
+        // Default to USER triggering entity
+        boolean isAutomationTriggered = false;
         try {
           // Try to parse content
           customFieldsMap =
@@ -328,13 +330,24 @@ public class ClusterAccessor extends AbstractHelixResource {
             if ("reason".equalsIgnoreCase(entry.getKey())) {
               content = entry.getValue();
             }
+            if ("isAutomation".equalsIgnoreCase(entry.getKey())) {
+              isAutomationTriggered = Boolean.parseBoolean(entry.getValue());
+            }
           }
         } catch (Exception e) {
           // NOP
         }
-        helixAdmin
-            .manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
-                content, customFieldsMap);
+
+        // Choose the appropriate method based on the triggering entity
+        if (isAutomationTriggered) {
+          helixAdmin
+              .automationEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
+                  content, customFieldsMap);
+        } else {
+          helixAdmin
+              .manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
+                  content, customFieldsMap);
+        }
         break;
       case enableWagedRebalanceForAllResources:
         // Enable WAGED rebalance for all resources in the cluster

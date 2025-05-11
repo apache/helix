@@ -899,4 +899,101 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify we're out of maintenance mode completely
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
   }
+
+  /**
+   * Old client overrides simple fields after new clients enter MM,
+   * then new client exits but should not exit maintenance mode completely
+   * 1. AUTOMATION enters MM (new client)
+   * 2. USER enters MM again (old client - only updates simple fields)
+   * 3. AUTOMATION exits MM
+   * 4. Verify we're still in maintenance mode because USER reason remains
+   */
+  @Test
+  public void testMultiActorMaintenanceModeOldClientOverride() throws Exception {
+    // Step 1: AUTOMATION enters MM (t2)
+    Thread.sleep(10); // Ensure different timestamps
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "AUTOMATION reason", null);
+
+    // Verify maintenance signal has only AUTOMATION reason.
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Step 2: USER enters MM (t3) via old client (only updates simple fields)
+    Thread.sleep(10);
+    long t3 = System.currentTimeMillis();
+    // Simulate an old client by creating a MaintenanceSignal with only simple fields
+    ZNRecord record = new ZNRecord(signal.getRecord());
+    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "USER old client reason");
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(), String.valueOf(t3));
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
+        MaintenanceSignal.TriggeringEntity.USER.name());
+    // Don't update the listField - simulate old client behavior
+
+    // Write it directly to ZK
+    _dataAccessor.setProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
+
+    // Verify the simple fields were updated but the reasons list still has old USER entry
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "USER old client reason");
+
+    // MaintenanceReasonsCount should still be 2 because the old client didn't update the reasons list
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+
+    // Step 3: AUTOMATION exits MM
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+
+    // Verify we're still in maintenance mode because USER reason remains
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Check that simple fields were updated to USER values
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "USER old client reason");
+
+    // Clean up
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Entity tries to exit MM without having entered it
+   * 1. AUTOMATION enters MM
+   * 2. USER tries to exit MM (shouldn't affect MM state)
+   * 3. Verify we're still in maintenance mode because USER wasn't an actor
+   * 4. AUTOMATION exits MM
+   * 5. Verify we're out of maintenance mode
+   */
+  @Test
+  public void testMultiActorMaintenanceModeInvalidExit() throws Exception {
+    // Step 1: AUTOMATION enters MM
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true, "AUTOMATION reason", null);
+
+    // Verify maintenance signal with AUTOMATION reason
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Step 2: USER tries to exit MM (shouldn't affect MM state)
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+
+    // Step 3: Verify we're still in maintenance mode
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Step 4: AUTOMATION exits MM
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+
+    // Step 5: Verify we're out of maintenance mode
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
 }

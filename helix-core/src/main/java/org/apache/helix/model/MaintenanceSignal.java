@@ -141,18 +141,15 @@ public class MaintenanceSignal extends PauseSignal {
     LOG.info("Adding maintenance reason for entity: {}, reason: {}, timestamp: {}",
         triggeringEntity, reason, timestamp);
 
-    // The triggering entity is our unique key - we will overwrite any existing entry with this entity
+    // The triggering entity is our unique key - Overwrite any existing entry with this entity
     String triggerEntityStr = triggeringEntity.name();
 
-    // Get the current list of reasons
     List<Map<String, String>> reasons = getMaintenanceReasons();
     LOG.debug("Before addition: Reasons list contains {} entries", reasons.size());
 
-    // Check if we already have a reason for this entity
     boolean found = false;
     for (Map<String, String> entry : reasons) {
       if (triggerEntityStr.equals(entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name()))) {
-        // Update the existing entry
         entry.put(PauseSignalProperty.REASON.name(), reason);
         entry.put(MaintenanceSignalProperty.TIMESTAMP.name(), Long.toString(timestamp));
         found = true;
@@ -161,7 +158,6 @@ public class MaintenanceSignal extends PauseSignal {
       }
     }
 
-    // If we didn't find an entry, add a new one
     if (!found) {
       Map<String, String> newEntry = new HashMap<>();
       newEntry.put(PauseSignalProperty.REASON.name(), reason);
@@ -171,7 +167,6 @@ public class MaintenanceSignal extends PauseSignal {
       LOG.debug("Added new entry for entity: {}", triggeringEntity);
     }
 
-    // Update the ZNRecord with our updated list
     updateReasonsListField(reasons);
     LOG.debug("After addition: Reasons list contains {} entries", reasons.size());
 
@@ -208,7 +203,6 @@ public class MaintenanceSignal extends PauseSignal {
       return new ObjectMapper().writeValueAsString(map);
     } catch (IOException e) {
       LOG.warn("Failed to convert map to JSON string: {}", e.getMessage());
-      // Fallback to a simple representation if JSON serialization fails
       return "";
     }
   }
@@ -234,7 +228,6 @@ public class MaintenanceSignal extends PauseSignal {
         reasons.add(entry);
       }
     } else {
-      // Parse each entry as a JSON-formatted string
       for (String entryStr : reasonsList) {
         Map<String, String> entry = parseJsonStyleEntry(entryStr);
         if (!entry.isEmpty()) {
@@ -273,10 +266,8 @@ public class MaintenanceSignal extends PauseSignal {
     // that might not have updated the reasons list
     reconcileMaintenanceData();
 
-    // Get the current list of reasons (after reconciliation)
     List<Map<String, String>> reasons = getMaintenanceReasons();
 
-    // Check if this entity exists in the reasons list
     boolean entityExists = false;
     for (Map<String, String> entry : reasons) {
       String entryEntity = entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name());
@@ -286,7 +277,6 @@ public class MaintenanceSignal extends PauseSignal {
       }
     }
 
-    // If the entity doesn't exist in reasons list, ignore the removal request
     if (!entityExists) {
       LOG.info("Entity {} doesn't have a maintenance reason entry, ignoring exit request", triggeringEntity);
       return false;
@@ -295,7 +285,6 @@ public class MaintenanceSignal extends PauseSignal {
     int originalSize = reasons.size();
     LOG.debug("Before removal: Reasons list contains {} entries", reasons.size());
 
-    // Create a new list to avoid modifying the original during iteration
     List<Map<String, String>> updatedReasons = new ArrayList<>();
     String targetEntity = triggeringEntity.name();
 
@@ -314,7 +303,6 @@ public class MaintenanceSignal extends PauseSignal {
     LOG.debug("After removal: Reasons list contains {} entries", updatedReasons.size());
 
     if (removed) {
-      // Update the ZNRecord with the new reasons
       updateReasonsListField(updatedReasons);
 
       // Update the simpleFields with the most recent reason (for backward compatibility)
@@ -326,7 +314,6 @@ public class MaintenanceSignal extends PauseSignal {
           return Long.compare(t2, t1);
         });
 
-        // Update simple fields with the most recent
         Map<String, String> mostRecent = updatedReasons.get(0);
         String newReason = mostRecent.get(PauseSignalProperty.REASON.name());
         long newTimestamp = Long.parseLong(mostRecent.get(MaintenanceSignalProperty.TIMESTAMP.name()));
@@ -374,8 +361,6 @@ public class MaintenanceSignal extends PauseSignal {
     long simpleTimestamp = getTimestamp();
     TriggeringEntity simpleTriggeringEntity = getTriggeringEntity();
 
-    // Look at the raw reasons list - don't use getMaintenanceReasons() as it already
-    // synthesizes entries from simple fields which would create a circular dependency
     List<String> rawReasonsList = _record.getListField(REASONS_LIST_FIELD);
     List<Map<String, String>> parsedReasons = new ArrayList<>();
 
@@ -383,7 +368,6 @@ public class MaintenanceSignal extends PauseSignal {
     boolean needsUpdate = (rawReasonsList == null);
 
     if (rawReasonsList != null) {
-      // Parse each entry to check if our simple fields already have a corresponding entry
       for (String entryStr : rawReasonsList) {
         Map<String, String> entry = parseJsonStyleEntry(entryStr);
         if (!entry.isEmpty()) {
@@ -396,7 +380,6 @@ public class MaintenanceSignal extends PauseSignal {
     boolean alreadyPresent = false;
     for (Map<String, String> entry : parsedReasons) {
       if (simpleTriggeringEntity.name().equals(entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name()))) {
-        // Check if timestamps are different
         long entryTimestamp = Long.parseLong(entry.get(MaintenanceSignalProperty.TIMESTAMP.name()));
         if (simpleTimestamp > entryTimestamp) {
           // If simple field timestamp is newer, update the entry
@@ -424,7 +407,6 @@ public class MaintenanceSignal extends PauseSignal {
     }
 
     if (needsUpdate) {
-      // Update the ZNRecord with the new reasons
       updateReasonsListField(parsedReasons);
       LOG.debug("Updated reasons list after reconciliation, now contains {} entries",
           parsedReasons.size());

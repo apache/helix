@@ -1257,23 +1257,29 @@ public class ZKHelixAdmin implements HelixAdmin {
       maintenanceSignal.setTimestamp(currentTime);
       maintenanceSignal.setTriggeringEntity(triggeringEntity);
 
-      // For CONTROLLER type, set the auto trigger reason
-      if (triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER) {
-        maintenanceSignal.setAutoTriggerReason(internalReason);
-      } else if (customFields != null && !customFields.isEmpty()) {
-        // For other types, add custom fields if provided
-        Map<String, String> simpleFields = maintenanceSignal.getRecord().getSimpleFields();
-        for (Map.Entry<String, String> entry : customFields.entrySet()) {
-          if (!simpleFields.containsKey(entry.getKey())) {
-            simpleFields.put(entry.getKey(), entry.getValue());
+      switch (triggeringEntity) {
+        case CONTROLLER:
+          // autoEnable
+          maintenanceSignal.setAutoTriggerReason(internalReason);
+          break;
+        case USER:
+        case UNKNOWN:
+          // manuallyEnable
+          if (customFields != null && !customFields.isEmpty()) {
+            // Enter all custom fields provided by the user
+            Map<String, String> simpleFields = maintenanceSignal.getRecord().getSimpleFields();
+            for (Map.Entry<String, String> entry : customFields.entrySet()) {
+              if (!simpleFields.containsKey(entry.getKey())) {
+                simpleFields.put(entry.getKey(), entry.getValue());
+              }
+            }
           }
-        }
+          break;
       }
 
       // Add this reason to the multi-actor maintenance reasons list
       maintenanceSignal.addMaintenanceReason(reason, currentTime, triggeringEntity);
 
-      // Create or update the maintenance node
       if (accessor.getProperty(keyBuilder.maintenance()) == null) {
         if (!accessor.createMaintenance(maintenanceSignal)) {
           throw new HelixException("Failed to create maintenance signal!");

@@ -447,7 +447,6 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    * Test that automation triggered maintenance mode works correctly
    * and multi-actor maintenance mode requires all actors to exit
    */
-//  @Test(dependsOnMethods = "testMaintenanceHistory")
   @Test
   public void testAutomationMaintenanceMode() throws Exception {
     // Make sure we're not in maintenance mode at the start
@@ -501,7 +500,6 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   /**
    * Test that removing a maintenance reason doesn't add duplicate entries in the reasons list
    */
-//  @Test(dependsOnMethods = "testAutomationMaintenanceMode")
   @Test
   public void testRemoveMaintenanceReasonNoDuplicates() throws Exception {
     // Make sure we start clean

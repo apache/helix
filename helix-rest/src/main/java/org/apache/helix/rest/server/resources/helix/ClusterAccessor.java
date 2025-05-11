@@ -338,15 +338,12 @@ public class ClusterAccessor extends AbstractHelixResource {
           // NOP
         }
 
-        // Filter out isAutomation and reason keys from customFieldsMap as they are already handled as
-        // TriggeringEntity and REASON
         if (customFieldsMap != null) {
           customFieldsMap.entrySet().removeIf(entry ->
               "isAutomation".equalsIgnoreCase(entry.getKey()) ||
                   "reason".equalsIgnoreCase(entry.getKey()));
         }
 
-        // Choose the appropriate method based on the triggering entity
         if (isAutomationTriggered) {
           helixAdmin
               .automationEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,

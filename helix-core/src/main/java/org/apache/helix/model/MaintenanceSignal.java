@@ -177,7 +177,6 @@ public class MaintenanceSignal extends PauseSignal {
 
     // Update all the simpleFields for backward compatibility
     setReason(reason);
-    _record.setSimpleField("reason", reason); // Also update lowercase "reason" for complete compatibility
     setTimestamp(timestamp);
     setTriggeringEntity(triggeringEntity);
   }
@@ -270,10 +269,30 @@ public class MaintenanceSignal extends PauseSignal {
   public boolean removeMaintenanceReason(TriggeringEntity triggeringEntity) {
     LOG.info("Removing maintenance reason for entity: {}", triggeringEntity);
 
-    // Get the current list of reasons
-    List<Map<String, String>> reasons = getMaintenanceReasons();
-    int originalSize = reasons.size();
+    // First reconcile data to capture any simple field updates from old clients
+    // that might not have updated the reasons list
+    reconcileMaintenanceData();
 
+    // Get the current list of reasons (after reconciliation)
+    List<Map<String, String>> reasons = getMaintenanceReasons();
+
+    // Check if this entity exists in the reasons list
+    boolean entityExists = false;
+    for (Map<String, String> entry : reasons) {
+      String entryEntity = entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name());
+      if (triggeringEntity.name().equals(entryEntity)) {
+        entityExists = true;
+        break;
+      }
+    }
+
+    // If the entity doesn't exist in reasons list, ignore the removal request
+    if (!entityExists) {
+      LOG.info("Entity {} doesn't have a maintenance reason entry, ignoring exit request", triggeringEntity);
+      return false;
+    }
+
+    int originalSize = reasons.size();
     LOG.debug("Before removal: Reasons list contains {} entries", reasons.size());
 
     // Create a new list to avoid modifying the original during iteration
@@ -318,16 +337,8 @@ public class MaintenanceSignal extends PauseSignal {
             newReason, newEntity, newTimestamp);
 
         setReason(newReason);
-        _record.setSimpleField("reason", newReason); // Also update lowercase "reason" for complete compatibility
         setTimestamp(newTimestamp);
         setTriggeringEntity(newEntity);
-      } else {
-        // If no reasons left, clear all fields
-        LOG.info("No maintenance reasons remaining, clearing all fields");
-        setReason(null);
-        _record.setSimpleField("reason", null);
-        setTimestamp(System.currentTimeMillis());
-        setTriggeringEntity(TriggeringEntity.UNKNOWN);
       }
     } else {
       LOG.info("No matching maintenance reason found for entity: {}", triggeringEntity);
@@ -379,9 +390,6 @@ public class MaintenanceSignal extends PauseSignal {
           parsedReasons.add(entry);
         }
       }
-    } else {
-      // Create a new list
-      rawReasonsList = new ArrayList<>();
     }
 
     // Check if the triggering entity from simple fields already has an entry

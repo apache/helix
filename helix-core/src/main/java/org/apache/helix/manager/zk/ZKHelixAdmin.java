@@ -1235,14 +1235,10 @@ public class ZKHelixAdmin implements HelixAdmin {
             // If this was the last reason, remove the maintenance ZNode entirely
             accessor.removeProperty(keyBuilder.maintenance());
           }
-        } else {
-          // If old client, just remove the maintenance node entirely
-          accessor.removeProperty(keyBuilder.maintenance());
         }
       }
     } else {
       // Enter maintenance mode
-
       if (maintenanceSignal == null) {
         // Create a new maintenance signal if it doesn't exist
         maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);

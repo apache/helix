@@ -138,9 +138,11 @@ public class ZkTestBase {
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
-
     // Due to ZOOKEEPER-2693 fix, we need to specify whitelist for execute zk commends
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
+
+    // Enable extended types for TTL support
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
     System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "3000");
 
     // Start in-memory ZooKeepers

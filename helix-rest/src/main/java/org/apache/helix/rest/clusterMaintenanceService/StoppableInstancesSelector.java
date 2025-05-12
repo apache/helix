@@ -83,6 +83,25 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be already stopped
+   * @return An ObjectNode containing:
+   *         - 'stoppableNode': List of instances that can be stopped.
+   *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
+   *         a list of reasons for non-stoppability as the value.
+   * @throws IOException
+   */
+  public ObjectNode getStoppableInstancesInSingleZone(List<String> instances,
+      List<String> toBeStoppedInstances) throws IOException {
+    return getStoppableInstancesInSingleZone(instances, toBeStoppedInstances, false);
+  }
+
+  /**
+   * Evaluates and collects stoppable instances within a specified or determined zone based on the order of zones.
+   * If _orderOfZone is specified, the method targets the first non-empty zone; otherwise, it targets the zone with
+   * the highest instance count. The method iterates through instances, performing stoppable checks, and records
+   * reasons for non-stoppability.
+   *
+   * @param instances A list of instance to be evaluated.
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
    * @param preserveOrder Indicates whether to preserve the original order of instances
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
@@ -115,7 +134,6 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be already stopped
-   * @param preserveOrder Indicates whether to preserve the original order of instances
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
@@ -153,7 +171,6 @@ public class StoppableInstancesSelector {
    *
    * @param instances A list of instance to be evaluated.
    * @param toBeStoppedInstances A list of instances presumed to be already stopped
-   * @param preserveOrder Indicates whether to preserve the original order of instances
    * @return An ObjectNode containing:
    *         - 'stoppableNode': List of instances that can be stopped.
    *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and

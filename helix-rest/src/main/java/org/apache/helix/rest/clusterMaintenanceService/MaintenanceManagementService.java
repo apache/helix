@@ -394,7 +394,7 @@ public class MaintenanceManagementService {
             toBeStoppedInstances, preserveOrder);
     // custom check, includes partition check.
     batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
-        toBeStoppedInstances, finalStoppableChecks, getMapFromJsonPayload(jsonContent));
+        toBeStoppedInstances, finalStoppableChecks, getMapFromJsonPayload(jsonContent), preserveOrder);
     return finalStoppableChecks;
   }
 
@@ -507,7 +507,7 @@ public class MaintenanceManagementService {
 
   private List<String> batchCustomInstanceStoppableCheck(String clusterId, List<String> instances,
       Set<String> toBeStoppedInstances, Map<String, StoppableCheck> finalStoppableChecks,
-      Map<String, String> customPayLoads) {
+      Map<String, String> customPayLoads, boolean preserveOrder) {
     if (instances.isEmpty()) {
       // if all instances failed at previous checks, then all following checks are not required.
       return instances;
@@ -536,7 +536,7 @@ public class MaintenanceManagementService {
       Map<String, StoppableCheck> clusterLevelCustomCheckResult =
           performAggregatedCustomCheck(clusterId, instanceIdsForCustomCheck,
               restConfig.getCompleteConfiguredHealthUrl().get(), customPayLoads,
-              toBeStoppedInstances);
+              toBeStoppedInstances, preserveOrder);
       List<String> instancesForNextCheck = new ArrayList<>();
       clusterLevelCustomCheckResult.forEach((instance, stoppableCheck) -> {
         addStoppableCheck(finalStoppableChecks, instance, stoppableCheck);
@@ -553,9 +553,13 @@ public class MaintenanceManagementService {
     List<String> instancesForCustomPartitionLevelChecks = instanceIdsForCustomCheck;
     if (!_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)) {
       Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
-          Collectors.toMap(Function.identity(), instance -> POOL.submit(
-              () -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance),
-                  customPayLoads))));
+          Collectors.toMap(
+              Function.identity(),
+              instance -> POOL.submit(() -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance), customPayLoads)),
+              (existing, replacement) -> existing,
+              // Use LinkedHashMap when preserveOrder is true to maintain the original order of instances
+              preserveOrder ? LinkedHashMap::new : HashMap::new
+          ));
       instancesForCustomPartitionLevelChecks =
           filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);
     }
@@ -638,7 +642,7 @@ public class MaintenanceManagementService {
         // custom check, includes custom Instance check and partition check.
         instancesForNext =
             batchCustomInstanceStoppableCheck(clusterId, instancesForNext, Collections.emptySet(),
-                finalStoppableChecks, healthCheckConfig);
+                finalStoppableChecks, healthCheckConfig, false);
       } else {
         throw new UnsupportedOperationException(healthCheck + " is not supported yet!");
       }
@@ -785,8 +789,10 @@ public class MaintenanceManagementService {
 
   private Map<String, StoppableCheck> performAggregatedCustomCheck(String clusterId,
       List<String> instances, String url, Map<String, String> customPayLoads,
-      Set<String> toBeStoppedInstances) {
-    Map<String, StoppableCheck> aggregatedStoppableChecks = new HashMap<>();
+      Set<String> toBeStoppedInstances, boolean preserveOrder) {
+    // Use LinkedHashMap when preserveOrder is true to maintain the original order of instances
+    Map<String, StoppableCheck> aggregatedStoppableChecks = preserveOrder ?
+        new LinkedHashMap<>() : new HashMap<>();
     try {
       Map<String, List<String>> customCheckResult =
           _customRestClient.getAggregatedStoppableCheck(url, instances, toBeStoppedInstances,
@@ -799,9 +805,13 @@ public class MaintenanceManagementService {
       }
     } catch (IOException ex) {
       LOG.error("Custom client side aggregated health check for {} failed.", clusterId, ex);
-      return instances.stream().collect(Collectors.toMap(Function.identity(),
+      return instances.stream().collect(Collectors.toMap(
+          Function.identity(),
           instance -> new StoppableCheck(false, Collections.singletonList(instance),
-              StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)));
+              StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK),
+          (existing, replacement) -> existing,
+          // Use LinkedHashMap when preserveOrder is true to maintain the original order of instances
+          preserveOrder ? LinkedHashMap::new : HashMap::new));
     }
     return aggregatedStoppableChecks;
   }

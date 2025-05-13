@@ -150,7 +150,7 @@ public class TestRawZkClient extends ZkTestBase {
     advanceFakeElapsedTime(2000);
     ContainerManager containerManager = _zkServerContainerManagerMap.get(_zkServerMap.get(ZkTestBase.ZK_ADDR));
     containerManager.checkContainers();
-    AssertJUnit.assertFalse(zkClient.exists(path));
+    AssertJUnit.assertFalse("TTL znode should be expired", zkClient.exists(path));
 
     // Clean up
     zkClient.deleteRecursively(parentPath);

@@ -109,7 +109,7 @@ public class ZkTestBase {
 
     // Shut down ContainerManagers
     _zkServerContainerManagerMap.values().forEach(ContainerManager::stop);
-    
+
     // Shut down all ZkServers
     _zkServerMap.values().forEach(ZkServer::shutdown);
   }
@@ -153,8 +153,9 @@ public class ZkTestBase {
       return new ContainerManager(
           zooKeeperServer.getZKDatabase(),
           firstProcessor,
-          100, // Check interval in ms
-          100  // Max containers to check per interval
+          10, // Check interval in ms
+          100,  // Max containers to check per interval
+          10 // the max time in milliseconds that a container that has never had any children is retained
       ) {
         @Override
         protected long getElapsed(DataNode node) {

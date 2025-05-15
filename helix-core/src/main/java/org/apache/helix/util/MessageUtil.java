@@ -136,4 +136,32 @@ public class MessageUtil {
 
     return message;
   }
+
+  /**
+   * Create a state transition message with currentReplicaNumber for prioritization
+   * @param msgSender message sender
+   * @param sessionId session id
+   * @param resource resource
+   * @param partitionName partition name
+   * @param instanceName instance name
+   * @param fromState from state
+   * @param toState to state
+   * @param sessionIdForInstance session id for instance
+   * @param stateModelDefName state model def name
+   * @param currentReplicaNumber the current replica number (for prioritization)
+   * @return message
+   */
+  public static Message createStateTransitionMessage(String msgSender, String sessionId,
+      Resource resource, String partitionName, String instanceName, String fromState,
+      String toState, String sessionIdForInstance, String stateModelDefName,
+      int currentReplicaNumber) {
+
+    Message message = createStateTransitionMessage(msgSender, sessionId, resource, partitionName,
+        instanceName, fromState, toState, sessionIdForInstance, stateModelDefName);
+
+    // Set the current replica number for prioritization
+    message.setCurrentReplicaNumber(currentReplicaNumber);
+
+    return message;
+  }
 }

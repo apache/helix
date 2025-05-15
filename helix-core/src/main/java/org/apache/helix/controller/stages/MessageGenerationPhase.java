@@ -163,6 +163,16 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       // desired-state->list of generated-messages
       Map<String, List<Message>> messageMap = new HashMap<>();
 
+      // Calculate metadata for message prioritization
+      int totalInstanceCount = instanceStateMap.keySet().size();
+
+      // Get pending upward state transition messages to second top or top state
+      List<Message> pendingUpwardStateTransitionMessages = getPendingUpwardStateTransitionMessages(
+          resourceName, partition, currentStateOutput, stateModelDef);
+
+      // Initialize replica counter for prioritization
+      int initialReplicaNumber = totalInstanceCount - pendingUpwardStateTransitionMessages.size();
+
       for (String instanceName : instanceStateMap.keySet()) {
 
         Set<Message> staleMessages = cache.getStaleMessagesByInstance(instanceName);
@@ -250,17 +260,32 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     pendingMessage, manager, resource, partition, sessionIdMap, instanceName,
                     stateModelDef, cancellationMessage, isCancellationEnabled);
           } else {
+            // Default currentReplicaNumber is -1 (no prioritization)
+            int currentReplicaNumber = -1;
+            // Check if this is an upward state transition from non-second top state to second top
+            // or top state
+            if (isUpwardStateTransition(currentState, nextState, stateModelDef)
+                && !stateModelDef.getSecondTopStates().contains(currentState)
+                && (isSecondTopState(nextState, stateModelDef)
+                    || isTopState(nextState, stateModelDef))
+                && !isInPendingMessages(resourceName, partition, instanceName, currentState,
+                    nextState, pendingUpwardStateTransitionMessages)) {
+
+              // Assign the replica number for prioritization
+              currentReplicaNumber = initialReplicaNumber--;
+            }
+
             // Create new state transition message
             message = MessageUtil
                 .createStateTransitionMessage(manager.getInstanceName(), manager.getSessionId(),
                     resource, partition.getPartitionName(), instanceName, currentState, nextState,
-                    sessionIdMap.get(instanceName), stateModelDef.getId());
+                    sessionIdMap.get(instanceName), stateModelDef.getId(), currentReplicaNumber);
 
             if (logger.isDebugEnabled()) {
               LogUtil.logDebug(logger, _eventId, String.format(
-                  "Resource %s partition %s for instance %s with currentState %s and nextState %s",
+                  "Resource %s partition %s for instance %s with currentState %s, nextState %s and currentReplicaNumber %d",
                   resource.getResourceName(), partition.getPartitionName(), instanceName,
-                  currentState, nextState));
+                  currentState, nextState, currentReplicaNumber));
             }
           }
         }
@@ -288,6 +313,113 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         }
       }
     } // end of for-each-partition
+  }
+
+  /**
+   * Check if a state is a top state
+   * @param state The state to check
+   * @param stateModelDef The state model definition
+   * @return True if it's a top state, false otherwise
+   */
+  private boolean isTopState(String state, StateModelDefinition stateModelDef) {
+    return stateModelDef.getTopState().contains(state);
+  }
+
+  /**
+   * Check if a state is a second top state
+   * @param state The state to check
+   * @param stateModelDef The state model definition
+   * @return True if it's a second top state, false otherwise
+   */
+  private boolean isSecondTopState(String state, StateModelDefinition stateModelDef) {
+    return stateModelDef.getSecondTopStates().contains(state);
+  }
+
+  /**
+   * Check if a state transition is already in the pending messages
+   * @param resourceName The resource name
+   * @param partition The partition
+   * @param instanceName The instance name
+   * @param fromState The from state
+   * @param toState The to state
+   * @param pendingMessages The list of pending messages
+   * @return True if the state transition is already in pending messages, false otherwise
+   */
+  private boolean isInPendingMessages(String resourceName, Partition partition, String instanceName,
+      String fromState, String toState, List<Message> pendingMessages) {
+
+    for (Message message : pendingMessages) {
+      if (message.getResourceName().equals(resourceName)
+          && message.getPartitionName().equals(partition.getPartitionName())
+          && message.getTgtName().equals(instanceName) && message.getFromState().equals(fromState)
+          && message.getToState().equals(toState)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if a state transition is upward
+   * @param fromState The from state
+   * @param toState The to state
+   * @param stateModelDef The state model definition
+   * @return True if it's an upward state transition, false otherwise
+   */
+  private boolean isUpwardStateTransition(String fromState, String toState,
+      StateModelDefinition stateModelDef) {
+
+    if (fromState == null || toState == null) {
+      return false;
+    }
+
+    Map<String, Integer> statePriorityMap = stateModelDef.getStatePriorityMap();
+
+    Integer fromStateWeight = statePriorityMap.get(fromState);
+    Integer toStateWeight = statePriorityMap.get(toState);
+
+    if (fromStateWeight == null || toStateWeight == null) {
+      return false;
+    }
+
+    return toStateWeight < fromStateWeight;
+  }
+
+  /**
+   * Get pending upward state transition messages from non-second top state to second top or top
+   * state
+   * @param resourceName The resource name
+   * @param partition The partition
+   * @param currentStateOutput The current state output
+   * @param stateModelDef The state model definition
+   * @return List of pending messages for upward state transitions
+   */
+  private List<Message> getPendingUpwardStateTransitionMessages(String resourceName,
+      Partition partition, CurrentStateOutput currentStateOutput,
+      StateModelDefinition stateModelDef) {
+    List<Message> pendingUpwardSTMessages = new ArrayList<>();
+
+    // Instance -> PendingMessage
+    Map<String, Message> pendingMessages =
+        currentStateOutput.getPendingMessageMap(resourceName, partition);
+
+    if (pendingMessages != null && !pendingMessages.isEmpty()) {
+      for (Message message : pendingMessages.values()) {
+        String fromState = message.getFromState();
+        String toState = message.getToState();
+
+        // Check if it's an upward state transition from non-second top state to second top or top
+        // state
+        if (isUpwardStateTransition(fromState, toState, stateModelDef)
+            && !isSecondTopState(fromState, stateModelDef)
+            && (isSecondTopState(toState, stateModelDef) || isTopState(toState, stateModelDef))) {
+          pendingUpwardSTMessages.add(message);
+        }
+      }
+    }
+
+    return pendingUpwardSTMessages;
   }
 
   private boolean shouldCreateSTCancellation(Message pendingMessage, String desiredState,

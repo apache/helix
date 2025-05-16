@@ -282,6 +282,33 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertEquals(getEVs(), assignment);
 }
 
+  @Test
+  public void testEvacuateWithCustomizedResource() throws Exception {
+    System.out.println("START TestInstanceOperation.testEvacuateWithCustomizedResource() at " + new Date(System.currentTimeMillis()));
+    for( String resource : _allDBs) {
+      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, resource);
+    }
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    String instanceToEvacuate = _participants.get(0).getInstanceName();
+    String customizedDB = "CustomizedTestDB";
+    Map<Integer, String> partitionInstanceMap = new HashMap<>();
+    partitionInstanceMap.put(Integer.valueOf(0), _participants.get(0).getInstanceName());
+    createResourceInCustomizedMode(_gSetupTool, CLUSTER_NAME, customizedDB, partitionInstanceMap);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    _gSetupTool.getClusterManagementTool()
+        .manuallyEnableMaintenanceMode(CLUSTER_NAME, true, null, null);
+    // evacuated instance
+    _gSetupTool.getClusterManagementTool()
+        .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.EVACUATE);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertFalse(_admin.isEvacuateFinished(CLUSTER_NAME, instanceToEvacuate));
+    _gSetupTool.getClusterManagementTool()
+        .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+    // Drop customized DBs in clusterx
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, customizedDB);
+    createTestDBs(DEFAULT_RESOURCE_DELAY_TIME);
+  }
+
   @Test(dependsOnMethods = "testEvacuate")
   public void testRevertEvacuation() throws Exception {
     System.out.println("START TestInstanceOperation.testRevertEvacuation() at " + new Date(System.currentTimeMillis()));

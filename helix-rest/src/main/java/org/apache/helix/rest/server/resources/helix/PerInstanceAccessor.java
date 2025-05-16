@@ -508,6 +508,16 @@ public class PerInstanceAccessor extends AbstractHelixResource {
             return serverError(e);
           }
           return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", evacuateFinished)));
+        case isInstanceDrained:
+          boolean instanceDrained;
+          try {
+            instanceDrained = admin.isInstanceDrained(clusterId, instanceName);
+          } catch (HelixException e) {
+            LOG.error(String.format("Encountered error when checking if instance is drained for cluster: "
+                + "{}, instance: {}", clusterId, instanceName), e);
+            return serverError(e);
+          }
+          return OK(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("successful", instanceDrained)));
         case forceKillInstance:
           boolean instanceForceKilled = admin.forceKillInstance(clusterId, instanceName, reason, instanceOperationSource);
           if (!instanceForceKilled) {

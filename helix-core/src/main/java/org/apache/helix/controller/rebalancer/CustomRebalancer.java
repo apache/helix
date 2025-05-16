@@ -24,9 +24,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -132,10 +134,14 @@ public class CustomRebalancer extends AbstractRebalancer<ResourceControllerDataP
       boolean notInErrorState = currentStateMap != null
           && !HelixDefinedState.ERROR.toString().equals(currentStateMap.get(instance));
       boolean enabled = !disabledInstancesForPartition.contains(instance) && isResourceEnabled;
-
+      InstanceConfig instanceConfig = cache.getInstanceConfigMap().get(instance);
+      boolean hasEvacuatedOp = instanceConfig != null &&
+          instanceConfig.getInstanceOperation().getOperation() == InstanceConstants.InstanceOperation.EVACUATE;
+      boolean isAssignableForCustomizedResource = cache.getLiveInstances().containsKey(instance) && hasEvacuatedOp;
       // Note: if instance is not live, the mapping for that instance will not show up in
       // BestPossibleMapping (and ExternalView)
-      if (assignableLiveInstancesMap.containsKey(instance) && notInErrorState) {
+      // if instance is evacuated keep the instanceStateMap same as idealStateMap
+      if ((assignableLiveInstancesMap.containsKey(instance) || isAssignableForCustomizedResource) && notInErrorState) {
         if (enabled) {
           instanceStateMap.put(instance, idealStateMap.get(instance));
         } else {

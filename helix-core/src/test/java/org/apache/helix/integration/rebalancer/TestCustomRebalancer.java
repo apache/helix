@@ -25,6 +25,7 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.CustomRebalancer;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.Partition;
@@ -70,7 +71,7 @@ public class TestCustomRebalancer {
         .thenReturn(ImmutableSet.of(instanceName));
     when(cache.getAssignableLiveInstances())
         .thenReturn(ImmutableMap.of(instanceName, new LiveInstance(instanceName)));
-
+    when(cache.getInstanceConfigMap()).thenReturn(ImmutableMap.of(instanceName, new InstanceConfig(instanceName)));
     CurrentStateOutput currOutput = new CurrentStateOutput();
     ResourceAssignment resourceAssignment =
         customRebalancer.computeBestPossiblePartitionState(cache, idealState, resource, currOutput);

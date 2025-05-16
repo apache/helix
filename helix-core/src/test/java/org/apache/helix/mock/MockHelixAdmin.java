@@ -578,6 +578,11 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public boolean isInstanceDrained(String clusterName, String instancesNames) {
+    return false;
+  }
+
+  @Override
   public boolean canCompleteSwap(String clusterName, String instancesNames) {
     return false;
   }

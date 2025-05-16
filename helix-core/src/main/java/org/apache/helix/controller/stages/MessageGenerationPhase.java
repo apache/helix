@@ -154,8 +154,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       // are properly dropped.
       // This should only solve for instance operation case where the instance is removed from the statemap but there
       // are still valid assignments in the mapping. We should not consider case where there is no mapping at all for
-      // the resource, which can occur on a rebalance failure. If the resource has been removed, the BP will
-      // contain the DROPPED states
+      // the resource, which can occur on a rebalance failure. If the resource has been removed, the partition has
+      // been removed, or the replication factor has been reduced the BP will contain the DROPPED states.See method
+      // AbstractRebalancer.computeBestPossibleMap - drops replica that is in current state but not in preference list.
       for (String instance : currentStateMap.keySet()) {
         if (!instanceStateMap.isEmpty() && !instanceStateMap.containsKey(instance)) {
           instanceStateMap.put(instance, HelixDefinedState.DROPPED.name());

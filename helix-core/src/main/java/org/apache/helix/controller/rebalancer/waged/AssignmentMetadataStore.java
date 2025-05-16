@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
@@ -79,9 +78,11 @@ public class AssignmentMetadataStore {
         }
       }
     }
-    return _globalBaseline.entrySet().stream().collect(
-        Collectors.toMap(Map.Entry::getKey,
-            entry -> new ResourceAssignment(entry.getValue().getRecord())));
+    Map<String, ResourceAssignment> result = new HashMap<>(_globalBaseline.size());
+    for (Map.Entry<String, ResourceAssignment> entry : _globalBaseline.entrySet()) {
+      result.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
+    return result;
   }
 
   /**
@@ -108,9 +109,11 @@ public class AssignmentMetadataStore {
       }
     }
     // Return defensive copy so that the in-memory assignment is not modified by callers
-    return _bestPossibleAssignment.entrySet().stream().collect(
-        Collectors.toMap(Map.Entry::getKey,
-            entry -> new ResourceAssignment(entry.getValue().getRecord())));
+    Map<String, ResourceAssignment> result = new HashMap<>(_bestPossibleAssignment);
+    for (Map.Entry<String, ResourceAssignment> entry : _bestPossibleAssignment.entrySet()) {
+      result.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
+    return result;
   }
 
   private Map<String, ResourceAssignment> fetchAssignmentOrDefault(String path) {
@@ -147,9 +150,11 @@ public class AssignmentMetadataStore {
    */
   public synchronized void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // Create defensive copy so that the in-memory assignment is not modified after it is persisted
-    Map<String, ResourceAssignment> baselineCopy = globalBaseline.entrySet().stream().collect(
-        Collectors.toMap(Map.Entry::getKey,
-            entry -> new ResourceAssignment(entry.getValue().getRecord())));
+    Map<String, ResourceAssignment> baselineCopy = new HashMap<>(globalBaseline.size());
+    for (Map.Entry<String, ResourceAssignment> entry : globalBaseline.entrySet()) {
+      baselineCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
+
     // write to metadata store
     persistAssignmentToMetadataStore(baselineCopy, _baselinePath, BASELINE_KEY);
     // write to memory
@@ -163,9 +168,10 @@ public class AssignmentMetadataStore {
    */
   public synchronized void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
     // Create defensive copy so that the in-memory assignment is not modified after it is persisted
-    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = bestPossibleAssignment.entrySet().stream().collect(
-        Collectors.toMap(Map.Entry::getKey,
-            entry -> new ResourceAssignment(entry.getValue().getRecord())));
+    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = new HashMap<>(bestPossibleAssignment.size());
+    for (Map.Entry<String, ResourceAssignment> entry : bestPossibleAssignment.entrySet()) {
+      bestPossibleAssignmentCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
     // write to metadata store
     persistAssignmentToMetadataStore(bestPossibleAssignmentCopy, _bestPossiblePath, BEST_POSSIBLE_KEY);
     // write to memory
@@ -183,9 +189,10 @@ public class AssignmentMetadataStore {
    */
   public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
       Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
-    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = bestPossibleAssignment.entrySet().stream().collect(
-        Collectors.toMap(Map.Entry::getKey,
-            entry -> new ResourceAssignment(entry.getValue().getRecord())));
+    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = new HashMap<>(bestPossibleAssignment.size());
+    for (Map.Entry<String, ResourceAssignment> entry : bestPossibleAssignment.entrySet()) {
+      bestPossibleAssignmentCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
     // Check if the version is stale by this point
     if (newVersion > _bestPossibleVersion) {
       _bestPossibleAssignment = bestPossibleAssignmentCopy;

@@ -449,6 +449,11 @@ public class InstanceValidationUtil {
         Map<String, String> stateByInstanceMap = externalView.getStateMap(partition);
         // found the resource hosted on the instance
         if (stateByInstanceMap.containsKey(instanceName)) {
+          // If this node's replica is in unhealthy state, skip the sibling check as removing this replica will not
+          // negatively affect availability.
+          if (unhealthyStates.contains(stateByInstanceMap.get(instanceName))) {
+            continue;
+          }
           int numHealthySiblings = 0;
           for (Map.Entry<String, String> entry : stateByInstanceMap.entrySet()) {
             String siblingInstanceName = entry.getKey();

@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 
-
 public class ClusterTopologyConfig {
   private static final String DEFAULT_DOMAIN_PREFIX = "Helix_default_";
   private static final String TOPOLOGY_SPLITTER = "/";

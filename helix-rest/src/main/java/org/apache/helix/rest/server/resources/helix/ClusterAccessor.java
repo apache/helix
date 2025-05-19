@@ -60,6 +60,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
@@ -708,9 +709,11 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       switch (command) {
         case update:
+          validateClusterConfigChange(clusterId, configAccessor, config, command);
           configAccessor.updateClusterConfig(clusterId, config);
           break;
         case delete: {
+          validateClusterConfigChange(clusterId, configAccessor, config, command);
           HelixConfigScope clusterScope =
               new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
                   .forCluster(clusterId).build();
@@ -1247,5 +1250,60 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   private AclRegister getAclRegister() {
     return (AclRegister) _application.getProperties().get(ContextPropertyKeys.ACL_REGISTER.name());
+  }
+
+  /**
+   * Validates the changes to the cluster configuration.
+   *
+   * Specifically checks changes related to topology settings. If topology settings are updated,
+   * ensures all instance configurations align with the new cluster configuration.
+   *
+   * @param clusterName Name of the cluster to validate.
+   * @param configAccessor Accessor to retrieve and update cluster configurations.
+   * @param newClusterConfig The new cluster configuration to validate against.
+   * @param command Type of command triggering this validation (e.g., update, delete).
+   */
+  private void validateClusterConfigChange(String clusterName, ConfigAccessor configAccessor,
+      ClusterConfig newClusterConfig, Command command) {
+    ClusterConfig oldConfig = configAccessor.getClusterConfig(clusterName);
+    ClusterConfig updatedConfig = configAccessor.getClusterConfig(clusterName);
+
+    if (command == Command.delete) {
+      // Since the topology related setting is only in the simple field, we don't need to validate
+      // other fields.
+      for (Map.Entry<String, String> entry : newClusterConfig.getRecord().getSimpleFields()
+          .entrySet()) {
+        updatedConfig.getRecord().getSimpleFields().remove(entry.getKey());
+      }
+    } else {
+      updatedConfig.getRecord().update(newClusterConfig.getRecord());
+    }
+
+    // Only validate the topology related settings if the topology aware is enabled.
+    if (updatedConfig.isTopologyAwareEnabled()) {
+      if (updatedConfig.getTopology() == null || updatedConfig.getFaultZoneType() == null) {
+        throw new IllegalArgumentException(
+            "Topology and fault zone type must be set when topology aware is enabled.");
+      }
+
+      boolean isTopologyAwareChanged =
+          !oldConfig.isTopologyAwareEnabled() && updatedConfig.isTopologyAwareEnabled();
+      boolean isTopologyPathChanged =
+          oldConfig.getTopology() == null || (oldConfig.getTopology() != null
+              && !oldConfig.getTopology().equals(updatedConfig.getTopology()));
+      boolean isFaultZoneTypeChanged =
+          oldConfig.getFaultZoneType() == null || (oldConfig.getFaultZoneType() != null
+              && !oldConfig.getFaultZoneType().equals(updatedConfig.getFaultZoneType()));
+
+      if (isTopologyAwareChanged || isTopologyPathChanged || isFaultZoneTypeChanged) {
+        HelixDataAccessor dataAccessor = getDataAccssor(clusterName);
+        PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+        List<InstanceConfig> instanceConfigs = dataAccessor.getChildValues(keyBuilder.instanceConfigs(), true);
+        for (InstanceConfig instanceConfig : instanceConfigs) {
+          instanceConfig.validateTopologySettingInInstanceConfig(updatedConfig,
+              instanceConfig.getInstanceName());
+        }
+      }
+    }
   }
 }

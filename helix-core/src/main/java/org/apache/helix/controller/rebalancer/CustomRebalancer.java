@@ -131,6 +131,8 @@ public class CustomRebalancer extends AbstractRebalancer<ResourceControllerDataP
 
     Map<String, LiveInstance> assignableLiveInstancesMap = cache.getAssignableLiveInstances();
     for (String instance : idealStateMap.keySet()) {
+      boolean notInErrorState = currentStateMap != null
+          && !HelixDefinedState.ERROR.toString().equals(currentStateMap.get(instance));
       boolean enabled = !disabledInstancesForPartition.contains(instance) && isResourceEnabled;
       InstanceConfig instanceConfig = cache.getInstanceConfigMap().get(instance);
       boolean hasEvacuatedOp = instanceConfig != null &&

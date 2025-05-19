@@ -1263,6 +1263,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           maintenanceSignal.setAutoTriggerReason(internalReason);
           break;
         case USER:
+        case AUTOMATION:
         case UNKNOWN:
           // manuallyEnable
           if (customFields != null && !customFields.isEmpty()) {

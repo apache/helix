@@ -909,7 +909,6 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   @Test
   public void testMultiActorMaintenanceModeOldClientOverride() throws Exception {
     // Step 1: AUTOMATION enters MM (t2)
-    Thread.sleep(10); // Ensure different timestamps
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
         "AUTOMATION reason", null);
 

@@ -169,11 +169,6 @@ public class MaintenanceSignal extends PauseSignal {
 
     updateReasonsListField(reasons);
     LOG.debug("After addition: Reasons list contains {} entries", reasons.size());
-
-    // Update all the simpleFields for backward compatibility
-    setReason(reason);
-    setTimestamp(timestamp);
-    setTriggeringEntity(triggeringEntity);
   }
 
   /**

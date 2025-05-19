@@ -955,7 +955,6 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    // Check if there are any maintenance reasons active
     return signal.hasMaintenanceReasons();
   }
 

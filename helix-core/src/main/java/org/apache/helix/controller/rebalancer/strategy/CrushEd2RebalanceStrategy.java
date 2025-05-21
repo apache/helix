@@ -19,17 +19,15 @@ package org.apache.helix.controller.rebalancer.strategy;
  * under the License.
  */
 
-import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.strategy.crushMapping.Selector;
+
 
 /**
- * CRUSH-ed, CRUSH with even distribution. This is an Auto rebalance strategy based on CRUSH algorithm.
- * This gives even partition distribution, but number of partitions to be reshuffled during node outage could be high.
+  Extension on CrushED Rebalance strategy. Provides even partition distribution also in cases where
+ there is a skewed mapping of maintenance zone to instances.
  */
-public class CrushEdRebalanceStrategy extends AbstractEvenDistributionRebalanceStrategy {
-  protected RebalanceStrategy<ResourceControllerDataProvider> _baseStrategy =
-      new CrushRebalanceStrategy();
-
-  protected RebalanceStrategy<ResourceControllerDataProvider> getBaseRebalanceStrategy() {
-    return _baseStrategy;
+public class CrushEd2RebalanceStrategy extends CrushEdRebalanceStrategy {
+  public CrushEd2RebalanceStrategy() {
+    _baseStrategy = new CrushRebalanceStrategy(Selector.StrawBucket.STRAW2);
   }
 }

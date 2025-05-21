@@ -53,6 +53,7 @@ public class CRUSHPlacementAlgorithm {
 
   private final boolean keepOffset;
   private final Map<Long,Integer> roundOffset;
+  private final Selector.StrawBucket strawBucket;
 
   /**
    * Creates the crush placement object.
@@ -66,8 +67,17 @@ public class CRUSHPlacementAlgorithm {
    * kept for the duration of this object for successive selection of the same input.
    */
   public CRUSHPlacementAlgorithm(boolean keepOffset) {
+    this(keepOffset, Selector.StrawBucket.STRAW);
+  }
+
+  public CRUSHPlacementAlgorithm(Selector.StrawBucket strawBucket) {
+    this(false, strawBucket);
+  }
+
+  public CRUSHPlacementAlgorithm(boolean keepOffset, Selector.StrawBucket strawBucket) {
     this.keepOffset = keepOffset;
     roundOffset = keepOffset ? new HashMap<Long,Integer>() : null;
+    this.strawBucket = strawBucket;
   }
 
   /**
@@ -119,7 +129,7 @@ public class CRUSHPlacementAlgorithm {
           retryNode = false; // initialize at the outset
           rPrime = r + offset + failure;
           logger.trace("{}.select({}, {})", new Object[] {in, input, rPrime});
-          Selector selector = new Selector(in);
+          Selector selector = SelectorFactory.createSelector(in, strawBucket);
           out = selector.select(input, rPrime);
           if (!out.getType().equalsIgnoreCase(type)) {
             logger.trace("selected output {} for data {} didn't match the type {}: walking down " +
@@ -217,108 +227,5 @@ public class CRUSHPlacementAlgorithm {
       }
     }
     return true;
-  }
-
-  /**
-   * Selection algorithm based on the "straw" bucket type as described in the CRUSH algorithm.
-   */
-  private class Selector {
-    private final Map<Node,Long> straws = new HashMap<Node,Long>();
-    private final JenkinsHash hashFunction;
-
-    public Selector(Node node) {
-      if (!node.isLeaf()) {
-        // create a map from the nodes to their values
-        List<Node> sortedNodes = sortNodes(node.getChildren()); // do a reverse sort by weight
-
-        int numLeft = sortedNodes.size();
-        float straw = 1.0f;
-        float wbelow = 0.0f;
-        float lastw = 0.0f;
-        int i = 0;
-        final int length = sortedNodes.size();
-        while (i < length) {
-          Node current = sortedNodes.get(i);
-          if (current.getWeight() == 0) {
-            straws.put(current, 0L);
-            i++;
-            continue;
-          }
-          straws.put(current, (long)(straw*0x10000));
-          i++;
-          if (i == length) {
-            break;
-          }
-
-          current = sortedNodes.get(i);
-          Node previous = sortedNodes.get(i-1);
-          if (current.getWeight() == previous.getWeight()) {
-            continue;
-          }
-          wbelow += (float)(previous.getWeight() - lastw)*numLeft;
-          for (int j = i; j < length; j++) {
-            if (sortedNodes.get(j).getWeight() == current.getWeight()) {
-              numLeft--;
-            } else {
-              break;
-            }
-          }
-          float wnext = (float)(numLeft * (current.getWeight() - previous.getWeight()));
-          float pbelow = wbelow/(wbelow + wnext);
-          straw *= Math.pow(1.0/pbelow, 1.0/numLeft);
-          lastw = previous.getWeight();
-        }
-      }
-      hashFunction = new JenkinsHash();
-    }
-
-    /**
-     * Returns a new list that's sorted in the reverse order of the weight.
-     */
-    private List<Node> sortNodes(List<Node> nodes) {
-      List<Node> ret = new ArrayList<Node>(nodes);
-      sortNodesInPlace(ret);
-      return ret;
-    }
-
-    /**
-     * Sorts the list in place in the reverse order of the weight.
-     */
-    private void sortNodesInPlace(List<Node> nodes) {
-      Collections.sort(nodes, new Comparator<Node>() {
-        public int compare(Node n1, Node n2) {
-          if (n2.getWeight() == n1.getWeight()) {
-            return 0;
-          }
-          return (n2.getWeight() - n1.getWeight() > 0) ? 1 : -1;
-          // sort by weight only in the reverse order
-        }
-      });
-    }
-
-    public Node select(long input, long round) {
-      Node selected = null;
-      long hiScore = -1;
-      for (Map.Entry<Node,Long> e: straws.entrySet()) {
-        Node child = e.getKey();
-        long straw = e.getValue();
-        long score = weightedScore(child, straw, input, round);
-        if (score > hiScore) {
-          selected = child;
-          hiScore = score;
-        }
-      }
-      if (selected == null) {
-        throw new IllegalStateException();
-      }
-      return selected;
-    }
-
-    private long weightedScore(Node child, long straw, long input, long round) {
-      long hash = hashFunction.hash(input, child.getId(), round);
-      hash = hash&0xffff;
-      long weightedScore = hash*straw;
-      return weightedScore;
-    }
   }
 }

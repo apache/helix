@@ -104,7 +104,8 @@ public class Message extends HelixProperty {
     RELAY_FROM,
     EXPIRY_PERIOD,
     SRC_CLUSTER,
-    ST_REBALANCE_TYPE
+    ST_REBALANCE_TYPE,
+    CURRENT_REPLICA_NUMBER
   }
 
   /**
@@ -933,6 +934,22 @@ public class Message extends HelixProperty {
    */
   public void setSrcClusterName(String clusterName) {
     _record.setSimpleField(Attributes.SRC_CLUSTER.name(), clusterName);
+  }
+
+  /**
+   * Set the currentReplicaNumber for transition-related messages
+   * @param currentReplicaNumber the replica count
+   */
+  public void setCurrentReplicaNumber(int currentReplicaNumber) {
+    _record.setIntField(Attributes.CURRENT_REPLICA_NUMBER.name(), currentReplicaNumber);
+  }
+
+  /**
+   * Get the "CurrentReplicaNumber" for transition-related messages
+   * @return CurrentReplicaNumber, or null for other message types
+   */
+  public int getCurrentReplicaNumber() {
+    return _record.getIntField(Attributes.CURRENT_REPLICA_NUMBER.name(), -1);
   }
 
   /**

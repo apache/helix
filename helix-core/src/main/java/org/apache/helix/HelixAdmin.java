@@ -423,6 +423,19 @@ public interface HelixAdmin {
       Map<String, String> customFields);
 
   /**
+   * Manually enable maintenance mode with timeout. To be called by the REST client.
+   * The cluster will automatically exit maintenance mode after the specified timeout.
+   * @param clusterName the cluster name
+   * @param enabled if true, enter maintenance mode; if false, exit maintenance mode
+   * @param reason reason to enter maintenance mode
+   * @param timeout time in milliseconds after which maintenance mode should be exited automatically.
+   *                Only applicable when enabled is true. Set to -1 for no automatic exit.
+   * @param customFields user-specified KV mappings to be stored in the ZNode
+   */
+  void manuallyEnableMaintenanceModeWithTimeout(String clusterName, boolean enabled, String reason,
+      long timeout, Map<String, String> customFields);
+
+  /**
    * Check specific cluster is in maintenance mode or not
    * @param clusterName the cluster name
    * @return true if in maintenance mode, false otherwise

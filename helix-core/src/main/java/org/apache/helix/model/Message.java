@@ -138,12 +138,8 @@ public class Message extends HelixProperty {
   /**
    * Compares the creation time of two Messages
    */
-  public static final Comparator<Message> CREATE_TIME_COMPARATOR = new Comparator<Message>() {
-    @Override
-    public int compare(Message m1, Message m2) {
-      return new Long(m1.getCreateTimeStamp()).compareTo(new Long(m2.getCreateTimeStamp()));
-    }
-  };
+  public static final Comparator<Message> CREATE_TIME_COMPARATOR =
+      (m1, m2) -> Long.compare(m2.getCreateTimeStamp(), m1.getCreateTimeStamp());
 
   /**
    * Instantiate a message
@@ -937,8 +933,14 @@ public class Message extends HelixProperty {
   }
 
   /**
-   * Set the currentReplicaNumber for transition-related messages
-   * @param currentReplicaNumber the replica count
+   * Set replica number for participant-side message prioritization.
+   * This field indicates the number of top and second-top state replicas at the time a state transition message is generated.
+   * It is used to prioritize messages, with lower values indicating higher priority.
+   * Participants can use this in custom thread pools or message handlers to process
+   * critical transitions first during recovery scenarios.
+   * Default value is -1 for transitions that don't require prioritization.
+   * @param currentReplicaNumber the replica priority number (-1 for no prioritization, >=0 for
+   *          prioritized)
    */
   public void setCurrentReplicaNumber(int currentReplicaNumber) {
     _record.setIntField(Attributes.CURRENT_REPLICA_NUMBER.name(), currentReplicaNumber);

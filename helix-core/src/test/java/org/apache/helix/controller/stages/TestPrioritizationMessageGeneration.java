@@ -101,7 +101,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
         INSTANCE_2, INSTANCE_3
     }) {
       Assert.assertTrue(replicaNumbers.get(instance) >= 0,
-          "Replica number should be assigned for " + instance);
+          "Replica number should be assigned for upward state transition" + instance);
     }
 
     // Verify the replica numbers are decreasing (higher number = higher priority)
@@ -155,7 +155,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
         INSTANCE_0, INSTANCE_1, INSTANCE_2
     }) {
       Assert.assertTrue(replicaNumbers.get(instance) >= 0,
-          "Replica number should be assigned for " + instance);
+          "Replica number should be assigned for upward state transition" + instance);
     }
 
     // Verify the replica numbers are decreasing (higher number = higher priority)
@@ -198,7 +198,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     // Should have default replica number (-1) for non-upward transition
     Message msg = messages.get(0);
     Assert.assertEquals(msg.getCurrentReplicaNumber(), -1,
-        "Non-upward transitions should not be prioritized");
+        "Non-upward state transitions should not have replica numbers assigned");
   }
 
   @Test
@@ -252,9 +252,11 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     Assert.assertEquals(messages.size(), 1);
     Assert.assertEquals(messages.get(0).getTgtName(), INSTANCE_1);
 
-    // The message should have a replica number since pending messages are considered
+    // The current replica number should account for the pending message
+    // targetActiveReplicaCount = 2 (2 SLAVE), pendingUpwardMessages = 1
+    // replicaNumberCounter = 2 - 1 = 1, so new message gets current replica number 1
     Assert.assertTrue(messages.get(0).getCurrentReplicaNumber() >= 0,
-        "Should assign replica number considering pending messages");
+        "Should assign current replica number considering pending upward messages");
   }
 
   @Test
@@ -293,6 +295,81 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     Message msg = messages.get(0);
     Assert.assertEquals(msg.getCurrentReplicaNumber(), -1,
         "Transitions from second top states should not be prioritized");
+  }
+
+  @Test
+  public void testReplicaCountCalculationWithDroppedReplicas() throws Exception {
+    // Test that DROPPED replicas are excluded from target active replica count
+    StateModelDefinition stateModelDef =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+
+    // Set up current states
+    Map<String, CurrentState> currentStateMap = new HashMap<>();
+
+    // Instance 0: MASTER -> will stay MASTER
+    CurrentState currentState0 = new CurrentState(TEST_RESOURCE);
+    currentState0.setState(PARTITION_0, "MASTER");
+    currentState0.setSessionId(SESSION_ID);
+    currentState0.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_0, currentState0);
+
+    // Instance 1: SLAVE -> will be DROPPED
+    CurrentState currentState1 = new CurrentState(TEST_RESOURCE);
+    currentState1.setState(PARTITION_0, "SLAVE");
+    currentState1.setSessionId(SESSION_ID);
+    currentState1.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_1, currentState1);
+
+    // Instance 2: OFFLINE -> will become SLAVE
+    CurrentState currentState2 = new CurrentState(TEST_RESOURCE);
+    currentState2.setState(PARTITION_0, "OFFLINE");
+    currentState2.setSessionId(SESSION_ID);
+    currentState2.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_2, currentState2);
+
+    CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
+    ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
+
+    // Best possible state: MASTER stays, one SLAVE gets DROPPED, one OFFLINE becomes SLAVE
+    Map<String, String> partitionMap = new HashMap<>();
+    partitionMap.put(INSTANCE_0, "MASTER");  // No change
+    partitionMap.put(INSTANCE_1, "DROPPED"); // SLAVE -> DROPPED (excluded from active count)
+    partitionMap.put(INSTANCE_2, "SLAVE");   // OFFLINE -> SLAVE (upward transition)
+
+    BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
+    bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleOutput);
+
+    process(event);
+
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
+    List<Message> messages = output.getMessages(TEST_RESOURCE, new Partition(PARTITION_0));
+
+    // Should generate 2 messages: SLAVE->DROPPED and OFFLINE->SLAVE
+    Assert.assertEquals(messages.size(), 2);
+
+    Message upwardTransitionMsg = null;
+    Message droppedTransitionMsg = null;
+    for (Message msg : messages) {
+      if (msg.getTgtName().equals(INSTANCE_2)) {
+        upwardTransitionMsg = msg;
+      } else if (msg.getTgtName().equals(INSTANCE_1)) {
+        droppedTransitionMsg = msg;
+      }
+    }
+
+    Assert.assertNotNull(upwardTransitionMsg, "Should have upward state transition message");
+    Assert.assertNotNull(droppedTransitionMsg, "Should have dropped state transition message");
+
+    // Upward transition should get replica number
+    // targetActiveReplicaCount = 2 (1 MASTER + 1 SLAVE, DROPPED excluded)
+    // replicaNumberCounter = 2 - 0 = 2, upward transition gets current replica number 2
+    Assert.assertEquals(upwardTransitionMsg.getCurrentReplicaNumber(), 2,
+        "Upward state transition message should have current replica number assigned based on active replica count excluding DROPPED");
+
+    // DROPPED transition should not get current replica number (it's a downward transition anyway)
+    Assert.assertEquals(droppedTransitionMsg.getCurrentReplicaNumber(), -1,
+        "DROPPED state transition message should not have current replica number assigned.");
   }
 
   private ClusterEvent prepareClusterEvent(StateModelDefinition stateModelDef,

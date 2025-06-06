@@ -163,15 +163,22 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       // desired-state->list of generated-messages
       Map<String, List<Message>> messageMap = new HashMap<>();
 
-      // Calculate metadata for message prioritization
-      int partitionInstanceCount = instanceStateMap.keySet().size();
+      // Calculate target active replica count after convergence (excluding OFFLINE and DROPPED replicas)
+      // This counts replicas that will be actively serving traffic after all state transitions complete.
+      // For example, Includes: MASTER, SLAVE, and other serving states (excludes OFFLINE, DROPPED, NO_DESIRED_STATE)
+      int targetActiveReplicaCount = calculateTargetActiveReplicaCount(instanceStateMap, stateModelDef);
 
-      // Get pending upward state transition messages to second top or top state
-      List<Message> pendingUpwardStateTransitionMessagesToTopOrSecondTopStates = getPendingTransitionsToTopOrSecondTopStates(
+      // Get pending upward state transition messages to second top or top state.
+      // This holds good for state models with no more than 3 state in the state machine definition
+      List<Message> pendingUpMsgToTopOrSecondTop = getPendingTransitionsToTopOrSecondTopStates(
           resourceName, partition, currentStateOutput, stateModelDef);
 
-      // Initialize replica counter for prioritization
-      int initialReplicaNumber = partitionInstanceCount - pendingUpwardStateTransitionMessagesToTopOrSecondTopStates.size();
+      // Calculate remaining replica positions available for new upward state transitions
+      // This represents how many more upward transitions can be assigned replica numbers
+      // This counter decrements from (targetActiveReplicaCount - pendingUpMsgToTopOrSecondTop) down to 0
+      // ensuring first replica gets highest number for proper recovery ordering
+      // Example: targetActiveReplicaCount=3, pendingUpMsgToTopOrSecondTop=1 → counter starts at 2, assigns replica numbers 2,1,0
+      int replicaNumberCounter = targetActiveReplicaCount - pendingUpMsgToTopOrSecondTop.size();
 
       for (String instanceName : instanceStateMap.keySet()) {
 
@@ -260,17 +267,18 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     pendingMessage, manager, resource, partition, sessionIdMap, instanceName,
                     stateModelDef, cancellationMessage, isCancellationEnabled);
           } else {
-            // Default currentReplicaNumber is -1 (provides metadata for participant-side prioritization)
-            int currentReplicaNumber = -1;
+          // Set currentReplicaNumber to provide metadata for potential message prioritization by participant
+            int currentReplicaNumber = -1; // -1 by default
+
             // Check if this is an upward state transition from non-second top state to second top
             // or top state
             if (stateModelDef.isUpwardStateTransition(currentState, nextState)
                 && !stateModelDef.getSecondTopStates().contains(currentState)
                 && (isSecondTopState(nextState, stateModelDef)
-                    || isTopState(nextState, stateModelDef))) {
+                    || stateModelDef.getTopState().contains(nextState))) {
 
               // Assign the replica number for prioritization
-              currentReplicaNumber = initialReplicaNumber--;
+              currentReplicaNumber = replicaNumberCounter--;
             }
 
             // Create new state transition message
@@ -314,13 +322,30 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   }
 
   /**
-   * Check if a state is a top state
-   * @param state The state to check
+   * Calculate the target active replica count after state convergence.
+   * This method counts only replicas that will be actively serving traffic after all
+   * state transitions complete. It excludes replicas being dropped or in inactive states.
+   *
+   * @param instanceStateMap Map of instance to desired state
    * @param stateModelDef The state model definition
-   * @return True if it's a top state, false otherwise
+   * @return Number of active replicas after convergence
    */
-  private boolean isTopState(String state, StateModelDefinition stateModelDef) {
-    return stateModelDef.getTopState().contains(state);
+  private int calculateTargetActiveReplicaCount(Map<String, String> instanceStateMap,
+      StateModelDefinition stateModelDef) {
+    int targetActiveReplicaCount = 0;
+    String initialState = stateModelDef.getInitialState();
+
+    for (String desiredState : instanceStateMap.values()) {
+      // Count potential active replicas after convergence (not initial state/dropped state)
+      // Note : calling it potential as counting active replicas after convergence is hard as upward state transitions are in progress too.
+      if (desiredState != null && !desiredState.equals(initialState)
+          && !desiredState.equals(NO_DESIRED_STATE)
+          && !desiredState.equals(HelixDefinedState.DROPPED.name())) {
+        targetActiveReplicaCount++;
+      }
+    }
+
+    return targetActiveReplicaCount;
   }
 
   /**
@@ -360,7 +385,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         // state
         if (stateModelDef.isUpwardStateTransition(fromState, toState)
             && !isSecondTopState(fromState, stateModelDef)
-            && (isSecondTopState(toState, stateModelDef) || isTopState(toState, stateModelDef))) {
+            && (isSecondTopState(toState, stateModelDef) || stateModelDef.getTopState().contains(toState))) {
           pendingUpwardSTMessages.add(message);
         }
       }

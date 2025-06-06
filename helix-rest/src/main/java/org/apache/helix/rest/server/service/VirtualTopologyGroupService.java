@@ -100,7 +100,7 @@ public class VirtualTopologyGroupService {
    *                     virtual topology group information.
    *                     -- if set false or not set, the virtual topology group will be incrementally computed based on the
    *                     existing virtual topology group information if possible.
-   *                     {@link VirtualTopologyGroupConstants#IMBALANCE_THRESHOLD} is optional, default to -1.
+   *                     {@link VirtualTopologyGroupConstants#MAX_IMBALANCE_THRESHOLD} is optional, default to -1.
    *                     -- if set to a non-negative value, the virtual topology group assignment will be checked for imbalance
    *                     and recomputed if the imbalance is detected.
    *                     -- if set to -1 or not set, the virtual topology group assignment will not be checked for imbalance.
@@ -139,8 +139,8 @@ public class VirtualTopologyGroupService {
     // Default imbalance threshold is -1, which means no imbalance check.
     int imbalanceThreshold = DEFAULT_IMBALANCE_THRESHOLD_VALUE;
     try {
-      if (customFields.get(IMBALANCE_THRESHOLD) != null) {
-        imbalanceThreshold = Integer.parseInt(customFields.get(IMBALANCE_THRESHOLD));
+      if (customFields.get(MAX_IMBALANCE_THRESHOLD) != null) {
+        imbalanceThreshold = Integer.parseInt(customFields.get(MAX_IMBALANCE_THRESHOLD));
       }
     } catch (NumberFormatException ex) {
       throw new IllegalArgumentException("imbalanceThreshold is not an integer.", ex);

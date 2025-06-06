@@ -38,6 +38,7 @@ public class InstanceCountImbalanceAlgorithm implements VirtualGroupImbalanceDet
       Map<String, Set<String>> virtualGroupToInstancesAssignment) {
     // Check if the assignment is imbalanced based on the threshold
     if (imbalanceThreshold < 0) {
+      LOG.info("Imbalance threshold is negative: " + imbalanceThreshold + ". No imbalance check needed.");
       return false; // No imbalance check needed
     }
     int minInstances = Integer.MAX_VALUE;

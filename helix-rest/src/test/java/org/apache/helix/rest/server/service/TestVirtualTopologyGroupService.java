@@ -119,6 +119,13 @@ public class TestVirtualTopologyGroupService {
         GROUP_NAME, "test-group", GROUP_NUMBER, "2", AUTO_MAINTENANCE_MODE_DISABLED, "true"));
     verify(_dataAccessor, times(1)).updateChildren(anyList(), anyList(), anyInt());
     verify(_configAccessor, times(1)).updateClusterConfig(anyString(), any());
+
+    _service.addVirtualTopologyGroup(TEST_CLUSTER,
+        ImmutableMap.of(GROUP_NAME, "test-group", GROUP_NUMBER, "2", AUTO_MAINTENANCE_MODE_DISABLED,
+            "true", ASSIGNMENT_ALGORITHM_TYPE, "ZONE_BASED", MAX_IMBALANCE_THRESHOLD, "2",
+            IMBALANCE_DETECTION_ALGORITHM_TYPE, "INSTANCE_COUNT_BASED"));
+    verify(_dataAccessor, times(2)).updateChildren(anyList(), anyList(), anyInt());
+    verify(_configAccessor, times(2)).updateClusterConfig(anyString(), any());
   }
 
   @Test(expectedExceptions = IllegalStateException.class,
@@ -164,6 +171,22 @@ public class TestVirtualTopologyGroupService {
     ZNRecord update = _updaterMap.get(zkPath).update(instanceConfig.getRecord());
     InstanceConfig updatedConfig = new InstanceConfig(update);
     Assert.assertEquals(updatedConfig.getDomainAsMap(), expectedDomain);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testInvalidImbalanceAlgorithm() {
+    _service.addVirtualTopologyGroup(TEST_CLUSTER,
+        ImmutableMap.of(GROUP_NAME, "test-group", GROUP_NUMBER, "2", AUTO_MAINTENANCE_MODE_DISABLED,
+            "true", ASSIGNMENT_ALGORITHM_TYPE, "ZONE_BASED", MAX_IMBALANCE_THRESHOLD, "1",
+            IMBALANCE_DETECTION_ALGORITHM_TYPE, "INSTANCE_COUNT"));
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testInvalidImbalanceThreshold() {
+    _service.addVirtualTopologyGroup(TEST_CLUSTER,
+        ImmutableMap.of(GROUP_NAME, "test-group", GROUP_NUMBER, "2", AUTO_MAINTENANCE_MODE_DISABLED,
+            "true", ASSIGNMENT_ALGORITHM_TYPE, "ZONE_BASED", MAX_IMBALANCE_THRESHOLD, "0.1",
+            IMBALANCE_DETECTION_ALGORITHM_TYPE, "INSTANCE_COUNT_BASED"));
   }
 
   @DataProvider

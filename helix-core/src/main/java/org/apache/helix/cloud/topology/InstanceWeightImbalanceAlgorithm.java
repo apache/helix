@@ -26,25 +26,34 @@ import java.util.logging.Logger;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.model.InstanceConfig;
 
+import static org.apache.helix.model.InstanceConfig.WEIGHT_NOT_SET;
+
 public class InstanceWeightImbalanceAlgorithm implements VirtualGroupImbalanceDetectionAlgorithm {
-  private static final Logger LOG = Logger.getLogger(InstanceWeightImbalanceAlgorithm.class.getName());
-  private static final InstanceWeightImbalanceAlgorithm _instance = new InstanceWeightImbalanceAlgorithm();
+  private static final Logger LOG =
+      Logger.getLogger(InstanceWeightImbalanceAlgorithm.class.getName());
+  private static final InstanceWeightImbalanceAlgorithm _instance =
+      new InstanceWeightImbalanceAlgorithm();
   private static ConfigAccessor _configAccessor;
   private static String _clusterName;
 
-  private InstanceWeightImbalanceAlgorithm() { }
+  private InstanceWeightImbalanceAlgorithm() {
+  }
 
-  public static InstanceWeightImbalanceAlgorithm getInstance(ConfigAccessor accessor, String clusterName) {
+  public static InstanceWeightImbalanceAlgorithm getInstance(ConfigAccessor accessor,
+      String clusterName) {
     _configAccessor = accessor;
     _clusterName = clusterName;
     return _instance;
   }
+
   @Override
   public boolean isAssignmentImbalanced(int imbalanceThreshold,
       Map<String, Set<String>> virtualGroupToInstancesAssignment) {
     // Check if the assignment is imbalanced based on the threshold
 
     if (imbalanceThreshold < 0) {
+      LOG.info("Imbalance threshold is negative: " + imbalanceThreshold
+          + ". No imbalance check needed.");
       return false; // No imbalance check needed
     }
 
@@ -56,6 +65,13 @@ public class InstanceWeightImbalanceAlgorithm implements VirtualGroupImbalanceDe
       for (String instance : instances) {
         InstanceConfig config = _configAccessor.getInstanceConfig(_clusterName, instance);
         int weight = config.getWeight();
+        if (weight == WEIGHT_NOT_SET) {
+          // If the weight is not set, we can't calculate the imbalance. Thereby, no imbalance
+          // check needed
+          LOG.warning(
+              "Instance weight not provided. The result of imbalance algorithm is incorrect.");
+          return false;
+        }
         totalWeight += weight;
       }
       minWeight = Math.min(minWeight, totalWeight);
@@ -63,8 +79,8 @@ public class InstanceWeightImbalanceAlgorithm implements VirtualGroupImbalanceDe
     }
 
     if (maxWeight - minWeight > imbalanceThreshold) {
-      LOG.info("Imbalance detected: maxWeight = " + maxWeight + ", minWeight = " + minWeight +
-          ", threshold = " + imbalanceThreshold);
+      LOG.info("Imbalance detected: maxWeight = " + maxWeight + ", minWeight = " + minWeight
+          + ", threshold = " + imbalanceThreshold);
       return true; // Imbalance detected
     }
     return false; // No imbalance detected

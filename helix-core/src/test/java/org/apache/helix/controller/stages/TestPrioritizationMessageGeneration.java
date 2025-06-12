@@ -54,7 +54,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
   private static final String SESSION_ID = "123";
 
   @Test
-  public void testPrioritizationForUpwardStateTransition() throws Exception {
+  public void testCurrentReplicaCountForUpwardTransitions() throws Exception {
 
     // Test prioritization for upward state transitions from non-second top states
     // to second top or top states
@@ -89,43 +89,29 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     // Should generate 2 messages
     Assert.assertEquals(messages.size(), 2);
 
-    // Messages should have replica numbers assigned based on priority
-    Map<String, Integer> replicaNumbers = new HashMap<>();
+    // Both messages should have the same currentActiveReplicaNumber = current active replica count
+    // Current active replicas: 1 MASTER + 1 SLAVE = 2
     for (Message msg : messages) {
-      int replicaNumber = msg.getCurrentReplicaNumber();
-      replicaNumbers.put(msg.getTgtName(), replicaNumber);
+      Assert.assertEquals(msg.getCurrentActiveReplicaNumber(), 2,
+          "All upward transitions should have currentActiveReplicaNumber = current active replica count (2)");
+      Assert.assertTrue(msg.getTgtName().equals(INSTANCE_2) || msg.getTgtName().equals(INSTANCE_3),
+          "Messages should be for instances transitioning from OFFLINE to SLAVE");
     }
-
-    // Verify replica numbers are assigned (not -1) for upward transitions
-    for (String instance : new String[] {
-        INSTANCE_2, INSTANCE_3
-    }) {
-      Assert.assertTrue(replicaNumbers.get(instance) >= 0,
-          "Replica number should be assigned for upward state transition" + instance);
-    }
-
-    // Verify the replica numbers are decreasing (higher number = higher priority)
-    Assert.assertTrue(replicaNumbers.get(INSTANCE_3) > replicaNumbers.get(INSTANCE_2),
-        "Earlier transitions should have higher replica numbers");
   }
 
   @Test
-  public void testPrioritizationForUpwardStateTransitionWithAllOfflineInstances() throws Exception {
-
-    // Test prioritization for upward state transitions from non-second top states
-    // to second top or top states
+  public void testZeroReplicaScenario() throws Exception {
+    // Test scenario with 0 current active replicas (all OFFLINE)
     StateModelDefinition stateModelDef =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
 
-    // Set up current states - multiple instances in OFFLINE state
-    // We want to test that they get prioritized when transitioning to SLAVE (second top) or MASTER
-    // (top)
+    // Current state: All instances in OFFLINE state
     Map<String, CurrentState> currentStateMap = setupCurrentStatesForPrioritizationCase2();
     CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
 
     ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
 
-    // Best possible state wants to move some nodes to SLAVE/MASTER
+    // Best possible state wants to create 1 MASTER, 2 SLAVE
     Map<String, String> partitionMap = new HashMap<>();
     partitionMap.put(INSTANCE_0, "SLAVE"); // Offline -> Slave (upward to second top)
     partitionMap.put(INSTANCE_1, "MASTER"); // Offline -> Master (upward to top)
@@ -143,33 +129,20 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     // Should generate 3 messages
     Assert.assertEquals(messages.size(), 3);
 
-    // Messages should have replica numbers assigned based on priority
-    Map<String, Integer> replicaNumbers = new HashMap<>();
+    // All messages should have currentActiveReplicaNumber = 0 (current active replica count)
     for (Message msg : messages) {
-      int replicaNumber = msg.getCurrentReplicaNumber();
-      replicaNumbers.put(msg.getTgtName(), replicaNumber);
+      Assert.assertEquals(msg.getCurrentActiveReplicaNumber(), 0,
+          "All upward transitions should have currentActiveReplicaNumber = 0");
     }
-
-    // Verify replica numbers are assigned (not -1) for upward transitions
-    for (String instance : new String[] {
-        INSTANCE_0, INSTANCE_1, INSTANCE_2
-    }) {
-      Assert.assertTrue(replicaNumbers.get(instance) >= 0,
-          "Replica number should be assigned for upward state transition" + instance);
-    }
-
-    // Verify the replica numbers are decreasing (higher number = higher priority)
-    Assert.assertTrue(replicaNumbers.get(INSTANCE_2) > replicaNumbers.get(INSTANCE_0),
-        "Earlier transitions should have higher replica numbers");
   }
 
   @Test
-  public void testNoPrioritizationForNonUpwardTransitions() throws Exception {
-    // Test that non-upward transitions don't get prioritized
+  public void testNoReplicaNumberForNonUpwardTransitions() throws Exception {
+    // Test that non-upward transitions don't get currentActiveReplicaNumber assigned
     StateModelDefinition stateModelDef =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
 
-    // Set up current states - instance already in SLAVE (second top)
+    // Current state: Instance in SLAVE state
     Map<String, CurrentState> currentStateMap = new HashMap<>();
     CurrentState currentState = new CurrentState(TEST_RESOURCE);
     currentState.setState(PARTITION_0, "SLAVE");
@@ -195,77 +168,20 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
 
     Assert.assertEquals(messages.size(), 1);
 
-    // Should have default replica number (-1) for non-upward transition
+    // Should have default currentActiveReplicaNumber (-1) for non-upward transition
     Message msg = messages.get(0);
-    Assert.assertEquals(msg.getCurrentReplicaNumber(), -1,
-        "Non-upward state transitions should not have replica numbers assigned");
+    Assert.assertEquals(msg.getCurrentActiveReplicaNumber(), -1,
+        "Non-upward state transitions should not have currentActiveReplicaNumber assigned");
   }
 
   @Test
-  public void testPrioritizationWithPendingMessages() throws Exception {
-    // Test prioritization when there are already pending messages
+  public void testNoReplicaNumberForSecondTopToTopTransitions() throws Exception {
+    // Tests No currentActiveReplicaNumber assigned for Second Top -> Top State Transitions for Single-Top-State
+    // State Model
     StateModelDefinition stateModelDef =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
 
-    Map<String, CurrentState> currentStateMap = new HashMap<>();
-
-    // Instance 0: OFFLINE with pending OFFLINE->SLAVE message
-    CurrentState currentState0 = new CurrentState(TEST_RESOURCE);
-    currentState0.setState(PARTITION_0, "OFFLINE");
-    currentState0.setSessionId(SESSION_ID);
-    currentState0.setStateModelDefRef("MasterSlave");
-    currentStateMap.put(INSTANCE_0, currentState0);
-
-    // Create pending message separately
-    Message pendingMsg = createMessage("OFFLINE", "SLAVE", INSTANCE_0);
-    pendingMsg.setMsgId(UUID.randomUUID().toString());
-
-    // Instance 1: OFFLINE with no pending message
-    CurrentState currentState1 = new CurrentState(TEST_RESOURCE);
-    currentState1.setState(PARTITION_0, "OFFLINE");
-    currentState1.setSessionId(SESSION_ID);
-    currentState1.setStateModelDefRef("MasterSlave");
-    currentStateMap.put(INSTANCE_1, currentState1);
-
-    CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
-
-    // Add pending message to the CurrentStateOutput, not CurrentState
-    currentStateOutput.setPendingMessage(TEST_RESOURCE, new Partition(PARTITION_0), INSTANCE_0,
-        pendingMsg);
-    ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
-
-    // Best possible state wants both to be SLAVE
-    Map<String, String> partitionMap = new HashMap<>();
-    partitionMap.put(INSTANCE_0, "SLAVE");
-    partitionMap.put(INSTANCE_1, "SLAVE");
-
-    BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
-    bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
-    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleOutput);
-
-    process(event);
-
-    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
-    List<Message> messages = output.getMessages(TEST_RESOURCE, new Partition(PARTITION_0));
-
-    // Should only generate message for instance 1 (instance 0 already has pending message)
-    Assert.assertEquals(messages.size(), 1);
-    Assert.assertEquals(messages.get(0).getTgtName(), INSTANCE_1);
-
-    // The current replica number should account for the pending message
-    // targetActiveReplicaCount = 2 (2 SLAVE), pendingUpwardMessages = 1
-    // replicaNumberCounter = 2 - 1 = 1, so new message gets current replica number 1
-    Assert.assertTrue(messages.get(0).getCurrentReplicaNumber() >= 0,
-        "Should assign current replica number considering pending upward messages");
-  }
-
-  @Test
-  public void testTransitionFromSecondTopState() throws Exception {
-    // Test that transitions from second top states are not prioritized
-    StateModelDefinition stateModelDef =
-        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
-
-    // Set up current state - instance in SLAVE state (second top)
+    // Current state: Instance in SLAVE state (second top)
     Map<String, CurrentState> currentStateMap = new HashMap<>();
     CurrentState currentState = new CurrentState(TEST_RESOURCE);
     currentState.setState(PARTITION_0, "SLAVE");
@@ -276,7 +192,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
     ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
 
-    // Best possible state wants to move to MASTER (top state)
+    // Best possible state wants to promote to MASTER (second top -> top transition)
     Map<String, String> partitionMap = new HashMap<>();
     partitionMap.put(INSTANCE_0, "MASTER");
 
@@ -291,15 +207,341 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
 
     Assert.assertEquals(messages.size(), 1);
 
-    // Should have default replica number (-1) as it's from second top state
+    // Should have default currentActiveReplicaNumber (-1) as it's from second top to top state
     Message msg = messages.get(0);
-    Assert.assertEquals(msg.getCurrentReplicaNumber(), -1,
-        "Transitions from second top states should not be prioritized");
+    Assert.assertEquals(msg.getCurrentActiveReplicaNumber(), -1,
+        "Second top to top state transitions should not have currentActiveReplicaNumber assigned");
+  }
+
+  @Test
+  public void testPendingMessagesDoNotAffectCurrentReplicaCount() throws Exception {
+    // Test that pending messages don't affect the current active replica count calculation
+    StateModelDefinition stateModelDef =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+
+    // Current state: 1 MASTER, 1 OFFLINE
+    Map<String, CurrentState> currentStateMap = new HashMap<>();
+
+    CurrentState masterState = new CurrentState(TEST_RESOURCE);
+    masterState.setState(PARTITION_0, "MASTER");
+    masterState.setSessionId(SESSION_ID);
+    masterState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_0, masterState);
+
+    CurrentState offlineState1 = new CurrentState(TEST_RESOURCE);
+    offlineState1.setState(PARTITION_0, "OFFLINE");
+    offlineState1.setSessionId(SESSION_ID);
+    offlineState1.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_1, offlineState1);
+
+    CurrentState offlineState2 = new CurrentState(TEST_RESOURCE);
+    offlineState2.setState(PARTITION_0, "OFFLINE");
+    offlineState2.setSessionId(SESSION_ID);
+    offlineState2.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_2, offlineState2);
+
+    CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
+
+    // Add pending message for INSTANCE_1: OFFLINE->SLAVE
+    Message pendingMsg = createMessage("OFFLINE", "SLAVE", INSTANCE_1);
+    pendingMsg.setMsgId(UUID.randomUUID().toString());
+    currentStateOutput.setPendingMessage(TEST_RESOURCE, new Partition(PARTITION_0), INSTANCE_1,
+        pendingMsg);
+
+    ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
+
+    // Best possible state wants both offline instances to become SLAVE
+    Map<String, String> partitionMap = new HashMap<>();
+    partitionMap.put(INSTANCE_0, "MASTER"); // No change
+    partitionMap.put(INSTANCE_1, "SLAVE"); // OFFLINE -> SLAVE (but already has pending message)
+    partitionMap.put(INSTANCE_2, "SLAVE"); // OFFLINE -> SLAVE (new transition)
+
+    BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
+    bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleOutput);
+
+    process(event);
+
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
+    List<Message> messages = output.getMessages(TEST_RESOURCE, new Partition(PARTITION_0));
+
+    // Should only generate message for INSTANCE_2 (INSTANCE_1 already has pending message)
+    Assert.assertEquals(messages.size(), 1);
+    Assert.assertEquals(messages.get(0).getTgtName(), INSTANCE_2);
+
+    // The new message should have currentActiveReplicaNumber = current active replica count = 1 (only
+    // MASTER currently active)
+    // Note: pending messages should NOT affect the current active replica count calculation
+    Assert.assertEquals(messages.get(0).getCurrentActiveReplicaNumber(), 1,
+        "currentActiveReplicaNumber should be based on current active replicas only, not including pending transitions");
+  }
+
+  @Test
+  public void testMultiTopStateModel() throws Exception {
+    // Test multi-top state model (e.g., OFFLINE->ONLINE where ONLINE is the only top state, this
+    // example does not include ERROR states.)
+    StateModelDefinition stateModelDefinition =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline());
+
+    // Current state: 1 ONLINE, 2 OFFLINE
+    Map<String, CurrentState> currentStateMap = new HashMap<>();
+
+    CurrentState onlineState = new CurrentState(TEST_RESOURCE);
+    onlineState.setState(PARTITION_0, "ONLINE");
+    onlineState.setSessionId(SESSION_ID);
+    onlineState.setStateModelDefRef("OfflineOnline");
+    currentStateMap.put(INSTANCE_0, onlineState);
+
+    CurrentState offlineState1 = new CurrentState(TEST_RESOURCE);
+    offlineState1.setState(PARTITION_0, "OFFLINE");
+    offlineState1.setSessionId(SESSION_ID);
+    offlineState1.setStateModelDefRef("OfflineOnline");
+    currentStateMap.put(INSTANCE_1, offlineState1);
+
+    CurrentState offlineState2 = new CurrentState(TEST_RESOURCE);
+    offlineState2.setState(PARTITION_0, "OFFLINE");
+    offlineState2.setSessionId(SESSION_ID);
+    offlineState2.setStateModelDefRef("OfflineOnline");
+    currentStateMap.put(INSTANCE_2, offlineState2);
+
+    CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
+    ClusterEvent event = prepareClusterEventForMultiTop(stateModelDefinition, currentStateOutput);
+
+    // Best possible state wants to add 2 more ONLINE replica
+    Map<String, String> partitionMap = new HashMap<>();
+    partitionMap.put(INSTANCE_0, "ONLINE"); // ONLINE -> ONLINE (no change)
+    partitionMap.put(INSTANCE_1, "ONLINE"); // OFFLINE -> ONLINE (upward transition)
+    partitionMap.put(INSTANCE_2, "ONLINE"); // OFFLINE -> ONLINE (upward transition)
+
+    BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
+    bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleOutput);
+
+    process(event);
+
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
+    List<Message> messages = output.getMessages(TEST_RESOURCE, new Partition(PARTITION_0));
+
+    // Should generate 2 message for OFFLINE->ONLINE transition
+    Assert.assertEquals(messages.size(), 2);
+    Assert.assertEquals(messages.get(0).getTgtName(), INSTANCE_2);
+    Assert.assertEquals(messages.get(1).getTgtName(), INSTANCE_1);
+
+    // For multi-top state model, only top states (ONLINE) and ERROR state count as active
+    // Current active replicas: 1 ONLINE = 1
+    Assert.assertEquals(messages.get(0).getCurrentActiveReplicaNumber(), 1,
+        "For multi-top state model, currentActiveReplicaNumber should count only top states");
+    Assert.assertEquals(messages.get(1).getCurrentActiveReplicaNumber(), 1,
+        "For multi-top state model, currentActiveReplicaNumber should count only top states");
+  }
+
+  @Test
+  public void testErrorStateIncludedInActiveCount() throws Exception {
+    // Test that ERROR state replicas are included in active replica count
+    StateModelDefinition stateModelDef =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+
+    // Current state: 1 MASTER, 1 ERROR, 1 OFFLINE
+    Map<String, CurrentState> currentStateMap = new HashMap<>();
+
+    CurrentState masterState = new CurrentState(TEST_RESOURCE);
+    masterState.setState(PARTITION_0, "MASTER");
+    masterState.setSessionId(SESSION_ID);
+    masterState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_0, masterState);
+
+    CurrentState errorState = new CurrentState(TEST_RESOURCE);
+    errorState.setState(PARTITION_0, "ERROR");
+    errorState.setSessionId(SESSION_ID);
+    errorState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_1, errorState);
+
+    CurrentState offlineState = new CurrentState(TEST_RESOURCE);
+    offlineState.setState(PARTITION_0, "OFFLINE");
+    offlineState.setSessionId(SESSION_ID);
+    offlineState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_2, offlineState);
+
+    CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
+    ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
+
+    // Best possible state wants OFFLINE to become SLAVE
+    Map<String, String> partitionMap = new HashMap<>();
+    partitionMap.put(INSTANCE_0, "MASTER"); // MASTER -> MASTER (no change)
+    partitionMap.put(INSTANCE_1, "ERROR"); // ERROR -> ERROR (no change)
+    partitionMap.put(INSTANCE_2, "SLAVE"); // OFFLINE -> SLAVE (upward transition)
+
+    BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
+    bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleOutput);
+
+    process(event);
+
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
+    List<Message> messages = output.getMessages(TEST_RESOURCE, new Partition(PARTITION_0));
+
+    // Should generate 1 message for OFFLINE->SLAVE transition
+    Assert.assertEquals(messages.size(), 1);
+    Assert.assertEquals(messages.get(0).getTgtName(), INSTANCE_2);
+
+    // Current active replicas should include ERROR state: 1 MASTER + 1 ERROR = 2
+    Assert.assertEquals(messages.get(0).getCurrentActiveReplicaNumber(), 2,
+        "currentActiveReplicaNumber should include ERROR state replicas in active count");
+  }
+
+  @Test
+  public void testTransitionFromErrorToOffline() throws Exception {
+    // Test ERROR→OFFLINE transition (standard recovery path) - should NOT get currentReplicaNumber
+    StateModelDefinition stateModelDef =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+
+    // Current state: Instance in ERROR state
+    Map<String, CurrentState> currentStateMap = new HashMap<>();
+    CurrentState currentState = new CurrentState(TEST_RESOURCE);
+    currentState.setState(PARTITION_0, "ERROR");
+    currentState.setSessionId(SESSION_ID);
+    currentState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_0, currentState);
+
+    CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
+    ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
+
+    // Best possible state wants to move ERROR to OFFLINE (standard recovery pattern)
+    Map<String, String> partitionMap = new HashMap<>();
+    partitionMap.put(INSTANCE_0, "OFFLINE");
+
+    BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
+    bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleOutput);
+
+    process(event);
+
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
+    List<Message> messages = output.getMessages(TEST_RESOURCE, new Partition(PARTITION_0));
+
+    Assert.assertEquals(messages.size(), 1);
+
+    // Should have default replica number (-1) since it's a downward transition (active to inactive)
+    Message msg = messages.get(0);
+    Assert.assertEquals(msg.getCurrentActiveReplicaNumber(), -1,
+        "ERROR→OFFLINE transitions should not have currentActiveReplicaNumber assigned since it's downward (active to inactive)");
+  }
+
+  @Test
+  public void testDroppedReplicasExcludedFromActiveCount() throws Exception {
+    // Test that DROPPED replicas are properly excluded from calculations
+    StateModelDefinition stateModelDef =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+
+    // Current state: 1 MASTER, 1 SLAVE, 1 OFFLINE
+    Map<String, CurrentState> currentStateMap = new HashMap<>();
+
+    CurrentState masterState = new CurrentState(TEST_RESOURCE);
+    masterState.setState(PARTITION_0, "MASTER");
+    masterState.setSessionId(SESSION_ID);
+    masterState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_0, masterState);
+
+    CurrentState slaveState = new CurrentState(TEST_RESOURCE);
+    slaveState.setState(PARTITION_0, "OFFLINE");
+    slaveState.setSessionId(SESSION_ID);
+    slaveState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_1, slaveState);
+
+    CurrentState offlineState = new CurrentState(TEST_RESOURCE);
+    offlineState.setState(PARTITION_0, "OFFLINE");
+    offlineState.setSessionId(SESSION_ID);
+    offlineState.setStateModelDefRef("MasterSlave");
+    currentStateMap.put(INSTANCE_2, offlineState);
+
+    CurrentStateOutput currentStateOutput = setupCurrentStateOutput(currentStateMap);
+    ClusterEvent event = prepareClusterEvent(stateModelDef, currentStateOutput);
+
+    // Best possible state: MASTER stays, SLAVE gets DROPPED, OFFLINE becomes SLAVE
+    Map<String, String> partitionMap = new HashMap<>();
+    partitionMap.put(INSTANCE_0, "MASTER"); // MASTER -> MASTER (no change)
+    partitionMap.put(INSTANCE_1, "DROPPED"); // OFFLINE -> DROPPED (downward transition)
+    partitionMap.put(INSTANCE_2, "SLAVE"); // OFFLINE -> SLAVE (upward transition)
+
+    BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
+    bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleOutput);
+
+    process(event);
+
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
+    List<Message> messages = output.getMessages(TEST_RESOURCE, new Partition(PARTITION_0));
+
+    // Should generate 2 messages: OFFLINE->DROPPED and OFFLINE->SLAVE
+    Assert.assertEquals(messages.size(), 2);
+
+    Message upwardTransitionMsg = null;
+    Message droppedTransitionMsg = null;
+    for (Message msg : messages) {
+      if (msg.getTgtName().equals(INSTANCE_2) && msg.getToState().equals("SLAVE")) {
+        upwardTransitionMsg = msg;
+      } else if (msg.getTgtName().equals(INSTANCE_1) && msg.getToState().equals("DROPPED")) {
+        droppedTransitionMsg = msg;
+      }
+    }
+
+    Assert.assertNotNull(upwardTransitionMsg, "Should have upward state transition message");
+    Assert.assertNotNull(droppedTransitionMsg, "Should have dropped state transition message");
+
+    // Upward transition should get currentActiveReplicaNumber = current active replicas
+    // Current active replicas: 1 (MASTER = 1)
+    Assert.assertEquals(upwardTransitionMsg.getCurrentActiveReplicaNumber(), 1,
+        "Upward transition should have currentActiveReplicaNumber = current active replica count");
+
+    // DROPPED transition should not get currentActiveReplicaNumber (downward transition)
+    Assert.assertEquals(droppedTransitionMsg.getCurrentActiveReplicaNumber(), -1,
+        "DROPPED transition should not have currentActiveReplicaNumber assigned");
+  }
+
+  private ClusterEvent prepareClusterEventForMultiTop(StateModelDefinition stateModelDefinition,
+      CurrentStateOutput currentStateOutput) {
+    ClusterEvent event = new ClusterEvent(TEST_CLUSTER, ClusterEventType.Unknown);
+
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
+
+    // Mock HelixManager
+    HelixManager manager = mock(HelixManager.class);
+    when(manager.getInstanceName()).thenReturn("Controller");
+    when(manager.getSessionId()).thenReturn(SESSION_ID);
+
+    // Mock HelixDataAccessor
+    HelixDataAccessor dataAccessor = mock(HelixDataAccessor.class);
+    when(manager.getHelixDataAccessor()).thenReturn(dataAccessor);
+
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
+
+    // Setup ResourceControllerDataProvider
+    ResourceControllerDataProvider cache = mock(ResourceControllerDataProvider.class);
+    when(cache.getClusterConfig()).thenReturn(new ClusterConfig("TestCluster"));
+    when(cache.getStateModelDef("OfflineOnline")).thenReturn(stateModelDefinition);
+
+    // Mock live instances
+    Map<String, LiveInstance> liveInstances = new HashMap<>();
+    liveInstances.put(INSTANCE_0, createLiveInstance(INSTANCE_0));
+    liveInstances.put(INSTANCE_1, createLiveInstance(INSTANCE_1));
+    liveInstances.put(INSTANCE_2, createLiveInstance(INSTANCE_2));
+    when(cache.getLiveInstances()).thenReturn(liveInstances);
+
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
+
+    // Setup resources
+    Map<String, Resource> resourceMap = new HashMap<>();
+    Resource resource = new Resource(TEST_RESOURCE);
+    resource.setStateModelDefRef("OfflineOnline");
+    resource.addPartition(PARTITION_0);
+    resourceMap.put(TEST_RESOURCE, resource);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
+    return event;
   }
 
   @Test
   public void testReplicaCountCalculationWithDroppedReplicas() throws Exception {
-    // Test that DROPPED replicas are excluded from target active replica count
     StateModelDefinition stateModelDef =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
 
@@ -332,9 +574,9 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
 
     // Best possible state: MASTER stays, one SLAVE gets DROPPED, one OFFLINE becomes SLAVE
     Map<String, String> partitionMap = new HashMap<>();
-    partitionMap.put(INSTANCE_0, "MASTER");  // No change
+    partitionMap.put(INSTANCE_0, "MASTER"); // No change
     partitionMap.put(INSTANCE_1, "DROPPED"); // SLAVE -> DROPPED (excluded from active count)
-    partitionMap.put(INSTANCE_2, "SLAVE");   // OFFLINE -> SLAVE (upward transition)
+    partitionMap.put(INSTANCE_2, "SLAVE"); // OFFLINE -> SLAVE (upward transition)
 
     BestPossibleStateOutput bestPossibleOutput = new BestPossibleStateOutput();
     bestPossibleOutput.setState(TEST_RESOURCE, new Partition(PARTITION_0), partitionMap);
@@ -361,15 +603,13 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     Assert.assertNotNull(upwardTransitionMsg, "Should have upward state transition message");
     Assert.assertNotNull(droppedTransitionMsg, "Should have dropped state transition message");
 
-    // Upward transition should get replica number
-    // targetActiveReplicaCount = 2 (1 MASTER + 1 SLAVE, DROPPED excluded)
-    // replicaNumberCounter = 2 - 0 = 2, upward transition gets current replica number 2
-    Assert.assertEquals(upwardTransitionMsg.getCurrentReplicaNumber(), 2,
-        "Upward state transition message should have current replica number assigned based on active replica count excluding DROPPED");
+    // Upward transition should get currentActiveReplicaNumber
+    Assert.assertEquals(upwardTransitionMsg.getCurrentActiveReplicaNumber(), 2,
+        "Upward state transition message should have current active replica number assigned based on active replica count excluding DROPPED");
 
-    // DROPPED transition should not get current replica number (it's a downward transition anyway)
-    Assert.assertEquals(droppedTransitionMsg.getCurrentReplicaNumber(), -1,
-        "DROPPED state transition message should not have current replica number assigned.");
+    // DROPPED transition should not get current active replica number (it's a downward transition anyway)
+    Assert.assertEquals(droppedTransitionMsg.getCurrentActiveReplicaNumber(), -1,
+        "DROPPED state transition message should not have current active replica number assigned.");
   }
 
   private ClusterEvent prepareClusterEvent(StateModelDefinition stateModelDef,

@@ -105,7 +105,7 @@ public class Message extends HelixProperty {
     EXPIRY_PERIOD,
     SRC_CLUSTER,
     ST_REBALANCE_TYPE,
-    CURRENT_REPLICA_NUMBER
+    CURRENT_ACTIVE_REPLICA_NUMBER
   }
 
   /**
@@ -933,25 +933,36 @@ public class Message extends HelixProperty {
   }
 
   /**
-   * Set replica number for participant-side message prioritization.
-   * This field indicates the number of top and second-top state replicas at the time a state transition message is generated.
-   * It is used to prioritize messages, with lower values indicating higher priority.
-   * Participants can use this in custom thread pools or message handlers to process
-   * critical transitions first during recovery scenarios.
-   * Default value is -1 for transitions that don't require prioritization.
-   * @param currentReplicaNumber the replica priority number (-1 for no prioritization, >=0 for
-   *          prioritized)
+   * Set current active replica count for participant-side message prioritization.
+   * This field indicates the number of replicas currently in active states (including ERROR states)
+   * for this partition at the time the state transition message is generated.
+   * Active states include top states, secondary top states (for single-top state models),
+   * and ERROR states.
+   *
+   * This metadata enables participants to prioritize recovery scenarios (low active counts)
+   * over load balancing scenarios (high active counts) in custom thread pools or message handlers.
+   * For example, 2→3 transitions get higher priority than 3→4 transitions.
+   *
+   * Default value is -1 for transitions that don't require prioritization metadata.(for eg : downward transitions).
+   *
+   * @param currentActiveReplicaNumber the number of currently active replicas (-1 when there is no prioritization metadata,
+   *                                   >=0 for transitions containing current availability level)
    */
-  public void setCurrentReplicaNumber(int currentReplicaNumber) {
-    _record.setIntField(Attributes.CURRENT_REPLICA_NUMBER.name(), currentReplicaNumber);
+  public void setCurrentActiveReplicaNumber(int currentActiveReplicaNumber) {
+    _record.setIntField(Attributes.CURRENT_ACTIVE_REPLICA_NUMBER.name(), currentActiveReplicaNumber);
   }
 
   /**
-   * Get the "CurrentReplicaNumber" for transition-related messages
-   * @return CurrentReplicaNumber, or null for other message types
+   * Get the current active replica count for this partition at message generation time.
+   * This value represents the number of replicas in active states (including ERROR states) before
+   * any state transitions occur, enabling participant-side message prioritization based on
+   * current availability levels.
+   * @return current active replica count, or -1 for cases where we don't provide metadata for
+   *         prioritization like downward state transitions.
    */
-  public int getCurrentReplicaNumber() {
-    return _record.getIntField(Attributes.CURRENT_REPLICA_NUMBER.name(), -1);
+
+  public int getCurrentActiveReplicaNumber() {
+    return _record.getIntField(Attributes.CURRENT_ACTIVE_REPLICA_NUMBER.name(), -1);
   }
 
   /**

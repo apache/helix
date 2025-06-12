@@ -126,13 +126,20 @@ public class MessageUtil {
    * @param nextState next state
    * @param tgtSessionId target session id
    * @param stateModelDefName state model definition name
-   * @param currentReplicaNumber replica priority number (-1 for no prioritization, >=0 for
-   *          prioritized)
+   * @param currentActiveReplicaNumber The number of replicas currently in active states
+   *          for this partition before any state transitions occur. This metadata
+   *          enables participant-side message prioritization by indicating the
+   *          current availability level (e.g., 0→1 recovery scenarios get higher
+   *          priority than 2→3 load balancing scenarios). Set to -1 for transitions
+   *          that should not be prioritized (downward transitions).
+   *          Active states include top states, secondary top states (for single-top
+   *          state models), and ERROR states since they are still considered active by Helix.
    * @return state transition message
    */
   public static Message createStateTransitionMessage(String srcInstanceName, String srcSessionId,
       Resource resource, String partitionName, String instanceName, String currentState,
-      String nextState, String tgtSessionId, String stateModelDefName, int currentReplicaNumber) {
+      String nextState, String tgtSessionId, String stateModelDefName,
+      int currentActiveReplicaNumber) {
     Message message = createBasicStateTransitionMessage(Message.MessageType.STATE_TRANSITION,
         srcInstanceName, srcSessionId, resource, partitionName, instanceName, currentState,
         nextState, tgtSessionId, stateModelDefName);
@@ -148,8 +155,8 @@ public class MessageUtil {
       message.setResourceTag(resource.getResourceTag());
     }
 
-    // Set replica number for participant-side prioritization
-    message.setCurrentReplicaNumber(currentReplicaNumber);
+    // Set current active replica number for participant-side prioritization
+    message.setCurrentActiveReplicaNumber(currentActiveReplicaNumber);
 
     return message;
   }
@@ -170,7 +177,8 @@ public class MessageUtil {
   public static Message createStateTransitionMessage(String srcInstanceName, String srcSessionId,
       Resource resource, String partitionName, String instanceName, String currentState,
       String nextState, String tgtSessionId, String stateModelDefName) {
-    // currentReplicaNumber is set to -1 for ST messages needing no prioritization metadata (backward compatibility)
+    // currentActiveReplicaNumber is set to -1 for ST messages needing no prioritization metadata
+    // (backward compatibility)
     return createStateTransitionMessage(srcInstanceName, srcSessionId, resource, partitionName,
         instanceName, currentState, nextState, tgtSessionId, stateModelDefName, -1);
   }

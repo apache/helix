@@ -163,22 +163,31 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       // desired-state->list of generated-messages
       Map<String, List<Message>> messageMap = new HashMap<>();
 
-      // Calculate target active replica count after convergence (excluding OFFLINE and DROPPED replicas)
-      // This counts replicas that will be actively serving traffic after all state transitions complete.
-      // For example, Includes: MASTER, SLAVE, and other serving states (excludes OFFLINE, DROPPED, NO_DESIRED_STATE)
-      int targetActiveReplicaCount = calculateTargetActiveReplicaCount(instanceStateMap, stateModelDef);
-
-      // Get pending upward state transition messages to second top or top state.
-      // This holds good for state models with no more than 3 state in the state machine definition
-      List<Message> pendingUpMsgToTopOrSecondTop = getPendingTransitionsToTopOrSecondTopStates(
-          resourceName, partition, currentStateOutput, stateModelDef);
-
-      // Calculate remaining replica positions available for new upward state transitions
-      // This represents how many more upward transitions can be assigned replica numbers
-      // This counter decrements from (targetActiveReplicaCount - pendingUpMsgToTopOrSecondTop) down to 0
-      // ensuring first replica gets highest number for proper recovery ordering
-      // Example: targetActiveReplicaCount=3, pendingUpMsgToTopOrSecondTop=1 → counter starts at 2, assigns replica numbers 2,1,0
-      int replicaNumberCounter = targetActiveReplicaCount - pendingUpMsgToTopOrSecondTop.size();
+      /**
+       * Calculate the current active replica count based on state model type.
+       * This represents the number of replicas currently serving traffic for this partition
+       * Active replicas include: top states, secondary top states (for single-top state models),
+       * and ERROR states.
+       * All qualifying state transitions for this partition will receive this same value,
+       * allowing clients to understand the current availability level and prioritize accordingly.
+       */
+      int currentActiveReplicaCount;
+      if (stateModelDef.isSingleTopStateModel()) {
+        // For single-top state models (e.g., OFFLINE→STANDBY→ONLINE)
+        // Count replicas in top state, secondary top state and ERROR state
+        currentActiveReplicaCount = (int) currentStateMap.values().stream()
+            .filter(state -> stateModelDef.getTopState().contains(state)
+                || stateModelDef.getSecondTopStates().contains(state)
+                || HelixDefinedState.ERROR.name().equals(state))
+            .count();
+      } else {
+        // For multi-top state models (e.g., OFFLINE→ONLINE)
+        // Count replicas that will be in top state and ERROR state
+        currentActiveReplicaCount = (int) currentStateMap.values().stream()
+            .filter(state -> stateModelDef.getTopState().contains(state)
+                || HelixDefinedState.ERROR.name().equals(state))
+            .count();
+      }
 
       for (String instanceName : instanceStateMap.keySet()) {
 
@@ -267,31 +276,42 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     pendingMessage, manager, resource, partition, sessionIdMap, instanceName,
                     stateModelDef, cancellationMessage, isCancellationEnabled);
           } else {
-          // Set currentReplicaNumber to provide metadata for potential message prioritization by participant
-            int currentReplicaNumber = -1; // -1 by default
+            // Set currentActiveReplicaNumber to provide metadata for potential message prioritization by
+            // participant.
+            // Assign the current active replica count to all qualifying upward transitions for this
+            // partition.
+            // This ensures consistent prioritization metadata across concurrent state transitions.
+            int currentActiveReplicaNumber = -1; // -1 indicates no prioritization metadata, for eg:
+                                           // Downward ST messages get a -1.
 
-            // Check if this is an upward state transition from non-second top state to second top
-            // or top state
+            /**
+             * Assign currentActiveReplicaNumber for qualifying upward state transitions.
+             * Criteria for assignment:
+             * - Must be an upward state transition according to state model
+             * - Current state must not be considered active (according to state model type)
+             * - Target state must be considered active (according to state model type)
+             */
             if (stateModelDef.isUpwardStateTransition(currentState, nextState)
-                && !stateModelDef.getSecondTopStates().contains(currentState)
-                && (isSecondTopState(nextState, stateModelDef)
-                    || stateModelDef.getTopState().contains(nextState))) {
+                && !isCurrentlyActive(currentState, stateModelDef,
+                    stateModelDef.isSingleTopStateModel())
+                && isTargetActive(nextState, stateModelDef,
+                    stateModelDef.isSingleTopStateModel())) {
 
-              // Assign the replica number for prioritization
-              currentReplicaNumber = replicaNumberCounter--;
+              // All qualifying transitions for this partition get the same currentActiveReplicaNumber
+              currentActiveReplicaNumber = currentActiveReplicaCount;
             }
 
             // Create new state transition message
             message = MessageUtil
                 .createStateTransitionMessage(manager.getInstanceName(), manager.getSessionId(),
                     resource, partition.getPartitionName(), instanceName, currentState, nextState,
-                    sessionIdMap.get(instanceName), stateModelDef.getId(), currentReplicaNumber);
+                    sessionIdMap.get(instanceName), stateModelDef.getId(), currentActiveReplicaNumber);
 
             if (logger.isDebugEnabled()) {
               LogUtil.logDebug(logger, _eventId, String.format(
-                  "Resource %s partition %s for instance %s with currentState %s, nextState %s and currentReplicaNumber %d",
+                  "Resource %s partition %s for instance %s with currentState %s, nextState %s and currentActiveReplicaNumber %d",
                   resource.getResourceName(), partition.getPartitionName(), instanceName,
-                  currentState, nextState, currentReplicaNumber));
+                  currentState, nextState, currentActiveReplicaNumber));
             }
           }
         }
@@ -322,79 +342,53 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   }
 
   /**
-   * Calculate the target active replica count after state convergence.
-   * This method counts only replicas that will be actively serving traffic after all
-   * state transitions complete. It excludes replicas being dropped or in inactive states.
-   *
-   * @param instanceStateMap Map of instance to desired state
-   * @param stateModelDef The state model definition
-   * @return Number of active replicas after convergence
+   * Determines if the given current state is considered active based on the state model type.
+   * For single-top state models, top, secondary top, and ERROR states are active.
+   * For multi-top state models, top and ERROR states are active.
+   * ERROR state replicas are considered active in HELIX as they do not affect availability.
+   * @param currentState The current state to check
+   * @param stateModelDef State model definition containing state hierarchy information
+   * @param isSingleTopState Whether this is a single-top state model
+   * @return true if the current state is considered active, false otherwise
    */
-  private int calculateTargetActiveReplicaCount(Map<String, String> instanceStateMap,
-      StateModelDefinition stateModelDef) {
-    int targetActiveReplicaCount = 0;
-    String initialState = stateModelDef.getInitialState();
-
-    for (String desiredState : instanceStateMap.values()) {
-      // Count potential active replicas after convergence (not initial state/dropped state)
-      // Note : calling it potential as counting active replicas after convergence is hard as upward state transitions are in progress too.
-      if (desiredState != null && !desiredState.equals(initialState)
-          && !desiredState.equals(NO_DESIRED_STATE)
-          && !desiredState.equals(HelixDefinedState.DROPPED.name())) {
-        targetActiveReplicaCount++;
-      }
+  private boolean isCurrentlyActive(String currentState, StateModelDefinition stateModelDef,
+      boolean isSingleTopState) {
+    // ERROR state is always considered active regardless of state model type
+    if (HelixDefinedState.ERROR.name().equals(currentState)) {
+      return true;
     }
-
-    return targetActiveReplicaCount;
+    if (isSingleTopState) {
+      return stateModelDef.getTopState().contains(currentState)
+          || stateModelDef.getSecondTopStates().contains(currentState);
+    } else {
+      return stateModelDef.getTopState().contains(currentState);
+    }
   }
 
   /**
-   * Check if a state is a second top state
-   * @param state The state to check
-   * @param stateModelDef The state model definition
-   * @return True if it's a second top state, false otherwise
+   * Determines if the given target state is considered active based on the state model type.
+   * For single-top state models, both top,secondary top and ERROR states are active.
+   * For multi-top state models, top and ERROR states are active.
+   * @param targetState The target state to check
+   * @param stateModelDef State model definition containing state hierarchy information
+   * @param isSingleTopState Whether this is a single-top state model
+   * @return true if the target state is considered active, false otherwise
    */
-  private boolean isSecondTopState(String state, StateModelDefinition stateModelDef) {
-    return stateModelDef.getSecondTopStates().contains(state);
-  }
-
-  /**
-   * Get pending upward state transition messages from non-second top state to second top or top
-   * state
-   * @param resourceName The resource name
-   * @param partition The partition
-   * @param currentStateOutput The current state output
-   * @param stateModelDef The state model definition
-   * @return List of pending messages for upward state transitions
-   */
-  private List<Message> getPendingTransitionsToTopOrSecondTopStates(String resourceName,
-      Partition partition, CurrentStateOutput currentStateOutput,
-      StateModelDefinition stateModelDef) {
-    List<Message> pendingUpwardSTMessages = new ArrayList<>();
-
-    // Instance -> PendingMessage
-    Map<String, Message> pendingMessages =
-        currentStateOutput.getPendingMessageMap(resourceName, partition);
-
-    if (pendingMessages != null && !pendingMessages.isEmpty()) {
-      for (Message message : pendingMessages.values()) {
-        String fromState = message.getFromState();
-        String toState = message.getToState();
-
-        // Check if it's an upward state transition from non-second top state to second top or top
-        // state
-        if (stateModelDef.isUpwardStateTransition(fromState, toState)
-            && !isSecondTopState(fromState, stateModelDef)
-            && (isSecondTopState(toState, stateModelDef) || stateModelDef.getTopState().contains(toState))) {
-          pendingUpwardSTMessages.add(message);
-        }
-      }
+  private boolean isTargetActive(String targetState, StateModelDefinition stateModelDef,
+      boolean isSingleTopState) {
+    // ERROR state is always considered active regardless of state model type
+    if (HelixDefinedState.ERROR.name().equals(targetState)) {
+      return true;
     }
-
-    return pendingUpwardSTMessages;
+    if (isSingleTopState) {
+      return stateModelDef.getTopState().contains(targetState)
+          || stateModelDef.getSecondTopStates().contains(targetState);
+    } else {
+      return stateModelDef.getTopState().contains(targetState);
+    }
   }
 
-  private boolean shouldCreateSTCancellation(Message pendingMessage, String desiredState,
+    private boolean shouldCreateSTCancellation(Message pendingMessage, String desiredState,
       String initialState) {
     if (pendingMessage == null) {
       return false;

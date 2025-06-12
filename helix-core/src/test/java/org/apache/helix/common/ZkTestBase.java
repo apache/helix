@@ -452,6 +452,11 @@ public class ZkTestBase {
 
   protected void createResourceInCustomizedMode(ClusterSetup clusterSetup, String clusterName, String resourceName,
       Map<Integer, String> partitionInstanceMap) {
+    clusterSetup.addResourceToCluster(clusterName, resourceName, createCustomizedResourceIdealState(resourceName,
+        partitionInstanceMap));
+  }
+
+  protected IdealState createCustomizedResourceIdealState(String resourceName, Map<Integer, String> partitionInstanceMap) {
     IdealState idealState = new IdealState(resourceName);
     idealState.setNumPartitions(partitionInstanceMap.size());
     idealState.setStateModelDefRef(OnlineOfflineSMD.name);
@@ -460,7 +465,7 @@ public class ZkTestBase {
       idealState.setPartitionState(resourceName + "_" + partitionID,
           instanceName, OnlineOfflineSMD.States.ONLINE.toString());
     });
-    clusterSetup.addResourceToCluster(clusterName, resourceName, idealState);
+    return idealState;
   }
 
   protected void removeAllResourcesFromInstance(MockParticipantManager participant, Set<String> excludeResourceNames) {

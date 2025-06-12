@@ -762,9 +762,10 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   /**
-   * Return true if instance has any resource with FULL_AUTO or CUSTOMIZED rebalance mode in current state or
-   * if instance has any pending message. Otherwise, return false if instance is offline,
-   * instance has no active session, or if instance is online but has no current state or pending message.
+   * Returns true if instance has more than one session or for online instance if it has messages or
+   * FULL_AUTO and CUSTOMIZED resources in current states, false otherwise. For offline instances,
+   * returns false if all CUSTOMIZED resources in current states are migrated to other instances
+   * in ideal state, true otherwise.
    * @param clusterName
    * @param instanceName
    * @return
@@ -776,47 +777,95 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // check the instance is alive
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
-    if (liveInstance == null) {
-      logger.warn("Instance {} in cluster {} is not alive. The instance can be removed anyway.", instanceName,
-          clusterName);
-      return false;
-    }
 
     BaseDataAccessor<ZNRecord> baseAccessor = _baseDataAccessor;
     // count number of sessions under CurrentState folder. If it is carrying over from prv session,
     // then there are > 1 session ZNodes.
     List<String> sessions = baseAccessor.getChildNames(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName), 0);
+    if (sessions.isEmpty()) {
+      logger.info("Instance {} in cluster {} does not have any session.  The instance can be removed anyway.",
+          instanceName, clusterName);
+      return false;
+    }
     if (sessions.size() > 1) {
-      logger.warn("Instance {} in cluster {} is carrying over from prev session.", instanceName,
+      logger.info("Instance {} in cluster {} is carrying over from prev session.", instanceName,
           clusterName);
       return true;
     }
 
-    String sessionId = liveInstance.getEphemeralOwner();
-
-    String path = PropertyPathBuilder.instanceCurrentState(clusterName, instanceName, sessionId);
-    List<String> currentStates = baseAccessor.getChildNames(path, 0);
-    if (currentStates == null) {
-      logger.warn("Instance {} in cluster {} does not have live session.  The instance can be removed anyway.",
+    String sessionId = sessions.get(0);
+    List<CurrentState> currentStates = accessor.getChildValues(keyBuilder.currentStates(instanceName, sessionId), true);
+    if (currentStates == null || currentStates.isEmpty()) {
+      logger.info("Instance {} in cluster {} does not have any current state.",
           instanceName, clusterName);
       return false;
+    }
+
+    List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates(), true);
+    if (liveInstance == null) {
+      boolean customizedResourcesReassigned =
+          areAllCustomizedResourcesReassigned(currentStates, idealStates, instanceName);
+      logger.info("check for customizedResourcesReassigned for instance {} in cluster {} returned {}",
+          instanceName, clusterName, customizedResourcesReassigned);
+      return !customizedResourcesReassigned;
     }
 
     // see if instance has pending message.
     List<String> messages = accessor.getChildNames(keyBuilder.messages(instanceName));
     if (messages != null && !messages.isEmpty()) {
-      logger.warn("Instance {} in cluster {} has pending messages.", instanceName, clusterName);
+      logger.info("Instance {} in cluster {} has pending messages.", instanceName, clusterName);
       return true;
     }
-
     // Get set of FULL_AUTO and CUSTOMIZED resources
-    List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates(), true);
     Set<String> resources = idealStates != null ? idealStates.stream()
         .filter(idealState -> idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO ||
             idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED)
         .map(IdealState::getResourceName).collect(Collectors.toSet()) : Collections.emptySet();
 
-    return currentStates.stream().anyMatch(resources::contains);
+    return currentStates.stream().map(CurrentState::getResourceName).anyMatch(resources::contains);
+  }
+
+  /**
+   * Returns true if, for all customized resources present in the given current states every partition is now assigned
+   * to a different instance (i.e., not instanceName) in the IdealState.
+   *
+   * @param currentStates  list of CurrentState objects of instanceName representing the current assignment of
+   *                       resources on the instance
+   * @param idealStates    list of IdealState objects representing the desired assignment of resources
+   * @param instanceName   the instance from which resources are migrated
+   * @return
+   */
+  private boolean areAllCustomizedResourcesReassigned(List<CurrentState> currentStates,
+      List<IdealState> idealStates, String instanceName) {
+    // Step 1: Create a map of resourceName -> CurrentState
+    Map<String, CurrentState> currentStateMap = currentStates.stream()
+        .collect(Collectors.toMap(CurrentState::getResourceName, cs -> cs));
+
+    // Step 2: Filter ideal states that are CUSTOMIZED and present in currentStates
+    List<IdealState> customizedIdealStates = idealStates.stream()
+        .filter(is -> is.getRebalanceMode() == RebalanceMode.CUSTOMIZED &&
+            currentStateMap.containsKey(is.getResourceName()))
+        .collect(Collectors.toList());
+
+    // Step 3: Check if any partition of any customized resource is still assigned to the instance
+    for (IdealState idealState : customizedIdealStates) {
+      String resourceName = idealState.getResourceName();
+      CurrentState cs = currentStateMap.get(resourceName);
+
+      for (String partition : cs.getPartitionStateMap().keySet()) {
+        Map<String, String> instanceStateMap = idealState.getInstanceStateMap(partition);
+        if (instanceStateMap == null) {
+          continue;
+        }
+
+        for (String assignedInstance : instanceStateMap.keySet()) {
+          if (instanceName.equals(assignedInstance)) {
+            return false; // Partition still assigned to the given instance
+          }
+        }
+      }
+    }
+    return true; // All customized resource partitions have been migrated off this instance
   }
 
   @Override

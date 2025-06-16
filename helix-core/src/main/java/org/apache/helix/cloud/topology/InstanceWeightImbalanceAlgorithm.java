@@ -28,6 +28,10 @@ import org.apache.helix.model.InstanceConfig;
 
 import static org.apache.helix.model.InstanceConfig.WEIGHT_NOT_SET;
 
+/**
+ * This class implements the VirtualGroupImbalanceDetectionAlgorithm interface to calculate
+ * the imbalance score based on the MAX and MIN weights of instances assigned to virtual groups.
+ */
 public class InstanceWeightImbalanceAlgorithm implements VirtualGroupImbalanceDetectionAlgorithm {
   private static final Logger LOG =
       Logger.getLogger(InstanceWeightImbalanceAlgorithm.class.getName());

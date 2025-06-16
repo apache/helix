@@ -23,6 +23,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+/**
+ * This algorithm calculates the imbalance score based on the MAX and MIN number of instances
+ * assigned to each virtual group.
+ */
 public class InstanceCountImbalanceAlgorithm implements VirtualGroupImbalanceDetectionAlgorithm {
   private static final Logger LOG = Logger.getLogger(InstanceCountImbalanceAlgorithm.class.getName());
   private static final InstanceCountImbalanceAlgorithm _instance = new InstanceCountImbalanceAlgorithm();

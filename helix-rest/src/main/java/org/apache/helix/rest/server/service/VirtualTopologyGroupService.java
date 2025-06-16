@@ -113,14 +113,13 @@ public class VirtualTopologyGroupService {
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     // Collect the real topology of the cluster and the virtual topology of the cluster
     ClusterTopology clusterTopology = _clusterService.getTopologyOfVirtualCluster(clusterName, true);
+    Map<String, Set<String>> zoneMapping = clusterTopology.toZoneMapping();
     // If forceRecompute is set to true, we will recompute the virtual topology group from scratch
     // by ignoring the existing virtual topology group information.
-    String forceRecompute = customFields.getOrDefault(VirtualTopologyGroupConstants.FORCE_RECOMPUTE, "false");
-    boolean forceRecomputeFlag = Boolean.parseBoolean(forceRecompute);
-    ClusterTopology virtualTopology =
-        forceRecomputeFlag ? new ClusterTopology(clusterName, Collections.emptyList(),
-            Collections.emptySet())
-            : _clusterService.getTopologyOfVirtualCluster(clusterName, false);
+    boolean forceRecompute = Boolean.parseBoolean(
+        customFields.getOrDefault(VirtualTopologyGroupConstants.FORCE_RECOMPUTE, "false"));
+    Map<String, Set<String>> existingVirtualZoneMapping = forceRecompute ? Collections.emptyMap()
+        : _clusterService.getTopologyOfVirtualCluster(clusterName, false).toZoneMapping();
 
     Preconditions.checkState(clusterConfig.isTopologyAwareEnabled(),
         "Topology-aware rebalance is not enabled in cluster " + clusterName);
@@ -152,19 +151,15 @@ public class VirtualTopologyGroupService {
     // compute group assignment
     LOG.info("Computing virtual topology group for cluster {} with param {}", clusterName, customFields);
     Map<String, Set<String>> assignment =
-        _assignmentAlgorithm.computeAssignment(numGroups, groupName,
-            clusterTopology.toZoneMapping(), virtualTopology.toZoneMapping());
-    // If the force recompute is not applied and the imbalance threshold is reached, we need to
-    // force recompute the assignment to ensure the assignment is balanced at the best effort.
-    if (!forceRecomputeFlag && _imbalanceDetectionAlgorithm.isAssignmentImbalanced(
-        imbalanceThreshold, assignment)) {
-      LOG.info("Virtual topology group assignment is imbalanced, recomputing assignment for cluster {}",
-          clusterName);
-      assignment = _assignmentAlgorithm.computeAssignment(numGroups, groupName,
-          clusterTopology.toZoneMapping(), Collections.emptyMap());
-    }
+        _assignmentAlgorithm.computeAssignment(numGroups, groupName, zoneMapping,
+            existingVirtualZoneMapping);
 
-    updateVirtualTopology(clusterName, clusterConfig, assignment, customFields, virtualTopology);
+    // If recompute is not forced and the imbalance threshold is positive, we will check if the
+    // assignment is imbalanced
+    assignment = recomputeAssignmentIfNeeded(forceRecompute, imbalanceThreshold, assignment,
+        numGroups, groupName, zoneMapping, existingVirtualZoneMapping);
+
+    updateVirtualTopology(clusterName, clusterConfig, assignment, customFields, existingVirtualZoneMapping);
   }
 
   /**
@@ -237,11 +232,49 @@ public class VirtualTopologyGroupService {
     }
   }
 
+  /**
+   * If recomputation isn’t forced and the imbalance threshold is positive,
+   * evaluates whether a fresh assignment reduces the imbalance score.
+   * If so, updates the assignment to the better one.
+   */
+  private Map<String, Set<String>> recomputeAssignmentIfNeeded(boolean forceRecompute,
+      int threshold, Map<String, Set<String>> assignmentToUpdate, int numGroups, String groupName,
+      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> existingVirtualZoneMapping) {
+
+    // Skip if forced recompute is requested elsewhere or threshold disables this check or the
+    // existing virtual zone mapping size does not match the assignment to update size (meaning that
+    // a fresh computation is applied)
+    if (forceRecompute || threshold < 0 || existingVirtualZoneMapping.size() != assignmentToUpdate.size()) {
+      return assignmentToUpdate;
+    }
+
+    int currentScore = _imbalanceDetectionAlgorithm.getImbalanceScore(assignmentToUpdate);
+    if (currentScore <= threshold) {
+      LOG.info("Assignment balanced (score {} ≤ threshold {})", currentScore, threshold);
+      return assignmentToUpdate;
+    }
+
+    LOG.info("Imbalanced assignment (score {} > threshold {}), attempting recompute", currentScore,
+        threshold);
+
+    Map<String, Set<String>> candidateAssignment =
+        _assignmentAlgorithm.computeAssignment(numGroups, groupName, zoneMapping,
+            Collections.emptyMap());
+
+    int candidateScore = _imbalanceDetectionAlgorithm.getImbalanceScore(candidateAssignment);
+    if (candidateScore < currentScore) {
+      LOG.info("Recompute successful: reduced score from {} to {}", currentScore, candidateScore);
+      return candidateAssignment;
+    }
+
+    LOG.warn("Recomputed assignment worse ({} ≥ {}), retaining original", candidateScore,
+        currentScore);
+    return assignmentToUpdate;
+  }
+
   private void updateVirtualTopology(String clusterName, ClusterConfig clusterConfig,
       Map<String, Set<String>> assignment, Map<String, String> customFields,
-      ClusterTopology exisingVirtualTopology) {
-
-    Map<String, Set<String>> existingVirtualGroupsAssignment = exisingVirtualTopology.toZoneMapping();
+      Map<String, Set<String>> exisingVirtualZoneMapping) {
     boolean isAssignmentChanged = assignment.entrySet().stream().anyMatch(entry -> {
       String virtualGroup = entry.getKey();
       Set<String> instances = entry.getValue();
@@ -250,8 +283,8 @@ public class VirtualTopologyGroupService {
         return false; // No change needed for empty groups
       }
       // Check if the group already exists in the virtual topology
-      if (existingVirtualGroupsAssignment.containsKey(virtualGroup)) {
-        Set<String> existingInstances = existingVirtualGroupsAssignment.get(virtualGroup);
+      if (exisingVirtualZoneMapping.containsKey(virtualGroup)) {
+        Set<String> existingInstances = exisingVirtualZoneMapping.get(virtualGroup);
         return !existingInstances.equals(instances); // Return true if there is a change
       }
       return true; // New group, so it is a change

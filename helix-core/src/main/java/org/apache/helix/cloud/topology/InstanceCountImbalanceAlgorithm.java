@@ -34,26 +34,38 @@ public class InstanceCountImbalanceAlgorithm implements VirtualGroupImbalanceDet
   }
 
   @Override
-  public boolean isAssignmentImbalanced(int imbalanceThreshold,
-      Map<String, Set<String>> virtualGroupToInstancesAssignment) {
-    // Check if the assignment is imbalanced based on the threshold
-    if (imbalanceThreshold < 0) {
-      LOG.info("Imbalance threshold is negative: " + imbalanceThreshold + ". No imbalance check needed.");
-      return false; // No imbalance check needed
-    }
+  public int getImbalanceScore(Map<String, Set<String>> virtualGroupToInstancesAssignment) {
+    // Calculate the imbalance score based on the difference between max and min instance counts
     int minInstances = Integer.MAX_VALUE;
     int maxInstances = Integer.MIN_VALUE;
-    for (Set<String> instances : virtualGroupToInstancesAssignment.values()) {
-      int size = instances.size();
-      minInstances = Math.min(minInstances, size);
-      maxInstances = Math.max(maxInstances, size);
+    String virtualGroupIdWithMaxInstances = null;
+    String virtualGroupIdWithMinInstances = null;
+
+    if (virtualGroupToInstancesAssignment == null || virtualGroupToInstancesAssignment.isEmpty()) {
+      LOG.warning("Virtual group to instances assignment is empty or null. Returning 0 as imbalance score.");
+      return 0; // No imbalance if there are no groups or instances
     }
 
-    if (maxInstances - minInstances > imbalanceThreshold) {
-      LOG.info("Imbalance detected: maxInstances = " + maxInstances + ", minInstances = " + minInstances +
-          ", threshold = " + imbalanceThreshold);
-      return true; // Imbalance detected
+    // Iterate through the assignment to find min and max instance counts
+    // across all virtual groups
+   for (Map.Entry<String, Set<String>> entry : virtualGroupToInstancesAssignment.entrySet()) {
+      String virtualGroupId = entry.getKey();
+      Set<String> instances = entry.getValue();
+      int instanceCount = instances.size();
+
+      if (instanceCount < minInstances) {
+        minInstances = instanceCount;
+        virtualGroupIdWithMinInstances = virtualGroupId;
+      }
+      if (instanceCount > maxInstances) {
+        maxInstances = instanceCount;
+        virtualGroupIdWithMaxInstances = virtualGroupId;
+      }
     }
-    return false;
+    // Log the virtual groups with min and max instances
+    LOG.info("Virtual group with max instances: " + virtualGroupIdWithMaxInstances + " (" + maxInstances + ")"
+        + ", Virtual group with min instances: " + virtualGroupIdWithMinInstances + " (" + minInstances + ")");
+
+    return maxInstances - minInstances; // Return the imbalance score
   }
 }

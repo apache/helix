@@ -47,42 +47,54 @@ public class InstanceWeightImbalanceAlgorithm implements VirtualGroupImbalanceDe
   }
 
   @Override
-  public boolean isAssignmentImbalanced(int imbalanceThreshold,
-      Map<String, Set<String>> virtualGroupToInstancesAssignment) {
-    // Check if the assignment is imbalanced based on the threshold
-
-    if (imbalanceThreshold < 0) {
-      LOG.info("Imbalance threshold is negative: " + imbalanceThreshold
-          + ". No imbalance check needed.");
-      return false; // No imbalance check needed
+  public int getImbalanceScore(Map<String, Set<String>> virtualGroupToInstancesAssignment) {
+    if (virtualGroupToInstancesAssignment == null || virtualGroupToInstancesAssignment.isEmpty()) {
+      LOG.warning(
+          "Virtual group to instances assignment is empty or null. Returning 0 as imbalance score"
+              + ".");
+      return 0; // No imbalance if there are no groups or instances
     }
 
+    // Calculate the imbalance score based on the difference between max and min weights
     int minWeight = Integer.MAX_VALUE;
     int maxWeight = Integer.MIN_VALUE;
+    String virtualGroupIdWithMaxWeight = null;
+    String virtualGroupIdWithMinWeight = null;
 
-    for (Set<String> instances : virtualGroupToInstancesAssignment.values()) {
+    // Iterate through the assignment to find min and max weights across all virtual groups
+    for (Map.Entry<String, Set<String>> entry : virtualGroupToInstancesAssignment.entrySet()) {
+      String virtualGroupId = entry.getKey();
+      Set<String> instances = entry.getValue();
       int totalWeight = 0;
-      for (String instance : instances) {
-        InstanceConfig config = _configAccessor.getInstanceConfig(_clusterName, instance);
-        int weight = config.getWeight();
+
+      // Sum the weights of all instances in the virtual group
+      for (String instanceId : instances) {
+        InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(_clusterName, instanceId);
+        int weight = instanceConfig.getWeight();
         if (weight == WEIGHT_NOT_SET) {
-          // If the weight is not set, we can't calculate the imbalance. Thereby, no imbalance
-          // check needed
-          LOG.warning(
-              "Instance weight not provided. The result of imbalance algorithm is incorrect.");
-          return false;
+          LOG.warning("Instance " + instanceId + " does not have a weight set. "
+              + "The resulting imbalance score may not be accurate.");
+          return -1; // Return -1 to indicate an error due to missing weight
         }
         totalWeight += weight;
       }
-      minWeight = Math.min(minWeight, totalWeight);
-      maxWeight = Math.max(maxWeight, totalWeight);
+
+      if (totalWeight < minWeight) {
+        minWeight = totalWeight;
+        virtualGroupIdWithMinWeight = virtualGroupId;
+      }
+      if (totalWeight > maxWeight) {
+        maxWeight = totalWeight;
+        virtualGroupIdWithMaxWeight = virtualGroupId;
+      }
     }
 
-    if (maxWeight - minWeight > imbalanceThreshold) {
-      LOG.info("Imbalance detected: maxWeight = " + maxWeight + ", minWeight = " + minWeight
-          + ", threshold = " + imbalanceThreshold);
-      return true; // Imbalance detected
-    }
-    return false; // No imbalance detected
+    // Log the virtual groups with min and max weights
+    LOG.info(
+        "Virtual group with max weight: " + virtualGroupIdWithMaxWeight + " (" + maxWeight + ")"
+            + ", Virtual group with min weight: " + virtualGroupIdWithMinWeight + " (" + minWeight
+            + ")");
+
+    return maxWeight - minWeight; // Return the imbalance score
   }
 }

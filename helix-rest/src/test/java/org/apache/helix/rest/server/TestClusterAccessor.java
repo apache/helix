@@ -67,6 +67,8 @@ import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
+import org.apache.helix.rest.server.service.ClusterService;
+import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -423,6 +425,72 @@ public class TestClusterAccessor extends AbstractTestClass {
       instances.add(instanceName);
     }
     startInstances(clusterName, instances, 10);
+  }
+
+  @Test
+  public void testImbalanceAlgorithmThrottling() {
+    // Write a test to verify the logics of virtual topology imbalance detection
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String clusterName = "TestImbalanceDetectionCluster";
+    setupClusterForVirtualTopology(clusterName);
+    // Verify that the imbalance detection algorithm is working as expected
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    ClusterService service = new ClusterServiceImpl(dataAccessor, _configAccessor);
+
+    // Since we have 5 zones and 5 virtual groups, they will be evenly distributed
+    Map<String, Set<String>> virtualZoneMap = null;
+    String virtualZoneOfZone1 = null;
+    {
+      String requestParam = "{\"virtualTopologyGroupNumber\":\"5\",\"virtualTopologyGroupName\":\"vgTest\","
+          + "\"assignmentAlgorithmType\":\"ZONE_BASED\","
+          + "\"maxImbalanceThreshold\":\"1\","
+          + "\"imbalanceDetectionAlgorithmType\":\"INSTANCE_COUNT_BASED\""
+          + "}";
+
+      post("clusters/" + clusterName,
+          ImmutableMap.of("command", "addVirtualTopologyGroup"),
+          Entity.entity(requestParam, MediaType.APPLICATION_JSON_TYPE),
+          Response.Status.OK.getStatusCode());
+
+      virtualZoneMap =
+          service.getTopologyOfVirtualCluster(clusterName, false).toZoneMapping();
+      Assert.assertEquals(virtualZoneMap.size(), 5);
+      for (Map.Entry<String, Set<String>> entry : virtualZoneMap.entrySet()) {
+        if (entry.getValue().contains(clusterName + "_localhost_12920")) {
+          virtualZoneOfZone1 = entry.getKey();
+        }
+        Assert.assertEquals(entry.getValue().size(), 2, "Each virtual group should have 2 instances");
+      }
+    }
+
+    // Add one more instance to zone 1, which will cause imbalance. However, since the forceRecompute
+    // can't solve the imbalance, the current faultZone -> virtualZone assignment should be retained.
+    {
+      String instanceName = clusterName + "_localhost_12930";
+      _gSetupTool.addInstanceToCluster(clusterName, instanceName);
+      InstanceConfig instanceConfig =
+          dataAccessor.getProperty(dataAccessor.keyBuilder().instanceConfig(instanceName));
+      instanceConfig.setDomain("faultDomain=1,hostname=" + instanceName);
+      dataAccessor.setProperty(dataAccessor.keyBuilder().instanceConfig(instanceName), instanceConfig);
+
+      String requestParam = "{\"virtualTopologyGroupNumber\":\"5\",\"virtualTopologyGroupName\":\"vgTest\","
+          + "\"assignmentAlgorithmType\":\"ZONE_BASED\","
+          + "\"maxImbalanceThreshold\":\"0\","
+          + "\"imbalanceDetectionAlgorithmType\":\"INSTANCE_COUNT_BASED\""
+          + "}";
+
+      post("clusters/" + clusterName,
+          ImmutableMap.of("command", "addVirtualTopologyGroup"),
+          Entity.entity(requestParam, MediaType.APPLICATION_JSON_TYPE),
+          Response.Status.OK.getStatusCode());
+
+      // Verify that the imbalance detection algorithm detects the imbalance
+      virtualZoneMap = service.getTopologyOfVirtualCluster(clusterName, false).toZoneMapping();
+      Assert.assertEquals(virtualZoneMap.size(), 5);
+      Assert.assertTrue(virtualZoneMap.get(virtualZoneOfZone1).size() > 2,
+          "Zone 1 should have more than 2 instances now and it shouldn't be recomputed due to throttling");
+    }
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")

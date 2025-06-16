@@ -24,13 +24,11 @@ import java.util.Set;
 
 public interface VirtualGroupImbalanceDetectionAlgorithm {
   /**
-   * Check if the assignment is imbalanced based on the given threshold.
-   * @param imbalanceThreshold the threshold for imbalance detection. If it is negative, no imbalance
-   *                           detection is performed.
-   * @param virtualGroupToInstancesAssignment a mapping from virtual group ID to a set of instance IDs
-   *                                          representing the current assignment of instances to virtual groups.
-   * @return true if the assignment is imbalanced, false otherwise.
+   * Get the imbalance score for the given assignment.
+   * @param virtualGroupToInstancesAssignment a mapping from virtual group ID to a set of
+   *                                          instance IDs
+   * @return the imbalance score, which is a non-negative integer. A lower score indicates a more
+   * balanced assignment.
    */
-  boolean isAssignmentImbalanced(int imbalanceThreshold,
-      Map<String, Set<String>> virtualGroupToInstancesAssignment);
+  int getImbalanceScore(Map<String, Set<String>> virtualGroupToInstancesAssignment);
 }

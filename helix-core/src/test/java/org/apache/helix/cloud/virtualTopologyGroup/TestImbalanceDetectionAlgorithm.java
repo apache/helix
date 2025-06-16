@@ -33,9 +33,8 @@ public class TestImbalanceDetectionAlgorithm {
   @Test
   public void testInstanceCountAlgorithm() {
     InstanceCountImbalanceAlgorithm algorithm = InstanceCountImbalanceAlgorithm.getInstance();
-    Assert.assertFalse(algorithm.isAssignmentImbalanced(-1, _zoneMapping));
-    Assert.assertFalse(algorithm.isAssignmentImbalanced(2, _zoneMapping));
-    Assert.assertTrue(algorithm.isAssignmentImbalanced(1, _zoneMapping));
+    Assert.assertFalse(algorithm.getImbalanceScore(_zoneMapping) > 2);
+    Assert.assertTrue(algorithm.getImbalanceScore(_zoneMapping) > 1);
   }
 
   @Test
@@ -55,9 +54,8 @@ public class TestImbalanceDetectionAlgorithm {
     Mockito.when(_configAccessor.getInstanceConfig(Mockito.eq(CLUSTER_NAME), Mockito.eq("1")))
         .thenReturn(largeWeightConfig);
 
-    Assert.assertFalse(algorithm.isAssignmentImbalanced(-1, _zoneMapping));
-    Assert.assertTrue(algorithm.isAssignmentImbalanced(1000, _zoneMapping));
-    Assert.assertFalse(algorithm.isAssignmentImbalanced(2000, _zoneMapping));
+    Assert.assertTrue(algorithm.getImbalanceScore(_zoneMapping) > 1000);
+    Assert.assertFalse(algorithm.getImbalanceScore(_zoneMapping) > 2000);
 
     // Change the instance weight
     // Zone 1 -> 4000
@@ -68,9 +66,9 @@ public class TestImbalanceDetectionAlgorithm {
         .thenReturn(largeWeightConfig);
     Mockito.when(_configAccessor.getInstanceConfig(Mockito.eq(CLUSTER_NAME), Mockito.eq("7")))
         .thenReturn(largeWeightConfig);
-    Assert.assertFalse(algorithm.isAssignmentImbalanced(-1, _zoneMapping));
-    Assert.assertFalse(algorithm.isAssignmentImbalanced(1000, _zoneMapping));
-    Assert.assertFalse(algorithm.isAssignmentImbalanced(2000, _zoneMapping));
-    Assert.assertTrue(algorithm.isAssignmentImbalanced(500, _zoneMapping));
+
+    Assert.assertFalse(algorithm.getImbalanceScore(_zoneMapping) > 1000);
+    Assert.assertFalse(algorithm.getImbalanceScore(_zoneMapping) > 2000);
+    Assert.assertTrue(algorithm.getImbalanceScore(_zoneMapping) > 500);
   }
 }

@@ -72,9 +72,9 @@ public class InstanceWeightImbalanceAlgorithm implements VirtualGroupImbalanceDe
         InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(_clusterName, instanceId);
         int weight = instanceConfig.getWeight();
         if (weight == WEIGHT_NOT_SET) {
-          LOG.warning("Instance " + instanceId + " does not have a weight set. "
-              + "The resulting imbalance score may not be accurate.");
-          return -1; // Return -1 to indicate an error due to missing weight
+          throw new IllegalStateException(
+              "Instance weight is not set for instance: " + instanceId + " in cluster: "
+                  + _clusterName);
         }
         totalWeight += weight;
       }

@@ -37,7 +37,10 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.cloud.constants.VirtualTopologyGroupConstants;
 import org.apache.helix.cloud.topology.FaultZoneBasedVirtualGroupAssignmentAlgorithm;
 import org.apache.helix.cloud.topology.FifoVirtualGroupAssignmentAlgorithm;
+import org.apache.helix.cloud.topology.InstanceCountImbalanceAlgorithm;
+import org.apache.helix.cloud.topology.InstanceWeightImbalanceAlgorithm;
 import org.apache.helix.cloud.topology.VirtualGroupAssignmentAlgorithm;
+import org.apache.helix.cloud.topology.VirtualGroupImbalanceDetectionAlgorithm;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -47,7 +50,7 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.cloud.constants.VirtualTopologyGroupConstants.PATH_NAME_SPLITTER;
+import static org.apache.helix.cloud.constants.VirtualTopologyGroupConstants.*;
 import static org.apache.helix.util.VirtualTopologyUtil.computeVirtualFaultZoneTypeKey;
 
 /**
@@ -64,6 +67,7 @@ public class VirtualTopologyGroupService {
   private final ConfigAccessor _configAccessor;
   private final HelixDataAccessor _dataAccessor;
   private VirtualGroupAssignmentAlgorithm _assignmentAlgorithm;
+  private VirtualGroupImbalanceDetectionAlgorithm _imbalanceDetectionAlgorithm;
 
   public VirtualTopologyGroupService(HelixAdmin helixAdmin, ClusterService clusterService,
       ConfigAccessor configAccessor, HelixDataAccessor dataAccessor) {
@@ -72,6 +76,7 @@ public class VirtualTopologyGroupService {
     _configAccessor = configAccessor;
     _dataAccessor = dataAccessor;
     _assignmentAlgorithm = FifoVirtualGroupAssignmentAlgorithm.getInstance(); // default assignment algorithm
+    _imbalanceDetectionAlgorithm = InstanceCountImbalanceAlgorithm.getInstance(); // default imbalance detection algorithm
   }
 
   /**
@@ -95,25 +100,31 @@ public class VirtualTopologyGroupService {
    *                     virtual topology group information.
    *                     -- if set false or not set, the virtual topology group will be incrementally computed based on the
    *                     existing virtual topology group information if possible.
+   *                     {@link VirtualTopologyGroupConstants#MAX_IMBALANCE_THRESHOLD} is optional, default to -1.
+   *                     -- if set to a non-negative value, the virtual topology group assignment will be checked for imbalance
+   *                     and recomputed if the imbalance is detected.
+   *                     -- if set to -1 or not set, the virtual topology group assignment will not be checked for imbalance.
+   *                     {@link VirtualTopologyGroupConstants#IMBALANCE_DETECTION_ALGORITHM_TYPE} is optional, default to INSTANCE_COUNT_BASED.
+   *                     -- if set to INSTANCE_COUNT_BASED, the imbalance detection will be based on the number of instances in each virtual group.
+   *                     -- if set to INSTANCE_WEIGHT_BASED, the imbalance detection will be based on the weight of instances in each virtual group.
    */
   public void addVirtualTopologyGroup(String clusterName, Map<String, String> customFields) {
     // validation
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     // Collect the real topology of the cluster and the virtual topology of the cluster
     ClusterTopology clusterTopology = _clusterService.getTopologyOfVirtualCluster(clusterName, true);
+    Map<String, Set<String>> zoneMapping = clusterTopology.toZoneMapping();
     // If forceRecompute is set to true, we will recompute the virtual topology group from scratch
     // by ignoring the existing virtual topology group information.
-    String forceRecompute = customFields.getOrDefault(VirtualTopologyGroupConstants.FORCE_RECOMPUTE, "false");
-    boolean forceRecomputeFlag = Boolean.parseBoolean(forceRecompute);
-    ClusterTopology virtualTopology =
-        forceRecomputeFlag ? new ClusterTopology(clusterName, Collections.emptyList(),
-            Collections.emptySet())
-            : _clusterService.getTopologyOfVirtualCluster(clusterName, false);
+    boolean forceRecompute = Boolean.parseBoolean(
+        customFields.getOrDefault(VirtualTopologyGroupConstants.FORCE_RECOMPUTE, "false"));
+    Map<String, Set<String>> existingVirtualZoneMapping = forceRecompute ? Collections.emptyMap()
+        : _clusterService.getTopologyOfVirtualCluster(clusterName, false).toZoneMapping();
 
     Preconditions.checkState(clusterConfig.isTopologyAwareEnabled(),
         "Topology-aware rebalance is not enabled in cluster " + clusterName);
-    String groupName = customFields.get(VirtualTopologyGroupConstants.GROUP_NAME);
-    String groupNumberStr = customFields.get(VirtualTopologyGroupConstants.GROUP_NUMBER);
+    final String groupName = customFields.get(VirtualTopologyGroupConstants.GROUP_NAME);
+    final String groupNumberStr = customFields.get(VirtualTopologyGroupConstants.GROUP_NUMBER);
     Preconditions.checkArgument(!StringUtils.isEmpty(groupName), "virtualTopologyGroupName cannot be empty!");
     Preconditions.checkArgument(!StringUtils.isEmpty(groupNumberStr), "virtualTopologyGroupNumber cannot be empty!");
     int numGroups = 0;
@@ -124,16 +135,55 @@ public class VirtualTopologyGroupService {
       throw new IllegalArgumentException("virtualTopologyGroupNumber " + groupNumberStr + " is not an integer.", ex);
     }
 
-    String algorithm = customFields.get(VirtualTopologyGroupConstants.ASSIGNMENT_ALGORITHM_TYPE);
-    algorithm = algorithm == null ? VirtualTopologyGroupConstants.VirtualGroupAssignmentAlgorithm.INSTANCE_BASED.toString() : algorithm;
-    if (algorithm != null) {
+    // Default imbalance threshold is -1, which means no imbalance check.
+    int imbalanceThreshold = DEFAULT_IMBALANCE_THRESHOLD_VALUE;
+    try {
+      if (customFields.get(MAX_IMBALANCE_THRESHOLD) != null) {
+        imbalanceThreshold = Integer.parseInt(customFields.get(MAX_IMBALANCE_THRESHOLD));
+      }
+    } catch (NumberFormatException ex) {
+      throw new IllegalArgumentException("imbalanceThreshold is not an integer.", ex);
+    }
+
+    // Update the assignment and imbalance detection algorithm based on the custom fields
+    updateAssignmentAndImbalanceDetectAlgorithm(customFields, clusterTopology, numGroups);
+
+    // compute group assignment
+    LOG.info("Computing virtual topology group for cluster {} with param {}", clusterName, customFields);
+    Map<String, Set<String>> assignment =
+        _assignmentAlgorithm.computeAssignment(numGroups, groupName, zoneMapping,
+            existingVirtualZoneMapping);
+
+    // If recompute is not forced and the imbalance threshold is positive, we will check if the
+    // assignment is imbalanced
+    assignment = recomputeAssignmentIfNeeded(forceRecompute, imbalanceThreshold, assignment,
+        numGroups, groupName, zoneMapping, existingVirtualZoneMapping);
+
+    updateVirtualTopology(clusterName, clusterConfig, assignment, customFields, existingVirtualZoneMapping);
+  }
+
+  /**
+   * Update the assignment algorithm based on the custom input and cluster topology.
+   *
+   * @param customFields custom fields that may contain the assignment algorithm type.
+   * @param clusterTopology the cluster topology to determine the available zones and instances.
+   * @param numGroups the number of virtual groups to be created.
+   */
+  private void updateAssignmentAndImbalanceDetectAlgorithm(Map<String, String> customFields,
+      ClusterTopology clusterTopology, int numGroups) {
+    String assignmentAlgorithm =
+        customFields.get(VirtualTopologyGroupConstants.ASSIGNMENT_ALGORITHM_TYPE);
+    assignmentAlgorithm = assignmentAlgorithm == null
+        ? VirtualTopologyGroupConstants.VirtualGroupAssignmentAlgorithm.INSTANCE_BASED.toString()
+        : assignmentAlgorithm;
+    if (assignmentAlgorithm != null) {
       VirtualTopologyGroupConstants.VirtualGroupAssignmentAlgorithm algorithmEnum = null;
       try {
-        algorithmEnum =
-            VirtualTopologyGroupConstants.VirtualGroupAssignmentAlgorithm.valueOf(algorithm);
+        algorithmEnum = VirtualTopologyGroupConstants.VirtualGroupAssignmentAlgorithm.valueOf(
+            assignmentAlgorithm);
       } catch (Exception e) {
         throw new IllegalArgumentException(
-            "Failed to instantiate assignment algorithm " + algorithm, e);
+            "Failed to instantiate assignment algorithm " + assignmentAlgorithm, e);
       }
       switch (algorithmEnum) {
         case ZONE_BASED:
@@ -147,15 +197,104 @@ public class VirtualTopologyGroupService {
           _assignmentAlgorithm = FifoVirtualGroupAssignmentAlgorithm.getInstance();
           break;
         default:
-          throw new IllegalArgumentException("Unsupported assignment algorithm " + algorithm);
+          throw new IllegalArgumentException(
+              "Unsupported assignment algorithm " + assignmentAlgorithm);
       }
     }
-    LOG.info("Computing virtual topology group for cluster {} with param {}", clusterName, customFields);
 
-    // compute group assignment
-    Map<String, Set<String>> assignment =
-        _assignmentAlgorithm.computeAssignment(numGroups, groupName,
-            clusterTopology.toZoneMapping(), virtualTopology.toZoneMapping());
+    String imbalanceDetectionAlgorithm =
+        customFields.get(VirtualTopologyGroupConstants.IMBALANCE_DETECTION_ALGORITHM_TYPE);
+    if (imbalanceDetectionAlgorithm != null) {
+      VirtualTopologyGroupConstants.VirtualGroupImbalanceDetectionAlgorithm imbalanceAlgorithmEnum =
+          null;
+      try {
+        imbalanceAlgorithmEnum =
+            VirtualTopologyGroupConstants.VirtualGroupImbalanceDetectionAlgorithm.valueOf(
+                imbalanceDetectionAlgorithm);
+      } catch (Exception e) {
+        throw new IllegalArgumentException(
+            "Failed to instantiate imbalance detection algorithm " + imbalanceDetectionAlgorithm,
+            e);
+      }
+      switch (imbalanceAlgorithmEnum) {
+        case INSTANCE_COUNT_BASED:
+          _imbalanceDetectionAlgorithm = InstanceCountImbalanceAlgorithm.getInstance();
+          break;
+        case INSTANCE_WEIGHT_BASED:
+          _imbalanceDetectionAlgorithm =
+              InstanceWeightImbalanceAlgorithm.getInstance(_configAccessor,
+                  clusterTopology.getClusterId());
+          break;
+        default:
+          throw new IllegalArgumentException(
+              "Unsupported imbalance detection algorithm " + imbalanceDetectionAlgorithm);
+      }
+    }
+  }
+
+  /**
+   * If recomputation isn’t forced and the imbalance threshold is positive,
+   * evaluates whether a fresh assignment reduces the imbalance score.
+   * If so, updates the assignment to the better one.
+   */
+  private Map<String, Set<String>> recomputeAssignmentIfNeeded(boolean forceRecompute,
+      int threshold, Map<String, Set<String>> assignmentToUpdate, int numGroups, String groupName,
+      Map<String, Set<String>> zoneMapping, Map<String, Set<String>> existingVirtualZoneMapping) {
+
+    // Skip if forced recompute is requested elsewhere or threshold disables this check or the
+    // existing virtual zone mapping size does not match the assignment to update size (meaning that
+    // a fresh computation is applied)
+    if (forceRecompute || threshold < 0 || existingVirtualZoneMapping.size() != assignmentToUpdate.size()) {
+      return assignmentToUpdate;
+    }
+
+    int currentScore = _imbalanceDetectionAlgorithm.getImbalanceScore(assignmentToUpdate);
+    if (currentScore <= threshold) {
+      LOG.info("Assignment balanced (score {} ≤ threshold {})", currentScore, threshold);
+      return assignmentToUpdate;
+    }
+
+    LOG.info("Imbalanced assignment (score {} > threshold {}), attempting recompute", currentScore,
+        threshold);
+
+    Map<String, Set<String>> candidateAssignment =
+        _assignmentAlgorithm.computeAssignment(numGroups, groupName, zoneMapping,
+            Collections.emptyMap());
+
+    int candidateScore = _imbalanceDetectionAlgorithm.getImbalanceScore(candidateAssignment);
+    if (candidateScore < currentScore) {
+      LOG.info("Recompute successful: reduced score from {} to {}", currentScore, candidateScore);
+      return candidateAssignment;
+    }
+
+    LOG.warn("Recomputed assignment worse ({} ≥ {}), retaining original", candidateScore,
+        currentScore);
+    return assignmentToUpdate;
+  }
+
+  private void updateVirtualTopology(String clusterName, ClusterConfig clusterConfig,
+      Map<String, Set<String>> assignment, Map<String, String> customFields,
+      Map<String, Set<String>> exisingVirtualZoneMapping) {
+    boolean isAssignmentChanged = assignment.entrySet().stream().anyMatch(entry -> {
+      String virtualGroup = entry.getKey();
+      Set<String> instances = entry.getValue();
+      if (instances.isEmpty()) {
+        LOG.warn("Virtual group {} has no instances assigned, skipping.", virtualGroup);
+        return false; // No change needed for empty groups
+      }
+      // Check if the group already exists in the virtual topology
+      if (exisingVirtualZoneMapping.containsKey(virtualGroup)) {
+        Set<String> existingInstances = exisingVirtualZoneMapping.get(virtualGroup);
+        return !existingInstances.equals(instances); // Return true if there is a change
+      }
+      return true; // New group, so it is a change
+    });
+
+    // If the assignment is unchanged, we skip the update.
+    if (!isAssignmentChanged) {
+      LOG.info("Virtual topology group assignment is unchanged, skipping update for cluster {}", clusterName);
+      return; // No change needed, skip the update
+    }
 
     boolean autoMaintenanceModeDisabled = Boolean.parseBoolean(
         customFields.getOrDefault(VirtualTopologyGroupConstants.AUTO_MAINTENANCE_MODE_DISABLED, "false"));

@@ -29,8 +29,14 @@ public class VirtualTopologyGroupConstants {
   public static final String PATH_NAME_SPLITTER = "/";
   public static final String VIRTUAL_FAULT_ZONE_TYPE = "virtualZone";
   public static final String FORCE_RECOMPUTE = "forceRecompute";
+  public static final String MAX_IMBALANCE_THRESHOLD = "maxImbalanceThreshold";
+  public static final String IMBALANCE_DETECTION_ALGORITHM_TYPE = "imbalanceDetectionAlgorithmType";
+  public static final int DEFAULT_IMBALANCE_THRESHOLD_VALUE = -1;
 
   public enum VirtualGroupAssignmentAlgorithm {
     ZONE_BASED, INSTANCE_BASED
+  }
+  public enum VirtualGroupImbalanceDetectionAlgorithm {
+    INSTANCE_COUNT_BASED, INSTANCE_WEIGHT_BASED
   }
 }

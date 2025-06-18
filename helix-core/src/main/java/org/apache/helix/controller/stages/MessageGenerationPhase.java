@@ -45,7 +45,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
@@ -70,6 +69,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
   private static final String PENDING_MESSAGE = "pending message";
   private static final String STALE_MESSAGE = "stale message";
+  private static final String OFFLINE = "OFFLINE";
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
@@ -329,10 +329,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   /**
    * Calculate the current active replica count based on state model type.
-   * This method determines how many replicas are currently serving traffic for a partition by
-   * analyzing the current state distribution and applying state model-specific rules. The count includes
-   * replicas in top states, secondary top states (where applicable), and ERROR states since helix considers
-   * them active.
+   * The count includes replicas in top states, secondary top states (where applicable),
+   * and ERROR states since helix considers them active.
    * State model handling:
    * - Single-top state models: Differentiates between patterns with and without secondary top
    * states
@@ -349,44 +347,16 @@ public class MessageGenerationPhase extends AbstractBaseStage {
    */
   private int calculateCurrentActiveReplicaCount(Map<String, String> currentStateMap,
       StateModelDefinition stateModelDef) {
-    if (stateModelDef.isSingleTopStateModel()) {
-      return calculateSingleTopStateActiveCount(currentStateMap, stateModelDef);
-    } else {
-      return calculateMultiTopStateActiveCount(currentStateMap, stateModelDef);
-    }
-  }
-
-  /**
-   * Calculate active replica count for single-top state models.
-   * Single-top state models have different active state definitions:
-   * - ONLINE-OFFLINE: Only ONLINE (top state) + ERROR are active
-   * - ONLINE-STANDBY-OFFLINE: ONLINE (top state) + STANDBY (secondary top) + ERROR are active
-   * Note: We need to identify true secondary states (like STANDBY) vs transition-only
-   * states (like OFFLINE).
-   */
-  private int calculateSingleTopStateActiveCount(Map<String, String> currentStateMap,
-      StateModelDefinition stateModelDef) {
     List<String> trueSecondaryTopStates = getTrueSecondaryTopStates(stateModelDef);
-    if (trueSecondaryTopStates.isEmpty()) {
-      // No true secondary states exist (e.g., ONLINE-OFFLINE pattern)
-      // Count: top + ERROR states only
-      // Example: OnlineOffline has getSecondTopStates()=["OFFLINE"] but OFFLINE is non-serving state
-      // so trueSecondaryTopStates=[] and we only count ONLINE + ERROR
-      return (int) currentStateMap.values().stream()
-          .filter(state -> stateModelDef.getTopState().contains(state)
-              || HelixDefinedState.ERROR.name().equals(state))
-          .count();
-    } else {
-      // True secondary states exist (e.g., MASTER-SLAVE, ONLINE-STANDBY, LEADER-STANDBY, OnlineOfflineWithBootstrap)
-      // Count: top + true secondary top + ERROR states
-      // Example for MasterSlave: trueSecondaryTopStates=["SLAVE"]
-      // Example for OnlineOfflineWithBootstrap: trueSecondaryTopStates=["BOOTSTRAP"]
-      return (int) currentStateMap.values().stream()
-          .filter(state -> stateModelDef.getTopState().contains(state)
-              || trueSecondaryTopStates.contains(state)
-              || HelixDefinedState.ERROR.name().equals(state))
-          .count();
-    }
+    return (int) currentStateMap.values().stream()
+        .filter(state -> stateModelDef.getTopState().contains(state) // Top states (MASTER, ONLINE,
+                                                                     // LEADER)
+            || trueSecondaryTopStates.contains(state) // True secondary states (SLAVE, STANDBY,
+                                                      // BOOTSTRAP)
+            || HelixDefinedState.ERROR.name().equals(state) // ERROR states (still considered
+                                                            // active)
+        // DROPPED and OFFLINE are automatically excluded by getTrueSecondaryTopStates()
+        ).count();
   }
 
   /**
@@ -406,22 +376,11 @@ public class MessageGenerationPhase extends AbstractBaseStage {
    */
   private List<String> getTrueSecondaryTopStates(StateModelDefinition stateModelDef) {
     return stateModelDef.getSecondTopStates().stream()
-        .filter(state -> !stateModelDef.getTopState().equals(state)) // Remove top state duplicates
-        .filter(state -> !OnlineOfflineSMD.States.OFFLINE.name().equals(state)
-            && !HelixDefinedState.DROPPED.name().equals(state)) // Remove non-serving states
+        // Remove top-state duplicates
+        .filter(state -> !stateModelDef.getTopState().equals(state))
+        // Remove non-serving states
+        .filter(state -> !OFFLINE.equals(state) && !HelixDefinedState.DROPPED.name().equals(state))
         .collect(Collectors.toList());
-  }
-
-  /**
-   * Calculate active replica count for multi-top state models.
-   * For multi-top state models (e.g., OFFLINE→ONLINE), count only top states + ERROR.
-   */
-  private int calculateMultiTopStateActiveCount(Map<String, String> currentStateMap,
-      StateModelDefinition stateModelDef) {
-    return (int) currentStateMap.values().stream()
-        .filter(state -> stateModelDef.getTopState().contains(state)
-            || HelixDefinedState.ERROR.name().equals(state))
-        .count();
   }
 
   /**

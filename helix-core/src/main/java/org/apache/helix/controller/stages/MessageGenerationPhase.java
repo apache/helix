@@ -166,12 +166,12 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       Map<String, List<Message>> messageMap = new HashMap<>();
 
       /*
-        Calculate the current active replica count based on state model type.
-        This represents the number of replicas currently serving traffic for this partition
-        Active replicas include: top states, secondary top states (for single-top state models if
-        they exist)and ERROR states.
-        All qualifying state transitions for this partition will receive this same value,
-        allowing clients to understand the current availability level and prioritize accordingly.
+       * Calculate the current active replica count based on state model type.
+       * This represents the number of replicas currently serving traffic for this partition
+       * Active replicas include: top states, secondary top states excluding OFFLINE (if
+       * they exist) and ERROR states. Active replica count also excluded DROPPED states.
+       * All qualifying state transitions for this partition will receive this same value,
+       * allowing clients to understand the current availability level and prioritize accordingly.
        */
       int currentActiveReplicaCount = calculateCurrentActiveReplicaCount(currentStateMap, stateModelDef);
 
@@ -278,10 +278,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
               - Target state must be considered active (according to state model type)
              */
             if (stateModelDef.isUpwardStateTransition(currentState, nextState)
-                && !isCurrentlyActive(currentState, stateModelDef,
-                    stateModelDef.isSingleTopStateModel())
-                && isTargetActive(nextState, stateModelDef,
-                    stateModelDef.isSingleTopStateModel())) {
+                && !isStateActive(currentState, stateModelDef)
+                && isStateActive(nextState, stateModelDef)) {
 
               // All qualifying transitions for this partition get the same currentActiveReplicaNumber
               currentActiveReplicaNumber = currentActiveReplicaCount;
@@ -347,86 +345,58 @@ public class MessageGenerationPhase extends AbstractBaseStage {
    */
   private int calculateCurrentActiveReplicaCount(Map<String, String> currentStateMap,
       StateModelDefinition stateModelDef) {
-    List<String> trueSecondaryTopStates = getTrueSecondaryTopStates(stateModelDef);
+    List<String> activeSecondaryTopStates = getActiveSecondaryTopStates(stateModelDef);
     return (int) currentStateMap.values().stream()
         .filter(state -> stateModelDef.getTopState().contains(state) // Top states (MASTER, ONLINE,
                                                                      // LEADER)
-            || trueSecondaryTopStates.contains(state) // True secondary states (SLAVE, STANDBY,
+            || activeSecondaryTopStates.contains(state) // Active secondary states (SLAVE, STANDBY,
                                                       // BOOTSTRAP)
             || HelixDefinedState.ERROR.name().equals(state) // ERROR states (still considered
                                                             // active)
-        // DROPPED and OFFLINE are automatically excluded by getTrueSecondaryTopStates()
+        // DROPPED and OFFLINE are automatically excluded by getActiveSecondaryTopStates()
         ).count();
   }
 
   /**
-   * Get true secondary top states - states that:
-   * 1. Are not the top state itself (avoid double-counting)
-   * 2. Are not non-serving states like OFFLINE and DROPPED.
+   * Get active secondary top states - states that are not non-serving states like OFFLINE and DROPPED.
    * Reasons for elimination:
-   * - getSecondTopStates() can include the top state itself in some state models.
-   * Example - OnlineOfflineWithBootstrap:
-   * topState="ONLINE", getSecondTopStates()=["ONLINE", "BOOTSTRAP"]
-   * After filtering: trueSecondaryTopStates=["BOOTSTRAP"] (removes "ONLINE" as it is top state.)
-   * - getSecondTopStates() can also include OFFLINE as a secondary top state in some state models.
+   * - getSecondTopStates() can include OFFLINE as a secondary top state in some state models.
    * Example - OnlineOffline:
    * getSecondTopStates() = ["OFFLINE"] as it transitions to ONLINE.
-   * After filtering: trueSecondaryTopStates=[] (removes "OFFLINE" as it's not a serving state).
+   * After filtering: activeSecondaryTopStates=[] (removes "OFFLINE" as it's not a serving state).
    * @param stateModelDef State model definition containing state hierarchy information
    */
-  private List<String> getTrueSecondaryTopStates(StateModelDefinition stateModelDef) {
+  private List<String> getActiveSecondaryTopStates(StateModelDefinition stateModelDef) {
     return stateModelDef.getSecondTopStates().stream()
-        // Remove top-state duplicates
-        .filter(state -> !stateModelDef.getTopState().equals(state))
         // Remove non-serving states
         .filter(state -> !OFFLINE.equals(state) && !HelixDefinedState.DROPPED.name().equals(state))
         .collect(Collectors.toList());
   }
 
   /**
-   * Determines if the given current state is considered active based on the state model type.
-   * For single-top state models, top, true secondary top, and ERROR states are active.
-   * For multi-top state models, top and ERROR states are active.
-   * ERROR state replicas are considered active in HELIX as they do not affect availability.
-   * @param currentState The current state to check
+   * Determines if the given state is considered active based on the state model type.
+   * Active states are defined as:
+   * - For single-top state models: top states, active secondary top states, and ERROR states
+   * - For multi-top state models: top states and ERROR states
+   * ERROR state replicas are always considered active in HELIX as they do not affect
+   * availability.
+   * @param state The state to check (can be current state or target state)
    * @param stateModelDef State model definition containing state hierarchy information
-   * @param isSingleTopState Whether this is a single-top state model
-   * @return true if the current state is considered active, false otherwise
+   * @return true if the state is considered active, false otherwise
    */
-  private boolean isCurrentlyActive(String currentState, StateModelDefinition stateModelDef,
-      boolean isSingleTopState) {
+  private boolean isStateActive(String state, StateModelDefinition stateModelDef) {
     // ERROR state is always considered active regardless of state model type
-    if (HelixDefinedState.ERROR.name().equals(currentState)) {
+    if (HelixDefinedState.ERROR.name().equals(state)) {
       return true;
     }
-    if (isSingleTopState) {
-      return stateModelDef.getTopState().contains(currentState)
-          || getTrueSecondaryTopStates(stateModelDef).contains(currentState);
-    } else {
-      return stateModelDef.getTopState().contains(currentState);
-    }
-  }
 
-  /**
-   * Determines if the given target state is considered active based on the state model type.
-   * For single-top state models, both top,true secondary top and ERROR states are active.
-   * For multi-top state models, top and ERROR states are active.
-   * @param targetState The target state to check
-   * @param stateModelDef State model definition containing state hierarchy information
-   * @param isSingleTopState Whether this is a single-top state model
-   * @return true if the target state is considered active, false otherwise
-   */
-  private boolean isTargetActive(String targetState, StateModelDefinition stateModelDef,
-      boolean isSingleTopState) {
-    // ERROR state is always considered active regardless of state model type
-    if (HelixDefinedState.ERROR.name().equals(targetState)) {
-      return true;
-    }
-    if (isSingleTopState) {
-      return stateModelDef.getTopState().contains(targetState)
-          || getTrueSecondaryTopStates(stateModelDef).contains(targetState);
+    if (stateModelDef.isSingleTopStateModel()) {
+      // For single-top models, both primary top states and active secondary states are considered active
+      return stateModelDef.getTopState().contains(state)
+          || getActiveSecondaryTopStates(stateModelDef).contains(state);
     } else {
-      return stateModelDef.getTopState().contains(targetState);
+      // For multi-top models, only top states are considered active
+      return stateModelDef.getTopState().contains(state);
     }
   }
 

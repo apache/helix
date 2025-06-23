@@ -278,7 +278,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
         Map.of(INSTANCE_0, "ONLINE", INSTANCE_1, "ONLINE", INSTANCE_2, "BOOTSTRAP", INSTANCE_3, "OFFLINE"),
         "OnlineOfflineWithBootstrap");
 
-    // Action: BOOTSTRAP becomes ONLINE and OFFLINE becomes BOOTSTRAP.
+    // Action: OFFLINE becomes BOOTSTRAP.
     Map<String, String> bestPossible = Map.of(INSTANCE_0, "ONLINE", // No change
         INSTANCE_1, "ONLINE", // No change
         INSTANCE_2, "BOOTSTRAP", // No change

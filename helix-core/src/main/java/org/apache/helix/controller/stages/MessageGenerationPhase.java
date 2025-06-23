@@ -168,8 +168,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       /*
        * Calculate the current active replica count based on state model type.
        * This represents the number of replicas currently serving traffic for this partition
-       * Active replicas include: top states, secondary top states excluding OFFLINE (if
-       * they exist) and ERROR states. Active replica count also excluded DROPPED states.
+       * Active replicas include: top states, secondary top states(excluding OFFLINE) and ERROR states.
+       * Active replicas exclude: OFFLINE and DROPPED states.
        * All qualifying state transitions for this partition will receive this same value,
        * allowing clients to understand the current availability level and prioritize accordingly.
        */
@@ -327,15 +327,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   /**
    * Calculate the current active replica count based on state model type.
-   * The count includes replicas in top states, secondary top states (where applicable),
-   * and ERROR states since helix considers them active.
-   * State model handling:
-   * - Single-top state models: Differentiates between patterns with and without secondary top
-   * states
-   * - ONLINE-OFFLINE: Counts ONLINE + ERROR states only
-   * - MASTER-SLAVE-OFFLINE: Counts MASTER + SLAVE + ERROR states
-   * - ONLINE-STANDBY-OFFLINE: Counts ONLINE + STANDBY + ERROR states
-   * - Multi-top state models: Counts only top states + ERROR states
+   * The count includes replicas in top states, secondary top states (excluding OFFLINE),
+   * and ERROR states since helix considers them active.Count excludes OFFLINE and DROPPED states.
    * @param currentStateMap Map of instance name to current state for this partition, representing
    *          the actual state of each replica before any pending transitions
    * @param stateModelDef State model definition containing the state hierarchy and transition rules
@@ -375,11 +368,10 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   /**
    * Determines if the given state is considered active based on the state model type.
-   * Active states are defined as:
-   * - For single-top state models: top states, active secondary top states, and ERROR states
-   * - For multi-top state models: top states and ERROR states
-   * ERROR state replicas are always considered active in HELIX as they do not affect
-   * availability.
+   * Active states include: top states, active secondary top states (excluding OFFLINE),
+   * and ERROR states. Active states exclude OFFLINE and DROPPED states.
+   * ERROR state replicas are always considered active in HELIX as they do not
+   * affect availability.
    * @param state The state to check (can be current state or target state)
    * @param stateModelDef State model definition containing state hierarchy information
    * @return true if the state is considered active, false otherwise
@@ -389,15 +381,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     if (HelixDefinedState.ERROR.name().equals(state)) {
       return true;
     }
-
-    if (stateModelDef.isSingleTopStateModel()) {
-      // For single-top models, both primary top states and active secondary states are considered active
-      return stateModelDef.getTopState().contains(state)
+     return stateModelDef.getTopState().contains(state)
           || getActiveSecondaryTopStates(stateModelDef).contains(state);
-    } else {
-      // For multi-top models, only top states are considered active
-      return stateModelDef.getTopState().contains(state);
-    }
   }
 
     private boolean shouldCreateSTCancellation(Message pendingMessage, String desiredState,

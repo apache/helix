@@ -32,6 +32,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.OnlineOfflineSMD;
+import org.apache.helix.model.OnlineOfflineWithBootstrapSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
@@ -243,8 +244,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
   }
 
   @Test
-  public void testMultiTopStateModel() throws Exception {
-    // Test: Multi-top state model - only top states + ERROR count as active
+  public void testMultiTopStateModelWithoutSecondaryTop() throws Exception {
     StateModelDefinition stateModelDef = new StateModelDefinition(generateConfigForOnlineOffline());
 
     // Setup: 1 ONLINE, 2 OFFLINE (current active = 1)
@@ -265,7 +265,34 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     Assert.assertEquals(messages.size(), 2);
     for (Message msg : messages) {
       Assert.assertEquals(msg.getCurrentActiveReplicaNumber(), 1,
-          "Multi-top state model: only top states count as active");
+          "Multi-top state model without secondary top: only top states count as active");
+    }
+  }
+
+  @Test
+  public void testMultiTopStateModelWithSecondaryTop() throws Exception {
+    StateModelDefinition stateModelDef = OnlineOfflineWithBootstrapSMD.build();
+
+    // Setup: 2 ONLINE, 1 BOOTSTRAP, 1 OFFLINE (current active = 3)
+    Map<String, CurrentState> currentStates = createCurrentStates(
+        Map.of(INSTANCE_0, "ONLINE", INSTANCE_1, "ONLINE", INSTANCE_2, "BOOTSTRAP", INSTANCE_3, "OFFLINE"),
+        "OnlineOfflineWithBootstrap");
+
+    // Action: BOOTSTRAP becomes ONLINE and OFFLINE becomes BOOTSTRAP.
+    Map<String, String> bestPossible = Map.of(INSTANCE_0, "ONLINE", // No change
+        INSTANCE_1, "ONLINE", // No change
+        INSTANCE_2, "BOOTSTRAP", // No change
+        INSTANCE_3, "BOOTSTRAP" // OFFLINE -> BOOTSTRAP (upward)
+    );
+
+    List<Message> messages =
+        processAndGetMessagesForOnlineOffline(stateModelDef, currentStates, bestPossible, 4);
+
+    // Verify: Current active = 3 (ONLINE + BOOTSTRAP state counts)
+    Assert.assertEquals(messages.size(), 1);
+    for (Message msg : messages) {
+      Assert.assertEquals(msg.getCurrentActiveReplicaNumber(), 3,
+          "Multi-top state model without secondary top: top states and secondary top states count as active");
     }
   }
 

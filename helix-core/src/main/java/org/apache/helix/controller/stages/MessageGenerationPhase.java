@@ -262,34 +262,33 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     pendingMessage, manager, resource, partition, sessionIdMap, instanceName,
                     stateModelDef, cancellationMessage, isCancellationEnabled);
           } else {
-            // Set currentActiveReplicaNumber to provide metadata for potential message prioritization by
-            // participant.
+            // Set currentActiveReplicaNumber to provide metadata for potential message
+            // prioritization by participant.
             // Assign the current active replica count to all qualifying upward transitions for this
             // partition.
             // This ensures consistent prioritization metadata across concurrent state transitions.
-            int currentActiveReplicaNumber = -1; // -1 indicates no prioritization metadata, for eg:
-                                           // Downward ST messages get a -1.
+            // -1 indicates no prioritization metadata, for eg:Downward ST messages get a -1.
+            int currentActiveReplicaNumber = -1;
 
             /*
-              Assign currentActiveReplicaNumber for qualifying upward state transitions.
-              Criteria for assignment:
-              - Must be an upward state transition according to state model
-              - Current state must not be considered active (according to state model type)
-              - Target state must be considered active (according to state model type)
+             * Assign currentActiveReplicaNumber for qualifying upward state transitions.
+             * Criteria for assignment:
+             * - Must be an upward state transition according to state model
+             * - Target state must be considered active (according to state model type)
              */
             if (stateModelDef.isUpwardStateTransition(currentState, nextState)
-                && !isStateActive(currentState, stateModelDef)
                 && isStateActive(nextState, stateModelDef)) {
 
-              // All qualifying transitions for this partition get the same currentActiveReplicaNumber
+              // All qualifying transitions for this partition get the same
+              // currentActiveReplicaNumber
               currentActiveReplicaNumber = currentActiveReplicaCount;
             }
 
             // Create new state transition message
-            message = MessageUtil
-                .createStateTransitionMessage(manager.getInstanceName(), manager.getSessionId(),
-                    resource, partition.getPartitionName(), instanceName, currentState, nextState,
-                    sessionIdMap.get(instanceName), stateModelDef.getId(), currentActiveReplicaNumber);
+            message = MessageUtil.createStateTransitionMessage(manager.getInstanceName(),
+                manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
+                currentState, nextState, sessionIdMap.get(instanceName), stateModelDef.getId(),
+                currentActiveReplicaNumber);
 
             if (logger.isDebugEnabled()) {
               LogUtil.logDebug(logger, _eventId, String.format(
@@ -338,12 +337,12 @@ public class MessageGenerationPhase extends AbstractBaseStage {
    */
   private int calculateCurrentActiveReplicaCount(Map<String, String> currentStateMap,
       StateModelDefinition stateModelDef) {
-    List<String> activeSecondaryTopStates = getActiveSecondaryTopStates(stateModelDef);
     return (int) currentStateMap.values().stream()
         .filter(state -> stateModelDef.getTopState().contains(state) // Top states (MASTER, ONLINE,
                                                                      // LEADER)
-            || activeSecondaryTopStates.contains(state) // Active secondary states (SLAVE, STANDBY,
-                                                      // BOOTSTRAP)
+            || getActiveSecondaryTopStates(stateModelDef).contains(state) // Active secondary states
+                                                                          // (SLAVE, STANDBY,
+                                                                          // BOOTSTRAP)
             || HelixDefinedState.ERROR.name().equals(state) // ERROR states (still considered
                                                             // active)
         // DROPPED and OFFLINE are automatically excluded by getActiveSecondaryTopStates()
@@ -351,7 +350,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   }
 
   /**
-   * Get active secondary top states - states that are not non-serving states like OFFLINE and DROPPED.
+   * Get active secondary top states - states that are not non-serving states like OFFLINE and
+   * DROPPED.
    * Reasons for elimination:
    * - getSecondTopStates() can include OFFLINE as a secondary top state in some state models.
    * Example - OnlineOffline:
@@ -381,8 +381,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     if (HelixDefinedState.ERROR.name().equals(state)) {
       return true;
     }
-     return stateModelDef.getTopState().contains(state)
-          || getActiveSecondaryTopStates(stateModelDef).contains(state);
+    return stateModelDef.getTopState().contains(state)
+        || getActiveSecondaryTopStates(stateModelDef).contains(state);
   }
 
     private boolean shouldCreateSTCancellation(Message pendingMessage, String desiredState,

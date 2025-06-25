@@ -42,21 +42,11 @@ public final class OnlineOfflineSMD extends StateModelDefinition {
   }
 
   /**
-   * Build OnlineOffline state model definition with default replica count
-   * @return StateModelDefinition for OnlineOffline model
+   * Build OnlineOffline state model definition
+   * @return
    */
   public static StateModelDefinition build() {
-    return build(StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
-  }
-
-  /**
-   * Build OnlineOffline state model definition with custom replica count
-   * @param instanceCount the maximum number of instances that can be in ONLINE state
-   * @return StateModelDefinition for OnlineOffline model
-   */
-  public static StateModelDefinition build(String instanceCount) {
-    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(name);
-
+    StateModelDefinition.Builder builder =new StateModelDefinition.Builder(name);
     // init state
     builder.initialState(States.OFFLINE.name());
 
@@ -72,8 +62,9 @@ public final class OnlineOfflineSMD extends StateModelDefinition {
     builder.addTransition(States.OFFLINE.name(), States.ONLINE.name(), 1);
     builder.addTransition(States.OFFLINE.name(), HelixDefinedState.DROPPED.name());
 
-    // bounds - uses the instanceCount parameter instead of constant
-    builder.dynamicUpperBound(States.ONLINE.name(), instanceCount);
+    // bounds
+    builder.dynamicUpperBound(States.ONLINE.name(),
+        StateModelDefinition.STATE_REPLICA_COUNT_ALL_REPLICAS);
 
     return builder.build();
   }

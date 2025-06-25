@@ -25,13 +25,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.OnlineOfflineWithBootstrapSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -131,25 +131,6 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
         "Non-upward state transitions should not have currentActiveReplicaNumber assigned");
   }
 
-  @Test
-  public void testNoReplicaNumberForSecondTopToTopTransitions() throws Exception {
-    // Test: SLAVE -> MASTER (second top to top) should not receive currentActiveReplicaNumber
-    StateModelDefinition stateModelDef = new StateModelDefinition(generateConfigForMasterSlave());
-
-    Map<String, CurrentState> currentStates =
-        createCurrentStates(Map.of(INSTANCE_0, "SLAVE"), "MasterSlave");
-
-    // Action: SLAVE -> MASTER (second top to top transition)
-    Map<String, String> bestPossible = Map.of(INSTANCE_0, "MASTER");
-
-    List<Message> messages = processAndGetMessages(stateModelDef, currentStates, bestPossible, 1);
-
-    // Verify: Second top to top transition gets default value (-1)
-    Assert.assertEquals(messages.size(), 1);
-    Assert.assertEquals(messages.get(0).getCurrentActiveReplicaNumber(), -1,
-        "Second top to top state transitions should not have currentActiveReplicaNumber assigned");
-  }
-
   // === Tests for pending messages ===
 
   @Test
@@ -194,7 +175,7 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
   @Test
   public void testSingleTopStateModelWithoutSecondaryTop() throws Exception {
     // Test: ONLINE-OFFLINE model (single top without secondary) - only top + ERROR count as active
-    StateModelDefinition onlineOfflineStateModel = OnlineOfflineSMD.build("1");
+    StateModelDefinition onlineOfflineStateModel = CustomOnlineOfflineSMD.build(1);
 
     // Verify this is a single-top state model
     Assert.assertTrue(onlineOfflineStateModel.isSingleTopStateModel(),
@@ -274,9 +255,9 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     StateModelDefinition stateModelDef = OnlineOfflineWithBootstrapSMD.build();
 
     // Setup: 2 ONLINE, 1 BOOTSTRAP, 1 OFFLINE (current active = 3)
-    Map<String, CurrentState> currentStates = createCurrentStates(
-        Map.of(INSTANCE_0, "ONLINE", INSTANCE_1, "ONLINE", INSTANCE_2, "BOOTSTRAP", INSTANCE_3, "OFFLINE"),
-        "OnlineOfflineWithBootstrap");
+    Map<String, CurrentState> currentStates =
+        createCurrentStates(Map.of(INSTANCE_0, "ONLINE", INSTANCE_1, "ONLINE", INSTANCE_2,
+            "BOOTSTRAP", INSTANCE_3, "OFFLINE"), "OnlineOfflineWithBootstrap");
 
     // Action: OFFLINE becomes BOOTSTRAP.
     Map<String, String> bestPossible = Map.of(INSTANCE_0, "ONLINE", // No change
@@ -559,5 +540,55 @@ public class TestPrioritizationMessageGeneration extends MessageGenerationPhase 
     message.setSrcName("Controller");
     message.setSrcSessionId(SESSION_ID);
     return message;
+  }
+
+  /**
+   * Custom OnlineOffline state model with configurable upper bounds for ONLINE state.
+   * Enables testing scenarios with specific replica count constraints.
+   */
+  private static final class CustomOnlineOfflineSMD {
+    private static final String STATE_MODEL_NAME = "CustomOnlineOffline";
+
+    /**
+     * States for the CustomOnlineOffline state model
+     */
+    private enum States {
+      ONLINE,
+      OFFLINE
+    }
+
+    /**
+     * Build OnlineOffline state model definition with custom instance count
+     * @param instanceCount the maximum number of instances that can be in ONLINE state
+     * @return StateModelDefinition for OnlineOffline model with custom bounds
+     */
+    public static StateModelDefinition build(int instanceCount) {
+      if (instanceCount <= 0) {
+        throw new IllegalArgumentException(
+            "Instance count must be positive, got: " + instanceCount);
+      }
+
+      StateModelDefinition.Builder builder = new StateModelDefinition.Builder(STATE_MODEL_NAME);
+
+      // init state
+      builder.initialState(States.OFFLINE.name());
+
+      // add states
+      builder.addState(States.ONLINE.name(), 0);
+      builder.addState(States.OFFLINE.name(), 1);
+      for (final HelixDefinedState state : HelixDefinedState.values()) {
+        builder.addState(state.name());
+      }
+
+      // add transitions
+      builder.addTransition(States.ONLINE.name(), States.OFFLINE.name(), 0);
+      builder.addTransition(States.OFFLINE.name(), States.ONLINE.name(), 1);
+      builder.addTransition(States.OFFLINE.name(), HelixDefinedState.DROPPED.name());
+
+      // bounds - uses the instanceCount parameter
+      builder.dynamicUpperBound(States.ONLINE.name(), String.valueOf(instanceCount));
+
+      return builder.build();
+    }
   }
 }

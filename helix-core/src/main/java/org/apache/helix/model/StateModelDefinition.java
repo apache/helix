@@ -513,11 +513,6 @@ public class StateModelDefinition extends HelixProperty {
    * @return True if it's an upward state transition, false otherwise
    */
   public boolean isUpwardStateTransition(String fromState, String toState) {
-
-    if (fromState == null || toState == null) {
-      return false;
-    }
-
     Map<String, Integer> statePriorityMap = getStatePriorityMap();
 
     Integer fromStateWeight = statePriorityMap.get(fromState);

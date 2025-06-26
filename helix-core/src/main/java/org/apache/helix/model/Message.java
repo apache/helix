@@ -938,18 +938,18 @@ public class Message extends HelixProperty {
    * for this partition at the time the state transition message is generated.
    * Active states include top states, secondary top states (for single-top state models),
    * and ERROR states.
-   *
    * This metadata enables participants to prioritize recovery scenarios (low active counts)
    * over load balancing scenarios (high active counts) in custom thread pools or message handlers.
    * For example, 2→3 transitions get higher priority than 3→4 transitions.
-   *
-   * Default value is -1 for transitions that don't require prioritization metadata.(for eg : downward transitions).
-   *
-   * @param currentActiveReplicaNumber the number of currently active replicas (-1 when there is no prioritization metadata,
-   *                                   >=0 for transitions containing current availability level)
+   * Default value is -1 for transitions that don't require prioritization metadata.(for eg :
+   * downward transitions).
+   * @param currentActiveReplicaNumber the number of currently active replicas (-1 when there is no
+   *          prioritization metadata,
+   *          >=0 for transitions containing current availability level)
    */
   public void setCurrentActiveReplicaNumber(int currentActiveReplicaNumber) {
-    _record.setIntField(Attributes.CURRENT_ACTIVE_REPLICA_NUMBER.name(), currentActiveReplicaNumber);
+    _record.setIntField(Attributes.CURRENT_ACTIVE_REPLICA_NUMBER.name(),
+        currentActiveReplicaNumber);
   }
 
   /**

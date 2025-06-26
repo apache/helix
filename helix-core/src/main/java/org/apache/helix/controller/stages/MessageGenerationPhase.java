@@ -168,12 +168,14 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       /*
        * Calculate the current active replica count based on state model type.
        * This represents the number of replicas currently serving traffic for this partition
-       * Active replicas include: top states, secondary top states(excluding OFFLINE) and ERROR states.
+       * Active replicas include: top states, secondary top states(excluding OFFLINE) and ERROR
+       * states.
        * Active replicas exclude: OFFLINE and DROPPED states.
        * All qualifying state transitions for this partition will receive this same value,
        * allowing clients to understand the current availability level and prioritize accordingly.
        */
-      int currentActiveReplicaCount = calculateCurrentActiveReplicaCount(currentStateMap, stateModelDef);
+      int currentActiveReplicaCount =
+          calculateCurrentActiveReplicaCount(currentStateMap, stateModelDef);
 
       for (String instanceName : instanceStateMap.keySet()) {
 
@@ -328,10 +330,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
    * Calculate the current active replica count based on state model type.
    * The count includes replicas in top states, secondary top states (excluding OFFLINE),
    * and ERROR states since helix considers them active.Count excludes OFFLINE and DROPPED states.
-   * @param currentStateMap Map of instance name to current state for this partition, representing
-   *          the actual state of each replica before any pending transitions
-   * @param stateModelDef State model definition containing the state hierarchy and transition rules
-   *          used to determine which states are considered active
+   * @param currentStateMap
+   * @param stateModelDef
    * @return The number of replicas currently in active states, used to determine the
    *         currentActiveReplicaNumber for the partition.
    */
@@ -357,7 +357,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
    * Example - OnlineOffline:
    * getSecondTopStates() = ["OFFLINE"] as it transitions to ONLINE.
    * After filtering: activeSecondaryTopStates=[] (removes "OFFLINE" as it's not a serving state).
-   * @param stateModelDef State model definition containing state hierarchy information
+   * @param stateModelDef
    */
   private List<String> getActiveSecondaryTopStates(StateModelDefinition stateModelDef) {
     return stateModelDef.getSecondTopStates().stream()
@@ -372,8 +372,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
    * and ERROR states. Active states exclude OFFLINE and DROPPED states.
    * ERROR state replicas are always considered active in HELIX as they do not
    * affect availability.
-   * @param state The state to check (can be current state or target state)
-   * @param stateModelDef State model definition containing state hierarchy information
+   * @param state
+   * @param stateModelDef
    * @return true if the state is considered active, false otherwise
    */
   private boolean isStateActive(String state, StateModelDefinition stateModelDef) {

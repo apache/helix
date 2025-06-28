@@ -27,9 +27,17 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import java.lang.reflect.Field;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestDistControllerStateModel extends ZkUnitTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestDistControllerStateModel.class);
@@ -124,4 +132,69 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
     stateModel.reset();
   }
 
+  /**
+   * Test to verify that different DistClusterControllerStateModel instances
+   * use separate lock objects, ensuring no cross-instance blocking.
+   */
+  @Test()
+  public void testNoSharedLockAcrossInstances() throws Exception {
+    LOG.info("Testing that lock objects are not shared across DistClusterControllerStateModel instances");
+
+    // Verify different instances have different lock objects
+    DistClusterControllerStateModel instance1 = new DistClusterControllerStateModel(ZK_ADDR);
+    DistClusterControllerStateModel instance2 = new DistClusterControllerStateModel(ZK_ADDR);
+
+    Field lockField = DistClusterControllerStateModel.class.getDeclaredField("_controllerLock");
+    lockField.setAccessible(true);
+
+    Object lock1 = lockField.get(instance1);
+    Object lock2 = lockField.get(instance2);
+
+    Assert.assertNotNull(lock1, "First instance should have a lock object");
+    Assert.assertNotNull(lock2, "Second instance should have a lock object");
+    Assert.assertNotSame(lock1, lock2, "Different instances must have different lock objects");
+
+    // Verify concurrent access doesn't block across instances
+    final int NUM_INSTANCES = 10;
+    ExecutorService executor = Executors.newFixedThreadPool(NUM_INSTANCES);
+    CountDownLatch startLatch = new CountDownLatch(1);
+    CountDownLatch completionLatch = new CountDownLatch(NUM_INSTANCES);
+    AtomicInteger completedInstances = new AtomicInteger(0);
+
+    for (int i = 0; i < NUM_INSTANCES; i++) {
+      final int instanceId = i;
+      final DistClusterControllerStateModel instance = new DistClusterControllerStateModel(ZK_ADDR);
+
+      executor.submit(() -> {
+        try {
+          startLatch.await(); // wait for all threads to be ready
+
+          // Simulate state transition operations that would use the lock
+          synchronized (lockField.get(instance)) {
+            // hold the lock here briefly to simulate real state transition work
+            Thread.sleep(100);
+            completedInstances.incrementAndGet();
+          }
+
+        } catch (Exception e) {
+          LOG.error("Instance {} failed during concurrent test", instanceId, e);
+        } finally {
+          completionLatch.countDown();
+        }
+      });
+    }
+
+    // start all threads simultaneously
+    startLatch.countDown();
+
+    // All instances should complete within reasonable time since they don't block each other
+    boolean allCompleted = completionLatch.await(2, TimeUnit.SECONDS);
+
+    executor.shutdown();
+    executor.awaitTermination(2, TimeUnit.SECONDS);
+
+    Assert.assertTrue(allCompleted, "All instances should complete without blocking each other");
+    Assert.assertEquals(completedInstances.get(), NUM_INSTANCES,
+        "All instances should successfully complete their synchronized work");
+  }
 }

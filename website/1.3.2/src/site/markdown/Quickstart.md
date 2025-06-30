@@ -34,7 +34,7 @@ First, let\'s get Helix. Either build it, or download it.
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-1.3.1
+git checkout tags/helix-1.3.2
 mvn install package -DskipTests
 cd helix-core/target/helix-core-pkg/bin # This folder contains all the scripts used in following sections
 chmod +x *
@@ -42,7 +42,7 @@ chmod +x *
 
 ### Download
 
-Download the 1.3.1 release package [here](./download.html)
+Download the 1.3.2 release package [here](./download.html)
 
 Overview
 --------
@@ -654,7 +654,7 @@ You can view all of the underlying data by going direct to zookeeper.  Use ZooIn
 To start zooinspector run the following command from <zk_install_directory>/contrib/ZooInspector
 
 ```
-java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.3.1.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
+java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.3.2.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
 ```
 
 ### Next

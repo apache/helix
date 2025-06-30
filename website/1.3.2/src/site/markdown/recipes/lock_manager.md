@@ -50,7 +50,7 @@ This version starts multiple threads within the same process to simulate a multi
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-1.3.1
+git checkout tags/helix-1.3.2
 mvn clean install package -DskipTests
 cd recipes/distributed-lock-manager/target/distributed-lock-manager-pkg/bin
 chmod +x *

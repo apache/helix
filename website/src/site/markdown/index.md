@@ -81,6 +81,10 @@ Apache Helix has a new release:
 
     [\[Quick Start\]](./1.4.3-docs/Quickstart.html) [\[Release Notes\]](./1.4.3-docs/releasenotes/release-1.4.3.html)
 
+* [1.3.2](./1.3.2-docs/index.html) - A release with better auto registration logic and node evacuation support
+
+    [\[Quick Start\]](./1.3.2-docs/Quickstart.html) [\[Release Notes\]](./1.3.2-docs/releasenotes/release-1.3.2.html)
+
 * [0.9.9](./0.9.9-docs/index.html) - A release with several critical bug fixing for 0.9 series release
 
     [\[Quick Start\]](./0.9.9-docs/Quickstart.html) [\[Release Notes\]](./0.9.9-docs/releasenotes/release-0.9.9.html)
@@ -88,6 +92,8 @@ Apache Helix has a new release:
 ### Download
 
 <a href="./1.4.3-docs/download.html" class="btn btn-primary btn-small">1.4.3</a>
+
+<a href="./1.3.2-docs/download.html" class="btn btn-primary btn-small">1.3.2</a>
 
 <a href="./0.9.9-docs/download.html" class="btn btn-primary btn-small">0.9.9</a>
 

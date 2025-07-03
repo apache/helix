@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
@@ -57,17 +58,18 @@ import org.slf4j.LoggerFactory;
  * Compares the currentState, pendingState with IdealState and generate messages
  */
 public class MessageGenerationPhase extends AbstractBaseStage {
-  private final static String NO_DESIRED_STATE = "NoDesiredState";
+  private static final String NO_DESIRED_STATE = "NoDesiredState";
 
   // If we see there is any invalid pending message leaving on host, i.e. message
   // tells participant to change from SLAVE to MASTER, and the participant is already
   // at MASTER state, we wait for timeout and if the message is still not cleaned up by
   // participant, controller will cleanup them proactively to unblock further state
   // transition
-  public final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY = HelixUtil
+  public static final long DEFAULT_OBSELETE_MSG_PURGE_DELAY = HelixUtil
       .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
-  private final static String PENDING_MESSAGE = "pending message";
-  private final static String STALE_MESSAGE = "stale message";
+  private static final String PENDING_MESSAGE = "pending message";
+  private static final String STALE_MESSAGE = "stale message";
+  private static final String OFFLINE = "OFFLINE";
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
@@ -163,6 +165,18 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       // desired-state->list of generated-messages
       Map<String, List<Message>> messageMap = new HashMap<>();
 
+      /*
+       * Calculate the current active replica count based on state model type.
+       * This represents the number of replicas currently serving traffic for this partition
+       * Active replicas include: top states, secondary top states(excluding OFFLINE) and ERROR
+       * states.
+       * Active replicas exclude: OFFLINE and DROPPED states.
+       * All qualifying state transitions for this partition will receive this same value,
+       * allowing clients to understand the current availability level and prioritize accordingly.
+       */
+      int currentActiveReplicaCount =
+          calculateCurrentActiveReplicaCount(currentStateMap, stateModelDef);
+
       for (String instanceName : instanceStateMap.keySet()) {
 
         Set<Message> staleMessages = cache.getStaleMessagesByInstance(instanceName);
@@ -250,17 +264,39 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     pendingMessage, manager, resource, partition, sessionIdMap, instanceName,
                     stateModelDef, cancellationMessage, isCancellationEnabled);
           } else {
+            // Set currentActiveReplicaNumber to provide metadata for potential message
+            // prioritization by participant.
+            // Assign the current active replica count to all qualifying upward transitions for this
+            // partition.
+            // This ensures consistent prioritization metadata across concurrent state transitions.
+            // -1 indicates no prioritization metadata, for eg:Downward ST messages get a -1.
+            int currentActiveReplicaNumber = -1;
+
+            /*
+             * Assign currentActiveReplicaNumber for qualifying upward state transitions.
+             * Criteria for assignment:
+             * - Must be an upward state transition according to state model
+             * - Target state must be considered active (according to state model type)
+             */
+            if (stateModelDef.isUpwardStateTransition(currentState, nextState)
+                && isStateActive(nextState, stateModelDef)) {
+
+              // All qualifying transitions for this partition get the same
+              // currentActiveReplicaNumber
+              currentActiveReplicaNumber = currentActiveReplicaCount;
+            }
+
             // Create new state transition message
-            message = MessageUtil
-                .createStateTransitionMessage(manager.getInstanceName(), manager.getSessionId(),
-                    resource, partition.getPartitionName(), instanceName, currentState, nextState,
-                    sessionIdMap.get(instanceName), stateModelDef.getId());
+            message = MessageUtil.createStateTransitionMessage(manager.getInstanceName(),
+                manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
+                currentState, nextState, sessionIdMap.get(instanceName), stateModelDef.getId(),
+                currentActiveReplicaNumber);
 
             if (logger.isDebugEnabled()) {
               LogUtil.logDebug(logger, _eventId, String.format(
-                  "Resource %s partition %s for instance %s with currentState %s and nextState %s",
+                  "Resource %s partition %s for instance %s with currentState %s, nextState %s and currentActiveReplicaNumber %d",
                   resource.getResourceName(), partition.getPartitionName(), instanceName,
-                  currentState, nextState));
+                  currentState, nextState, currentActiveReplicaNumber));
             }
           }
         }
@@ -290,7 +326,66 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     } // end of for-each-partition
   }
 
-  private boolean shouldCreateSTCancellation(Message pendingMessage, String desiredState,
+  /**
+   * Calculate the current active replica count based on state model type.
+   * The count includes replicas in top states, secondary top states (excluding OFFLINE),
+   * and ERROR states since helix considers them active.Count excludes OFFLINE and DROPPED states.
+   * @param currentStateMap
+   * @param stateModelDef
+   * @return The number of replicas currently in active states, used to determine the
+   *         currentActiveReplicaNumber for the partition.
+   */
+  private int calculateCurrentActiveReplicaCount(Map<String, String> currentStateMap,
+      StateModelDefinition stateModelDef) {
+    return (int) currentStateMap.values().stream()
+        .filter(state -> stateModelDef.getTopState().contains(state) // Top states (MASTER, ONLINE,
+                                                                     // LEADER)
+            || getActiveSecondaryTopStates(stateModelDef).contains(state) // Active secondary states
+                                                                          // (SLAVE, STANDBY,
+                                                                          // BOOTSTRAP)
+            || HelixDefinedState.ERROR.name().equals(state) // ERROR states (still considered
+                                                            // active)
+        // DROPPED and OFFLINE are automatically excluded by getActiveSecondaryTopStates()
+        ).count();
+  }
+
+  /**
+   * Get active secondary top states - states that are not non-serving states like OFFLINE and
+   * DROPPED.
+   * Reasons for elimination:
+   * - getSecondTopStates() can include OFFLINE as a secondary top state in some state models.
+   * Example - OnlineOffline:
+   * getSecondTopStates() = ["OFFLINE"] as it transitions to ONLINE.
+   * After filtering: activeSecondaryTopStates=[] (removes "OFFLINE" as it's not a serving state).
+   * @param stateModelDef
+   */
+  private List<String> getActiveSecondaryTopStates(StateModelDefinition stateModelDef) {
+    return stateModelDef.getSecondTopStates().stream()
+        // Remove non-serving states
+        .filter(state -> !OFFLINE.equals(state) && !HelixDefinedState.DROPPED.name().equals(state))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Determines if the given state is considered active based on the state model type.
+   * Active states include: top states, active secondary top states (excluding OFFLINE),
+   * and ERROR states. Active states exclude OFFLINE and DROPPED states.
+   * ERROR state replicas are always considered active in HELIX as they do not
+   * affect availability.
+   * @param state
+   * @param stateModelDef
+   * @return true if the state is considered active, false otherwise
+   */
+  private boolean isStateActive(String state, StateModelDefinition stateModelDef) {
+    // ERROR state is always considered active regardless of state model type
+    if (HelixDefinedState.ERROR.name().equals(state)) {
+      return true;
+    }
+    return stateModelDef.getTopState().contains(state)
+        || getActiveSecondaryTopStates(stateModelDef).contains(state);
+  }
+
+    private boolean shouldCreateSTCancellation(Message pendingMessage, String desiredState,
       String initialState) {
     if (pendingMessage == null) {
       return false;

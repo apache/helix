@@ -948,8 +948,14 @@ public class ZKHelixAdmin implements HelixAdmin {
   public boolean isInMaintenanceMode(String clusterName) {
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseDataAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    return accessor.getBaseDataAccessor()
-        .exists(keyBuilder.maintenance().getPath(), AccessOption.PERSISTENT);
+
+    MaintenanceSignal signal = accessor.getProperty(keyBuilder.maintenance());
+
+    if (signal == null) {
+      return false;
+    }
+
+    return signal.hasMaintenanceReasons();
   }
 
   @Override
@@ -1182,6 +1188,14 @@ public class ZKHelixAdmin implements HelixAdmin {
         MaintenanceSignal.TriggeringEntity.USER);
   }
 
+  @Override
+  public void automationEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      Map<String, String> customFields) {
+    processMaintenanceMode(clusterName, enabled, reason,
+        MaintenanceSignal.AutoTriggerReason.NOT_APPLICABLE, customFields,
+        MaintenanceSignal.TriggeringEntity.AUTOMATION);
+  }
+
   /**
    * Helper method for enabling/disabling maintenance mode.
    * @param clusterName
@@ -1201,23 +1215,54 @@ public class ZKHelixAdmin implements HelixAdmin {
         triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
             : "manually", enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
     final long currentTime = System.currentTimeMillis();
+
+    MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
     if (!enabled) {
-      // Exit maintenance mode
-      accessor.removeProperty(keyBuilder.maintenance());
+      // Exit maintenance mode for this specific triggering entity
+
+      if (maintenanceSignal != null) {
+        // If a specific actor is exiting maintenance mode
+        boolean removed = maintenanceSignal.removeMaintenanceReason(triggeringEntity);
+
+        if (removed) {
+          // If there are still reasons for maintenance mode, update the ZNode
+          if (maintenanceSignal.getRecord().getListField("reasons") != null
+              && !maintenanceSignal.getRecord().getListField("reasons").isEmpty()) {
+            if (!accessor.setProperty(keyBuilder.maintenance(), maintenanceSignal)) {
+              throw new HelixException("Failed to update maintenance signal!");
+            }
+          } else {
+            // If this was the last reason, remove the maintenance ZNode entirely
+            accessor.removeProperty(keyBuilder.maintenance());
+          }
+        }
+      }
     } else {
       // Enter maintenance mode
-      MaintenanceSignal maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);
+      if (maintenanceSignal == null) {
+        // Create a new maintenance signal if it doesn't exist
+        maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);
+      }
+
+      // First check for potential old client updates (simpleFields different than listField entries)
+      // This MUST happen before we modify any simpleFields to avoid overwriting important data needed for reconciliation
+      maintenanceSignal.reconcileMaintenanceData();
+
+      // Add the reason to the maintenance signal
       if (reason != null) {
         maintenanceSignal.setReason(reason);
       }
+
       maintenanceSignal.setTimestamp(currentTime);
       maintenanceSignal.setTriggeringEntity(triggeringEntity);
+
       switch (triggeringEntity) {
         case CONTROLLER:
           // autoEnable
           maintenanceSignal.setAutoTriggerReason(internalReason);
           break;
         case USER:
+        case AUTOMATION:
         case UNKNOWN:
           // manuallyEnable
           if (customFields != null && !customFields.isEmpty()) {
@@ -1231,8 +1276,18 @@ public class ZKHelixAdmin implements HelixAdmin {
           }
           break;
       }
-      if (!accessor.createMaintenance(maintenanceSignal)) {
-        throw new HelixException("Failed to create maintenance signal!");
+
+      // Add this reason to the multi-actor maintenance reasons list
+      maintenanceSignal.addMaintenanceReason(reason, currentTime, triggeringEntity);
+
+      if (accessor.getProperty(keyBuilder.maintenance()) == null) {
+        if (!accessor.createMaintenance(maintenanceSignal)) {
+          throw new HelixException("Failed to create maintenance signal!");
+        }
+      } else {
+        if (!accessor.setProperty(keyBuilder.maintenance(), maintenanceSignal)) {
+          throw new HelixException("Failed to update maintenance signal!");
+        }
       }
     }
 
@@ -1246,7 +1301,8 @@ public class ZKHelixAdmin implements HelixAdmin {
                 }
                 return new ControllerHistory(oldRecord)
                     .updateMaintenanceHistory(enabled, reason, currentTime, internalReason,
-                        customFields, triggeringEntity);
+                        customFields, triggeringEntity,
+                        isInMaintenanceMode(clusterName));
               } catch (IOException e) {
                 logger.error("Failed to update maintenance history! Exception: {}", e);
                 return oldRecord;

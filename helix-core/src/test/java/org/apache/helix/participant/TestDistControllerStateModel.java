@@ -37,6 +37,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestDistControllerStateModel extends ZkUnitTestBase {
@@ -188,7 +189,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
     startLatch.countDown();
 
     // All instances should complete within reasonable time since they don't block each other
-    boolean allCompleted = completionLatch.await(2, TimeUnit.SECONDS);
+    boolean allCompleted = completionLatch.await(500, TimeUnit.MILLISECONDS);
 
     executor.shutdown();
     executor.awaitTermination(2, TimeUnit.SECONDS);
@@ -196,5 +197,72 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
     Assert.assertTrue(allCompleted, "All instances should complete without blocking each other");
     Assert.assertEquals(completedInstances.get(), NUM_INSTANCES,
         "All instances should successfully complete their synchronized work");
+  }
+
+  /**
+   * Explicit test to verify that while one instance holds its lock indefinitely,
+   * another instance with a different lock can complete immediately.
+   */
+  @Test()
+  public void testExplicitLockIndependence() throws Exception {
+    LOG.info("Testing explicit lock independence - one blocked, other should complete");
+
+    DistClusterControllerStateModel instance1 = new DistClusterControllerStateModel(ZK_ADDR);
+    DistClusterControllerStateModel instance2 = new DistClusterControllerStateModel(ZK_ADDR);
+
+    Field lockField = DistClusterControllerStateModel.class.getDeclaredField("_controllerLock");
+    lockField.setAccessible(true);
+
+    Object lock1 = lockField.get(instance1);
+    Object lock2 = lockField.get(instance2);
+
+    Assert.assertNotSame(lock1, lock2, "Different instances must have different lock objects");
+
+    CountDownLatch instance1Started = new CountDownLatch(1);
+    CountDownLatch instance2Completed = new CountDownLatch(1);
+    AtomicBoolean instance1Interrupted = new AtomicBoolean(false);
+
+    // Thread 1: Hold lock1 for 5 seconds
+    Thread thread1 = new Thread(() -> {
+      try {
+        synchronized (lock1) {
+          instance1Started.countDown();
+          Thread.sleep(5000); // Hold much longer than test timeout
+        }
+      } catch (InterruptedException e) {
+        instance1Interrupted.set(true);
+        Thread.currentThread().interrupt();
+      }
+    }, "BlockingThread");
+
+    // Thread 2: Should complete immediately since it uses lock2
+    Thread thread2 = new Thread(() -> {
+      try {
+        instance1Started.await(1000, TimeUnit.MILLISECONDS); // Wait for thread1 to acquire lock1
+        synchronized (lock2) {
+          // Should acquire immediately since lock2 != lock1
+          Thread.sleep(50);
+          instance2Completed.countDown();
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }, "NonBlockingThread");
+
+    thread1.start();
+    thread2.start();
+
+    // Instance2 should complete immediately even though instance1 is blocked
+    boolean instance2CompletedQuickly = instance2Completed.await(200, TimeUnit.MILLISECONDS);
+
+    // Clean up
+    thread1.interrupt();
+    thread1.join(1000);
+    thread2.join(1000);
+
+    Assert.assertTrue(instance2CompletedQuickly,
+        "Instance2 should complete immediately, proving locks are not shared");
+    Assert.assertTrue(instance1Interrupted.get(),
+        "Instance1 should have been interrupted while holding its lock");
   }
 }

@@ -955,7 +955,11 @@ public class ZKHelixAdmin implements HelixAdmin {
       return false;
     }
 
-    return signal.hasMaintenanceReasons();
+    // The cluster is in maintenance mode if the maintenance signal ZNode exists
+    // This includes cases where old clients have wiped listField data but simpleFields remain
+    // cluster should remain in maintenance mode as long as ZNode exists
+    return signal.hasMaintenanceReasons() ||
+           (signal.getReason() != null && !signal.getReason().isEmpty());
   }
 
   @Override
@@ -1235,6 +1239,25 @@ public class ZKHelixAdmin implements HelixAdmin {
             // If this was the last reason, remove the maintenance ZNode entirely
             accessor.removeProperty(keyBuilder.maintenance());
           }
+        } else {
+          // Case where triggering entity doesn't have an entry
+          // Note: CONTROLLER/AUTOMATION is strict no-op, USER can do administrative override
+          if (triggeringEntity == MaintenanceSignal.TriggeringEntity.USER) {
+            // USER has special privilege to force exit maintenance mode as administrative override
+            logger.info("USER administrative override: forcefully exiting maintenance mode for cluster {}", clusterName);
+            accessor.removeProperty(keyBuilder.maintenance());
+          } else {
+            // CONTROLLER/AUTOMATION: strict no-op if their entry not found
+            logger.info("Entity {} doesn't have a maintenance reason entry, exit request ignored", triggeringEntity);
+          }
+        }
+      } else {
+        // No maintenance signal exists
+        if (triggeringEntity == MaintenanceSignal.TriggeringEntity.USER) {
+          logger.info("USER administrative override: no maintenance signal exists, nothing to remove");
+        } else {
+          // CONTROLLER/AUTOMATION: strict no-op
+          logger.info("Entity {} attempted to exit maintenance mode but no maintenance signal exists", triggeringEntity);
         }
       }
     } else {
@@ -1244,9 +1267,9 @@ public class ZKHelixAdmin implements HelixAdmin {
         maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);
       }
 
-      // First check for potential old client updates (simpleFields different than listField entries)
-      // This MUST happen before we modify any simpleFields to avoid overwriting important data needed for reconciliation
-      maintenanceSignal.reconcileMaintenanceData();
+      // This is CRITICAL: Reconcile any legacy data BEFORE updating simpleFields
+      // This must happen before any simpleField updates to preserve legacy USER data
+      maintenanceSignal.reconcileLegacyData();
 
       // Add the reason to the maintenance signal
       if (reason != null) {

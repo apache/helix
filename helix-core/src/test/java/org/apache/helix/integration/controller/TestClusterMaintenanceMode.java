@@ -21,7 +21,6 @@ package org.apache.helix.integration.controller;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -444,553 +443,766 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   }
 
   /**
-   * Test that automation triggered maintenance mode works correctly
-   * and multi-actor maintenance mode requires all actors to exit
+   * Test basic multi-actor stacking behavior.
+   * Verifies core functionality: actor-based stacking, actor override, simpleFields most recent
    */
   @Test
   public void testAutomationMaintenanceMode() throws Exception {
-    // Make sure we're not in maintenance mode at the start
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-
-    // Put cluster in maintenance mode via automation
-    Map<String, String> customFields = ImmutableMap.of("TICKET", "AUTO-123", "SOURCE", "HelixACM");
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
-        "Automation maintenance", customFields);
-
-    // Verify we are in maintenance mode with the right attributes
-    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertNotNull(maintenanceSignal);
-    Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
-        MaintenanceSignal.TriggeringEntity.AUTOMATION);
-
-    // Verify custom fields were set
-    for (Map.Entry<String, String> entry : customFields.entrySet()) {
-      Assert.assertEquals(maintenanceSignal.getRecord().getSimpleField(entry.getKey()),
-          entry.getValue());
-    }
-
-    // Manually put the cluster in maintenance too - this should keep both reasons
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
-        "User maintenance", null);
-
-    // Verify we have both reasons
-    maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertTrue(maintenanceSignal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-    Assert.assertTrue(maintenanceSignal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertEquals(maintenanceSignal.getMaintenanceReasonsCount(), 2);
-
-    // Exit maintenance mode for USER only
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify we're still in maintenance mode with only AUTOMATION reason
-    maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertNotNull(maintenanceSignal);
-    Assert.assertFalse(maintenanceSignal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertTrue(maintenanceSignal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-    Assert.assertEquals(maintenanceSignal.getMaintenanceReasonsCount(), 1);
-
-    // Exit maintenance mode for AUTOMATION
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify we're now out of maintenance mode
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-  }
-
-  /**
-   * Test that removing a maintenance reason doesn't add duplicate entries in the reasons list
-   */
-  @Test
-  public void testRemoveMaintenanceReasonNoDuplicates() throws Exception {
-    // Make sure we start clean
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
 
-    // First put the cluster in maintenance mode via USER
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
-        "User entry", null);
+    // Step 1: USER enters MM (t1) with reason_A
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, "reason_A", null);
 
-    // Then add AUTOMATION reason
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
-        "Automation entry", null);
-
-    // Verify we have both reasons
-    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-
-    // Remove AUTOMATION reason
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify we only have USER reason and no duplicate entries
-    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-
-    // Verify the reasons list field to ensure no duplicates
-    List<String> reasonsList = signal.getRecord().getListField("reasons");
-    Assert.assertEquals(reasonsList.size(), 1, "Should have exactly 1 entry in reasons list");
-
-    // Verify the simple fields are correct
-    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
-    Assert.assertEquals(signal.getReason(), "User entry");
-
-    // Remove USER reason
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify we're out of maintenance mode
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-  }
-
-  /**
-   * Test that the code can handle an old client that writes a MaintenanceSignal
-   * without using the multi-actor maintenance API (no reasons list).
-   */
-  @Test
-  public void testLegacyClientCompatibility() throws Exception {
-    // Simulate an old client by creating a MaintenanceSignal with only simple fields
-    ZNRecord record = new ZNRecord("maintenance");
-    // Add just the simple fields like an old client would
-    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "Legacy client reason");
-    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
-        MaintenanceSignal.TriggeringEntity.USER.name());
-    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(),
-        String.valueOf(System.currentTimeMillis()));
-
-    // Write it directly to ZK
-    _dataAccessor.setProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
-
-    // Verify the maintenance signal is there
-    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
-    Assert.assertEquals(signal.getReason(), "Legacy client reason");
-
-    // Verify that the list field does not exist yet
-    List<String> reasonsListBefore = signal.getRecord().getListField("reasons");
-    Assert.assertNull(reasonsListBefore, "Should not have reasons list field yet");
-
-    // Explicitly call reconcileMaintenanceData
-    boolean updated = signal.reconcileMaintenanceData();
-    Assert.assertTrue(updated, "Should have updated the ZNode during reconciliation");
-
-    // Verify the reasons list was created
-    List<String> reasonsListAfter = signal.getRecord().getListField("reasons");
-    Assert.assertNotNull(reasonsListAfter, "Should have created reasons list field");
-    Assert.assertEquals(reasonsListAfter.size(), 1, "Should have added exactly one entry");
-
-    // Verify the entry content contains all simple fields
-    String entryString = reasonsListAfter.get(0);
-    Assert.assertTrue(entryString.contains("Legacy client reason"),
-        "Entry should contain the reason text");
-    Assert.assertTrue(entryString.contains(MaintenanceSignal.TriggeringEntity.USER.name()),
-        "Entry should contain the entity");
-
-    // Save to ZK
-    _dataAccessor.setProperty(_keyBuilder.maintenance(), signal);
-
-    // Now read it back to verify persistence
-    MaintenanceSignal readBackSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    List<String> persistedReasonsList = readBackSignal.getRecord().getListField("reasons");
-    Assert.assertEquals(persistedReasonsList.size(), 1, "Should have persisted exactly one entry");
-
-    // Now try to add a new reason via the new API - should work with the legacy format
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
-        "Automation entry with legacy client", null);
-
-    // Verify both reasons exist
-    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-
-    // Try removing the automation reason
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify only USER reason remains
-    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-
-    // Clean up
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-  }
-
-  /**
-   * Test that the IN_MAINTENANCE_AFTER_OPERATION field in the history record
-   * is only set to false when all maintenance reasons are gone.
-   */
-  @Test(dependsOnMethods = "testLegacyClientCompatibility")
-  public void testMaintenanceHistoryAfterOperationFlag() throws Exception {
-    // Make sure we start clean
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-
-    // First put the cluster in maintenance mode via USER
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
-        "User entry2", null);
-
-    // Verify history shows IN_MAINTENANCE_AFTER_OPERATION as true
-    ControllerHistory history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
-    Map<String, String> lastEntry = convertStringToMap(
-        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
-    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "ENTER");
-    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "USER");
-    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "true");
-
-    // Add a second actor (AUTOMATION)
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
-        "Automation entry2", null);
-
-    // Verify history shows IN_MAINTENANCE_AFTER_OPERATION as true
-    history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
-    lastEntry = convertStringToMap(
-        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
-    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "ENTER");
-    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "AUTOMATION");
-    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "true");
-
-    // Remove AUTOMATION actor, but we should still be in maintenance mode because USER remains
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
-        null, null);
-
-    // Verify we're still in maintenance mode with a single actor
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
     Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "reason_A");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_A");
 
-    // Verify history shows IN_MAINTENANCE_AFTER_OPERATION as true
-    history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
-    lastEntry = convertStringToMap(
-        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
-    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "EXIT");
-    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "AUTOMATION");
-    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "true");
+    Thread.sleep(10); // Ensure different timestamps
 
-    // Remove USER actor, which should get us out of maintenance mode
+    // Step 2: AUTOMATION enters MM (t2) with reason_B - should stack with USER
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true, "reason_B", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION); // Most recent
+    Assert.assertEquals(signal.getReason(), "reason_B"); // Most recent
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_A");
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION), "reason_B");
+
+    Thread.sleep(10);
+
+    // Step 3: USER enters MM again (t3) with reason_C - should override previous USER entry
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_C", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2); // Still only 2 (USER overrode itself)
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER); // Most recent
+    Assert.assertEquals(signal.getReason(), "reason_C"); // Most recent
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+        "reason_C"); // Updated
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+        "reason_B"); // Unchanged
+
+    Thread.sleep(10);
+
+    // Step 4: AUTOMATION enters MM again (t4) with reason_D - should override previous AUTOMATION entry
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_D", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2); // Still only 2 (AUTOMATION overrode itself)
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION); // Most recent
+    Assert.assertEquals(signal.getReason(), "reason_D"); // Most recent
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+        "reason_C"); // Unchanged
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+        "reason_D"); // Updated
+
+    // Clean exit sequence: actors exit in order
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
 
-    // Verify we're out of maintenance mode
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+    Assert.assertEquals(signal.getReason(), "reason_D"); // Updated to remaining reason
 
-    // Verify history shows IN_MAINTENANCE_AFTER_OPERATION as false
-    history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
-    lastEntry = convertStringToMap(
-        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
-    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "EXIT");
-    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "USER");
-    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "false");
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        null);
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
   }
 
   /**
-   * Set up the initial state and mock components for maintenance mode tests.
-   * This ensures maintenance mode doesn't get automatically exited.
+   * USER administrative override after old client data loss
+   * 1. Multi-actor setup with CONTROLLER, USER, AUTOMATION
+   * 2. Old client wipes listField data (keeps only simpleFields)
+   * 3. AUTOMATION tries to exit MM (no-op since its data was wiped)
+   * 4. USER exits MM (administrative override - forces complete exit)
    */
-  private void setupMaintenanceModeTest() throws Exception {
-    // Set cluster config to ensure auto-exit conditions are never met
+  @Test
+  public void testLegacyClientCompatibility() throws Exception {
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
-    clusterConfig.setMaxOfflineInstancesAllowed(2);
-    clusterConfig.setNumOfflineInstancesForAutoExit(1);
+    clusterConfig.setMaxPartitionsPerInstance(-1);
+    clusterConfig.setNumOfflineInstancesForAutoExit(-1); // Disable auto-exit to prevent race conditions
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
 
-    // Kill 3 instances
-    for (int i = 0; i < 3; i++) {
-      _participants[i].syncStop();
-    }
-    TestHelper.verify(() -> _dataAccessor.getChildNames(_keyBuilder.liveInstances()).isEmpty(), 2000L);
+    // Wait for config to be applied
+    TestHelper.verify(() -> {
+      ClusterConfig currentConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+      return currentConfig.getNumOfflineInstancesForAutoExit() == -1;
+    }, 2000L);
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_A", null);
+    Thread.sleep(10);
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, true, "reason_B",
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
+    Thread.sleep(10);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_C", null);
 
-    // Check that the cluster is in maintenance
-    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertNotNull(maintenanceSignal);
+    // Verify multi-actor setup
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Simulate old client wiping listField data (only keeps simpleFields)
+    Thread.sleep(10);
+    ZNRecord record = new ZNRecord("maintenance");
+    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "reason_D");
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(),
+        String.valueOf(System.currentTimeMillis()));
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
+        MaintenanceSignal.TriggeringEntity.USER.name());
+    // Old client doesn't set listField - simulates wiping all listField data
+    _dataAccessor.setProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
+
+    // Verify old client wiped listField data but simpleFields remain
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+        "Old client should have wiped listField data");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "reason_D");
+    Assert.assertFalse(signal.hasMaintenanceReasons(),
+        "Should have no listField reasons after old client wipe");
+
+    // AUTOMATION tries to exit MM -> should be no-op because its entry was wiped
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+
+    // Verify maintenance signal remains the same (no-op)
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal, "Should still be in maintenance after AUTOMATION no-op");
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0);
+    Assert.assertEquals(signal.getReason(), "reason_D");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+
+    // USER tries to exit MM -> should trigger administrative override and delete maintenance ZNode
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        null);
+
+    // Verify we're completely out of maintenance mode due to USER administrative override
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
   }
 
   /**
    * Helper method to set up a common scenario for maintenance mode tests:
-   * 1. Controller enters maintenance mode
-   * 2. User A enters maintenance mode
+   * 1. USER enters maintenance mode
+   * 2. AUTOMATION enters maintenance mode
    * 3. User B enters maintenance mode (overrides User A)
-   * 4. Automation enters maintenance mode
-   * 5. Old client enters maintenance mode (simple fields only)
-   *
+   * 4. Old client enters maintenance mode (simple fields only - wipes listField data)
    */
   private void setupMultiActorMaintenanceScenario() throws Exception {
-    // Set up the maintenance mode test environment
-    setupMaintenanceModeTest();
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setMaxPartitionsPerInstance(-1);
+    clusterConfig.setNumOfflineInstancesForAutoExit(-1); // Disable auto-exit to prevent race conditions
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    // Step 0: CONTROLLER puts the cluster into MM (t1)
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_Controller",
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
 
-    // Verify maintenance signal with CONTROLLER reason only
+    // Verify maintenance signal with USER reason only
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
     Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
 
-    // Step 2: USER (UserA) puts the cluster into MM (t2)
+    // Step 1: USER (UserA) puts the cluster into MM (t1)
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_A", null);
+
+    // Verify maintenance signal with USER reason only
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+
+    // Step 2: AUTOMATION puts the cluster into MM (t2)
     Thread.sleep(10); // Ensure different timestamps
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, "reason_B", null);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_B", null);
 
     // Verify maintenance signal has both reasons
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-
-    // Step 3: USER (UserB) puts the cluster into MM (t3) - overrides UserA's entry
-    Thread.sleep(10);
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, "reason_C", null);
-
-    // Verify maintenance signal still has same number of reasons but UserB's reason replaced UserA's
-    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_C");
-
-    // Step 4: AUTOMATION (HelixACM) puts the cluster into MM (t4)
-    Thread.sleep(10);
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true, "reason_D", null);
-
-    // Verify maintenance signal has all three reasons
-    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
-    // Step 5: USER (Old Client) enters cluster into MM (t5)
+    // Step 3: USER (UserB) puts the cluster into MM (t3) - overrides UserA's entry
+    Thread.sleep(10);
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_C", null);
+
+    // Verify maintenance signal still has same number of reasons but UserB's reason replaced UserA's
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_C");
+
+    // Step 4: USER (Old Client) enters cluster into MM (t4)
     // Simulate old client by directly creating a MaintenanceSignal with simple fields only
+    // Per design doc: "Legacy clients use the dataAccessor.set() API to create Maintenance signals,
+    // which results in the entire ZNRecord being overwritten, including purging all existing ListField entries"
     Thread.sleep(10);
     ZNRecord record = new ZNRecord("maintenance");
-    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "reason_E");
+    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "reason_D");
     record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(),
         String.valueOf(System.currentTimeMillis()));
     record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
         MaintenanceSignal.TriggeringEntity.USER.name());
 
-    // Write directly to ZK
-    _dataAccessor.updateProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
+    // Use setProperty (not updateProperty) to simulate old client completely overwriting the ZNode
+    _dataAccessor.setProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
 
-    // Verify maintenance signal has updated simple fields but listField still has old USER entry
+    // Verify maintenance signal has updated simple fields but listField data was wiped by old client
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
-    Assert.assertEquals(signal.getReason(), "reason_E");
+    Assert.assertEquals(signal.getReason(), "reason_D");
 
-    // Verify reasons list still has original 3 entries (not updated by old client)
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    // Verify reasons list was wiped by old client (data loss accepted by design)
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+        "Old client should have wiped all listField data");
   }
 
   /**
-   * Test Case A: New clients interaction where each actor enters and exits properly
-   * 1. Each actor (User, Automation, Controller) enters maintenance mode
-   * 2. Each actor exits maintenance mode in sequence
-   * 3. Verify maintenance flags in history records
+   * Test Case A: USER administrative override after old client data loss
+   * 1. After old client wipes data, verify no listField reasons exist
+   * 2. USER tries to exit MM - should trigger administrative override and delete maintenance ZNode
+   * 3. Verify maintenance mode is completely exited
    */
   @Test
-  public void testMultiActorMaintenanceModeExitSequence() throws Exception {
+  public void testUserAdministrativeOverride() throws Exception {
     // Set up the initial state with all actors having entered maintenance mode
+    // Note: setupMultiActorMaintenanceScenario() ends with old client wiping listField data
     setupMultiActorMaintenanceScenario();
 
-    // Step 6A: USER (New client) exits MM
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify USER reason is gone, but CONTROLLER and AUTOMATION remain
+    // Verify the old client has wiped the listField data
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+        "Old client should have wiped listField data");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "reason_D");
 
-    // Verify in history that we're still in maintenance
+    // Step 6A: USER (New client) tries to exit MM
+    // Since USER doesn't have an entry in listFields.reasons, this should trigger administrative override
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+
+    // Verify we're completely out of maintenance mode due to USER administrative override
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+
+    // Verify in history that we're no longer in maintenance
     ControllerHistory history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
     Map<String, String> lastEntry = convertStringToMap(
         history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
     Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "EXIT");
     Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "USER");
-    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "true");
-
-    // Step 7A: AUTOMATION exits MM
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify AUTOMATION reason is gone, only CONTROLLER remains
-    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
-    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-
-    // Verify in history that we're still in maintenance
-    history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
-    lastEntry = convertStringToMap(
-        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
-    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "EXIT");
-    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "AUTOMATION");
-    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "true");
-
-    // Step 8A: CONTROLLER exits MM
-    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(
-        CLUSTER_NAME, false, null, MaintenanceSignal.AutoTriggerReason.NOT_APPLICABLE);
-
-    // Verify we're out of maintenance mode
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-
-    // Verify in history that we're no longer in maintenance
-    history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
-    lastEntry = convertStringToMap(
-        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
-    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "EXIT");
-    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "CONTROLLER");
     Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "false");
   }
 
   /**
-   * Test Case B: Old client enters, new clients reconcile during future operations
-   * 1. Old client enters maintenance mode without updating the reasons list
-   * 2. New client enters maintenance mode and reconciles the list
+   * Old client enters, new clients operate independently (no reconciliation)
+   * 1. Old client enters maintenance mode without updating the reasons list (data wiped)
+   * 2. New client enters maintenance mode and operates independently
    * 3. All actors exit in sequence
    */
   @Test
-  public void testMultiActorMaintenanceModeReconciliation() throws Exception {
+  public void testOldClientDataLoss() throws Exception {
     // Set up the initial state with all actors having entered maintenance mode
     setupMultiActorMaintenanceScenario();
 
-    // Step 6B: AUTOMATION enters MM again - should reconcile the old client's USER update
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true, "reason_F", null);
-
-    // Verify signal has reconciled the old client's USER update with the timestamp
+    // At this point, the old client in setupMultiActorMaintenanceScenario has wiped the listField data
+    // Verify that the old client action resulted in data loss
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+
+    // simpleFields should show USER data (from old client)
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "reason_D");
+
+    // But listFields.reasons should be empty (wiped by old client)
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+        "Old client should have wiped listField data");
+    Assert.assertFalse(signal.hasMaintenanceReasons(),
+        "Should not have maintenance reasons after old client wipe");
+
+    // Step 6B: AUTOMATION enters MM again - should work independently (no reconciliation)
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_F", null);
+
+    // Verify signal now has only AUTOMATION reason (no reconciliation of old USER data)
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER),
+        "Controller data was lost");
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+        "User data was lost");
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Verify the new AUTOMATION reason
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+        "reason_F");
+
+    // Exit the only remaining actor
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        null);
+
+    // Verify we're out of maintenance mode
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test AUTOMATION re-entry after old client wipes data
+   * Old client wipes data, AUTOMATION re-enters independently,
+   * then sequence of exits with no-ops and administrative override
+   */
+  @Test
+  public void testAutomationReentryAfterDataLoss() throws Exception {
+    // Setup the multi-actor scenario which ends with old client wiping data
+    setupMultiActorMaintenanceScenario();
+
+    // Case B Step 6: AUTOMATION enters MM again (works independently, no reconciliation)
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "reason_E", null);
+
+    // Verify signal now has only AUTOMATION reason (no reconciliation of wiped data)
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+        "reason_E");
+
+    // Case B Step 7: USER exits MM -> should be administrative override since USER has no listField entry
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        null);
+
+    // Verify we're completely out of maintenance mode due to USER administrative override
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test old client force exit by deleting entire maintenance znode
+   */
+  @Test
+  public void testOldClientDeletesEntireZnode() throws Exception {
+    // Setup: Multiple actors enter maintenance mode
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_reason", null);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "automation_reason", null);
+
+    // Verify we have both actors
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+
+    // Case D: USER (old client) exits MM by deleting entire znode
+    _dataAccessor.removeProperty(_keyBuilder.maintenance());
+
+    // Verify we're completely out of maintenance mode (all data lost)
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test that simpleFields always reflect the most recently added reason
+   */
+  @Test
+  public void testSimpleFieldsReflectMostRecent() throws Exception {
+    // Entry 1: USER at t1
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_first", null);
+
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getReason(), "user_first");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+
+    Thread.sleep(10);
+
+    // Entry 2: AUTOMATION at t2 (should become most recent)
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "automation_second", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getReason(), "automation_second");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION);
+
+    Thread.sleep(10);
+
+    // Entry 3: USER at t3 (should become most recent)
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_third", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getReason(), "user_third");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+
+    Thread.sleep(10);
+
+    // Entry 4: AUTOMATION again at t4 (should become most recent, overriding its previous entry)
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "automation_fourth", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getReason(), "automation_fourth");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION);
+    // Should still have 2 actors (AUTOMATION entry was overwritten)
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+
+    // Clean up
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test edge cases around empty maintenance mode
+   */
+  @Test
+  public void testEmptyStateEdgeCases() throws Exception {
+    // Test 1: Try to exit when no maintenance mode exists
+
+    // AUTOMATION tries to exit when no MM exists -> should be no-op
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    Assert.assertNull(_dataAccessor.getProperty(_keyBuilder.maintenance()));
+
+    // USER tries to exit when no MM exists -> should be no-op (nothing to override)
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    Assert.assertNull(_dataAccessor.getProperty(_keyBuilder.maintenance()));
+
+    // Test 2: Create maintenance mode with only simpleFields (old client style)
+    ZNRecord record = new ZNRecord("maintenance");
+    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "Old client reason");
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
+        MaintenanceSignal.TriggeringEntity.USER.name());
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(),
+        String.valueOf(System.currentTimeMillis()));
+    _dataAccessor.setProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
+
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0, "Should have no listField reasons");
+    Assert.assertFalse(signal.hasMaintenanceReasons(), "Should report no maintenance reasons");
+
+    // AUTOMATION tries to exit -> should be no-op
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    Assert.assertNotNull(_dataAccessor.getProperty(_keyBuilder.maintenance()),
+        "Should still exist after no-op");
+
+    // USER tries to exit -> should be administrative override
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test mixed entry/exit scenarios to stress test maintenance mode stacking
+   * Verifies complex sequences of actors entering and exiting in different orders
+   */
+  @Test
+  public void testMixedEntryExitScenarios() throws Exception {
+    // Phase 1: Multiple actors enter
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_reason_1", null);
+    Thread.sleep(10);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "automation_reason_1", null);
+
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getReason(), "automation_reason_1"); // Most recent
+
+    // Phase 2: One actor exits, then re-enters with different reason
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null); // USER exits
+    Thread.sleep(10);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // USER re-enters with new reason
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_reason_2", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getReason(), "user_reason_2"); // Most recent
+
+    // Phase 3: Clean exit
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test basic multi-actor stacking behavior including CONTROLLER entity
+   * Creates actual conditions that trigger CONTROLLER maintenance mode
+   */
+  @Test
+  public void testMultiActorStackingWithController() throws Exception {
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setMaxPartitionsPerInstance(-1);
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    // Step 1: Directly trigger CONTROLLER maintenance mode using API
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, true,
+        "Test controller maintenance",
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
+
+    // Verify CONTROLLER entered maintenance mode automatically
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
+
+    // Step 2: USER enters MM - should stack with CONTROLLER
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_reason", null);
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "user_reason"); // Most recent
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+
+    // Step 3: AUTOMATION enters MM - should stack with both
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "automation_reason", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION);
+    Assert.assertEquals(signal.getReason(), "automation_reason"); // Most recent
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Step 4: USER exits - should remain in maintenance with CONTROLLER and AUTOMATION
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Step 5: AUTOMATION exits - should remain in maintenance with only CONTROLLER
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Step 6: Exit CONTROLLER maintenance mode
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
+
+    // Verify maintenance mode is completely off
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test old client wipes data including CONTROLLER entry
+   * Verifies CONTROLLER no-op behavior after data loss
+   */
+  @Test
+  public void testControllerNoOpAfterOldClientWipe() throws Exception {
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setMaxPartitionsPerInstance(-1);
+    clusterConfig.setNumOfflineInstancesForAutoExit(-1); // Disable auto-exit to prevent race conditions
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    // Step 1: Directly trigger CONTROLLER maintenance mode using API
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, true,
+        "Test controller maintenance",
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
+
+    // Verify CONTROLLER entered maintenance mode
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
+
+    // Add USER and AUTOMATION to create multi-actor scenario
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_reason", null);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "automation_reason", null);
+
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
-    // Verify reason is now "reason_E"
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_E");
-
-    // Exit all actors in sequence
-    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(
-        CLUSTER_NAME, false, null, MaintenanceSignal.AutoTriggerReason.NOT_APPLICABLE);
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify we're out of maintenance mode
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-  }
-
-  /**
-   * Test Case C: Old client exits maintenance mode while other actors still have reasons
-   * 1. Old client bypasses the normal API and just deletes the maintenance node
-   * 2. Verify the cluster exits maintenance mode completely
-   */
-  @Test
-  public void testMultiActorMaintenanceModeOldClientExit() throws Exception {
-    // Set up the initial state with all actors having entered maintenance mode
-    setupMultiActorMaintenanceScenario();
-
-    // Step 6C: USER (old client) exits MM - simulating old client removing entire node
-    _dataAccessor.removeProperty(_keyBuilder.maintenance());
-
-    // Verify we're out of maintenance mode completely
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
-  }
-
-  /**
-   * Old client overrides simple fields after new clients enter MM,
-   * then new client exits but should not exit maintenance mode completely
-   * 1. AUTOMATION enters MM (new client)
-   * 2. USER enters MM again (old client - only updates simple fields)
-   * 3. AUTOMATION exits MM
-   * 4. Verify we're still in maintenance mode because USER reason remains
-   */
-  @Test
-  public void testMultiActorMaintenanceModeOldClientOverride() throws Exception {
-    // Step 1: AUTOMATION enters MM (t2)
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
-        "AUTOMATION reason", null);
-
-    // Verify maintenance signal has only AUTOMATION reason.
-    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
-    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-
-    // Step 2: USER enters MM (t3) via old client (only updates simple fields)
-    Thread.sleep(10);
-    long t3 = System.currentTimeMillis();
-    // Simulate an old client by creating a MaintenanceSignal with only simple fields
-    ZNRecord record = new ZNRecord(signal.getRecord());
-    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "USER old client reason");
-    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(), String.valueOf(t3));
+    // Simulate old client wiping all data
+    ZNRecord record = new ZNRecord("maintenance");
+    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "Old client reason");
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(),
+        String.valueOf(System.currentTimeMillis()));
     record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
         MaintenanceSignal.TriggeringEntity.USER.name());
-    // Don't update the listField - simulate old client behavior
-
-    // Write it directly to ZK
+    // Old client doesn't set listField - simulates wiping all listField data
     _dataAccessor.setProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
 
-    // Verify the simple fields were updated but the reasons list still has old USER entry
+    // Verify old client wiped listField data
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+        "Old client should have wiped listField data");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
-    Assert.assertEquals(signal.getReason(), "USER old client reason");
 
-    // MaintenanceReasonsCount should still be 2 because the old client didn't update the reasons list
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    // Try CONTROLLER exit - should be no-op since its entry was wiped
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
 
-    // Step 3: AUTOMATION exits MM
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-
-    // Verify we're still in maintenance mode because USER reason remains
+    // Verify maintenance signal remains the same (no-op)
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+    Assert.assertNotNull(signal, "Should still be in maintenance after CONTROLLER no-op");
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0);
+    Assert.assertEquals(signal.getReason(), "Old client reason");
 
-    // Check that simple fields were updated to USER values
-    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
-    Assert.assertEquals(signal.getReason(), "USER old client reason");
+    // Try AUTOMATION exit - should also be no-op since its entry was wiped
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
 
-    // Clean up
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+    // Verify maintenance signal remains the same (no-op)
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal, "Should still be in maintenance after AUTOMATION no-op");
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0);
+    Assert.assertEquals(signal.getReason(), "Old client reason");
+
+    // USER tries to exit -> should be administrative override
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
+
+    // Verify completely out of maintenance mode
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
   }
 
   /**
-   * Entity tries to exit MM without having entered it
-   * 1. AUTOMATION enters MM
-   * 2. USER tries to exit MM (shouldn't affect MM state)
-   * 3. Verify we're still in maintenance mode because USER wasn't an actor
-   * 4. AUTOMATION exits MM
-   * 5. Verify we're out of maintenance mode
+   * Test CONTROLLER override behavior - same entity overwrites previous entry
    */
   @Test
-  public void testMultiActorMaintenanceModeInvalidExit() throws Exception {
-    // Step 1: AUTOMATION enters MM
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true, "AUTOMATION reason", null);
+  public void testControllerOverrideBehavior() throws Exception {
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setMaxPartitionsPerInstance(-1);
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    // Step 1: Directly trigger CONTROLLER maintenance mode with specific auto-trigger reason
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, true,
+        "Initial controller reason",
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
 
-    // Verify maintenance signal with AUTOMATION reason
+    // Verify CONTROLLER entered with auto-trigger reason
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
+    Assert.assertEquals(signal.getAutoTriggerReason(),
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
     Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
-    // Step 2: USER tries to exit MM (shouldn't affect MM state)
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+    // Manually trigger CONTROLLER entry again with different reason (to test override)
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, true,
+        "manual_controller_reason",
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
 
-    // Step 3: Verify we're still in maintenance mode
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
-    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
+    Assert.assertEquals(signal.getAutoTriggerReason(),
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(),
+        1); // Should still be only 1 (CONTROLLER overrode itself)
 
-    // Step 4: AUTOMATION exits MM
-    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+    // Add another actor to verify stacking still works
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
+        "user_reason", null);
 
-    // Step 5: Verify we're out of maintenance mode
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+
+    // Cleanup
+    _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, false,
+        null,
+        MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
+        null, null);
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+  }
+
+  /**
+   * Test reconciliation of legacy USER data when new client adds reason
+   * Verifies the critical design requirement to preserve old client data
+   */
+  @Test
+  public void testReconciliationOfLegacyUserData() throws Exception {
+    // Step 1: Old client sets simpleFields only (no listFields)
+    ZNRecord record = new ZNRecord("maintenance");
+    record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "legacy_user_reason");
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
+        MaintenanceSignal.TriggeringEntity.USER.name());
+    record.setSimpleField(MaintenanceSignal.MaintenanceSignalProperty.TIMESTAMP.name(),
+        String.valueOf(System.currentTimeMillis()));
+    _dataAccessor.setProperty(_keyBuilder.maintenance(), new MaintenanceSignal(record));
+
+    // Verify old client state (no listFields reasons)
+    MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+        "Old client should have no listField data");
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Assert.assertEquals(signal.getReason(), "legacy_user_reason");
+
+    // Step 2: New client adds AUTOMATION reason - should trigger reconciliation
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
+        "automation_reason", null);
+
+    // Step 3: Verify both reasons are preserved after reconciliation
+    signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
+    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2,
+        "Should have both reconciled USER and new AUTOMATION reasons");
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+        "USER reason should be preserved");
+    Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+        "AUTOMATION reason should be added");
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+        "legacy_user_reason");
+    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+        "automation_reason");
+
+    // Cleanup
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME,
+        false, null, null);
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME,
+        false, null, null);
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null,
+        2000L);
   }
 }

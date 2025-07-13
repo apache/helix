@@ -211,18 +211,7 @@ public class MaintenanceSignal extends PauseSignal {
     List<Map<String, String>> reasons = new ArrayList<>();
     List<String> reasonsList = _record.getListField(REASONS_LIST_FIELD);
 
-    if (reasonsList == null || reasonsList.isEmpty()) {
-      // If the list doesn't exist but simple fields do, add the simple fields as the first reason
-      String simpleReason = getReason();
-      if (simpleReason != null) {
-        Map<String, String> entry = new HashMap<>();
-        entry.put(PauseSignalProperty.REASON.name(), simpleReason);
-        entry.put(MaintenanceSignalProperty.TIMESTAMP.name(), String.valueOf(getTimestamp()));
-        entry.put(MaintenanceSignalProperty.TRIGGERED_BY.name(), getTriggeringEntity().name());
-
-        reasons.add(entry);
-      }
-    } else {
+    if (reasonsList != null && !reasonsList.isEmpty()) {
       for (String entryStr : reasonsList) {
         Map<String, String> entry = parseJsonStyleEntry(entryStr);
         if (!entry.isEmpty()) {
@@ -256,10 +245,6 @@ public class MaintenanceSignal extends PauseSignal {
    */
   public boolean removeMaintenanceReason(TriggeringEntity triggeringEntity) {
     LOG.info("Removing maintenance reason for entity: {}", triggeringEntity);
-
-    // First reconcile data to capture any simple field updates from old clients
-    // that might not have updated the reasons list
-    reconcileMaintenanceData();
 
     List<Map<String, String>> reasons = getMaintenanceReasons();
 
@@ -339,79 +324,6 @@ public class MaintenanceSignal extends PauseSignal {
   }
 
   /**
-   * Update the maintenance reason list to ensure all data is consistent.
-   * This is used when handling potential inconsistencies between simpleFields and
-   * the reasons list, which can happen with old clients.
-   *
-   * @return true if list was updated, false if no change was needed
-   */
-  public boolean reconcileMaintenanceData() {
-    // Get the reason from simple fields
-    String simpleReason = getReason();
-
-    // If simpleFields are null or empty, nothing to reconcile
-    if (simpleReason == null) {
-      return false;
-    }
-    long simpleTimestamp = getTimestamp();
-    TriggeringEntity simpleTriggeringEntity = getTriggeringEntity();
-
-    List<String> rawReasonsList = _record.getListField(REASONS_LIST_FIELD);
-    List<Map<String, String>> parsedReasons = new ArrayList<>();
-
-    // If there's no list field at all, we'll need to create one
-    boolean needsUpdate = (rawReasonsList == null);
-
-    if (rawReasonsList != null) {
-      for (String entryStr : rawReasonsList) {
-        Map<String, String> entry = parseJsonStyleEntry(entryStr);
-        if (!entry.isEmpty()) {
-          parsedReasons.add(entry);
-        }
-      }
-    }
-
-    // Check if the triggering entity from simple fields already has an entry
-    boolean alreadyPresent = false;
-    for (Map<String, String> entry : parsedReasons) {
-      if (simpleTriggeringEntity.name().equals(entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name()))) {
-        long entryTimestamp = Long.parseLong(entry.get(MaintenanceSignalProperty.TIMESTAMP.name()));
-        if (simpleTimestamp > entryTimestamp) {
-          // If simple field timestamp is newer, update the entry
-          entry.put(PauseSignalProperty.REASON.name(), simpleReason);
-          entry.put(MaintenanceSignalProperty.TIMESTAMP.name(), Long.toString(simpleTimestamp));
-          needsUpdate = true;
-        }
-        alreadyPresent = true;
-        break;
-      }
-    }
-
-    // If simple fields exist but not in the reasons list, add them
-    if (!alreadyPresent) {
-      Map<String, String> newEntry = new HashMap<>();
-      newEntry.put(PauseSignalProperty.REASON.name(), simpleReason);
-      newEntry.put(MaintenanceSignalProperty.TIMESTAMP.name(), Long.toString(simpleTimestamp));
-      newEntry.put(MaintenanceSignalProperty.TRIGGERED_BY.name(), simpleTriggeringEntity.name());
-
-      parsedReasons.add(newEntry);
-      needsUpdate = true;
-
-      LOG.debug("Added missing reason for {} to reasons list during reconciliation",
-          simpleTriggeringEntity);
-    }
-
-    if (needsUpdate) {
-      updateReasonsListField(parsedReasons);
-      LOG.debug("Updated reasons list after reconciliation, now contains {} entries",
-          parsedReasons.size());
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
    * Checks if there is a maintenance reason from a specific triggering entity.
    *
    * @param triggeringEntity The entity to check
@@ -461,5 +373,40 @@ public class MaintenanceSignal extends PauseSignal {
   public String getMaintenanceReason(TriggeringEntity triggeringEntity) {
     Map<String, String> details = getMaintenanceReasonDetails(triggeringEntity);
     return details != null ? details.get(PauseSignalProperty.REASON.name()) : null;
+  }
+
+  /**
+   * Reconcile legacy data from simpleFields into listFields.reasons if it's missing.
+   * This preserves maintenance data written by old USER clients that only set simpleFields.
+   *
+   * NOTE: Only reconciles USER data, as:
+   * - CONTROLLER is part of core Helix system and should use proper APIs
+   * - AUTOMATION is new and has no legacy clients
+   * - Only USER entities represent external legacy clients that may wipe data
+   */
+  public void reconcileLegacyData() {
+    // Check if simpleFields exist but corresponding listFields entry is missing
+    String simpleReason = getReason();
+    TriggeringEntity simpleEntity = getTriggeringEntity();
+    long simpleTimestamp = getTimestamp();
+
+    // Only reconcile USER data from legacy clients
+    // CONTROLLER and AUTOMATION should not have legacy data loss scenarios
+    if (simpleReason != null && !simpleReason.isEmpty() && simpleEntity == TriggeringEntity.USER
+        && simpleTimestamp > 0 && !hasMaintenanceReason(simpleEntity)) {
+
+      // Legacy USER data exists but not in listFields - preserve it
+      Map<String, String> legacyEntry = new HashMap<>();
+      legacyEntry.put(PauseSignalProperty.REASON.name(), simpleReason);
+      legacyEntry.put(MaintenanceSignalProperty.TIMESTAMP.name(), String.valueOf(simpleTimestamp));
+      legacyEntry.put(MaintenanceSignalProperty.TRIGGERED_BY.name(), simpleEntity.name());
+
+      List<Map<String, String>> reasons = getMaintenanceReasons();
+      reasons.add(legacyEntry);
+      updateReasonsListField(reasons);
+
+      LOG.info("Reconciled legacy USER maintenance data: reason={}, timestamp={}",
+          simpleReason, simpleTimestamp);
+    }
   }
 }

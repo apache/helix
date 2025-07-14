@@ -505,4 +505,23 @@ public class StateModelDefinition extends HelixProperty {
     }
     return stateCounts;
   }
+
+  /**
+   * Check if a state transition is upward
+   * @param fromState source state
+   * @param toState destination state
+   * @return True if it's an upward state transition, false otherwise
+   */
+  public boolean isUpwardStateTransition(String fromState, String toState) {
+    Map<String, Integer> statePriorityMap = getStatePriorityMap();
+
+    Integer fromStateWeight = statePriorityMap.get(fromState);
+    Integer toStateWeight = statePriorityMap.get(toState);
+
+    if (fromStateWeight == null || toStateWeight == null) {
+      return false;
+    }
+
+    return toStateWeight < fromStateWeight;
+  }
 }

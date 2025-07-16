@@ -461,16 +461,38 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   }
 
   /**
+   * Utility method to verify maintenance history entry.
+   * @param expectedOperationType Expected operation type (ENTER/EXIT)
+   * @param expectedTriggeredBy Expected triggering entity (USER/AUTOMATION/CONTROLLER)
+   * @param expectedInMaintenanceAfterOperation Expected maintenance state after operation (true/false)
+   * @param expectedReason Expected reason (optional, can be null)
+   */
+  private void verifyMaintenanceHistory(String expectedOperationType, String expectedTriggeredBy,
+      String expectedInMaintenanceAfterOperation, String expectedReason) throws Exception {
+    ControllerHistory history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
+    Map<String, String> lastEntry = convertStringToMap(
+        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
+    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), expectedOperationType);
+    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), expectedTriggeredBy);
+    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), expectedInMaintenanceAfterOperation);
+    if (expectedReason != null) {
+      Assert.assertEquals(lastEntry.get("REASON"), expectedReason);
+    }
+  }
+
+  /**
    * Test basic multi-actor stacking behavior.
    * Verifies core functionality: actor-based stacking, actor override, simpleFields most recent
    */
   @Test
   public void testAutomationMaintenanceMode() throws Exception {
+    boolean result;
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    Assert.assertTrue(result, "Should be out of maintenance mode.");
 
     // Step 1: USER enters MM (t1) with reason_A
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, "reason_A", null);
@@ -482,6 +504,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "reason_A");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER), "reason_A");
+
+    // Verify history entry for USER entering maintenance
+    verifyMaintenanceHistory("ENTER", "USER", "true", "reason_A");
 
     Thread.sleep(10); // Ensure different timestamps
 
@@ -496,6 +521,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
     Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER), "reason_A");
     Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION), "reason_B");
+
+    // Verify history entry for AUTOMATION entering maintenance
+    verifyMaintenanceHistory("ENTER", "AUTOMATION", "true", "reason_B");
 
     Thread.sleep(10);
 
@@ -512,6 +540,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_B"); // Unchanged
 
+    // Verify history entry for USER overriding previous entry
+    verifyMaintenanceHistory("ENTER", "USER", "true", "reason_C");
+
     Thread.sleep(10);
 
     // Step 4: AUTOMATION enters MM again (t4) with reason_D - should override previous AUTOMATION entry
@@ -527,6 +558,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_D"); // Updated
 
+    // Verify history entry for AUTOMATION overriding previous entry
+    verifyMaintenanceHistory("ENTER", "AUTOMATION", "true", "reason_D");
+
     // Clean exit sequence: actors exit in order
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
@@ -538,9 +572,16 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
     Assert.assertEquals(signal.getReason(), "reason_D"); // Updated to remaining reason
 
+    // Verify history entry for USER exiting maintenance (but still in maintenance due to AUTOMATION)
+    verifyMaintenanceHistory("EXIT", "USER", "true", null);
+
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null,
         null);
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    Assert.assertTrue(result, "Should be completely out of maintenance mode.");
+
+    // Verify history entry for AUTOMATION exiting maintenance (completely out)
+    verifyMaintenanceHistory("EXIT", "AUTOMATION", "false", null);
   }
 
   /**
@@ -552,16 +593,18 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testLegacyClientCompatibility() throws Exception {
+    boolean result;
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.setMaxPartitionsPerInstance(-1);
     clusterConfig.setNumOfflineInstancesForAutoExit(-1); // Disable auto-exit to prevent race conditions
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     // Wait for config to be applied
-    TestHelper.verify(() -> {
+    result = TestHelper.verify(() -> {
       ClusterConfig currentConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
       return currentConfig.getNumOfflineInstancesForAutoExit() == -1;
     }, 2000L);
+    Assert.assertTrue(result, "Config should be applied.");
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
         "reason_A", null);
     Thread.sleep(10);
@@ -577,6 +620,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Verify history entry for AUTOMATION entering maintenance
+    verifyMaintenanceHistory("ENTER", "AUTOMATION", "true", "reason_C");
 
     // Simulate old client wiping listField data (only keeps simpleFields)
     Thread.sleep(10);
@@ -610,12 +656,19 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "reason_D");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
 
+    // Verify history entry for AUTOMATION no-op exit (still in maintenance)
+    verifyMaintenanceHistory("EXIT", "AUTOMATION", "true", null);
+
     // USER tries to exit MM -> should trigger administrative override and delete maintenance ZNode
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null,
         null);
 
     // Verify we're completely out of maintenance mode due to USER administrative override
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    Assert.assertTrue(result, "Should be completely out of maintenance mode due to USER administrative override.");
+
+    // Verify in history that we're no longer in maintenance
+    verifyMaintenanceHistory("EXIT", "USER", "false", null);
   }
 
   /**
@@ -705,6 +758,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testUserAdministrativeOverride() throws Exception {
+    boolean result;
     // Set up the initial state with all actors having entered maintenance mode
     // Note: setupMultiActorMaintenanceScenario() ends with old client wiping listField data
     setupMultiActorMaintenanceScenario();
@@ -723,15 +777,11 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         null, null);
 
     // Verify we're completely out of maintenance mode due to USER administrative override
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    Assert.assertTrue(result, "Should be completely out of maintenance mode due to USER administrative override.");
 
     // Verify in history that we're no longer in maintenance
-    ControllerHistory history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
-    Map<String, String> lastEntry = convertStringToMap(
-        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
-    Assert.assertEquals(lastEntry.get("OPERATION_TYPE"), "EXIT");
-    Assert.assertEquals(lastEntry.get("TRIGGERED_BY"), "USER");
-    Assert.assertEquals(lastEntry.get("IN_MAINTENANCE_AFTER_OPERATION"), "false");
+    verifyMaintenanceHistory("EXIT", "USER", "false", null);
   }
 
   /**
@@ -742,6 +792,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testOldClientDataLoss() throws Exception {
+    boolean result;
     // Set up the initial state with all actors having entered maintenance mode
     setupMultiActorMaintenanceScenario();
 
@@ -767,7 +818,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER),
-        "Controller data was lost");
+        "Controller data was not lost");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
         "User data was lost");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
@@ -776,12 +827,20 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_F");
 
-    // Exit the only remaining actor
+    // Verify history entry for AUTOMATION entering maintenance after data loss
+    verifyMaintenanceHistory("ENTER", "AUTOMATION",
+        "true", "reason_F");
+
+    // Exit the only remaining actors
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        null);
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null,
         null);
 
     // Verify we're out of maintenance mode
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null,
+        2000L);
+    Assert.assertTrue(result, "Should be completely out of maintenance mode after AUTOMATION exit.");
   }
 
   /**
@@ -791,14 +850,15 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testAutomationReentryAfterDataLoss() throws Exception {
+    boolean result;
     // Setup the multi-actor scenario which ends with old client wiping data
     setupMultiActorMaintenanceScenario();
 
-    // Case B Step 6: AUTOMATION enters MM again (works independently, no reconciliation)
+    // AUTOMATION enters MM again (works independently, no reconciliation)
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
         "reason_E", null);
 
-    // Verify signal now has only AUTOMATION reason (no reconciliation of wiped data)
+    // Verify signal now has both USER and AUTOMATION entries.
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
@@ -806,12 +866,23 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_E");
 
-    // Case B Step 7: USER exits MM -> should be administrative override since USER has no listField entry
+    // Verify history entry for AUTOMATION entering maintenance after data loss
+    verifyMaintenanceHistory("ENTER", "AUTOMATION",
+        "true", "reason_E");
+
+
+    // Automation exits MM
+    _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        null);
+    // USER exits MM
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null,
         null);
 
     // Verify we're completely out of maintenance mode due to USER administrative override
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    Assert.assertTrue(result, "Should be out of maintenance mode.");
+    // Verify in history that we're no longer in maintenance
+    verifyMaintenanceHistory("EXIT", "USER", "false", null);
   }
 
   /**
@@ -833,7 +904,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     _dataAccessor.removeProperty(_keyBuilder.maintenance());
 
     // Verify we're completely out of maintenance mode (all data lost)
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    boolean result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null,
+        2000L);
+    Assert.assertTrue(result, "Should be completely out of maintenance mode after old client deletes znode.");
   }
 
   /**
@@ -849,6 +922,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "user_first");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
 
+    // Verify history entry for USER entering maintenance
+    verifyMaintenanceHistory("ENTER", "USER", "true", "user_first");
+
     Thread.sleep(10);
 
     // Entry 2: AUTOMATION at t2 (should become most recent)
@@ -859,6 +935,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "automation_second");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION);
 
+    // Verify history entry for AUTOMATION entering maintenance
+    verifyMaintenanceHistory("ENTER", "AUTOMATION", "true", "automation_second");
+
     Thread.sleep(10);
 
     // Entry 3: USER at t3 (should become most recent)
@@ -868,6 +947,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertEquals(signal.getReason(), "user_third");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+
+    // Verify history entry for USER overriding previous entry
+    verifyMaintenanceHistory("ENTER", "USER", "true", "user_third");
 
     Thread.sleep(10);
 
@@ -881,12 +963,18 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Should still have 2 actors (AUTOMATION entry was overwritten)
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
 
+    // Verify history entry for AUTOMATION overriding previous entry
+    verifyMaintenanceHistory("ENTER", "AUTOMATION", "true", "automation_fourth");
+
     // Clean up
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+
+    // Verify in history that we're no longer in maintenance
+    verifyMaintenanceHistory("EXIT", "AUTOMATION", "false", null);
   }
 
   /**
@@ -894,6 +982,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testEmptyStateEdgeCases() throws Exception {
+    boolean result;
     // Test 1: Try to exit when no maintenance mode exists
 
     // AUTOMATION tries to exit when no MM exists -> should be no-op
@@ -929,7 +1018,11 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // USER tries to exit -> should be administrative override
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    Assert.assertTrue(result, "Should be completely out of maintenance mode.");
+
+    // Verify in history that we're no longer in maintenance
+    verifyMaintenanceHistory("EXIT", "USER", "false", null);
   }
 
   /**
@@ -938,6 +1031,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testMixedEntryExitScenarios() throws Exception {
+    boolean result;
     // Phase 1: Multiple actors enter
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
         "user_reason_1", null);
@@ -949,6 +1043,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertEquals(signal.getReason(), "automation_reason_1"); // Most recent
 
+    // Verify history entry for AUTOMATION entering maintenance
+    verifyMaintenanceHistory("ENTER", "AUTOMATION", "true", "automation_reason_1");
+
     // Phase 2: One actor exits, then re-enters with different reason
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null); // USER exits
@@ -959,6 +1056,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
+    // Verify history entry for USER exiting maintenance (but still in maintenance due to AUTOMATION)
+    verifyMaintenanceHistory("EXIT", "USER", "true", null);
+
     // USER re-enters with new reason
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
         "user_reason_2", null);
@@ -967,12 +1067,18 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertEquals(signal.getReason(), "user_reason_2"); // Most recent
 
+    // Verify history entry for USER re-entering maintenance
+    verifyMaintenanceHistory("ENTER", "USER", "true", "user_reason_2");
+
     // Phase 3: Clean exit
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+
+    // Verify in history that we're no longer in maintenance
+    verifyMaintenanceHistory("EXIT", "AUTOMATION", "false", null);
   }
 
   /**
@@ -981,6 +1087,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testMultiActorStackingWithController() throws Exception {
+    boolean result;
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.setMaxPartitionsPerInstance(-1);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
@@ -996,6 +1103,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
 
+    // Verify history entry for CONTROLLER entering maintenance
+    verifyMaintenanceHistory("ENTER", "CONTROLLER", "true", "Test controller maintenance");
+
     // Step 2: USER enters MM - should stack with CONTROLLER
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
         "user_reason", null);
@@ -1005,6 +1115,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "user_reason"); // Most recent
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
+
+    // Verify history entry for USER entering maintenance
+    verifyMaintenanceHistory("ENTER", "USER", "true", "user_reason");
 
     // Step 3: AUTOMATION enters MM - should stack with both
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true,
@@ -1018,6 +1131,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
+    // Verify history entry for AUTOMATION entering maintenance
+    verifyMaintenanceHistory("ENTER", "AUTOMATION", "true", "automation_reason");
+
     // Step 4: USER exits - should remain in maintenance with CONTROLLER and AUTOMATION
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
@@ -1028,6 +1144,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
+
+    // Verify history entry for USER exiting maintenance (but still in maintenance due to others)
+    verifyMaintenanceHistory("EXIT", "USER", "true", null);
 
     // Step 5: AUTOMATION exits - should remain in maintenance with only CONTROLLER
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
@@ -1040,12 +1159,18 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
+    // Verify history entry for AUTOMATION exiting maintenance (but still in maintenance due to CONTROLLER)
+    verifyMaintenanceHistory("EXIT", "AUTOMATION", "true", null);
+
     // Step 6: Exit CONTROLLER maintenance mode
     _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, false, null,
         MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
 
     // Verify maintenance mode is completely off
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+
+    // Verify history entry for CONTROLLER exiting maintenance (completely out)
+    verifyMaintenanceHistory("EXIT", "CONTROLLER", "false", null);
   }
 
   /**
@@ -1054,6 +1179,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testControllerNoOpAfterOldClientWipe() throws Exception {
+    boolean result;
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.setMaxPartitionsPerInstance(-1);
     clusterConfig.setNumOfflineInstancesForAutoExit(-1); // Disable auto-exit to prevent race conditions
@@ -1106,6 +1232,9 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 0);
     Assert.assertEquals(signal.getReason(), "Old client reason");
 
+    // Verify history entry for CONTROLLER no-op exit (still in maintenance)
+    verifyMaintenanceHistory("EXIT", "CONTROLLER", "true", null);
+
     // Try AUTOMATION exit - should also be no-op since its entry was wiped
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
@@ -1116,12 +1245,19 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getMaintenanceReasons().size(), 0);
     Assert.assertEquals(signal.getReason(), "Old client reason");
 
+    // Verify history entry for AUTOMATION no-op exit (still in maintenance)
+    verifyMaintenanceHistory("EXIT", "AUTOMATION", "true", null);
+
     // USER tries to exit -> should be administrative override
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
         null, null);
 
     // Verify completely out of maintenance mode
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    result = TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    Assert.assertTrue(result, "Should be completely out of maintenance mode due to USER administrative override.");
+
+    // Verify in history that we're no longer in maintenance
+    verifyMaintenanceHistory("EXIT", "USER", "false", null);
   }
 
   /**
@@ -1129,6 +1265,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testControllerOverrideBehavior() throws Exception {
+    boolean result;
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.setMaxPartitionsPerInstance(-1);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
@@ -1181,6 +1318,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   @Test
   public void testReconciliationOfLegacyUserData() throws Exception {
+    boolean result;
     // Step 1: Old client sets simpleFields only (no listFields)
     ZNRecord record = new ZNRecord("maintenance");
     record.setSimpleField(PauseSignal.PauseSignalProperty.REASON.name(), "legacy_user_reason");

@@ -1241,8 +1241,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         if (removed) {
           // If there are still reasons for maintenance mode, update the ZNode
 
-          if (maintenanceSignal.getRecord().getListField("reasons") != null
-              && !maintenanceSignal.getRecord().getListField("reasons").isEmpty()) {
+          if (maintenanceSignal.hasMaintenanceReasons()) {
             if (!accessor.setProperty(keyBuilder.maintenance(), maintenanceSignal)) {
               throw new HelixException("Failed to update maintenance signal!");
             }

@@ -21,6 +21,7 @@ package org.apache.helix.integration.controller;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -443,6 +444,23 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   }
 
   /**
+   * Helper method to get maintenance reason for a specific triggering entity.
+   * @param signal The maintenance signal
+   * @param triggeringEntity The entity to get reason for
+   * @return The reason string, or null if not found
+   */
+  private static String getMaintenanceReason(MaintenanceSignal signal, MaintenanceSignal.TriggeringEntity triggeringEntity) {
+    List<Map<String, String>> reasons = signal.getMaintenanceReasons();
+    for (Map<String, String> reason : reasons) {
+      String triggeredByStr = reason.get(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name());
+      if (triggeredByStr != null && MaintenanceSignal.TriggeringEntity.valueOf(triggeredByStr) == triggeringEntity) {
+        return reason.get(PauseSignal.PauseSignalProperty.REASON.name());
+      }
+    }
+    return null;
+  }
+
+  /**
    * Test basic multi-actor stacking behavior.
    * Verifies core functionality: actor-based stacking, actor override, simpleFields most recent
    */
@@ -459,11 +477,11 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
     Assert.assertEquals(signal.getReason(), "reason_A");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_A");
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER), "reason_A");
 
     Thread.sleep(10); // Ensure different timestamps
 
@@ -471,13 +489,13 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     _gSetupTool.getClusterManagementTool().automationEnableMaintenanceMode(CLUSTER_NAME, true, "reason_B", null);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION); // Most recent
     Assert.assertEquals(signal.getReason(), "reason_B"); // Most recent
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_A");
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION), "reason_B");
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER), "reason_A");
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION), "reason_B");
 
     Thread.sleep(10);
 
@@ -486,12 +504,12 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         "reason_C", null);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2); // Still only 2 (USER overrode itself)
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2); // Still only 2 (USER overrode itself)
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER); // Most recent
     Assert.assertEquals(signal.getReason(), "reason_C"); // Most recent
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER),
         "reason_C"); // Updated
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_B"); // Unchanged
 
     Thread.sleep(10);
@@ -501,12 +519,12 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         "reason_D", null);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2); // Still only 2 (AUTOMATION overrode itself)
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2); // Still only 2 (AUTOMATION overrode itself)
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION); // Most recent
     Assert.assertEquals(signal.getReason(), "reason_D"); // Most recent
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER),
         "reason_C"); // Unchanged
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_D"); // Updated
 
     // Clean exit sequence: actors exit in order
@@ -515,7 +533,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
     Assert.assertEquals(signal.getReason(), "reason_D"); // Updated to remaining reason
@@ -555,7 +573,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Verify multi-actor setup
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 3);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
@@ -574,7 +592,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify old client wiped listField data but simpleFields remain
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0,
         "Old client should have wiped listField data");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
     Assert.assertEquals(signal.getReason(), "reason_D");
@@ -588,7 +606,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify maintenance signal remains the same (no-op)
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal, "Should still be in maintenance after AUTOMATION no-op");
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0);
     Assert.assertEquals(signal.getReason(), "reason_D");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
 
@@ -620,7 +638,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify maintenance signal with USER reason only
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
 
     // Step 1: USER (UserA) puts the cluster into MM (t1)
@@ -630,7 +648,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify maintenance signal with USER reason only
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
 
     // Step 2: AUTOMATION puts the cluster into MM (t2)
@@ -640,7 +658,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Verify maintenance signal has both reasons
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 3);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
@@ -651,8 +669,8 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Verify maintenance signal still has same number of reasons but UserB's reason replaced UserA's
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER), "reason_C");
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 3);
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER), "reason_C");
 
     // Step 4: USER (Old Client) enters cluster into MM (t4)
     // Simulate old client by directly creating a MaintenanceSignal with simple fields only
@@ -675,7 +693,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "reason_D");
 
     // Verify reasons list was wiped by old client (data loss accepted by design)
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0,
         "Old client should have wiped all listField data");
   }
 
@@ -694,7 +712,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify the old client has wiped the listField data
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0,
         "Old client should have wiped listField data");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
     Assert.assertEquals(signal.getReason(), "reason_D");
@@ -736,7 +754,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "reason_D");
 
     // But listFields.reasons should be empty (wiped by old client)
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0,
         "Old client should have wiped listField data");
     Assert.assertFalse(signal.hasMaintenanceReasons(),
         "Should not have maintenance reasons after old client wipe");
@@ -747,7 +765,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Verify signal now has only AUTOMATION reason (no reconciliation of old USER data)
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER),
         "Controller data was lost");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
@@ -755,7 +773,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
     // Verify the new AUTOMATION reason
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_F");
 
     // Exit the only remaining actor
@@ -782,10 +800,10 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Verify signal now has only AUTOMATION reason (no reconciliation of wiped data)
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "reason_E");
 
     // Case B Step 7: USER exits MM -> should be administrative override since USER has no listField entry
@@ -809,7 +827,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Verify we have both actors
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
 
     // Case D: USER (old client) exits MM by deleting entire znode
     _dataAccessor.removeProperty(_keyBuilder.maintenance());
@@ -861,7 +879,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getReason(), "automation_fourth");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION);
     // Should still have 2 actors (AUTOMATION entry was overwritten)
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
 
     // Clean up
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false,
@@ -899,7 +917,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0, "Should have no listField reasons");
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0, "Should have no listField reasons");
     Assert.assertFalse(signal.hasMaintenanceReasons(), "Should report no maintenance reasons");
 
     // AUTOMATION tries to exit -> should be no-op
@@ -928,7 +946,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         "automation_reason_1", null);
 
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertEquals(signal.getReason(), "automation_reason_1"); // Most recent
 
     // Phase 2: One actor exits, then re-enters with different reason
@@ -937,7 +955,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(10);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
 
@@ -946,7 +964,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         "user_reason_2", null);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertEquals(signal.getReason(), "user_reason_2"); // Most recent
 
     // Phase 3: Clean exit
@@ -975,14 +993,14 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
 
     // Step 2: USER enters MM - should stack with CONTROLLER
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true,
         "user_reason", null);
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
     Assert.assertEquals(signal.getReason(), "user_reason"); // Most recent
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
@@ -993,7 +1011,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         "automation_reason", null);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 3);
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.AUTOMATION);
     Assert.assertEquals(signal.getReason(), "automation_reason"); // Most recent
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
@@ -1006,7 +1024,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
@@ -1017,7 +1035,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertFalse(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
@@ -1057,7 +1075,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         "automation_reason", null);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 3);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 3);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION));
@@ -1074,7 +1092,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Verify old client wiped listField data
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0,
         "Old client should have wiped listField data");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
 
@@ -1085,7 +1103,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify maintenance signal remains the same (no-op)
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal, "Should still be in maintenance after CONTROLLER no-op");
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0);
     Assert.assertEquals(signal.getReason(), "Old client reason");
 
     // Try AUTOMATION exit - should also be no-op since its entry was wiped
@@ -1095,7 +1113,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify maintenance signal remains the same (no-op)
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal, "Should still be in maintenance after AUTOMATION no-op");
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0);
     Assert.assertEquals(signal.getReason(), "Old client reason");
 
     // USER tries to exit -> should be administrative override
@@ -1125,7 +1143,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
     Assert.assertEquals(signal.getAutoTriggerReason(),
         MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 1);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 1);
 
     // Manually trigger CONTROLLER entry again with different reason (to test override)
     _gSetupTool.getClusterManagementTool().autoEnableMaintenanceMode(CLUSTER_NAME, true,
@@ -1136,7 +1154,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.CONTROLLER);
     Assert.assertEquals(signal.getAutoTriggerReason(),
         MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(),
+    Assert.assertEquals(signal.getMaintenanceReasons().size(),
         1); // Should still be only 1 (CONTROLLER overrode itself)
 
     // Add another actor to verify stacking still works
@@ -1144,7 +1162,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         "user_reason", null);
 
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2);
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2);
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.CONTROLLER));
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER));
 
@@ -1175,7 +1193,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     // Verify old client state (no listFields reasons)
     MaintenanceSignal signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 0,
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 0,
         "Old client should have no listField data");
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
     Assert.assertEquals(signal.getReason(), "legacy_user_reason");
@@ -1186,15 +1204,15 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Step 3: Verify both reasons are preserved after reconciliation
     signal = _dataAccessor.getProperty(_keyBuilder.maintenance());
-    Assert.assertEquals(signal.getMaintenanceReasonsCount(), 2,
+    Assert.assertEquals(signal.getMaintenanceReasons().size(), 2,
         "Should have both reconciled USER and new AUTOMATION reasons");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
         "USER reason should be preserved");
     Assert.assertTrue(signal.hasMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "AUTOMATION reason should be added");
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.USER),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.USER),
         "legacy_user_reason");
-    Assert.assertEquals(signal.getMaintenanceReason(MaintenanceSignal.TriggeringEntity.AUTOMATION),
+    Assert.assertEquals(getMaintenanceReason(signal, MaintenanceSignal.TriggeringEntity.AUTOMATION),
         "automation_reason");
 
     // Cleanup

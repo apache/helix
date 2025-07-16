@@ -1224,12 +1224,23 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (!enabled) {
       // Exit maintenance mode for this specific triggering entity
 
-      if (maintenanceSignal != null) {
+      // Early return if no maintenance signal exists
+      if (maintenanceSignal == null) {
+        if (triggeringEntity == MaintenanceSignal.TriggeringEntity.USER) {
+          logger.info("USER administrative override: no maintenance signal exists, nothing to remove");
+        } else {
+          // CONTROLLER/AUTOMATION: strict no-op
+          logger.info("Entity {} attempted to exit maintenance mode but no maintenance signal exists", triggeringEntity);
+        }
+        return;
+      }
+
         // If a specific actor is exiting maintenance mode
         boolean removed = maintenanceSignal.removeMaintenanceReason(triggeringEntity);
 
         if (removed) {
           // If there are still reasons for maintenance mode, update the ZNode
+
           if (maintenanceSignal.getRecord().getListField("reasons") != null
               && !maintenanceSignal.getRecord().getListField("reasons").isEmpty()) {
             if (!accessor.setProperty(keyBuilder.maintenance(), maintenanceSignal)) {
@@ -1249,15 +1260,6 @@ public class ZKHelixAdmin implements HelixAdmin {
           } else {
             // CONTROLLER/AUTOMATION: strict no-op if their entry not found
             logger.info("Entity {} doesn't have a maintenance reason entry, exit request ignored", triggeringEntity);
-          }
-        }
-      } else {
-        // No maintenance signal exists
-        if (triggeringEntity == MaintenanceSignal.TriggeringEntity.USER) {
-          logger.info("USER administrative override: no maintenance signal exists, nothing to remove");
-        } else {
-          // CONTROLLER/AUTOMATION: strict no-op
-          logger.info("Entity {} attempted to exit maintenance mode but no maintenance signal exists", triggeringEntity);
         }
       }
     } else {

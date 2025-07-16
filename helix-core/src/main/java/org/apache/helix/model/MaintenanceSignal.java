@@ -20,6 +20,7 @@ package org.apache.helix.model;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,7 +132,7 @@ public class MaintenanceSignal extends PauseSignal {
   }
 
   /**
-   * Add a new maintenance reason (or update an existing one if the triggering entity already has a reason).
+   * Add a new maintenance reason. If the triggering entity already has a reason, it will be replaced.
    *
    * @param reason The reason for maintenance
    * @param timestamp The timestamp when maintenance was triggered
@@ -141,34 +142,22 @@ public class MaintenanceSignal extends PauseSignal {
     LOG.info("Adding maintenance reason for entity: {}, reason: {}, timestamp: {}",
         triggeringEntity, reason, timestamp);
 
-    // The triggering entity is our unique key - Overwrite any existing entry with this entity
-    String triggerEntityStr = triggeringEntity.name();
-
     List<Map<String, String>> reasons = getMaintenanceReasons();
     LOG.debug("Before addition: Reasons list contains {} entries", reasons.size());
 
-    boolean found = false;
-    for (Map<String, String> entry : reasons) {
-      if (triggerEntityStr.equals(entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name()))) {
-        entry.put(PauseSignalProperty.REASON.name(), reason);
-        entry.put(MaintenanceSignalProperty.TIMESTAMP.name(), Long.toString(timestamp));
-        found = true;
-        LOG.debug("Updated existing entry for entity: {}", triggeringEntity);
-        break;
-      }
-    }
+    // Filter out any existing reasons for this triggering entity
+    List<Map<String, String>> filteredReasons = filterReasons(reasons, null, 
+        Arrays.asList(triggeringEntity));
 
-    if (!found) {
-      Map<String, String> newEntry = new HashMap<>();
-      newEntry.put(PauseSignalProperty.REASON.name(), reason);
-      newEntry.put(MaintenanceSignalProperty.TIMESTAMP.name(), Long.toString(timestamp));
-      newEntry.put(MaintenanceSignalProperty.TRIGGERED_BY.name(), triggerEntityStr);
-      reasons.add(newEntry);
-      LOG.debug("Added new entry for entity: {}", triggeringEntity);
-    }
+    // Always add the new reason at the end of the list
+    Map<String, String> newEntry = new HashMap<>();
+    newEntry.put(PauseSignalProperty.REASON.name(), reason);
+    newEntry.put(MaintenanceSignalProperty.TIMESTAMP.name(), Long.toString(timestamp));
+    newEntry.put(MaintenanceSignalProperty.TRIGGERED_BY.name(), triggeringEntity.name());
+    filteredReasons.add(newEntry);
 
-    updateReasonsListField(reasons);
-    LOG.debug("After addition: Reasons list contains {} entries", reasons.size());
+    updateReasonsListField(filteredReasons);
+    LOG.debug("After addition: Reasons list contains {} entries", filteredReasons.size());
   }
 
   /**
@@ -247,72 +236,76 @@ public class MaintenanceSignal extends PauseSignal {
     LOG.info("Removing maintenance reason for entity: {}", triggeringEntity);
 
     List<Map<String, String>> reasons = getMaintenanceReasons();
-
-    boolean entityExists = false;
-    for (Map<String, String> entry : reasons) {
-      String entryEntity = entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name());
-      if (triggeringEntity.name().equals(entryEntity)) {
-        entityExists = true;
-        break;
-      }
-    }
-
-    if (!entityExists) {
+    List<Map<String, String>> filteredReasons = filterReasons(reasons, null, 
+        Arrays.asList(triggeringEntity));
+    
+    // Return false early if no entities were filtered out
+    if (filteredReasons.size() == reasons.size()) {
       LOG.info("Entity {} doesn't have a maintenance reason entry, ignoring exit request", triggeringEntity);
       return false;
     }
 
-    int originalSize = reasons.size();
-    LOG.debug("Before removal: Reasons list contains {} entries", reasons.size());
+    // Update reasons list field with filtered reasons
+    updateReasonsListField(filteredReasons);
 
-    List<Map<String, String>> updatedReasons = new ArrayList<>();
-    String targetEntity = triggeringEntity.name();
+    // Always set/reset the simpleFields if filteredReasons.size() != 0
+    if (!filteredReasons.isEmpty()) {
+      // Get the most recent reason (last element, since list is in chronological order)
+      Map<String, String> mostRecent = filteredReasons.get(filteredReasons.size() - 1);
+      String newReason = mostRecent.get(PauseSignalProperty.REASON.name());
+      long newTimestamp = Long.parseLong(mostRecent.get(MaintenanceSignalProperty.TIMESTAMP.name()));
+      TriggeringEntity newEntity = TriggeringEntity.valueOf(
+          mostRecent.get(MaintenanceSignalProperty.TRIGGERED_BY.name()));
 
-    // Only keep reasons that don't match the triggering entity
-    for (Map<String, String> entry : reasons) {
-      String entryEntity = entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name());
-      if (!targetEntity.equals(entryEntity)) {
-        updatedReasons.add(entry);
-      } else {
-        LOG.debug("Removing entry with reason: {} for entity: {}",
-            entry.get(PauseSignalProperty.REASON.name()), entryEntity);
-      }
+      LOG.info("Updated to most recent reason: {}, entity: {}, timestamp: {}",
+          newReason, newEntity, newTimestamp);
+
+      setReason(newReason);
+      setTimestamp(newTimestamp);
+      setTriggeringEntity(newEntity);
     }
 
-    boolean removed = updatedReasons.size() < originalSize;
-    LOG.debug("After removal: Reasons list contains {} entries", updatedReasons.size());
-
-    if (removed) {
-      updateReasonsListField(updatedReasons);
-
-      // Update the simpleFields with the most recent reason (for backward compatibility)
-      if (!updatedReasons.isEmpty()) {
-        // Sort by timestamp in descending order to get the most recent
-        updatedReasons.sort((r1, r2) -> {
-          long t1 = Long.parseLong(r1.get(MaintenanceSignalProperty.TIMESTAMP.name()));
-          long t2 = Long.parseLong(r2.get(MaintenanceSignalProperty.TIMESTAMP.name()));
-          return Long.compare(t2, t1);
-        });
-
-        Map<String, String> mostRecent = updatedReasons.get(0);
-        String newReason = mostRecent.get(PauseSignalProperty.REASON.name());
-        long newTimestamp = Long.parseLong(mostRecent.get(MaintenanceSignalProperty.TIMESTAMP.name()));
-        TriggeringEntity newEntity = TriggeringEntity.valueOf(
-            mostRecent.get(MaintenanceSignalProperty.TRIGGERED_BY.name()));
-
-        LOG.info("Updated to most recent reason: {}, entity: {}, timestamp: {}",
-            newReason, newEntity, newTimestamp);
-
-        setReason(newReason);
-        setTimestamp(newTimestamp);
-        setTriggeringEntity(newEntity);
-      }
-    } else {
-      LOG.info("No matching maintenance reason found for entity: {}", triggeringEntity);
-    }
-
-    return removed;
+    return true;
   }
+
+  /**
+   * Filter maintenance reasons based on include and exclude entity lists.
+   *
+   * @param reasons The original list of maintenance reasons
+   * @param includeEntities List of entities to include (null means include all)
+   * @param excludeEntities List of entities to exclude (null means exclude none)
+   * @return Filtered list of maintenance reasons (maintains original order)
+   */
+  private List<Map<String, String>> filterReasons(List<Map<String, String>> reasons,
+                                                  List<TriggeringEntity> includeEntities,
+                                                  List<TriggeringEntity> excludeEntities) {
+    List<Map<String, String>> filtered = new ArrayList<>();
+
+    for (Map<String, String> reason : reasons) {
+      String triggeredByStr = reason.get(MaintenanceSignalProperty.TRIGGERED_BY.name());
+      if (triggeredByStr == null) {
+        continue;
+      }
+
+      TriggeringEntity entity;
+      try {
+        entity = TriggeringEntity.valueOf(triggeredByStr);
+      } catch (IllegalArgumentException ex) {
+        LOG.warn("Unknown triggering entity: {}, skipping", triggeredByStr);
+        continue;
+      }
+
+      if ((includeEntities != null && !includeEntities.contains(entity)) ||
+          (excludeEntities != null && excludeEntities.contains(entity))) {
+        continue;
+      }
+
+      filtered.add(reason);
+    }
+
+    return filtered;
+  }
+
 
   /**
    * Check if there are any active maintenance reasons.
@@ -331,49 +324,14 @@ public class MaintenanceSignal extends PauseSignal {
    */
   public boolean hasMaintenanceReason(TriggeringEntity triggeringEntity) {
     List<Map<String, String>> reasons = getMaintenanceReasons();
-    for (Map<String, String> entry : reasons) {
-      if (triggeringEntity.name().equals(entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name()))) {
-        return true;
-      }
-    }
-    return false;
+    List<Map<String, String>> filteredReasons = filterReasons(reasons, 
+        Arrays.asList(triggeringEntity), null);
+    return !filteredReasons.isEmpty();
   }
 
-  /**
-   * Gets the maintenance reason details for a specific triggering entity.
-   *
-   * @param triggeringEntity The entity to get reason details for
-   * @return Map containing reason details, or null if not found
-   */
-  public Map<String, String> getMaintenanceReasonDetails(TriggeringEntity triggeringEntity) {
-    List<Map<String, String>> reasons = getMaintenanceReasons();
-    for (Map<String, String> entry : reasons) {
-      if (triggeringEntity.name().equals(entry.get(MaintenanceSignalProperty.TRIGGERED_BY.name()))) {
-        return entry;
-      }
-    }
-    return null;
-  }
 
-  /**
-   * Gets the number of active maintenance reasons.
-   *
-   * @return The count of active maintenance reasons
-   */
-  public int getMaintenanceReasonsCount() {
-    return getMaintenanceReasons().size();
-  }
 
-  /**
-   * Gets the maintenance reason from a specific triggering entity.
-   *
-   * @param triggeringEntity The entity to get reason for
-   * @return The reason string, or null if not found
-   */
-  public String getMaintenanceReason(TriggeringEntity triggeringEntity) {
-    Map<String, String> details = getMaintenanceReasonDetails(triggeringEntity);
-    return details != null ? details.get(PauseSignalProperty.REASON.name()) : null;
-  }
+
 
   /**
    * Reconcile legacy data from simpleFields into listFields.reasons if it's missing.
@@ -390,23 +348,23 @@ public class MaintenanceSignal extends PauseSignal {
     TriggeringEntity simpleEntity = getTriggeringEntity();
     long simpleTimestamp = getTimestamp();
 
-    // Only reconcile USER data from legacy clients
-    // CONTROLLER and AUTOMATION should not have legacy data loss scenarios
-    if (simpleReason != null && !simpleReason.isEmpty() && simpleEntity == TriggeringEntity.USER
-        && simpleTimestamp > 0 && !hasMaintenanceReason(simpleEntity)) {
-
-      // Legacy USER data exists but not in listFields - preserve it
-      Map<String, String> legacyEntry = new HashMap<>();
-      legacyEntry.put(PauseSignalProperty.REASON.name(), simpleReason);
-      legacyEntry.put(MaintenanceSignalProperty.TIMESTAMP.name(), String.valueOf(simpleTimestamp));
-      legacyEntry.put(MaintenanceSignalProperty.TRIGGERED_BY.name(), simpleEntity.name());
-
-      List<Map<String, String>> reasons = getMaintenanceReasons();
-      reasons.add(legacyEntry);
-      updateReasonsListField(reasons);
-
-      LOG.info("Reconciled legacy USER maintenance data: reason={}, timestamp={}",
-          simpleReason, simpleTimestamp);
+    // Early return if no simple reason exists, not a USER entity, or USER already has a reason
+    List<Map<String, String>> reasons = getMaintenanceReasons();
+    if (simpleReason == null || simpleEntity != TriggeringEntity.USER || 
+        !filterReasons(reasons, Arrays.asList(TriggeringEntity.USER), null).isEmpty()) {
+      return;
     }
+
+    // Legacy USER data exists but not in listFields - preserve it
+    Map<String, String> legacyEntry = new HashMap<>();
+    legacyEntry.put(PauseSignalProperty.REASON.name(), simpleReason);
+    legacyEntry.put(MaintenanceSignalProperty.TIMESTAMP.name(), String.valueOf(simpleTimestamp));
+    legacyEntry.put(MaintenanceSignalProperty.TRIGGERED_BY.name(), simpleEntity.name());
+
+    reasons.add(legacyEntry);
+    updateReasonsListField(reasons);
+
+    LOG.info("Reconciled legacy USER maintenance data: reason={}, timestamp={}",
+        simpleReason, simpleTimestamp);
   }
 }

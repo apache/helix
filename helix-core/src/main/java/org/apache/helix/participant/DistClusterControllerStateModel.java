@@ -37,11 +37,8 @@ import org.slf4j.LoggerFactory;
 @StateModelInfo(initialState = "OFFLINE", states = {"LEADER", "STANDBY"})
 public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyStateModel {
   private static Logger logger = LoggerFactory.getLogger(DistClusterControllerStateModel.class);
-  protected volatile Optional<HelixManager> _controllerOpt = Optional.empty();
+  protected Optional<HelixManager> _controllerOpt = Optional.empty();
   private final Set<Pipeline.Type> _enabledPipelineTypes;
-
-  // dedicated lock object to avoid cross-instance contention from Optional.empty() singleton
-  private final Object _controllerLock = new Object();
 
   public DistClusterControllerStateModel(String zkAddr) {
     this(zkAddr, Sets.newHashSet(Pipeline.Type.DEFAULT, Pipeline.Type.TASK));
@@ -65,7 +62,7 @@ public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyS
 
     logger.info(controllerName + " becoming leader from standby for " + clusterName);
 
-    synchronized (_controllerLock) {
+    synchronized (_controllerOpt) {
       if (!_controllerOpt.isPresent()) {
         HelixManager newController = HelixManagerFactory
             .getZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
@@ -115,7 +112,7 @@ public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyS
 
   @Override
   public void reset() {
-    synchronized (_controllerLock) {
+    synchronized (_controllerOpt) {
       if (_controllerOpt.isPresent()) {
         logger.info("Disconnecting controller: " + _controllerOpt.get().getInstanceName() + " for "
             + _controllerOpt.get().getClusterName());

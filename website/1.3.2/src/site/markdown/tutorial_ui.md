@@ -44,7 +44,7 @@ To get and run Helix UI locally, simply use the following command lines:
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix/helix-front
-git checkout tags/helix-1.3.1
+git checkout tags/helix-1.3.2
 ../build
 cd target/helix-front-pkg/bin
 chmod +x *.sh

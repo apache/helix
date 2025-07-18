@@ -44,7 +44,7 @@ Get the command line tool:
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-1.3.1
+git checkout tags/helix-1.3.2
 ./build
 cd helix-rest/target/helix-rest-pkg/bin
 chmod +x *.sh
@@ -178,7 +178,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
     {
       "id" : "myCluster",
       "controller" : "test.helix.apache.org:1234",
-      "HELIX_VERSION":"1.3.1",
+      "HELIX_VERSION":"1.3.2",
       "LIVE_INSTANCE":"16261@test.helix.apache.org:1234",
       "SESSION_ID":"35ab496aba54c99"
     }
@@ -654,7 +654,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
         "{DATE=2017-03-13T18:15:00:778, SESSION=15982390e5d678d, TIME=1489428900778}",
         "{DATE=2017-03-21T02:47:57:281, SESSION=459014c82effa82, TIME=1490064477281}",
         "{DATE=2017-03-27T14:51:06:802, SESSION=459014c82f01a07, TIME=1490626266802}",
-        "{DATE=2017-03-30T00:05:08:321, SESSION=55901.3.14e2c78, TIME=1490832308321}",
+        "{DATE=2017-03-30T00:05:08:321, SESSION=55901.3.24e2c78, TIME=1490832308321}",
         "{DATE=2017-03-30T01:17:34:339, SESSION=2591d53b0421864, TIME=1490836654339}",
         "{DATE=2017-03-30T17:31:09:880, SESSION=2591d53b0421b2a, TIME=1490895069880}",
         "{DATE=2017-03-30T18:05:38:220, SESSION=359619c2d7f109b, TIME=1490897138220}"

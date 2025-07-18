@@ -18,41 +18,17 @@ under the License.
 -->
 
 <head>
-  <title>Helix 1.3.1 Documentation</title>
+  <title>Tutorial - Application Property Store</title>
 </head>
 
-### Get Helix
+## [Helix Tutorial](./Tutorial.html): Application Property Store
 
-[Download](./download.html)
+In this chapter, we\'ll learn how to use the application property store.
 
-[Building](./Building.html)
+### Property Store
 
-[Release Notes](./releasenotes/release-1.3.1.html)
+It is common that an application needs support for distributed, shared data structures.  Helix uses ZooKeeper to store the application data and hence provides notifications when the data changes.
 
-### Hands-On
+While you could use ZooKeeper directly, Helix supports caching the data with a write-through cache. This is far more efficient than reading from ZooKeeper for every access.
 
-[Quickstart](./Quickstart.html)
-
-[Tutorial](./Tutorial.html)
-
-[Javadocs](http://helix.apache.org/javadocs/1.3.1/index.html)
-
-### Recipes
-
-[Distributed lock manager](./recipes/lock_manager.html)
-
-[Rabbit MQ consumer group](./recipes/rabbitmq_consumer_group.html)
-
-[Rsync replicated file store](./recipes/rsync_replicated_file_store.html)
-
-[Service discovery](./recipes/service_discovery.html)
-
-[Distributed task DAG execution](./recipes/task_dag_execution.html)
-
-### Operation
-
-[Monitoring Metrics](./Metrics.html)
-
-### Design
-
-[CRUSH-ed for even distribution](./design_crushed.html)
+See [HelixManager.getHelixPropertyStore](http://helix.apache.org/javadocs/1.3.2/reference/org/apache/helix/store/package-summary.html) for details.

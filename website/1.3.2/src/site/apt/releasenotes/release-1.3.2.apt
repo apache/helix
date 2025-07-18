@@ -1,5 +1,5 @@
  -----
- Release Notes for Apache Helix 1.3.1
+ Release Notes for Apache Helix 1.3.2
  -----
 
 ~~ Licensed to the Apache Software Foundation (ASF) under one
@@ -22,11 +22,11 @@
 ~~ NOTE: For help with the syntax of this file, see:
 ~~ http://maven.apache.org/guides/mini/guide-apt-format.html
 
-Release Notes for Apache Helix 1.3.1
+Release Notes for Apache Helix 1.3.2
 
-  The Apache Helix team would like to announce the release of Apache Helix 1.3.1.
+  The Apache Helix team would like to announce the release of Apache Helix 1.3.2.
 
-  This is the tweenty nighth release under the Apache umbrella, and the tweenty fifth as a top-level project.
+  This is the thirty third release under the Apache umbrella, and the twenty ninth as a top-level project.
 
   Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
 
@@ -49,26 +49,7 @@ Release Notes for Apache Helix 1.3.1
 
 ** Bug Fixes
 
-    * Fix the 'BadVersion' exception handling in doSet() code path. (#2614)
-
-    * Changed Log level to DEBUG for the top-state metrics logs, to avoid logging for every partition.(#2611)
-
-    * Fix inconsistent map key formatting in helix-rest maintenance API (#2583)
-
-    * WAGED - bugs fixes  in n - n + 1 (#2578)
-
-** Improvements
-
-    * Implement the on-demand rebalance service (#2595)
-
-    * Metaclient leader election -(#2558, #2560, #2562)
-
-    * MetaClient Distributed Semaphore API and Permit object (#2520)
-
-    * ZkClient - only register one time watcher for read data when not using persist listener. (#2555)
-
-    * Add InstanceConfigs inputField to allow overriding the existing InstanceConfigs for /partitionAssignment API.(#2586)
-
+    * Change tagged job assignment behavior (#2976)
 
 
 []

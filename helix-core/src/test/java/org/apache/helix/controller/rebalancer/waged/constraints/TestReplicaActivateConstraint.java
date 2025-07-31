@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -65,8 +66,48 @@ public class TestReplicaActivateConstraint {
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
+    when(_clusterContext.isRelaxedDisabledPartitionConstraintEnabled(TEST_RESOURCE)).thenReturn(false);
 
     Assert.assertFalse(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+  }
+
+  @Test
+  public void validWhenPartitionIsDisabledButRelaxedModeEnabled() {
+    Map<String, List<String>> disabledReplicaMap = new HashMap<>();
+    disabledReplicaMap.put(TEST_RESOURCE, Collections.singletonList(TEST_PARTITION));
+
+    when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
+    when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
+    when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
+    when(_clusterContext.isRelaxedDisabledPartitionConstraintEnabled(TEST_RESOURCE)).thenReturn(true);
+
+    Assert.assertTrue(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+  }
+
+  @Test
+  public void invalidWhenAllResourcesDisabledAndRelaxedModeDisabled() {
+    Map<String, List<String>> disabledReplicaMap = new HashMap<>();
+    disabledReplicaMap.put(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, Collections.singletonList("*"));
+
+    when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
+    when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
+    when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
+    when(_clusterContext.isRelaxedDisabledPartitionConstraintEnabled(TEST_RESOURCE)).thenReturn(false);
+
+    Assert.assertFalse(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
+  }
+
+  @Test
+  public void validWhenAllResourcesDisabledButRelaxedModeEnabled() {
+    Map<String, List<String>> disabledReplicaMap = new HashMap<>();
+    disabledReplicaMap.put(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, Collections.singletonList("*"));
+
+    when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
+    when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
+    when(_testNode.getDisabledPartitionsMap()).thenReturn(disabledReplicaMap);
+    when(_clusterContext.isRelaxedDisabledPartitionConstraintEnabled(TEST_RESOURCE)).thenReturn(true);
+
+    Assert.assertTrue(_faultZoneAwareConstraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
 
 }

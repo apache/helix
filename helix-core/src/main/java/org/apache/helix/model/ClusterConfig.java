@@ -167,7 +167,10 @@ public class ClusterConfig extends HelixProperty {
     // List of Preferred scoring keys used in evenness score computation
     PREFERRED_SCORING_KEYS,
     // How long offline nodes will stay in the cluster before they are automatically purged, in milliseconds
-    PARTICIPANT_DEREGISTRATION_TIMEOUT
+    PARTICIPANT_DEREGISTRATION_TIMEOUT,
+
+    // Allow disabled partitions to remain OFFLINE instead of being reassigned in WAGED rebalancer
+    RELAXED_DISABLED_PARTITION_CONSTRAINT
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -864,6 +867,27 @@ public class ClusterConfig extends HelixProperty {
    */
   public void enableP2PMessage(boolean enabled) {
     _record.setBooleanField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name(), enabled);
+  }
+
+  /**
+   * Whether the relaxed disabled partition constraint is enabled for this cluster.
+   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE 
+   * instead of being immediately reassigned, making behavior consistent with CrushEd.
+   * By default it is disabled if not set.
+   * @return true if relaxed disabled partition constraint is enabled, false otherwise
+   */
+  public boolean isRelaxedDisabledPartitionConstraintEnabled() {
+    return _record.getBooleanField(ClusterConfigProperty.RELAXED_DISABLED_PARTITION_CONSTRAINT.name(), false);
+  }
+
+  /**
+   * Enable/disable relaxed disabled partition constraint for this cluster.
+   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE 
+   * instead of being immediately reassigned, making behavior consistent with CrushEd.
+   * @param enabled true to enable relaxed constraint, false for strict constraint (default)
+   */
+  public void setRelaxedDisabledPartitionConstraint(boolean enabled) {
+    _record.setBooleanField(ClusterConfigProperty.RELAXED_DISABLED_PARTITION_CONSTRAINT.name(), enabled);
   }
 
   /**

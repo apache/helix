@@ -41,6 +41,16 @@ class ReplicaActivateConstraint extends HardConstraint {
         .containsKey(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY);
 
     if (allResourcesDisabled || (disabledPartitions != null && disabledPartitions.contains(replica.getPartitionName()))) {
+      // Check if relaxed disabled partition constraint is enabled
+      if (clusterContext.isRelaxedDisabledPartitionConstraintEnabled(replica.getResourceName())) {
+        // In relaxed mode, allow assignment to disabled partitions (they will remain OFFLINE)
+        if (enableLogging) {
+          LOG.info("Relaxed mode: allowing assignment of replica {} to disabled partition", replica.getPartitionName());
+        }
+        return true;
+      }
+      
+      // Default behavior: reject assignment to disabled partitions
       if (enableLogging) {
         LOG.info("Cannot assign the inactive replica: {}", replica.getPartitionName());
       }

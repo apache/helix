@@ -59,7 +59,7 @@ public class TestFaultZoneBasedVirtualGroupAssignment {
   }
 
   @Test
-  public void testStableVirtualZoneAssignment() {
+  public void testDeterministicVirtualZoneAssignment() {
     VirtualGroupAssignmentAlgorithm algorithm = FaultZoneBasedVirtualGroupAssignmentAlgorithm.getInstance();
     int numGroups = 4;
 

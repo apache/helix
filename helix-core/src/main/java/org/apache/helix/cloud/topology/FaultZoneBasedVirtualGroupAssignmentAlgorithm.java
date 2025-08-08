@@ -20,20 +20,14 @@ package org.apache.helix.cloud.topology;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-
-import org.apache.commons.math3.util.Pair;
 
 import static org.apache.helix.util.VirtualTopologyUtil.computeVirtualGroupId;
 
@@ -128,35 +122,23 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
 
     // Priority queue sorted by current load of the virtual group
     // We always assign new zones to the group with the smallest load to keep them balanced.
-    Queue<String> minHeap = new PriorityQueue<>((o1, o2) -> {
-      int load1 = computeGroupLoad(virtualGroupToZoneMapping, o1, zoneMapping);
-      int load2 = computeGroupLoad(virtualGroupToZoneMapping, o2, zoneMapping);
-
-      int loadDiff = Integer.compare(load1, load2);
-
-      // If the loads are not equal, return the difference
-      if (loadDiff != 0) {
-        return loadDiff;
-      }
-
-      // When loads are equal, sort by group name to ensure consistent ordering
-      return o1.compareTo(o2);
-    });
+    // If loads are equal, sort by zone name to ensure consistent ordering
+    Queue<String> minHeap = new PriorityQueue<>(
+        Comparator.<String>comparingInt(vg ->
+            virtualGroupToZoneMapping.get(vg).stream()
+                .map(zoneMapping::get)
+                .mapToInt(Set::size)
+                .sum()
+        ).thenComparing(String::compareTo)
+    );
     // Seed the min-heap with existing groups
     minHeap.addAll(virtualGroupToZoneMapping.keySet());
 
     // Sort unassigned zones by descending number of unassigned instances, assigning "heavier" zones first.
-    unassignedZones.sort((o1, o2) -> {
-      int zone1Size = zoneMapping.get(o1).size();
-      int zone2Size = zoneMapping.get(o2).size();
-
-      if (zone1Size != zone2Size) {
-        return Integer.compare(zone2Size, zone1Size); // Sort by size descending
-      }
-
-      // If sizes are equal, sort by zone name to ensure consistent ordering
-      return o1.compareTo(o2);
-    });
+    // If sizes are equal, sort by zone name to ensure consistent ordering
+    unassignedZones.sort(Comparator.<String>comparingInt(zone -> zoneMapping.get(zone).size())
+        .reversed()
+        .thenComparing(String::compareTo));
 
     // Assign each zone to the least-loaded group
     for (String zone : unassignedZones) {
@@ -184,22 +166,5 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
       result.put(entry.getKey(), instances);
     }
     return result;
-  }
-
-  /**
-   * Computes the load of a virtual group based on the number of instances across all zones in that group.
-   *
-   * @param virtualGroupToZoneMapping Mapping of virtual group -> set of zones.
-   * @param group                     The virtual group for which to compute the load.
-   * @param zoneMapping               Mapping of zone -> set of instances.
-   * @return The total number of instances across all zones in the specified virtual group.
-   */
-  private int computeGroupLoad(
-      Map<String, Set<String>> virtualGroupToZoneMapping, String group,
-      Map<String, Set<String>> zoneMapping) {
-    // The load of a group is defined as the total number of instances across all zones in that group.
-    return virtualGroupToZoneMapping.getOrDefault(group, Collections.emptySet()).stream()
-        .mapToInt(zone -> zoneMapping.getOrDefault(zone, Collections.emptySet()).size())
-        .sum();
   }
 }

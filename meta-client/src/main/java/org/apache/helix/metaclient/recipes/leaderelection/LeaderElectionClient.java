@@ -195,7 +195,8 @@ public class LeaderElectionClient implements AutoCloseable {
   }
 
   private void subscribeAndTryCreateLeaderEntry(String leaderPath) {
-    _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, _reElectListener, false);
+    _leaderGroups.add(leaderPath + LEADER_ENTRY_KEY);
+    registerAllListeners();
     LeaderInfo leaderInfo = new LeaderInfo(LEADER_ENTRY_KEY);
     leaderInfo.setLeaderName(_participant);
     leaderInfo.setAcquiredTime();
@@ -215,8 +216,6 @@ public class LeaderElectionClient implements AutoCloseable {
     } catch (MetaClientNodeExistsException ex) {
       LOG.info("Already a leader in leader group {}.", leaderPath);
     }
-
-    _leaderGroups.add(leaderPath + LEADER_ENTRY_KEY);
   }
 
   /**
@@ -356,7 +355,7 @@ public class LeaderElectionClient implements AutoCloseable {
    */
   public boolean subscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
     LeaderElectionListenerInterfaceAdapter adapter = new LeaderElectionListenerInterfaceAdapter(leaderPath, listener);
-    _leaderChangeListeners.computeIfAbsent(leaderPath, k -> ConcurrentHashMap.newKeySet()).add(adapter);
+    _leaderChangeListeners.computeIfAbsent(leaderPath + LEADER_ENTRY_KEY, k -> ConcurrentHashMap.newKeySet()).add(adapter);
     _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
         adapter, false /*skipWatchingNonExistNode*/); // we need to subscribe event when path is not there
     _metaClient.subscribeStateChanges(adapter);
@@ -372,7 +371,7 @@ public class LeaderElectionClient implements AutoCloseable {
     _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY, adapter
         );
     _metaClient.unsubscribeConnectStateChanges(adapter);
-    _leaderChangeListeners.get(leaderPath).remove(adapter);
+    _leaderChangeListeners.get(leaderPath + LEADER_ENTRY_KEY).remove(adapter);
   }
 
   @Override
@@ -430,23 +429,8 @@ public class LeaderElectionClient implements AutoCloseable {
             LOG.info("Participant {} already in leader group {}.", _participant, leaderPath);
           }
         }
-        // resubscribe the  re-elect listener
-        for (String leaderPath : _leaderGroups) {
-            LOG.info("Resubscribe re-elect listener for leaderPath {}.", leaderPath);
-          _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, _reElectListener, false);
-        }
 
-        // resubscribe to leader entry change since we are reconnected
-        for (Map.Entry<String, Set<LeaderElectionListenerInterfaceAdapter>> entry: _leaderChangeListeners.entrySet()) {
-          LOG.info("Resubscribe leader change listener for leaderPath {}.", entry.getKey());
-          String leaderPath = entry.getKey();
-          Set<LeaderElectionListenerInterfaceAdapter> listeners = entry.getValue();
-          for (LeaderElectionListenerInterfaceAdapter listener : listeners) {
-            _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
-                    listener, false /*skipWatchingNonExistNode*/); // we need to subscribe event when path is not there
-            _metaClient.subscribeStateChanges(listener);
-          }
-        }
+        registerAllListeners();
         // touch leader node to renew session ID
         touchLeaderNode();
       }
@@ -478,6 +462,26 @@ public class LeaderElectionClient implements AutoCloseable {
         } catch (MetaClientException ex) {
           LOG.warn("Failed to touch {} when reconnected.", key, ex);
         }
+      }
+    }
+  }
+
+  private void registerAllListeners(){
+    // resubscribe the  re-elect listener
+    for (String leaderPath : _leaderGroups) {
+      LOG.info("Subscribe re-elect listener for leaderPath {}.", leaderPath);
+      _metaClient.subscribeDataChange(leaderPath, _reElectListener, false);
+    }
+
+    // resubscribe to leader entry change since we are reconnected
+    for (Map.Entry<String, Set<LeaderElectionListenerInterfaceAdapter>> entry: _leaderChangeListeners.entrySet()) {
+      String leaderPath = entry.getKey();
+      LOG.info("Subscribe leader change listener for leaderPath {}.",leaderPath);
+      Set<LeaderElectionListenerInterfaceAdapter> listeners = entry.getValue();
+      for (LeaderElectionListenerInterfaceAdapter listener : listeners) {
+        _metaClient.subscribeDataChange(leaderPath,
+                listener, false /*skipWatchingNonExistNode*/); // we need to subscribe event when path is not there
+        _metaClient.subscribeStateChanges(listener);
       }
     }
   }

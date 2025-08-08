@@ -446,6 +446,26 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
       return (clt1.getLeader(leaderPath) != null);
     }, MetaClientTestUtil.WAIT_DURATION));
 
+    // have clt2 join and clt1 leave and join again, and verify listener still works
+    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt2.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt2.getLeader(leaderPath).equals(PARTICIPANT_NAME2));
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+    // now clt1 join again, and verify listener still works
+    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
+    // verify clt1 is leader
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+
     ((ZkMetaClient<?>) clt1.getMetaClient()).close();
     System.out.println("END TestLeaderElection.testClientClosedAndReconnectAfterExpire");
   }

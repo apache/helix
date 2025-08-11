@@ -436,20 +436,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
-   * Subscribes state changes for a {@link IZkStateListener} listener.
-   *
-   * @deprecated
-   * This is deprecated. It is kept for backwards compatibility. Please use
-   * {@link #subscribeStateChanges(IZkStateListener)}.
-   *
-   * @param listener {@link IZkStateListener} listener
-   */
-  @Deprecated
-  public void subscribeStateChanges(
-      final org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-    subscribeStateChanges(new IZkStateListenerI0ItecImpl(listener));
-  }
+  
 
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
     synchronized (_stateListener) {
@@ -457,20 +444,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
-   * Unsubscribes state changes for a {@link IZkStateListener} listener.
-   *
-   * @deprecated
-   * This is deprecated. It is kept for backwards compatibility. Please use
-   * {@link #unsubscribeStateChanges(IZkStateListener)}.
-   *
-   * @param stateListener {@link IZkStateListener} listener
-   */
-  @Deprecated
-  public void unsubscribeStateChanges(
-      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener stateListener) {
-    unsubscribeStateChanges(new IZkStateListenerI0ItecImpl(stateListener));
-  }
+  
 
   public void unsubscribeAll() {
     if (_usePersistWatcher) {
@@ -3034,66 +3008,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
-   * Creates a {@link IZkStateListener} that wraps a default
-   * implementation of {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}, which means the returned
-   * listener runs the methods of {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}.
-   * This is for backward compatibility with {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}.
-   */
-  private static class IZkStateListenerI0ItecImpl implements IZkStateListener {
-    private org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener _listener;
-
-    IZkStateListenerI0ItecImpl(
-        org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-      _listener = listener;
-    }
-
-    @Override
-    public void handleStateChanged(KeeperState keeperState) throws Exception {
-      _listener.handleStateChanged(keeperState);
-    }
-
-    @Override
-    public void handleNewSession(final String sessionId) throws Exception {
-      /*
-       * org.I0Itec.zkclient.IZkStateListener does not have handleNewSession(sessionId),
-       * so just call handleNewSession() by default.
-       */
-      _listener.handleNewSession();
-    }
-
-    @Override
-    public void handleSessionEstablishmentError(Throwable error) throws Exception {
-      _listener.handleSessionEstablishmentError(error);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == this) {
-        return true;
-      }
-      if (!(obj instanceof IZkStateListenerI0ItecImpl)) {
-        return false;
-      }
-      if (_listener == null) {
-        return false;
-      }
-
-      IZkStateListenerI0ItecImpl defaultListener = (IZkStateListenerI0ItecImpl) obj;
-
-      return _listener.equals(defaultListener._listener);
-    }
-
-    @Override
-    public int hashCode() {
-      /*
-       * The original listener's hashcode helps find the wrapped listener with the same original
-       * listener. This is helpful in unsubscribeStateChanges(listener) when finding the listener
-       * to remove.
-       */
-      return _listener.hashCode();
-    }
-  }
+  
 
   private void validateCurrentThread() {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {

@@ -98,6 +98,16 @@ public interface RealmAwareZkClient {
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
   /**
+   * Subscribes state changes for a {@link IZkStateListener} listener.
+   */
+  void subscribeStateChanges(IZkStateListener listener);
+
+  /**
+   * Unsubscribes state changes for a {@link IZkStateListener} listener.
+   */
+  void unsubscribeStateChanges(IZkStateListener listener);
+
+  /**
    * Subscribe the path and the listener will handle data events of the path
    * Add the exists watch to Zookeeper server even if the path does not exists in zookeeper server
    * WARNING: if the path is created after deletion, users need to re-subscribe the path
@@ -120,49 +130,14 @@ public interface RealmAwareZkClient {
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 
-  /*
-   * This is for backwards compatibility.
-   *
-   * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
-   */
-  default void subscribeStateChanges(final IZkStateListener listener) {
-    subscribeStateChanges(new I0ItecIZkStateListenerImpl(listener));
-  }
+  // Backward-compatibility adapter removed. Implementations must support
+  // subscribeStateChanges/unsubscribeStateChanges with modern IZkStateListener.
 
-  /*
-   * This is for backwards compatibility.
-   *
-   * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
-   */
-  default void unsubscribeStateChanges(IZkStateListener listener) {
-    unsubscribeStateChanges(new I0ItecIZkStateListenerImpl(listener));
-  }
+  
 
-  /**
-   * Subscribes state changes for a
-   * {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener} listener.
-   * @deprecated
-   *             This is deprecated. It is kept for backwards compatibility. Please use
-   *             {@link #subscribeStateChanges(IZkStateListener)}.
-   * @param listener {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}
-   *          listener
-   */
-  @Deprecated
-  void subscribeStateChanges(
-      final org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener);
+  
 
-  /**
-   * Unsubscribes state changes for a
-   * {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener} listener.
-   * @deprecated
-   *             This is deprecated. It is kept for backwards compatibility. Please use
-   *             {@link #unsubscribeStateChanges(IZkStateListener)}.
-   * @param listener {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}
-   *          listener
-   */
-  @Deprecated
-  void unsubscribeStateChanges(
-      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener);
+  
 
   void unsubscribeAll();
 
@@ -355,64 +330,10 @@ public interface RealmAwareZkClient {
   }
 
   /**
-   * A class that wraps a default implementation of
-   * {@link IZkStateListener}, which means this listener
-   * runs the methods of {@link IZkStateListener}.
-   * This is for backward compatibility and to avoid breaking the original implementation of
-   * {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}.
+   * A class that wraps a default implementation of {@link IZkStateListener}.
+   * Backward-compatibility with deprecated I0Itec listeners has been removed.
    */
-  class I0ItecIZkStateListenerImpl implements org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener {
-    private IZkStateListener _listener;
-
-    I0ItecIZkStateListenerImpl(IZkStateListener listener) {
-      _listener = listener;
-    }
-
-    @Override
-    public void handleStateChanged(Watcher.Event.KeeperState keeperState) throws Exception {
-      _listener.handleStateChanged(keeperState);
-    }
-
-    @Override
-    public void handleNewSession() throws Exception {
-      /*
-       * org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
-       * so null is passed into handleNewSession(sessionId).
-       */
-      _listener.handleNewSession(null);
-    }
-
-    @Override
-    public void handleSessionEstablishmentError(Throwable error) throws Exception {
-      _listener.handleSessionEstablishmentError(error);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == this) {
-        return true;
-      }
-      if (!(obj instanceof I0ItecIZkStateListenerImpl)) {
-        return false;
-      }
-      if (_listener == null) {
-        return false;
-      }
-
-      I0ItecIZkStateListenerImpl defaultListener = (I0ItecIZkStateListenerImpl) obj;
-
-      return _listener.equals(defaultListener._listener);
-    }
-
-    @Override
-    public int hashCode() {
-      /*
-       * The original listener's hashcode helps find the wrapped listener with the same original
-       * listener. This is helpful in unsubscribeStateChanges(listener).
-       */
-      return _listener.hashCode();
-    }
-  }
+  
 
   /**
    * ZkConnection-related configs for creating an instance of RealmAwareZkClient.

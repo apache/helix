@@ -148,18 +148,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public void subscribeStateChanges(
-      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-    throwUnsupportedOperationException();
-  }
-
-  @Override
-  public void unsubscribeStateChanges(
-      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-    throwUnsupportedOperationException();
-  }
-
-  @Override
   public void unsubscribeAll() {
     _zkRealmToZkClientMap.values().forEach(ZkClient::unsubscribeAll);
   }

@@ -20,20 +20,14 @@ package org.apache.helix.cloud.topology;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-
-import org.apache.commons.math3.util.Pair;
 
 import static org.apache.helix.util.VirtualTopologyUtil.computeVirtualGroupId;
 
@@ -128,20 +122,23 @@ public class FaultZoneBasedVirtualGroupAssignmentAlgorithm implements VirtualGro
 
     // Priority queue sorted by current load of the virtual group
     // We always assign new zones to the group with the smallest load to keep them balanced.
+    // If loads are equal, sort by zone name to ensure consistent ordering
     Queue<String> minHeap = new PriorityQueue<>(
-        Comparator.comparingInt(vg ->
+        Comparator.<String>comparingInt(vg ->
             virtualGroupToZoneMapping.get(vg).stream()
                 .map(zoneMapping::get)
                 .mapToInt(Set::size)
                 .sum()
-        )
+        ).thenComparing(String::compareTo)
     );
     // Seed the min-heap with existing groups
     minHeap.addAll(virtualGroupToZoneMapping.keySet());
 
     // Sort unassigned zones by descending number of unassigned instances, assigning "heavier" zones first.
-    unassignedZones.sort(Comparator.comparingInt(zone -> zoneMapping.get(zone).size())
-        .reversed());
+    // If sizes are equal, sort by zone name to ensure consistent ordering
+    unassignedZones.sort(Comparator.<String>comparingInt(zone -> zoneMapping.get(zone).size())
+        .reversed()
+        .thenComparing(String::compareTo));
 
     // Assign each zone to the least-loaded group
     for (String zone : unassignedZones) {

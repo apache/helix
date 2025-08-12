@@ -27,6 +27,8 @@ import java.util.List;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.helix.metaclient.api.ConnectStateChangeListener;
 import org.apache.helix.metaclient.api.DataChangeListener;
@@ -40,6 +42,7 @@ import org.apache.helix.metaclient.exception.MetaClientNodeExistsException;
 import org.apache.helix.metaclient.factories.MetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientConfig;
 import org.apache.helix.metaclient.impl.zk.factory.ZkMetaClientFactory;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,9 +79,12 @@ public class LeaderElectionClient implements AutoCloseable {
 
   private final static String LEADER_ENTRY_KEY = "/LEADER";
   private final static String PARTICIPANTS_ENTRY_KEY = "/PARTICIPANTS";
+
   private final static String PARTICIPANTS_ENTRY_PARENT = "/PARTICIPANTS/";
   ReElectListener _reElectListener = new ReElectListener();
   ConnectStateListener _connectStateListener = new ConnectStateListener();
+  private final ConcurrentHashMap<String, Set<LeaderElectionListenerInterfaceAdapter>> _leaderChangeListeners =
+          new ConcurrentHashMap<>();
 
   /**
    * Construct a LeaderElectionClient using a user passed in leaderElectionConfig. It creates a MetaClient
@@ -189,9 +195,11 @@ public class LeaderElectionClient implements AutoCloseable {
   }
 
   private void subscribeAndTryCreateLeaderEntry(String leaderPath) {
-    _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY, _reElectListener, false);
+    _leaderGroups.add(leaderPath + LEADER_ENTRY_KEY);
+    registerAllListeners();
     LeaderInfo leaderInfo = new LeaderInfo(LEADER_ENTRY_KEY);
     leaderInfo.setLeaderName(_participant);
+    leaderInfo.setAcquiredTime();
 
     try {
       createPathIfNotExists(leaderPath);
@@ -208,8 +216,6 @@ public class LeaderElectionClient implements AutoCloseable {
     } catch (MetaClientNodeExistsException ex) {
       LOG.info("Already a leader in leader group {}.", leaderPath);
     }
-
-    _leaderGroups.add(leaderPath + LEADER_ENTRY_KEY);
   }
 
   /**
@@ -349,6 +355,7 @@ public class LeaderElectionClient implements AutoCloseable {
    */
   public boolean subscribeLeadershipChanges(String leaderPath, LeaderElectionListenerInterface listener) {
     LeaderElectionListenerInterfaceAdapter adapter = new LeaderElectionListenerInterfaceAdapter(leaderPath, listener);
+    _leaderChangeListeners.computeIfAbsent(leaderPath + LEADER_ENTRY_KEY, k -> ConcurrentHashMap.newKeySet()).add(adapter);
     _metaClient.subscribeDataChange(leaderPath + LEADER_ENTRY_KEY,
         adapter, false /*skipWatchingNonExistNode*/); // we need to subscribe event when path is not there
     _metaClient.subscribeStateChanges(adapter);
@@ -364,6 +371,7 @@ public class LeaderElectionClient implements AutoCloseable {
     _metaClient.unsubscribeDataChange(leaderPath + LEADER_ENTRY_KEY, adapter
         );
     _metaClient.unsubscribeConnectStateChanges(adapter);
+    _leaderChangeListeners.get(leaderPath + LEADER_ENTRY_KEY).remove(adapter);
   }
 
   @Override
@@ -421,6 +429,8 @@ public class LeaderElectionClient implements AutoCloseable {
             LOG.info("Participant {} already in leader group {}.", _participant, leaderPath);
           }
         }
+
+        registerAllListeners();
         // touch leader node to renew session ID
         touchLeaderNode();
       }
@@ -436,11 +446,15 @@ public class LeaderElectionClient implements AutoCloseable {
     for (String leaderPath : _leaderGroups) {
       String key = leaderPath;
       ImmutablePair<LeaderInfo, MetaClientInterface.Stat> tup = _metaClient.getDataAndStat(key);
+      LOG.info("touch leader node: current leader: {}, current participant: {}",
+          tup.left.getLeaderName(), _participant);
       if (tup.left.getLeaderName().equalsIgnoreCase(_participant)) {
         int expectedVersion = tup.right.getVersion();
+        LeaderInfo newInfo = new LeaderInfo(tup.left, tup.left.getId());
+        newInfo.setAcquiredTime();
         try {
           LOG.info("Try touch leader node for path {}", _leaderGroups);
-          _metaClient.set(key, tup.left, expectedVersion);
+          _metaClient.set(key, newInfo, expectedVersion);
         } catch (MetaClientNoNodeException ex) {
           LOG.info("leaderPath {} gone when retouch leader node.", key);
         } catch (MetaClientBadVersionException e) {
@@ -448,6 +462,26 @@ public class LeaderElectionClient implements AutoCloseable {
         } catch (MetaClientException ex) {
           LOG.warn("Failed to touch {} when reconnected.", key, ex);
         }
+      }
+    }
+  }
+
+  private void registerAllListeners(){
+    // resubscribe the  re-elect listener
+    for (String leaderPath : _leaderGroups) {
+      LOG.info("Subscribe re-elect listener for leaderPath {}.", leaderPath);
+      _metaClient.subscribeDataChange(leaderPath, _reElectListener, false);
+    }
+
+    // resubscribe to leader entry change since we are reconnected
+    for (Map.Entry<String, Set<LeaderElectionListenerInterfaceAdapter>> entry: _leaderChangeListeners.entrySet()) {
+      String leaderPath = entry.getKey();
+      LOG.info("Subscribe leader change listener for leaderPath {}.",leaderPath);
+      Set<LeaderElectionListenerInterfaceAdapter> listeners = entry.getValue();
+      for (LeaderElectionListenerInterfaceAdapter listener : listeners) {
+        _metaClient.subscribeDataChange(leaderPath,
+                listener, false /*skipWatchingNonExistNode*/); // we need to subscribe event when path is not there
+        _metaClient.subscribeStateChanges(listener);
       }
     }
   }

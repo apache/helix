@@ -353,7 +353,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     setupClusterForVirtualTopology(VG_CLUSTER);
     String test1 = "{\"virtualTopologyGroupNumber\":\"7\",\"virtualTopologyGroupName\":\"vgTest\"}";
     String test2 = "{\"virtualTopologyGroupNumber\":\"9\",\"virtualTopologyGroupName\":\"vgTest\"}";
-    // Split 5 zones into 2 virtual groups, expect 0-1-2 in virtual group 0, 3-4 in virtual group 1
+    // Split 5 zones into 2 virtual groups, expect 0-2-4 in virtual group 0, 1-3 in virtual group 1
     String test3 = "{\"virtualTopologyGroupNumber\":\"2\",\"virtualTopologyGroupName\":\"vgTest\","
         + "\"assignmentAlgorithmType\":\"ZONE_BASED\"}";
     String test4 = "{\"virtualTopologyGroupNumber\":\"5\",\"virtualTopologyGroupName\":\"vgTest\","
@@ -384,10 +384,10 @@ public class TestClusterAccessor extends AbstractTestClass {
             "vgCluster_localhost_12925", "vgTest_1",
             "vgCluster_localhost_12927", "vgTest_0")},
         {test4, 5, ImmutableMap.of(
-            "vgCluster_localhost_12918", "vgTest_4",
-            "vgCluster_localhost_12919", "vgTest_4",
-            "vgCluster_localhost_12925", "vgTest_2",
-            "vgCluster_localhost_12927", "vgTest_1")},
+            "vgCluster_localhost_12918", "vgTest_0",
+            "vgCluster_localhost_12919", "vgTest_0",
+            "vgCluster_localhost_12925", "vgTest_3",
+            "vgCluster_localhost_12927", "vgTest_4")},
         // repeat test3 for deterministic and test for decreasing numGroups
         {test3, 2, ImmutableMap.of(
             "vgCluster_localhost_12918", "vgTest_0",

@@ -55,6 +55,7 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt1.close();
   }
 
+
   @Test (dependsOnMethods = "testIsLeaderBeforeJoiningParticipantPool")
   public void testAcquireLeadership() throws Exception {
     System.out.println("START TestLeaderElection.testAcquireLeadership");
@@ -381,6 +382,94 @@ public class TestLeaderElection extends ZkMetaClientTestBase {
     clt2.close();
     System.out.println("END TestLeaderElection.testClientClosedAndReconnectAfterExpire");
   }
+
+  @Test (dependsOnMethods = "testClientClosedAndReconnectAfterExpire")
+  public void testClientLeadershipChangeListenersAfterExpire() throws Exception {
+    System.out.println("START TestLeaderElection.testClientLeadershipChangeListenersAfterEspire");
+    String leaderPath = LEADER_PATH + "/testClientLeadershipChangeListenersAfterEspire";
+    LeaderInfo participantInfo = new LeaderInfo(PARTICIPANT_NAME1);
+    participantInfo.setSimpleField("Key1", "value1");
+    LeaderInfo participantInfo2 = new LeaderInfo(PARTICIPANT_NAME2);
+    participantInfo2.setSimpleField("Key2", "value2");
+    LeaderElectionClient clt1 = createLeaderElectionClient(PARTICIPANT_NAME1);
+    LeaderElectionClient clt2 = createLeaderElectionClient(PARTICIPANT_NAME2);
+
+    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
+    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
+
+    final int[] numNewLeaderEvent = {0};
+    final int[] numLeaderGoneEvent = {0};
+    CountDownLatch countDownLatchNewLeader = new CountDownLatch(1);
+
+
+    LeaderElectionListenerInterface listener = new LeaderElectionListenerInterface() {
+
+      @Override
+      public void onLeadershipChange(String leaderPath, ChangeType type, String curLeader) {
+        if (type == ChangeType.LEADER_LOST) {
+          //countDownLatchLeaderGone.countDown();
+          Assert.assertEquals(curLeader.length(), 0);
+          numLeaderGoneEvent[0]++;
+          System.out.println("LEADER_LOST " + numLeaderGoneEvent[0]);
+        } else if (type == ChangeType.LEADER_ACQUIRED) {
+          countDownLatchNewLeader.countDown();
+          numNewLeaderEvent[0]++;
+            System.out.println("LEADER_ACQUIRED, cur leader: " + curLeader);
+          Assert.assertTrue(curLeader.length() != 0);
+        } else {
+          Assert.fail();
+        }
+      }
+    };
+    clt1.subscribeLeadershipChanges(leaderPath,  listener);
+    // session expire and reconnect
+    expireSession((ZkMetaClient) clt1.getMetaClient());
+
+    // when session recreated, participant info node should maintain
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME1).getSimpleField("Key1"), "value1");
+    Assert.assertEquals(clt2.getParticipantInfo(leaderPath, PARTICIPANT_NAME2).getSimpleField("Key2"), "value2");
+
+    // clt1 closed and reconnected
+    simulateZkStateClosedAndReconnect((ZkMetaClient) clt1.getMetaClient());
+
+    // verify listener get called after session expire and reconnect
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
+
+    // now clt1 should be leader
+    // verify we got a new leader event after node 2 left
+    Assert.assertTrue(MetaClientTestUtil.verify(()-> {
+      return (numNewLeaderEvent[0] == 1);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    countDownLatchNewLeader.await();
+
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+    // have clt2 join and clt1 leave and join again, and verify listener still works
+    clt2.joinLeaderElectionParticipantPool(leaderPath, participantInfo2);
+    clt1.exitLeaderElectionParticipantPool(leaderPath);
+
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt2.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt2.getLeader(leaderPath).equals(PARTICIPANT_NAME2));
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+    // now clt1 join again, and verify listener still works
+    clt1.joinLeaderElectionParticipantPool(leaderPath, participantInfo);
+    clt2.exitLeaderElectionParticipantPool(leaderPath);
+    // verify clt1 is leader
+    Assert.assertTrue(MetaClientTestUtil.verify(() -> {
+      return (clt1.getLeader(leaderPath) != null);
+    }, MetaClientTestUtil.WAIT_DURATION));
+
+
+    ((ZkMetaClient<?>) clt1.getMetaClient()).close();
+    System.out.println("END TestLeaderElection.testClientClosedAndReconnectAfterExpire");
+  }
+
 
   private void joinPoolTestHelper(String leaderPath, LeaderElectionClient clt1, LeaderElectionClient clt2)
       throws Exception {

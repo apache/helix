@@ -51,6 +51,8 @@ public class Topology {
   }
   private static final int DEFAULT_NODE_WEIGHT = 1000;
 
+  private static final String INSTANCE_TO_CLUSTER_CONFIG_MISMATCH = "[Instance to Cluster Config Mismatch]";
+
   private final MessageDigest _md;
   private final Node _root; // root of the tree structure of all nodes;
   private final List<String> _allInstances;
@@ -205,6 +207,11 @@ public class Topology {
         }
         addEndNode(root, instanceName, instanceTopologyMap, weight, _liveInstances);
       } catch (IllegalArgumentException e) {
+        if (e.getMessage().contains(INSTANCE_TO_CLUSTER_CONFIG_MISMATCH)) {
+          logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",
+              insConfig.getDomainAsString(), instanceName);
+          continue;
+        }
         if (insConfig.getInstanceEnabled()) {
           throw e;
         } else {
@@ -256,11 +263,15 @@ public class Topology {
                   instanceName));
         }
         int numOfMatchedKeys = 0;
+        boolean shouldThrowExceptionDueToMissingConfigs = false;
         for (String key : clusterTopologyConfig.getTopologyKeyDefaultValue().keySet()) {
           // if a key does not exist in the instance domain config, using the default domain value.
           String value = domainAsMap.get(key);
-          if (value == null || value.length() == 0) {
+          if (value == null || value.isEmpty()) {
             value = clusterTopologyConfig.getTopologyKeyDefaultValue().get(key);
+            if (clusterTopologyConfig.getRequiredMatchingTopologyKeys().contains(key)) {
+              shouldThrowExceptionDueToMissingConfigs = true;
+            }
           } else {
             numOfMatchedKeys++;
           }
@@ -270,10 +281,13 @@ public class Topology {
           }
         }
         if (numOfMatchedKeys < clusterTopologyConfig.getTopologyKeyDefaultValue().size()) {
-          logger.warn(
-              "Key-value pairs in InstanceConfig.Domain {} do not align with keys in ClusterConfig.Topology "
-                  + "{}, using default domain value instead", instanceConfig.getDomainAsString(),
-              clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+          String errorMessage = String.format(
+              "%s Instance %s does not have all the keys in ClusterConfig. Topology %s.",
+              INSTANCE_TO_CLUSTER_CONFIG_MISMATCH, instanceName, clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+          logger.warn(errorMessage);
+          if (shouldThrowExceptionDueToMissingConfigs) {
+            throw new IllegalArgumentException(errorMessage);
+          }
         }
       }
     } else {

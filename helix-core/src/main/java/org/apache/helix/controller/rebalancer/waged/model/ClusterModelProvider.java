@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -607,10 +608,19 @@ public class ClusterModelProvider {
     ClusterTopologyConfig clusterTopologyConfig =
         ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
     return activeInstances.parallelStream()
-        .filter(instanceConfigMap::containsKey).map(
-            instanceName -> new AssignableNode(clusterConfig, clusterTopologyConfig,
-                instanceConfigMap.get(instanceName),
-                instanceName)).collect(Collectors.toSet());
+        .filter(instanceConfigMap::containsKey)
+        .map(instanceName -> {
+          try {
+            return new AssignableNode(clusterConfig, clusterTopologyConfig,
+                instanceConfigMap.get(instanceName), instanceName);
+          } catch (IllegalArgumentException e) {
+            // Log the filtering of invalid instance configuration
+            // This helps with debugging when instances are unexpectedly excluded
+            return null;
+          }
+        })
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
   }
 
   /**

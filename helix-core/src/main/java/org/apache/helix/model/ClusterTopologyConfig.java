@@ -1,7 +1,5 @@
 package org.apache.helix.model;
 
-import java.util.ArrayList;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,6 +19,7 @@ import java.util.ArrayList;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 

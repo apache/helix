@@ -214,10 +214,9 @@ public class Topology {
         }
         if (insConfig.getInstanceEnabled()) {
           throw e;
-        } else {
-          logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",
-              insConfig.getDomainAsString(), instanceName);
         }
+        logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",
+            insConfig.getDomainAsString(), instanceName);
       }
     }
     return root;

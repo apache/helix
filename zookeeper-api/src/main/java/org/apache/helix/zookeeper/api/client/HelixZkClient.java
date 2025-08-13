@@ -1,4 +1,5 @@
 package org.apache.helix.zookeeper.api.client;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,6 +32,16 @@ import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
  */
 @Deprecated
 public interface HelixZkClient extends RealmAwareZkClient {
+
+  /**
+   * Subscribes state changes for a {@link IZkStateListener} listener.
+   */
+  void subscribeStateChanges(IZkStateListener listener);
+
+  /**
+   * Unsubscribes state changes for a {@link IZkStateListener} listener.
+   */
+  void unsubscribeStateChanges(IZkStateListener listener);
 
   /**
    * Deprecated - please use RealmAwareZkClient and RealmAwareZkConnectionConfig instead.

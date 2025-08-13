@@ -874,7 +874,7 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Whether the relaxed disabled partition constraint is enabled for this cluster.
-   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE 
+   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE
    * instead of being immediately reassigned, making behavior consistent with CrushEd.
    * By default it is disabled if not set.
    * @return true if relaxed disabled partition constraint is enabled, false otherwise
@@ -885,7 +885,7 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Enable/disable relaxed disabled partition constraint for this cluster.
-   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE 
+   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE
    * instead of being immediately reassigned, making behavior consistent with CrushEd.
    * @param enabled true to enable relaxed constraint, false for strict constraint (default)
    */
@@ -902,7 +902,7 @@ public class ClusterConfig extends HelixProperty {
     if (topologyKeys == null) {
       return Collections.emptyList();
     }
-    return topologyKeys;
+    return Collections.unmodifiableList(topologyKeys);
   }
 
   /**

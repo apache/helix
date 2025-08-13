@@ -43,11 +43,14 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This util class generates Cluster Model object based on the controller's data cache.
  */
 public class ClusterModelProvider {
+  private static Logger logger = LoggerFactory.getLogger(ClusterModelProvider.class);
 
   private enum RebalanceScopeType {
     // Set the rebalance scope to cover the difference between the current assignment and the
@@ -269,7 +272,7 @@ public class ClusterModelProvider {
     // Construct and initialize cluster context.
     ClusterContext context = new ClusterContext(
         replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()),
-        assignableNodes, logicalIdIdealAssignment, logicalIdCurrentAssignment, 
+        assignableNodes, logicalIdIdealAssignment, logicalIdCurrentAssignment,
         dataProvider.getClusterConfig(), dataProvider);
 
     // Initial the cluster context with the allocated assignments.
@@ -616,6 +619,8 @@ public class ClusterModelProvider {
           } catch (IllegalArgumentException e) {
             // Log the filtering of invalid instance configuration
             // This helps with debugging when instances are unexpectedly excluded
+            logger.warn("Instance {} has invalid configuration and will be excluded from the assignable nodes: {}",
+                instanceName, e.getMessage());
             return null;
           }
         })

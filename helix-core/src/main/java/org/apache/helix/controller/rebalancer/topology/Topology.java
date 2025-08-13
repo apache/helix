@@ -30,10 +30,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.api.exceptions.InstanceConfigMismatchException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +50,6 @@ public class Topology {
     INSTANCE
   }
   private static final int DEFAULT_NODE_WEIGHT = 1000;
-
-  private static final String INSTANCE_TO_CLUSTER_CONFIG_MISMATCH = "[Instance to Cluster Config Mismatch]";
 
   private final MessageDigest _md;
   private final Node _root; // root of the tree structure of all nodes;
@@ -206,12 +204,11 @@ public class Topology {
           unnecessaryTopoKeys.forEach(instanceTopologyMap::remove);
         }
         addEndNode(root, instanceName, instanceTopologyMap, weight, _liveInstances);
+      } catch (InstanceConfigMismatchException e) {
+        logger.warn("Topology setting {} for instance {} is unset or invalid due to mismatch with cluster topology "
+                + "configuration. Instance will be ignored! Error: {}", insConfig.getDomainAsString(), instanceName,
+            e.getMessage());
       } catch (IllegalArgumentException e) {
-        if (e.getMessage().contains(INSTANCE_TO_CLUSTER_CONFIG_MISMATCH)) {
-          logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",
-              insConfig.getDomainAsString(), instanceName);
-          continue;
-        }
         if (insConfig.getInstanceEnabled()) {
           throw e;
         }
@@ -280,12 +277,12 @@ public class Topology {
           }
         }
         if (numOfMatchedKeys < clusterTopologyConfig.getTopologyKeyDefaultValue().size()) {
-          String errorMessage = String.format(
-              "%s Instance %s does not have all the keys in ClusterConfig. Topology %s.",
-              INSTANCE_TO_CLUSTER_CONFIG_MISMATCH, instanceName, clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+          String errorMessage =
+              String.format("Instance %s does not have all the keys in ClusterConfig. Topology %s.", instanceName,
+                  clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
           logger.warn(errorMessage);
           if (shouldThrowExceptionDueToMissingConfigs) {
-            throw new IllegalArgumentException(errorMessage);
+            throw new InstanceConfigMismatchException(errorMessage);
           }
         }
       }

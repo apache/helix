@@ -20,6 +20,7 @@ package org.apache.helix.model;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.topology.Topology;
@@ -45,8 +46,7 @@ public class TestClusterTopologyConfig {
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.setTopologyAwareEnabled(true);
     testConfig.setTopology("/zone/instance");
-    testConfig.setRequiredInstanceTopologyKeys(new ArrayList<>());
-    testConfig.getRequiredInstanceTopologyKeys().add("mz_virtualzone");
+    testConfig.setRequiredInstanceTopologyKeys(Collections.singletonList("mz_virtualzone"));
     // no fault zone setup
     ClusterTopologyConfig clusterTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(testConfig);
     Assert.assertEquals(clusterTopologyConfig.getEndNodeType(), "instance");

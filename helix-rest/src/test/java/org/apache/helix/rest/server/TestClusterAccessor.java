@@ -82,6 +82,7 @@ import static org.apache.helix.cloud.azure.AzureConstants.AZURE_FAULT_ZONE_TYPE;
 public class TestClusterAccessor extends AbstractTestClass {
 
   private static final String VG_CLUSTER = "vgCluster";
+  private static final String TEST_CLUSTER = "TestCluster_1";
 
   @BeforeClass
   public void beforeClass() {
@@ -94,8 +95,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test
   public void testValidateClusterConfigChange() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String cluster = "TestCluster_1";
-    ClusterConfig config = getClusterConfigFromRest(cluster);
+    ClusterConfig config = getClusterConfigFromRest(TEST_CLUSTER);
 
     // Enable the topology aware setting while the instance config does not have the DOMAIN info
     {
@@ -104,13 +104,13 @@ public class TestClusterAccessor extends AbstractTestClass {
       _auditLogger.clearupLogs();
       Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()),
           MediaType.APPLICATION_JSON_TYPE);
-      post("clusters/" + cluster + "/configs", ImmutableMap.of("command", Command.update.name()),
+      post("clusters/" + TEST_CLUSTER + "/configs", ImmutableMap.of("command", Command.update.name()),
           entity, Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
 
       validateAuditLogSize(1);
       AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
       Assert.assertEquals(auditLog.getHttpMethod(), HTTPMethods.POST.name());
-      Assert.assertEquals(auditLog.getRequestPath(), "clusters/" + cluster + "/configs");
+      Assert.assertEquals(auditLog.getRequestPath(), "clusters/" + TEST_CLUSTER + "/configs");
       Assert.assertEquals(auditLog.getExceptions().size(), 1);
     }
 
@@ -121,7 +121,7 @@ public class TestClusterAccessor extends AbstractTestClass {
       newConfig.setFaultZoneType("TestZoneId");
       newConfig.setTopology("/TestZoneId/instance");
       newConfig.setTopologyAwareEnabled(false);
-      updateClusterConfigFromRest(cluster, newConfig, Command.update);
+      updateClusterConfigFromRest(TEST_CLUSTER, newConfig, Command.update);
     }
 
     // Update the topology path string to NULL. This request should go through since the
@@ -131,7 +131,7 @@ public class TestClusterAccessor extends AbstractTestClass {
       newConfig.setTopology(null);
       newConfig.setFaultZoneType(null);
       newConfig.setTopologyAwareEnabled(false);
-      updateClusterConfigFromRest(cluster, newConfig, Command.update);
+      updateClusterConfigFromRest(TEST_CLUSTER, newConfig, Command.update);
     }
 
     // Now update the config while keeping the topology path and fault zone unchanged (it's still NULL)
@@ -141,23 +141,56 @@ public class TestClusterAccessor extends AbstractTestClass {
       _auditLogger.clearupLogs();
       Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()),
           MediaType.APPLICATION_JSON_TYPE);
-      post("clusters/" + cluster + "/configs", ImmutableMap.of("command", Command.update.name()),
+      post("clusters/" + TEST_CLUSTER + "/configs", ImmutableMap.of("command", Command.update.name()),
           entity, Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
 
       validateAuditLogSize(1);
       AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
       Assert.assertEquals(auditLog.getHttpMethod(), HTTPMethods.POST.name());
-      Assert.assertEquals(auditLog.getRequestPath(), "clusters/" + cluster + "/configs");
+      Assert.assertEquals(auditLog.getRequestPath(), "clusters/" + TEST_CLUSTER + "/configs");
       Assert.assertEquals(auditLog.getExceptions().size(), 1);
     }
 
     // Restore the cluster config
-    updateClusterConfigFromRest(cluster, config, Command.update);
+    updateClusterConfigFromRest(TEST_CLUSTER, config, Command.update);
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testValidateClusterConfigChange")
+  public void testValidateClusterConfigChange_missingRequiredTopologyKey_throwsException() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    ClusterConfig config = getClusterConfigFromRest(TEST_CLUSTER);
+
+    // Update config with mismatching required topology key while enabling topology aware
+    {
+      ClusterConfig newConfig = new ClusterConfig(config.getClusterName());
+      newConfig.setTopologyAwareEnabled(true);
+      newConfig.setTopology("/zone/rack/host");
+      newConfig.setFaultZoneType("zone");
+      newConfig.setRequiredInstanceTopologyKeys(Arrays.asList("rack", "missingKey"));
+      _auditLogger.clearupLogs();
+      Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()),
+          MediaType.APPLICATION_JSON_TYPE);
+      post("clusters/" + TEST_CLUSTER + "/configs", ImmutableMap.of("command", Command.update.name()),
+          entity, Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+
+      validateAuditLogSize(1);
+      AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
+      Assert.assertEquals(auditLog.getHttpMethod(), HTTPMethods.POST.name());
+      Assert.assertEquals(auditLog.getRequestPath(), "clusters/" + TEST_CLUSTER + "/configs");
+      Assert.assertEquals(auditLog.getExceptions().size(), 1);
+      Assert.assertEquals(auditLog.getExceptions().get(0).getMessage(),
+          "Required instance topology key missingKey is not present in the topology path.");
+    }
+
+    // Restore the cluster config
+    updateClusterConfigFromRest(TEST_CLUSTER, config, Command.update);
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testValidateClusterConfigChange_missingRequiredTopologyKey_throwsException")
   public void testGetClusters() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

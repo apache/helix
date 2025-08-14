@@ -30,10 +30,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.api.exceptions.InstanceConfigMismatchException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -204,13 +204,16 @@ public class Topology {
           unnecessaryTopoKeys.forEach(instanceTopologyMap::remove);
         }
         addEndNode(root, instanceName, instanceTopologyMap, weight, _liveInstances);
+      } catch (InstanceConfigMismatchException e) {
+        logger.warn("Topology setting {} for instance {} is unset or invalid due to mismatch with cluster topology "
+                + "configuration. Instance will be ignored! Error: {}", insConfig.getDomainAsString(), instanceName,
+            e.getMessage());
       } catch (IllegalArgumentException e) {
         if (insConfig.getInstanceEnabled()) {
           throw e;
-        } else {
-          logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",
-              insConfig.getDomainAsString(), instanceName);
         }
+        logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",
+            insConfig.getDomainAsString(), instanceName);
       }
     }
     return root;
@@ -256,11 +259,15 @@ public class Topology {
                   instanceName));
         }
         int numOfMatchedKeys = 0;
+        boolean shouldThrowExceptionDueToMissingConfigs = false;
         for (String key : clusterTopologyConfig.getTopologyKeyDefaultValue().keySet()) {
           // if a key does not exist in the instance domain config, using the default domain value.
           String value = domainAsMap.get(key);
-          if (value == null || value.length() == 0) {
+          if (value == null || value.isEmpty()) {
             value = clusterTopologyConfig.getTopologyKeyDefaultValue().get(key);
+            if (clusterTopologyConfig.getRequiredMatchingTopologyKeys().contains(key)) {
+              shouldThrowExceptionDueToMissingConfigs = true;
+            }
           } else {
             numOfMatchedKeys++;
           }
@@ -270,10 +277,13 @@ public class Topology {
           }
         }
         if (numOfMatchedKeys < clusterTopologyConfig.getTopologyKeyDefaultValue().size()) {
-          logger.warn(
-              "Key-value pairs in InstanceConfig.Domain {} do not align with keys in ClusterConfig.Topology "
-                  + "{}, using default domain value instead", instanceConfig.getDomainAsString(),
-              clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+          String errorMessage =
+              String.format("Instance %s does not have all the keys in ClusterConfig. Topology %s.", instanceName,
+                  clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+          logger.warn(errorMessage);
+          if (shouldThrowExceptionDueToMissingConfigs) {
+            throw new InstanceConfigMismatchException(errorMessage);
+          }
         }
       }
     } else {

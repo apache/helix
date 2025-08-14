@@ -170,7 +170,10 @@ public class ClusterConfig extends HelixProperty {
     PARTICIPANT_DEREGISTRATION_TIMEOUT,
 
     // Allow disabled partitions to remain OFFLINE instead of being reassigned in WAGED rebalancer
-    RELAXED_DISABLED_PARTITION_CONSTRAINT
+    RELAXED_DISABLED_PARTITION_CONSTRAINT,
+
+    // Ignore instances which do not match the required topology keys of the cluster
+    REQUIRED_INSTANCE_TOPOLOGY_KEYS,
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -871,7 +874,7 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Whether the relaxed disabled partition constraint is enabled for this cluster.
-   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE 
+   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE
    * instead of being immediately reassigned, making behavior consistent with CrushEd.
    * By default it is disabled if not set.
    * @return true if relaxed disabled partition constraint is enabled, false otherwise
@@ -882,12 +885,33 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Enable/disable relaxed disabled partition constraint for this cluster.
-   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE 
+   * When enabled, WAGED rebalancer will allow disabled partitions to remain OFFLINE
    * instead of being immediately reassigned, making behavior consistent with CrushEd.
    * @param enabled true to enable relaxed constraint, false for strict constraint (default)
    */
   public void setRelaxedDisabledPartitionConstraint(boolean enabled) {
     _record.setBooleanField(ClusterConfigProperty.RELAXED_DISABLED_PARTITION_CONSTRAINT.name(), enabled);
+  }
+
+  /**
+   * Get the required Instance Topology Keys. If not configured, return an empty list.
+   * @return a list of required topology keys
+   */
+  public List<String> getRequiredInstanceTopologyKeys() {
+    List<String> topologyKeys = _record.getListField(ClusterConfigProperty.REQUIRED_INSTANCE_TOPOLOGY_KEYS.name());
+    if (topologyKeys == null) {
+      return Collections.emptyList();
+    }
+    return Collections.unmodifiableList(topologyKeys);
+  }
+
+  /**
+   * Set the required Instance Topology Keys which must be present on all instances in the cluster
+   * if they are present in cluster config.
+   * @param topologyKeys
+   */
+  public void setRequiredInstanceTopologyKeys(List<String> topologyKeys) {
+    _record.setListField(ClusterConfigProperty.REQUIRED_INSTANCE_TOPOLOGY_KEYS.name(), topologyKeys);
   }
 
   /**

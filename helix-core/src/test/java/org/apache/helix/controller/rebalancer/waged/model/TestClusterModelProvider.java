@@ -22,6 +22,8 @@ package org.apache.helix.controller.rebalancer.waged.model;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -674,6 +676,92 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
   static class MockAssignableReplica extends AssignableReplica {
     MockAssignableReplica(ResourceConfig resourceConfig, String partition, String replicaState) {
       super(new ClusterConfig("testCluster"), resourceConfig, partition, replicaState, 1);
+    }
+  }
+
+  @Test
+  public void testGetAllAssignableNodes_success() {
+    ClusterConfig clusterConfig = new ClusterConfig("testCluster");
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/zone/instance");
+    clusterConfig.setFaultZoneType("zone");
+
+    InstanceConfig instance1 = new InstanceConfig("instance1");
+    instance1.setDomain("zone=zone1,instance=instance1");
+    InstanceConfig instance2 = new InstanceConfig("instance2");
+    instance2.setDomain("zone=zone2,instance=instance2");
+
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    instanceConfigMap.put("instance1", instance1);
+    instanceConfigMap.put("instance2", instance2);
+
+    Set<String> activeInstances = new HashSet<>(Arrays.asList("instance1", "instance2"));
+
+    Set<AssignableNode> nodes = invokeGetAllAssignableNodes(clusterConfig, instanceConfigMap, activeInstances);
+    Assert.assertEquals(nodes.size(), 2);
+    Set<String> nodeNames = new HashSet<>();
+    for (AssignableNode node : nodes) {
+      nodeNames.add(node.getInstanceName());
+    }
+    Assert.assertTrue(nodeNames.contains("instance1"));
+    Assert.assertTrue(nodeNames.contains("instance2"));
+  }
+
+  @Test
+  public void testGetAllAssignableNodes_missingConfig() {
+    ClusterConfig clusterConfig = new ClusterConfig("testCluster");
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/zone/instance");
+    clusterConfig.setFaultZoneType("zone");
+
+    InstanceConfig instance1 = new InstanceConfig("instance1");
+    instance1.setDomain("zone=zone1,instance=instance1");
+    // instance2 config missing
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    instanceConfigMap.put("instance1", instance1);
+
+    Set<String> activeInstances = new HashSet<>(Arrays.asList("instance1", "instance2"));
+
+    Set<AssignableNode> nodes = invokeGetAllAssignableNodes(clusterConfig, instanceConfigMap, activeInstances);
+    Assert.assertEquals(nodes.size(), 1);
+    AssignableNode node = nodes.iterator().next();
+    Assert.assertEquals(node.getInstanceName(), "instance1");
+  }
+
+  @Test
+  public void testGetAllAssignableNodes_illegalArgumentException() {
+    ClusterConfig clusterConfig = new ClusterConfig("testCluster");
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/zone/instance");
+    clusterConfig.setFaultZoneType("zone");
+
+    // Create an invalid InstanceConfig that will cause IllegalArgumentException
+    InstanceConfig invalidInstance = Mockito.mock(InstanceConfig.class);
+    Mockito.when(invalidInstance.getInstanceName()).thenReturn("invalidInstance");
+    // Simulate invalid domain or missing required config
+    Mockito.when(invalidInstance.getDomainAsMap()).thenThrow(new IllegalArgumentException("Invalid config"));
+
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    instanceConfigMap.put("invalidInstance", invalidInstance);
+
+    Set<String> activeInstances = new HashSet<>(Collections.singletonList("invalidInstance"));
+
+    Set<AssignableNode> nodes = invokeGetAllAssignableNodes(clusterConfig, instanceConfigMap, activeInstances);
+    // Should be empty due to exception
+    Assert.assertTrue(nodes.isEmpty());
+  }
+
+  private Set<AssignableNode> invokeGetAllAssignableNodes(ClusterConfig clusterConfig,
+      Map<String, InstanceConfig> instanceConfigMap, Set<String> activeInstances) {
+    // Use reflection to access private static method
+    try {
+      Method getAllAssignableNodesMethod = ClusterModelProvider.class.getDeclaredMethod(
+          "getAllAssignableNodes", ClusterConfig.class, Map.class, Set.class);
+      getAllAssignableNodesMethod.setAccessible(true);
+      Object result = getAllAssignableNodesMethod.invoke(null, clusterConfig, instanceConfigMap, activeInstances);
+      return (Set<AssignableNode>) result;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 }

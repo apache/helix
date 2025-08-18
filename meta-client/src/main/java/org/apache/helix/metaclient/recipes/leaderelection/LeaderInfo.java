@@ -53,15 +53,23 @@ public class LeaderInfo extends DataRecord {
     PARTICIPANTS
   }
 
-@JsonIgnore(true)
-public String getLeaderName() {
+  @JsonIgnore(true)
+  public String getLeaderName() {
     return getSimpleField("LEADER_NAME");
   }
 
   @JsonIgnore(true)
   public void setLeaderName(String id) {
-     setSimpleField("LEADER_NAME", id);
+    setSimpleField("LEADER_NAME", id);
   }
 
+  @JsonIgnore(true)
+  public void setAcquiredTime() {
+    setSimpleField("ACQUIRED_TIME", String.valueOf(System.currentTimeMillis()));
+  }
 
+  @JsonIgnore(true)
+  public String getAcquiredTime() {
+    return getSimpleField("ACQUIRED_TIME");
+  }
 }

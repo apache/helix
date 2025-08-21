@@ -148,18 +148,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public void subscribeStateChanges(
-      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-    throwUnsupportedOperationException();
-  }
-
-  @Override
-  public void unsubscribeStateChanges(
-      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-    throwUnsupportedOperationException();
-  }
-
-  @Override
   public void unsubscribeAll() {
     _zkRealmToZkClientMap.values().forEach(ZkClient::unsubscribeAll);
   }
@@ -507,8 +495,8 @@ public class FederatedZkClient implements RealmAwareZkClient {
       throw new NullPointerException("ops must not be null.");
     }
     boolean anyDifferent = StreamSupport.stream(ops.spliterator(), false)
-            .map(op -> getZkRealm(op.getPath()))
-            .anyMatch(s -> !s.equals(getZkRealm(ops.iterator().next().getPath())));
+        .map(op -> getZkRealm(op.getPath()))
+        .anyMatch(s -> !s.equals(getZkRealm(ops.iterator().next().getPath())));
 
     if (anyDifferent) {
       throw new IllegalArgumentException("Cannot execute multi on ops of different realms!");

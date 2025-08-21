@@ -1668,7 +1668,7 @@ public class ZkClient implements Watcher {
 
     KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
     if (code == KeeperException.Code.OK) {
-      LOG.info("zkclient {}, sycnOnNewSession with sessionID {} async return code: {} and proceeds",
+      LOG.info("zkclient {}, syncOnNewSession with sessionID {} async return code: {} and proceeds",
           _uid, sessionId, code);
       return true;
     }

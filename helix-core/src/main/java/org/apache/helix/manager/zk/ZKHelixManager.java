@@ -152,6 +152,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   private volatile String _sessionId;
 
+  // This is updated on every SyncConnected call
+  private String _lastQueuedSessionID;
+
   /**
    * Keep track of timestamps that zk State has become Disconnected If in a _timeWindowLengthMs
    * window zk State has become Disconnected for more than_maxDisconnectThreshold times disconnect
@@ -1269,11 +1272,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       }
     // if not flapping, share the continuous logic with Expired case
     case Expired:
-      LOG.warn("KeeperState:" + state + ", SessionId: " + _sessionId + ", instance: "
+      LOG.warn("KeeperState:" + state + ", SessionId: " + _lastQueuedSessionID + ", instance: "
           + _instanceName + ", type: " + _instanceType);
       break;
     default:
-      LOG.info("KeeperState:" + state + ", currentSessionId: " + _sessionId + ", instance: "
+      LOG.info("KeeperState:" + state + ", SessionId: " + _lastQueuedSessionID + ", instance: "
           + _instanceName + ", type: " + _instanceType);
       break;
     }
@@ -1315,14 +1318,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    */
   @Override
   public void handleNewSession(String sessionId) throws Exception {
-    /*
-     * TODO: after removing I0ItecIZkStateListenerImpl, null session should be checked and
-     *  discarded.
-     * Null session is still a special case here, which is treated as non-session aware operation.
-     * This special case could still potentially cause race condition, so null session should NOT
-     * be acceptable, once I0ItecIZkStateListenerImpl is removed. Currently this special case
-     * is kept for backward compatibility.
+    /* Store the queued sessionID here. This will be used by handleStateChange() for logging.
+     * Note: since this is updated during the SyncConnected event, we won't use this ID for logging SyncConnected
+     * itself. A typical reconnection flow is: SyncConnected → Disconnected → Expired → Closed.
+     * For identifying the SyncConnected event's sessionID, we can use the logs from issueSync() which gets queued for
+     * SyncConnected event in fireNewSessionEvents(). We will see either :
+     * - Success: "syncOnNewSession with sessionID {} async return code: {} and proceeds"
+     * - Failure: "Failed to call sync() on new session {}"
      */
+    _lastQueuedSessionID = sessionId;
 
     // Wait until we get a non-zero session id. Otherwise, getSessionId() might be null.
     waitUntilConnected();

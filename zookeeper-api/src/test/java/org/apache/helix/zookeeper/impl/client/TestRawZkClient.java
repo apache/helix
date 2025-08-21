@@ -280,10 +280,6 @@ public class TestRawZkClient extends ZkTestBase {
     }
   }
 
-  
-
-  
-
   @Test
   public void testZkClientMonitor()
       throws Exception {
@@ -634,7 +630,7 @@ public class TestRawZkClient extends ZkTestBase {
     Stat stat = new Stat();
     String nodeData = null;
     try {
-       nodeData = _zkClient.readData(path, stat, true);
+      nodeData = _zkClient.readData(path, stat, true);
     } catch (ZkException e) {
       Assert.fail("fail to read data");
     }

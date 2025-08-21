@@ -436,15 +436,11 @@ public class ZkClient implements Watcher {
     }
   }
 
-  
-
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
     synchronized (_stateListener) {
       _stateListener.remove(stateListener);
     }
   }
-
-  
 
   public void unsubscribeAll() {
     if (_usePersistWatcher) {
@@ -1513,15 +1509,15 @@ public class ZkClient implements Watcher {
     long startT = System.currentTimeMillis();
     final Stat stat;
     try {
-        stat = new Stat();
-        try {
-          LOG.debug("installWatchOnlyPathExist with path: {} ", path);
-          retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
-        } catch (ZkNoNodeException e) {
-          LOG.debug("installWatchOnlyPathExist path not existing: {}", path);
-          record(path, null, startT, ZkClientMonitor.AccessType.READ);
-          return null;
-        }
+      stat = new Stat();
+      try {
+        LOG.debug("installWatchOnlyPathExist with path: {} ", path);
+        retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
+      } catch (ZkNoNodeException e) {
+        LOG.debug("installWatchOnlyPathExist path not existing: {}", path);
+        record(path, null, startT, ZkClientMonitor.AccessType.READ);
+        return null;
+      }
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return stat;
     } catch (Exception e) {
@@ -1600,7 +1596,7 @@ public class ZkClient implements Watcher {
       } catch (Exception e) {
         reconnectException = e;
         long waitInterval = ExponentialBackoffStrategy.getWaitInterval(currTime,
-          MAX_RECONNECT_INTERVAL_MS, true, retryCount++);
+            MAX_RECONNECT_INTERVAL_MS, true, retryCount++);
         LOG.warn("ZkClient {}, reconnect on expiring failed. Will retry after {} ms",
             _uid, waitInterval, e);
         try {
@@ -1872,7 +1868,7 @@ public class ZkClient implements Watcher {
       getChildren(node, false).stream().forEach(child -> nodes.offer(node + "/" + child));
       ops.add(Op.delete(node, -1));
     }
-   // Reverse the list so that operations are ordered from children to parent nodes
+    // Reverse the list so that operations are ordered from children to parent nodes
     Collections.reverse(ops);
     return ops;
   }
@@ -2139,13 +2135,13 @@ public class ZkClient implements Watcher {
           // we give the event thread some time to update the status to 'Disconnected'
           Thread.yield();
           waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
-            _operationRetryTimeoutInMillis, true, retryCount++));
+              _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (SessionExpiredException e) {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Expired'
           Thread.yield();
           waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
-            _operationRetryTimeoutInMillis, true, retryCount++));
+              _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (ZkSessionMismatchedException e) {
           throw e;
         } catch (KeeperException e) {
@@ -3008,7 +3004,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  
+
 
   private void validateCurrentThread() {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {

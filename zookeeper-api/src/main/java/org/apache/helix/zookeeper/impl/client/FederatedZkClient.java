@@ -495,8 +495,8 @@ public class FederatedZkClient implements RealmAwareZkClient {
       throw new NullPointerException("ops must not be null.");
     }
     boolean anyDifferent = StreamSupport.stream(ops.spliterator(), false)
-            .map(op -> getZkRealm(op.getPath()))
-            .anyMatch(s -> !s.equals(getZkRealm(ops.iterator().next().getPath())));
+        .map(op -> getZkRealm(op.getPath()))
+        .anyMatch(s -> !s.equals(getZkRealm(ops.iterator().next().getPath())));
 
     if (anyDifferent) {
       throw new IllegalArgumentException("Cannot execute multi on ops of different realms!");

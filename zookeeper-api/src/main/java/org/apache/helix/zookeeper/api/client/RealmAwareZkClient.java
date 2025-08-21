@@ -130,15 +130,6 @@ public interface RealmAwareZkClient {
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 
-  // Backward-compatibility adapter removed. Implementations must support
-  // subscribeStateChanges/unsubscribeStateChanges with modern IZkStateListener.
-
-  
-
-  
-
-  
-
   void unsubscribeAll();
 
   // data access
@@ -328,12 +319,6 @@ public interface RealmAwareZkClient {
   default RealmAwareZkClientConfig getRealmAwareZkClientConfig() {
     throw new UnsupportedOperationException("getRealmAwareZkClientConfig() is not supported!");
   }
-
-  /**
-   * A class that wraps a default implementation of {@link IZkStateListener}.
-   * Backward-compatibility with deprecated I0Itec listeners has been removed.
-   */
-  
 
   /**
    * ZkConnection-related configs for creating an instance of RealmAwareZkClient.

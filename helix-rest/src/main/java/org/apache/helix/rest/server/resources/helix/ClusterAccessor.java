@@ -57,6 +57,7 @@ import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
@@ -1284,6 +1285,12 @@ public class ClusterAccessor extends AbstractHelixResource {
       if (updatedConfig.getTopology() == null || updatedConfig.getFaultZoneType() == null) {
         throw new IllegalArgumentException(
             "Topology and fault zone type must be set when topology aware is enabled.");
+      }
+      // Verify fault zone is one of the cluster config key
+      ClusterTopologyConfig updatedTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(updatedConfig);
+      if (!updatedTopologyConfig.getTopologyKeyDefaultValue().containsKey(updatedConfig.getFaultZoneType())) {
+        throw new IllegalArgumentException(
+            "Fault zone type " + updatedConfig.getFaultZoneType() + " is not present in the topology path.");
       }
 
       boolean isTopologyAwareChanged =

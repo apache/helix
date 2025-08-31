@@ -172,8 +172,8 @@ public class ClusterConfig extends HelixProperty {
     // Allow disabled partitions to remain OFFLINE instead of being reassigned in WAGED rebalancer
     RELAXED_DISABLED_PARTITION_CONSTRAINT,
 
-    // Ignore instances which do not match the required topology keys of the cluster
-    REQUIRED_INSTANCE_TOPOLOGY_KEYS,
+    // Do not ignore instances which do not match the fault zone type of the cluster
+    DISABLE_FAULT_ZONE_TYPE_TO_INSTANCE_TOPOLOGY_MATCHING,
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -894,24 +894,19 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Get the required Instance Topology Keys. If not configured, return an empty list.
-   * @return a list of required topology keys
+   * Whether to ignore instances which do not match the fault zone type of the cluster
+   * @return true if disable fault zone type to instance topology matching, false otherwise
    */
-  public List<String> getRequiredInstanceTopologyKeys() {
-    List<String> topologyKeys = _record.getListField(ClusterConfigProperty.REQUIRED_INSTANCE_TOPOLOGY_KEYS.name());
-    if (topologyKeys == null) {
-      return Collections.emptyList();
-    }
-    return Collections.unmodifiableList(topologyKeys);
+  public boolean isDisableFaultZoneTypeToInstanceTopologyMatching() {
+    return _record.getBooleanField(ClusterConfigProperty.DISABLE_FAULT_ZONE_TYPE_TO_INSTANCE_TOPOLOGY_MATCHING.name(), false);
   }
 
   /**
-   * Set the required Instance Topology Keys which must be present on all instances in the cluster
-   * if they are present in cluster config.
-   * @param topologyKeys
+   * Set whether to ignore instances which do not match the fault zone type of the cluster
+   * @param disable
    */
-  public void setRequiredInstanceTopologyKeys(List<String> topologyKeys) {
-    _record.setListField(ClusterConfigProperty.REQUIRED_INSTANCE_TOPOLOGY_KEYS.name(), topologyKeys);
+  public void setDisableFaultZoneTypeToInstanceTopologyMatching(boolean disable) {
+    _record.setBooleanField(ClusterConfigProperty.DISABLE_FAULT_ZONE_TYPE_TO_INSTANCE_TOPOLOGY_MATCHING.name(), disable);
   }
 
   /**

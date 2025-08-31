@@ -157,39 +157,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dependsOnMethods = "testValidateClusterConfigChange")
-  public void testValidateClusterConfigChange_missingRequiredTopologyKey_throwsException() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-    ClusterConfig config = getClusterConfigFromRest(TEST_CLUSTER);
-
-    // Update config with mismatching required topology key while enabling topology aware
-    {
-      ClusterConfig newConfig = new ClusterConfig(config.getClusterName());
-      newConfig.setTopologyAwareEnabled(true);
-      newConfig.setTopology("/zone/rack/host");
-      newConfig.setFaultZoneType("zone");
-      newConfig.setRequiredInstanceTopologyKeys(Arrays.asList("rack", "missingKey"));
-      _auditLogger.clearupLogs();
-      Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()),
-          MediaType.APPLICATION_JSON_TYPE);
-      post("clusters/" + TEST_CLUSTER + "/configs", ImmutableMap.of("command", Command.update.name()),
-          entity, Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-
-      validateAuditLogSize(1);
-      AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
-      Assert.assertEquals(auditLog.getHttpMethod(), HTTPMethods.POST.name());
-      Assert.assertEquals(auditLog.getRequestPath(), "clusters/" + TEST_CLUSTER + "/configs");
-      Assert.assertEquals(auditLog.getExceptions().size(), 1);
-      Assert.assertEquals(auditLog.getExceptions().get(0).getMessage(),
-          "Required instance topology key missingKey is not present in the topology path.");
-    }
-
-    // Restore the cluster config
-    updateClusterConfigFromRest(TEST_CLUSTER, config, Command.update);
-
-    System.out.println("End test :" + TestHelper.getTestMethodName());
-  }
-
   @Test(dependsOnMethods = "testValidateClusterConfigChange_missingRequiredTopologyKey_throwsException")
   public void testGetClusters() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());

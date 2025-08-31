@@ -19,8 +19,6 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.topology.Topology;
@@ -38,7 +36,7 @@ public class TestClusterTopologyConfig {
     Assert.assertEquals(clusterTopologyConfig.getEndNodeType(), Topology.Types.INSTANCE.name());
     Assert.assertEquals(clusterTopologyConfig.getFaultZoneType(), Topology.Types.INSTANCE.name());
     Assert.assertTrue(clusterTopologyConfig.getTopologyKeyDefaultValue().isEmpty());
-    Assert.assertTrue(clusterTopologyConfig.getRequiredMatchingTopologyKeys().isEmpty());
+    Assert.assertTrue(clusterTopologyConfig.isDisableFaultZoneTypeToInstanceTopologyMatching());
   }
 
   @Test
@@ -46,7 +44,7 @@ public class TestClusterTopologyConfig {
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.setTopologyAwareEnabled(true);
     testConfig.setTopology("/zone/instance");
-    testConfig.setRequiredInstanceTopologyKeys(Collections.singletonList("mz_virtualzone"));
+    testConfig.setDisableFaultZoneTypeToInstanceTopologyMatching(false);
     // no fault zone setup
     ClusterTopologyConfig clusterTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(testConfig);
     Assert.assertEquals(clusterTopologyConfig.getEndNodeType(), "instance");
@@ -75,8 +73,7 @@ public class TestClusterTopologyConfig {
     for (String k : keys) {
       Assert.assertEquals(k, itr.next());
     }
-    Assert.assertEquals(clusterTopologyConfig.getRequiredMatchingTopologyKeys().size(), 1);
-    Assert.assertEquals(clusterTopologyConfig.getRequiredMatchingTopologyKeys().get(0), "mz_virtualzone");
+    Assert.assertFalse(clusterTopologyConfig.isDisableFaultZoneTypeToInstanceTopologyMatching());
   }
 
   @Test(expectedExceptions = HelixException.class)

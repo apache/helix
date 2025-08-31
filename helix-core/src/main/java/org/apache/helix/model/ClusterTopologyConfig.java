@@ -19,9 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.topology.Topology;
@@ -34,15 +32,15 @@ public class ClusterTopologyConfig {
   private final String _endNodeType;
   private final String _faultZoneType;
   private final LinkedHashMap<String, String> _topologyKeyDefaultValue;
-  private final List<String> _requiredMatchingTopologyKeys;
+  private final boolean _disableFaultZoneTypeToInstanceTopologyMatching;
 
   private ClusterTopologyConfig(boolean topologyAwareEnabled, String endNodeType, String faultZoneType,
-      LinkedHashMap<String, String> topologyKeyDefaultValue, List<String> requiredMatchingTopologyKeys) {
+      LinkedHashMap<String, String> topologyKeyDefaultValue, boolean disableFaultZoneTypeToInstanceTopologyMatching) {
     _topologyAwareEnabled = topologyAwareEnabled;
     _endNodeType = endNodeType;
     _faultZoneType = faultZoneType;
     _topologyKeyDefaultValue = topologyKeyDefaultValue;
-    _requiredMatchingTopologyKeys = requiredMatchingTopologyKeys;
+    _disableFaultZoneTypeToInstanceTopologyMatching = disableFaultZoneTypeToInstanceTopologyMatching;
   }
 
   /**
@@ -57,14 +55,13 @@ public class ClusterTopologyConfig {
           false,
           Topology.Types.INSTANCE.name(),
           Topology.Types.INSTANCE.name(),
-          new LinkedHashMap<>(), 
-          new ArrayList<>());
+          new LinkedHashMap<>(),
+          true);
     }
     // Assign default cluster topology definition, i,e. /root/zone/instance
     String endNodeType = Topology.Types.INSTANCE.name();
     String faultZoneType = Topology.Types.ZONE.name();
     LinkedHashMap<String, String> topologyKeyDefaultValue = new LinkedHashMap<>();
-    List<String> requiredMatchingTopologyKeys = clusterConfig.getRequiredInstanceTopologyKeys();
 
     String topologyDef = clusterConfig.getTopology();
     if (topologyDef != null) {
@@ -86,7 +83,8 @@ public class ClusterTopologyConfig {
                 faultZoneType, clusterConfig.getTopology()));
       }
     }
-    return new ClusterTopologyConfig(true, endNodeType, faultZoneType, topologyKeyDefaultValue, requiredMatchingTopologyKeys);
+    return new ClusterTopologyConfig(true, endNodeType, faultZoneType, topologyKeyDefaultValue,
+        clusterConfig.isDisableFaultZoneTypeToInstanceTopologyMatching());
   }
 
   public boolean isTopologyAwareEnabled() {
@@ -105,7 +103,7 @@ public class ClusterTopologyConfig {
     return _topologyKeyDefaultValue;
   }
 
-  public List<String> getRequiredMatchingTopologyKeys() {
-    return _requiredMatchingTopologyKeys;
+  public boolean isDisableFaultZoneTypeToInstanceTopologyMatching() {
+    return _disableFaultZoneTypeToInstanceTopologyMatching;
   }
 }

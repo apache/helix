@@ -67,13 +67,6 @@ public class TestZkClientRetryTimeout extends ZkTestBase {
     _zkClient.setCurrentState(Watcher.Event.KeeperState.SyncConnected);
   }
 
-  @AfterClass
-  public void afterMethod() {
-    if (_zkClient != null) {
-      _zkClient.close();
-    }
-  }
-
   /**
    * Test that retryUntilConnected respects the _operationRetryTimeoutInMillis and throws
    * ZkTimeoutException when the timeout is exceeded.

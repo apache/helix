@@ -26,6 +26,7 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -196,5 +197,23 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertEquals(testFactory.getActiveConnectionCount(), 0);
 
     deleteCluster("testSharingZkClient");
+  }
+
+  @Test
+  public void testZKClientConfig() {
+    HelixZkClient.ZkConnectionConfig connectionConfig =
+        new HelixZkClient.ZkConnectionConfig(ZK_ADDR);
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setConnectInitTimeout(2000);
+    clientConfig.setOperationRetryTimeout(3000L);
+
+    // A factory just for this tests, this for avoiding the impact from other tests running in
+    // parallel.
+    final SharedZkClientFactory testFactory = new SharedZkClientFactory();
+    ZkClient zkClient =
+        (ZkClient) testFactory.buildZkClient(connectionConfig, clientConfig);
+    Assert.assertEquals(zkClient.getOperationRetryTimeout(), 3000);
+
+    zkClient.close();
   }
 }

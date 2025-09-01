@@ -275,6 +275,10 @@ public class ZkClient implements Watcher {
         monitorInstanceName, monitorRootPathOnly, true, false);
   }
 
+  public long getOperationRetryTimeout() {
+    return _operationRetryTimeoutInMillis;
+  }
+
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
     ChildrenSubscribeResult result = subscribeChildChanges(path, listener, false);
     return result.getChildren();

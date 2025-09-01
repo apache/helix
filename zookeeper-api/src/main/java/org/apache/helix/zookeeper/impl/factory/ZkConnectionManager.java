@@ -61,9 +61,9 @@ public class ZkConnectionManager extends ZkClient {
    * @param zkConnection
    * @param connectionTimeout
    */
-  protected ZkConnectionManager(IZkConnection zkConnection, long connectionTimeout,
+  protected ZkConnectionManager(IZkConnection zkConnection, long connectionTimeout, long operationTimeout,
       String monitorKey) {
-    super(zkConnection, (int) connectionTimeout, HelixZkClient.DEFAULT_OPERATION_TIMEOUT,
+    super(zkConnection, (int) connectionTimeout, operationTimeout,
         new BasicZkSerializer(new SerializableSerializer()), MONITOR_TYPE, monitorKey, null, true);
     _monitorKey = monitorKey;
     LOG.info("ZkConnection {} was created for sharing.", _monitorKey);

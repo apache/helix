@@ -2205,6 +2205,7 @@ public class ZkClient implements Watcher {
   private void waitForRetry(long maxSleep) {
     if (waitUntilConnected(_operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS)) {
       try {
+        LOG.debug("zkclient {} Wait for {} ms before retrying operation", _uid, maxSleep);
         Thread.sleep(maxSleep);
       } catch (InterruptedException ex) {
         // we don't need to re-throw.

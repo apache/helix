@@ -22,6 +22,7 @@ package org.apache.helix.manager.zk.client;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.zookeeper.Watcher;
 
@@ -39,7 +40,7 @@ class ZkConnectionManager extends org.apache.helix.zookeeper.impl.factory.ZkConn
    */
   protected ZkConnectionManager(IZkConnection zkConnection, long connectionTimeout,
       String monitorKey) {
-    super(zkConnection, connectionTimeout, monitorKey);
+    super(zkConnection, connectionTimeout, HelixZkClient.DEFAULT_OPERATION_TIMEOUT, monitorKey);
   }
 
   /**

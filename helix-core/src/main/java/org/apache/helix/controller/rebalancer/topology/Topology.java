@@ -265,8 +265,8 @@ public class Topology {
           String value = domainAsMap.get(key);
           if (value == null || value.isEmpty()) {
             value = clusterTopologyConfig.getTopologyKeyDefaultValue().get(key);
-            if (!clusterTopologyConfig.isDisableFaultZoneTypeToInstanceTopologyMatching()
-                && key.equals(clusterTopologyConfig.getFaultZoneType())) {
+            if (clusterTopologyConfig.isTopologyAwareEnabled()
+                    && key.equals(clusterTopologyConfig.getFaultZoneType())) {
               shouldThrowExceptionDueToMissingConfigs = true;
             }
           } else {

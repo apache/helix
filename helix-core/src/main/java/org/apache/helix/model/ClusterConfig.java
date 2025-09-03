@@ -171,9 +171,6 @@ public class ClusterConfig extends HelixProperty {
 
     // Allow disabled partitions to remain OFFLINE instead of being reassigned in WAGED rebalancer
     RELAXED_DISABLED_PARTITION_CONSTRAINT,
-
-    // Do not ignore instances which do not match the fault zone type of the cluster
-    DISABLE_FAULT_ZONE_TYPE_TO_INSTANCE_TOPOLOGY_MATCHING,
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -891,22 +888,6 @@ public class ClusterConfig extends HelixProperty {
    */
   public void setRelaxedDisabledPartitionConstraint(boolean enabled) {
     _record.setBooleanField(ClusterConfigProperty.RELAXED_DISABLED_PARTITION_CONSTRAINT.name(), enabled);
-  }
-
-  /**
-   * Whether to ignore instances which do not match the fault zone type of the cluster
-   * @return true if disable fault zone type to instance topology matching, false otherwise
-   */
-  public boolean isDisableFaultZoneTypeToInstanceTopologyMatching() {
-    return _record.getBooleanField(ClusterConfigProperty.DISABLE_FAULT_ZONE_TYPE_TO_INSTANCE_TOPOLOGY_MATCHING.name(), false);
-  }
-
-  /**
-   * Set whether to ignore instances which do not match the fault zone type of the cluster
-   * @param disable
-   */
-  public void setDisableFaultZoneTypeToInstanceTopologyMatching(boolean disable) {
-    _record.setBooleanField(ClusterConfigProperty.DISABLE_FAULT_ZONE_TYPE_TO_INSTANCE_TOPOLOGY_MATCHING.name(), disable);
   }
 
   /**

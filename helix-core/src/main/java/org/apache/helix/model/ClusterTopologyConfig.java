@@ -32,15 +32,13 @@ public class ClusterTopologyConfig {
   private final String _endNodeType;
   private final String _faultZoneType;
   private final LinkedHashMap<String, String> _topologyKeyDefaultValue;
-  private final boolean _disableFaultZoneTypeToInstanceTopologyMatching;
 
   private ClusterTopologyConfig(boolean topologyAwareEnabled, String endNodeType, String faultZoneType,
-      LinkedHashMap<String, String> topologyKeyDefaultValue, boolean disableFaultZoneTypeToInstanceTopologyMatching) {
+      LinkedHashMap<String, String> topologyKeyDefaultValue) {
     _topologyAwareEnabled = topologyAwareEnabled;
     _endNodeType = endNodeType;
     _faultZoneType = faultZoneType;
     _topologyKeyDefaultValue = topologyKeyDefaultValue;
-    _disableFaultZoneTypeToInstanceTopologyMatching = disableFaultZoneTypeToInstanceTopologyMatching;
   }
 
   /**
@@ -55,8 +53,7 @@ public class ClusterTopologyConfig {
           false,
           Topology.Types.INSTANCE.name(),
           Topology.Types.INSTANCE.name(),
-          new LinkedHashMap<>(),
-          true);
+          new LinkedHashMap<>());
     }
     // Assign default cluster topology definition, i,e. /root/zone/instance
     String endNodeType = Topology.Types.INSTANCE.name();
@@ -83,8 +80,7 @@ public class ClusterTopologyConfig {
                 faultZoneType, clusterConfig.getTopology()));
       }
     }
-    return new ClusterTopologyConfig(true, endNodeType, faultZoneType, topologyKeyDefaultValue,
-        clusterConfig.isDisableFaultZoneTypeToInstanceTopologyMatching());
+    return new ClusterTopologyConfig(true, endNodeType, faultZoneType, topologyKeyDefaultValue);
   }
 
   public boolean isTopologyAwareEnabled() {
@@ -101,9 +97,5 @@ public class ClusterTopologyConfig {
 
   public LinkedHashMap<String, String> getTopologyKeyDefaultValue() {
     return _topologyKeyDefaultValue;
-  }
-
-  public boolean isDisableFaultZoneTypeToInstanceTopologyMatching() {
-    return _disableFaultZoneTypeToInstanceTopologyMatching;
   }
 }

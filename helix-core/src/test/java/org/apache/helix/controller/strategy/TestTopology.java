@@ -182,21 +182,20 @@ public class TestTopology {
   }
 
   @Test(dataProvider = "booleanData")
-  public void testInstanceToClusterConfigMismatch(boolean disableFaultZoneTypeToInstanceTopologyMatching) {
+  public void testInstanceToClusterConfigMismatch(boolean isTopologyAwareEnabled) {
     ClusterConfig clusterConfig = new ClusterConfig("Test_Cluster");
 
     // Set up a specific topology with required keys
     String topology = "/DataCenter/Rack/Host/Instance";
     clusterConfig.setTopology(topology);
     clusterConfig.setFaultZoneType("DataCenter");
-    clusterConfig.setTopologyAwareEnabled(true);
-    clusterConfig.setDisableFaultZoneTypeToInstanceTopologyMatching(disableFaultZoneTypeToInstanceTopologyMatching);
+    clusterConfig.setTopologyAwareEnabled(isTopologyAwareEnabled);
 
     List<String> allNodes = new ArrayList<>();
     List<String> liveNodes = new ArrayList<>();
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
 
-    // Add instances with all configurations other domain
+    // Add instances with all configurations other than domain
     for (int i = 0; i < 10; i++) {
       String instance = "localhost_" + i;
       InstanceConfig config = new InstanceConfig(instance);
@@ -225,19 +224,20 @@ public class TestTopology {
     Node root = topo.getRootNode();
     List<Node> allLeafNodes = Topology.getAllLeafNodes(root);
 
+    int expectedInstancesCount = isTopologyAwareEnabled ? 5 : 10;
     // Should only have 5 instances (the ones with correct domain configuration)
-    Assert.assertEquals(allLeafNodes.size(), disableFaultZoneTypeToInstanceTopologyMatching ? 10 : 5);
+    Assert.assertEquals(allLeafNodes.size(), expectedInstancesCount);
 
     // Verify that all included instances have the correct naming pattern
     for (Node leafNode : allLeafNodes) {
       String instanceName = ((InstanceNode) leafNode).getInstanceName();
       int instanceId = Integer.parseInt(instanceName.split("_")[1]);
-      Assert.assertTrue(instanceId < (disableFaultZoneTypeToInstanceTopologyMatching ? 10 : 5), "Only instances 0-4 should be included");
+      Assert.assertTrue(instanceId < expectedInstancesCount, "Only instances 0-4 should be included");
     }
 
     // Verify topology structure for included instances
-    Assert.assertEquals(root.getChildrenCount("DataCenter"), disableFaultZoneTypeToInstanceTopologyMatching ? 2 : 1);
-    Assert.assertEquals(root.getChildrenCount("Rack"), disableFaultZoneTypeToInstanceTopologyMatching ? 10 : 5);
-    Assert.assertEquals(root.getChildrenCount("Instance"), disableFaultZoneTypeToInstanceTopologyMatching ? 10 : 5);
+    Assert.assertEquals(root.getChildrenCount("DataCenter"), isTopologyAwareEnabled ? 1 : 0);
+    Assert.assertEquals(root.getChildrenCount("Rack"), isTopologyAwareEnabled ? 5 : 0);
+    Assert.assertEquals(root.getChildrenCount("Instance"), expectedInstancesCount);
   }
 }

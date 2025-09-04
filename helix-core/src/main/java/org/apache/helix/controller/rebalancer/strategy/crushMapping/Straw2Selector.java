@@ -27,6 +27,9 @@ class Straw2Selector implements Selector {
         hiScore = score;
       }
     }
+    if (selected == null) {
+      throw new IllegalStateException("No node selected for input " + input + " and round " + round);
+    }
     return selected;
   }
 

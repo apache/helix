@@ -110,8 +110,8 @@ public class CrushRebalanceStrategy implements RebalanceStrategy<ResourceControl
         selected = select(topNode, data, _replicas, eventId);
       } catch (IllegalStateException e) {
         String errorMessage = String
-            .format("Could not select enough number of nodes. %s partition %s, required %d",
-                _resourceName, partitionName, _replicas);
+            .format("Could not select enough number of nodes. Resource=%s, partition=%s, hash=%d, required=%d. %s",
+                _resourceName, partitionName, data, _replicas, e.getMessage());
         throw new HelixException(errorMessage, e);
       }
 

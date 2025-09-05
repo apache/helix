@@ -3,11 +3,14 @@ package org.apache.helix.controller.rebalancer.strategy.crushMapping;
 import java.util.List;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.util.JenkinsHash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Selection algorithm based on the "straw2" bucket type as described https://www.spinics.net/lists/ceph-devel/msg21635.html.
  */
 class Straw2Selector implements Selector {
+  private static final Logger LOG = LoggerFactory.getLogger(Straw2Selector.class);
 
   private final List<Node> _nodes;
   private final JenkinsHash _hashFunction;
@@ -15,6 +18,11 @@ class Straw2Selector implements Selector {
   Straw2Selector(Node node) {
     _nodes = node.getChildren();
     _hashFunction = new JenkinsHash();
+
+    if (_nodes == null || _nodes.isEmpty()) {
+      LOG.warn("Straw2Selector created with empty node: name={}, type={}, id={}",
+          node.getName(), node.getType(), node.getId());
+    }
   }
 
   public Node select(long input, long round) {
@@ -28,7 +36,9 @@ class Straw2Selector implements Selector {
       }
     }
     if (selected == null) {
-      throw new IllegalStateException("No node selected for input " + input + " and round " + round);
+      throw new IllegalStateException(
+          String.format("No node selected for input %d and round %d. NodeCount=%d",
+              input, round, _nodes == null ? 0 : _nodes.size()));
     }
     return selected;
   }

@@ -619,8 +619,9 @@ public class ClusterModelProvider {
           } catch (IllegalArgumentException e) {
             // Log the filtering of invalid instance configuration
             // This helps with debugging when instances are unexpectedly excluded
-            logger.warn("Instance {} has invalid configuration and will be excluded from the assignable nodes: {}",
-                instanceName, e.getMessage());
+            logger.warn(
+                "Instance {} of cluster {} has invalid configuration and will be excluded from the assignable nodes: {}",
+                instanceName, clusterConfig.getClusterName(), e.getMessage());
             return null;
           }
         })

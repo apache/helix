@@ -192,7 +192,8 @@ public class Topology {
       InstanceConfig insConfig = _instanceConfigMap.get(instanceName);
       try {
         LinkedHashMap<String, String> instanceTopologyMap =
-            computeInstanceTopologyMapHelper(_clusterTopologyConfig, instanceName, insConfig, null);
+            computeInstanceTopologyMapHelper(_clusterTopologyConfig, instanceName,
+                clusterConfig.getClusterName(), insConfig, null);
         int weight = insConfig.getWeight();
         if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
           weight = DEFAULT_NODE_WEIGHT;
@@ -224,12 +225,14 @@ public class Topology {
    * The mapping is the cluster topology path name to its corresponding value.
    * @param clusterTopologyConfig
    * @param instanceName
+   * @param clusterName
    * @param instanceConfig
    * @param faultZoneForEarlyQuit  Nullable, if set to non-null value, the faultZone path will stop at the matched
    *                               faultZone value instead of constructing the whole path for the instance.
    */
   private static LinkedHashMap<String, String> computeInstanceTopologyMapHelper(
-      ClusterTopologyConfig clusterTopologyConfig, String instanceName, InstanceConfig instanceConfig,
+      ClusterTopologyConfig clusterTopologyConfig, String instanceName, String clusterName,
+      InstanceConfig instanceConfig,
       String faultZoneForEarlyQuit)
       throws IllegalArgumentException {
     LinkedHashMap<String, String> instanceTopologyMap = new LinkedHashMap<>();
@@ -277,12 +280,15 @@ public class Topology {
           }
         }
         if (numOfMatchedKeys < clusterTopologyConfig.getTopologyKeyDefaultValue().size()) {
-          String errorMessage =
-              String.format("Instance %s does not have all the keys in ClusterConfig. Topology %s.", instanceName,
-                  clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+          String errorMessage = String.format(
+              "Instance %s in cluster %s does not have all the keys in ClusterConfig. Topology %s.",
+              instanceName, clusterName,
+              clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
           logger.warn(errorMessage);
           if (missingRequiredFaultZoneKey) {
-            throw new InstanceConfigMismatchException(errorMessage);
+            throw new InstanceConfigMismatchException(
+                String.format("Instance %s in cluster %s has missing fault zone type key set %s",
+                    instanceName, clusterName, clusterTopologyConfig.getFaultZoneType()));
           }
         }
       }
@@ -313,7 +319,8 @@ public class Topology {
     ClusterTopologyConfig clusterTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(clusterConfig);
     String faultZoneForEarlyQuit =
         earlyQuitForFaultZone ? clusterTopologyConfig.getFaultZoneType() : null;
-    return computeInstanceTopologyMapHelper(clusterTopologyConfig, instanceName, instanceConfig, faultZoneForEarlyQuit);
+    return computeInstanceTopologyMapHelper(clusterTopologyConfig, instanceName,
+        clusterConfig.getClusterName(), instanceConfig, faultZoneForEarlyQuit);
   }
 
   /**

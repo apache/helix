@@ -1288,7 +1288,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       }
       // Verify fault zone is one of the cluster config key
       ClusterTopologyConfig updatedTopologyConfig = ClusterTopologyConfig.createFromClusterConfig(updatedConfig);
-      if (!updatedTopologyConfig.getTopologyKeyDefaultValue().containsKey(updatedConfig.getFaultZoneType())) {
+      if (!updatedTopologyConfig.getTopologyKeyDefaultValue().containsKey(updatedTopologyConfig.getFaultZoneType())) {
         throw new IllegalArgumentException(
             "Fault zone type " + updatedConfig.getFaultZoneType() + " is not present in the topology path.");
       }

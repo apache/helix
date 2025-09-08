@@ -259,15 +259,14 @@ public class Topology {
                   instanceName));
         }
         int numOfMatchedKeys = 0;
-        boolean shouldThrowExceptionDueToMissingConfigs = false;
+        boolean missingRequiredFaultZoneKey = false;
         for (String key : clusterTopologyConfig.getTopologyKeyDefaultValue().keySet()) {
           // if a key does not exist in the instance domain config, using the default domain value.
           String value = domainAsMap.get(key);
           if (value == null || value.isEmpty()) {
             value = clusterTopologyConfig.getTopologyKeyDefaultValue().get(key);
-            if (clusterTopologyConfig.isTopologyAwareEnabled()
-                    && key.equals(clusterTopologyConfig.getFaultZoneType())) {
-              shouldThrowExceptionDueToMissingConfigs = true;
+            if (key.equals(clusterTopologyConfig.getFaultZoneType())) {
+                missingRequiredFaultZoneKey = true;
             }
           } else {
             numOfMatchedKeys++;
@@ -282,7 +281,7 @@ public class Topology {
               String.format("Instance %s does not have all the keys in ClusterConfig. Topology %s.", instanceName,
                   clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
           logger.warn(errorMessage);
-          if (shouldThrowExceptionDueToMissingConfigs) {
+          if (missingRequiredFaultZoneKey) {
             throw new InstanceConfigMismatchException(errorMessage);
           }
         }

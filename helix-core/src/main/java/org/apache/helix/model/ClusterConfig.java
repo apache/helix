@@ -171,9 +171,6 @@ public class ClusterConfig extends HelixProperty {
 
     // Allow disabled partitions to remain OFFLINE instead of being reassigned in WAGED rebalancer
     RELAXED_DISABLED_PARTITION_CONSTRAINT,
-
-    // Ignore instances which do not match the required topology keys of the cluster
-    REQUIRED_INSTANCE_TOPOLOGY_KEYS,
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -891,27 +888,6 @@ public class ClusterConfig extends HelixProperty {
    */
   public void setRelaxedDisabledPartitionConstraint(boolean enabled) {
     _record.setBooleanField(ClusterConfigProperty.RELAXED_DISABLED_PARTITION_CONSTRAINT.name(), enabled);
-  }
-
-  /**
-   * Get the required Instance Topology Keys. If not configured, return an empty list.
-   * @return a list of required topology keys
-   */
-  public List<String> getRequiredInstanceTopologyKeys() {
-    List<String> topologyKeys = _record.getListField(ClusterConfigProperty.REQUIRED_INSTANCE_TOPOLOGY_KEYS.name());
-    if (topologyKeys == null) {
-      return Collections.emptyList();
-    }
-    return Collections.unmodifiableList(topologyKeys);
-  }
-
-  /**
-   * Set the required Instance Topology Keys which must be present on all instances in the cluster
-   * if they are present in cluster config.
-   * @param topologyKeys
-   */
-  public void setRequiredInstanceTopologyKeys(List<String> topologyKeys) {
-    _record.setListField(ClusterConfigProperty.REQUIRED_INSTANCE_TOPOLOGY_KEYS.name(), topologyKeys);
   }
 
   /**

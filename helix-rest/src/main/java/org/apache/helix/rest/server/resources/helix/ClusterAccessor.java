@@ -1295,19 +1295,6 @@ public class ClusterAccessor extends AbstractHelixResource {
       boolean isFaultZoneTypeChanged =
           oldConfig.getFaultZoneType() == null || (oldConfig.getFaultZoneType() != null
               && !oldConfig.getFaultZoneType().equals(updatedConfig.getFaultZoneType()));
-      boolean isRequiredInstanceTopologyKeysChanged =
-          !oldConfig.getRequiredInstanceTopologyKeys().equals(updatedConfig.getRequiredInstanceTopologyKeys());
-
-      if (isTopologyPathChanged || isRequiredInstanceTopologyKeysChanged) {
-        // All required instance topology keys must be present in the topology path.
-        ClusterTopologyConfig topologyConfig = ClusterTopologyConfig.createFromClusterConfig(updatedConfig);
-        for (String key : updatedConfig.getRequiredInstanceTopologyKeys()) {
-          if (!topologyConfig.getTopologyKeyDefaultValue().keySet().contains(key)) {
-            throw new IllegalArgumentException(
-                "Required instance topology key " + key + " is not present in the topology path.");
-          }
-        }
-      }
 
       if (isTopologyAwareChanged || isTopologyPathChanged || isFaultZoneTypeChanged) {
         HelixDataAccessor dataAccessor = getDataAccssor(clusterName);

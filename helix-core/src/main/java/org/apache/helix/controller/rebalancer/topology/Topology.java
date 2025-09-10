@@ -261,7 +261,7 @@ public class Topology {
               .format("Domain for instance %s is not set, fail the topology-aware placement!",
                   instanceName));
         }
-        int numOfMatchedKeys = 0;
+        List<String> missingKeys = new ArrayList<>();
         boolean missingRequiredFaultZoneKey = false;
         for (String key : clusterTopologyConfig.getTopologyKeyDefaultValue().keySet()) {
           // if a key does not exist in the instance domain config, using the default domain value.
@@ -271,19 +271,18 @@ public class Topology {
             if (key.equals(clusterTopologyConfig.getFaultZoneType())) {
                 missingRequiredFaultZoneKey = true;
             }
-          } else {
-            numOfMatchedKeys++;
+            missingKeys.add(key);
           }
           instanceTopologyMap.put(key, value);
           if (key.equals(faultZoneForEarlyQuit)) {
             return instanceTopologyMap;
           }
         }
-        if (numOfMatchedKeys < clusterTopologyConfig.getTopologyKeyDefaultValue().size()) {
+        if (!missingKeys.isEmpty()) {
           String errorMessage = String.format(
-              "Instance %s in cluster %s does not have all the keys in ClusterConfig. Topology %s.",
-              instanceName, clusterName,
-              clusterTopologyConfig.getTopologyKeyDefaultValue().keySet());
+              "Instance %s in cluster %s does not have all the keys in ClusterConfig. "
+                  + "Topology: %s, missing keys: %s", instanceName, clusterName,
+              clusterTopologyConfig.getTopologyKeyDefaultValue().keySet(), missingKeys);
           logger.warn(errorMessage);
           if (missingRequiredFaultZoneKey) {
             throw new InstanceConfigMismatchException(

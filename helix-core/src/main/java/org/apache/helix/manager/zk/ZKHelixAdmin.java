@@ -512,10 +512,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     // 2. Check that both instances only have one session and are not carrying any over.
     // count number of sessions under CurrentState folder. If it is carrying over from prv session,
     // then there are > 1 session ZNodes.
-    List<String> swapOutSessions = baseAccessor.getChildNames(
-        PropertyPathBuilder.instanceCurrentState(clusterName, swapOutInstanceName), 0);
-    List<String> swapInSessions = baseAccessor.getChildNames(
-        PropertyPathBuilder.instanceCurrentState(clusterName, swapInInstanceName), 0);
+    List<String> swapOutSessions = safeGetChildNames(baseAccessor,
+        PropertyPathBuilder.instanceCurrentState(clusterName, swapOutInstanceName));
+    List<String> swapInSessions = safeGetChildNames(baseAccessor,
+        PropertyPathBuilder.instanceCurrentState(clusterName, swapInInstanceName));
     if (swapOutSessions.size() > 1 || swapInSessions.size() > 1) {
       logger.warn(
           "SwapOutInstance {} is carrying over from prev session and SwapInInstance {} is carrying over from prev session for cluster {}."
@@ -554,19 +554,35 @@ public class ZKHelixAdmin implements HelixAdmin {
     String swapInActiveSession = swapInLiveInstance.getEphemeralOwner();
 
     // Iterate over all resources with current states on the swapOutInstance
-    List<String> swapOutResources = baseAccessor.getChildNames(
+    List<String> swapOutResources = safeGetChildNames(baseAccessor,
         PropertyPathBuilder.instanceCurrentState(clusterName, swapOutInstanceName,
-            swapOutLastActiveSession), 0);
+            swapOutLastActiveSession));
     for (String swapOutResource : swapOutResources) {
       // Get the topState and secondTopStates for the stateModelDef used by the resource.
       IdealState idealState = accessor.getProperty(keyBuilder.idealStates(swapOutResource));
+      if (idealState == null) {
+        // Resource may have been dropped; skip.
+        continue;
+      }
       StateModelDefinition stateModelDefinition =
           accessor.getProperty(keyBuilder.stateModelDef(idealState.getStateModelDefRef()));
+      if (stateModelDefinition == null) {
+        // State model missing; be conservative.
+        logger.warn(
+            "StateModelDefinition is null for resource {} in cluster {}. Cannot verify swap correctness.",
+            swapOutResource, clusterName);
+        return false;
+      }
       String topState = stateModelDefinition.getTopState();
       Set<String> secondTopStates = stateModelDefinition.getSecondTopStates();
 
       CurrentState swapOutResourceCurrentState = accessor.getProperty(
           keyBuilder.currentState(swapOutInstanceName, swapOutLastActiveSession, swapOutResource));
+      if (swapOutResourceCurrentState == null
+          || swapOutResourceCurrentState.getPartitionStateMap() == null) {
+        // No partitions to verify for this resource
+        continue;
+      }
       CurrentState swapInResourceCurrentState = accessor.getProperty(
           keyBuilder.currentState(swapInInstanceName, swapInActiveSession, swapOutResource));
 
@@ -609,6 +625,12 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     return true;
+  }
+
+  private static List<String> safeGetChildNames(BaseDataAccessor<ZNRecord> baseAccessor,
+      String path) {
+    List<String> children = baseAccessor.getChildNames(path, 0);
+    return children != null ? children : Collections.emptyList();
   }
 
   @Override

@@ -37,6 +37,8 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -643,6 +645,71 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
+  }
+
+  @Test
+  public void testNoMessagesSentOnNoResourceMapping() throws Exception {
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = _className + "_" + methodName;
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+
+    admin.addCluster(clusterName);
+
+    final String resourceName = "testResource_" + methodName;
+    final String partitionName = resourceName + "_0";
+
+    setupStateModel(clusterName);
+    setupInstances(clusterName, new int[]{0});
+    List<LiveInstance> liveInstances = setupLiveInstances(clusterName, new int[] {
+        0
+    });
+    int numPartition = 3;
+    _gSetupTool.addResourceToCluster(clusterName, resourceName, numPartition, "LeaderStandby",
+        IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
+    IdealState idealStateOne =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, resourceName);
+    idealStateOne.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(clusterName, resourceName, idealStateOne);
+    _gSetupTool.rebalanceStorageCluster(clusterName, resourceName, 1);
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    DummyClusterManager manager =
+        new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
+    ClusterEvent event = new ClusterEvent(clusterName, ClusterEventType.OnDemandRebalance);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
+
+    // cluster data cache refresh pipeline
+    Pipeline dataRefresh = new Pipeline();
+    dataRefresh.addStage(new ReadClusterDataStage());
+
+    // rebalance pipeline
+    Pipeline rebalancePipeline = new Pipeline();
+    rebalancePipeline.addStage(new ResourceComputationStage());
+    rebalancePipeline.addStage(new CurrentStateComputationStage());
+    // Add empty best possible output to mimic no calculations being made
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), new BestPossibleStateOutput());
+    rebalancePipeline.addStage(new MessageGenerationPhase());
+    rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new IntermediateStateCalcStage());
+    rebalancePipeline.addStage(new MessageThrottleStage());
+    rebalancePipeline.addStage(new ResourceMessageDispatchStage());
+
+    // Set currentState
+    setCurrentState(clusterName, "localhost_0", resourceName, partitionName,
+        liveInstances.get(0).getEphemeralOwner(), "LEADER");
+
+    runPipeline(event, dataRefresh, false);
+
+    runPipeline(event, rebalancePipeline, true);
+
+    // Assert no messages are being sent
+    MessageOutput msgThrottleOutput = event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
+    List<Message> messages =
+        msgThrottleOutput.getMessages(resourceName, new Partition(partitionName));
+    Assert.assertTrue(messages.isEmpty());
   }
 
   protected void setCurrentState(String clusterName, String instance, String resourceGroupName,

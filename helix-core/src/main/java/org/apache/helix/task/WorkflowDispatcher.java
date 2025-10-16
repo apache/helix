@@ -74,7 +74,30 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Clean up if workflow marked for deletion
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
-      LOG.debug("Workflow is marked as deleted {} cleaning up the workflow context.", workflow);
+      // Always validate DELETE operations against fresh ZooKeeper state to prevent stale cache issues
+      // This is critical because events like MessageChange don't refresh ResourceConfig cache
+      // The extra ZK read is acceptable since DELETE operations are relatively rare and destructive
+      WorkflowConfig freshConfig = getFreshWorkflowConfig(workflow);
+
+      if (freshConfig == null) {
+        LOG.info("Workflow {} already deleted from ZooKeeper, skipping cleanup", workflow);
+        return;
+      }
+
+      if (freshConfig.getTargetState() != TargetState.DELETE) {
+        // This likely indicates a race condition where the workflow was recreated or modified
+        // between cache refresh cycles
+        LOG.warn("Stale DELETE state detected in cache for workflow {}. " +
+                 "Fresh state from ZooKeeper: {}. Skipping deletion to prevent data loss.",
+                 workflow, freshConfig.getTargetState());
+        // force cache refresh for next pipeline run to get the latest state
+        _clusterDataCache.requireFullRefresh();
+        return;
+      }
+
+      // DELETE state confirmed from fresh read - safe to proceed
+      LOG.info("DELETE state confirmed for workflow {} from fresh ZooKeeper read. Proceeding with cleanup.",
+               workflow);
       updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       cleanupWorkflow(workflow);
       return;
@@ -168,6 +191,15 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
 
     _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
+  }
+
+  /**
+   * Get fresh workflow config from ZooKeeper. Protected for testability.
+   * @param workflow the workflow name
+   * @return fresh WorkflowConfig from ZooKeeper, or null if not found
+   */
+  protected WorkflowConfig getFreshWorkflowConfig(String workflow) {
+    return TaskUtil.getWorkflowConfig(_manager.getHelixDataAccessor(), workflow);
   }
 
   private void updateInflightJobs(String workflow, WorkflowContext workflowCtx,

@@ -1,8 +1,14 @@
 package org.apache.helix.controller.rebalancer.strategy.crushMapping;
 
 import org.apache.helix.controller.rebalancer.topology.Node;
+import org.apache.helix.util.JenkinsHash;
+import org.mockito.Mockito;
+import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import static org.mockito.Mockito.*;
+
 
 /**
  * Test to verify that Straw2Selector properly handles empty nodes without throwing NPE.
@@ -52,4 +58,32 @@ public class TestStraw2SelectorNPEFix {
   public void testSelectorsConsistency(Selector selector) {
     selector.select(123L, 1L);
   }
+
+  @Test
+  public void testStraw2SelectorZeroHashCase() throws NoSuchFieldException, IllegalAccessException {
+    // validate that there is a tuple that return lowest 16 bits 0
+    JenkinsHash hashFn = new JenkinsHash();
+    Long hash = hashFn.hash(16, 24, 92);
+    Assert.assertEquals(hash&0xffff, 0, "Expected low 16 bits to be zero");
+
+    JenkinsHash spyHash = Mockito.spy(hashFn);
+
+    // Create a node with child node
+    Node parentNode = createEmptyNode("empty_mz", "mz", 123L);
+    Node childNode = createEmptyNode("empty", "test", 24);
+    parentNode.addChild(childNode);
+    childNode.setWeight(1000); // default instance weight.
+    Selector selector = new Straw2Selector(parentNode);
+    java.lang.reflect.Field field =
+        Straw2Selector.class.getDeclaredField("_hashFunction");
+    field.setAccessible(true);
+    field.set(selector, spyHash);
+
+    Node selectedNode = selector.select(16, 92);
+    verify(spyHash).hash(16, 24, 92);
+    Assert.assertEquals(selectedNode, childNode,
+        "The selector should still choose the only child node, "
+            + "even if the hash function returns a value with low 16 bits equal to zero.");
+  }
+
 }

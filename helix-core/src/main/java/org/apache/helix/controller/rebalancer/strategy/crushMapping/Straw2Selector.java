@@ -46,10 +46,11 @@ class Straw2Selector implements Selector {
   private double weightedScore(Node child, long input, long round) {
     long hash = _hashFunction.hash(input, child.getId(), round);
     hash = hash&0xffff;
+    // To avoid doing Math.log of 0 changing hash range from [0..65535] to [1..65535]
+    hash = hash == 0 ? 1 : hash;
     if (child.getWeight() > 0) {
       return Math.log(hash/65536d) / child.getWeight();
     }
     return 0.0;
   }
 }
-

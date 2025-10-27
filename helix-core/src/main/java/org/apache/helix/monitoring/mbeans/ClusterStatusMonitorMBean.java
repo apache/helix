@@ -147,4 +147,29 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
    * state partition is larger than configured threshold (default is 1).
    */
   long getNumOfResourcesRebalanceThrottledGauge();
+
+  /**
+   * @return number of instances currently in ENABLE operation
+   */
+  long getInstancesInOperationEnableGauge();
+
+  /**
+   * @return number of instances currently in DISABLE operation
+   */
+  long getInstancesInOperationDisableGauge();
+
+  /**
+   * @return number of instances currently in EVACUATE operation
+   */
+  long getInstancesInOperationEvacuateGauge();
+
+  /**
+   * @return number of instances currently in SWAP_IN operation
+   */
+  long getInstancesInOperationSwapInGauge();
+
+  /**
+   * @return number of instances currently in UNKNOWN operation
+   */
+  long getInstancesInOperationUnknownGauge();
 }

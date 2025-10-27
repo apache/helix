@@ -38,6 +38,7 @@ import javax.management.ObjectName;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.ExternalView;
@@ -88,6 +89,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private AtomicLong _continuousResourceRebalanceFailureCount = new AtomicLong(0L);
   private AtomicLong _continuousTaskRebalanceFailureCount = new AtomicLong(0L);
 
+  // Cluster-level instance operation counts
+  private final Map<InstanceConstants.InstanceOperation, AtomicLong> _perOperationInstanceCount =
+      new ConcurrentHashMap<>();
+
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMonitorMap =
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, InstanceMonitor> _instanceMonitorMap =
@@ -112,6 +117,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
+
+    // Initialize the map with all operation types
+    for (InstanceConstants.InstanceOperation operation : InstanceConstants.InstanceOperation.values()) {
+      _perOperationInstanceCount.put(operation, new AtomicLong(0L));
+    }
   }
 
   public ObjectName getObjectName(String name) throws MalformedObjectNameException {
@@ -192,6 +202,36 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     return _totalPastDueMsgSize.get();
   }
 
+  @Override
+  public long getInstancesInOperationEnableGauge() {
+    return _perOperationInstanceCount.getOrDefault(
+        InstanceConstants.InstanceOperation.ENABLE, new AtomicLong(0L)).get();
+  }
+
+  @Override
+  public long getInstancesInOperationDisableGauge() {
+    return _perOperationInstanceCount.getOrDefault(
+        InstanceConstants.InstanceOperation.DISABLE, new AtomicLong(0L)).get();
+  }
+
+  @Override
+  public long getInstancesInOperationEvacuateGauge() {
+    return _perOperationInstanceCount.getOrDefault(
+        InstanceConstants.InstanceOperation.EVACUATE, new AtomicLong(0L)).get();
+  }
+
+  @Override
+  public long getInstancesInOperationSwapInGauge() {
+    return _perOperationInstanceCount.getOrDefault(
+        InstanceConstants.InstanceOperation.SWAP_IN, new AtomicLong(0L)).get();
+  }
+
+  @Override
+  public long getInstancesInOperationUnknownGauge() {
+    return _perOperationInstanceCount.getOrDefault(
+        InstanceConstants.InstanceOperation.UNKNOWN, new AtomicLong(0L)).get();
+  }
+
   private void register(Object bean, ObjectName name) {
     try {
       if (_beanServer.isRegistered(name)) {
@@ -228,11 +268,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param disabledPartitions a map of instance name to the set of partitions disabled on it
    * @param tags a map of instance name to the set of tags on it
    * @param instanceMessageMap a map of pending messages from each live instance
+   * @param instanceConfigMap a map of instance name to InstanceConfig (for operation tracking)
    */
   public void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
       Set<String> disabledInstanceSet, Map<String, Map<String, List<String>>> disabledPartitions,
       Map<String, List<String>> oldDisabledPartitions, Map<String, Set<String>> tags,
-      Map<String, Set<Message>> instanceMessageMap) {
+      Map<String, Set<Message>> instanceMessageMap, Map<String, InstanceConfig> instanceConfigMap) {
     synchronized (_instanceMonitorMap) {
       // Unregister beans for instances that are no longer configured
       Set<String> toUnregister = Sets.newHashSet(_instanceMonitorMap.keySet());
@@ -320,6 +361,32 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       _maxInstanceMsgQueueSize.set(maxInstanceMsgQueueSize);
       _totalMsgQueueSize.set(totalMsgQueueSize);
       _totalPastDueMsgSize.set(totalPastDueMsgSize);
+
+      // Count instances by operation type (cluster-level metrics) using map
+      // First reset all counts to 0
+      for (AtomicLong count : _perOperationInstanceCount.values()) {
+        count.set(0L);
+      }
+
+      if (instanceConfigMap != null) {
+        for (Map.Entry<String, InstanceConfig> entry : instanceConfigMap.entrySet()) {
+          InstanceConfig config = entry.getValue();
+          InstanceConstants.InstanceOperation operation = InstanceConstants.InstanceOperation.ENABLE;
+
+          if (config != null && config.getInstanceOperation() != null) {
+            operation = config.getInstanceOperation().getOperation();
+          }
+
+          // Increment the count for this operation
+          AtomicLong count = _perOperationInstanceCount.get(operation);
+          if (count != null) {
+            count.incrementAndGet();
+          } else {
+            // If operation is not in the map (shouldn't happen), default to ENABLE
+            _perOperationInstanceCount.get(InstanceConstants.InstanceOperation.ENABLE).incrementAndGet();
+          }
+        }
+      }
     }
   }
 

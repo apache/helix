@@ -80,8 +80,8 @@ public class ReadClusterDataStage extends AbstractBaseStage {
             Map<String, Set<String>> tags = Maps.newHashMap();
             Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
             Map<String, Set<Message>> instanceMessageMap = Maps.newHashMap();
-            for (Map.Entry<String, InstanceConfig> e : dataProvider.getInstanceConfigMap()
-                .entrySet()) {
+            Map<String, InstanceConfig> instanceConfigMap = dataProvider.getInstanceConfigMap();
+            for (Map.Entry<String, InstanceConfig> e : instanceConfigMap.entrySet()) {
               String instanceName = e.getKey();
               InstanceConfig config = e.getValue();
               instanceSet.add(instanceName);
@@ -103,7 +103,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
             }
             clusterStatusMonitor
                 .setClusterInstanceStatus(liveInstanceSet, instanceSet, disabledInstanceSet,
-                    disabledPartitions, oldDisabledPartitions, tags, instanceMessageMap);
+                    disabledPartitions, oldDisabledPartitions, tags, instanceMessageMap, instanceConfigMap);
             LogUtil.logDebug(logger, _eventId, "Complete cluster status monitors update.");
           }
           return null;

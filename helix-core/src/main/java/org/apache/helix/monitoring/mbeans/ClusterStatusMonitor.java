@@ -326,6 +326,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
               oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
               !disabledInstanceSet.contains(instanceName));
 
+          // Update instance operation duration metrics
+          if (instanceConfigMap != null && instanceConfigMap.containsKey(instanceName)) {
+            InstanceConfig.InstanceOperation instanceOperation =
+                instanceConfigMap.get(instanceName).getInstanceOperation();
+            bean.updateInstanceOperation(instanceOperation.getOperation(),
+                instanceOperation.getTimestamp());
+          }
+
           // calculate and update instance level message related gauges
           Set<Message> messages = instanceMessageMap.get(instanceName);
           if (messages != null) {

@@ -20,9 +20,9 @@ package org.apache.helix.controller.common;
  */
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.model.Partition;
 
@@ -35,7 +35,7 @@ public class ResourcesStateMap {
   protected Map<String, PartitionStateMap> _resourceStateMap;
 
   public ResourcesStateMap() {
-    _resourceStateMap = new HashMap<>();
+    _resourceStateMap = new ConcurrentHashMap<>();
   }
 
   public Set<String> resourceSet() {

@@ -29,10 +29,19 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.util.StageThreadPoolHelper;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 public class TestBestPossibleStateCalcStage extends BaseStageTest {
+
+  @AfterMethod
+  public void afterMethod() {
+    // Clean up thread pool after each test
+    StageThreadPoolHelper.shutdown();
+  }
+
   @Test
   public void testSimple() {
     System.out.println("START TestBestPossibleStateCalcStage at "
@@ -145,5 +154,65 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     Assert.assertNull(
         output.getInstanceStateMap("testResourceName", new Partition("testResourceName_1"))
             .get("localhost_2"));
+  }
+
+  /**
+   * Test parallel computation with multiple FULL_AUTO resources.
+   * Verifies that parallel computation using StageThreadPoolHelper produces correct results.
+   */
+  @Test
+  public void testBestPossibleComputationWithMultipleResources() {
+    System.out.println("START testParallelComputationWithMultipleResources at "
+        + new Date(System.currentTimeMillis()));
+
+    int numInstances = 5;
+    int numPartitions = 5;
+
+    // Create multiple SEMI_AUTO resources - these will be computed in parallel
+    String[] resources = new String[]{"res1", "res2", "res3", "res4"};
+    setupIdealState(numInstances, resources, numPartitions, 1, RebalanceMode.FULL_AUTO,
+        BuiltInStateModelDefinitions.MasterSlave.name());
+
+    setupLiveInstances(numInstances);
+    setupStateModel();
+    setupInstances(numInstances);
+
+    Map<String, Resource> resourceMap =
+        getResourceMap(resources, numPartitions, BuiltInStateModelDefinitions.MasterSlave.name());
+
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE_EXCLUDING_UNKNOWN.name(), currentStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
+
+    ReadClusterDataStage stage1 = new ReadClusterDataStage();
+    runStage(event, stage1);
+    BestPossibleStateCalcStage stage2 = new BestPossibleStateCalcStage();
+    runStage(event, stage2);
+
+    BestPossibleStateOutput output =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+
+    // Verify all resources were computed successfully via parallel execution
+    Assert.assertNotNull(output, "BestPossibleStateOutput should not be null");
+
+    // Verify all resources have correct assignments
+    for (String resourceName : resources) {
+      Assert.assertTrue(output.containsResource(resourceName),
+          "Output should contain resource: " + resourceName);
+      for (int p = 0; p < numPartitions; p++) {
+        Partition partition = new Partition(resourceName + "_" + p);
+        Map<String, String> stateMap = output.getInstanceStateMap(resourceName, partition);
+        Assert.assertNotNull(stateMap,
+            "State map should not be null for " + resourceName + " partition " + p);
+        // Each partition should have exactly one MASTER
+        long masterCount = stateMap.values().stream().filter(state -> "MASTER".equals(state)).count();
+        Assert.assertEquals(masterCount, 1,
+            "Each partition should have exactly one MASTER for " + resourceName + "_" + p);
+      }
+    }
   }
 }

@@ -27,15 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import javax.management.JMException;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
@@ -67,13 +59,11 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
-import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.util.StageThreadPoolHelper;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * For partition compute best possible (instance,state) pair based on
@@ -82,129 +72,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger logger =
       LoggerFactory.getLogger(BestPossibleStateCalcStage.class.getName());
-
-  // Dedicated thread pool for resource parallelization
-  private static final int DEFAULT_PARALLEL_THREAD_POOL_SIZE =
-      Math.max(4, Runtime.getRuntime().availableProcessors());
-  private static final String PARALLEL_THREAD_NAME_PREFIX = "ResourceCompute";
-  private static final long THREAD_KEEP_ALIVE_TIME_MINUTES = 3;
-
-  private final AtomicReference<ExecutorService> resourceParallelExecutor = new AtomicReference<>();
-  private ThreadPoolExecutorMonitor resourceExecutorMonitor;
-
-  @Override
-  public void init(org.apache.helix.controller.pipeline.StageContext context) {
-    super.init(context);
-    initializeResourceParallelExecutor();
-  }
-
-  @Override
-  public void release() {
-    super.release();
-    shutdownResourceParallelExecutor();
-  }
-
-  /**
-   * Initialize dedicated thread pool for resource parallel computation.
-   * Configurable via: helix.controller.resource.parallel.threads
-   */
-  private synchronized void initializeResourceParallelExecutor() {
-    ExecutorService currentExecutor = resourceParallelExecutor.get();
-    if (currentExecutor != null && !currentExecutor.isShutdown()) {
-      return;
-    }
-
-    int threadPoolSize = DEFAULT_PARALLEL_THREAD_POOL_SIZE;
-    String configuredSize = System.getProperty("helix.controller.resource.parallel.threads");
-    if (configuredSize != null) {
-      try {
-        int parsedSize = Integer.parseInt(configuredSize);
-        if (parsedSize > 0 && parsedSize <= 128) {
-          threadPoolSize = parsedSize;
-          LogUtil.logInfo(logger, "INIT",
-              String.format("Using configured thread pool size: %d", threadPoolSize));
-        } else {
-          LogUtil.logWarn(logger, "INIT",
-              String.format("Invalid thread pool size %d (must be 1-128), using default: %d",
-                  parsedSize, threadPoolSize));
-        }
-      } catch (NumberFormatException e) {
-        LogUtil.logWarn(logger, "INIT",
-            String.format("Invalid thread pool size '%s', using default: %d",
-                configuredSize, threadPoolSize));
-      }
-    }
-
-    ThreadFactory threadFactory = new ThreadFactoryBuilder()
-        .setNameFormat(PARALLEL_THREAD_NAME_PREFIX + "-%d")
-        .setDaemon(true)
-        .setUncaughtExceptionHandler((thread, throwable) ->
-            logger.error("Uncaught exception in thread {}", thread.getName(), throwable))
-        .build();
-
-    ThreadPoolExecutor newExecutor = new ThreadPoolExecutor(
-        threadPoolSize,
-        threadPoolSize,
-        THREAD_KEEP_ALIVE_TIME_MINUTES,
-        TimeUnit.MINUTES,
-        new LinkedBlockingQueue<>(),
-        threadFactory,
-        new ThreadPoolExecutor.CallerRunsPolicy());
-
-    newExecutor.allowCoreThreadTimeOut(true);
-    resourceParallelExecutor.set(newExecutor);
-
-    try {
-      resourceExecutorMonitor = new ThreadPoolExecutorMonitor(PARALLEL_THREAD_NAME_PREFIX, newExecutor);
-      LogUtil.logInfo(logger, "INIT",
-          String.format("Initialized resource parallel executor: %d threads, JMX enabled",
-              threadPoolSize));
-    } catch (JMException e) {
-      resourceExecutorMonitor = null;
-      LogUtil.logWarn(logger, "INIT",
-          String.format("Initialized resource parallel executor: %d threads, JMX failed: %s",
-              threadPoolSize, e.getMessage()));
-    }
-  }
-
-  /**
-   * Shutdown the dedicated thread pool gracefully and cleanup monitoring.
-   */
-  private synchronized void shutdownResourceParallelExecutor() {
-    ExecutorService executor = resourceParallelExecutor.get();
-    if (executor == null || executor.isShutdown()) {
-      return;
-    }
-
-    LogUtil.logInfo(logger, "SHUTDOWN", "Shutting down resource parallel executor");
-
-    if (resourceExecutorMonitor != null) {
-      try {
-        resourceExecutorMonitor.unregister();
-        resourceExecutorMonitor = null;
-      } catch (Exception e) {
-        LogUtil.logWarn(logger, "SHUTDOWN",
-            String.format("Failed to unregister JMX monitor: %s", e.getMessage()));
-      }
-    }
-
-    executor.shutdown();
-    try {
-      if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-        LogUtil.logWarn(logger, "SHUTDOWN",
-            "Executor did not terminate gracefully, forcing shutdown");
-        executor.shutdownNow();
-        if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
-          LogUtil.logError(logger, "SHUTDOWN",
-              "Executor did not terminate after forced shutdown");
-        }
-      }
-    } catch (InterruptedException e) {
-      LogUtil.logWarn(logger, "SHUTDOWN", "Interrupted during executor shutdown");
-      executor.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
-  }
+  private static final String STAGE_NAME = "BestPossibleStateCalcStage";
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -425,9 +293,39 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Map<String, Resource> remainingResourceMap = new HashMap<>(resourceMap);
     remainingResourceMap.keySet().removeAll(calculatedResourceMap.keySet());
 
-    // Compute parallelizable resources (CRUSH, DelayedAuto, SemiAuto, etc.)
-    computeResourcesInParallel(remainingResourceMap, event, cache, currentStateOutput,
-          output, failureResources);
+    // Parallel computation for all the resources
+    List<Callable<Void>> computeBestPossibleStateTasks = new ArrayList<>();
+
+    for (Resource resource : remainingResourceMap.values()) {
+      computeBestPossibleStateTasks.add(() -> {
+        boolean result = false;
+        try {
+          result = computeSingleResourceBestPossibleState(
+              event, cache, currentStateOutput, resource, output);
+        } catch (HelixException ex) {
+          LogUtil.logError(logger, _eventId, String.format(
+              "Exception when calculating best possible state for %s",
+              resource.getResourceName()), ex);
+        }
+
+        if (!result) {
+          failureResources.add(resource.getResourceName());
+          LogUtil.logWarn(logger, _eventId, String.format(
+              "Failed to calculate best possible state for %s",
+              resource.getResourceName()));
+        }
+        return null;
+      });
+    }
+
+    // Run all remaining resource computations in parallel and wait for completion.
+    try {
+      StageThreadPoolHelper.executeAndWait(STAGE_NAME, computeBestPossibleStateTasks);
+    } catch (InterruptedException e) {
+      LogUtil.logError(logger, _eventId,
+          "Interrupted during parallel execution", e);
+      Thread.currentThread().interrupt();
+    }
 
     // Check and report if resource rebalance has failure
     updateRebalanceStatus(!isValid || !failureResources.isEmpty(), failureResources, helixManager,
@@ -436,91 +334,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                 failureResources.size()));
 
     return output;
-  }
-
-  /**
-   * Computes best possible state for resources in parallel using dedicated thread pool.
-   * CompletableFuture.runAsync() uses the provided executor, not ForkJoinPool.commonPool().
-   */
-  private void computeResourcesInParallel(
-      Map<String, Resource> resources,
-      ClusterEvent event,
-      ResourceControllerDataProvider cache,
-      CurrentStateOutput currentStateOutput,
-      BestPossibleStateOutput output,
-      List<String> failureResources) {
-
-    ExecutorService executor = resourceParallelExecutor.get();
-
-    if (executor == null || executor.isShutdown()) {
-      initializeResourceParallelExecutor();
-      executor = resourceParallelExecutor.get();
-    }
-
-    if (executor == null || resources.size() <= 1) {
-      LogUtil.logInfo(logger, _eventId,
-          String.format("Computing %d resources sequentially", resources.size()));
-      resources.values().forEach(resource ->
-          computeSingleResource(resource, event, cache, currentStateOutput, output, failureResources));
-      return;
-    }
-
-    LogUtil.logInfo(logger, _eventId,
-        String.format("Computing %d resources in parallel", resources.size()));
-
-    long startTime = System.currentTimeMillis();
-    final ExecutorService finalExecutor = executor;
-
-    List<CompletableFuture<Void>> futures = resources.values().stream()
-        .map(resource -> CompletableFuture.runAsync(() ->
-            computeSingleResource(resource, event, cache, currentStateOutput, output, failureResources),
-            finalExecutor))
-        .collect(Collectors.toList());
-
-    try {
-      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-      long duration = System.currentTimeMillis() - startTime;
-
-      LogUtil.logInfo(logger, _eventId,
-          String.format("Completed parallel computation for %d resources in %d ms",
-              resources.size(), duration));
-    } catch (Exception e) {
-      LogUtil.logError(logger, _eventId,
-          "Error during parallel resource computation", e);
-      throw e;
-    }
-  }
-
-  /**
-   * Helper to compute a single resource and handle errors.
-   * Thread-safe for parallel execution when failureResources is a synchronized list.
-   */
-  private void computeSingleResource(
-      Resource resource,
-      ClusterEvent event,
-      ResourceControllerDataProvider cache,
-      CurrentStateOutput currentStateOutput,
-      BestPossibleStateOutput output,
-      List<String> failureResources) {
-
-    String resourceName = resource.getResourceName();
-    boolean result = false;
-
-    try {
-      result = computeSingleResourceBestPossibleState(event, cache, currentStateOutput, resource, output);
-    } catch (HelixException ex) {
-      LogUtil.logError(logger, _eventId,
-          String.format("HelixException calculating best possible state for %s", resourceName), ex);
-    } catch (Exception ex) {
-      LogUtil.logError(logger, _eventId,
-          String.format("Unexpected exception calculating best possible state for %s", resourceName), ex);
-    }
-
-    if (!result) {
-      failureResources.add(resourceName);
-      LogUtil.logWarn(logger, _eventId,
-          String.format("Failed to calculate best possible state for %s", resourceName));
-    }
   }
 
   private void updateRebalanceStatus(final boolean hasFailure, final List<String> failedResources,
@@ -809,33 +622,33 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       String resourceName, boolean isMaintenanceModeEnabled) {
     Rebalancer<ResourceControllerDataProvider> rebalancer = null;
     switch (idealState.getRebalanceMode()) {
-    case FULL_AUTO:
-      if (isMaintenanceModeEnabled) {
-        rebalancer = new MaintenanceRebalancer();
-      } else {
-        Rebalancer<ResourceControllerDataProvider> customizedRebalancer =
-            getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
-        if (customizedRebalancer != null) {
-          rebalancer = customizedRebalancer;
+      case FULL_AUTO:
+        if (isMaintenanceModeEnabled) {
+          rebalancer = new MaintenanceRebalancer();
         } else {
-          rebalancer = new DelayedAutoRebalancer();
+          Rebalancer<ResourceControllerDataProvider> customizedRebalancer =
+              getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
+          if (customizedRebalancer != null) {
+            rebalancer = customizedRebalancer;
+          } else {
+            rebalancer = new DelayedAutoRebalancer();
+          }
         }
-      }
-      break;
-    case SEMI_AUTO:
-      rebalancer = new SemiAutoRebalancer<>();
-      break;
-    case CUSTOMIZED:
-      rebalancer = new CustomRebalancer();
-      break;
-    case USER_DEFINED:
-    case TASK:
-      rebalancer = getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
-      break;
-    default:
-      LogUtil.logError(logger, _eventId,
-          "Fail to find the rebalancer, invalid rebalance mode " + idealState.getRebalanceMode());
-      break;
+        break;
+      case SEMI_AUTO:
+        rebalancer = new SemiAutoRebalancer<>();
+        break;
+      case CUSTOMIZED:
+        rebalancer = new CustomRebalancer();
+        break;
+      case USER_DEFINED:
+      case TASK:
+        rebalancer = getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
+        break;
+      default:
+        LogUtil.logError(logger, _eventId,
+            "Fail to find the rebalancer, invalid rebalance mode " + idealState.getRebalanceMode());
+        break;
     }
     return rebalancer;
   }

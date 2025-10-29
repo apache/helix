@@ -621,8 +621,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           return badRequest(String.format("Unsupported command: %s", command));
       }
     } catch (IllegalArgumentException ex) {
-      LOG.error(String.format("Invalid topology setting for Instance : {}. Fail the config update",
-          instanceName), ex);
+      LOG.error("Invalid topology setting for Instance : {}. Fail the config update", instanceName, ex);
       return serverError(ex);
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
@@ -878,6 +877,15 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       Command command) {
     InstanceConfig originalInstanceConfigCopy =
         configAccessor.getInstanceConfig(clusterName, instanceName);
+    InstanceConstants.InstanceOperation currentOperation = originalInstanceConfigCopy.getInstanceOperation().getOperation();
+    InstanceConstants.InstanceOperation targetOperation = newInstanceConfig.getInstanceOperation().getOperation();
+    try {
+      InstanceUtil.validateInstanceOperationTransition(configAccessor, clusterName, originalInstanceConfigCopy,
+          currentOperation, targetOperation);
+    } catch (HelixException e) {
+      throw new IllegalArgumentException(String.format(
+          "Failed topology setting update in instance %s, got exception %s", instanceName, e));
+    }
     if (command == Command.delete) {
       for (Map.Entry<String, String> entry : newInstanceConfig.getRecord().getSimpleFields()
           .entrySet()) {
@@ -886,9 +894,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     } else {
       originalInstanceConfigCopy.getRecord().update(newInstanceConfig.getRecord());
     }
-
     return originalInstanceConfigCopy
         .validateTopologySettingInInstanceConfig(configAccessor.getClusterConfig(clusterName),
             instanceName);
   }
+
 }

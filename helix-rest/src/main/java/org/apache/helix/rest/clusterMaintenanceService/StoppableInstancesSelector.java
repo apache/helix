@@ -53,16 +53,18 @@ public class StoppableInstancesSelector {
   private final MaintenanceManagementService _maintenanceService;
   private final ClusterTopology _clusterTopology;
   private final ZKHelixDataAccessor _dataAccessor;
+  private final boolean _includeDetails;
 
   private StoppableInstancesSelector(String clusterId, List<String> orderOfZone,
       String customizedInput, MaintenanceManagementService maintenanceService,
-      ClusterTopology clusterTopology, ZKHelixDataAccessor dataAccessor) {
+      ClusterTopology clusterTopology, ZKHelixDataAccessor dataAccessor, boolean includeDetails) {
     _clusterId = clusterId;
     _orderOfZone = orderOfZone;
     _customizedInput = customizedInput;
     _maintenanceService = maintenanceService;
     _clusterTopology = clusterTopology;
     _dataAccessor = dataAccessor;
+    _includeDetails = includeDetails;
   }
 
   /**
@@ -171,7 +173,7 @@ public class StoppableInstancesSelector {
       ArrayNode stoppableInstances, ObjectNode failedStoppableInstances) throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,
-            _customizedInput, toBeStoppedInstances);
+            _customizedInput, toBeStoppedInstances, _includeDetails);
 
     for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
       String instance = instanceStoppableCheck.getKey();
@@ -319,6 +321,7 @@ public class StoppableInstancesSelector {
     private MaintenanceManagementService _maintenanceService;
     private ClusterTopology _clusterTopology;
     private ZKHelixDataAccessor _dataAccessor;
+    private boolean _includeDetails = false;
 
     public StoppableInstancesSelectorBuilder setClusterId(String clusterId) {
       _clusterId = clusterId;
@@ -351,9 +354,14 @@ public class StoppableInstancesSelector {
       return this;
     }
 
+    public StoppableInstancesSelectorBuilder setIncludeDetails(boolean includeDetails) {
+      _includeDetails = includeDetails;
+      return this;
+    }
+
     public StoppableInstancesSelector build() {
       return new StoppableInstancesSelector(_clusterId, _orderOfZone, _customizedInput,
-          _maintenanceService, _clusterTopology, _dataAccessor);
+          _maintenanceService, _clusterTopology, _dataAccessor, _includeDetails);
     }
   }
 }

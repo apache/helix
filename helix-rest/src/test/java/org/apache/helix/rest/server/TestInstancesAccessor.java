@@ -810,6 +810,49 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  @Test
+  public void testInstanceStoppableWithIncludeDetails() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    // Test the same scenario as testInstanceStoppableZoneBasedWithToBeStoppedInstances 
+    // but with includeDetails=true to get enhanced error messages
+    String content = String.format(
+        "{\"%s\":\"%s\",\"%s\":[\"%s\"], \"%s\":[\"%s\"]}",
+        InstancesAccessor.InstancesProperties.selection_base.name(),
+        InstancesAccessor.InstanceHealthSelectionBase.zone_based.name(),
+        InstancesAccessor.InstancesProperties.instances.name(), "instance5",
+        InstancesAccessor.InstancesProperties.to_be_stopped_instances.name(), "instance0");
+
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances?command=stoppable&includeDetails=true&skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER2).post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response.readEntity(String.class));
+
+    JsonNode nonStoppableInstances = jsonNode.get(
+        InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
+    
+    // Instance5 should not be stoppable due to MIN_ACTIVE_REPLICA_CHECK_FAILED 
+    // and should now have detailed information about which partition failed
+    Set<String> instance5Reasons = getStringSet(nonStoppableInstances, "instance5");
+    Assert.assertEquals(instance5Reasons.size(), 1);
+    String reason = instance5Reasons.iterator().next();
+    
+    // With includeDetails=true, we should get a detailed message
+    Assert.assertTrue(reason.startsWith("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"), 
+        "Expected detailed reason to start with HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED but got: " + reason);
+    
+    // The detailed message should contain partition information
+    // Expected format: "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED: Resource StoppableTestCluster2_db_0 partition StoppableTestCluster2_db_0_3 has 1/2 active replicas"
+    Assert.assertTrue(reason.contains("partition"), 
+        "Expected detailed reason to contain partition information but got: " + reason);
+    Assert.assertTrue(reason.contains("has"), 
+        "Expected detailed reason to contain 'has' but got: " + reason);
+    Assert.assertTrue(reason.contains("active replicas"), 
+        "Expected detailed reason to contain 'active replicas' but got: " + reason);
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
   private Set<String> getStringSet(JsonNode jsonNode, String key) {
     Set<String> result = new HashSet<>();
     jsonNode.withArray(key).forEach(s -> result.add(s.textValue()));

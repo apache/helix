@@ -2,6 +2,7 @@ cscope.*
 .classpath
 .project
 .svn
+.java-version
 target/
 /recipes/rabbitmq-consumer-group/target/
 .idea

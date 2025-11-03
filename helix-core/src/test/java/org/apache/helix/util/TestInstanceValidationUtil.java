@@ -28,7 +28,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
@@ -589,13 +588,116 @@ public class TestInstanceValidationUtil {
     Assert.assertFalse(result);
   }
 
+  @Test
+  public void testSiblingNodesActiveReplicaCheckWithDetails() throws Exception {
+    Mock mock = new Mock();
+    
+    ClusterConfig clusterConfig = mock(ClusterConfig.class);
+    
+    InstanceConfig instanceConfig = new InstanceConfig(TEST_INSTANCE);
+    instanceConfig.setDomain("zone=1");
+    
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    
+    // set external view
+    ExternalView externalView = mock(ExternalView.class);
+    when(externalView.getMinActiveReplicas()).thenReturn(2);
+    when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(externalView.getPartitionSet()).thenReturn(ImmutableSet.of("testResource_0"));
+    
+    StateModelDefinition stateModelDefinition = mock(StateModelDefinition.class);
+    when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
+    
+    doReturn(ImmutableList.of("testResource")).when(mock.dataAccessor)
+        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    doReturn(externalView).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    doReturn(stateModelDefinition).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
+    when(mock.dataAccessor.getProperty(BUILDER.instanceConfig(TEST_INSTANCE))).thenReturn(instanceConfig);
+    when(mock.dataAccessor.getProperty(BUILDER.clusterConfig())).thenReturn(clusterConfig);
+    
+    // Test with sufficient active replicas - should pass
+    when(externalView.getStateMap("testResource_0")).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, "Master", "instance1", "Slave", "instance2", "Slave"));
+    
+    MinActiveReplicaCheckResult result = 
+        InstanceValidationUtil.siblingNodesActiveReplicaCheckWithDetails(mock.dataAccessor, TEST_INSTANCE, Collections.emptySet());
+    
+    Assert.assertTrue(result.isPassed());
+    Assert.assertNull(result.getPartitionName());
+    
+    // Test with insufficient active replicas after instance removal - should fail
+    System.out.println("Setting up second scenario...");
+    when(externalView.getStateMap("testResource_0")).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, "Master", "instance1", "ERROR", "instance2", "ERROR"));
+    
+    result = InstanceValidationUtil.siblingNodesActiveReplicaCheckWithDetails(mock.dataAccessor, TEST_INSTANCE, Collections.emptySet());
+    
+    Assert.assertFalse(result.isPassed());
+    Assert.assertNotNull(result.getPartitionName());
+    Assert.assertEquals("testResource_0", result.getPartitionName());
+    Assert.assertEquals("testResource", result.getResourceName());
+    Assert.assertEquals(0, result.getCurrentActiveReplicas());
+    Assert.assertEquals(2, result.getRequiredMinActiveReplicas());
+  }
+  
+  @Test
+  public void testSiblingNodesActiveReplicaCheckWithDetailsFailFast() throws Exception {
+    Mock mock = new Mock();
+    
+    ClusterConfig clusterConfig = mock(ClusterConfig.class);
+    
+    InstanceConfig instanceConfig = new InstanceConfig(TEST_INSTANCE);
+    instanceConfig.setDomain("zone=1");
+    
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    
+    // set external view - this one will fail the check
+    ExternalView externalView = mock(ExternalView.class);
+    when(externalView.getMinActiveReplicas()).thenReturn(2);
+    when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(externalView.getPartitionSet()).thenReturn(ImmutableSet.of("resource1_0"));
+    when(externalView.getStateMap("resource1_0")).thenReturn(
+        ImmutableMap.of(TEST_INSTANCE, "Master", "instance1", "ERROR")); // Failure scenario - only 0 healthy siblings after removal
+    
+    StateModelDefinition stateModelDefinition = mock(StateModelDefinition.class);
+    when(stateModelDefinition.getInitialState()).thenReturn("OFFLINE");
+    
+    doReturn(ImmutableList.of("resource1")).when(mock.dataAccessor)
+        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    doReturn(externalView).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    doReturn(stateModelDefinition).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.STATEMODELDEFS)));
+        
+    when(mock.dataAccessor.getProperty(BUILDER.instanceConfig(TEST_INSTANCE))).thenReturn(instanceConfig);
+    when(mock.dataAccessor.getProperty(BUILDER.clusterConfig())).thenReturn(clusterConfig);
+    
+    MinActiveReplicaCheckResult result = 
+        InstanceValidationUtil.siblingNodesActiveReplicaCheckWithDetails(mock.dataAccessor, TEST_INSTANCE, Collections.emptySet());
+    
+    // Should fail on the resource
+    Assert.assertFalse(result.isPassed());
+    Assert.assertEquals("resource1_0", result.getPartitionName());
+    Assert.assertEquals("resource1", result.getResourceName());
+    Assert.assertEquals(0, result.getCurrentActiveReplicas());
+    Assert.assertEquals(2, result.getRequiredMinActiveReplicas());
+  }
+
   private class Mock {
     HelixDataAccessor dataAccessor;
-    ConfigAccessor configAccessor;
 
     Mock() {
       this.dataAccessor = mock(HelixDataAccessor.class);
-      this.configAccessor = mock(ConfigAccessor.class);
       when(dataAccessor.keyBuilder()).thenReturn(BUILDER);
     }
   }

@@ -63,6 +63,7 @@ import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.InstanceValidationUtil;
+import org.apache.helix.util.MinActiveReplicaCheckResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -367,8 +368,25 @@ public class MaintenanceManagementService {
    */
   public StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
       String jsonContent) throws IOException {
+    return getInstanceStoppableCheck(clusterId, instanceName, jsonContent, false);
+  }
+
+  /**
+   * {@inheritDoc}
+   * Single instance stoppable check implementation is a special case of
+   * {@link #batchGetInstancesStoppableChecks(String, List, String)}
+   * <p>
+   * Step 1: Perform instance level Helix own health checks
+   * Step 2: Perform instance level client side health checks
+   * Step 3: Perform partition level (all partitions on the instance) client side health checks
+   * <p>
+   * Note: if the check fails at one step, the rest steps won't be executed because the instance
+   * cannot be stopped
+   */
+  public StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
+      String jsonContent, boolean includeDetails) throws IOException {
     return batchGetInstancesStoppableChecks(clusterId, ImmutableList.of(instanceName),
-        jsonContent).get(instanceName);
+        jsonContent, Collections.emptySet(), includeDetails).get(instanceName);
   }
 
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
@@ -379,11 +397,16 @@ public class MaintenanceManagementService {
 
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent, Set<String> toBeStoppedInstances) throws IOException {
+    return batchGetInstancesStoppableChecks(clusterId, instances, jsonContent, toBeStoppedInstances, false);
+  }
+
+  public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+      List<String> instances, String jsonContent, Set<String> toBeStoppedInstances, boolean includeDetails) throws IOException {
     Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
     // helix instance check.
     List<String> instancesForCustomInstanceLevelChecks =
         batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks,
-            toBeStoppedInstances);
+            toBeStoppedInstances, includeDetails);
     // custom check, includes partition check.
     batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
         toBeStoppedInstances, finalStoppableChecks, getMapFromJsonPayload(jsonContent));
@@ -476,7 +499,7 @@ public class MaintenanceManagementService {
 
   private List<String> batchHelixInstanceStoppableCheck(String clusterId,
       Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks,
-      Set<String> toBeStoppedInstances) {
+      Set<String> toBeStoppedInstances, boolean includeDetails) {
 
     // Perform all but min_active replicas check in parallel
     Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(
@@ -484,7 +507,7 @@ public class MaintenanceManagementService {
             () -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances))));
 
     // Perform min_active replicas check sequentially
-    addMinActiveReplicaChecks(clusterId, helixInstanceChecks, toBeStoppedInstances);
+    addMinActiveReplicaChecks(clusterId, helixInstanceChecks, toBeStoppedInstances, includeDetails);
 
     // finalStoppableChecks contains instances that does not pass this health check
     return filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
@@ -618,7 +641,7 @@ public class MaintenanceManagementService {
         // this is helix own check
         instancesForNext =
             batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
-                Collections.emptySet());
+                Collections.emptySet(), false);
       } else if (healthCheck.equals(HELIX_CUSTOM_STOPPABLE_CHECK)) {
         // custom check, includes custom Instance check and partition check.
         instancesForNext =
@@ -839,6 +862,12 @@ public class MaintenanceManagementService {
   @VisibleForTesting
   protected Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
       List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances) {
+    return getInstanceHealthStatus(clusterId, instanceName, healthChecks, toBeStoppedInstances, false);
+  }
+
+  @VisibleForTesting
+  protected Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
+      List<HealthCheck> healthChecks, Set<String> toBeStoppedInstances, boolean includeDetails) {
     Map<String, Boolean> healthStatus = new HashMap<>();
     for (HealthCheck healthCheck : healthChecks) {
       switch (healthCheck) {
@@ -885,8 +914,18 @@ public class MaintenanceManagementService {
               InstanceValidationUtil.isResourceAssigned(_dataAccessor, instanceName));
           break;
         case MIN_ACTIVE_REPLICA_CHECK_FAILED:
-          healthStatus.put(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),
-              InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor, instanceName, toBeStoppedInstances));
+          if (includeDetails) {
+            MinActiveReplicaCheckResult result = InstanceValidationUtil
+                .siblingNodesActiveReplicaCheckWithDetails(_dataAccessor, instanceName, toBeStoppedInstances);
+            if (result.isPassed()) {
+              healthStatus.put(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(), true);
+            } else {
+              healthStatus.put(result.toString(), false);
+            }
+          } else {
+            healthStatus.put(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),
+                InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor, instanceName, toBeStoppedInstances));
+          }
           break;
         default:
           LOG.error("Unsupported health check: {}", healthCheck);
@@ -899,7 +938,7 @@ public class MaintenanceManagementService {
 
   // Adds the result of the min_active replica check for each stoppable check passed in futureStoppableCheckByInstance
   private void addMinActiveReplicaChecks(String clusterId, Map<String, Future<StoppableCheck>> futureStoppableCheckByInstance,
-      Set<String> toBeStoppedInstances) {
+      Set<String> toBeStoppedInstances, boolean includeDetails) {
     // Do not perform check if in the skip list
     if (_skipStoppableHealthCheckList.contains(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED)) {
       return;
@@ -916,7 +955,7 @@ public class MaintenanceManagementService {
         Map<String, Boolean> helixStoppableCheck =
             getInstanceHealthStatus(clusterId, instanceName,
                 Collections.singletonList(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED),
-                possibleToStopInstances);
+                possibleToStopInstances, includeDetails);
         stoppableCheck.add(new StoppableCheck(helixStoppableCheck, StoppableCheck.Category.HELIX_OWN_CHECK));
 
         if (stoppableCheck.isStoppable()) {

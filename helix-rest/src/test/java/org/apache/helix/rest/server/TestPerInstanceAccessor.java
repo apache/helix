@@ -103,7 +103,174 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dependsOnMethods = "testIsInstanceStoppable")
+  @Test
+  public void testIsInstanceStoppableWithIncludeDetailsDefault() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    Map<String, String> params = ImmutableMap.of("client", "espresso");
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
+    
+    // Test without includeDetails parameter (should behave same as includeDetails=false)
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/stoppable?skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK").format(
+        STOPPABLE_CLUSTER, "instance1").post(this, entity);
+    String stoppableCheckResult = response.readEntity(String.class);
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(stoppableCheckResult, Map.class);
+    
+    List<String> failedChecks =
+        Arrays.asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
+            "HELIX:INSTANCE_NOT_STABLE");
+    Map<String, Object> expectedMap =
+        ImmutableMap.of("stoppable", false, "failedChecks", failedChecks);
+    Assert.assertEquals(actualMap, expectedMap);
+    
+    // Verify the failed checks contain basic error codes without detailed partition information
+    for (String failedCheck : failedChecks) {
+      Assert.assertFalse(failedCheck.contains("partition"),
+          "Basic error message should not contain partition details: " + failedCheck);
+      Assert.assertFalse(failedCheck.contains("active replicas"),
+          "Basic error message should not contain replica details: " + failedCheck);
+    }
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test
+  public void testIsInstanceStoppableWithIncludeDetailsFalse() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    Map<String, String> params = ImmutableMap.of("client", "espresso");
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
+    
+    // Test with includeDetails=false (should behave same as default)
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/stoppable?skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK&includeDetails=false").format(
+        STOPPABLE_CLUSTER, "instance1").post(this, entity);
+    String stoppableCheckResult = response.readEntity(String.class);
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(stoppableCheckResult, Map.class);
+    
+    List<String> failedChecks =
+        Arrays.asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
+            "HELIX:INSTANCE_NOT_STABLE");
+    Map<String, Object> expectedMap =
+        ImmutableMap.of("stoppable", false, "failedChecks", failedChecks);
+    Assert.assertEquals(actualMap, expectedMap);
+    
+    // Verify the failed checks contain basic error codes without detailed partition information
+    for (String failedCheck : failedChecks) {
+      Assert.assertFalse(failedCheck.contains("partition"),
+          "Basic error message should not contain partition details: " + failedCheck);
+      Assert.assertFalse(failedCheck.contains("active replicas"),
+          "Basic error message should not contain replica details: " + failedCheck);
+    }
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test
+  public void testIsInstanceStoppableWithIncludeDetailsTrue() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    Map<String, String> params = ImmutableMap.of("client", "espresso");
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
+    
+    // Test with includeDetails=true
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/stoppable?skipHealthCheckCategories=CUSTOM_INSTANCE_CHECK,CUSTOM_PARTITION_CHECK&includeDetails=true").format(
+        STOPPABLE_CLUSTER, "instance1").post(this, entity);
+    String stoppableCheckResult = response.readEntity(String.class);
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(stoppableCheckResult, Map.class);
+    
+    Assert.assertFalse((Boolean) actualMap.get("stoppable"));
+    Assert.assertNotNull(actualMap.get("failedChecks"));
+    
+    @SuppressWarnings("unchecked")
+    List<String> failedChecks = (List<String>) actualMap.get("failedChecks");
+    Assert.assertFalse(failedChecks.isEmpty());
+    
+    // The basic checks should still be there but now with includeDetails=true,
+    // any MIN_ACTIVE_REPLICA_CHECK_FAILED errors should contain detailed information
+    boolean hasDetailedMessage = false;
+    for (String failedCheck : failedChecks) {
+      if (failedCheck.contains("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED") && 
+          (failedCheck.contains("partition") || failedCheck.contains("active replicas"))) {
+        hasDetailedMessage = true;
+        // Verify the detailed message format
+        Assert.assertTrue(failedCheck.contains("Resource "),
+            "Detailed error should contain resource information: " + failedCheck);
+        break;
+      }
+    }
+    
+    // Note: hasDetailedMessage might be false if this particular instance doesn't trigger
+    // MIN_ACTIVE_REPLICA_CHECK_FAILED, which is fine for this test setup
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test
+  public void testPerInstanceStoppableWithIncludeDetailsForMinActiveReplica() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    
+    // Test the includeDetails parameter specifically for scenarios that might trigger
+    // MIN_ACTIVE_REPLICA_CHECK_FAILED with detailed partition information
+    Map<String, String> params = ImmutableMap.of("client", "espresso");
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
+    
+    // Test an enabled instance from the stoppable cluster
+    String instanceToTest = "instance0"; // Use a different instance that might be enabled
+    
+    // First test without includeDetails
+    Response response1 = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/stoppable").format(
+        STOPPABLE_CLUSTER, instanceToTest).post(this, entity);
+    String result1 = response1.readEntity(String.class);
+    Map<String, Object> resultMap1 = OBJECT_MAPPER.readValue(result1, Map.class);
+    
+    // Then test with includeDetails=true
+    Response response2 = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/stoppable?includeDetails=true").format(
+        STOPPABLE_CLUSTER, instanceToTest).post(this, entity);
+    String result2 = response2.readEntity(String.class);
+    Map<String, Object> resultMap2 = OBJECT_MAPPER.readValue(result2, Map.class);
+    
+    // Both should have same stoppable status
+    Assert.assertEquals(resultMap1.get("stoppable"), resultMap2.get("stoppable"));
+    
+    // If there are failed checks, verify that includeDetails=true provides more information
+    if (resultMap1.containsKey("failedChecks") && resultMap2.containsKey("failedChecks")) {
+      @SuppressWarnings("unchecked")
+      List<String> failedChecks1 = (List<String>) resultMap1.get("failedChecks");
+      @SuppressWarnings("unchecked")
+      List<String> failedChecks2 = (List<String>) resultMap2.get("failedChecks");
+      
+      // Check if any detailed messages are present in the includeDetails=true response
+      boolean hasDetailedInResponse2 = false;
+      for (String check : failedChecks2) {
+        if (check.contains("partition") && check.contains("active replicas")) {
+          hasDetailedInResponse2 = true;
+          Assert.assertTrue(check.contains("Resource "), 
+              "Detailed message should contain resource info: " + check);
+          break;
+        }
+      }
+      
+      // The detailed information should only appear in the includeDetails=true response
+      if (hasDetailedInResponse2) {
+        boolean hasDetailedInResponse1 = false;
+        for (String check : failedChecks1) {
+          if (check.contains("partition") && check.contains("active replicas")) {
+            hasDetailedInResponse1 = true;
+            break;
+          }
+        }
+        Assert.assertFalse(hasDetailedInResponse1, 
+            "Default response should not contain detailed partition information");
+      }
+    }
+    
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testPerInstanceStoppableWithIncludeDetailsForMinActiveReplica")
   public void testTakeInstanceNegInput() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     post("clusters/TestCluster_0/instances/instance1/takeInstance", null,

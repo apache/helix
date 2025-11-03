@@ -179,7 +179,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   public Response isInstanceStoppable(String jsonContent, @PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("continueOnFailures") boolean continueOnFailures,
-      @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories)
+      @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
+      @DefaultValue("false") @QueryParam("includeDetails") boolean includeDetails)
       throws IOException {
 
     Set<StoppableCheck.Category> skipHealthCheckCategorySet;
@@ -218,7 +219,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       }
 
       stoppableCheck =
-          maintenanceService.getInstanceStoppableCheck(clusterId, instanceName, customizedInput);
+          maintenanceService.getInstanceStoppableCheck(clusterId, instanceName, customizedInput, includeDetails);
     } catch (HelixException e) {
       LOG.error("Current cluster: {}, instance: {} has issue with health checks!", clusterId,
           instanceName, e);

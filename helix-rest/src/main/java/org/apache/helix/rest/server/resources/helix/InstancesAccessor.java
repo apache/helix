@@ -159,7 +159,8 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("skipHealthCheckCategories") String skipHealthCheckCategories,
-      @DefaultValue("false") @QueryParam("random") boolean random, String content) {
+      @DefaultValue("false") @QueryParam("random") boolean random,
+      @DefaultValue("false") @QueryParam("includeDetails") boolean includeDetails, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -204,7 +205,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           break;
         case stoppable:
           return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures,
-              skipHealthCheckCategorySet, random);
+              skipHealthCheckCategorySet, random, includeDetails);
         default:
           _logger.error("Unsupported command :" + command);
           return badRequest("Unsupported command :" + command);
@@ -222,7 +223,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
       boolean continueOnFailures, Set<StoppableCheck.Category> skipHealthCheckCategories,
-      boolean random) throws IOException {
+      boolean random, boolean includeDetails) throws IOException {
     try {
       // TODO: Process input data from the content
       // TODO: Implement the logic to automatically detect the selection base. https://github.com/apache/helix/issues/2968#issue-2691677799
@@ -354,6 +355,7 @@ public class InstancesAccessor extends AbstractHelixResource {
               .setMaintenanceService(maintenanceService)
               .setClusterTopology(clusterTopology)
               .setDataAccessor((ZKHelixDataAccessor) getDataAccssor(clusterId))
+              .setIncludeDetails(includeDetails)
               .build();
       ObjectNode result;
 

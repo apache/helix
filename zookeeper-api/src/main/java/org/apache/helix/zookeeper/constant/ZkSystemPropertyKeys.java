@@ -89,4 +89,15 @@ public class ZkSystemPropertyKeys {
   // TODO: deprecate this config after paginated API is deployed and stable
   public static final String ZK_GETCHILDREN_PAGINATION_DISABLED =
       "zk.getChildren.pagination.disabled";
+
+  /**
+   * This property defines the default operation retry timeout in milliseconds for ZkClient.
+   * Most ZkClient operations are retried in cases like connection loss with the ZooKeeper servers.
+   * During such failures, this timeout decides the total amount of time to spend for retries before giving up.
+   * A value lesser than or equal to 0 is ignored and the default value will be used.
+   * <p>
+   * The default value is 86400000 (24 hours) if not configured.
+   */
+  public static final String ZK_OPERATION_RETRY_TIMEOUT_MS =
+      "zk.operation.retry.timeout.ms";
 }

@@ -21,6 +21,7 @@ package org.apache.helix.zookeeper.impl.client;
 
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
@@ -61,9 +62,6 @@ import org.slf4j.LoggerFactory;
 public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient implements HelixZkClient {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
-  // Setting default operation retry timeout to 24 hours. It can also be overwritten via RealmAwareZkClientConfig.
-  // This timeout will be used while retrying zookeeper operations.
-  public static final int DEFAULT_OPERATION_TIMEOUT = 24 * 60 * 60 * 1000;
   public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
@@ -117,7 +115,7 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
       PathBasedZkSerializer zkSerializer,
       String monitorType, String monitorKey) {
     this(connection, connectionTimeout, zkSerializer, monitorType, monitorKey,
-        DEFAULT_OPERATION_TIMEOUT);
+        ZNRecordUtil.getDefaultOperationRetryTimeout());
   }
 
   public ZkClient(String zkServers, String monitorType, String monitorKey) {
@@ -191,7 +189,7 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
 
     PathBasedZkSerializer _zkSerializer;
 
-    long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
+    long _operationRetryTimeout = ZNRecordUtil.getDefaultOperationRetryTimeout();
     int _connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
     int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 

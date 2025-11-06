@@ -119,6 +119,11 @@ public class ZkClient implements Watcher {
       Integer.getInteger(ZkSystemPropertyKeys.JUTE_MAXBUFFER, ZNRecord.SIZE_LIMIT);
 
   private final IZkConnection _connection;
+
+  // The operation retry timeout can be configured via:
+  // 1. Constructor parameter operationRetryTimeout
+  // 2. System property "zk.operation.retry.timeout.ms" (used as default if not explicitly set)
+  // 3. Respective ZKClientConfig (eg: RealmAwareZkClientConfig.setOperationRetryTimeout()) for higher-level clients
   private final long _operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
@@ -266,6 +271,10 @@ public class ZkClient implements Watcher {
     }
     _usePersistWatcher = usePersistWatcher;
     _persistListenerMutex = new ReentrantLock();
+  }
+
+  public long getOperationRetryTimeout() {
+    return _operationRetryTimeoutInMillis;
   }
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
@@ -2175,6 +2184,7 @@ public class ZkClient implements Watcher {
   private void waitForRetry(long maxSleep) {
     if (waitUntilConnected(_operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS)) {
       try {
+        LOG.debug("zkclient {} Wait for {} ms before retrying operation", _uid, maxSleep);
         Thread.sleep(maxSleep);
       } catch (InterruptedException ex) {
         // we don't need to re-throw.

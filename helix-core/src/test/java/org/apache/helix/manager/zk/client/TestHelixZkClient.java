@@ -24,7 +24,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.testng.Assert;
@@ -196,5 +198,23 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertEquals(testFactory.getActiveConnectionCount(), 0);
 
     deleteCluster("testSharingZkClient");
+  }
+
+  @Test
+  public void testZKClientConfig() {
+    System.setProperty(ZkSystemPropertyKeys.ZK_OPERATION_RETRY_TIMEOUT_MS, "5000");
+
+    HelixZkClient.ZkConnectionConfig connectionConfig =
+        new HelixZkClient.ZkConnectionConfig(ZK_ADDR);
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+
+    // A factory just for this tests, this for avoiding the impact from other tests running in
+    // parallel.
+    final SharedZkClientFactory testFactory = new SharedZkClientFactory();
+    ZkClient zkClient =
+        (ZkClient) testFactory.buildZkClient(connectionConfig, clientConfig);
+    Assert.assertEquals(zkClient.getOperationRetryTimeout(), 5000);
+
+    zkClient.close();
   }
 }

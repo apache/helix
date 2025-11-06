@@ -27,6 +27,7 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
+import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -63,9 +64,6 @@ public interface RealmAwareZkClient {
     SINGLE_REALM, MULTI_REALM
   }
 
-  // Setting default operation retry timeout to 24 hours. It can also be overwritten via RealmAwareZkClientConfig.
-  // This timeout will be used while retrying zookeeper operations.
-  int DEFAULT_OPERATION_TIMEOUT = 24 * 60 * 60 * 1000;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
@@ -464,7 +462,7 @@ public interface RealmAwareZkClient {
     protected long _connectInitTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
     // Data access configs
-    protected long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
+    protected long _operationRetryTimeout = ZNRecordUtil.getDefaultOperationRetryTimeout();
 
     // Serializer
     protected PathBasedZkSerializer _zkSerializer;

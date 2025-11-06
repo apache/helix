@@ -671,10 +671,63 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     return _baseAccessor.get(serverPaths, stats, options, throwException);
   }
 
-  // TODO: add cache
   @Override
   public Stat[] getStats(List<String> paths, int options) {
+    if (paths == null || paths.isEmpty()) {
+      return new Stat[0];
+    }
+  
+    final int size = paths.size();
     List<String> serverPaths = prependChroot(paths);
+  
+    Stat[] stats = new Stat[size];
+  
+    boolean needRead = false;
+    boolean[] needReads = new boolean[size]; // init to false
+  
+    Cache<T> cache = getCache(serverPaths);
+    if (cache != null) {
+      try {
+        cache.lockRead();
+        // Try to get stats from cache first
+        for (int i = 0; i < size; i++) {
+          ZNode zNode = cache.get(serverPaths.get(i));
+          if (zNode != null) {
+            stats[i] = zNode.getStat();
+          } else {
+            needRead = true;
+            needReads[i] = true;
+          }
+        }
+      } finally {
+        cache.unlockRead();
+      }
+  
+      // cache miss, fall back to zk and update cache
+      if (needRead) {
+        cache.lockWrite();
+        try {
+          // Batch read data and stats for cache misses to populate cache
+          List<Stat> readStatsList = new ArrayList<>(Collections.<Stat>nCopies(size, null));
+          List<T> readRecords = _baseAccessor.get(serverPaths, readStatsList, needReads, false);
+          
+          for (int i = 0; i < size; i++) {
+            if (needReads[i]) {
+              stats[i] = readStatsList.get(i);
+              if (readStatsList.get(i) != null) {
+                cache.update(serverPaths.get(i), readRecords.get(i), readStatsList.get(i));
+              }
+            }
+          }
+        } finally {
+          cache.unlockWrite();
+        }
+      }
+  
+      return stats;
+    }
+  
+    // no cache
     return _baseAccessor.getStats(serverPaths, options);
   }
 

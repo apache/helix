@@ -80,4 +80,24 @@ public class ZNRecordUtil {
 
     return writeSizeLimit;
   }
+
+  /**
+   * Gets the default operation retry timeout from system property if configured,
+   * otherwise returns the hardcoded default value.
+   * It can also be overwritten via respective ZKClient Config
+   * @return the operation retry timeout in milliseconds
+   */
+  public static long getDefaultOperationRetryTimeout() {
+    int defaultOperationTimeout = 24 * 60 * 60 * 1000;
+    String timeoutStr = System.getProperty(ZkSystemPropertyKeys.ZK_OPERATION_RETRY_TIMEOUT_MS);
+    if (timeoutStr != null && !timeoutStr.trim().isEmpty()) {
+      try {
+        long timeout = Long.parseLong(timeoutStr.trim());
+        return timeout <= 0 ? defaultOperationTimeout : timeout;
+      } catch (NumberFormatException e) {
+        // Invalid format, use default value
+      }
+    }
+    return defaultOperationTimeout;
+  }
 }

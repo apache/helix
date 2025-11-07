@@ -22,10 +22,10 @@ package org.apache.helix.zookeeper.impl.factory;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
@@ -63,7 +63,7 @@ public class ZkConnectionManager extends ZkClient {
    */
   protected ZkConnectionManager(IZkConnection zkConnection, long connectionTimeout,
       String monitorKey) {
-    super(zkConnection, (int) connectionTimeout, HelixZkClient.DEFAULT_OPERATION_TIMEOUT,
+    super(zkConnection, (int) connectionTimeout, ZNRecordUtil.getDefaultOperationRetryTimeout(),
         new BasicZkSerializer(new SerializableSerializer()), MONITOR_TYPE, monitorKey, null, true);
     _monitorKey = monitorKey;
     LOG.info("ZkConnection {} was created for sharing.", _monitorKey);

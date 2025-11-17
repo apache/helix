@@ -449,7 +449,6 @@ public final class ZKUtil {
           client.updateDataSerialized(path, updater);
         } else {
           if (!allowCreate) {
-            logger.warn("Path " + path + " does not exist and creation is not allowed. Skipping.");
             throw new HelixException(("Path " + path + " does not exist"));
           }
 

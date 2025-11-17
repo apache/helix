@@ -218,4 +218,62 @@ public class TestZKUtil extends ZkUnitTestBase {
       put("k2", "v2");
     }}, record.getMapField("map"));
   }
+
+  @Test()
+  public void testUpsertWithOptionalCreate_CreateWhenNotExists() {
+    // Test: Create node when it doesn't exist and allowCreate is true
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id10");
+    ZNRecord record = new ZNRecord("id10");
+    record.setSimpleField("key1", "value1");
+
+    // Node doesn't exist yet
+    AssertJUnit.assertFalse(_gZkClient.exists(path));
+
+    // Create with allowCreate=true, persistent=true
+    ZKUtil.upsertWithOptionalCreate(_gZkClient, path, record, true, true, true);
+
+    // Verify node was created
+    AssertJUnit.assertTrue(_gZkClient.exists(path));
+    ZNRecord result = _gZkClient.readData(path);
+    AssertJUnit.assertEquals("id10", result.getId());
+    AssertJUnit.assertEquals("value1", result.getSimpleField("key1"));
+  }
+
+  @Test()
+  public void testUpsertWithOptionalCreate_NoCreateWhenNotExists() {
+    // Test: Don't create node when it doesn't exist and allowCreate is false
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id11");
+    ZNRecord record = new ZNRecord("id11");
+    record.setSimpleField("key1", "value1");
+
+    // Node doesn't exist yet
+    AssertJUnit.assertFalse(_gZkClient.exists(path));
+
+    // Try to update with allowCreate=false
+    ZKUtil.upsertWithOptionalCreate(_gZkClient, path, record, true, true, false);
+
+    // Verify node was NOT created
+    AssertJUnit.assertFalse(_gZkClient.exists(path));
+  }
+
+  @Test()
+  public void testUpsertWithOptionalCreate_UpdateExistingWithAllowCreateFalse() {
+    // Test: Update should work even when allowCreate=false if node exists
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id15");
+
+    // Create initial node
+    ZNRecord initial = new ZNRecord("id15");
+    initial.setSimpleField("key1", "value1");
+    _gZkClient.createPersistent(path, initial);
+
+    // Update with allowCreate=false (should still work since node exists)
+    ZNRecord update = new ZNRecord("id15");
+    update.setSimpleField("key2", "value2");
+    ZKUtil.upsertWithOptionalCreate(_gZkClient, path, update, true, true, false);
+
+    // Verify update happened
+    ZNRecord result = _gZkClient.readData(path);
+    AssertJUnit.assertEquals("value1", result.getSimpleField("key1"));
+    AssertJUnit.assertEquals("value2", result.getSimpleField("key2"));
+  }
 }

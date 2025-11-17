@@ -1734,7 +1734,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           resourceName));
     }
     // Update by way of merge
-    ZKUtil.createOrUpdate(_zkClient, zkPath, idealState.getRecord(), true, true);
+    ZKUtil.upsertWithOptionalCreate(_zkClient, zkPath, idealState.getRecord(), true, true, false);
   }
 
   /**

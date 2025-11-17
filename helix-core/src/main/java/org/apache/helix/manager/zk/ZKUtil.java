@@ -427,6 +427,11 @@ public final class ZKUtil {
 
   public static void createOrUpdate(RealmAwareZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
+    conditionalCreateOrUpdate(client, path, record, persistent, mergeOnUpdate, true);
+  }
+
+  public static void conditionalCreateOrUpdate(RealmAwareZkClient client, String path, final ZNRecord record,
+      final boolean persistent, final boolean mergeOnUpdate, final boolean allowCreate) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {
       try {
@@ -443,6 +448,11 @@ public final class ZKUtil {
           };
           client.updateDataSerialized(path, updater);
         } else {
+          if (!allowCreate) {
+            logger.warn("Path " + path + " does not exist and creation is not allowed. Skipping.");
+            return;
+          }
+
           CreateMode mode = (persistent) ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL;
           client.create(path, record, mode);
         }

@@ -427,10 +427,10 @@ public final class ZKUtil {
 
   public static void createOrUpdate(RealmAwareZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
-    conditionalCreateOrUpdate(client, path, record, persistent, mergeOnUpdate, true);
+    upsertWithOptionalCreate(client, path, record, persistent, mergeOnUpdate, true);
   }
 
-  public static void conditionalCreateOrUpdate(RealmAwareZkClient client, String path, final ZNRecord record,
+  public static void upsertWithOptionalCreate(RealmAwareZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate, final boolean allowCreate) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {

@@ -220,7 +220,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   }
 
   @Test()
-  public void testConditionalCreateOrUpdate_CreateWhenNotExists() {
+  public void testUpsertWithOptionalCreate_CreateWhenNotExists() {
     // Test: Create node when it doesn't exist and allowCreate is true
     String path = PropertyPathBuilder.instanceConfig(clusterName, "id10");
     ZNRecord record = new ZNRecord("id10");
@@ -230,7 +230,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     AssertJUnit.assertFalse(_gZkClient.exists(path));
 
     // Create with allowCreate=true, persistent=true
-    ZKUtil.conditionalCreateOrUpdate(_gZkClient, path, record, true, true, true);
+    ZKUtil.upsertWithOptionalCreate(_gZkClient, path, record, true, true, true);
 
     // Verify node was created
     AssertJUnit.assertTrue(_gZkClient.exists(path));
@@ -240,7 +240,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   }
 
   @Test()
-  public void testConditionalCreateOrUpdate_NoCreateWhenNotExists() {
+  public void testUpsertWithOptionalCreate_NoCreateWhenNotExists() {
     // Test: Don't create node when it doesn't exist and allowCreate is false
     String path = PropertyPathBuilder.instanceConfig(clusterName, "id11");
     ZNRecord record = new ZNRecord("id11");
@@ -250,14 +250,14 @@ public class TestZKUtil extends ZkUnitTestBase {
     AssertJUnit.assertFalse(_gZkClient.exists(path));
 
     // Try to update with allowCreate=false
-    ZKUtil.conditionalCreateOrUpdate(_gZkClient, path, record, true, true, false);
+    ZKUtil.upsertWithOptionalCreate(_gZkClient, path, record, true, true, false);
 
     // Verify node was NOT created
     AssertJUnit.assertFalse(_gZkClient.exists(path));
   }
 
   @Test()
-  public void testConditionalCreateOrUpdate_UpdateExistingWithAllowCreateFalse() {
+  public void testUpsertWithOptionalCreate_UpdateExistingWithAllowCreateFalse() {
     // Test: Update should work even when allowCreate=false if node exists
     String path = PropertyPathBuilder.instanceConfig(clusterName, "id15");
 
@@ -269,7 +269,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     // Update with allowCreate=false (should still work since node exists)
     ZNRecord update = new ZNRecord("id15");
     update.setSimpleField("key2", "value2");
-    ZKUtil.conditionalCreateOrUpdate(_gZkClient, path, update, true, true, false);
+    ZKUtil.upsertWithOptionalCreate(_gZkClient, path, update, true, true, false);
 
     // Verify update happened
     ZNRecord result = _gZkClient.readData(path);

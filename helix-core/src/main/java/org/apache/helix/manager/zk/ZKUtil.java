@@ -450,7 +450,7 @@ public final class ZKUtil {
         } else {
           if (!allowCreate) {
             logger.warn("Path " + path + " does not exist and creation is not allowed. Skipping.");
-            return;
+            throw new HelixException(("Path " + path + " does not exist"));
           }
 
           CreateMode mode = (persistent) ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL;

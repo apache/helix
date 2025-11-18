@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.common.ResourcesStateMap;
@@ -89,18 +90,15 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
 
   public void setPreferenceList(String resource, String partition, List<String> list) {
     if (_preferenceLists == null) {
-      _preferenceLists = new HashMap<>();
+      _preferenceLists = new ConcurrentHashMap<>();
     }
-    if (!_preferenceLists.containsKey(resource)) {
-      _preferenceLists.put(resource, new HashMap<String, List<String>>());
-    }
-    _preferenceLists.get(resource).put(partition, list);
+    _preferenceLists.computeIfAbsent(resource, k -> new ConcurrentHashMap<>()).put(partition, list);
   }
 
   public void setPreferenceLists(String resource,
       Map<String, List<String>> resourcePreferenceLists) {
     if (_preferenceLists == null) {
-      _preferenceLists = new HashMap<>();
+      _preferenceLists = new ConcurrentHashMap<>();
     }
     _preferenceLists.put(resource, resourcePreferenceLists);
   }

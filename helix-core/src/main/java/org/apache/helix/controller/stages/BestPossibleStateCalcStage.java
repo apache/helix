@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,6 +60,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.util.StageThreadPoolHelper;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +72,7 @@ import org.slf4j.LoggerFactory;
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger logger =
       LoggerFactory.getLogger(BestPossibleStateCalcStage.class.getName());
+  private static final String STAGE_NAME = "BestPossibleStateCalcStage";
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -283,7 +284,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     boolean isValid =
         validateInstancesUnableToAcceptOnlineReplicasLimit(cache, event.getAttribute(AttributeName.helixmanager.name()));
 
-    final List<String> failureResources = new ArrayList<>();
+    final List<String> failureResources = Collections.synchronizedList(new ArrayList<>());
 
     Map<String, Resource> calculatedResourceMap =
         computeResourceBestPossibleStateWithWagedRebalancer(wagedRebalancer, cache,
@@ -292,27 +293,38 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Map<String, Resource> remainingResourceMap = new HashMap<>(resourceMap);
     remainingResourceMap.keySet().removeAll(calculatedResourceMap.keySet());
 
-    // Fallback to the original single resource rebalancer calculation.
-    // This is required because we support mixed cluster that uses both WAGED rebalancer and the
-    // older rebalancers.
-    Iterator<Resource> itr = remainingResourceMap.values().iterator();
-    while (itr.hasNext()) {
-      Resource resource = itr.next();
-      boolean result = false;
-      try {
-        result = computeSingleResourceBestPossibleState(event, cache, currentStateOutput, resource,
-            output);
-      } catch (HelixException ex) {
-        LogUtil.logError(logger, _eventId, String
-            .format("Exception when calculating best possible states for %s",
-                resource.getResourceName()), ex);
+    // Parallel computation for all the resources
+    List<Callable<Void>> computeBestPossibleStateTasks = new ArrayList<>();
 
-      }
-      if (!result) {
-        failureResources.add(resource.getResourceName());
-        LogUtil.logWarn(logger, _eventId, String
-            .format("Failed to calculate best possible states for %s", resource.getResourceName()));
-      }
+    for (Resource resource : remainingResourceMap.values()) {
+      computeBestPossibleStateTasks.add(() -> {
+        boolean result = false;
+        try {
+          result = computeSingleResourceBestPossibleState(
+              event, cache, currentStateOutput, resource, output);
+        } catch (HelixException ex) {
+          LogUtil.logError(logger, _eventId, String.format(
+              "Exception when calculating best possible state for %s",
+              resource.getResourceName()), ex);
+        }
+
+        if (!result) {
+          failureResources.add(resource.getResourceName());
+          LogUtil.logWarn(logger, _eventId, String.format(
+              "Failed to calculate best possible state for %s",
+              resource.getResourceName()));
+        }
+        return null;
+      });
+    }
+
+    // Run all remaining resource computations in parallel and wait for completion.
+    try {
+      StageThreadPoolHelper.executeAndWait(STAGE_NAME, computeBestPossibleStateTasks);
+    } catch (InterruptedException e) {
+      LogUtil.logError(logger, _eventId,
+          "Interrupted during parallel execution", e);
+      Thread.currentThread().interrupt();
     }
 
     // Check and report if resource rebalance has failure
@@ -610,33 +622,33 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       String resourceName, boolean isMaintenanceModeEnabled) {
     Rebalancer<ResourceControllerDataProvider> rebalancer = null;
     switch (idealState.getRebalanceMode()) {
-    case FULL_AUTO:
-      if (isMaintenanceModeEnabled) {
-        rebalancer = new MaintenanceRebalancer();
-      } else {
-        Rebalancer<ResourceControllerDataProvider> customizedRebalancer =
-            getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
-        if (customizedRebalancer != null) {
-          rebalancer = customizedRebalancer;
+      case FULL_AUTO:
+        if (isMaintenanceModeEnabled) {
+          rebalancer = new MaintenanceRebalancer();
         } else {
-          rebalancer = new DelayedAutoRebalancer();
+          Rebalancer<ResourceControllerDataProvider> customizedRebalancer =
+              getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
+          if (customizedRebalancer != null) {
+            rebalancer = customizedRebalancer;
+          } else {
+            rebalancer = new DelayedAutoRebalancer();
+          }
         }
-      }
-      break;
-    case SEMI_AUTO:
-      rebalancer = new SemiAutoRebalancer<>();
-      break;
-    case CUSTOMIZED:
-      rebalancer = new CustomRebalancer();
-      break;
-    case USER_DEFINED:
-    case TASK:
-      rebalancer = getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
-      break;
-    default:
-      LogUtil.logError(logger, _eventId,
-          "Fail to find the rebalancer, invalid rebalance mode " + idealState.getRebalanceMode());
-      break;
+        break;
+      case SEMI_AUTO:
+        rebalancer = new SemiAutoRebalancer<>();
+        break;
+      case CUSTOMIZED:
+        rebalancer = new CustomRebalancer();
+        break;
+      case USER_DEFINED:
+      case TASK:
+        rebalancer = getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
+        break;
+      default:
+        LogUtil.logError(logger, _eventId,
+            "Fail to find the rebalancer, invalid rebalance mode " + idealState.getRebalanceMode());
+        break;
     }
     return rebalancer;
   }

@@ -313,4 +313,88 @@ public class TestInstanceMonitor {
     monitor.unregister();
     monitor2.unregister();
   }
+
+  @Test
+  public void testPartitionCountMetrics() throws JMException {
+    String testCluster = "testCluster";
+    String testInstance = "testInstance";
+    String testDomain = "testDomain:key=value";
+    InstanceMonitor monitor =
+        new InstanceMonitor(testCluster, testInstance, new ObjectName(testDomain));
+
+    // Verify initial state
+    Assert.assertEquals(monitor.getPartitionCount(), 0L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 0L);
+
+    // Update partition counts
+    monitor.updatePartitionCount(10L);
+    monitor.updateTopStatePartitionCount(5L);
+
+    // Verify updated values
+    Assert.assertEquals(monitor.getPartitionCount(), 10L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 5L);
+
+    // Update again with different values
+    monitor.updatePartitionCount(20L);
+    monitor.updateTopStatePartitionCount(12L);
+
+    // Verify new values
+    Assert.assertEquals(monitor.getPartitionCount(), 20L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 12L);
+
+    // Test with zero counts
+    monitor.updatePartitionCount(0L);
+    monitor.updateTopStatePartitionCount(0L);
+
+    Assert.assertEquals(monitor.getPartitionCount(), 0L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 0L);
+
+    monitor.unregister();
+  }
+
+  @Test
+  public void testPartitionCountEdgeCases() throws JMException {
+    String testCluster = "testCluster";
+    String testInstance = "testInstance";
+    String testDomain = "testDomain:key=value";
+    InstanceMonitor monitor =
+        new InstanceMonitor(testCluster, testInstance, new ObjectName(testDomain));
+
+    // Test 1: Initial state should be 0
+    Assert.assertEquals(monitor.getPartitionCount(), 0L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 0L);
+
+    // Test 2: Update to non-zero values
+    monitor.updatePartitionCount(25L);
+    monitor.updateTopStatePartitionCount(10L);
+    Assert.assertEquals(monitor.getPartitionCount(), 25L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 10L);
+
+    // Test 3: Simulate all partitions removed (instance evacuated or offline)
+    monitor.updatePartitionCount(0L);
+    monitor.updateTopStatePartitionCount(0L);
+    Assert.assertEquals(monitor.getPartitionCount(), 0L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 0L);
+
+    // Test 4: Simulate partitions reassigned after coming back online
+    monitor.updatePartitionCount(30L);
+    monitor.updateTopStatePartitionCount(12L);
+    Assert.assertEquals(monitor.getPartitionCount(), 30L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 12L);
+
+    // Test 5: TopState count should never exceed total partition count
+    // (this is enforced by the calculation logic, but verify metric can hold correct values)
+    monitor.updatePartitionCount(100L);
+    monitor.updateTopStatePartitionCount(100L);
+    Assert.assertEquals(monitor.getPartitionCount(), 100L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 100L);
+
+    // Test 6: Large numbers
+    monitor.updatePartitionCount(1000000L);
+    monitor.updateTopStatePartitionCount(500000L);
+    Assert.assertEquals(monitor.getPartitionCount(), 1000000L);
+    Assert.assertEquals(monitor.getTopStatePartitionCount(), 500000L);
+
+    monitor.unregister();
+  }
 }

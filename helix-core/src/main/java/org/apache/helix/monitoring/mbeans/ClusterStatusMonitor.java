@@ -524,10 +524,19 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
     // Convert to perInstanceResource beanName->partition->state
     Map<PerInstanceResourceMonitor.BeanName, Map<Partition, String>> beanMap = new HashMap<>();
+    // Track partition counts per instance: instance -> total partitions
+    Map<String, Long> instancePartitionCount = new HashMap<>();
+    // Track top state partition counts per instance: instance -> top state partitions
+    Map<String, Long> instanceTopStatePartitionCount = new HashMap<>();
+
     Set<String> resourceSet = new HashSet<>(bestPossibleStates.resourceSet());
     for (String resource : resourceSet) {
       Map<Partition, Map<String, String>> partitionStateMap =
           new HashMap<>(bestPossibleStates.getResourceMap(resource));
+      StateModelDefinition stateModelDef = stateModelDefMap.get(
+          resourceMap.get(resource).getStateModelDefRef());
+      String topState = stateModelDef.getTopState();
+
       for (Partition partition : partitionStateMap.keySet()) {
         Map<String, String> instanceStateMap = partitionStateMap.get(partition);
         for (String instance : instanceStateMap.keySet()) {
@@ -535,9 +544,31 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           PerInstanceResourceMonitor.BeanName beanName =
               new PerInstanceResourceMonitor.BeanName(_clusterName, instance, resource);
           beanMap.computeIfAbsent(beanName, k -> new HashMap<>()).put(partition, state);
+
+          // Count partitions per instance
+          instancePartitionCount.merge(instance, 1L, Long::sum);
+
+          // Count top state partitions per instance
+          if (topState != null && topState.equals(state)) {
+            instanceTopStatePartitionCount.merge(instance, 1L, Long::sum);
+          }
         }
       }
     }
+
+    // Update instance monitors with partition counts
+    synchronized (_instanceMonitorMap) {
+      for (String instanceName : _instanceMonitorMap.keySet()) {
+        InstanceMonitor instanceMonitor = _instanceMonitorMap.get(instanceName);
+        if (instanceMonitor != null) {
+          long partitionCount = instancePartitionCount.getOrDefault(instanceName, 0L);
+          long topStatePartitionCount = instanceTopStatePartitionCount.getOrDefault(instanceName, 0L);
+          instanceMonitor.updatePartitionCount(partitionCount);
+          instanceMonitor.updateTopStatePartitionCount(topStatePartitionCount);
+        }
+      }
+    }
+
     synchronized (_perInstanceResourceMonitorMap) {
       // Unregister beans for per-instance resources that no longer exist
       Set<PerInstanceResourceMonitor.BeanName> toUnregister =

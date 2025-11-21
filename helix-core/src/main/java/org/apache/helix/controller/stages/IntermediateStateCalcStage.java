@@ -329,9 +329,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     int threshold = 1; // Default threshold for ErrorOrRecoveryPartitionThresholdForLoadBalance
     // Keep the error count as partition level. This logic only applies to downward state transition determination
     for (Partition partition : currentStateOutput.getCurrentStateMap(resourceName).keySet()) {
-      Map<String, String> entry =
-          currentStateOutput.getCurrentStateMap(resourceName).get(partition);
-      if (entry.values().stream().anyMatch(x -> x.contains(HelixDefinedState.ERROR.name()))) {
+      Map<String, String> entry = currentStateOutput.getCurrentStateMap(resourceName).get(partition);
+      if (entry.containsValue(HelixDefinedState.ERROR.name())) {
         partitionsWithErrorStateReplica.add(partition);
       }
     }
@@ -777,6 +776,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     private final Map<Partition, Map<String, String>> _bestPossibleMap;
     private final Map<Partition, Map<String, String>> _currentStateMap;
     private final String _topState;
+    // Cache computation results to avoid duplicated computation
+    private final Map<Partition, Integer> _currentActiveReplicasCache = new HashMap<>();
+    private final Map<Partition, Integer> _idealStateMatchedCache = new HashMap<>();
 
     PartitionPriorityComparator(Map<Partition, Map<String, String>> bestPossibleMap,
         Map<Partition, Map<String, String>> currentStateMap, String topState) {
@@ -794,14 +796,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         return Integer.compare(missTopState1, missTopState2);
       }
       // Higher priority for the partition with fewer active replicas
-      int currentActiveReplicas1 = getCurrentActiveReplicas(p1);
-      int currentActiveReplicas2 = getCurrentActiveReplicas(p2);
+      int currentActiveReplicas1 = _currentActiveReplicasCache.computeIfAbsent(p1, this::getCurrentActiveReplicas);
+      int currentActiveReplicas2 = _currentActiveReplicasCache.computeIfAbsent(p2, this::getCurrentActiveReplicas);
       if (currentActiveReplicas1 != currentActiveReplicas2) {
         return Integer.compare(currentActiveReplicas1, currentActiveReplicas2);
       }
       // Higher priority for the partition with fewer replicas with states matching with IdealState
-      int idealStateMatched1 = getIdealStateMatched(p1);
-      int idealStateMatched2 = getIdealStateMatched(p2);
+      int idealStateMatched1 = _idealStateMatchedCache.computeIfAbsent(p1, this::getIdealStateMatched);
+      int idealStateMatched2 = _idealStateMatchedCache.computeIfAbsent(p2, this::getIdealStateMatched);
       if (idealStateMatched1 != idealStateMatched2) {
         return Integer.compare(idealStateMatched1, idealStateMatched2);
       }

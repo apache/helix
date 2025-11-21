@@ -716,21 +716,27 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   /**
    * Return all the live nodes that are enabled. If a node is enabled, it is assignable.
-   * @return A new set contains live instance name and that are marked enabled
+   * @return An unmodifiable set contains live instance name and that are marked enabled
    */
   public Set<String> getEnabledLiveInstances() {
-    Set<String> enabledLiveInstances = new HashSet<>(getLiveInstances().keySet());
-    enabledLiveInstances.retainAll(getEnabledInstances());
+    Set<String> liveInstances = getLiveInstances().keySet();
+    Set<String> enabledInstances = getEnabledInstances();
 
-    return enabledLiveInstances;
+    Set<String> enabledLiveInstances = new HashSet<>();
+    for (String instance : enabledInstances) {
+      if (liveInstances.contains(instance)) {
+        enabledLiveInstances.add(instance);
+      }
+    }
+    return Collections.unmodifiableSet(enabledLiveInstances);
   }
 
   /**
    * Return all nodes that are enabled. If a node is enabled, it is assignable.
-   * @return A new set contains instance name and that are marked enabled
+   * @return An unmodifiable set contains instance name and that are marked enabled
    */
   public Set<String> getEnabledInstances() {
-    return new HashSet<>(_derivedInstanceCache.getInstanceConfigMapByInstanceOperation(
+    return Collections.unmodifiableSet(_derivedInstanceCache.getInstanceConfigMapByInstanceOperation(
         InstanceConstants.InstanceOperation.ENABLE).keySet());
   }
 

@@ -43,9 +43,9 @@ public class PartitionStateMap {
   // Deep copy of the partitionStateMap is a safer way.
   public PartitionStateMap(String resourceName, Map<Partition, Map<String, String>> partitionStateMap) {
     _resourceName = resourceName;
-    _stateMap = partitionStateMap.entrySet()
-        .stream()
-        .collect(Collectors.toMap(e -> e.getKey(), e -> new HashMap<>(e.getValue())));
+    // deep copy
+    _stateMap = new HashMap<>(partitionStateMap.size());
+    partitionStateMap.forEach((partition, map) -> _stateMap.put(partition, new HashMap<>(map)));
   }
 
   public Set<Partition> partitionSet() {

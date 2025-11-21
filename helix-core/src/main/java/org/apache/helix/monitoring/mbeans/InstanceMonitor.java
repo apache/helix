@@ -24,9 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 import javax.management.ObjectName;
 
@@ -109,13 +106,11 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   // A map of dynamic capacity Gauges. The map's keys could change.
   private final Map<String, SimpleDynamicMetric<Long>> _dynamicCapacityMetricsMap;
 
-  // Background executor for resetting gauges
-  private final ScheduledExecutorService _resetExecutor;
-
   /**
    * Initialize the bean
    * @param clusterName the cluster to monitor
    * @param participantName the instance whose statistics this holds
+   * @param objectName the MBean object name
    */
   public InstanceMonitor(String clusterName, String participantName, ObjectName objectName) {
     _clusterName = clusterName;
@@ -127,11 +122,6 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     // Initialize to 0 so that if we haven't received operation info yet, duration will be large
     // and will be corrected when we receive the actual operation start time from InstanceConfig
     _currentOperationStartTime = 0L;
-    _resetExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
-      Thread thread = new Thread(r, "InstanceMonitor-ResetGauges-" + participantName);
-      thread.setDaemon(true);
-      return thread;
-    });
 
     createMetrics();
   }
@@ -397,34 +387,17 @@ public class InstanceMonitor extends DynamicMBeanProvider {
 
     // Check if operation changed
     if (_currentOperation != newOperation) {
-      // Only update final duration if we had a valid start time
-      // On first call after controller restart, _currentOperationStartTime may be 0
-      if (_currentOperationStartTime > 0L) {
-        long finalDuration = currentTime - _currentOperationStartTime;
-        updateOperationDurationGauge(_currentOperation, finalDuration);
-      }
-
-      // Now switch to the new operation
+      // Switch to the new operation
       _currentOperation = newOperation;
       _currentOperationStartTime = operationStartTime;
+
+      // Reset all gauges except the current (new) operation
+      resetAllExceptOperations(Collections.singleton(_currentOperation));
     }
 
-    // Update the duration gauge for the current operation
+    // Update the duration gauge for the current operation (called on every update)
     long currentDuration = currentTime - _currentOperationStartTime;
     updateOperationDurationGauge(_currentOperation, currentDuration);
-
-    // Capture the current operation at scheduling time to avoid race conditions
-    // If we transition from ENABLE -> EVACUATE -> ENABLE within 2 minutes,
-    // we want to reset based on what the operation was when we scheduled the task,
-    // not what it becomes later.
-    final InstanceConstants.InstanceOperation operationToExclude = _currentOperation;
-
-    // Schedule a background task to reset all gauges except the captured operation after 2 minutes
-    _resetExecutor.schedule(() -> {
-      synchronized (InstanceMonitor.this) {
-        resetAllExceptOperations(Collections.singleton(operationToExclude));
-      }
-    }, 2, TimeUnit.MINUTES);
   }
 
   /**

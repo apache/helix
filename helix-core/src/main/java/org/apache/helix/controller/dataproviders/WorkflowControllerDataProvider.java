@@ -189,7 +189,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
       Map<String, Integer> partitionMap) {
     for (String participant : additionPartitionMap.keySet()) {
       partitionMap.put(participant,
-          partitionMap.get(participant) + additionPartitionMap.get(participant));
+          partitionMap.getOrDefault(participant, 0) + additionPartitionMap.getOrDefault(participant, 0));
     }
   }
 

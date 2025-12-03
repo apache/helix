@@ -22,6 +22,7 @@ package org.apache.helix.common;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
@@ -79,6 +81,10 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.zookeeper.server.ContainerManager;
+import org.apache.zookeeper.server.DataNode;
+import org.apache.zookeeper.server.RequestProcessor;
+import org.apache.zookeeper.server.ZooKeeperServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -98,7 +104,9 @@ public class ZkTestBase {
   protected static HelixZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
+  protected static ContainerManager _containerManager;
   protected static MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
+  protected static AtomicLong _fakeElapsed = new AtomicLong(0);
 
   private final Map<String, Map<String, HelixZkClient>> _liveInstanceOwners = new HashMap<>();
 
@@ -116,6 +124,7 @@ public class ZkTestBase {
    */
   // The following maps hold ZK connect string as keys
   protected static final Map<String, ZkServer> _zkServerMap = new HashMap<>();
+  protected static final Map<ZkServer, ContainerManager> _zkServerContainerManagerMap = new HashMap<>();
   protected static final Map<String, HelixZkClient> _helixZkClientMap = new HashMap<>();
   protected static final Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
   protected static final Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
@@ -170,6 +179,7 @@ public class ZkTestBase {
     _gZkClient = _helixZkClientMap.get(ZK_ADDR);
     _gSetupTool = _clusterSetupMap.get(ZK_ADDR);
     _baseAccessor = _baseDataAccessorMap.get(ZK_ADDR);
+    _containerManager = _zkServerContainerManagerMap.get(_zkServer);
 
     // Clean up all JMX objects
     for (ObjectName mbean : _server.queryNames(null, null)) {
@@ -192,6 +202,40 @@ public class ZkTestBase {
     _helixZkClientMap.computeIfAbsent(zkAddress, ZkTestBase::createZkClient);
     _clusterSetupMap.computeIfAbsent(zkAddress, key -> new ClusterSetup(_helixZkClientMap.get(key)));
     _baseDataAccessorMap.computeIfAbsent(zkAddress, key -> new ZkBaseDataAccessor(_helixZkClientMap.get(key)));
+    _zkServerContainerManagerMap.computeIfAbsent(_zkServerMap.get(zkAddress), ZkTestBase::createContainerManager);
+  }
+
+  /**
+   * Advances the fake elapsed time used by the ContainerManager
+   * @param additionalTime time to add in milliseconds
+   */
+  public static void advanceFakeElapsedTime(long additionalTime) {
+    _fakeElapsed.addAndGet(additionalTime);
+  }
+
+  private static ContainerManager createContainerManager(ZkServer zkServer) {
+    try {
+      ZooKeeperServer zooKeeperServer = zkServer.getZooKeeperServer();
+
+      Field firstProcessorField = ZooKeeperServer.class.getDeclaredField("firstProcessor");
+      firstProcessorField.setAccessible(true);
+      RequestProcessor firstProcessor = (RequestProcessor) firstProcessorField.get(zooKeeperServer);
+
+      // Create a ContainerManager with a custom elapsed time logic
+      return new ContainerManager(
+          zooKeeperServer.getZKDatabase(),
+          firstProcessor,
+          100, // Check interval in ms
+          100  // Max containers to check per interval
+      ) {
+        @Override
+        protected long getElapsed(DataNode node) {
+          return _fakeElapsed.get();
+        }
+      };
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException("Failed to access firstProcessor field in ZooKeeperServer", e);
+    }
   }
 
   private static ZkServer createZookeeperServer(String zkAddress) {
@@ -226,6 +270,7 @@ public class ZkTestBase {
       _clusterSetupMap.values().forEach(ClusterSetup::close);
       _helixZkClientMap.values().forEach(HelixZkClient::close);
       _zkServerMap.values().forEach(TestHelper::stopZkServer);
+      _zkServerContainerManagerMap.values().forEach(ContainerManager::stop);
     }
   }
 

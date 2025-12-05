@@ -228,12 +228,12 @@ The `Criteria` object allows you to specify message recipients using various att
 
 Helix provides four DataSource types, each reading from different znodes in ZooKeeper:
 
-| DataSource | Description | When to Use | Performance Characteristics |
-|------------|-------------|-------------|----------------------------|
-| **LIVEINSTANCES** | Reads from `/LIVEINSTANCES` znodes | Targeting live instances without needing resource/partition/state filtering | **Fastest** - Minimal data, only active instances |
-| **INSTANCES** | Reads from `/INSTANCES/[instance]` znodes | Targeting specific configured instances (live or not) based on instance configuration | Fast - Reads instance configs only |
-| **EXTERNALVIEW** | Reads from `/EXTERNALVIEWS/[resource]` znodes | Targeting based on actual replica placement, partition ownership, or replica state (MASTER/SLAVE) | **Slowest** - Can read thousands of znodes if wildcards used |
-| **IDEALSTATES** | Reads from `/IDEALSTATES/[resource]` znodes | Targeting based on ideal state configuration (intended placement) | Moderate - Similar to ExternalView but less commonly used |
+| DataSource | Description | When to Use |
+|------------|-------------|-------------|
+| **LIVEINSTANCES** | Reads from `/LIVEINSTANCES` znodes | Targeting live instances without needing resource/partition/state filtering |
+| **INSTANCES** | Reads from `/INSTANCES/[instance]` znodes | Targeting specific configured instances (live or not) based on instance configuration |
+| **EXTERNALVIEW** | Reads from `/EXTERNALVIEWS/[resource]` znodes | Targeting based on actual replica placement, partition ownership, or replica state (MASTER/SLAVE) |
+| **IDEALSTATES** | Reads from `/IDEALSTATES/[resource]` znodes | Targeting based on ideal state configuration (intended placement) |
 
 **Key Differences:**
 
@@ -263,7 +263,7 @@ When using `DataSource.EXTERNALVIEW`, Helix will scan **ALL** ExternalView znode
 
 **This happens even when targeting specific instances!** The scan is NOT automatically optimized based on other criteria fields like `instanceName`.
 
-At high ExternalView cardinality (thousands of resources), this can cause severe performance degradation.
+At high ExternalView cardinality, this can cause severe performance degradation.
 
 #### How to Set Criteria Correctly
 
@@ -347,53 +347,6 @@ The `Criteria` class provides the following configuration methods:
 - **DataSource Compatibility:** Setting `resource`, `partition`, or `partitionState` only makes sense with `EXTERNALVIEW` or `IDEALSTATES` DataSource. They are ignored for `LIVEINSTANCES` and `INSTANCES`.
 - **Session-Specific:** Set to `true` for most use cases to avoid redelivering messages after a participant restarts.
 - **Empty vs Wildcard:** Empty string `""` and wildcard `"%"` are treated the same - both match all.
-
-**DataSource and Criteria Field Compatibility:**
-
-| DataSource | Works With | Ignores |
-|------------|-----------|---------|
-| LIVEINSTANCES | instanceName, recipientInstanceType, sessionSpecific | resource, partition, partitionState |
-| INSTANCES | instanceName, recipientInstanceType, sessionSpecific | resource, partition, partitionState |
-| EXTERNALVIEW | All fields | - |
-| IDEALSTATES | All fields | - |
-
-**Key Rules:**
-1. **Always set DataSource explicitly** - Don't rely on defaults
-2. **Use LIVEINSTANCES when possible** - Avoid ExternalView unless you need resource/partition filtering
-3. **Specify exact resource names** - Avoid wildcards when using EXTERNALVIEW
-4. **Test at scale** - Performance degrades non-linearly with resource count
-
-#### Example: Bootstrap Replica from Peers
-
-```java
-ClusterMessagingService messagingService = manager.getMessagingService();
-
-// Construct the message
-Message requestBackupUriRequest = new Message(
-    MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
-requestBackupUriRequest
-    .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
-requestBackupUriRequest.setMsgState(MessageState.NEW);
-
-// Set recipient criteria to find all replicas of specific partition
-Criteria recipientCriteria = new Criteria();
-recipientCriteria.setInstanceName("%");
-recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
-recipientCriteria.setDataSource(DataSource.EXTERNALVIEW);  // Need resource-level info
-recipientCriteria.setResource("MyDB");  // IMPORTANT: Specify exact resource, not "%"
-recipientCriteria.setPartition("MyDB_0");  // Target specific partition
-recipientCriteria.setSessionSpecific(true);
-
-// Wait for 30 seconds
-int timeout = 30000;
-
-// Handler invoked when any recipient responds
-BootstrapReplyHandler responseHandler = new BootstrapReplyHandler();
-
-// Returns only after all recipients respond or after timeout
-int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
-    requestBackupUriRequest, responseHandler, timeout);
-```
 
 See HelixManager.getMessagingService for more info.
 

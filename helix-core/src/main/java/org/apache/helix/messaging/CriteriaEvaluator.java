@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * (e.g., "%" or "*"). This scanning happens <b>even when targeting specific instances</b>, and is
  * NOT automatically optimized based on other criteria fields (like instanceName).
  * 
- * <p>At high ExternalView cardinality (thousands of resources), this can cause severe performance degradation.
+ * <p>At high ExternalView cardinality, this can cause severe performance degradation.
  * 
  * <p><b>Safer Patterns:</b>
  * <ul>

@@ -220,30 +220,179 @@ Since Helix is aware of the global state of the system, it can send the message 
 This is a very generic api and can also be used to schedule various periodic tasks in the cluster like data backups etc. 
 System Admins can also perform adhoc tasks like on demand backup or execute a system command(like rm -rf ;-)) across all nodes.
 
+#### Understanding Criteria and DataSource
+
+The `Criteria` object allows you to specify message recipients using various attributes. A critical configuration is the `DataSource`, which determines where Helix looks up the cluster state to resolve your criteria.
+
+**Available DataSource Options:**
+
+Helix provides four DataSource types, each reading from different znodes in ZooKeeper:
+
+| DataSource | Description | When to Use | Performance Characteristics |
+|------------|-------------|-------------|----------------------------|
+| **LIVEINSTANCES** | Reads from `/LIVEINSTANCES` znodes | Targeting live instances without needing resource/partition/state filtering | **Fastest** - Minimal data, only active instances |
+| **INSTANCES** | Reads from `/INSTANCES/[instance]` znodes | Targeting specific configured instances (live or not) based on instance configuration | Fast - Reads instance configs only |
+| **EXTERNALVIEW** | Reads from `/EXTERNALVIEWS/[resource]` znodes | Targeting based on actual replica placement, partition ownership, or replica state (MASTER/SLAVE) | **Slowest** - Can read thousands of znodes if wildcards used |
+| **IDEALSTATES** | Reads from `/IDEALSTATES/[resource]` znodes | Targeting based on ideal state configuration (intended placement) | Moderate - Similar to ExternalView but less commonly used |
+
+**Key Differences:**
+
+- **LIVEINSTANCES**: Contains only instance names of currently connected participants. No resource/partition information. Smallest dataset.
+- **INSTANCES**: Contains instance configuration (host, port, enabled/disabled status). No resource/partition information.
+- **EXTERNALVIEW**: Contains actual current state - which instances own which partitions and their states (MASTER/SLAVE/OFFLINE). Large dataset at scale.
+- **IDEALSTATES**: Contains desired state - which instances should own which partitions. Similar size to ExternalView.
+
+**Choosing the Right DataSource:**
+
+| Your Goal | Correct DataSource | Example Use Case |
+|-----------|-------------------|------------------|
+| Send to specific live instance(s) | `LIVEINSTANCES` | Health check, admin command to specific node |
+| Send to all live instances | `LIVEINSTANCES` | Broadcast announcement, cluster-wide operation |
+| Send to replicas of a specific partition | `EXTERNALVIEW` (with exact resource name) | Bootstrap replica from peers |
+| Send to all MASTER replicas of a resource | `EXTERNALVIEW` (with exact resource name) | Trigger operation on masters only |
+| Send based on partition state | `EXTERNALVIEW` (with exact resource name) | Target only ONLINE/MASTER/SLAVE replicas |
+
+#### CRITICAL: Performance Considerations
+
+**⚠️ WARNING:** Using `EXTERNALVIEW` as the DataSource can cause severe performance issues at scale.
+
+**The Problem:**
+When using `DataSource.EXTERNALVIEW`, Helix will scan **ALL** ExternalView znodes in the cluster if:
+- You use wildcards (`%` or `*`) in the resource name, OR
+- You leave the resource name unspecified
+
+**This happens even when targeting specific instances!** The scan is NOT automatically optimized based on other criteria fields like `instanceName`.
+
+At high ExternalView cardinality (thousands of resources), this can cause severe performance degradation.
+
+#### How to Set Criteria Correctly
+
+**Pattern 1: Targeting Specific Instances (Most Common)**
+
+When you only need to send messages to specific instances and don't need resource/partition-level filtering:
+
+```java
+// GOOD: Efficient - Uses LIVEINSTANCES, avoids ExternalView scan
+Criteria criteria = new Criteria();
+criteria.setInstanceName("instance123");  // or "%" for all live instances
+criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+criteria.setDataSource(DataSource.LIVEINSTANCES);  // Key: Use LIVEINSTANCES
+criteria.setSessionSpecific(true);
 ```
-      ClusterMessagingService messagingService = manager.getMessagingService();
-      //CONSTRUCT THE MESSAGE
-      Message requestBackupUriRequest = new Message(
-          MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
-      requestBackupUriRequest
-          .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
-      requestBackupUriRequest.setMsgState(MessageState.NEW);
-      //SET THE RECIPIENT CRITERIA, All nodes that satisfy the criteria will receive the message
-      Criteria recipientCriteria = new Criteria();
-      recipientCriteria.setInstanceName("%");
-      recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
-      recipientCriteria.setResource("MyDB");
-      recipientCriteria.setPartition("");
-      //Should be processed only the process that is active at the time of sending the message. 
-      //This means if the recipient is restarted after message is sent, it will not be processed.
-      recipientCriteria.setSessionSpecific(true);
-      // wait for 30 seconds
-      int timeout = 30000;
-      //The handler that will be invoked when any recipient responds to the message.
-      BootstrapReplyHandler responseHandler = new BootstrapReplyHandler();
-      //This will return only after all recipients respond or after timeout.
-      int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
-          requestBackupUriRequest, responseHandler, timeout);
+
+```java
+// BAD: Inefficient - Scans ALL ExternalViews even though targeting specific instance
+Criteria criteria = new Criteria();
+criteria.setInstanceName("instance123");
+criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+criteria.setDataSource(DataSource.EXTERNALVIEW);  // Will scan ALL resources!
+criteria.setResource("%");  // Wildcard triggers full scan
+```
+
+**Pattern 2: Targeting Specific Resource and Partition**
+
+When you need to send messages based on resource ownership (e.g., all replicas of a partition):
+
+```java
+// GOOD: Efficient - Specifies exact resource name, scans only 1 ExternalView
+Criteria criteria = new Criteria();
+criteria.setInstanceName("%");
+criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+criteria.setDataSource(DataSource.EXTERNALVIEW);
+criteria.setResource("MyDB");  // Exact resource name - scans only this EV
+criteria.setPartition("MyDB_0");  // Specific partition
+criteria.setPartitionState("MASTER");  // Only send to masters
+criteria.setSessionSpecific(true);
+```
+
+```java
+// BAD: Inefficient - Wildcard resource scans ALL ExternalViews
+Criteria criteria = new Criteria();
+criteria.setInstanceName("%");
+criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+criteria.setDataSource(DataSource.EXTERNALVIEW);
+criteria.setResource("%");  // Wildcard scans ALL ExternalViews in cluster!
+criteria.setPartition("MyDB_0");
+criteria.setSessionSpecific(true);
+```
+
+**Pattern 3: Broadcasting to All Live Instances**
+
+```java
+// GOOD: Efficient broadcast to all live participants
+Criteria criteria = new Criteria();
+criteria.setInstanceName("%");
+criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+criteria.setDataSource(DataSource.LIVEINSTANCES);  // Fast broadcast
+criteria.setSessionSpecific(true);
+```
+
+#### Criteria Configuration Reference
+
+The `Criteria` class provides the following configuration methods:
+
+| Method | Parameter | Description | Wildcard Support | Example |
+|--------|-----------|-------------|------------------|---------|
+| `setDataSource(DataSource)` | LIVEINSTANCES, INSTANCES, EXTERNALVIEW, IDEALSTATES | **MOST IMPORTANT:** Determines which znodes to read | N/A | `DataSource.LIVEINSTANCES` |
+| `setInstanceName(String)` | Instance name | Target specific instance(s) by name | Yes (`%` = all) | `"localhost_12918"` or `"%"` |
+| `setResource(String)` | Resource name | Filter by resource name (only meaningful for EXTERNALVIEW/IDEALSTATES) | Yes (`%` = all) | `"MyDatabase"` or `"%"` |
+| `setPartition(String)` | Partition name | Filter by specific partition (only meaningful for EXTERNALVIEW/IDEALSTATES) | Yes (`%` = all) | `"MyDatabase_0"` or `"%"` |
+| `setPartitionState(String)` | State name | Filter by replica state like MASTER, SLAVE, ONLINE, OFFLINE (only for EXTERNALVIEW/IDEALSTATES) | Yes (`%` = all) | `"MASTER"` or `"%"` |
+| `setRecipientInstanceType(InstanceType)` | PARTICIPANT, CONTROLLER, SPECTATOR | Type of Helix process to target | No | `InstanceType.PARTICIPANT` |
+| `setSessionSpecific(boolean)` | true/false | If true, message is only delivered to currently active sessions (not redelivered after restart) | No | `true` (recommended) |
+
+**Important Notes:**
+
+- **Wildcards:** Use `%` (SQL-style) or `*` to match all. Single underscore `_` matches any single character.
+- **DataSource Compatibility:** Setting `resource`, `partition`, or `partitionState` only makes sense with `EXTERNALVIEW` or `IDEALSTATES` DataSource. They are ignored for `LIVEINSTANCES` and `INSTANCES`.
+- **Session-Specific:** Set to `true` for most use cases to avoid redelivering messages after a participant restarts.
+- **Empty vs Wildcard:** Empty string `""` and wildcard `"%"` are treated the same - both match all.
+
+**DataSource and Criteria Field Compatibility:**
+
+| DataSource | Works With | Ignores |
+|------------|-----------|---------|
+| LIVEINSTANCES | instanceName, recipientInstanceType, sessionSpecific | resource, partition, partitionState |
+| INSTANCES | instanceName, recipientInstanceType, sessionSpecific | resource, partition, partitionState |
+| EXTERNALVIEW | All fields | - |
+| IDEALSTATES | All fields | - |
+
+**Key Rules:**
+1. **Always set DataSource explicitly** - Don't rely on defaults
+2. **Use LIVEINSTANCES when possible** - Avoid ExternalView unless you need resource/partition filtering
+3. **Specify exact resource names** - Avoid wildcards when using EXTERNALVIEW
+4. **Test at scale** - Performance degrades non-linearly with resource count
+
+#### Example: Bootstrap Replica from Peers
+
+```java
+ClusterMessagingService messagingService = manager.getMessagingService();
+
+// Construct the message
+Message requestBackupUriRequest = new Message(
+    MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
+requestBackupUriRequest
+    .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
+requestBackupUriRequest.setMsgState(MessageState.NEW);
+
+// Set recipient criteria to find all replicas of specific partition
+Criteria recipientCriteria = new Criteria();
+recipientCriteria.setInstanceName("%");
+recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+recipientCriteria.setDataSource(DataSource.EXTERNALVIEW);  // Need resource-level info
+recipientCriteria.setResource("MyDB");  // IMPORTANT: Specify exact resource, not "%"
+recipientCriteria.setPartition("MyDB_0");  // Target specific partition
+recipientCriteria.setSessionSpecific(true);
+
+// Wait for 30 seconds
+int timeout = 30000;
+
+// Handler invoked when any recipient responds
+BootstrapReplyHandler responseHandler = new BootstrapReplyHandler();
+
+// Returns only after all recipients respond or after timeout
+int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
+    requestBackupUriRequest, responseHandler, timeout);
 ```
 
 See HelixManager.getMessagingService for more info.

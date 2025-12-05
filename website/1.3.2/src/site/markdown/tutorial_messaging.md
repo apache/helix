@@ -25,6 +25,26 @@ under the License.
 
 In this chapter, we\'ll learn about messaging, a convenient feature in Helix for sending messages between nodes of a cluster.  This is an interesting feature that is quite useful in practice. It is common that nodes in a distributed system require a mechanism to interact with each other.
 
+### Performance Considerations
+
+**IMPORTANT:** When using the messaging API with `Criteria`, be aware of the following performance characteristics:
+
+- **ExternalView Scanning:** By default, the messaging service uses `DataSource.EXTERNALVIEW` to resolve criteria. This can scan **all** ExternalView znodes in the cluster, even when targeting specific instances. At high resource cardinality (thousands of resources), this can cause severe performance degradation.
+
+**Recommended Patterns:**
+
+- **Use `DataSource.LIVEINSTANCES`** when you only need to target live instances and do not require resource/partition-level filtering. This is much faster and more efficient.
+- **Specify exact resource names** instead of wildcards if you must use ExternalView scanning.
+
+Example of efficient messaging:
+```java
+Criteria recipientCriteria = new Criteria();
+recipientCriteria.setInstanceName("instance123");
+recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+recipientCriteria.setDataSource(DataSource.LIVEINSTANCES); // Efficient: avoids EV scan
+recipientCriteria.setSessionSpecific(true);
+```
+
 ### Example: Bootstrapping a Replica
 
 Consider a search system  where the index replica starts up and it does not have an index. A typical solution is to get the index from a common location, or to copy the index from another replica.

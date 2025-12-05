@@ -20,9 +20,78 @@ package org.apache.helix;
  */
 
 /**
- * Describes various properties that operations involving {@link Message} delivery will follow.
+ * Specifies recipient criteria for message delivery in a Helix cluster.
+ * 
+ * <p>The {@link Criteria} object defines which instances should receive a message by specifying
+ * attributes like instance name, resource, partition, and state. The most critical configuration
+ * is {@link DataSource}, which determines where Helix looks up cluster state to resolve recipients.
+ * 
+ * <p><b>PERFORMANCE WARNING:</b> Using {@link DataSource#EXTERNALVIEW} with wildcard or unspecified
+ * resource names causes Helix to scan ALL ExternalView znodes in the cluster, regardless of other
+ * criteria fields. At scale (thousands of resources), this causes severe performance degradation.
+ * 
+ * <p><b>Quick Start - Common Patterns:</b>
+ * <pre>
+ * // Pattern 1: Send to specific live instance (most efficient)
+ * Criteria criteria = new Criteria();
+ * criteria.setInstanceName("host_1234");
+ * criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+ * criteria.setDataSource(DataSource.LIVEINSTANCES);
+ * criteria.setSessionSpecific(true);
+ * 
+ * // Pattern 2: Send to all replicas of a specific partition
+ * Criteria criteria = new Criteria();
+ * criteria.setInstanceName("%");
+ * criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+ * criteria.setDataSource(DataSource.EXTERNALVIEW);
+ * criteria.setResource("MyDatabase");  // IMPORTANT: Specify exact resource name
+ * criteria.setPartition("MyDatabase_5");
+ * criteria.setSessionSpecific(true);
+ * 
+ * // Pattern 3: Broadcast to all live instances
+ * Criteria criteria = new Criteria();
+ * criteria.setInstanceName("%");
+ * criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+ * criteria.setDataSource(DataSource.LIVEINSTANCES);
+ * criteria.setSessionSpecific(true);
+ * </pre>
+ * 
+ * <p><b>DataSource Selection Guide:</b>
+ * <ul>
+ *   <li><b>LIVEINSTANCES:</b> Use when targeting live instances without resource/partition filtering.
+ *       Fastest option - reads only LIVEINSTANCES znodes.</li>
+ *   <li><b>EXTERNALVIEW:</b> Use when filtering by resource, partition, or replica state.
+ *       ALWAYS specify exact resource names to avoid scanning all ExternalViews.</li>
+ *   <li><b>INSTANCES:</b> Use when targeting all configured instances (live or not) based on
+ *       instance configuration.</li>
+ *   <li><b>IDEALSTATES:</b> Use when targeting based on ideal state configuration rather than
+ *       current state. Less common.</li>
+ * </ul>
+ * 
+ * @see ClusterMessagingService#send(Criteria, org.apache.helix.model.Message)
+ * @see org.apache.helix.messaging.CriteriaEvaluator
  */
 public class Criteria {
+  /**
+   * Specifies the source of cluster state information for resolving message recipients.
+   * 
+   * <p>The DataSource determines which ZooKeeper znodes Helix reads to match the criteria:
+   * <ul>
+   *   <li><b>LIVEINSTANCES:</b> Reads /LIVEINSTANCES znodes. Contains only currently connected
+   *       instances. Use when you don't need resource/partition information. Fastest option.</li>
+   *   <li><b>INSTANCES:</b> Reads /INSTANCES/[instance] znodes. Contains instance configuration
+   *       (host, port, enabled/disabled). Use for targeting based on instance config.</li>
+   *   <li><b>EXTERNALVIEW:</b> Reads /EXTERNALVIEWS/[resource] znodes. Contains actual current
+   *       replica placement and states (MASTER/SLAVE/OFFLINE). Use when you need resource/partition/state
+   *       filtering. <b>WARNING:</b> Wildcard resource names scan ALL ExternalViews.</li>
+   *   <li><b>IDEALSTATES:</b> Reads /IDEALSTATES/[resource] znodes. Contains desired replica
+   *       placement. Similar performance to EXTERNALVIEW but less commonly used.</li>
+   * </ul>
+   * 
+   * <p><b>Performance Impact:</b> LIVEINSTANCES is fastest as it reads minimal data. EXTERNALVIEW
+   * and IDEALSTATES can be slow at scale if wildcards are used in resource names, as Helix must
+   * read and deserialize all resource znodes to match the criteria.
+   */
   public enum DataSource {
     IDEALSTATES,
     EXTERNALVIEW,
@@ -80,8 +149,17 @@ public class Criteria {
   }
 
   /**
-   * Set the current source of truth
-   * @param source ideal state or external view
+   * Set the current source of truth for resolving message recipients.
+   * 
+   * <p><b>PERFORMANCE GUIDANCE:</b>
+   * <ul>
+   *   <li>Use {@link DataSource#LIVEINSTANCES} when you only need to target live instances
+   *       and don't require resource/partition/state filtering.</li>
+   *   <li>If using {@link DataSource#EXTERNALVIEW}, always specify exact resource names via
+   *       {@link #setResource(String)} to avoid scanning all ExternalView znodes.</li>
+   * </ul>
+   * 
+   * @param source ideal state, external view, live instances, or instances
    */
   public void setDataSource(DataSource source) {
     _dataSource = source;
@@ -161,8 +239,16 @@ public class Criteria {
   }
 
   /**
-   * Set the destination resource name
-   * @param resourceName the resource name or % for all resources
+   * Set the destination resource name.
+   * 
+   * <p><b>Note:</b> This field is only meaningful when using {@link DataSource#EXTERNALVIEW} or
+   * {@link DataSource#IDEALSTATES}. It is ignored for LIVEINSTANCES and INSTANCES.
+   * 
+   * <p><b>PERFORMANCE:</b> When using EXTERNALVIEW, specifying an exact resource name (e.g., "MyDatabase")
+   * reads only that resource's ExternalView znode. Using wildcard "%" reads ALL ExternalView znodes
+   * in the cluster, which can cause severe performance issues at scale.
+   * 
+   * @param resourceName the exact resource name, or "%" for all resources (avoid wildcard at scale)
    */
   public void setResource(String resourceName) {
     this.resourceName = resourceName;

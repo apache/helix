@@ -37,6 +37,13 @@ import org.apache.helix.model.Message;
 public interface ClusterMessagingService {
   /**
    * Send message matching the specifications mentioned in recipientCriteria.
+   * 
+   * <p><b>PERFORMANCE WARNING:</b> When recipientCriteria uses {@link DataSource#EXTERNALVIEW}
+   * with wildcard or unspecified resource names, this scans <b>ALL</b> ExternalView znodes in the cluster,
+   * regardless of other criteria like instanceName. At scale (thousands of resources), this causes
+   * severe performance degradation. Use {@link DataSource#LIVEINSTANCES} when you don't need
+   * resource/partition filtering, or specify exact resource names when using EXTERNALVIEW.
+   * 
    * @param recipientCriteria criteria to be met, defined as {@link Criteria}
    * @See Criteria
    * @param message
@@ -54,6 +61,11 @@ public interface ClusterMessagingService {
    * This method will return after sending the messages. <br>
    * This is useful when message need to be sent and current thread need not
    * wait for response since processing will be done in another thread.
+   * 
+   * <p><b>PERFORMANCE WARNING:</b> See performance considerations in {@link #send(Criteria, Message)}.
+   * Using {@link DataSource#EXTERNALVIEW} with wildcard resources can scan all ExternalView znodes
+   * and cause severe performance issues at scale. Prefer {@link DataSource#LIVEINSTANCES} when possible.
+   * 
    * @see #send(Criteria, Message)
    * @param recipientCriteria
    * @param message
@@ -64,6 +76,10 @@ public interface ClusterMessagingService {
   int send(Criteria recipientCriteria, Message message, AsyncCallback callbackOnReply, int timeOut);
 
   /**
+   * <p><b>PERFORMANCE WARNING:</b> See performance considerations in {@link #send(Criteria, Message)}.
+   * Using {@link DataSource#EXTERNALVIEW} with wildcard resources can scan all ExternalView znodes
+   * and cause severe performance issues at scale. Prefer {@link DataSource#LIVEINSTANCES} when possible.
+   * 
    * @see #send(Criteria, Message, AsyncCallback, int)
    * @param recipientCriteria
    * @param message
@@ -85,6 +101,11 @@ public interface ClusterMessagingService {
    * for response. <br>
    * The current thread can use callbackOnReply instance to store application
    * specific data.
+   * 
+   * <p><b>PERFORMANCE WARNING:</b> See performance considerations in {@link #send(Criteria, Message)}.
+   * Using {@link DataSource#EXTERNALVIEW} with wildcard resources can scan all ExternalView znodes
+   * and cause severe performance issues at scale. Prefer {@link DataSource#LIVEINSTANCES} when possible.
+   * 
    * @see #send(Criteria, Message, AsyncCallback, int)
    * @param recipientCriteria
    * @param message
@@ -96,6 +117,10 @@ public interface ClusterMessagingService {
       int timeOut);
 
   /**
+   * <p><b>PERFORMANCE WARNING:</b> See performance considerations in {@link #send(Criteria, Message)}.
+   * Using {@link DataSource#EXTERNALVIEW} with wildcard resources can scan all ExternalView znodes
+   * and cause severe performance issues at scale. Prefer {@link DataSource#LIVEINSTANCES} when possible.
+   * 
    * @see #send(Criteria, Message, AsyncCallback, int, int)
    * @param receipientCriteria
    * @param message
@@ -143,6 +168,11 @@ public interface ClusterMessagingService {
   /**
    * This will generate all messages to be sent given the recipientCriteria and MessageTemplate,
    * the messages are not sent.
+   * 
+   * <p><b>PERFORMANCE WARNING:</b> See performance considerations in {@link #send(Criteria, Message)}.
+   * Using {@link DataSource#EXTERNALVIEW} with wildcard resources can scan all ExternalView znodes
+   * and cause severe performance issues at scale. Prefer {@link DataSource#LIVEINSTANCES} when possible.
+   * 
    * @param recipientCriteria criteria to be met, defined as {@link Criteria}
    * @param messageTemplate the Message on which to base the messages to send
    * @return messages to be sent, grouped by the type of instance to send the message to

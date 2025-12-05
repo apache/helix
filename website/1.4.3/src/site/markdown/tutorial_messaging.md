@@ -29,7 +29,7 @@ In this chapter, we\'ll learn about messaging, a convenient feature in Helix for
 
 **IMPORTANT:** When using the messaging API with `Criteria`, be aware of the following performance characteristics:
 
-- **ExternalView Scanning:** By default, the messaging service uses `DataSource.EXTERNALVIEW` to resolve criteria. This can scan **all** ExternalView znodes in the cluster, even when targeting specific instances. At high resource cardinality (thousands of resources), this can cause severe performance degradation.
+- **ExternalView Scanning:** By default, the messaging service uses `DataSource.EXTERNALVIEW` to resolve criteria. This can scan **all** ExternalView znodes in the cluster, even when targeting specific instances. At high resource cardinality, this can cause severe performance degradation.
 
 **Recommended Patterns:**
 
@@ -41,7 +41,7 @@ Example of efficient messaging:
 Criteria recipientCriteria = new Criteria();
 recipientCriteria.setInstanceName("instance123");
 recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
-recipientCriteria.setDataSource(DataSource.LIVEINSTANCES); // Efficient: avoids EV scan
+recipientCriteria.setDataSource(DataSource.LIVEINSTANCES);
 recipientCriteria.setSessionSpecific(true);
 ```
 

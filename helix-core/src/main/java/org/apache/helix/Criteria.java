@@ -55,13 +55,7 @@ package org.apache.helix;
  */
 public class Criteria {
   /**
-   * Specifies the source of cluster state information for resolving message recipients.
-   * 
-   * <p><b>LIVEINSTANCES:</b> Reads /LIVEINSTANCES - currently connected instances only. Fastest.<br>
-   * <b>EXTERNALVIEW:</b> Reads /EXTERNALVIEWS/[resource] - actual replica placement/states. 
-   * Wildcard resource names scan ALL resources.<br>
-   * <b>INSTANCES:</b> Reads /INSTANCES/[instance] - instance configuration.<br>
-   * <b>IDEALSTATES:</b> Reads /IDEALSTATES/[resource] - desired replica placement.
+   * Source of cluster state data for resolving message recipients.
    */
   public enum DataSource {
     IDEALSTATES,

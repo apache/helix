@@ -445,40 +445,10 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
-   * Subscribes state changes for a {@link IZkStateListener} listener.
-   *
-   * @deprecated
-   * This is deprecated. It is kept for backwards compatibility. Please use
-   * {@link #subscribeStateChanges(IZkStateListener)}.
-   *
-   * @param listener {@link IZkStateListener} listener
-   */
-  @Deprecated
-  public void subscribeStateChanges(
-      final org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-    subscribeStateChanges(new IZkStateListenerI0ItecImpl(listener));
-  }
-
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
     synchronized (_stateListener) {
       _stateListener.remove(stateListener);
     }
-  }
-
-  /**
-   * Unsubscribes state changes for a {@link IZkStateListener} listener.
-   *
-   * @deprecated
-   * This is deprecated. It is kept for backwards compatibility. Please use
-   * {@link #unsubscribeStateChanges(IZkStateListener)}.
-   *
-   * @param stateListener {@link IZkStateListener} listener
-   */
-  @Deprecated
-  public void unsubscribeStateChanges(
-      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener stateListener) {
-    unsubscribeStateChanges(new IZkStateListenerI0ItecImpl(stateListener));
   }
 
   public void unsubscribeAll() {
@@ -1548,15 +1518,15 @@ public class ZkClient implements Watcher {
     long startT = System.currentTimeMillis();
     final Stat stat;
     try {
-        stat = new Stat();
-        try {
-          LOG.debug("installWatchOnlyPathExist with path: {} ", path);
-          retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
-        } catch (ZkNoNodeException e) {
-          LOG.debug("installWatchOnlyPathExist path not existing: {}", path);
-          record(path, null, startT, ZkClientMonitor.AccessType.READ);
-          return null;
-        }
+      stat = new Stat();
+      try {
+        LOG.debug("installWatchOnlyPathExist with path: {} ", path);
+        retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
+      } catch (ZkNoNodeException e) {
+        LOG.debug("installWatchOnlyPathExist path not existing: {}", path);
+        record(path, null, startT, ZkClientMonitor.AccessType.READ);
+        return null;
+      }
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return stat;
     } catch (Exception e) {
@@ -1635,7 +1605,7 @@ public class ZkClient implements Watcher {
       } catch (Exception e) {
         reconnectException = e;
         long waitInterval = ExponentialBackoffStrategy.getWaitInterval(currTime,
-          MAX_RECONNECT_INTERVAL_MS, true, retryCount++);
+            MAX_RECONNECT_INTERVAL_MS, true, retryCount++);
         LOG.warn("ZkClient {}, reconnect on expiring failed. Will retry after {} ms",
             _uid, waitInterval, e);
         try {
@@ -1907,7 +1877,7 @@ public class ZkClient implements Watcher {
       getChildren(node, false).stream().forEach(child -> nodes.offer(node + "/" + child));
       ops.add(Op.delete(node, -1));
     }
-   // Reverse the list so that operations are ordered from children to parent nodes
+    // Reverse the list so that operations are ordered from children to parent nodes
     Collections.reverse(ops);
     return ops;
   }
@@ -2174,13 +2144,13 @@ public class ZkClient implements Watcher {
           // we give the event thread some time to update the status to 'Disconnected'
           Thread.yield();
           waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
-            _operationRetryTimeoutInMillis, true, retryCount++));
+              _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (SessionExpiredException e) {
           retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Expired'
           Thread.yield();
           waitForRetry(ExponentialBackoffStrategy.getWaitInterval(currTime,
-            _operationRetryTimeoutInMillis, true, retryCount++));
+              _operationRetryTimeoutInMillis, true, retryCount++));
         } catch (ZkSessionMismatchedException e) {
           throw e;
         } catch (KeeperException e) {
@@ -3044,66 +3014,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
-   * Creates a {@link IZkStateListener} that wraps a default
-   * implementation of {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}, which means the returned
-   * listener runs the methods of {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}.
-   * This is for backward compatibility with {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}.
-   */
-  private static class IZkStateListenerI0ItecImpl implements IZkStateListener {
-    private org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener _listener;
 
-    IZkStateListenerI0ItecImpl(
-        org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener) {
-      _listener = listener;
-    }
-
-    @Override
-    public void handleStateChanged(KeeperState keeperState) throws Exception {
-      _listener.handleStateChanged(keeperState);
-    }
-
-    @Override
-    public void handleNewSession(final String sessionId) throws Exception {
-      /*
-       * org.I0Itec.zkclient.IZkStateListener does not have handleNewSession(sessionId),
-       * so just call handleNewSession() by default.
-       */
-      _listener.handleNewSession();
-    }
-
-    @Override
-    public void handleSessionEstablishmentError(Throwable error) throws Exception {
-      _listener.handleSessionEstablishmentError(error);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == this) {
-        return true;
-      }
-      if (!(obj instanceof IZkStateListenerI0ItecImpl)) {
-        return false;
-      }
-      if (_listener == null) {
-        return false;
-      }
-
-      IZkStateListenerI0ItecImpl defaultListener = (IZkStateListenerI0ItecImpl) obj;
-
-      return _listener.equals(defaultListener._listener);
-    }
-
-    @Override
-    public int hashCode() {
-      /*
-       * The original listener's hashcode helps find the wrapped listener with the same original
-       * listener. This is helpful in unsubscribeStateChanges(listener) when finding the listener
-       * to remove.
-       */
-      return _listener.hashCode();
-    }
-  }
 
   private void validateCurrentThread() {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {

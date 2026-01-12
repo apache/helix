@@ -70,7 +70,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         Thread.sleep(1000);
-        System.out.println("TestMessagingHandler " + _message.getMsgId());
+        //System.out.println("TestMessagingHandler " + _message.getMsgId());
         _processedMsgIds.add(_message.getRecord().getSimpleField("TestMessagingPara"));
         result.getTaskResultMap().put("ReplyMessage", "TestReplyMessage");
         return result;
@@ -127,6 +127,67 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
     // Thread.currentThread().join();
     AssertJUnit.assertTrue(TestMessagingHandlerFactory._processedMsgIds.contains(para));
 
+  }
+
+  @Test()
+  public void TestMessageSendPerformance() throws Exception {
+    String hostSrc = "localhost_" + START_PORT;
+    String hostDest = "localhost_" + (START_PORT + 1);
+
+    TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
+    for (int i = 0; i < NODE_NR; i++) {
+      _participants[i].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
+          factory);
+    }
+
+    System.out.println("\n========== Message Send Performance Test (1000 iterations) ==========");
+
+    DataSource[] dataSources = {DataSource.INSTANCES, DataSource.EXTERNALVIEW, DataSource.IDEALSTATES, DataSource.LIVEINSTANCES};
+    int iterations = 1000;
+
+    for (DataSource dataSource : dataSources) {
+      long totalTime = 0;
+
+      for (int i = 0; i < iterations; i++) {
+        Message msg = createMessage(factory, hostSrc, "Iteration " + i);
+        Criteria cr = createCriteria(hostDest, dataSource);
+
+        long startTime = System.nanoTime();
+        _participants[0].getMessagingService().send(cr, msg);
+        long endTime = System.nanoTime();
+        totalTime += (endTime - startTime);
+      }
+
+      long avgTimeMs = (totalTime / iterations) / 1_000_000;
+      long totalTimeMs = totalTime / 1_000_000;
+      System.out.println("DataSource: " + dataSource);
+      System.out.println("  Total time for " + iterations + " sends: " + totalTimeMs + " ms");
+      System.out.println("  Average time per send: " + avgTimeMs + " ms\n");
+    }
+
+    System.out.println("========== Performance Test Complete ==========\n");
+  }
+
+  private Message createMessage(TestMessagingHandlerFactory factory, String hostSrc, String para) {
+    String msgId = UUID.randomUUID().toString();
+    Message msg = new Message(factory.getMessageTypes().get(0), msgId);
+    msg.setMsgId(msgId);
+    msg.setSrcName(hostSrc);
+    msg.setTgtSessionId("*");
+    msg.setMsgState(MessageState.NEW);
+    msg.getRecord().setSimpleField("TestMessagingPara", para);
+    return msg;
+  }
+
+  private Criteria createCriteria(String hostDest, DataSource dataSource) {
+    Criteria cr = new Criteria();
+    cr.setInstanceName(hostDest);
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    if (dataSource != null && dataSource != DataSource.EXTERNALVIEW) {
+      cr.setDataSource(dataSource);
+    }
+    return cr;
   }
 
   public static class MockAsyncCallback extends AsyncCallback {

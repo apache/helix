@@ -84,8 +84,8 @@ public class CriteriaEvaluator {
           keyBuilder.liveInstance(instanceName), DataSource.LIVEINSTANCES.name());
       break;
     case INSTANCES:
-      properties = getProperty(accessor, instanceName, keyBuilder.instances(),
-          keyBuilder.instance(instanceName), DataSource.INSTANCES.name());
+      properties = getProperty(accessor, instanceName, keyBuilder.instanceConfigs(),
+          keyBuilder.instanceConfig(instanceName), DataSource.INSTANCES.name());
       break;
     default:
       return Lists.newArrayList();

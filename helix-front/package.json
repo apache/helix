@@ -96,7 +96,7 @@
     "express-session": "^1.15.6",
     "keycharm": "^0.3.0",
     "ldapjs": "^1.0.2",
-    "lodash": "^4.17.12",
+    "lodash": "^4.17.23",
     "moment": "^2.29.2",
     "morgan": "^1.8.2",
     "ng2-ace-editor": "^0.3.9",

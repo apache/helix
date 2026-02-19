@@ -37,6 +37,13 @@ import org.apache.helix.model.Message;
 public interface ClusterMessagingService {
   /**
    * Send message matching the specifications mentioned in recipientCriteria.
+   * 
+   * <p><b>PERFORMANCE WARNING:</b> When recipientCriteria uses {@link DataSource#EXTERNALVIEW}
+   * with wildcard or unspecified resource names, this scans <b>ALL</b> ExternalView znodes in the cluster,
+   * regardless of other criteria like instanceName. At scale, this causes
+   * severe performance degradation. Use {@link DataSource#LIVEINSTANCES} when you don't need
+   * resource/partition filtering, or specify exact resource names when using EXTERNALVIEW.
+   * 
    * @param recipientCriteria criteria to be met, defined as {@link Criteria}
    * @See Criteria
    * @param message
@@ -54,6 +61,7 @@ public interface ClusterMessagingService {
    * This method will return after sending the messages. <br>
    * This is useful when message need to be sent and current thread need not
    * wait for response since processing will be done in another thread.
+   * 
    * @see #send(Criteria, Message)
    * @param recipientCriteria
    * @param message
@@ -85,7 +93,8 @@ public interface ClusterMessagingService {
    * for response. <br>
    * The current thread can use callbackOnReply instance to store application
    * specific data.
-   * @see #send(Criteria, Message, AsyncCallback, int)
+   * 
+   * @see #send(Criteria, Message)
    * @param recipientCriteria
    * @param message
    * @param callbackOnReply
@@ -96,7 +105,7 @@ public interface ClusterMessagingService {
       int timeOut);
 
   /**
-   * @see #send(Criteria, Message, AsyncCallback, int, int)
+   * @see #send(Criteria, Message)
    * @param receipientCriteria
    * @param message
    * @param callbackOnReply
@@ -143,6 +152,8 @@ public interface ClusterMessagingService {
   /**
    * This will generate all messages to be sent given the recipientCriteria and MessageTemplate,
    * the messages are not sent.
+   * 
+   * @see #send(Criteria, Message)
    * @param recipientCriteria criteria to be met, defined as {@link Criteria}
    * @param messageTemplate the Message on which to base the messages to send
    * @return messages to be sent, grouped by the type of instance to send the message to

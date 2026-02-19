@@ -84,7 +84,7 @@
     "@swimlane/ngx-charts": "^16.0.0",
     "@swimlane/ngx-datatable": "^20.0.0",
     "@swimlane/ngx-graph": "8.0.0",
-    "ajv": "7.1.0",
+    "ajv": "8.18.0",
     "angulartics2": "^10.1.0",
     "applicationinsights": "2.5.0",
     "body-parser": "^1.17.2",

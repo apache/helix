@@ -1287,4 +1287,93 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertFalse(_zkClient.exists(grandParent));
     Assert.assertFalse(_zkClient.exists(newNode));
   }
+
+  /**
+   * Test that waitForKeeperState returns true when waiting for SyncConnected
+   * but current state is SaslAuthenticated.
+   */
+  @Test
+  public void testWaitForKeeperStateWithSaslAuthenticated() throws Exception {
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    try {
+      // Set current state to SaslAuthenticated
+      zkClient.setCurrentState(KeeperState.SaslAuthenticated);
+
+      // Wait for SyncConnected should return true because SaslAuthenticated is accepted
+      boolean result = zkClient.waitForKeeperState(KeeperState.SyncConnected, 1, TimeUnit.SECONDS);
+
+      Assert.assertTrue(result,
+          "waitForKeeperState should return true when current state is SaslAuthenticated");
+    } finally {
+      zkClient.close();
+    }
+  }
+
+  /**
+   * Test that waitForKeeperState returns true when waiting for SyncConnected
+   * but current state is ConnectedReadOnly.
+   */
+  @Test
+  public void testWaitForKeeperStateWithConnectedReadOnly() throws Exception {
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    try {
+      // Set current state to ConnectedReadOnly
+      zkClient.setCurrentState(KeeperState.ConnectedReadOnly);
+
+      // Wait for SyncConnected should return true because ConnectedReadOnly is accepted
+      boolean result = zkClient.waitForKeeperState(KeeperState.SyncConnected, 1, TimeUnit.SECONDS);
+
+      Assert.assertTrue(result,
+          "waitForKeeperState should return true when current state is ConnectedReadOnly");
+    } finally {
+      zkClient.close();
+    }
+  }
+
+  /**
+   * Test that waitForKeeperState still works correctly for other states
+   * and doesn't break existing behavior.
+   */
+  @Test
+  public void testWaitForKeeperStateWithOtherStates() throws Exception {
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    try {
+      // Set current state to Disconnected
+      zkClient.setCurrentState(KeeperState.Disconnected);
+
+      // Wait for SyncConnected should return false (timeout) because Disconnected is not accepted
+      boolean result = zkClient.waitForKeeperState(KeeperState.SyncConnected, 1, TimeUnit.SECONDS);
+
+      Assert.assertFalse(result,
+          "waitForKeeperState should return false when current state is Disconnected");
+
+      // Test that waiting for non-SyncConnected states still requires exact match
+      zkClient.setCurrentState(KeeperState.SaslAuthenticated);
+      result = zkClient.waitForKeeperState(KeeperState.Disconnected, 1, TimeUnit.SECONDS);
+
+      Assert.assertFalse(result,
+          "waitForKeeperState should return false when waiting for Disconnected but state is SaslAuthenticated");
+    } finally {
+      zkClient.close();
+    }
+  }
+
+  /**
+   * Test that exact state matching still works (SyncConnected to SyncConnected).
+   */
+  @Test
+  public void testWaitForKeeperStateExactMatchStillWorks() throws Exception {
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    try {
+      // Set current state to SyncConnected
+      zkClient.setCurrentState(KeeperState.SyncConnected);
+
+      // Wait for SyncConnected should return true (exact match)
+      boolean result = zkClient.waitForKeeperState(KeeperState.SyncConnected, 1, TimeUnit.SECONDS);
+
+      Assert.assertTrue(result, "waitForKeeperState should return true when states match exactly");
+    } finally {
+      zkClient.close();
+    }
+  }
 }

@@ -2103,6 +2103,16 @@ public class ZkClient implements Watcher {
     try {
       boolean stillWaiting = true;
       while (_currentState != keeperState) {
+        // If waiting for SyncConnected, also accept SaslAuthenticated or ConnectedReadOnly
+        // as they represent valid connected states
+        if (keeperState == KeeperState.SyncConnected && (
+            _currentState == KeeperState.SaslAuthenticated
+                || _currentState == KeeperState.ConnectedReadOnly)) {
+          LOG.debug("zkclient {} Accepting state {} as equivalent to SyncConnected", _uid,
+              _currentState);
+          return true;
+        }
+        
         if (!stillWaiting) {
           return false;
         }

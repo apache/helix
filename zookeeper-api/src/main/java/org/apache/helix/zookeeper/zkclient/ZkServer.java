@@ -150,4 +150,13 @@ public class ZkServer {
     public ZkClient getZkClient() {
         return _zkClient;
     }
+
+    /**
+     * Get the ZooKeeper server instance.
+     * @return The ZooKeeper server instance
+     */
+    public ZooKeeperServer getZooKeeperServer() {
+        return _zk;
+    }
+
 }

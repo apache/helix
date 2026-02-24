@@ -36,13 +36,15 @@ jobs:
         run: mvn clean install -Dmaven.test.skip.exec=true -DretryFailedDeploymentCount=5
       - name: Run All Tests
         run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ github.event.inputs.mvnOpts }} ${{ github.event.inputs.goals }}
-      - name: Test Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Tests Results
-          path: './**/target/surefire-reports/TEST-TestSuite.xml'
-          reporter: java-junit
+      # Temporarily disabled due to enterprise policy restriction
+      # TODO: Re-enable once an approved alternative is found
+      # - name: Test Report
+      #   uses: dorny/test-reporter@v1
+      #   if: always()
+      #   with:
+      #     name: Tests Results
+      #     path: './**/target/surefire-reports/TEST-TestSuite.xml'
+      #     reporter: java-junit
       - name: Upload unit test results
         if: failure()
         uses: actions/upload-artifact@v4

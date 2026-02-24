@@ -76,6 +76,7 @@ import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -465,7 +466,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           }
 
           LOG.info("Submit task: " + taskId + " to pool: " + exeSvc);
-          Future<HelixTaskResult> future = exeSvc.submit(task);
+          Future<HelixTaskResult> future = exeSvc.submit(ExecutorTaskUtil.wrap(task));
 
           _messageTaskMap
               .putIfAbsent(getMessageTarget(message.getResourceName(), message.getPartitionName()),

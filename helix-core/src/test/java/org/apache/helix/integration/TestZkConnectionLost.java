@@ -132,13 +132,17 @@ public class TestZkConnectionLost extends TaskTestBase {
     };
     try {
       testThread.start();
-      testThread.join();
-      Assert.assertTrue(disconnected.get());
+      // Add timeout to prevent test from hanging forever if disconnect() hangs
+      testThread.join(10000);
+      Assert.assertTrue(disconnected.get(),
+          "disconnect() should complete within 10 seconds");
       Assert.assertFalse(controllerManager.isConnected());
     } finally {
-      testThread.stop();
-      TestHelper.verify(() -> testThread.getState().equals(Thread.State.TERMINATED),
-          TestHelper.WAIT_DURATION);
+      if (testThread.isAlive()) {
+        testThread.stop();
+        TestHelper.verify(() -> testThread.getState().equals(Thread.State.TERMINATED),
+            TestHelper.WAIT_DURATION);
+      }
       _zkServerRef.set(TestHelper.startZkServer(_zkAddr, null, false));
     }
   }

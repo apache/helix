@@ -112,8 +112,6 @@
             <checkoutDirectory>${helix.scmPubCheckoutDirectory}</checkoutDirectory>
             <skipDeletedFiles>${scmSkipDeletedFiles}</skipDeletedFiles>
             <ignorePathsToDelete>
-              <ignorePathToDelete>javadocs</ignorePathToDelete>
-              <ignorePathToDelete>javadocs**</ignorePathToDelete>
               <ignorePathToDelete>apidocs</ignorePathToDelete>
               <ignorePathToDelete>apidocs**</ignorePathToDelete>
             </ignorePathsToDelete>

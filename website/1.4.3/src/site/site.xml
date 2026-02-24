@@ -57,7 +57,7 @@
     <menu name="Hands-On">
       <item name="Quick Start" href="./Quickstart.html"/>
       <item name="Tutorial" href="./Tutorial.html"/>
-      <item name="Javadocs" href="https://helix.apache.org/javadocs/1.4.3"/>
+      <item name="Javadocs" href="https://helix.apache.org/apidocs"/>
     </menu>
 
     <menu name="Recipes">

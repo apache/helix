@@ -30,7 +30,7 @@ Helix provides a set of admin APIs for cluster management operations. They are s
 * REST Interface via helix-admin-webapp
 
 ### Java API
-See interface [_org.apache.helix.HelixAdmin_](http://helix.apache.org/javadocs/0.9.9/reference/org/apache/helix/HelixAdmin.html)
+See interface [_org.apache.helix.HelixAdmin_](http://helix.apache.org/apidocs/reference/org/apache/helix/HelixAdmin.html)
 
 ### Command Line Interface
 The command line tool comes with helix-core package:

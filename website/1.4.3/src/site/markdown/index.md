@@ -35,7 +35,7 @@ under the License.
 
 [Tutorial](./Tutorial.html)
 
-[Javadocs](http://helix.apache.org/javadocs/1.4.3/index.html)
+[Javadocs](http://helix.apache.org/apidocs/index.html)
 
 ### Recipes
 

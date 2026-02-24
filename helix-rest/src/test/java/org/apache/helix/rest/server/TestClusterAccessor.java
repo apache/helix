@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -70,6 +71,8 @@ import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.zookeeper.server.ContainerManager;
+import org.apache.zookeeper.server.DataNode;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -591,10 +594,37 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dependsOnMethods = "testGetClusterConfig")
+//  @Test(dependsOnMethods = "testGetClusterConfig")
+@Test
+public void testEnableDisableMaintenanceModeWithTimeout() throws IOException {
+  System.setProperty("zookeeper.extendedTypesEnabled", "true");
+  System.out.println("Start test :" + TestHelper.getTestMethodName());
+  String cluster = _clusters.iterator().next();
+  System.out.println("cluster: " + cluster);
+  String reasonValue = "Test reason";
+  String reasonJSONString = "{\"reason\":\"" + reasonValue + "\", \"timeout\":10000}";
+  // enable maintenance mode
+  post("clusters/" + cluster, ImmutableMap.of("command", "enableMaintenanceMode"),
+      Entity.entity(reasonJSONString, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+
+  // verify is in maintenance mode
+  Assert.assertTrue(isMaintenanceModeEnabled(cluster));
+
+  // Check that we could retrieve maintenance signal correctly
+  Map<String, Object> maintenanceSignalMap =
+      getMapResponseFromRest("clusters/" + cluster + "/controller/maintenanceSignal");
+  Assert.assertEquals(maintenanceSignalMap.get("TRIGGERED_BY"), "USER");
+  Assert.assertEquals(maintenanceSignalMap.get("REASON"), reasonValue);
+  Assert.assertNotNull(maintenanceSignalMap.get("TIMESTAMP"));
+  Assert.assertEquals(maintenanceSignalMap.get("clusterName"), cluster);
+}
+
+
+  @Test
   public void testEnableDisableMaintenanceMode() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
+    System.out.println("cluster: " + cluster);
     String reasonValue = "Test reason";
     String reasonJSONString = "{\"reason\":\"" + reasonValue + "\"}";
     // enable maintenance mode

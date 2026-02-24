@@ -32,7 +32,8 @@ public class MaintenanceSignal extends PauseSignal {
   public enum MaintenanceSignalProperty {
     TRIGGERED_BY,
     TIMESTAMP,
-    AUTO_TRIGGER_REASON
+    AUTO_TRIGGER_REASON,
+    END_TIME
   }
 
   /**
@@ -111,5 +112,22 @@ public class MaintenanceSignal extends PauseSignal {
    */
   public long getTimestamp() {
     return _record.getLongField(MaintenanceSignalProperty.TIMESTAMP.name(), -1);
+  }
+
+  /**
+   * Sets the end time for maintenance mode.
+   * @param endTime the time (in milliseconds) when maintenance mode should end. A value of -1 means 
+   *                no automatic exit.
+   */
+  public void setEndTime(long endTime) {
+    _record.setLongField(MaintenanceSignalProperty.END_TIME.name(), endTime);
+  }
+
+  /**
+   * Returns the end time for maintenance mode.
+   * @return the time (in milliseconds) when maintenance mode should end. Returns -1 if no end time is set.
+   */
+  public long getEndTime() {
+    return _record.getLongField(MaintenanceSignalProperty.END_TIME.name(), -1);
   }
 }

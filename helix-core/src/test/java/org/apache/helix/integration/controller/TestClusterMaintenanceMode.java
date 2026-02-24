@@ -21,6 +21,7 @@ package org.apache.helix.integration.controller;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -32,6 +33,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
@@ -41,6 +43,10 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -48,6 +54,17 @@ import org.testng.annotations.Test;
 
 import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
 
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.zookeeper.server.DataNode;
+import org.apache.zookeeper.server.ContainerManager;
+import org.apache.zookeeper.server.ZooKeeperServer;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import java.lang.reflect.Field;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.helix.AccessOption;
+import org.apache.zookeeper.server.RequestProcessor;
+import org.apache.zookeeper.server.NIOServerCnxnFactory;
 
 public class TestClusterMaintenanceMode extends TaskTestBase {
   private static final long TIMEOUT = 180 * 1000L;
@@ -428,6 +445,59 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Assert.assertEquals(lastHistoryEntry.get("TRIGGERED_BY"), "USER");
     Assert.assertEquals(lastHistoryEntry.get("REASON"), TestHelper.getTestMethodName());
     Assert.assertNull(lastHistoryEntry.get("AUTO_TRIGGER_REASON"));
+  }
+
+  @Test
+  public void testMaintenanceModeWithTimeout() throws Exception {
+    // Get ZooKeeper server instance from _zkServerMap
+    ZkServer zkServer = _zkServerMap.get(ZK_ADDR);
+    Assert.assertNotNull(zkServer, "ZooKeeper server not found");
+
+    // Get the ZooKeeper server instance
+    ZooKeeperServer zooKeeperServer = zkServer.getZooKeeperServer();
+    Assert.assertNotNull(zooKeeperServer, "ZooKeeper server instance not found");
+
+    // Get first processor from ZooKeeperServer using reflection
+    Field firstProcessorField = ZooKeeperServer.class.getDeclaredField("firstProcessor");
+    firstProcessorField.setAccessible(true);
+    RequestProcessor firstProcessor = (RequestProcessor) firstProcessorField.get(zooKeeperServer);
+    Assert.assertNotNull(firstProcessor, "First processor not found");
+
+    // Create a custom ContainerManager with a fake elapsed time
+    AtomicLong fakeElapsed = new AtomicLong(0);
+    ContainerManager containerManager = new ContainerManager(
+        zooKeeperServer.getZKDatabase(),
+        firstProcessor,
+        100, // Check interval in milliseconds
+        100 // Max containers to check per interval
+    ) {
+      @Override
+      protected long getElapsed(DataNode node) {
+        return fakeElapsed.get();
+      }
+    };
+
+    // Enable maintenance mode with TTL
+    long timeout = 1000; // 1 second TTL
+    Map<String, String> customFields = new HashMap<>();
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceModeWithTimeout(CLUSTER_NAME, true, TestHelper.getTestMethodName(), timeout, customFields);
+
+    // Verify maintenance mode is enabled
+    String maintenanceTTLPath = "/" + CLUSTER_NAME + "/CONTROLLER/MAINTENANCE_TTL";
+    Assert.assertTrue(_manager.getHelixDataAccessor().getBaseDataAccessor().exists(maintenanceTTLPath, 0));
+    Assert.assertTrue(_gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME), "Cluster should be in maintenance mode");
+
+    // Set elapsed time to trigger TTL purge
+    fakeElapsed.set(System.currentTimeMillis() + 10000); // Set to future time to force purge
+
+    // Force container manager to check now
+    Thread.sleep(1000);
+    containerManager.checkContainers();
+
+    // Verify maintenance mode is disabled
+    Assert.assertFalse(_manager.getHelixDataAccessor().getBaseDataAccessor().exists(maintenanceTTLPath, 0));
+    Assert.assertFalse(_gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME), "Cluster should not be in maintenance mode");
+
   }
 
   /**

@@ -1573,7 +1573,7 @@ public class TestInstanceOperation extends ZkTestBase {
         }
       }
       return true;
-    }, 5000);
+    }, TIMEOUT);
 
     // Assert node received downward state transitions and no upward transitions
     Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
@@ -1833,20 +1833,54 @@ public class TestInstanceOperation extends ZkTestBase {
 
   private void validateRoutingTablesInstance(Map<String, ExternalView> evs, String instanceName,
       boolean shouldContain) {
+    validateRoutingTablesInstance(evs, instanceName, shouldContain, TIMEOUT);
+  }
+
+  private void validateRoutingTablesInstance(Map<String, ExternalView> evs, String instanceName,
+      boolean shouldContain, long timeout) {
     RoutingTableProvider[] routingTableProviders =
         new RoutingTableProvider[]{_routingTableProviderDefault, _routingTableProviderEV, _routingTableProviderCS};
-    getResourcePartitionStateOnInstance(evs, instanceName).forEach((resource, partitions) -> {
-      partitions.forEach((partition, state) -> {
-        Arrays.stream(routingTableProviders).forEach(rtp -> Assert.assertEquals(
-            getInstanceNames(rtp.getInstancesForResource(resource, partition, state)).contains(
-                instanceName), shouldContain));
-      });
-    });
 
-    Arrays.stream(routingTableProviders).forEach(rtp -> {
-      Assert.assertEquals(getInstanceNames(rtp.getInstanceConfigs()).contains(instanceName),
-          shouldContain);
-    });
+    // Get partitions that should be checked
+    Map<String, Map<String, String>> resourcePartitionStateOnInstance = getResourcePartitionStateOnInstance(evs, instanceName);
+
+    // If there are no partitions to check, just verify the instance config presence
+    if (resourcePartitionStateOnInstance.isEmpty()) {
+      Arrays.stream(routingTableProviders).forEach(rtp -> {
+        Assert.assertEquals(getInstanceNames(rtp.getInstanceConfigs()).contains(instanceName),
+            shouldContain);
+      });
+      return;
+    }
+
+    // Use polling to wait for routing table to update
+    verifier(() -> {
+      try {
+        for (String resource : resourcePartitionStateOnInstance.keySet()) {
+          Map<String, String> partitions = resourcePartitionStateOnInstance.get(resource);
+          for (String partition : partitions.keySet()) {
+            String state = partitions.get(partition);
+            for (RoutingTableProvider rtp : routingTableProviders) {
+              boolean contains = getInstanceNames(rtp.getInstancesForResource(resource, partition, state))
+                  .contains(instanceName);
+              if (contains != shouldContain) {
+                return false;
+              }
+            }
+          }
+        }
+
+        for (RoutingTableProvider rtp : routingTableProviders) {
+          boolean contains = getInstanceNames(rtp.getInstanceConfigs()).contains(instanceName);
+          if (contains != shouldContain) {
+            return false;
+          }
+        }
+        return true;
+      } catch (Exception e) {
+        return false;
+      }
+    }, timeout);
   }
 
   private void validateEVCorrect(ExternalView actual, ExternalView original,

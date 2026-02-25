@@ -1832,12 +1832,12 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   private void validateRoutingTablesInstance(Map<String, ExternalView> evs, String instanceName,
-      boolean shouldContain) {
+      boolean shouldContain) throws Exception {
     validateRoutingTablesInstance(evs, instanceName, shouldContain, TIMEOUT);
   }
 
   private void validateRoutingTablesInstance(Map<String, ExternalView> evs, String instanceName,
-      boolean shouldContain, long timeout) {
+      boolean shouldContain, long timeout) throws Exception {
     RoutingTableProvider[] routingTableProviders =
         new RoutingTableProvider[]{_routingTableProviderDefault, _routingTableProviderEV, _routingTableProviderCS};
 

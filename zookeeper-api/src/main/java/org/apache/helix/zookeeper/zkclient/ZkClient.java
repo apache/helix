@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 import javax.management.JMException;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
@@ -81,6 +83,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.client.ZKClientConfig;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -2078,7 +2081,7 @@ public class ZkClient implements Watcher {
 
     acquireEventLock();
     try {
-      if (!waitForKeeperState(KeeperState.SyncConnected, timeout, timeUnit)) {
+      if (!waitUntilConnected(timeout, timeUnit)) {
         throw new ZkTimeoutException("Waiting to be connected to ZK server has timed out.");
       }
       // Reading session ID before unlocking event lock is critical to guarantee the established
@@ -2090,7 +2093,8 @@ public class ZkClient implements Watcher {
   }
 
   public boolean waitUntilConnected(long time, TimeUnit timeUnit) throws ZkInterruptedException {
-    return waitForKeeperState(KeeperState.SyncConnected, time, timeUnit);
+    KeeperState expectedState = isKerberosAuthEnabled() ? KeeperState.SaslAuthenticated : KeeperState.SyncConnected;
+    return waitForKeeperState(expectedState, time, timeUnit);
   }
 
   public boolean waitForKeeperState(KeeperState keeperState, long time, TimeUnit timeUnit)
@@ -3256,6 +3260,65 @@ public class ZkClient implements Watcher {
     if (_usePersistWatcher && watch) {
       throw new IllegalArgumentException(
           "Can not subscribe one time watcher when ZkClient is using PersistWatcher");
+    }
+  }
+
+  /**
+   * Checks if Kerberos authentication is enabled for the ZooKeeper connection.
+   * This method performs the following checks:
+   * 1. Verifies if SASL client is enabled via ZKClientConfig
+   * 2. Reads the JAAS client context name from zookeeper.sasl.clientconfig property
+   * 3. Checks if the JAAS configuration contains Krb5LoginModule
+   *
+   * @return true if Kerberos authentication is enabled, false otherwise
+   */
+  private boolean isKerberosAuthEnabled() {
+    try {
+      // Get ZooKeeper instance from connection
+      ZkConnection zkConnection = (ZkConnection) getConnection();
+      if (zkConnection == null) {
+        return false;
+      }
+
+      ZooKeeper zk = zkConnection.getZookeeper();
+      if (zk == null) {
+        return false;
+      }
+
+      // Step 1: Check if SASL is enabled via ZKClientConfig
+      ZKClientConfig zkClientConfig = zk.getClientConfig();
+      if (zkClientConfig == null || !zkClientConfig.isSaslClientEnabled()) {
+        return false;
+      }
+
+      // Step 2: Get JAAS client context name using ZooKeeper property
+      String clientContextName = zkClientConfig.getProperty(ZKClientConfig.LOGIN_CONTEXT_NAME_KEY,
+          ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT);
+
+      // Step 3: Check JAAS configuration for Krb5LoginModule
+      Configuration jaasConfig = Configuration.getConfiguration();
+      if (jaasConfig == null) {
+        return false;
+      }
+
+      AppConfigurationEntry[] entries = jaasConfig.getAppConfigurationEntry(clientContextName);
+      if (entries == null) {
+        return false;
+      }
+
+      // Step 4: Check if any login module contains "Krb5LoginModule"
+      for (AppConfigurationEntry entry : entries) {
+        if (entry.getLoginModuleName().contains("Krb5LoginModule")) {
+          LOG.debug("zkclient {}, Kerberos authentication is enabled with login module: {}", _uid,
+              entry.getLoginModuleName());
+          return true;
+        }
+      }
+
+      return false;
+    } catch (Exception e) {
+      LOG.warn("zkclient {}, Failed to determine if Kerberos is enabled, assuming false", _uid, e);
+      return false; // Safe default - fall back to non-Kerberos behavior
     }
   }
 }

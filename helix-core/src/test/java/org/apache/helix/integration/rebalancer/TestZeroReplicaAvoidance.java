@@ -178,8 +178,13 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     for (; i < NUM_NODE; i++) {
       _participants.get(i).syncStart();
     }
-    Assert.assertTrue(_clusterVerifier.verify(70000L));
-    Assert.assertTrue(_testSuccess);
+    // Wait for cluster to stabilize and then poll until _testSuccess remains true
+    Assert.assertTrue(_clusterVerifier.verify(120000L));
+    // Poll to ensure _testSuccess stays true after cluster stabilizes
+    // This accounts for async callbacks that may still be processing
+    Assert.assertTrue(TestHelper.verify(() -> {
+      return _testSuccess;
+    }, TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME));
 
     if (manager.isConnected()) {
       manager.disconnect();

@@ -151,8 +151,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
         new ZkCacheBaseDataAccessor<>(baseAccessor, null, null, zkCacheInitPaths);
 
     // TestHelper.printCache(accessor._zkCache);
-    boolean ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    boolean ret = TestHelper.verify(() ->
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using external base accessor
@@ -200,12 +200,9 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
       }
     }
 
-    // wait zkEventThread update zkCache
-    Thread.sleep(100);
-
-    // verify cache
-    // TestHelper.printCache(accessor._zkCache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    // wait zkEventThread update zkCache using polling
+    ret = TestHelper.verify(() ->
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // set 10 external views by external accessor
@@ -223,12 +220,9 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
       Assert.assertTrue(success[i], "Should succeed in set: " + paths.get(i));
     }
 
-    // wait zkEventThread update zkCache
-    Thread.sleep(100);
-
-    // verify cache
-    // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    // wait zkEventThread update zkCache using polling
+    ret = TestHelper.verify(() ->
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // remove 10 external views by external accessor
@@ -243,12 +237,9 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
       Assert.assertTrue(success[i], "Should succeed in remove: " + paths.get(i));
     }
 
-    // wait zkEventThread update zkCache
-    Thread.sleep(100);
-
-    // verify cache
-    // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    // wait zkEventThread update zkCache using polling
+    ret = TestHelper.verify(() ->
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // clean up

@@ -1072,8 +1072,12 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Validate that the SWAP_IN instance has the same partitions the swap out instance had.
-    verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
+    // Use polling to wait for stable state - the verifier passes once cluster stabilizes,
+    // then we poll a bit more to ensure we don't catch intermediate states
+    Assert.assertTrue(TestHelper.verify(() -> {
+      return validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
+          Collections.emptySet(), ImmutableSet.of(instanceToSwapInName));
+    }, TIMEOUT));
 
     // Assert isEvacuateFinished is true
     Assert.assertTrue(_gSetupTool.getClusterManagementTool()
@@ -1086,8 +1090,11 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Validate that dropping the instance has not changed the assignment
-    verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
-        Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
+    // Use polling to wait for stable state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      return validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
+          Collections.emptySet(), ImmutableSet.of(instanceToSwapInName));
+    }, TIMEOUT));
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testSwapEvacuateAdd")
@@ -1584,7 +1591,15 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME,
         toDisableThenEvacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
 
-    verifier(() -> _admin.isEvacuateFinished(CLUSTER_NAME, toDisableThenEvacuateInstanceName), 30000);
+    // Add logging to debug evacuation timeout
+    boolean evacuateFinished = TestHelper.verify(() -> {
+      boolean result = _admin.isEvacuateFinished(CLUSTER_NAME, toDisableThenEvacuateInstanceName);
+      if (!result) {
+        LOG.info("isEvacuateFinished not yet true for {}", toDisableThenEvacuateInstanceName);
+      }
+      return result;
+    }, 30000);
+    Assert.assertTrue(evacuateFinished, "Evacuation did not finish within timeout for " + toDisableThenEvacuateInstanceName);
     int downwardSTCountAfterEvacuateComplete = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
 
     // Assert node received no upward state transitions after evacuation was called on already disabled node
@@ -1916,6 +1931,7 @@ public class TestInstanceOperation extends ZkTestBase {
           expectedStateMap.remove(swapOutInstance);
         }
       }
+
       Assert.assertEquals(actual.getStateMap(partition), expectedStateMap, "Error for partition " + partition
           + " in resource " + actual.getResourceName());
     }
@@ -1926,8 +1942,24 @@ public class TestInstanceOperation extends ZkTestBase {
       Set<String> inFlightSwapInInstances, Set<String> completedSwapInInstanceNames) {
     Assert.assertEquals(actuals.keySet(), originals.keySet());
     for (String resource : actuals.keySet()) {
-      validateEVCorrect(actuals.get(resource), originals.get(resource),
-          swapOutInstancesToSwapInInstances, inFlightSwapInInstances, completedSwapInInstanceNames, Collections.emptySet());
+      try {
+        validateEVCorrect(actuals.get(resource), originals.get(resource),
+            swapOutInstancesToSwapInInstances, inFlightSwapInInstances, completedSwapInInstanceNames, Collections.emptySet());
+      } catch (AssertionError e) {
+        ExternalView original = originals.get(resource);
+        ExternalView actual = actuals.get(resource);
+        LOG.error("validateEVsCorrect failed for resource: " + resource);
+        LOG.error("Original EV partitions: " + original.getPartitionSet());
+        for (String partition : original.getPartitionSet()) {
+          LOG.error("Original partition {} state: {}", partition, original.getStateMap(partition));
+        }
+        for (String partition : actual.getPartitionSet()) {
+          LOG.error("Actual partition {} state: {}", partition, actual.getStateMap(partition));
+        }
+        LOG.error("Swap mapping: " + swapOutInstancesToSwapInInstances);
+        LOG.error("Completed swap instances: " + completedSwapInInstanceNames);
+        throw e;
+      }
     }
     return true;
   }

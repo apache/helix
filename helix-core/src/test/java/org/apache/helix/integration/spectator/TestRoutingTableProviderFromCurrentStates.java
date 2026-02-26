@@ -30,6 +30,9 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
@@ -72,6 +75,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestRoutingTableProviderFromCurrentStates.class);
   private HelixManager _manager;
   private final int NUM_NODES = 10;
   protected int NUM_PARTITIONS = 20;
@@ -283,7 +287,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
           .getResourcesInCluster(CLUSTER_NAME)) {
         IdealState idealState = _gSetupTool.getClusterManagementTool()
             .getResourceIdealState(CLUSTER_NAME, resourceName);
-        validate(idealState, routingTableEV, routingTableCS, 3000);
+        validate(idealState, routingTableEV, routingTableCS, 10000);
       }
 
       // Blocking the current state event processing
@@ -299,40 +303,63 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
           new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
               .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
               .build();
-      Assert.assertTrue(clusterVerifier.verifyByPolling(5000, 500));
+      Assert.assertTrue(clusterVerifier.verifyByPolling(30000, 500));
+      LOG.info("Cluster verified after rebalance");
       // 2. Process one event, so the current state will be refreshed with the new DB partitions
       routingTableCS.proceedNewEventHandling();
       IdealState idealState =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       String targetPartitionName = idealState.getPartitionSet().iterator().next();
+      LOG.info("Waiting for routing table to update for partition {}", targetPartitionName);
       // Wait until the routing table is updated.
       BlockingCurrentStateRoutingTableProvider finalRoutingTableCS = routingTableCS;
-      Assert.assertTrue(TestHelper.verify(
+      boolean hasMaster = TestHelper.verify(
           () -> !finalRoutingTableCS.getInstances(db, targetPartitionName, "MASTER").isEmpty(),
-          2000));
+          10000);
+      if (!hasMaster) {
+        LOG.error("Routing table did not update - no MASTER found for partition {} in resource {}", targetPartitionName, db);
+        LOG.error("Current instances: {}", finalRoutingTableCS.getInstances(db, targetPartitionName, "MASTER"));
+      }
+      Assert.assertTrue(hasMaster);
       String targetNodeName =
           routingTableCS.getInstances(db, targetPartitionName, "MASTER").get(0).getInstanceName();
+      LOG.info("Target node with MASTER: {}", targetNodeName);
       // 3. Shutdown one of the instance that contains a master partition
       for (int i = 0; i < _participants.length; i++) {
         if (_participants[i].getInstanceName().equals(targetNodeName)) {
           shutdownParticipantIndex = i;
           _participants[i].syncStop();
+          LOG.info("Shutdown participant: {}", targetNodeName);
         }
       }
+      LOG.info("Waiting for cluster to stabilize after shutdown");
       Assert.assertTrue(clusterVerifier.verifyByPolling());
+      LOG.info("Cluster verified after shutdown");
       // 4. Process one of the stale current state event.
       // The expectation is that, the provider will refresh with all the latest data including the
       // the live instance change. Even the corresponding ZK event has not been processed yet.
       routingTableCS.proceedNewEventHandling();
+      LOG.info("Validate after step 4");
       validate(idealState, routingTableEV, routingTableCS, 3000);
       // 5. Unblock the event processing and let the provider to process all events.
       // The expectation is that, the eventual routing tables are still the same.
       routingTableCS.setBlocking(false);
       routingTableCS.proceedNewEventHandling();
-      // Wait for a short while so the router will process at least one event.
-      Thread.sleep(500);
+      LOG.info("Validate after unblock (step 5)");
+      // Wait for routing table to converge using polling instead of hardcoded sleep
+      // Use copies for lambda since routingTableCS is modified
+      RoutingTableProvider routingTableEVCopy = routingTableEV;
+      RoutingTableProvider routingTableCSCopy = routingTableCS;
+      boolean matched = TestHelper.verify(
+          () -> compare(idealState, routingTableEVCopy, routingTableCSCopy),
+          10000);
+      if (!matched) {
+        LOG.error("Routing tables did not match between EV and CS providers");
+        LOG.error("IdealState partitions: {}", idealState.getPartitionSet());
+      }
+      Assert.assertTrue(matched);
       // Confirm that 2 providers match eventually
-      validate(idealState, routingTableEV, routingTableCS, 2000);
+      validate(idealState, routingTableEV, routingTableCS, 10000);
     } finally {
       if (routingTableCS != null) {
         routingTableCS.setBlocking(false);

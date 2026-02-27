@@ -221,6 +221,7 @@ public class TestAutoRebalanceStrategy {
       logger.info(_currentMapping.toString());
       getRunResult(_currentMapping, initialResult.getListFields());
       for (int i = 0; i < numIterations; i++) {
+        long startTime = System.currentTimeMillis();
         logger.info("~~~~ Iteration " + i + " ~~~~~");
         ZNRecord znRecord = runOnceRandomly(dataProvider);
         if (znRecord != null) {
@@ -231,6 +232,8 @@ public class TestAutoRebalanceStrategy {
           getRunResult(mapResult, listResult);
           _currentMapping = mapResult;
         }
+        long endTime = System.currentTimeMillis();
+        logger.info("~~~~ Iteration " + i + " completed in " + (endTime - startTime) + "ms ~~~~~");
       }
     }
 
@@ -331,21 +334,24 @@ public class TestAutoRebalanceStrategy {
      */
     public void verifyCorrectness(final Map<String, Map<String, String>> mapFields,
         final Map<String, List<String>> listFields) {
+      logger.info("Starting correctness verification. Live nodes: " + _liveNodes.size()
+          + ", Total nodes: " + _allNodes.size() + ", Replica count: " + _numOfReplica);
       final Map<String, Integer> partitionsPerNode = getPartitionBucketsForNode(mapFields);
+      logger.info("Partitions per node: " + partitionsPerNode);
       boolean maxConstraintMet = maxNotExceeded(partitionsPerNode);
-      assert maxConstraintMet : "Max per node constraint: FAIL";
+      assert maxConstraintMet : "Max per node constraint: FAIL. Partitions per node: " + partitionsPerNode;
       logger.info("Max per node constraint: PASS");
 
       boolean liveConstraintMet = onlyLiveAssigned(partitionsPerNode);
-      assert liveConstraintMet : "Only live nodes have partitions constraint: FAIL";
+      assert liveConstraintMet : "Only live nodes have partitions constraint: FAIL. Partitions per node: " + partitionsPerNode;
       logger.info("Only live nodes have partitions constraint: PASS");
 
       boolean stateAssignmentPossible = correctStateAssignmentCount(mapFields);
-      assert stateAssignmentPossible : "State replica constraint: FAIL";
+      assert stateAssignmentPossible : "State replica constraint: FAIL. Map fields: " + mapFields;
       logger.info("State replica constraint: PASS");
 
       boolean nodesUniqueForPartitions = atMostOnePartitionReplicaPerNode(listFields);
-      assert nodesUniqueForPartitions : "Node uniqueness per partition constraint: FAIL";
+      assert nodesUniqueForPartitions : "Node uniqueness per partition constraint: FAIL. List fields: " + listFields;
       logger.info("Node uniqueness per partition constraint: PASS");
     }
 
@@ -362,12 +368,13 @@ public class TestAutoRebalanceStrategy {
     }
 
     private boolean onlyLiveAssigned(final Map<String, Integer> partitionsPerNode) {
+      logger.info("Checking only live assigned. Live set: " + _liveSet);
       for (final Entry<String, Integer> nodeState : partitionsPerNode.entrySet()) {
         boolean isLive = _liveSet.contains(nodeState.getKey());
         boolean isEmpty = nodeState.getValue() == 0;
         if (!isLive && !isEmpty) {
-          logger.error("ERROR: Node " + nodeState.getKey() + " is not live, but has "
-              + nodeState.getValue() + " replicas!");
+          logger.error("ERROR: Node " + nodeState.getKey() + " is not live (live set: " + _liveSet + "), but has "
+              + nodeState.getValue() + " replicas! Partitions per node: " + partitionsPerNode);
           return false;
         }
       }
@@ -375,6 +382,7 @@ public class TestAutoRebalanceStrategy {
     }
 
     private boolean correctStateAssignmentCount(final Map<String, Map<String, String>> assignment) {
+      logger.info("Checking state assignment count. States: " + _states + ", Assignment size: " + assignment.size());
       for (final Entry<String, Map<String, String>> partitionEntry : assignment.entrySet()) {
         final Map<String, String> nodeMap = partitionEntry.getValue();
         final Map<String, Integer> stateCounts = new TreeMap<String, Integer>();
@@ -390,10 +398,16 @@ public class TestAutoRebalanceStrategy {
             continue;
           }
           int count = stateCounts.get(state);
-          int maximumCount = _states.get(state);
+          Integer maximumCount = _states.get(state);
+          if (maximumCount == null) {
+            logger.error("ERROR: State " + state + " not found in expected states " + _states
+                + " for partition " + partitionEntry.getKey());
+            return false;
+          }
           if (count > maximumCount) {
             logger.error("ERROR: State " + state + " for partition " + partitionEntry.getKey()
-                + " has " + count + " replicas when " + maximumCount + " is allowed!");
+                + " has " + count + " replicas when " + maximumCount + " is allowed!"
+                + " Full assignment: " + nodeMap + ", State counts: " + stateCounts);
             return false;
           }
         }
@@ -402,6 +416,9 @@ public class TestAutoRebalanceStrategy {
     }
 
     private boolean atMostOnePartitionReplicaPerNode(final Map<String, List<String>> listFields) {
+      logger.info("Checking node uniqueness per partition. Total partitions: " + listFields.size()
+          + ", Expected preference list size: " + (_numOfReplica.equals("ANY_LIVEINSTANCE") ? _allNodes.size()
+              : Integer.parseInt(_numOfReplica)));
       for (final Entry<String, List<String>> partitionEntry : listFields.entrySet()) {
         Set<String> nodeSet = new HashSet<String>(partitionEntry.getValue());
         int numUniques = nodeSet.size();
@@ -409,13 +426,14 @@ public class TestAutoRebalanceStrategy {
         int expectedPreferenceListSize = _numOfReplica.equals("ANY_LIVEINSTANCE") ? _allNodes.size()
             : Integer.parseInt(_numOfReplica);
         if (nodeSet.size() != expectedPreferenceListSize) {
-          logger.error("ERROR: Partition " + partitionEntry.getKey() + " expect " + expectedPreferenceListSize
-              + " of replicas, but the preference list has " + listFields.size() + " nodes!");
+          logger.error("ERROR: Partition " + partitionEntry.getKey() + " expects " + expectedPreferenceListSize
+              + " replicas, but the preference list has " + partitionEntry.getValue().size() + " nodes! "
+              + "Unique nodes: " + nodeSet + ", Full preference list: " + partitionEntry.getValue());
           return false;
         }
         if (numUniques < total) {
           logger.error("ERROR: Partition " + partitionEntry.getKey() + " is assigned to " + total
-              + " nodes, but only " + numUniques + " are unique!");
+              + " nodes, but only " + numUniques + " are unique! Preference list: " + partitionEntry.getValue());
           return false;
         }
       }
@@ -509,13 +527,21 @@ public class TestAutoRebalanceStrategy {
     public ZNRecord runOnceRandomly(ResourceControllerDataProvider dataProvider) {
       double choose = _random.nextDouble();
       ZNRecord result = null;
+      String operation;
       if (choose < P_KILL) {
+        operation = "KILL";
         result = removeSingleNode(null, dataProvider);
       } else if (choose < P_KILL + P_ADD) {
+        operation = "ADD";
         result = addSingleNode(null, dataProvider);
-      } else if (choose < P_KILL + P_ADD + P_RESURRECT) {
+      } else {
+        operation = "RESURRECT";
         result = resurrectSingleNode(null, dataProvider);
       }
+      logger.info("Random operation: " + operation + ", random value: " + choose
+          + ", Live nodes after operation: " + _liveNodes.size()
+          + ", Non-live set size: " + _nonLiveSet.size()
+          + ", Removed set size: " + _removedSet.size());
       return result;
     }
 

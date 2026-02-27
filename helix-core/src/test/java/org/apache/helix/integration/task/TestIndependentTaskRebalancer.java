@@ -30,6 +30,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixManagerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -56,6 +58,7 @@ import org.testng.annotations.Test;
 import org.testng.collections.Sets;
 
 public class TestIndependentTaskRebalancer extends TaskTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestIndependentTaskRebalancer.class);
   private Set<String> _invokedClasses = Sets.newHashSet();
   private Map<String, Integer> _runCounts = Maps.newHashMap();
   private static final AtomicBoolean _failureCtl = new AtomicBoolean(true);
@@ -149,8 +152,13 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
 
   @Test
   public void testThresholdFailure() throws Exception {
+    LOG.info("Starting testThresholdFailure. Clearing invoked classes set.");
+    _invokedClasses.clear();
+    _runCounts.clear();
+
     // Create a job with two different tasks
     String jobName = TestHelper.getTestMethodName();
+    LOG.info("Creating workflow with job: " + jobName);
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
     Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap.of("fail", "" + true));
@@ -163,15 +171,43 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
         .setFailureThreshold(1).addTaskConfigs(taskConfigs).setJobCommandConfigMap(jobConfigMap);
     workflowBuilder.addJob(jobName, jobBuilder);
+    LOG.info("Starting workflow: " + jobName);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
+    LOG.info("Polling for workflow state: " + jobName);
     _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
+    LOG.info("Workflow " + jobName + " is now IN_PROGRESS");
+
     _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
+    LOG.info("Workflow " + jobName + " is now COMPLETED");
+
+    // Wait for job context to be available and verify task attempts
+    // This ensures tasks have been scheduled and executed
+    JobContext jobCtx = null;
+    for (int i = 0; i < 10; i++) {
+      jobCtx = _driver.getJobContext(jobName);
+      if (jobCtx != null && jobCtx.getPartitionNumAttempts(0) > 0) {
+        break;
+      }
+      Thread.sleep(100);
+    }
+
+    LOG.info("Job context after completion: " + (jobCtx != null ? "attempts=" + jobCtx.getPartitionNumAttempts(0) : "null"));
+
+    // Additional wait to ensure all task run() methods have completed
+    // This handles the race between workflow completion and task execution finishing
+    Thread.sleep(500);
+
+    // Log the invoked classes for debugging
+    LOG.info("Invoked classes: " + _invokedClasses);
+    LOG.info("Run counts: " + _runCounts);
 
     // Ensure that each class was invoked
-    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
-    Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
+    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()),
+        "TaskOne was not invoked. Invoked classes: " + _invokedClasses);
+    Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()),
+        "TaskTwo was not invoked. Invoked classes: " + _invokedClasses);
   }
 
   @Test (dependsOnMethods = "testThresholdFailure")
@@ -308,15 +344,20 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
 
     @Override
     public synchronized TaskResult run() {
+      LOG.info("TaskOne.run() invoked on instance: " + _instanceName + ", shouldFail: " + _shouldFail);
       _invokedClasses.add(getClass().getName());
       _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
+      LOG.info("Current invoked classes: " + _invokedClasses + ", run counts: " + _runCounts);
 
       // Fail the task if it should fail
       if (_shouldFail) {
+        LOG.info("TaskOne on instance " + _instanceName + " returning ERROR status");
         return new TaskResult(Status.ERROR, null);
       }
 
-      return super.run();
+      TaskResult result = super.run();
+      LOG.info("TaskOne on instance " + _instanceName + " returning: " + result.getStatus());
+      return result;
     }
   }
 

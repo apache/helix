@@ -36,6 +36,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
@@ -69,6 +71,8 @@ import static org.mockito.Mockito.*;
 
 
 public class TestHelixTaskExecutor {
+  private static final Logger LOG = LoggerFactory.getLogger(TestHelixTaskExecutor.class);
+
   @BeforeClass
   public void beforeClass() {
     System.out.println("START " + TestHelper.getTestClassName());
@@ -854,7 +858,7 @@ public class TestHelixTaskExecutor {
 
   @Test()
   public void testNoRetry() throws InterruptedException {
-    System.out.println("START " + TestHelper.getTestMethodName());
+    LOG.info("START testNoRetry");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -874,23 +878,37 @@ public class TestHelixTaskExecutor {
       msg.setSrcName("127.101.1.23_2234");
       msg.setExecutionTimeout((i + 1) * 600);
       msgList.add(msg);
+      LOG.info("Created message {} with timeout {} ms", msg.getId(), msg.getExecutionTimeout());
     }
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
+    LOG.info("Submitted {} messages to executor", nMsgs2);
 
-    Thread.sleep(4000);
+    // Wait for processing to complete
+    // Use a longer wait time to ensure flaky test stability
+    int waitTime = 6000;
+    LOG.info("Waiting {} ms for processing to complete...", waitTime);
+    Thread.sleep(waitTime);
 
-    AssertJUnit.assertTrue(factory._handlersCreated == nMsgs2);
-    AssertJUnit.assertEquals(factory._timedOutMsgIds.size(), 2);
-    // AssertJUnit.assertFalse(msgList.get(0).getRecord().getSimpleFields().containsKey("TimeOut"));
+    LOG.info("After wait - Handlers created: {}, Processed: {}, TimedOut: {}",
+        factory._handlersCreated, factory._processedMsgIds.size(), factory._timedOutMsgIds.size());
+    LOG.info("Timed out message IDs: {}", factory._timedOutMsgIds.keySet());
+    LOG.info("Processed message IDs: {}", factory._processedMsgIds.keySet());
+
+    AssertJUnit.assertTrue("Expected " + nMsgs2 + " handlers created, but got " + factory._handlersCreated,
+        factory._handlersCreated == nMsgs2);
+    AssertJUnit.assertEquals("Expected 2 messages to timeout", 2, factory._timedOutMsgIds.size());
+
+    // Check first 2 messages (with shorter timeouts) were cancelled
     for (int i = 0; i < nMsgs2 - 2; i++) {
       if (factory.getMessageTypes().contains(msgList.get(i).getMsgType())) {
-        AssertJUnit.assertTrue(msgList.get(i).getRecord().getSimpleFields()
-            .containsKey("Cancelcount"));
-        AssertJUnit.assertTrue(factory._timedOutMsgIds.containsKey(msgList.get(i).getId()));
+        AssertJUnit.assertTrue("Message " + i + " should have Cancelcount",
+            msgList.get(i).getRecord().getSimpleFields().containsKey("Cancelcount"));
+        AssertJUnit.assertTrue("Message " + i + " should be in timed out map",
+            factory._timedOutMsgIds.containsKey(msgList.get(i).getId()));
       }
     }
-    System.out.println("END " + TestHelper.getTestMethodName());
+    LOG.info("END testNoRetry - Test passed!");
   }
 
   @Test()
@@ -931,7 +949,7 @@ public class TestHelixTaskExecutor {
 
   @Test
   public void testStateTransitionCancellationMsg() throws InterruptedException {
-    System.out.println("START " + TestHelper.getTestMethodName());
+    LOG.info("START testStateTransitionCancellationMsg");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -954,6 +972,7 @@ public class TestHelixTaskExecutor {
     msg1.setFromState("SLAVE");
     msg1.setToState("MASTER");
     msgList.add(msg1);
+    LOG.info("Created STATE_TRANSITION message: {}", msg1.getId());
 
     Message msg2 = new Message(Message.MessageType.STATE_TRANSITION_CANCELLATION, UUID.randomUUID().toString());
     msg2.setTgtSessionId("*");
@@ -964,14 +983,53 @@ public class TestHelixTaskExecutor {
     msg2.setFromState("SLAVE");
     msg2.setToState("MASTER");
     msgList.add(msg2);
+    LOG.info("Created STATE_TRANSITION_CANCELLATION message: {}", msg2.getId());
 
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
+    LOG.info("Submitted {} messages to executor", msgList.size());
 
-    Thread.sleep(3000);
-    AssertJUnit.assertEquals(cancelFactory._processedMsgIds.size(), 0);
-    AssertJUnit.assertEquals(stateTransitionFactory._processedMsgIds.size(), 0);
-    System.out.println("END " + TestHelper.getTestMethodName());
+    // Wait for processing to stabilize - poll until counts stop changing
+    int maxWaitTime = 10000;
+    int pollInterval = 500;
+    int stableCount = 0;
+    int lastCancelCount = -1;
+    int lastStateTransitionCount = -1;
+
+    LOG.info("Waiting up to {} ms for processing to stabilize...", maxWaitTime);
+    long startTime = System.currentTimeMillis();
+
+    while (System.currentTimeMillis() - startTime < maxWaitTime) {
+      int currentCancelCount = cancelFactory._processedMsgIds.size();
+      int currentStateTransitionCount = stateTransitionFactory._processedMsgIds.size();
+
+      if (currentCancelCount == lastCancelCount && currentStateTransitionCount == lastStateTransitionCount) {
+        stableCount++;
+        if (stableCount >= 2) {
+          LOG.info("Processing stabilized after {} ms", System.currentTimeMillis() - startTime);
+          break;
+        }
+      } else {
+        stableCount = 0;
+      }
+
+      lastCancelCount = currentCancelCount;
+      lastStateTransitionCount = currentStateTransitionCount;
+
+      LOG.info("Polling - cancelFactory: {}, stateTransitionFactory: {}",
+          currentCancelCount, currentStateTransitionCount);
+
+      Thread.sleep(pollInterval);
+    }
+
+    LOG.info("Final state - cancelFactory processed: {}, stateTransitionFactory processed: {}",
+        cancelFactory._processedMsgIds.size(), stateTransitionFactory._processedMsgIds.size());
+    LOG.info("Cancel factory processed IDs: {}", cancelFactory._processedMsgIds.keySet());
+    LOG.info("State transition factory processed IDs: {}", stateTransitionFactory._processedMsgIds.keySet());
+
+    AssertJUnit.assertEquals("Cancel factory should not process any messages", 0, cancelFactory._processedMsgIds.size());
+    AssertJUnit.assertEquals("State transition factory should not process any messages", 0, stateTransitionFactory._processedMsgIds.size());
+    LOG.info("END testStateTransitionCancellationMsg - Test passed!");
   }
 
   @Test

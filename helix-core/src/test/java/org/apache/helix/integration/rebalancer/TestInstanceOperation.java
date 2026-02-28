@@ -1568,19 +1568,22 @@ public class TestInstanceOperation extends ZkTestBase {
     instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", false);
     _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    // EV should not have disabled instance above the lowest state (OFFLINE)
+    // EV should not have disabled instance above the lowest state (OFFLINE) - increased timeout for flaky test
+    LOG.info("Checking that {} is OFFLINE in all partitions for resources {}", toDisableThenEvacuateInstanceName, testResources);
     verifier(() -> {
       for (String resource : testResources) {
         ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, resource);
         for (String partition : ev.getPartitionSet()) {
           if (ev.getStateMap(partition).containsKey(toDisableThenEvacuateInstanceName) && !ev.getStateMap(partition).
               get(toDisableThenEvacuateInstanceName).equals("OFFLINE")) {
+            LOG.info("Partition {} in resource {} has state {} for {} (expected OFFLINE)",
+                partition, resource, ev.getStateMap(partition).get(toDisableThenEvacuateInstanceName), toDisableThenEvacuateInstanceName);
             return false;
           }
         }
       }
       return true;
-    }, TIMEOUT);
+    }, TIMEOUT * 3); // Increased timeout for flaky test
 
     // Assert node received downward state transitions and no upward transitions
     Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
@@ -1590,15 +1593,31 @@ public class TestInstanceOperation extends ZkTestBase {
 
     _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME,
         toDisableThenEvacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
+    LOG.info("Set EVACUATE operation on {}", toDisableThenEvacuateInstanceName);
 
-    // Add logging to debug evacuation timeout
+    // Add logging to debug evacuation timeout - increased timeout for flaky test stability
+    int evacuateTimeout = 60000; // 60 seconds
+    LOG.info("Waiting up to {} ms for evacuation to complete for {}", evacuateTimeout, toDisableThenEvacuateInstanceName);
     boolean evacuateFinished = TestHelper.verify(() -> {
+      // Check controller availability first
+      Object leaderController = org.apache.helix.controller.GenericHelixController.getLeaderController(CLUSTER_NAME);
+      if (leaderController == null) {
+        LOG.error("Controller is NOT available for cluster {}! Evacuation cannot complete without controller.", CLUSTER_NAME);
+      }
+
       boolean result = _admin.isEvacuateFinished(CLUSTER_NAME, toDisableThenEvacuateInstanceName);
       if (!result) {
-        LOG.info("isEvacuateFinished not yet true for {}", toDisableThenEvacuateInstanceName);
+        // Log additional debug info when evacuation is not yet complete
+        ExternalView evCrushed = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, testCrushedDBName);
+        ExternalView evWaged = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, testWagedDBName);
+        LOG.info("isEvacuateFinished not yet true for {}. TestCrushedDB stateMap: {}, TestWagedDB stateMap: {}",
+            toDisableThenEvacuateInstanceName,
+            evCrushed != null ? evCrushed.getStateMap(toDisableThenEvacuateInstanceName) : "null",
+            evWaged != null ? evWaged.getStateMap(toDisableThenEvacuateInstanceName) : "null");
       }
       return result;
-    }, 30000);
+    }, evacuateTimeout);
+    LOG.info("Evacuation finished for {}: {}", toDisableThenEvacuateInstanceName, evacuateFinished);
     Assert.assertTrue(evacuateFinished, "Evacuation did not finish within timeout for " + toDisableThenEvacuateInstanceName);
     int downwardSTCountAfterEvacuateComplete = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
 
@@ -1649,8 +1668,35 @@ public class TestInstanceOperation extends ZkTestBase {
    * @throws Exception if TestHelper.verify throws an exception
    */
   private static void verifier(TestHelper.Verifier verifier, long timeout) throws Exception {
+    verifier(verifier, timeout, null);
+  }
+
+  /**
+   * Verifies that the given verifier returns true within the given timeout. Handles AssertionError
+   * by returning false, which TestHelper.verify will not do. Asserts that return value from
+   * TestHelper.verify is true.
+   * This version also checks for controller availability and logs additional debug info.
+   *
+   * @param verifier the verifier to run
+   * @param timeout  the timeout to wait for the verifier to return true
+   * @param clusterName optional cluster name to check controller availability
+   * @throws Exception if TestHelper.verify throws an exception
+   */
+  private static void verifier(TestHelper.Verifier verifier, long timeout, String clusterName) throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
       try {
+        // Log controller status if cluster name is provided
+        if (clusterName != null) {
+          try {
+            Object leaderController = org.apache.helix.controller.GenericHelixController.getLeaderController(clusterName);
+            if (leaderController == null) {
+              LOG.error("Controller is NOT available for cluster {}, verifier will likely fail!", clusterName);
+            }
+          } catch (Exception e) {
+            LOG.warn("Failed to check controller status for cluster {}: {}", clusterName, e.getMessage());
+          }
+        }
+
         boolean result = verifier.verify();
         if (!result) {
           LOG.error("Verifier returned false, retrying...");

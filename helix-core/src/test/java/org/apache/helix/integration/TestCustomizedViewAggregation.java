@@ -68,6 +68,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   private static Set<String> _aggregationEnabledTypes;
   // The set contains customized state types that routing table provider shows to users
   private static Set<String> _routingTableProviderDataSources;
+  private String _clusterName;
   private String INSTANCE_0;
   private String INSTANCE_1;
   private final String RESOURCE_0 = "TestDB0";
@@ -91,12 +92,12 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   public void beforeClass() throws Exception {
     super.beforeClass();
 
-    String clusterName = TestHelper.getTestClassName();
+    _clusterName = TestHelper.getTestClassName();
     int n = 2;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         2, // resources
@@ -106,7 +107,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     _controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     _controller.syncStart();
 
     // start participants
@@ -114,7 +115,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      _participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      _participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
       _participants[i].syncStart();
     }
 
@@ -122,11 +123,11 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     INSTANCE_1 = _participants[1].getInstanceName();
 
     _manager = HelixManagerFactory
-        .getZKHelixManager(clusterName, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+        .getZKHelixManager(_clusterName, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
     _spectator = HelixManagerFactory
-        .getZKHelixManager(clusterName, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
+        .getZKHelixManager(_clusterName, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator.connect();
 
     // Initialize customized state provider
@@ -166,6 +167,9 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     _routingTableProvider.shutdown();
     _manager.disconnect();
     _spectator.disconnect();
+
+    // Delete the cluster from Zookeeper
+    deleteCluster(_clusterName);
   }
 
   /**

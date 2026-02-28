@@ -127,6 +127,9 @@ public class TestTopologyMigration extends ZkTestBase {
       participant.syncStop();
     }
     _controller.syncStop();
+
+    // Delete the cluster from Zookeeper
+    deleteCluster(CLUSTER_NAME);
   }
 
   /**

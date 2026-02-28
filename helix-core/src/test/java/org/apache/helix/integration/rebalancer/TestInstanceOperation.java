@@ -164,6 +164,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
+    // Cleanup order: 1) disconnect participants 2) disconnect controller 3) delete cluster
     for (MockParticipantManager p : _participants) {
       p.syncStop();
     }
@@ -172,6 +173,10 @@ public class TestInstanceOperation extends ZkTestBase {
     _routingTableProviderEV.shutdown();
     _routingTableProviderCS.shutdown();
     _spectator.disconnect();
+
+    // Delete the cluster from Zookeeper
+    deleteCluster(CLUSTER_NAME);
+    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @BeforeMethod

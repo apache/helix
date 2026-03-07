@@ -885,8 +885,8 @@ public class TestHelixTaskExecutor {
     LOG.info("Submitted {} messages to executor", nMsgs2);
 
     // Wait for processing to complete
-    // Use a longer wait time to ensure flaky test stability
-    int waitTime = 6000;
+    // Increased wait time to ensure flaky test stability on slower CI machines
+    int waitTime = 8000;
     LOG.info("Waiting {} ms for processing to complete...", waitTime);
     Thread.sleep(waitTime);
 

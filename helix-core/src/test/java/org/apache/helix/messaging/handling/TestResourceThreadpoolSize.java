@@ -204,16 +204,13 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     ThreadPoolExecutor executor = (ThreadPoolExecutor) (helixExecutor._batchMessageExecutorService);
     Assert.assertNotNull(executor);
 
-    // This ASSERT invariant is not true.
-    // _batchMessageExecutorService is created as newCachedThreadPool().
-    // which will re-use existing threads if they are available. 
-    // So there is no gurantee that new threads will be created for each new database
-    // Assert.assertTrue(executor.getPoolSize() >= numberOfDbs);
-
+    // Use longer timeout since the state model factory has 2000ms delay per transition,
+    // and with 10 DBs x 10 partitions = 100 partitions and only 5 threads in the pool,
+    // it takes significant time for all state transitions to complete
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
             .setZkClient(_gZkClient)
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .setWaitTillVerify(300000)
             .build();
     Assert.assertTrue(verifier.verifyByPolling());
   }

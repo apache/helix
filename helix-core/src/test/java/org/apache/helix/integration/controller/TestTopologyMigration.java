@@ -104,9 +104,9 @@ public class TestTopologyMigration extends ZkTestBase {
     setupClusterConfig(INIT_TOPOLOGY, RACK);
 
     // Initialize cluster verifier for validating state
-    // Use longer timeout since the cluster has delayed rebalancing enabled (30 min delay)
+    // Use moderate wait time - enough for cluster to settle but not too long to cause timeout
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setWaitTillVerify(120000)
+        .setWaitTillVerify(10000)
         .build();
 
     // Setup the participants and resources for the test

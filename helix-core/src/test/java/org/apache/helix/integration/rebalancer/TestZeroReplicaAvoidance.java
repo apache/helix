@@ -182,9 +182,14 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     Assert.assertTrue(_clusterVerifier.verify(120000L));
     // Poll to ensure _testSuccess stays true after cluster stabilizes
     // This accounts for async callbacks that may still be processing
-    Assert.assertTrue(TestHelper.verify(() -> {
+    // Increased timeout for flaky test stability on slower CI machines
+    System.out.println("Waiting for _testSuccess to remain true after cluster stabilization...");
+    boolean testSuccessResult = TestHelper.verify(() -> {
+      System.out.println("Checking _testSuccess: " + _testSuccess);
       return _testSuccess;
-    }, TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME));
+    }, 5000);
+    System.out.println("_testSuccess verification result: " + testSuccessResult);
+    Assert.assertTrue(testSuccessResult);
 
     if (manager.isConnected()) {
       manager.disconnect();

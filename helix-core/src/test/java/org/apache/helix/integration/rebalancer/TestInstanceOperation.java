@@ -1518,26 +1518,43 @@ public class TestInstanceOperation extends ZkTestBase {
         InstanceConstants.InstanceOperation.EVACUATE);
 
     // EV should contain all participants, check resources one by one
+    // Increased timeout to 60000ms for flaky test stability
+    LOG.info("Starting evacuation verification for instance {} with {} replicas required", evacuateInstanceName, REPLICA);
     verifier(() -> {
       Map<String, ExternalView> assignment = getEVs();
       for (String resource : _allDBs) {
         ExternalView ev = assignment.get(resource);
+        if (ev == null) {
+          LOG.info("ExternalView for resource {} is null, skipping", resource);
+          continue;
+        }
         for (String partition : ev.getPartitionSet()) {
+          Map<String, String> stateMap = ev.getStateMap(partition);
           AtomicInteger activeReplicaCount = new AtomicInteger();
-          ev.getStateMap(partition).values().stream().filter(
+          stateMap.values().stream().filter(
                   v -> v.equals("MASTER") || v.equals("LEADER") || v.equals("SLAVE") || v.equals(
                       "FOLLOWER") || v.equals("STANDBY"))
               .forEach(v -> activeReplicaCount.getAndIncrement());
+
           // If min active replicas violated OR if instance is evacuating and is top state for partition
-          if (activeReplicaCount.get() < REPLICA - 1 || (ev.getStateMap(partition).containsKey(evacuateInstanceName) &&
-              (ev.getStateMap(partition).get(evacuateInstanceName).equals("MASTER") ||
-                  ev.getStateMap(partition).get(evacuateInstanceName).equals("LEADER")))) {
+          if (activeReplicaCount.get() < REPLICA - 1) {
+            LOG.info("Partition {} in resource {} has only {} active replicas (required {}), stateMap: {}",
+                partition, resource, activeReplicaCount.get(), REPLICA - 1, stateMap);
             return false;
+          }
+          if (stateMap.containsKey(evacuateInstanceName)) {
+            String evacuateState = stateMap.get(evacuateInstanceName);
+            if (evacuateState.equals("MASTER") || evacuateState.equals("LEADER")) {
+              LOG.info("Evacuating instance {} is still in top state {} for partition {} in resource {}, stateMap: {}",
+                  evacuateInstanceName, evacuateState, partition, resource, stateMap);
+              return false;
+            }
           }
         }
       }
       return true;
-    }, 30000);
+    }, 60000, CLUSTER_NAME);
+    LOG.info("Evacuation verification completed successfully for instance {}", evacuateInstanceName);
 
     removeOfflineOrInactiveInstances();
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);

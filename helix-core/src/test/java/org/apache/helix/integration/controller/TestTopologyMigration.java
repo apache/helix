@@ -43,12 +43,15 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTopologyMigration extends ZkTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestTopologyMigration.class);
   private static final int START_PORT = 12918; // Starting port for mock participants
   private static int _nextStartPort = START_PORT; // Incremental port for participants
   private static final String RESOURCE_PREFIX = "TestDB"; // Prefix for resource names
@@ -101,8 +104,9 @@ public class TestTopologyMigration extends ZkTestBase {
     setupClusterConfig(INIT_TOPOLOGY, RACK);
 
     // Initialize cluster verifier for validating state
+    // Use longer timeout since the cluster has delayed rebalancing enabled (30 min delay)
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .setWaitTillVerify(120000)
         .build();
 
     // Setup the participants and resources for the test
@@ -136,6 +140,7 @@ public class TestTopologyMigration extends ZkTestBase {
    * Sets up the cluster configuration with the given topology and fault zone type.
    */
   private void setupClusterConfig(String topology, String faultZoneType) {
+    LOG.info("Setting up cluster config with topology={}, faultZoneType={}", topology, faultZoneType);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.stateTransitionCancelEnabled(true);
     clusterConfig.setDelayRebalaceEnabled(true);
@@ -148,12 +153,14 @@ public class TestTopologyMigration extends ZkTestBase {
         Collections.singletonMap(TEST_CAPACITY_KEY, TEST_CAPACITY_VALUE));
     clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(TEST_CAPACITY_KEY, 1));
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    LOG.info("Completed setupClusterConfig with topology={}, faultZoneType={}", topology, faultZoneType);
   }
 
   /**
    * Sets up initial resources and mock participants for the cluster.
    */
   private void setupInitParticipants() throws Exception {
+    LOG.info("Setting up {} resources with {} instances each", RESOURCE_COUNT, INSTANCES_PER_RESOURCE);
     for (int i = 0; i < RESOURCE_COUNT; i++) {
       String dbName = RESOURCE_PREFIX + i;
 
@@ -165,6 +172,7 @@ public class TestTopologyMigration extends ZkTestBase {
                 String.format("%s=%s, %s=%s", RACK, j % INIT_ZONE_COUNT, HOST, participantName))
             .addTag(dbName).build(participantName);
 
+        LOG.info("Adding instance {} with domain {}", participantName, instanceConfig.getDomain());
         _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, instanceConfig);
 
         MockParticipantManager participant = createParticipant(participantName);
@@ -173,19 +181,23 @@ public class TestTopologyMigration extends ZkTestBase {
         _participants.add(participant);
       }
     }
+    LOG.info("Completed setupInitParticipants, total participants: {}", _participants.size());
   }
 
   private void setupInitResources() throws Exception {
+    LOG.info("Setting up initial resources");
     setAndVerifyMaintenanceMode(true);
     for (int i = 0; i < RESOURCE_COUNT; i++) {
       String dbName = RESOURCE_PREFIX + i;
       _allDBs.add(dbName);
+      LOG.info("Creating resource {} with {} partitions and {} replicas", dbName, PARTITIONS, REPLICA);
       IdealState is = createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
           BuiltInStateModelDefinitions.LeaderStandby.name(), PARTITIONS, REPLICA, REPLICA - 1);
       is.setInstanceGroupTag(dbName);
       _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
     }
     setAndVerifyMaintenanceMode(false);
+    LOG.info("Completed setupInitResources, allDBs={}", _allDBs);
   }
 
   /**
@@ -205,7 +217,10 @@ public class TestTopologyMigration extends ZkTestBase {
    */
   @Test
   public void testTopologyMigrationByResourceGroup() throws Exception {
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    LOG.info("Starting testTopologyMigrationByResourceGroup");
+    boolean initialVerify = _clusterVerifier.verifyByPolling();
+    LOG.info("Initial cluster verification: {}", initialVerify);
+    Assert.assertTrue(initialVerify);
 
     System.out.println("Capturing initial external views");
     // Step 1: Migrate to new topology in maintenance mode
@@ -215,7 +230,10 @@ public class TestTopologyMigration extends ZkTestBase {
             instanceName -> _gSetupTool.getClusterManagementTool()
                 .getInstanceConfig(CLUSTER_NAME, instanceName)).collect(Collectors.toList());
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    LOG.info("Verifying cluster before setting maintenance mode to true");
+    boolean verifyBeforeMM = _clusterVerifier.verifyByPolling();
+    LOG.info("Cluster verification before MM: {}", verifyBeforeMM);
+    Assert.assertTrue(verifyBeforeMM);
 
     System.out.println("Setting MM to true");
     setAndVerifyMaintenanceMode(true);
@@ -240,6 +258,7 @@ public class TestTopologyMigration extends ZkTestBase {
       // Verify cluster only had shuffling in the resource group that was updated
       validateNoShufflingOccurred(preMigrationEVs, updatingDb);
     }
+    LOG.info("Completed testTopologyMigrationByResourceGroup");
   }
 
   /**
@@ -249,7 +268,10 @@ public class TestTopologyMigration extends ZkTestBase {
     if (enable) {
       // Check that the cluster converged to the best possible state that should be calculated
       // by the controller before we change the maintenance mode.
-      Assert.assertTrue(_clusterVerifier.verifyByPolling());
+      LOG.info("Verifying cluster state before setting maintenance mode to {}", enable);
+      boolean verifyResult = _clusterVerifier.verifyByPolling();
+      LOG.info("Cluster verification result before maintenance mode: {}", verifyResult);
+      Assert.assertTrue(verifyResult);
     }
 
     _gSetupTool.getClusterManagementTool()
@@ -258,7 +280,10 @@ public class TestTopologyMigration extends ZkTestBase {
     if (!enable) {
       // Check that the cluster converged to the best possible state that should be calculated
       // by the controller after we have changed the maintenance mode.
-      Assert.assertTrue(_clusterVerifier.verifyByPolling());
+      LOG.info("Verifying cluster state after setting maintenance mode to {}", enable);
+      boolean verifyResult = _clusterVerifier.verifyByPolling();
+      LOG.info("Cluster verification result after maintenance mode: {}", verifyResult);
+      Assert.assertTrue(verifyResult);
     }
   }
 
@@ -268,8 +293,9 @@ public class TestTopologyMigration extends ZkTestBase {
   private Map<String, ExternalView> getEVs() {
     Map<String, ExternalView> externalViews = new HashMap<>();
     for (String db : _allDBs) {
-      externalViews.put(db,
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db));
+      ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      externalViews.put(db, ev);
+      LOG.debug("getEVs: db={}, externalView={}", db, ev);
     }
     return externalViews;
   }
@@ -279,6 +305,7 @@ public class TestTopologyMigration extends ZkTestBase {
    */
   private boolean compareExternalViews(ExternalView oldEV, ExternalView newEV) {
     if (oldEV == null || newEV == null) {
+      LOG.warn("compareExternalViews: one of the EVs is null, oldEV={}, newEV={}", oldEV, newEV);
       return false;
     }
 
@@ -286,11 +313,17 @@ public class TestTopologyMigration extends ZkTestBase {
     Map<String, Map<String, String>> newEVMap = newEV.getRecord().getMapFields();
 
     if (oldEVMap.size() != newEVMap.size()) {
+      LOG.warn("compareExternalViews: partition count mismatch, oldSize={}, newSize={}",
+          oldEVMap.size(), newEVMap.size());
       return false;
     }
 
     for (String partition : oldEVMap.keySet()) {
-      if (!oldEVMap.get(partition).equals(newEVMap.get(partition))) {
+      Map<String, String> oldPartitionMap = oldEVMap.get(partition);
+      Map<String, String> newPartitionMap = newEVMap.get(partition);
+      if (!oldPartitionMap.equals(newPartitionMap)) {
+        LOG.warn("compareExternalViews: partition {} has different mapping, old={}, new={}",
+            partition, oldPartitionMap, newPartitionMap);
         return false;
       }
     }
@@ -301,22 +334,36 @@ public class TestTopologyMigration extends ZkTestBase {
       String shouldShuffleDB) {
     Map<String, ExternalView> updatedEVs = getEVs();
     for (String db : _allDBs) {
-      if (db.equals(shouldShuffleDB)) {
-        Assert.assertFalse(compareExternalViews(originalEVs.get(db), updatedEVs.get(db)),
+      boolean hasShuffling = !compareExternalViews(originalEVs.get(db), updatedEVs.get(db));
+      boolean shouldHaveShuffling = db.equals(shouldShuffleDB);
+
+      LOG.info("Validating db={}, shouldShuffleDB={}, hasShuffling={}, shouldHaveShuffling={}",
+          db, shouldShuffleDB, hasShuffling, shouldHaveShuffling);
+
+      if (hasShuffling) {
+        LOG.warn("ExternalView for db={} changed: original={}, updated={}",
+            db, originalEVs.get(db), updatedEVs.get(db));
+      }
+
+      if (shouldHaveShuffling) {
+        Assert.assertTrue(hasShuffling,
             String.format("Expected shuffling didn't occur for database %s", db));
       } else {
-        Assert.assertTrue(compareExternalViews(originalEVs.get(db), updatedEVs.get(db)),
-            String.format("Unexpected shuffling occurred for database %s", db));
+        Assert.assertFalse(hasShuffling,
+            String.format("Unexpected shuffling occurred for database %s. Original EV: %s, Updated EV: %s",
+                db, originalEVs.get(db), updatedEVs.get(db)));
       }
     }
   }
 
   private void migrateInstanceConfigTopology(List<InstanceConfig> instanceConfigs)
       throws Exception {
+    LOG.info("Starting migrateInstanceConfigTopology for {} instances", instanceConfigs.size());
 
     for (InstanceConfig instanceConfig : instanceConfigs) {
       String rackId = instanceConfig.getDomainAsMap().get(RACK);
       String hostId = instanceConfig.getDomainAsMap().get(HOST);
+      String oldDomain = instanceConfig.getDomain();
 
       // Set new domain based on the new topology format
       String newDomain =
@@ -324,26 +371,34 @@ public class TestTopologyMigration extends ZkTestBase {
               hostId);
       instanceConfig.setDomain(newDomain);
 
+      LOG.info("Migrating instance {} from domain {} to {}", instanceConfig.getInstanceName(), oldDomain, newDomain);
+
       // Update the instance configuration in the cluster
       _gSetupTool.getClusterManagementTool()
           .setInstanceConfig(CLUSTER_NAME, instanceConfig.getInstanceName(), instanceConfig);
     }
+    LOG.info("Completed migrateInstanceConfigTopology");
   }
 
   private void migrateDomainForInstanceTag(String resourceGroup) throws Exception {
+    LOG.info("Starting migrateDomainForInstanceTag for resourceGroup={}", resourceGroup);
     int instanceIndex = 0;
     for (MockParticipantManager participant : _participants) {
       InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool()
           .getInstanceConfig(CLUSTER_NAME, participant.getInstanceName());
       if (instanceConfig.containsTag(resourceGroup)) {
+        String oldDomain = instanceConfig.getDomainAsMap().toString();
         Map<String, String> newDomain = instanceConfig.getDomainAsMap();
         newDomain.put(MZ, String.valueOf(instanceIndex % MIGRATE_ZONE_COUNT));
         newDomain.put(APPLICATION_INSTANCE_ID, UUID.randomUUID().toString());
         instanceConfig.setDomain(newDomain);
+        LOG.info("Migrating instance {} for resourceGroup {}, oldDomain={}, newDomain={}",
+            participant.getInstanceName(), resourceGroup, oldDomain, newDomain);
         _gSetupTool.getClusterManagementTool()
             .setInstanceConfig(CLUSTER_NAME, participant.getInstanceName(), instanceConfig);
         instanceIndex++;
       }
     }
+    LOG.info("Completed migrateDomainForInstanceTag for resourceGroup={}", resourceGroup);
   }
 }

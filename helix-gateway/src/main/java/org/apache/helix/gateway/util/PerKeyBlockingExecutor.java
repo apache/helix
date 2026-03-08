@@ -55,6 +55,8 @@ public class PerKeyBlockingExecutor {
     _queueLock.lock();
     try {
       if (!_runningEvents.contains(key)) {
+        // Add to running events BEFORE executing to avoid race condition
+        _runningEvents.add(key);
         _executor.execute(() -> runEvent(key, event));
       } else {
         _pendingBlockedEvents.computeIfAbsent(key, k -> new ConcurrentLinkedQueue<>());
@@ -67,7 +69,6 @@ public class PerKeyBlockingExecutor {
 
   private void runEvent(String key, Runnable event) {
     try {
-      _runningEvents.add(key);
       event.run();
     } finally {
       _queueLock.lock();

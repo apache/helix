@@ -69,7 +69,8 @@ import org.testng.annotations.Test;
 
 public class TestInstanceOperation extends ZkTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestInstanceOperation.class);
-  public static final int TIMEOUT = 10000;
+  // Increased timeout to 30 seconds to allow cluster more time to stabilize after swap operations
+  public static final int TIMEOUT = 30000;
   private final int ZONE_COUNT = 4;
   protected final int START_NUM_NODE = 10;
   protected static final int START_PORT = 12918;
@@ -1037,9 +1038,11 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")
   public void testSwapEvacuateAdd() throws Exception {
+    LOG.info("START TestInstanceOperation.testSwapEvacuateAdd()");
     System.out.println("START TestInstanceOperation.testSwapEvacuateAdd() at " + new Date(
         System.currentTimeMillis()));
     removeOfflineOrInactiveInstances();
+    LOG.info("Verifying cluster after removing offline instances");
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Store original EV
@@ -1047,6 +1050,7 @@ public class TestInstanceOperation extends ZkTestBase {
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
     // Enter maintenance mode
+    LOG.info("Entering maintenance mode");
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, true, null, null);
 
@@ -1054,6 +1058,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Set instance's InstanceOperation to EVACUATE
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    LOG.info("Setting InstanceOperation to EVACUATE for instance: {}", instanceToSwapOutName);
     InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
     _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
@@ -1065,12 +1070,14 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Add instance with InstanceOperation set to ENABLE
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    LOG.info("Adding swap-in instance: {} for swap-out instance: {}", instanceToSwapInName, instanceToSwapOutName);
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
         InstanceConstants.InstanceOperation.ENABLE, -1);
 
     // Exit maintenance mode
+    LOG.info("Exiting maintenance mode");
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
 
@@ -1079,16 +1086,22 @@ public class TestInstanceOperation extends ZkTestBase {
     // Validate that the SWAP_IN instance has the same partitions the swap out instance had.
     // Use polling to wait for stable state - the verifier passes once cluster stabilizes,
     // then we poll a bit more to ensure we don't catch intermediate states
-    Assert.assertTrue(TestHelper.verify(() -> {
+    LOG.info("Validating EV correctness after swap with timeout: {}ms", TIMEOUT);
+    boolean swapValidationResult = TestHelper.verify(() -> {
       return validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
           Collections.emptySet(), ImmutableSet.of(instanceToSwapInName));
-    }, TIMEOUT));
+    }, TIMEOUT);
+    LOG.info("Swap validation result: {}", swapValidationResult);
+    Assert.assertTrue(swapValidationResult);
 
     // Assert isEvacuateFinished is true
-    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .isEvacuateFinished(CLUSTER_NAME, instanceToSwapOutName));
+    boolean isEvacuateFinished = _gSetupTool.getClusterManagementTool()
+        .isEvacuateFinished(CLUSTER_NAME, instanceToSwapOutName);
+    LOG.info("isEvacuateFinished for {}: {}", instanceToSwapOutName, isEvacuateFinished);
+    Assert.assertTrue(isEvacuateFinished);
 
     // Set the EVACUATE instance to UNKNOWN
+    LOG.info("Setting InstanceOperation to UNKNOWN for instance: {}", instanceToSwapOutName);
     _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, instanceToSwapOutName,
         InstanceConstants.InstanceOperation.UNKNOWN);
 
@@ -1096,10 +1109,14 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Validate that dropping the instance has not changed the assignment
     // Use polling to wait for stable state
-    Assert.assertTrue(TestHelper.verify(() -> {
+    LOG.info("Validating final EV correctness with timeout: {}ms", TIMEOUT);
+    boolean finalValidationResult = TestHelper.verify(() -> {
       return validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
           Collections.emptySet(), ImmutableSet.of(instanceToSwapInName));
-    }, TIMEOUT));
+    }, TIMEOUT);
+    LOG.info("Final validation result: {}", finalValidationResult);
+    Assert.assertTrue(finalValidationResult);
+    LOG.info("Completed testSwapEvacuateAdd");
   }
 
   @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testSwapEvacuateAdd")

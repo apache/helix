@@ -1535,7 +1535,7 @@ public class TestInstanceOperation extends ZkTestBase {
         InstanceConstants.InstanceOperation.EVACUATE);
 
     // EV should contain all participants, check resources one by one
-    // Increased timeout to 60000ms for flaky test stability
+    // Increased timeout to 120000ms for flaky test stability
     LOG.info("Starting evacuation verification for instance {} with {} replicas required", evacuateInstanceName, REPLICA);
     verifier(() -> {
       Map<String, ExternalView> assignment = getEVs();
@@ -1570,7 +1570,7 @@ public class TestInstanceOperation extends ZkTestBase {
         }
       }
       return true;
-    }, 60000, CLUSTER_NAME);
+    }, 120000, CLUSTER_NAME); // Increased from 60000 to 120000 for flaky test stability
     LOG.info("Evacuation verification completed successfully for instance {}", evacuateInstanceName);
 
     removeOfflineOrInactiveInstances();

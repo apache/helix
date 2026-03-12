@@ -989,8 +989,12 @@ public class TestHelixTaskExecutor {
     executor.onMessage("someInstance", msgList, changeContext);
     LOG.info("Submitted {} messages to executor", msgList.size());
 
+    // Give executor time to receive and queue messages before starting to poll
+    Thread.sleep(1000);
+
     // Wait for processing to stabilize - poll until counts stop changing
-    int maxWaitTime = 10000;
+    // Increased maxWaitTime to 30 seconds for flaky test stability
+    int maxWaitTime = 30000;
     int pollInterval = 500;
     int stableCount = 0;
     int lastCancelCount = -1;

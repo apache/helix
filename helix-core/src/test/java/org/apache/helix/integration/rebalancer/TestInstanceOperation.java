@@ -981,6 +981,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testNodeSwapWithSwapOutInstanceDisabled")
   public void testNodeSwapWithSwapOutInstanceOffline() throws Exception {
+    LOG.info("START TestInstanceOperation.testNodeSwapWithSwapOutInstanceOffline()");
     System.out.println(
         "START TestInstanceOperation.testNodeSwapWithSwapOutInstanceOffline() at " + new Date(
             System.currentTimeMillis()));
@@ -990,11 +991,13 @@ public class TestInstanceOperation extends ZkTestBase {
     Map<String, String> swapOutInstancesToSwapInInstances = new HashMap<>();
 
     String instanceToSwapOutName = _participants.get(0).getInstanceName();
+    LOG.info("Swap out instance: {}", instanceToSwapOutName);
     InstanceConfig instanceToSwapOutInstanceConfig = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName);
 
     // Add instance with InstanceOperation set to SWAP_IN
     String instanceToSwapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
+    LOG.info("Adding swap in instance: {} for swap out instance: {}", instanceToSwapInName, instanceToSwapOutName);
     swapOutInstancesToSwapInInstances.put(instanceToSwapOutName, instanceToSwapInName);
     addParticipant(instanceToSwapInName, instanceToSwapOutInstanceConfig.getLogicalId(LOGICAL_ID),
         instanceToSwapOutInstanceConfig.getDomainAsMap().get(ZONE),
@@ -1003,37 +1006,49 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertEquals(_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceToSwapInName)
             .getInstanceOperation().getOperation(), InstanceConstants.InstanceOperation.SWAP_IN);
 
+    LOG.info("Verifying cluster with best possible verifier");
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Kill the participant
+    LOG.info("Stopping participant: {}", instanceToSwapOutName);
     _participants.get(0).syncStop();
 
+    LOG.info("Verifying cluster after stopping participant");
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
 
     // Assert canSwapBeCompleted is true
-    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName));
+    boolean canCompleteSwap = _gSetupTool.getClusterManagementTool()
+        .canCompleteSwap(CLUSTER_NAME, instanceToSwapOutName);
+    LOG.info("canCompleteSwap result: {}", canCompleteSwap);
+    Assert.assertTrue(canCompleteSwap);
 
     // Validate that the swap out instance is in routing tables and SWAP_IN is not.
     validateRoutingTablesInstance(getEVs(), instanceToSwapInName, false);
 
     // Assert completeSwapIfPossible is true
-    Assert.assertTrue(_gSetupTool.getClusterManagementTool()
-        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName, false));
+    boolean completeSwap = _gSetupTool.getClusterManagementTool()
+        .completeSwapIfPossible(CLUSTER_NAME, instanceToSwapOutName, false);
+    LOG.info("completeSwapIfPossible result: {}", completeSwap);
+    Assert.assertTrue(completeSwap);
 
+    LOG.info("Verifying cluster with cluster verifier");
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Validate that the SWAP_IN instance is now in the routing tables.
     validateRoutingTablesInstance(getEVs(), instanceToSwapInName, true);
 
     // Assert that swap out instance is inactive and has no partitions assigned to it.
-    Assert.assertFalse(_gSetupTool.getClusterManagementTool()
-        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceEnabled());
+    boolean isEnabled = _gSetupTool.getClusterManagementTool()
+        .getInstanceConfig(CLUSTER_NAME, instanceToSwapOutName).getInstanceEnabled();
+    LOG.info("Instance {} enabled: {}", instanceToSwapOutName, isEnabled);
+    Assert.assertFalse(isEnabled);
 
     // Validate that the SWAP_IN instance has the same partitions the swap out instance had before
     // swap was completed.
+    LOG.info("Validating EV correctness with timeout: {}ms", TIMEOUT);
     verifier(() -> (validateEVsCorrect(getEVs(), originalEVs, swapOutInstancesToSwapInInstances,
         Collections.emptySet(), ImmutableSet.of(instanceToSwapInName))), TIMEOUT);
+    LOG.info("Completed testNodeSwapWithSwapOutInstanceOffline");
   }
 
   @Test(dependsOnMethods = "testNodeSwapWithSwapOutInstanceOffline")

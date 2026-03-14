@@ -76,7 +76,7 @@ public class TestAutoRebalanceStrategy {
   /**
    * Sanity test for a basic Master-Slave model
    */
-  @Test
+  @Test(timeOut = 60000)
   public void simpleMasterSlaveTest() {
     final int NUM_ITERATIONS = 10;
     final int NUM_PARTITIONS = 10;
@@ -200,7 +200,7 @@ public class TestAutoRebalanceStrategy {
       _maxPerNode = maxPerNode;
       _numOfReplica = numOfReplica;
       _stateModelDef = stateModelDef;
-      _random = new Random();
+      _random = new Random(12345); // Fixed seed for deterministic test behavior
     }
 
     /**

@@ -365,6 +365,12 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void manuallyEnableMaintenanceModeWithTimeout(String clusterName, boolean enabled, String reason,
+      long timeout, Map<String, String> customFields) {
+
+  }
+
+  @Override
   public boolean isInMaintenanceMode(String clusterName) {
     return false;
   }

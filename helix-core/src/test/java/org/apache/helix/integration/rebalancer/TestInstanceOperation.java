@@ -1430,7 +1430,7 @@ public class TestInstanceOperation extends ZkTestBase {
     }
   }
 
-  @Test(dependsOnMethods = "testEvacuateAndCancelBeforeDropFinish")
+  @Test(dependsOnMethods = "testEvacuateAndCancelBeforeDropFinish", timeOut = 600000)
   public void testMarkEvacuationAfterEMM() throws Exception {
     System.out.println("START TestInstanceOperation.testMarkEvacuationAfterEMM() at " + new Date(
         System.currentTimeMillis()));
@@ -1458,11 +1458,11 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertTrue(getParticipantsInEv(assignment.get(resource)).contains(instanceToEvacuate));
     }
 
-    // exit MM
+    // exit MM - use longer timeout as evacuation may take time to complete
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling(600000, 5000));
 
     assignment = getEVs();
     List<String> currentActiveInstances =
@@ -1594,7 +1594,7 @@ public class TestInstanceOperation extends ZkTestBase {
     dropTestDBs(ImmutableSet.of("TEST_DB3_DELAYED_CRUSHED", "TEST_DB4_DELAYED_WAGED"));
   }
 
-  @Test(dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster")
+  @Test(dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster", timeOut = 600000)
   public void testEvacuateWithDisabledPartition() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(

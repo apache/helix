@@ -42,6 +42,16 @@ import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 
+/**
+ * This class is used to select stoppable instances based on different selection criteria.
+ * Selection criteria include:
+ * 1. Zone-based selection - Select instances from a single zone
+ * 2. Cross-zone selection - Select instances across multiple zones
+ * 3. Non-zone-based selection - Select instances regardless of zone
+ *
+ * For zone-based selection, instances can be ordered either lexicographically (default) or
+ * by preserving the original input order when preserveOrder is set to true.
+ */
 public class StoppableInstancesSelector {
   // This type does not belong to real HealthCheck failed reason. Also, if we add this type
   // to HealthCheck enum, it could introduce more unnecessary check step since the InstanceServiceImpl
@@ -81,6 +91,26 @@ public class StoppableInstancesSelector {
    */
   public ObjectNode getStoppableInstancesInSingleZone(List<String> instances,
       List<String> toBeStoppedInstances) throws IOException {
+    return getStoppableInstancesInSingleZone(instances, toBeStoppedInstances, false);
+  }
+
+  /**
+   * Evaluates and collects stoppable instances within a specified or determined zone based on the order of zones.
+   * If _orderOfZone is specified, the method targets the first non-empty zone; otherwise, it targets the zone with
+   * the highest instance count. The method iterates through instances, performing stoppable checks, and records
+   * reasons for non-stoppability.
+   *
+   * @param instances A list of instance to be evaluated.
+   * @param toBeStoppedInstances A list of instances presumed to be already stopped
+   * @param preserveOrder Indicates whether to preserve the original order of instances
+   * @return An ObjectNode containing:
+   *         - 'stoppableNode': List of instances that can be stopped.
+   *         - 'instance_not_stoppable_with_reasons': A map with the instance name as the key and
+   *         a list of reasons for non-stoppability as the value.
+   * @throws IOException
+   */
+  public ObjectNode getStoppableInstancesInSingleZone(List<String> instances,
+      List<String> toBeStoppedInstances, boolean preserveOrder) throws IOException {
     ObjectNode result = JsonNodeFactory.instance.objectNode();
     ArrayNode stoppableInstances =
         result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
@@ -89,9 +119,9 @@ public class StoppableInstancesSelector {
     Set<String> toBeStoppedInstancesSet = findToBeStoppedInstances(toBeStoppedInstances);
 
     List<String> zoneBasedInstance =
-        getZoneBasedInstances(instances, _clusterTopology.toZoneMapping());
+        getZoneBasedInstances(instances, _clusterTopology.toZoneMapping(), preserveOrder);
     populateStoppableInstances(zoneBasedInstance, toBeStoppedInstancesSet, stoppableInstances,
-        failedStoppableInstances);
+        failedStoppableInstances, preserveOrder);
     processNonexistentInstances(instances, failedStoppableInstances);
 
     return result;
@@ -128,7 +158,7 @@ public class StoppableInstancesSelector {
         continue;
       }
       populateStoppableInstances(new ArrayList<>(instanceSet), toBeStoppedInstancesSet, stoppableInstances,
-          failedStoppableInstances);
+          failedStoppableInstances, false);
     }
     processNonexistentInstances(instances, failedStoppableInstances);
     return result;
@@ -162,16 +192,16 @@ public class StoppableInstancesSelector {
     List<String> instancesToCheck = new ArrayList<>(instances);
     instancesToCheck.removeAll(nonExistingInstances);
     populateStoppableInstances(instancesToCheck, toBeStoppedInstancesSet, stoppableInstances,
-        failedStoppableInstances);
+        failedStoppableInstances, false);
 
     return result;
   }
 
   private void populateStoppableInstances(List<String> instances, Set<String> toBeStoppedInstances,
-      ArrayNode stoppableInstances, ObjectNode failedStoppableInstances) throws IOException {
+      ArrayNode stoppableInstances, ObjectNode failedStoppableInstances, boolean preserveOrder) throws IOException {
     Map<String, StoppableCheck> instancesStoppableChecks =
         _maintenanceService.batchGetInstancesStoppableChecks(_clusterId, instances,
-            _customizedInput, toBeStoppedInstances);
+            _customizedInput, toBeStoppedInstances, preserveOrder);
 
     for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
       String instance = instanceStoppableCheck.getKey();
@@ -251,27 +281,39 @@ public class StoppableInstancesSelector {
    * The order of zones can directly come from user input. If user did not specify it, Helix will order
    * zones by the number of associated instances in descending order.
    *
-   * @param instances
-   * @param zoneMapping
-   * @return
+   * @param instances List of instances to be considered
+   * @param zoneMapping Mapping from zone to instances
+   * @param preserveOrder Indicates whether to preserve the original order of instances
+   * @return List of instances in the first non-empty zone. If preserveOrder is true, the original order
+   *         of instances is maintained. If preserveOrder is false (default), instances are sorted lexicographically.
    */
   private List<String> getZoneBasedInstances(List<String> instances,
-      Map<String, Set<String>> zoneMapping) {
+      Map<String, Set<String>> zoneMapping, boolean preserveOrder) {
     if (_orderOfZone.isEmpty()) {
-      return _orderOfZone;
+      return Collections.emptyList();
     }
 
-    Set<String> instanceSet = null;
     for (String zone : _orderOfZone) {
-      instanceSet = new TreeSet<>(instances);
-      Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone));
-      instanceSet.retainAll(currentZoneInstanceSet);
-      if (instanceSet.size() > 0) {
-        return new ArrayList<>(instanceSet);
+      Set<String> currentZoneInstanceSet = zoneMapping.get(zone);
+      if (currentZoneInstanceSet == null || currentZoneInstanceSet.isEmpty()) {
+        continue;
+      }
+
+      // Filter instances based on current zone
+      List<String> filteredInstances = instances.stream()
+          .filter(currentZoneInstanceSet::contains)
+          .collect(Collectors.toList());
+
+      if (!filteredInstances.isEmpty()) {
+        // If preserve order is not required, return sorted list
+        if (!preserveOrder) {
+          Collections.sort(filteredInstances); // Lexicographical order
+        }
+        return filteredInstances;
       }
     }
 
-    return Collections.EMPTY_LIST;
+    return Collections.emptyList();
   }
 
   /**

@@ -150,7 +150,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test
+  @Test(timeOut = 600000)
   public void testThresholdFailure() throws Exception {
     LOG.info("Starting testThresholdFailure. Clearing invoked classes set.");
     _invokedClasses.clear();
@@ -210,7 +210,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
         "TaskTwo was not invoked. Invoked classes: " + _invokedClasses);
   }
 
-  @Test (dependsOnMethods = "testThresholdFailure")
+  @Test(dependsOnMethods = "testThresholdFailure", timeOut = 600000)
   public void testReassignment() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String jobNameSuffix = "job";
@@ -254,7 +254,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 
-  @Test (dependsOnMethods = "testReassignment")
+  @Test(dependsOnMethods = "testReassignment", timeOut = 600000)
   public void testOneTimeScheduled() throws Exception {
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
@@ -286,7 +286,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Assert.assertTrue(startTime <= inFiveSeconds);
   }
 
-  @Test (dependsOnMethods = "testOneTimeScheduled")
+  @Test(dependsOnMethods = "testOneTimeScheduled", timeOut = 600000)
   public void testDelayedRetry() throws Exception {
     // Create a single job with single task, set retry delay
     int delay = 3000;

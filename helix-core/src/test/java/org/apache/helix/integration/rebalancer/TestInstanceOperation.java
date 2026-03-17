@@ -1324,7 +1324,7 @@ public class TestInstanceOperation extends ZkTestBase {
     _participants.get(_participants.size()-1).syncStop();
   }
 
-  @Test(dependsOnMethods = "testDisabledPartitionsAfterSwapInitiated")
+  @Test(dependsOnMethods = "testDisabledPartitionsAfterSwapInitiated", timeOut = 600000)
   public void testEvacuateAndCancelBeforeBootstrapFinish() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testEvacuateAndCancelBeforeBootstrapFinish() at " + new Date(
@@ -1390,7 +1390,7 @@ public class TestInstanceOperation extends ZkTestBase {
     }
   }
 
-  @Test(dependsOnMethods = "testEvacuateAndCancelBeforeBootstrapFinish")
+  @Test(dependsOnMethods = "testEvacuateAndCancelBeforeBootstrapFinish", timeOut = 600000)
   public void testEvacuateAndCancelBeforeDropFinish() throws Exception {
     System.out.println(
         "START TestInstanceOperation.testEvacuateAndCancelBeforeDropFinish() at " + new Date(

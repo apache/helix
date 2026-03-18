@@ -753,6 +753,7 @@
         -->
         <configuration>
           <argLine>${argLine} -Xms4096m -Xmx4096m</argLine>
+          <failIfNoTests>false</failIfNoTests>
           <suiteXmlFiles>
             <suiteXmlFile>src/test/conf/testng.xml</suiteXmlFile>
           </suiteXmlFiles>

@@ -754,6 +754,8 @@
         <configuration>
           <argLine>${argLine} -Xms4096m -Xmx4096m</argLine>
           <failIfNoTests>false</failIfNoTests>
+          <forkCount>1</forkCount>
+          <reuseForks>false</reuseForks>
           <suiteXmlFiles>
             <suiteXmlFile>src/test/conf/testng.xml</suiteXmlFile>
           </suiteXmlFiles>
@@ -770,6 +772,8 @@
             </goals>
             <configuration>
               <skip>${SKIP_INTEGRATION_TESTS}</skip>
+              <forkCount>1</forkCount>
+              <reuseForks>false</reuseForks>
               <excludes>
                 <exclude>none</exclude>
               </excludes>

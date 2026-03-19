@@ -18,7 +18,9 @@
  */
 
 /**
- * Helix message handling classes
- *
+ * Helix message handling classes.
+ * 
+ * <p>When using the messaging API, configure {@link org.apache.helix.Criteria} carefully
+ * to avoid performance issues. See {@link org.apache.helix.ClusterMessagingService}.
  */
 package org.apache.helix.messaging;

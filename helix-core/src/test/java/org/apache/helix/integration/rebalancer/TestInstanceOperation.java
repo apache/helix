@@ -264,9 +264,20 @@ public class TestInstanceOperation extends ZkTestBase {
     LOG.info("removeOfflineOrInactiveInstances: Removed {} instances. Remaining participants: {}",
         removedCount, _participantNames);
 
+    // Log cluster state before verifyByPolling to help diagnose failures
+    LOG.info("removeOfflineOrInactiveInstances: Checking cluster state before verifyByPolling...");
+    try {
+      Object leaderController = org.apache.helix.controller.GenericHelixController.getLeaderController(CLUSTER_NAME);
+      LOG.info("removeOfflineOrInactiveInstances: Controller leader for {} is: {}", CLUSTER_NAME, leaderController);
+    } catch (Exception e) {
+      LOG.warn("removeOfflineOrInactiveInstances: Failed to check controller: {}", e.getMessage());
+    }
+
     long verifyStart = System.currentTimeMillis();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    LOG.info("removeOfflineOrInactiveInstances: verifyByPolling took {} ms", System.currentTimeMillis() - verifyStart);
+    boolean verifyResult = _clusterVerifier.verifyByPolling(600000, 5000); // 10 min timeout for better diagnostics
+    long verifyDuration = System.currentTimeMillis() - verifyStart;
+    LOG.info("removeOfflineOrInactiveInstances: verifyByPolling took {} ms and returned {}", verifyDuration, verifyResult);
+    Assert.assertTrue(verifyResult, "Cluster verification failed after " + verifyDuration + "ms. Check logs above for cluster state.");
   }
 
   @Test

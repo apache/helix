@@ -182,9 +182,27 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @BeforeMethod
   public void beforeMethod() throws Exception {
+    long startTime = System.currentTimeMillis();
+    LOG.info("========== beforeMethod START for {} ==========", _nextStartPort);
+
     removeOfflineOrInactiveInstances();
+    long afterRemoveTime = System.currentTimeMillis();
+    LOG.info("beforeMethod: removeOfflineOrInactiveInstances took {} ms", afterRemoveTime - startTime);
+
+    LOG.info("beforeMethod: starting bestPossibleClusterVerifier.verifyByPolling()");
+    long beforeBestPossible = System.currentTimeMillis();
     Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling());
+    long afterBestPossible = System.currentTimeMillis();
+    LOG.info("beforeMethod: bestPossibleClusterVerifier.verifyByPolling() took {} ms", afterBestPossible - beforeBestPossible);
+
+    LOG.info("beforeMethod: starting clusterVerifier.verifyByPolling()");
+    long beforeCluster = System.currentTimeMillis();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    long afterCluster = System.currentTimeMillis();
+    LOG.info("beforeMethod: clusterVerifier.verifyByPolling() took {} ms", afterCluster - beforeCluster);
+
+    long totalTime = System.currentTimeMillis() - startTime;
+    LOG.info("========== beforeMethod END for {} (total: {} ms) ==========", _nextStartPort, totalTime);
   }
 
   private void setupClusterConfig() {
@@ -219,7 +237,10 @@ public class TestInstanceOperation extends ZkTestBase {
   }
 
   private void removeOfflineOrInactiveInstances() {
+    LOG.info("removeOfflineOrInactiveInstances: START. Current participants: {}, _allDBs: {}",
+        _participantNames, _allDBs);
     // Remove all instances that are not live, disabled, or in SWAP_IN state.
+    int removedCount = 0;
     for (int i = 0; i < _participants.size(); i++) {
       String participantName = _participantNames.get(i);
       InstanceConfig instanceConfig =
@@ -227,6 +248,9 @@ public class TestInstanceOperation extends ZkTestBase {
       if (!_participants.get(i).isConnected() || !instanceConfig.getInstanceEnabled()
           || instanceConfig.getInstanceOperation().getOperation()
           .equals(InstanceConstants.InstanceOperation.SWAP_IN)) {
+        LOG.info("removeOfflineOrInactiveInstances: Removing instance {} (connected: {}, enabled: {}, op: {})",
+            participantName, _participants.get(i).isConnected(), instanceConfig.getInstanceEnabled(),
+            instanceConfig.getInstanceOperation().getOperation());
         if (_participants.get(i).isConnected()) {
           _participants.get(i).syncStop();
         }
@@ -234,10 +258,15 @@ public class TestInstanceOperation extends ZkTestBase {
         _participantNames.remove(i);
         _participants.remove(i);
         i--;
+        removedCount++;
       }
     }
+    LOG.info("removeOfflineOrInactiveInstances: Removed {} instances. Remaining participants: {}",
+        removedCount, _participantNames);
 
+    long verifyStart = System.currentTimeMillis();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    LOG.info("removeOfflineOrInactiveInstances: verifyByPolling took {} ms", System.currentTimeMillis() - verifyStart);
   }
 
   @Test
@@ -1539,19 +1568,21 @@ public class TestInstanceOperation extends ZkTestBase {
 
   @Test(dependsOnMethods = "testUnknownDoesNotTriggerRebalance")
   public void testEvacuationWithOfflineInstancesInCluster() throws Exception {
-    System.out.println(
-        "START TestInstanceOperation.testEvacuationWithOfflineInstancesInCluster() at " + new Date(
-            System.currentTimeMillis()));
+    long testStartTime = System.currentTimeMillis();
+    LOG.info("========== testEvacuationWithOfflineInstancesInCluster START at {} ==========", new Date(testStartTime));
     _participants.get(1).syncStop();
     _participants.get(2).syncStop();
+    LOG.info("Stopped participants 1 and 2");
 
     String evacuateInstanceName = _participants.get(_participants.size() - 2).getInstanceName();
     _gSetupTool.getClusterManagementTool().setInstanceOperation(CLUSTER_NAME, evacuateInstanceName,
         InstanceConstants.InstanceOperation.EVACUATE);
+    LOG.info("Set EVACUATE operation on {}", evacuateInstanceName);
 
     // EV should contain all participants, check resources one by one
     // Increased timeout to 120000ms for flaky test stability
     LOG.info("Starting evacuation verification for instance {} with {} replicas required", evacuateInstanceName, REPLICA);
+    long evacVerifyStart = System.currentTimeMillis();
     verifier(() -> {
       Map<String, ExternalView> assignment = getEVs();
       for (String resource : _allDBs) {
@@ -1586,51 +1617,78 @@ public class TestInstanceOperation extends ZkTestBase {
       }
       return true;
     }, 120000, CLUSTER_NAME); // Increased from 60000 to 120000 for flaky test stability
-    LOG.info("Evacuation verification completed successfully for instance {}", evacuateInstanceName);
+    LOG.info("Evacuation verification completed successfully for instance {} (took {} ms)", evacuateInstanceName, System.currentTimeMillis() - evacVerifyStart);
 
     removeOfflineOrInactiveInstances();
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);
     addParticipant(PARTICIPANT_PREFIX + "_" + _nextStartPort);
     dropTestDBs(ImmutableSet.of("TEST_DB3_DELAYED_CRUSHED", "TEST_DB4_DELAYED_WAGED"));
+
+    long totalTestTime = System.currentTimeMillis() - testStartTime;
+    LOG.info("========== testEvacuationWithOfflineInstancesInCluster END (total time: {} ms / {} sec) ==========",
+        totalTestTime, totalTestTime / 1000);
   }
 
   @Test(dependsOnMethods = "testEvacuationWithOfflineInstancesInCluster", timeOut = 600000)
   public void testEvacuateWithDisabledPartition() throws Exception {
-    System.out.println(
-        "START TestInstanceOperation.testEvacuateWithDisabledPartition() at " + new Date(
-            System.currentTimeMillis()));
+    long testStartTime = System.currentTimeMillis();
+    LOG.info("========== testEvacuateWithDisabledPartition START at {} ==========", new Date(testStartTime));
+    LOG.info("Current participants: {}", _participants.stream().map(p -> p.getInstanceName()).collect(Collectors.toList()));
+    LOG.info("Current _allDBs: {}", _allDBs);
+
     StateTransitionCountStateModelFactory stateTransitionCountStateModelFactory = new StateTransitionCountStateModelFactory();
     String testCrushedDBName = "testEvacuateWithDisabledPartition_CRUSHED_DB0";
     String testWagedDBName = "testEvacuateWithDisabledPartition_WAGED_DB1";
     String toDisableThenEvacuateInstanceName = "disable_then_evacuate_host";
     addParticipant(toDisableThenEvacuateInstanceName, stateTransitionCountStateModelFactory);
     MockParticipantManager toDisableThenEvacuateParticipant = _participants.get(_participants.size() - 1);
+    LOG.info("Added participant: {}, total participants now: {}", toDisableThenEvacuateInstanceName, _participants.size());
 
     List<String> testResources = Arrays.asList(testCrushedDBName, testWagedDBName);
+    LOG.info("Creating test resources: {}", testResources);
+
+    long createStart = System.currentTimeMillis();
     createResourceWithDelayedRebalance(CLUSTER_NAME, testCrushedDBName, "MasterSlave",
         PARTITIONS, REPLICA, REPLICA-1, 200000, CrushEdRebalanceStrategy.class.getName());
+    LOG.info("Created {} in {} ms", testCrushedDBName, System.currentTimeMillis() - createStart);
+
+    createStart = System.currentTimeMillis();
     createResourceWithWagedRebalance(CLUSTER_NAME, testWagedDBName, "MasterSlave", PARTITIONS,
         REPLICA, REPLICA-1);
+    LOG.info("Created {} in {} ms", testWagedDBName, System.currentTimeMillis() - createStart);
 
+    LOG.info("Verifying cluster after resource creation...");
+    long verifyStart = System.currentTimeMillis();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    LOG.info("Initial verifyByPolling took {} ms", System.currentTimeMillis() - verifyStart);
+
     int upwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter();
     int downwardSTCountBeforeDisableThenEvacuate = stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter();
+    LOG.info("State transition counts before disable: upward={}, downward={}", upwardSTCountBeforeDisableThenEvacuate, downwardSTCountBeforeDisableThenEvacuate);
 
+    // Log current EV state before disable
+    ExternalView evBeforeDisable = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, testCrushedDBName);
+    LOG.info("EV for {} before disable: {}", testCrushedDBName, evBeforeDisable != null ? evBeforeDisable.getStateMap(toDisableThenEvacuateInstanceName) : "null");
 
     InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME,
         toDisableThenEvacuateInstanceName);
     instanceConfig.setInstanceEnabledForPartition(InstanceConstants.ALL_RESOURCES_DISABLED_PARTITION_KEY, "", false);
     _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME, toDisableThenEvacuateInstanceName, instanceConfig);
+    LOG.info("Disabled all partitions for {}", toDisableThenEvacuateInstanceName);
+
+    verifyStart = System.currentTimeMillis();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    LOG.info("verifyByPolling after disable took {} ms", System.currentTimeMillis() - verifyStart);
     // EV should not have disabled instance above the lowest state (OFFLINE) - increased timeout for flaky test
     LOG.info("Checking that {} is OFFLINE in all partitions for resources {}", toDisableThenEvacuateInstanceName, testResources);
+    long offlineCheckStart = System.currentTimeMillis();
     verifier(() -> {
       for (String resource : testResources) {
         ExternalView ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, resource);
         for (String partition : ev.getPartitionSet()) {
           if (ev.getStateMap(partition).containsKey(toDisableThenEvacuateInstanceName) && !ev.getStateMap(partition).
               get(toDisableThenEvacuateInstanceName).equals("OFFLINE")) {
-            LOG.info("Partition {} in resource {} has state {} for {} (expected OFFLINE)",
+            LOG.info("OFFLINE check: Partition {} in resource {} has state {} for {} (expected OFFLINE)",
                 partition, resource, ev.getStateMap(partition).get(toDisableThenEvacuateInstanceName), toDisableThenEvacuateInstanceName);
             return false;
           }
@@ -1638,6 +1696,7 @@ public class TestInstanceOperation extends ZkTestBase {
       }
       return true;
     }, TIMEOUT * 3); // Increased timeout for flaky test
+    LOG.info("OFFLINE verification took {} ms", System.currentTimeMillis() - offlineCheckStart);
 
     // Assert node received downward state transitions and no upward transitions
     Assert.assertEquals(stateTransitionCountStateModelFactory.getUpwardStateTransitionCounter(),
@@ -1703,6 +1762,9 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertEquals(stateTransitionCountStateModelFactory.getDownwardStateTransitionCounter(),
         downwardSTCountAfterEvacuateComplete, "Downward state transitions should not have been received");
 
+    long totalTestTime = System.currentTimeMillis() - testStartTime;
+    LOG.info("========== testEvacuateWithDisabledPartition END (total time: {} ms / {} sec) ==========",
+        totalTestTime, totalTestTime / 1000);
 
     // Clean up test resources
     for (String resource : testResources) {

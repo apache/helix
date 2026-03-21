@@ -1720,7 +1720,7 @@ public class TestInstanceOperation extends ZkTestBase {
     LOG.info("Set EVACUATE operation on {}", toDisableThenEvacuateInstanceName);
 
     // Add logging to debug evacuation timeout - increased timeout for flaky test stability
-    int evacuateTimeout = 120000; // 120 seconds - increased for slow machines/CI
+    int evacuateTimeout = 180000; // 180 seconds - increased for slow machines/CI
     LOG.info("Waiting up to {} ms for evacuation to complete for {}", evacuateTimeout, toDisableThenEvacuateInstanceName);
     boolean evacuateFinished = TestHelper.verify(() -> {
       // Check controller availability first

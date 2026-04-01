@@ -358,41 +358,54 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   // if yes, auto enable maintenance mode, and use the maintenance rebalancer for this pipeline.
   private boolean validateInstancesUnableToAcceptOnlineReplicasLimit(final ResourceControllerDataProvider cache,
       final HelixManager manager) {
-    int maxInstancesUnableToAcceptOnlineReplicas =
-        cache.getClusterConfig().getMaxOfflineInstancesAllowed();
-    if (maxInstancesUnableToAcceptOnlineReplicas >= 0) {
-      // Instead of only checking the offline instances, we consider how many instances in the cluster
-      // are not assignable and live. This is because some instances may be online but have an unassignable
-      // InstanceOperation such as EVACUATE, and DISABLE. We will exclude SWAP_IN and UNKNOWN instances from
-      // they should not account against the capacity of the cluster.
-      int instancesUnableToAcceptOnlineReplicas = cache.getInstanceConfigMap().entrySet().stream()
-          .filter(instanceEntry -> !InstanceConstants.UNROUTABLE_INSTANCE_OPERATIONS.contains(
-              instanceEntry.getValue().getInstanceOperation().getOperation()))
-          .collect(Collectors.toSet())
-          .size() - cache.getEnabledLiveInstances().size();
-      if (instancesUnableToAcceptOnlineReplicas > maxInstancesUnableToAcceptOnlineReplicas) {
-        String errMsg = String.format(
-            "Instances unable to take ONLINE replicas count %d greater than allowed count %d. Put cluster %s into "
-                + "maintenance mode.", instancesUnableToAcceptOnlineReplicas,
-            maxInstancesUnableToAcceptOnlineReplicas, cache.getClusterName());
-        if (manager != null) {
-          if (manager.getHelixDataAccessor()
-              .getProperty(manager.getHelixDataAccessor().keyBuilder().maintenance()) == null) {
-            manager.getClusterManagmentTool()
-                .autoEnableMaintenanceMode(manager.getClusterName(), true, errMsg,
-                    MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
-            LogUtil.logWarn(logger, _eventId, errMsg);
-          }
-        } else {
-          LogUtil.logError(logger, _eventId, "Failed to put cluster " + cache.getClusterName()
-              + " into maintenance mode, HelixManager is not set!");
+    ClusterConfig clusterConfig = cache.getClusterConfig();
+    int absoluteThreshold = clusterConfig.getMaxOfflineInstancesAllowed();
+    int percentageThreshold = clusterConfig.getMaxOfflineInstancesAllowedPercentage();
+
+    // Early exit if neither threshold is configured
+    if (absoluteThreshold < 0 && percentageThreshold < 0) {
+      return true;
+    }
+
+    // Instead of only checking the offline instances, we consider how many instances in the cluster
+    // are not assignable and live. This is because some instances may be online but have an unassignable
+    // InstanceOperation such as EVACUATE, and DISABLE. We will exclude SWAP_IN and UNKNOWN instances
+    // as they should not account against the capacity of the cluster.
+    int routableInstanceCount = (int) cache.getInstanceConfigMap().entrySet().stream()
+        .filter(instanceEntry -> !InstanceConstants.UNROUTABLE_INSTANCE_OPERATIONS.contains(
+            instanceEntry.getValue().getInstanceOperation().getOperation()))
+        .count();
+    int instancesUnableToAcceptOnlineReplicas =
+        routableInstanceCount - cache.getEnabledLiveInstances().size();
+
+    int effectiveThreshold = ClusterConfig.resolveEffectiveThreshold(
+        absoluteThreshold, percentageThreshold, routableInstanceCount);
+
+    if (effectiveThreshold >= 0
+        && instancesUnableToAcceptOnlineReplicas > effectiveThreshold) {
+      String errMsg = String.format(
+          "Instances unable to take ONLINE replicas count %d greater than effective allowed count %d "
+              + "(absolute=%d, percentage=%d%% of %d routable). Put cluster %s into maintenance mode.",
+          instancesUnableToAcceptOnlineReplicas, effectiveThreshold,
+          absoluteThreshold, percentageThreshold, routableInstanceCount,
+          cache.getClusterName());
+      if (manager != null) {
+        if (manager.getHelixDataAccessor()
+            .getProperty(manager.getHelixDataAccessor().keyBuilder().maintenance()) == null) {
+          manager.getClusterManagmentTool()
+              .autoEnableMaintenanceMode(manager.getClusterName(), true, errMsg,
+                  MaintenanceSignal.AutoTriggerReason.MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS);
+          LogUtil.logWarn(logger, _eventId, errMsg);
         }
-
-        // Enable maintenance mode in cache so the maintenance rebalancer is used for this pipeline
-        cache.enableMaintenanceMode();
-
-        return false;
+      } else {
+        LogUtil.logError(logger, _eventId, "Failed to put cluster " + cache.getClusterName()
+            + " into maintenance mode, HelixManager is not set!");
       }
+
+      // Enable maintenance mode in cache so the maintenance rebalancer is used for this pipeline
+      cache.enableMaintenanceMode();
+
+      return false;
     }
     return true;
   }

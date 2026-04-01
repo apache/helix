@@ -196,6 +196,85 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
     checkForRebalanceError(true);
   }
 
+  /**
+   * Test that percentage-based entry threshold works.
+   * With 10 nodes and 40% threshold, the effective limit is 10 * 40 / 100 = 4.
+   * Stopping 4 instances should NOT trigger maintenance (4 is not > 4).
+   * Stopping 5 should trigger it (5 > 4).
+   */
+  @Test(dependsOnMethods = "testWithOfflineInstancesLimit")
+  public void testWithPercentageBasedOfflineLimit() throws Exception {
+    // Restart any stopped instances from previous test
+    for (int i = 0; i < NUM_NODE; i++) {
+      if (!_participants.get(i).isConnected()) {
+        String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+        MockParticipantManager participant =
+            new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+        participant.syncStart();
+        _participants.set(i, participant);
+      }
+    }
+    // Manually exit maintenance if still in it
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.enableMaintenanceMode(CLUSTER_NAME, false);
+
+    ZkHelixClusterVerifier clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
+
+    // Set percentage-based threshold: 40% of 10 nodes = 4
+    // Disable absolute threshold so only percentage is used
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setMaxOfflineInstancesAllowed(-1);
+    clusterConfig.setMaxOfflineInstancesAllowedPercentage(40);
+    clusterConfig.setNumOfflineInstancesForAutoExit(0);
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    MaintenanceSignal maintenanceSignal =
+        _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNull(maintenanceSignal);
+
+    // Stop 4 instances (exactly at the threshold, should NOT enter maintenance)
+    for (int i = 0; i < 4; i++) {
+      _participants.get(i).syncStop();
+    }
+
+    boolean result = TestHelper.verify(() -> {
+      MaintenanceSignal ms = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+      return ms == null;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
+
+    // Stop 5th instance (exceeds threshold, should enter maintenance)
+    _participants.get(4).syncStop();
+
+    result = TestHelper.verify(() -> {
+      MaintenanceSignal ms = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+      return ms != null && ms.getReason() != null;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
+
+    // Clean up: restore absolute threshold, disable percentage
+    clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setMaxOfflineInstancesAllowed(_maxOfflineInstancesAllowed);
+    clusterConfig.setMaxOfflineInstancesAllowedPercentage(-1);
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    // Re-enable stopped instances
+    for (int i = 0; i < 5; i++) {
+      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      participant.syncStart();
+      _participants.set(i, participant);
+    }
+    admin.enableMaintenanceMode(CLUSTER_NAME, false);
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
+  }
+
   @AfterClass
   public void afterClass() throws Exception {
     /*

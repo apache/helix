@@ -79,6 +79,10 @@ public class ClusterConfig extends HelixProperty {
     //     to make it clear that it includes both offline and non-assignable instances
     MAX_OFFLINE_INSTANCES_ALLOWED,
     NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT, // For auto-exiting maintenance mode
+    // Percentage-based alternatives for maintenance mode thresholds (0-100).
+    // When both absolute and percentage are set, the stricter (lower effective count) wins.
+    MAX_OFFLINE_INSTANCES_ALLOWED_PERCENTAGE,
+    NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT_PERCENTAGE,
 
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
@@ -590,6 +594,106 @@ public class ClusterConfig extends HelixProperty {
   public int getNumOfflineInstancesForAutoExit() {
     return _record
         .getIntField(ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT.name(), -1);
+  }
+
+  /**
+   * Set the max offline instances allowed as a percentage (0-100) of total routable instances.
+   * When both percentage and absolute thresholds are set, the stricter (lower effective count) wins.
+   * -1 disables the percentage-based entry threshold.
+   * @param maxOfflineInstancesAllowedPercentage percentage threshold (0-100) or -1 to disable
+   */
+  public void setMaxOfflineInstancesAllowedPercentage(int maxOfflineInstancesAllowedPercentage) {
+    if (maxOfflineInstancesAllowedPercentage < -1 || maxOfflineInstancesAllowedPercentage > 100) {
+      throw new HelixException(
+          "Max offline instances allowed percentage must be between 0 and 100, or -1 to disable. Got: "
+              + maxOfflineInstancesAllowedPercentage);
+    }
+    _record.setIntField(
+        ClusterConfigProperty.MAX_OFFLINE_INSTANCES_ALLOWED_PERCENTAGE.name(),
+        maxOfflineInstancesAllowedPercentage);
+  }
+
+  /**
+   * Get the max offline instances allowed percentage for the cluster.
+   * @return percentage (0-100) or -1 if not set
+   */
+  public int getMaxOfflineInstancesAllowedPercentage() {
+    return _record.getIntField(
+        ClusterConfigProperty.MAX_OFFLINE_INSTANCES_ALLOWED_PERCENTAGE.name(), -1);
+  }
+
+  /**
+   * Sets the percentage-based offline instances threshold for auto-exit (0-100).
+   * The percentage is computed against total routable instances at runtime.
+   * When both percentage and absolute exit thresholds are set, the stricter (lower) wins.
+   * If a percentage-based entry threshold is also set, exit percentage must be <= entry percentage.
+   * -1 disables the percentage-based auto-exit threshold.
+   * @param autoExitPercentage percentage threshold (0-100) or -1 to disable
+   */
+  public void setNumOfflineInstancesForAutoExitPercentage(int autoExitPercentage)
+      throws HelixException {
+    if (autoExitPercentage < -1 || autoExitPercentage > 100) {
+      throw new HelixException(
+          "Num offline instances for auto exit percentage must be between 0 and 100, or -1 to disable. Got: "
+              + autoExitPercentage);
+    }
+    int entryPercentage = getMaxOfflineInstancesAllowedPercentage();
+    if (entryPercentage >= 0 && autoExitPercentage >= 0) {
+      if (autoExitPercentage > entryPercentage) {
+        throw new HelixException(
+            "Auto-exit percentage threshold must be less than or equal to entry percentage threshold! "
+                + "Exit: " + autoExitPercentage + ", Entry: " + entryPercentage);
+      }
+    }
+    _record.setIntField(
+        ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT_PERCENTAGE.name(),
+        autoExitPercentage);
+  }
+
+  /**
+   * Returns the percentage-based offline instances threshold for auto-exit.
+   * @return percentage (0-100) or -1 if not set
+   */
+  public int getNumOfflineInstancesForAutoExitPercentage() {
+    return _record.getIntField(
+        ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT_PERCENTAGE.name(), -1);
+  }
+
+  /**
+   * Resolves the effective threshold given an absolute threshold, a percentage threshold,
+   * and a total instance count. The stricter (lower non-negative) value wins.
+   * <ul>
+   *   <li>If both are less than 0 (disabled), returns -1.</li>
+   *   <li>If only one is set (>= 0), that value is used (percentage is converted to count).</li>
+   *   <li>If both are set, the minimum of the two effective counts is returned.</li>
+   * </ul>
+   * Percentage conversion uses integer division (truncation toward zero), which is conservative
+   * for both entry (triggers sooner) and exit (requires more recovery).
+   *
+   * @param absoluteThreshold the absolute count threshold (-1 if not set)
+   * @param percentageThreshold the percentage threshold (0-100, -1 if not set)
+   * @param totalRoutableCount the total routable instance count to compute percentage against
+   * @return the effective threshold count, or -1 if neither is set
+   */
+  public static int resolveEffectiveThreshold(int absoluteThreshold, int percentageThreshold,
+      int totalRoutableCount) {
+    if (absoluteThreshold < 0 && percentageThreshold < 0) {
+      return -1;
+    }
+
+    int effectivePercentage = -1;
+    if (percentageThreshold >= 0) {
+      effectivePercentage =
+          (totalRoutableCount > 0) ? (totalRoutableCount * percentageThreshold / 100) : 0;
+    }
+
+    if (absoluteThreshold < 0) {
+      return effectivePercentage;
+    }
+    if (effectivePercentage < 0) {
+      return absoluteThreshold;
+    }
+    return Math.min(absoluteThreshold, effectivePercentage);
   }
 
   /**

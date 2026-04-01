@@ -24,12 +24,14 @@ import java.util.Map;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Partition;
@@ -84,18 +86,34 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
     case MAX_OFFLINE_INSTANCES_EXCEEDED:
     case MAX_INSTANCES_UNABLE_TO_ACCEPT_ONLINE_REPLICAS:
       // Check on the number of offline/disabled instances
-      int numOfflineInstancesForAutoExit =
-          cache.getClusterConfig().getNumOfflineInstancesForAutoExit();
-      if (numOfflineInstancesForAutoExit < 0) {
-        return; // Config is not set, no auto-exit
+      ClusterConfig clusterConfig = cache.getClusterConfig();
+      int absoluteExitThreshold = clusterConfig.getNumOfflineInstancesForAutoExit();
+      int percentageExitThreshold = clusterConfig.getNumOfflineInstancesForAutoExitPercentage();
+
+      if (absoluteExitThreshold < 0 && percentageExitThreshold < 0) {
+        return; // Neither config is set, no auto-exit
       }
+
+      // Compute routable instance count for percentage resolution (same filter as entry logic)
+      int routableInstanceCount = (int) cache.getInstanceConfigMap().entrySet().stream()
+          .filter(instanceEntry -> !InstanceConstants.UNROUTABLE_INSTANCE_OPERATIONS.contains(
+              instanceEntry.getValue().getInstanceOperation().getOperation()))
+          .count();
+
       // Get the count of all instances that are either offline or disabled
       int offlineDisabledCount =
           cache.getAssignableInstances().size() - cache.getEnabledLiveInstances().size();
-      shouldExitMaintenance = offlineDisabledCount <= numOfflineInstancesForAutoExit;
+
+      int effectiveExitThreshold = ClusterConfig.resolveEffectiveThreshold(
+          absoluteExitThreshold, percentageExitThreshold, routableInstanceCount);
+
+      shouldExitMaintenance =
+          effectiveExitThreshold >= 0 && offlineDisabledCount <= effectiveExitThreshold;
       reason = String.format(
-          "Auto-exiting maintenance mode for cluster %s; Num. of offline/disabled instances is %d, less than or equal to the exit threshold %d",
-          event.getClusterName(), offlineDisabledCount, numOfflineInstancesForAutoExit);
+          "Auto-exiting maintenance mode for cluster %s; Num. of offline/disabled instances is %d, "
+              + "less than or equal to effective exit threshold %d (absolute=%d, percentage=%d%% of %d routable)",
+          event.getClusterName(), offlineDisabledCount, effectiveExitThreshold,
+          absoluteExitThreshold, percentageExitThreshold, routableInstanceCount);
       break;
     case MAX_PARTITION_PER_INSTANCE_EXCEEDED:
       IntermediateStateOutput intermediateStateOutput =

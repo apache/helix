@@ -26,6 +26,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.constraint.MockAbnormalStateResolver;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
@@ -418,6 +419,158 @@ public class TestClusterConfig {
             -1), 10000L);
   }
 
+
+  // --- Percentage-based maintenance mode threshold tests ---
+
+  @Test
+  public void testGetMaxOfflineInstancesAllowedPercentageDefault() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    Assert.assertEquals(testConfig.getMaxOfflineInstancesAllowedPercentage(), -1);
+  }
+
+  @Test
+  public void testSetAndGetMaxOfflineInstancesAllowedPercentage() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setMaxOfflineInstancesAllowedPercentage(25);
+    Assert.assertEquals(testConfig.getMaxOfflineInstancesAllowedPercentage(), 25);
+  }
+
+  @Test
+  public void testSetMaxOfflineInstancesAllowedPercentageBoundaryValues() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setMaxOfflineInstancesAllowedPercentage(0);
+    Assert.assertEquals(testConfig.getMaxOfflineInstancesAllowedPercentage(), 0);
+
+    testConfig.setMaxOfflineInstancesAllowedPercentage(100);
+    Assert.assertEquals(testConfig.getMaxOfflineInstancesAllowedPercentage(), 100);
+
+    testConfig.setMaxOfflineInstancesAllowedPercentage(-1);
+    Assert.assertEquals(testConfig.getMaxOfflineInstancesAllowedPercentage(), -1);
+  }
+
+  @Test(expectedExceptions = HelixException.class)
+  public void testSetMaxOfflineInstancesAllowedPercentageTooHigh() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setMaxOfflineInstancesAllowedPercentage(101);
+  }
+
+  @Test(expectedExceptions = HelixException.class)
+  public void testSetMaxOfflineInstancesAllowedPercentageTooLow() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setMaxOfflineInstancesAllowedPercentage(-2);
+  }
+
+  @Test
+  public void testGetNumOfflineInstancesForAutoExitPercentageDefault() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    Assert.assertEquals(testConfig.getNumOfflineInstancesForAutoExitPercentage(), -1);
+  }
+
+  @Test
+  public void testSetAndGetNumOfflineInstancesForAutoExitPercentage() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setMaxOfflineInstancesAllowedPercentage(30);
+    testConfig.setNumOfflineInstancesForAutoExitPercentage(20);
+    Assert.assertEquals(testConfig.getNumOfflineInstancesForAutoExitPercentage(), 20);
+  }
+
+  @Test(expectedExceptions = HelixException.class)
+  public void testSetAutoExitPercentageExceedsEntryPercentage() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setMaxOfflineInstancesAllowedPercentage(20);
+    testConfig.setNumOfflineInstancesForAutoExitPercentage(30);
+  }
+
+  @Test
+  public void testSetAutoExitPercentageWhenEntryPercentageNotSet() {
+    // When entry percentage is -1, any valid exit percentage should be accepted
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setNumOfflineInstancesForAutoExitPercentage(50);
+    Assert.assertEquals(testConfig.getNumOfflineInstancesForAutoExitPercentage(), 50);
+  }
+
+  @Test(expectedExceptions = HelixException.class)
+  public void testSetAutoExitPercentageTooHigh() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setNumOfflineInstancesForAutoExitPercentage(101);
+  }
+
+  @Test(expectedExceptions = HelixException.class)
+  public void testSetAutoExitPercentageTooLow() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setNumOfflineInstancesForAutoExitPercentage(-2);
+  }
+
+  // --- resolveEffectiveThreshold tests ---
+
+  @Test
+  public void testResolveEffectiveThresholdBothDisabled() {
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(-1, -1, 100), -1);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdOnlyAbsolute() {
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(5, -1, 100), 5);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdOnlyPercentage() {
+    // 10% of 100 = 10
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(-1, 10, 100), 10);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdBothSetAbsoluteStricter() {
+    // absolute=3, percentage=10% of 100 = 10. Stricter is 3.
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(3, 10, 100), 3);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdBothSetPercentageStricter() {
+    // absolute=15, percentage=10% of 100 = 10. Stricter is 10.
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(15, 10, 100), 10);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdBothEqual() {
+    // absolute=10, percentage=10% of 100 = 10.
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(10, 10, 100), 10);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdPercentageRoundsDown() {
+    // 10% of 3 = 0.3, truncated to 0
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(-1, 10, 3), 0);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdSmallClusterPercentage() {
+    // 1% of 5 = 0.05, truncated to 0
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(-1, 1, 5), 0);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdZeroRoutableCount() {
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(-1, 50, 0), 0);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdZeroPercentage() {
+    // 0% of 100 = 0
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(-1, 0, 100), 0);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdHundredPercent() {
+    // 100% of 50 = 50
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(-1, 100, 50), 50);
+  }
+
+  @Test
+  public void testResolveEffectiveThresholdLargeCluster() {
+    // 5% of 500 = 25, absolute=30. Stricter is 25.
+    Assert.assertEquals(ClusterConfig.resolveEffectiveThreshold(30, 5, 500), 25);
+  }
 
   private void trySetInvalidAbnormalStatesResolverMap(ClusterConfig testConfig,
       Map<String, String> resolverMap) {

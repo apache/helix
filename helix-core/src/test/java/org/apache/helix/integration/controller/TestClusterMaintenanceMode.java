@@ -387,6 +387,12 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   @Test(dependsOnMethods = "testMaxPartitionLimit")
   public void testMaintenanceHistory() throws Exception {
     // In maintenance mode, by controller, for MAX_PARTITION_PER_INSTANCE_EXCEEDED
+    // Wait for the maintenance history entry to be written
+    TestHelper.verify(() -> {
+      ControllerHistory hist = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
+      return hist != null && !hist.getMaintenanceHistoryList().isEmpty();
+    }, 2000L);
+
     ControllerHistory history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
     Map<String, String> lastHistoryEntry = convertStringToMap(
         history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
@@ -405,7 +411,13 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
 
     // Now check that the cluster exited maintenance
+    // Wait for the EXIT history entry to be written
     // EXIT, CONTROLLER, for MAX_PARTITION_PER_INSTANCE_EXCEEDED
+    TestHelper.verify(() -> {
+      ControllerHistory hist = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
+      return hist != null && !hist.getMaintenanceHistoryList().isEmpty();
+    }, 2000L);
+
     history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
     lastHistoryEntry = convertStringToMap(
         history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
@@ -420,7 +432,13 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, true, TestHelper.getTestMethodName(), customFieldMap);
     TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) != null, 2000L);
 
+    // Wait for the USER triggered ENTER history entry to be written
     // ENTER, USER, for reason TEST, no internalReason
+    TestHelper.verify(() -> {
+      ControllerHistory hist = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
+      return hist != null && !hist.getMaintenanceHistoryList().isEmpty();
+    }, 2000L);
+
     history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
     lastHistoryEntry =
         convertStringToMap(history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));

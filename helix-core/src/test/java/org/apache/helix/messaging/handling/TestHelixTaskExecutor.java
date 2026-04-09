@@ -990,7 +990,7 @@ public class TestHelixTaskExecutor {
     LOG.info("Submitted {} messages to executor", msgList.size());
 
     // Give executor time to receive and queue messages before starting to poll
-    Thread.sleep(1000);
+    Thread.sleep(2000);
 
     // Wait for processing to stabilize - poll until counts stop changing
     // Increased maxWaitTime to 30 seconds for flaky test stability
@@ -999,6 +999,8 @@ public class TestHelixTaskExecutor {
     int stableCount = 0;
     int lastCancelCount = -1;
     int lastStateTransitionCount = -1;
+    int minPollsBeforeAcceptingStability = 3; // Ensure we poll at least 3 times before accepting stability
+    int pollCount = 0;
 
     LOG.info("Waiting up to {} ms for processing to stabilize...", maxWaitTime);
     long startTime = System.currentTimeMillis();
@@ -1006,10 +1008,13 @@ public class TestHelixTaskExecutor {
     while (System.currentTimeMillis() - startTime < maxWaitTime) {
       int currentCancelCount = cancelFactory._processedMsgIds.size();
       int currentStateTransitionCount = stateTransitionFactory._processedMsgIds.size();
+      pollCount++;
 
       if (currentCancelCount == lastCancelCount && currentStateTransitionCount == lastStateTransitionCount) {
         stableCount++;
-        if (stableCount >= 2) {
+        // Only accept early stability after at least minPollsBeforeAcceptingStability polls
+        // to ensure processing has had a chance to start
+        if (stableCount >= 2 && pollCount >= minPollsBeforeAcceptingStability) {
           LOG.info("Processing stabilized after {} ms", System.currentTimeMillis() - startTime);
           break;
         }

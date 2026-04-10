@@ -1069,9 +1069,11 @@ public class TestInstanceOperation extends ZkTestBase {
         VERIFICATION_TIMEOUT);
     Assert.assertTrue(swapValid, "Swap validation failed");
 
-    // Verify evacuation finished
-    boolean evacFinished = _gSetupTool.getClusterManagementTool()
-        .isEvacuateFinished(CLUSTER_NAME, swapOutName);
+    // Verify evacuation finished - use verifier to handle timing variations
+    boolean evacFinished = TestHelper.verify(() ->
+        _gSetupTool.getClusterManagementTool()
+            .isEvacuateFinished(CLUSTER_NAME, swapOutName),
+        VERIFICATION_TIMEOUT);
     LOG.info("isEvacuateFinished: {}", evacFinished);
     Assert.assertTrue(evacFinished, "Evacuation should be finished");
 

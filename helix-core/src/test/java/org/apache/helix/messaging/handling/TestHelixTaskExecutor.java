@@ -884,11 +884,32 @@ public class TestHelixTaskExecutor {
     executor.onMessage("someInstance", msgList, changeContext);
     LOG.info("Submitted {} messages to executor", nMsgs2);
 
-    // Wait for processing to complete
-    // Increased wait time to ensure flaky test stability on slower CI machines
-    int waitTime = 8000;
-    LOG.info("Waiting {} ms for processing to complete...", waitTime);
-    Thread.sleep(waitTime);
+    // Wait for processing to stabilize with exactly 2 messages timed out
+    // Poll until we see exactly 2 timed out and the count has been stable for 2 consecutive polls
+    int maxWaitTime = 15000;
+    int pollInterval = 300;
+    int expectedTimeoutCount = 2;
+    int stableCount = 0;
+    int lastTimeoutCount = -1;
+
+    LOG.info("Waiting up to {} ms for exactly {} messages to timeout...", maxWaitTime, expectedTimeoutCount);
+    long startTime = System.currentTimeMillis();
+
+    while (System.currentTimeMillis() - startTime < maxWaitTime) {
+      int currentTimeoutCount = factory._timedOutMsgIds.size();
+      if (currentTimeoutCount == expectedTimeoutCount && currentTimeoutCount == lastTimeoutCount) {
+        stableCount++;
+        if (stableCount >= 2) {
+          LOG.info("Timed out count stabilized at {} after {} ms",
+              currentTimeoutCount, System.currentTimeMillis() - startTime);
+          break;
+        }
+      } else {
+        stableCount = 0;
+      }
+      lastTimeoutCount = currentTimeoutCount;
+      Thread.sleep(pollInterval);
+    }
 
     LOG.info("After wait - Handlers created: {}, Processed: {}, TimedOut: {}",
         factory._handlersCreated, factory._processedMsgIds.size(), factory._timedOutMsgIds.size());

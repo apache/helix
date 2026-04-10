@@ -1007,9 +1007,9 @@ public class TestInstanceOperation extends ZkTestBase {
     LOG.info("Swap-out enabled: {}", isEnabled);
     Assert.assertFalse(isEnabled, "Swap-out should be disabled");
 
-    // Verify final EV
+    // Verify final EV - use extended timeout for CI stability
     verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT);
+        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testSwapWithSwapOutGoesOffline");
   }

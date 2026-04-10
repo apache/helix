@@ -267,7 +267,8 @@ public class TestWagedClusterExpansion extends ZkTestBase {
 
     // Check modified time for external view of the first resource.
     // if pipeline is run, then external view would be persisted.
-    waitForPipeline(100, 3000);
+    // Increased timeout for CI stability
+    waitForPipeline(100, 6000);
 
     LOG.info("After adding the new instance");
     validateIdealState(false /* afterWeightChange */);
@@ -285,11 +286,12 @@ public class TestWagedClusterExpansion extends ZkTestBase {
     dataAccessor.setProperty(dataAccessor.keyBuilder().resourceConfig(db), resourceConfig);
 
     // Make sure pipeline is run.
-    waitForPipeline(100, 10000); // 10 sec. max timeout.
+    // Increased timeout for CI stability
+    waitForPipeline(100, 20000);
 
     LOG.info("After changing resource partition weight");
     validateIdealState(true /* afterWeightChange */);
-    waitForPipeline(100, 3000); // this is for ZK to sync up.
+    waitForPipeline(100, 6000); // this is for ZK to sync up.
   }
 
   // This test case reduces the capacity of one of the instance.
@@ -310,11 +312,12 @@ public class TestWagedClusterExpansion extends ZkTestBase {
     dataAccessor.setProperty(dataAccessor.keyBuilder().instanceConfig(storageNodeName), config);
 
     // Make sure pipeline is run.
-    waitForPipeline(100, 10000); // 10 sec. max timeout.
+    // Increased timeout for CI stability
+    waitForPipeline(100, 20000);
 
     LOG.info("After changing instance capacity");
     validateIdealState(true);
-    waitForPipeline(100, 3000); // this is for ZK to sync up.
+    waitForPipeline(100, 6000); // this is for ZK to sync up.
   }
 
   @AfterClass

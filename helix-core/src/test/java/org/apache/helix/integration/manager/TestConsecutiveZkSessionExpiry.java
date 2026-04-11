@@ -238,15 +238,26 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     Assert.assertNotNull(leader);
     Assert.assertEquals(leader.getId(), "localhost_12919");
 
-    // check localhost_12918 has 2 handlers: message and data-accessor
+    // Wait for handler count to stabilize after losing leadership
+    // This is needed because handler cleanup is async and may take time in CI
+    List<CallbackHandler> handlers = null;
+    int expectedHandlerCount = 1;
+    int maxWaitTime = 20000;
+    int pollInterval = 200;
+    long startTime = System.currentTimeMillis();
+    while (System.currentTimeMillis() - startTime < maxWaitTime) {
+      handlers = distributedControllers[0].getHandlers();
+      if (handlers.size() == expectedHandlerCount) {
+        LOG.info("Handler count stabilized at {} after {} ms",
+            handlers.size(), System.currentTimeMillis() - startTime);
+        break;
+      }
+      Thread.sleep(pollInterval);
+    }
     LOG.debug("handlers: " + TestHelper.printHandlers(distributedControllers[0]));
-    List<CallbackHandler> handlers = distributedControllers[0].getHandlers();
-    Assert
-        .assertEquals(
-            handlers.size(),
-            1,
-            "Distributed controller should have 1 handler (message) after lose leadership, but was "
-                + handlers.size());
+    Assert.assertEquals(handlers.size(), expectedHandlerCount,
+        "Distributed controller should have 1 handler (message) after lose leadership, but was "
+            + handlers.size());
 
     // clean up
     distributedControllers[0].disconnect();

@@ -1043,6 +1043,9 @@ public class TestInstanceOperation extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, swapOutName, InstanceConstants.InstanceOperation.EVACUATE);
 
+    // Wait for EVACUATE operation to be processed before validation
+    Thread.sleep(2000);
+
     // Assignment should not change yet
     validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
         Collections.emptySet(), Collections.emptySet());

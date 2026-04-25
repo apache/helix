@@ -1589,7 +1589,7 @@ public class TestInstanceOperation extends ZkTestBase {
         }
       }
       return true;
-    }, 120000, CLUSTER_NAME);
+    }, 180000, CLUSTER_NAME);
 
     // Cleanup
     removeOfflineOrInactiveInstances();

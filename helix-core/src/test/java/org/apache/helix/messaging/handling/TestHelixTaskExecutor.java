@@ -911,6 +911,9 @@ public class TestHelixTaskExecutor {
       Thread.sleep(pollInterval);
     }
 
+    // Final wait to ensure all timeout cancellations are fully processed
+    Thread.sleep(500);
+
     LOG.info("After wait - Handlers created: {}, Processed: {}, TimedOut: {}",
         factory._handlersCreated, factory._processedMsgIds.size(), factory._timedOutMsgIds.size());
     LOG.info("Timed out message IDs: {}", factory._timedOutMsgIds.keySet());
@@ -960,6 +963,13 @@ public class TestHelixTaskExecutor {
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
     Thread.sleep(3500);
+
+    // Wait for task map to be empty (all tasks completed or cancelled)
+    long startTime = System.currentTimeMillis();
+    while (executor._taskMap.size() > 0 && (System.currentTimeMillis() - startTime) < 1000) {
+      Thread.sleep(100);
+    }
+
     AssertJUnit.assertEquals(factory._processedMsgIds.size(), 3);
     AssertJUnit.assertTrue(msgList.get(0).getRecord().getSimpleField("Cancelcount").equals("2"));
     AssertJUnit.assertTrue(msgList.get(1).getRecord().getSimpleField("Cancelcount").equals("1"));

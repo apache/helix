@@ -19,7 +19,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.BucketDataAccessor;
@@ -36,7 +36,7 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
   }
 
   public Map<String, ResourceAssignment> getBaseline() {
-    return _globalBaseline == null ? Collections.emptyMap() : _globalBaseline;
+    return _globalBaseline == null ? new HashMap<>() : _globalBaseline;
   }
 
   public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
@@ -44,7 +44,7 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
   }
 
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
-    return _bestPossibleAssignment == null ? Collections.emptyMap() : _bestPossibleAssignment;
+    return _bestPossibleAssignment == null ? new HashMap<>() : _bestPossibleAssignment;
   }
 
   public void persistBestPossibleAssignment(

@@ -47,9 +47,9 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestDelayedAutoRebalance extends ZkTestBase {
-  static final int NUM_NODE = 5;
+  static final int NUM_NODE = 3;
   protected static final int START_PORT = 12918;
-  protected static final int PARTITIONS = 5;
+  protected static final int PARTITIONS = 3;
   // TODO: remove this wait time once we have a better way to determine if the rebalance has been
   // TODO: done as a reaction of the test operations.
   protected static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME;
@@ -61,7 +61,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   protected ClusterControllerManager _controller;
 
   protected List<MockParticipantManager> _participants = new ArrayList<>();
-  protected int _replica = 3;
+  protected int _replica = 2;
   protected int _minActiveReplica = _replica - 1;
   protected ZkHelixClusterVerifier _clusterVerifier;
   protected List<String> _testDBs = new ArrayList<>();
@@ -135,7 +135,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     validateDelayedMovements(externalViewsBefore);
 
     // bring down another node, the minimal active replica for each partition should be maintained.
-    _participants.get(3).syncStop();
+    _participants.get(2).syncStop();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =

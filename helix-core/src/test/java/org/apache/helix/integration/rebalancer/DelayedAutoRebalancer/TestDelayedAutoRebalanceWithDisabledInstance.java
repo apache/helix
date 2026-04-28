@@ -117,7 +117,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     }
 
     // disable another node, the minimal active replica for each partition should be maintained.
-    enableInstance(_participants.get(3).getInstanceName(), false);
+    enableInstance(_participants.get(2).getInstanceName(), false);
     Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -154,7 +154,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     }
 
     // bring down another node, the minimal active replica for each partition should be maintained.
-    _participants.get(3).syncStop();
+    _participants.get(2).syncStop();
     Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 

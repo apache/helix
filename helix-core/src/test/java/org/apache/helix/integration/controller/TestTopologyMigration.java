@@ -243,6 +243,11 @@ public class TestTopologyMigration extends ZkTestBase {
     System.out.println("Setting MM to false");
     setAndVerifyMaintenanceMode(false);
 
+    // Wait for EV to stabilize after exiting maintenance mode
+    // During maintenance mode, EV updates are deferred. After exiting, the controller
+    // needs time to compute and propagate the new ideal state assignment.
+    waitForEVStabilization(originalEVs, 30000);
+
     // Verify cluster did not have shuffling anywhere after
     // the migration to the new topology
     validateNoShufflingOccurred(originalEVs, null);
@@ -254,6 +259,9 @@ public class TestTopologyMigration extends ZkTestBase {
       setAndVerifyMaintenanceMode(true);
       migrateDomainForInstanceTag(updatingDb);
       setAndVerifyMaintenanceMode(false);
+
+      // Wait for EV to stabilize after exiting maintenance mode
+      waitForEVStabilization(preMigrationEVs, 30000);
 
       // Verify cluster only had shuffling in the resource group that was updated
       validateNoShufflingOccurred(preMigrationEVs, updatingDb);
@@ -353,6 +361,54 @@ public class TestTopologyMigration extends ZkTestBase {
             String.format("Unexpected shuffling occurred for database %s. Original EV: %s, Updated EV: %s",
                 db, originalEVs.get(db), updatedEVs.get(db)));
       }
+    }
+  }
+
+  /**
+   * Waits for ExternalView state assignments to stabilize after exiting maintenance mode.
+   * During maintenance mode, EV updates are deferred. After exiting, the controller needs
+   * time to compute and propagate the new ideal state assignment.
+   *
+   * @param originalEVs The reference ExternalViews to compare against
+   * @param maxWaitTimeMs Maximum time to wait in milliseconds
+   */
+  private void waitForEVStabilization(Map<String, ExternalView> originalEVs, int maxWaitTimeMs) {
+    int pollInterval = 500;
+    long startTime = System.currentTimeMillis();
+    boolean stable = false;
+
+    while (System.currentTimeMillis() - startTime < maxWaitTimeMs) {
+      Map<String, ExternalView> currentEVs = getEVs();
+      boolean allMatch = true;
+      for (String db : _allDBs) {
+        ExternalView current = currentEVs.get(db);
+        ExternalView original = originalEVs.get(db);
+        if (current == null || original == null) {
+          allMatch = false;
+          break;
+        }
+        for (String partition : original.getPartitionSet()) {
+          if (!current.getStateMap(partition).equals(original.getStateMap(partition))) {
+            allMatch = false;
+            break;
+          }
+        }
+        if (!allMatch) break;
+      }
+      if (allMatch) {
+        stable = true;
+        LOG.info("EV stabilized after {} ms", System.currentTimeMillis() - startTime);
+        break;
+      }
+      try {
+        Thread.sleep(pollInterval);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
+    if (!stable) {
+      LOG.warn("EV did not stabilize within {} ms", maxWaitTimeMs);
     }
   }
 

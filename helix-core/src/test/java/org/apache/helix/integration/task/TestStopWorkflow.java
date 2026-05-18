@@ -149,6 +149,11 @@ public class TestStopWorkflow extends TaskTestBase {
     _driver.stop(workflowNameToStop);
 
     _driver.pollForWorkflowState(workflowNameToStop, TaskState.STOPPED);
+
+    // Wait for task quotas to be released after stopping the workflow
+    // The stop operation transitions tasks to STOPPED state, but quota release may lag behind
+    waitForQuotaRelease(5000);
+
     Assert.assertEquals(
         TaskDriver.getWorkflowContext(_manager, workflowNameToStop).getWorkflowState(),
         TaskState.STOPPED); // Check that the workflow has been stopped
@@ -329,6 +334,21 @@ public class TestStopWorkflow extends TaskTestBase {
     @Override
     public void cancel() {
       _stopFlag = true;
+    }
+  }
+
+  /**
+   * Waits for task quotas to be released after stopping a workflow.
+   * When a workflow is stopped, tasks may take time to release their quotas.
+   * This method provides a small delay to allow quota release to propagate.
+   *
+   * @param waitTimeMs Maximum time to wait in milliseconds
+   */
+  private void waitForQuotaRelease(int waitTimeMs) {
+    try {
+      Thread.sleep(waitTimeMs);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 }

@@ -179,19 +179,20 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
   public void testBatchMessageThreadPoolSize() throws InterruptedException {
     int customizedPoolSize = 5;
     _participants[0].getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-        new TestOnlineOfflineStateModelFactory(customizedPoolSize, 2000), "TestFactory");
+        new TestOnlineOfflineStateModelFactory(customizedPoolSize, 500), "TestFactory");
     for (int i = 1; i < _participants.length; i++) {
       _participants[i].syncStop();
     }
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    // Add 10 dbs with batch message enabled. Each db has 10 partitions.
-    // So it will have 10 batch messages and each batch message has 10 sub messages.
-    int numberOfDbs = 10;
+    // Add 5 dbs with batch message enabled. Each db has 5 partitions.
+    // Reduced from 10 DBs x 10 partitions to 5 DBs x 5 partitions = 25 partitions total
+    // to reduce test runtime while still validating batch message functionality
+    int numberOfDbs = 5;
     for (int i = 0; i < numberOfDbs; i++) {
       String dbName = "TestDBABatch" + i;
       IdealState idealState = new FullAutoModeISBuilder(dbName).setStateModel("OnlineOffline")
-          .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
+          .setStateModelFactoryName("TestFactory").setNumPartitions(5).setNumReplica(1).build();
       idealState.setBatchMessageMode(true);
       _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
@@ -204,13 +205,13 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     ThreadPoolExecutor executor = (ThreadPoolExecutor) (helixExecutor._batchMessageExecutorService);
     Assert.assertNotNull(executor);
 
-    // Use longer timeout since the state model factory has 2000ms delay per transition,
-    // and with 10 DBs x 10 partitions = 100 partitions and only 5 threads in the pool,
+    // Use longer timeout since the state model factory has 500ms delay per transition,
+    // and with 5 DBs x 5 partitions = 25 partitions and only 5 threads in the pool,
     // it takes significant time for all state transitions to complete
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
             .setZkClient(_gZkClient)
-            .setWaitTillVerify(300000)
+            .setWaitTillVerify(120000)
             .build();
     Assert.assertTrue(verifier.verifyByPolling());
   }

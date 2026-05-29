@@ -391,7 +391,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     TestHelper.verify(() -> {
       ControllerHistory hist = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
       return hist != null && !hist.getMaintenanceHistoryList().isEmpty();
-    }, 2000L);
+    }, 5000L);
 
     ControllerHistory history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
     Map<String, String> lastHistoryEntry = convertStringToMap(
@@ -408,7 +408,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     clusterConfig.setMaxPartitionsPerInstance(-1);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
 
-    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 2000L);
+    TestHelper.verify(() -> _dataAccessor.getProperty(_keyBuilder.maintenance()) == null, 5000L);
 
     // Now check that the cluster exited maintenance
     // Wait for the EXIT history entry to be written

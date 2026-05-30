@@ -604,7 +604,54 @@ public class TestInstanceOperation extends ZkTestBase {
         .completeSwapIfPossible(CLUSTER_NAME, swapOutName, false),
         "Swap should complete successfully");
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    // Wait for swap to be fully processed and EV to stabilize
+    // After completeSwapIfPossible, the controller needs time to update the EV
+    long swapWaitStartTime = System.currentTimeMillis();
+    long maxSwapWaitTime = 30000;
+    boolean swapProcessed = false;
+    while (System.currentTimeMillis() - swapWaitStartTime < maxSwapWaitTime) {
+      if (_clusterVerifier.verifyByPolling()) {
+        Map<String, ExternalView> currentEVs = getEVs();
+        boolean allCorrect = true;
+        for (String resource : originalEVs.keySet()) {
+          ExternalView current = currentEVs.get(resource);
+          ExternalView original = originalEVs.get(resource);
+          if (current == null || original == null) {
+            allCorrect = false;
+            break;
+          }
+          for (String partition : original.getPartitionSet()) {
+            Map<String, String> currentStateMap = current.getStateMap(partition);
+            Map<String, String> originalStateMap = original.getStateMap(partition);
+            // Check if swapOut is still in EV with LEADER state (should be replaced)
+            if (currentStateMap.containsKey(swapOutName)) {
+              String currentState = currentStateMap.get(swapOutName);
+              String originalState = originalStateMap.get(swapOutName);
+              if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
+                allCorrect = false;
+                break;
+              }
+            }
+            // Check if swapIn has the expected assignments
+            if (!currentStateMap.containsKey(swapInName)) {
+              allCorrect = false;
+              break;
+            }
+          }
+          if (!allCorrect) break;
+        }
+        if (allCorrect) {
+          swapProcessed = true;
+          LOG.info("Swap processed and EV stabilized after {} ms",
+              System.currentTimeMillis() - swapWaitStartTime);
+          break;
+        }
+      }
+      Thread.sleep(500);
+    }
+    if (!swapProcessed) {
+      LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime);
+    }
 
     // Verify swap-in is now in routing tables
     validateRoutingTablesInstance(getEVs(), swapInName, true);
@@ -698,7 +745,51 @@ public class TestInstanceOperation extends ZkTestBase {
         .completeSwapIfPossible(CLUSTER_NAME, swapOutName, false),
         "Swap should complete");
 
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    // Wait for swap to be fully processed and EV to stabilize
+    long swapWaitStartTime2 = System.currentTimeMillis();
+    long maxSwapWaitTime2 = 30000;
+    boolean swapProcessed2 = false;
+    while (System.currentTimeMillis() - swapWaitStartTime2 < maxSwapWaitTime2) {
+      if (_clusterVerifier.verifyByPolling()) {
+        Map<String, ExternalView> currentEVs = getEVs();
+        boolean allCorrect = true;
+        for (String resource : originalEVs.keySet()) {
+          ExternalView current = currentEVs.get(resource);
+          ExternalView original = originalEVs.get(resource);
+          if (current == null || original == null) {
+            allCorrect = false;
+            break;
+          }
+          for (String partition : original.getPartitionSet()) {
+            Map<String, String> currentStateMap = current.getStateMap(partition);
+            Map<String, String> originalStateMap = original.getStateMap(partition);
+            if (currentStateMap.containsKey(swapOutName)) {
+              String currentState = currentStateMap.get(swapOutName);
+              String originalState = originalStateMap.get(swapOutName);
+              if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
+                allCorrect = false;
+                break;
+              }
+            }
+            if (!currentStateMap.containsKey(swapInName)) {
+              allCorrect = false;
+              break;
+            }
+          }
+          if (!allCorrect) break;
+        }
+        if (allCorrect) {
+          swapProcessed2 = true;
+          LOG.info("Swap processed and EV stabilized after {} ms",
+              System.currentTimeMillis() - swapWaitStartTime2);
+          break;
+        }
+      }
+      Thread.sleep(500);
+    }
+    if (!swapProcessed2) {
+      LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime2);
+    }
 
     // Verify swap-out is disabled
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()

@@ -753,6 +753,106 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
     ```
 
 
+#### Helix Stoppable Instances API
+
+The Stoppable Instances API helps determine which instances can be safely stopped for maintenance. It evaluates instances based on health checks, zone distribution, and custom criteria.
+
+* **"/clusters/{clusterName}/instances/stoppable"**
+    * Evaluates instances and returns those that can be safely stopped
+    * **POST** - Get stoppable instances with specified criteria
+
+    Request body parameters:
+
+    * `instance_based` - Selection base for stoppable check (non_zone_based, zone_based, cross_zone_based)
+    * `instances` - List of instances to evaluate
+    * `to_be_stopped_instances` - Instances presumed to be already stopped
+    * `skip_custom_check_if_instance_not_alive` - Skip custom checks if instance is not alive
+    * `zone_order` - Order of zones for zone-based selection
+    * `skip_stoppable_check_list` - List of health checks to skip
+    * `customized_values` - Custom input for health checks
+
+    Example:
+
+    ```
+    curl -X POST -H "Content-Type: application/json" \
+    http://localhost:1234/admin/v2/clusters/myCluster/instances/stoppable \
+    -d '{
+      "instance_based": "zone_based",
+      "instances": ["host1:1234", "host2:1234", "host3:1234"],
+      "to_be_stopped_instances": [],
+      "skip_custom_check_if_instance_not_alive": false,
+      "zone_order": ["zone1", "zone2", "zone3"]
+    }'
+    ```
+
+    Response:
+
+    ```
+    {
+      "instance_stoppable_parallel": ["host1:1234", "host2:1234"],
+      "instance_not_stoppable_with_reasons": {
+        "host3:1234": ["HELIX:INSTANCE_NOT_EXIST"]
+      }
+    }
+    ```
+
+* **"/clusters/{clusterName}/instances/stoppable/{instanceName}"**
+    * Check if a specific instance is stoppable
+    * **GET** - Check if the instance can be stopped
+
+    Response:
+
+    ```
+    {
+      "stoppable": true,
+      "failedChecks": []
+    }
+    ```
+
+    Or if not stoppable:
+
+    ```
+    {
+      "stoppable": false,
+      "failedChecks": [
+        "HELIX:HAS_ASSIGNED_PARTITIONS",
+        "CUSTOM_INSTANCE_HEALTH_FAILURE:CustomHealthCheck"
+      ]
+    }
+    ```
+
+**Health Check Categories**
+
+The stoppable check supports multiple health check categories:
+
+* `HELIX_OWN_CHECK` - Built-in Helix health checks
+* `CUSTOM_INSTANCE_CHECK` - Custom instance-level health checks
+* `CUSTOM_PARTITION_CHECK` - Custom partition-level health checks
+* `CUSTOM_AGGREGATED_CHECK` - Custom aggregated health checks
+
+**Built-in Health Checks**
+
+* `HAS_ASSIGNED_PARTITIONS` - Instance has partitions assigned
+* `IS_NOT_EVICTABLE` - Instance cannot be evicted
+* `IS_NOT_ENABLED` - Instance is not enabled
+* `HAS_DISABLED_PARTITION` - Instance has disabled partitions
+* `IS_MAINTENANCE_MODE` - Cluster is in maintenance mode
+
+**Skipping Health Checks**
+
+Use `skip_stoppable_check_list` to skip specific checks:
+
+```
+curl -X POST -H "Content-Type: application/json" \
+http://localhost:1234/admin/v2/clusters/myCluster/instances/stoppable \
+-d '{
+  "instance_based": "non_zone_based",
+  "instances": ["host1:1234"],
+  "skip_stoppable_check_list": ["HAS_ASSIGNED_PARTITIONS", "IS_NOT_EVICTABLE"]
+}'
+```
+
+
 #### Helix Workflow and its sub-resources
 
 * **"/clusters/{clusterName}/workflows"**

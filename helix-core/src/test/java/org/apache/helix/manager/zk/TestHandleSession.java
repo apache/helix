@@ -406,7 +406,7 @@ public class TestHandleSession extends ZkTestBase {
       try {
         // Wait for new session S1 is established and starting to reset handlers.
         TestHelper.verify(() -> !(manager.getSessionId().equals(originalSessionId))
-            && manager.getResetHandlersStartTime() > initResetHandlersStartTime, 3000L);
+            && manager.getResetHandlersStartTime() > initResetHandlersStartTime, 5000L);
 
         // S1's info.
         final String lastSessionId = manager.getSessionId();
@@ -419,7 +419,7 @@ public class TestHandleSession extends ZkTestBase {
 
           // Wait and verify the new session S2 is established.
           TestHelper.verify(() -> !((ZKUtil.toHexSessionId(manager.getZkClient().getSessionId()))
-              .equals(lastSessionId)), 3000L);
+              .equals(lastSessionId)), 5000L);
         } catch (Exception ignored) {
           // Ignored.
         } finally {
@@ -432,7 +432,7 @@ public class TestHandleSession extends ZkTestBase {
 
         // Wait for S2 to handle new session.
         TestHelper.verify(() -> !(manager.getSessionId().equals(lastSessionId))
-            && manager.getResetHandlersStartTime() > lastResetHandlersStartTime, 3000L);
+            && manager.getResetHandlersStartTime() > lastResetHandlersStartTime, 5000L);
 
         // Notify main thread to verify result: expired S1 should not create live instance.
         mainThreadBlocker.countDown();

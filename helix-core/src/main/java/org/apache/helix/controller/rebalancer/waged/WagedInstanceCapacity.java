@@ -201,6 +201,12 @@ public class WagedInstanceCapacity implements InstanceCapacityDataProvider {
       return true;
     }
 
+    if (!_instanceCapacityMap.containsKey(instance)) {
+      LOG.error("Instance: " + instance + " not found in instance capacity map. Cluster may be using previous "
+          + "idealState that includes an instance that is no longer part of the cluster.");
+      return false;
+    }
+
     Map<String, Integer> instanceCapacity = _instanceCapacityMap.get(instance);
     Map<String, Integer> processedCapacity = new HashMap<>();
     for (String key : instanceCapacity.keySet()) {

@@ -1,0 +1,223 @@
+-----
+Release Notes for Apache Helix 2.0.0
+-----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 2.0.0
+
+  The Apache Helix team would like to announce the release of Apache Helix 2.0.0.
+
+  This is the thirty fourth release under the Apache umbrella, and the thirtieth as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+
+  In this release, Helix introduces the Helix Gateway service as the primary mechanism for participant communication, replacing the legacy state transition message approach. Additionally, helix-front and helix-admin-webapp have been deprecated in preparation for future removal.
+
+[]
+
+* Major Features
+
+** Helix Gateway Service
+
+  The Helix Gateway service is a new gRPC-based communication mechanism that replaces the traditional state transition message approach for participant communication. Instead of the controller pushing state transition messages to participants, the Gateway service enables a pull-based model where participants actively report their current state.
+
+  How it works:
+
+  * Participants establish a bidirectional gRPC stream to the Gateway service and report their shard states on connection and when state changes occur
+
+  * The Gateway service processes participant state updates and sends back state change requests (such as ADD_SHARD, DELETE_SHARD, CHANGE_ROLE) when needed
+
+  * The Gateway service maintains a local cache (GatewayCurrentStateCache) of all participant states for efficient state tracking
+
+  * The controller queries participant states through the Gateway rather than sending direct messages, reducing network overhead and message queue contention
+
+** Key benefits
+
+  * Improved Performance: Eliminates the need for persistent message connections and reduces message queue contention
+
+  * Simplified Architecture: Uses poll-mode channel for efficient state synchronization
+
+  * Better Scalability: Supports larger clusters with reduced message traffic
+
+  * Enhanced Observability: Dedicated cache provides clearer insight into cluster state
+
+** Gateway-related changes
+
+  * Add helix-gateway stubs to exported packages (#2923)
+
+  * Gateway participant update target state in cache (#2910)
+
+  * Gateway - Implementing poll-mode channel (#2900)
+
+  * Gateway - Add GatewayCurrentStateCache for gateway service (#2895)
+
+  * User report their shards' current state instead of state transition message (#2892)
+
+  * Create Gateway service channel factory (#2883)
+
+  * Interfaces of gateway service (#2871)
+
+  * Implement Helix ST handling logic and HelixGatewayParticipant (#2845)
+
+  * Implement GatewayServiceManager (#2844)
+
+  * Add protobuff definition and an empty grpc service (#2834)
+
+  * Set up helix-gateway folder, add PoC code and add protobuf (#2826)
+
+** Helix Gateway Integration
+
+  * Add an end to end test for helix gateway (#2922)
+
+  * Synchronize calls to StreamObserver methods (#2934)
+
+  * Fix gateway e2e test - set timestamp in second instead of ms (#2942)
+
+  * Add getter for all target state - gateway service (#2943)
+
+  * Expose setting gateway service channel to allow external management of the lifecycle of the channel (#2913)
+
+  * API to close grpc client stream connection from server side (#2856)
+
+[]
+
+* Breaking Changes
+
+** Deprecation of helix-front and helix-admin-webapp
+
+  The helix-front and helix-admin-webapp modules have been deprecated in this release and will be removed in a future version. Users should migrate to alternative solutions for cluster management and monitoring.
+
+  * Remove helix-front and helix-webadmin as deprecation for 2.0 version (#867139bcd)
+
+[]
+
+* Detailed Changes
+
+** New Features
+
+  * Helix Gateway service (see Major Features section above)
+
+  * Support zone based virtual topology assignment algorithm (#2986)
+
+  * Sticky rebalancer - Make rebalance strategy topology aware (#2944)
+
+  * Create condition based rebalancer (#2846)
+
+  * Add message prioritization with currentReplicaNumber metadata (#3043)
+
+  * Add auto deregistration of offline participants after timeout (#2932)
+
+  * Make virtual group assignment for FaultZoneBasedVirtualGroupAssignmentAlgorithm deterministic (#3056)
+
+** Feature Improvements
+
+  * Performance improvement for IsEvacuateFinished (#3037)
+
+  * Improve setInstanceOperation performance (#3017)
+
+  * Improve performance for ConstraintBasedAlgorithm (#3032)
+
+  * Add cluster config update validation (#3026)
+
+  * Prevent controller from dropping replicas when best possible fails to calculate assignment (#3034)
+
+  * Make retry timeout configurable for ZK calls via system property (#3058)
+
+  * Add default get value for task partition map to prevent NPE (#3078)
+
+** Bug Fixes
+
+  * Fix BestPossibleVerifier attempting to verify all WAGED resources (#2955)
+
+  * Fix IsInstanceEnabled for backward compatibility (#2972)
+
+  * Fix NPE in IntermediateStateCalcStage (#2974)
+
+  * Fix the race condition for test TestConsecutiveZkSessionExpiry
+
+  * Fix global lock contention in DistClusterControllerStateModel caused by Optional.empty() singleton
+
+  * Fix issue in virtual topology string computation that incorrectly discards non-end topology nodes (#3031)
+
+  * Fix dropping error state partition for customized resource (#3024)
+
+  * Fix endless creation of best possible nodes triggered by unintended modification of cached best possible map (#2970)
+
+  * Fix waged instance capacity NPE on new resource (#2969)
+
+  * Fix flaky topology migration check and ConstraintBasedAlgorithm replicaHash computation (#2998)
+
+  * Align thread name when helix task executor are recreated (#2999)
+
+  * Fix Java docs (#3053)
+
+** Dependency Updates
+
+  * Bump io.netty:netty-codec from 4.1.68.Final to 4.1.125.Final (#3068)
+
+  * Bump io.grpc:grpc-netty-shaded from 1.59.1 to 1.75.0 in /helix-gateway
+
+  * Bump com.fasterxml.jackson.core:jackson-core in multiple modules
+
+  * Bump org.apache.logging.log4j:log4j-core to 2.25.4
+
+  * Bump handlebars from 4.7.7 to 4.7.9 in /helix-front
+
+  * Bump node-forge from 1.3.1 to 1.4.0 in /helix-front
+
+  * Bump webpack from 5.94.0 to 5.104.1 in /helix-front
+
+  * Bump org.eclipse.jetty:jetty-server (#3039)
+
+  * Changed all XML schema locations from http to https for security reasons (#3080)
+
+** Test Improvements
+
+  * Add extra wait logic for test stability
+
+  * Extend timeouts for various flaky tests
+
+  * Add timeout annotations to prevent test hanging
+
+  * Improve test logging for debugging
+
+[]
+
+* Upgrade Notes
+
+  When upgrading from previous versions, please note the following:
+
+  1. The Helix Gateway service is now the recommended communication mechanism for new deployments
+  2. The helix-front and helix-admin-webapp modules are deprecated and will be removed in a future release
+  3. If using custom rebalancers, verify compatibility with the new topology-aware algorithms
+
+[]
+
+* Known Issues
+
+  None
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

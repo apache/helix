@@ -36,6 +36,7 @@ fi
 # Move Ivy
 mv helix-admin-webapp/helix-admin-webapp-$version-SNAPSHOT.ivy helix-admin-webapp/helix-admin-webapp-$new_version-SNAPSHOT.ivy
 mv helix-agent/helix-agent-$version-SNAPSHOT.ivy helix-agent/helix-agent-$new_version-SNAPSHOT.ivy
+mv helix-agent/helix-gateway-$version-SNAPSHOT.ivy helix-agent/helix-gateway-$new_version-SNAPSHOT.ivy
 mv helix-common/helix-common-$version-SNAPSHOT.ivy helix-common/helix-common-$new_version-SNAPSHOT.ivy
 mv helix-core/helix-core-$version-SNAPSHOT.ivy helix-core/helix-core-$new_version-SNAPSHOT.ivy
 mv helix-lock/helix-lock-$version-SNAPSHOT.ivy helix-lock/helix-lock-$new_version-SNAPSHOT.ivy

@@ -21,7 +21,7 @@
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>1.4.4-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
@@ -52,7 +52,7 @@
   </modules>
 
   <properties>
-    <revision>1.4.4-SNAPSHOT</revision>
+    <revision>2.0.1-SNAPSHOT</revision>
     <!-- for svnpubsub site deployment -->
     <!-- you can use javasvn too -->
     <svnImpl>svn</svnImpl>

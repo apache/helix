@@ -20,6 +20,11 @@ package org.apache.helix.rest.server.filters;
  */
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -30,24 +35,65 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class CORSFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
+  /**
+   * Comma-separated list of origins allowed to make cross-origin requests. A single {@code "*"}
+   * enables anonymous wildcard access (without credentials). When unset, no cross-origin requests
+   * are permitted.
+   */
+  public static final String ALLOWED_ORIGINS_PROPERTY = "cors.allowed.origins";
+
+  private static final String WILDCARD = "*";
+  // Helix REST only exposes these HTTP methods; do not reflect arbitrary requested methods.
+  private static final String ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
+
+  private final Set<String> _allowedOrigins;
+  private final boolean _allowAnyOrigin;
+
+  public CORSFilter() {
+    this(System.getProperty(ALLOWED_ORIGINS_PROPERTY));
+  }
+
+  CORSFilter(String allowedOriginsConfig) {
+    Set<String> origins = new HashSet<>();
+    if (allowedOriginsConfig != null) {
+      origins = Arrays.stream(allowedOriginsConfig.split(","))
+          .map(String::trim)
+          .filter(origin -> !origin.isEmpty())
+          .collect(Collectors.toSet());
+    }
+    _allowAnyOrigin = origins.contains(WILDCARD);
+    _allowedOrigins = Collections.unmodifiableSet(origins);
+  }
+
+  private boolean isAllowedOrigin(String origin) {
+    return origin != null && (_allowAnyOrigin || _allowedOrigins.contains(origin));
+  }
+
   @Override
   public void filter(ContainerRequestContext request) throws IOException {
     // handle preflight
     if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
       Response.ResponseBuilder builder = Response.ok();
+      String origin = request.getHeaderString("Origin");
 
-      // NOTE: Allow whichever HTTP Methods requested in the incoming request because the cluster
-      // administrator must be able to trigger such operations
-      // Helix REST uses GET, PUT, DELETE, POST
-      String requestMethods = request.getHeaderString("Access-Control-Request-Method");
-      if (requestMethods != null) {
-        builder.header("Access-Control-Allow-Methods", requestMethods);
-      }
+      if (isAllowedOrigin(origin)) {
+        if (_allowAnyOrigin && !_allowedOrigins.contains(origin)) {
+          // Wildcard, anonymous access only: never advertise credentials with "*".
+          builder.header("Access-Control-Allow-Origin", WILDCARD);
+        } else {
+          // Echo the specific allowed origin and permit credentials.
+          builder.header("Access-Control-Allow-Origin", origin);
+          builder.header("Access-Control-Allow-Credentials", "true");
+          builder.header("Vary", "Origin");
+        }
 
-      // NOTE: All headers must be allowed for preflight
-      String allowHeaders = request.getHeaderString("Access-Control-Request-Headers");
-      if (allowHeaders != null) {
-        builder.header("Access-Control-Allow-Headers", allowHeaders);
+        builder.header("Access-Control-Allow-Methods", ALLOWED_METHODS);
+
+        // Reflect requested headers only for an already-validated allowed origin.
+        String allowHeaders = request.getHeaderString("Access-Control-Request-Headers");
+        if (allowHeaders != null) {
+          builder.header("Access-Control-Allow-Headers", allowHeaders);
+        }
       }
 
       request.abortWith(builder.build());
@@ -58,7 +104,19 @@ public class CORSFilter implements ContainerRequestFilter, ContainerResponseFilt
   public void filter(ContainerRequestContext request,
         ContainerResponseContext response) throws IOException {
     // handle origin
-    response.getHeaders().putSingle("Access-Control-Allow-Origin", "*");
-    response.getHeaders().putSingle("Access-Control-Allow-Credentials", "true");
+    String origin = request.getHeaderString("Origin");
+    if (!isAllowedOrigin(origin)) {
+      return;
+    }
+
+    if (_allowAnyOrigin && !_allowedOrigins.contains(origin)) {
+      // Wildcard, anonymous access only: never advertise credentials with "*".
+      response.getHeaders().putSingle("Access-Control-Allow-Origin", WILDCARD);
+    } else {
+      // Echo the specific allowed origin and permit credentials.
+      response.getHeaders().putSingle("Access-Control-Allow-Origin", origin);
+      response.getHeaders().putSingle("Access-Control-Allow-Credentials", "true");
+      response.getHeaders().add("Vary", "Origin");
+    }
   }
 }

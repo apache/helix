@@ -332,9 +332,27 @@ public class ClusterAccessor extends AbstractHelixResource {
         } catch (Exception e) {
           // NOP
         }
-        helixAdmin
-            .manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
-                content, customFieldsMap);
+
+        // Check if a timeout is specified
+        long timeout = -1;
+        if (customFieldsMap != null) {
+          try {
+            String timeoutStr = customFieldsMap.get("timeout");
+            if (timeoutStr != null && !timeoutStr.isEmpty()) {
+              timeout = Long.parseLong(timeoutStr);
+            }
+          } catch (NumberFormatException nfe) {
+            LOG.warn("Invalid timeout value specified", nfe);
+          }
+        }
+
+        if (timeout > 0 && command == Command.enableMaintenanceMode) {
+          helixAdmin.manuallyEnableMaintenanceModeWithTimeout(clusterId, true, content, timeout,
+              customFieldsMap);
+        } else {
+          helixAdmin.manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
+              content, customFieldsMap);
+        }
         break;
       case enableWagedRebalanceForAllResources:
         // Enable WAGED rebalance for all resources in the cluster

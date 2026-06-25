@@ -39,12 +39,51 @@ import org.apache.helix.PropertyKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Evaluates {@link Criteria} against persisted Helix data to determine message recipients.
+ * 
+ * <p><b>PERFORMANCE WARNING:</b> When using {@link DataSource#EXTERNALVIEW}, this evaluator 
+ * will scan <b>all</b> ExternalView znodes in the cluster if the resource name is unspecified or uses wildcards
+ * (e.g., "%" or "*"). This scanning happens <b>even when targeting specific instances</b>, and is
+ * NOT automatically optimized based on other criteria fields (like instanceName).
+ * 
+ * <p>At high ExternalView cardinality, this can cause severe performance degradation.
+ * 
+ * <p><b>Safer Patterns:</b>
+ * <ul>
+ *   <li><b>Use {@link DataSource#LIVEINSTANCES}:</b> When you only need to target live instances
+ *       and do not require resource/partition-level filtering. This reads only the LIVEINSTANCES
+ *       znodes, which is typically much smaller and faster.</li>
+ *   <li><b>Specify exact resource names:</b> If ExternalView is required, provide specific resource
+ *       names in {@link Criteria#setResource(String)} instead of wildcards to limit the scan scope.</li>
+ * </ul>
+ * 
+ * <p><b>Example - Targeting a specific instance:</b>
+ * <pre>
+ * // BAD: Scans all ExternalViews even though instance is specified
+ * Criteria criteria = new Criteria();
+ * criteria.setInstanceName("instance123");
+ * criteria.setDataSource(DataSource.EXTERNALVIEW);
+ * criteria.setResource("%"); // wildcard triggers full scan
+ * 
+ * // GOOD: Uses LIVEINSTANCES, avoids ExternalView scan
+ * Criteria criteria = new Criteria();
+ * criteria.setInstanceName("instance123");
+ * criteria.setDataSource(DataSource.LIVEINSTANCES);
+ * </pre>
+ */
 public class CriteriaEvaluator {
   private static Logger logger = LoggerFactory.getLogger(CriteriaEvaluator.class);
   public static final String MATCH_ALL_SYM = "%";
 
   /**
    * Examine persisted data to match wildcards in {@link Criteria}
+   * 
+   * <p><b>PERFORMANCE WARNING:</b> Using {@link DataSource#EXTERNALVIEW} with wildcard resource
+   * names (or unspecified resource) will scan ALL ExternalView znodes, even when targeting specific
+   * instances. At high cardinality, this can cause severe performance degradation. Prefer 
+   * {@link DataSource#LIVEINSTANCES} when resource/partition filtering is not needed.
+   * 
    * @param recipientCriteria Criteria specifying the message destinations
    * @param manager connection to the persisted data
    * @return map of evaluated criteria
@@ -56,6 +95,12 @@ public class CriteriaEvaluator {
 
   /**
    * Examine persisted data to match wildcards in {@link Criteria}
+   * 
+   * <p><b>PERFORMANCE WARNING:</b> Using {@link DataSource#EXTERNALVIEW} with wildcard resource
+   * names (or unspecified resource) will scan ALL ExternalView znodes, even when targeting specific
+   * instances. At high cardinality, this can cause severe performance degradation. Prefer 
+   * {@link DataSource#LIVEINSTANCES} when resource/partition filtering is not needed.
+   * 
    * @param recipientCriteria Criteria specifying the message destinations
    * @param accessor connection to the persisted data
    * @return map of evaluated criteria

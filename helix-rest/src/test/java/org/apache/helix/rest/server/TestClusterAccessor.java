@@ -177,6 +177,26 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetClusters")
+  public void testIsClusterStable() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = "TestCluster_1";
+
+    // Allow some time for the cluster to converge before asserting stability.
+    String body = get("clusters/" + cluster + "/isStable",
+        ImmutableMap.of("timeout", "10000"), Response.Status.OK.getStatusCode(), true);
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    Assert.assertEquals(node.get("cluster").asText(), cluster);
+    Assert.assertTrue(node.get("stable").asBoolean(),
+        "Cluster " + cluster + " should be stable");
+
+    // Non-existent cluster should return 404.
+    get("clusters/nonExistentCluster/isStable", null, Response.Status.NOT_FOUND.getStatusCode(),
+        false);
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetClusters")
   public void testGetClusterTopology() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = "TestCluster_1";

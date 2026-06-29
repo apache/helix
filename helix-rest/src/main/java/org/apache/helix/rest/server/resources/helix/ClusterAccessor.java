@@ -77,6 +77,7 @@ import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.rest.server.service.VirtualTopologyGroupService;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.zookeeper.data.Stat;
@@ -399,6 +400,39 @@ public class ClusterAccessor extends AbstractHelixResource {
       responseMap.put("details", getManagementModeDetails(clusterId, mode));
     }
 
+    return JSONRepresentation(responseMap);
+  }
+
+  @ClusterAuth
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
+  @GET
+  @Path("{clusterId}/isStable")
+  @ApiOperation(value = "Check whether the cluster is stable",
+      notes = "Returns true if every resource's ExternalView matches its best possible state, "
+          + "meaning there are no ongoing state transitions. Optional query param 'timeout' (ms) "
+          + "bounds how long to wait for convergence; defaults to 0 for a single immediate check.")
+  public Response isClusterStable(@PathParam("clusterId") String clusterId,
+      @DefaultValue("0") @QueryParam("timeout") long timeout) {
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
+    }
+
+    boolean stable;
+    // Reuse the shared REST server ZkClient; the verifier must not close it on our behalf.
+    try (BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterId)
+            .setZkClient(getRealmAwareZkClient())
+            .build()) {
+      stable = verifier.verify(timeout);
+    } catch (Exception e) {
+      LOG.error("Failed to verify cluster stability for cluster {}", clusterId, e);
+      return serverError(e);
+    }
+
+    Map<String, Object> responseMap = new HashMap<>();
+    responseMap.put("cluster", clusterId);
+    responseMap.put("stable", stable);
     return JSONRepresentation(responseMap);
   }
 

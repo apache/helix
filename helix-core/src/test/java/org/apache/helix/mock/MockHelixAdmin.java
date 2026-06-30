@@ -365,6 +365,12 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void automationEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      Map<String, String> customFields) {
+
+  }
+
+  @Override
   public boolean isInMaintenanceMode(String clusterName) {
     return false;
   }

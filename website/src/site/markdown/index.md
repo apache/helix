@@ -77,6 +77,10 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 Apache Helix has a new release:
 
+* [2.0.1](./2.0.1-docs/index.html) - A patch release on top of 2.0.0 with Helix REST hardening, bug fixes, and dependency updates
+
+    [\[Quick Start\]](./2.0.1-docs/Quickstart.html) [\[Release Notes\]](./2.0.1-docs/releasenotes/release-2.0.1.html)
+
 * [1.4.3](./1.4.3-docs/index.html) - A release containing minor fixes for instance operation and task framework
 
     [\[Quick Start\]](./1.4.3-docs/Quickstart.html) [\[Release Notes\]](./1.4.3-docs/releasenotes/release-1.4.3.html)
@@ -91,6 +95,8 @@ Apache Helix has a new release:
 
 ### Download
 
+<a href="./2.0.1-docs/download.html" class="btn btn-primary btn-small">2.0.1</a>
+
 <a href="./1.4.3-docs/download.html" class="btn btn-primary btn-small">1.4.3</a>
 
 <a href="./1.3.2-docs/download.html" class="btn btn-primary btn-small">1.3.2</a>
@@ -103,7 +109,7 @@ Apache Helix has a new release:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>1.4.3</version>
+  <version>2.0.1</version>
 </dependency>
 ```
 
@@ -116,6 +122,6 @@ Requirements: JDK 11, Maven 3.6.0+ for 1.2.0+
 ```
 git clone https://github.com/apache/helix.git
 cd helix
-git checkout helix-1.4.3
+git checkout helix-2.0.1
 mvn install package -DskipTests
 ```

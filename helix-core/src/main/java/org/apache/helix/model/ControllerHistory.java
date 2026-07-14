@@ -56,8 +56,8 @@ public class ControllerHistory extends HelixProperty {
     MAINTENANCE_HISTORY,
     OPERATION_TYPE,
     DATE,
-    REASON
-
+    REASON,
+    IN_MAINTENANCE_AFTER_OPERATION
   }
 
   private enum ManagementModeConfigKey {
@@ -180,10 +180,11 @@ public class ControllerHistory extends HelixProperty {
    * @param internalReason
    * @param customFields
    * @param triggeringEntity
+   * @param inMaintenanceAfterOperation whether the cluster is still in maintenance mode after this operation
    */
   public ZNRecord updateMaintenanceHistory(boolean enabled, String reason, long currentTime,
       MaintenanceSignal.AutoTriggerReason internalReason, Map<String, String> customFields,
-      MaintenanceSignal.TriggeringEntity triggeringEntity) throws IOException {
+      MaintenanceSignal.TriggeringEntity triggeringEntity, boolean inMaintenanceAfterOperation) throws IOException {
     DateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH:" + "mm:ss");
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     String dateTime = df.format(new Date(currentTime));
@@ -198,6 +199,8 @@ public class ControllerHistory extends HelixProperty {
         String.valueOf(currentTime));
     maintenanceEntry.put(MaintenanceSignal.MaintenanceSignalProperty.TRIGGERED_BY.name(),
         triggeringEntity.name());
+    maintenanceEntry.put(MaintenanceConfigKey.IN_MAINTENANCE_AFTER_OPERATION.name(),
+        String.valueOf(inMaintenanceAfterOperation));
     if (triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER) {
       // If auto-triggered
       maintenanceEntry.put(MaintenanceSignal.MaintenanceSignalProperty.AUTO_TRIGGER_REASON.name(),

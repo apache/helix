@@ -66,6 +66,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.server.ContainerManager;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -115,7 +116,7 @@ public class TestRawZkClient extends ZkTestBase {
   }
 
   @Test
-  void testCreatePersistentWithTTL() {
+  void testCreatePersistentWithTTL() throws InterruptedException {
     // Enable extended types and create a ZkClient
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
     ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
@@ -145,6 +146,11 @@ public class TestRawZkClient extends ZkTestBase {
     zkClient.createPersistentWithTTL(path, true, ttl);
     AssertJUnit.assertTrue(zkClient.exists(path));
 
+    // Check if the TTL znode expires or not.
+    advanceFakeElapsedTime(2000);
+    ContainerManager containerManager = _zkServerContainerManagerMap.get(_zkServerMap.get(ZkTestBase.ZK_ADDR));
+    containerManager.checkContainers();
+
     // Clean up
     zkClient.deleteRecursively(parentPath);
     zkClient.close();
@@ -152,7 +158,7 @@ public class TestRawZkClient extends ZkTestBase {
   }
 
   @Test
-  void testCreatePersistentSequentialWithTTL() {
+  void testCreatePersistentSequentialWithTTL() throws InterruptedException {
     // Enable extended types and create a ZkClient
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
     ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
@@ -177,6 +183,11 @@ public class TestRawZkClient extends ZkTestBase {
     AssertJUnit.assertTrue(zkClient.exists(path + "0000000000"));
     ZNRecord retrievedRecord = zkClient.readData(path + "0000000000");
     AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
+
+    // Check if the TTL znode expires or not.
+    advanceFakeElapsedTime(2000);
+    ContainerManager containerManager = _zkServerContainerManagerMap.get(_zkServerMap.get(ZkTestBase.ZK_ADDR));
+    containerManager.checkContainers();
 
     // Clean up
     zkClient.deleteRecursively(parentPath);

@@ -20,9 +20,43 @@ package org.apache.helix;
  */
 
 /**
- * Describes various properties that operations involving {@link Message} delivery will follow.
+ * Specifies recipient criteria for message delivery in a Helix cluster.
+ * 
+ * <p><b>PERFORMANCE WARNING:</b> Using {@link DataSource#EXTERNALVIEW} with wildcard or unspecified
+ * resource names causes Helix to scan ALL ExternalView znodes in the cluster, regardless of other
+ * criteria fields. At scale, this causes severe performance degradation.
+ * 
+ * <p><b>Example - Efficient Pattern:</b>
+ * <pre>
+ * // GOOD: Target specific live instance
+ * Criteria criteria = new Criteria();
+ * criteria.setInstanceName("host_1234");
+ * criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+ * criteria.setDataSource(DataSource.LIVEINSTANCES);  // Fast
+ * criteria.setSessionSpecific(true);
+ * 
+ * // BAD: Wildcard resource with ExternalView
+ * Criteria criteria = new Criteria();
+ * criteria.setInstanceName("host_1234");
+ * criteria.setDataSource(DataSource.EXTERNALVIEW);
+ * criteria.setResource("%");  // Scans ALL ExternalViews!
+ * </pre>
+ * 
+ * <p><b>DataSource Selection:</b>
+ * <ul>
+ *   <li><b>LIVEINSTANCES:</b> Use when targeting live instances without resource/partition filtering. Fastest.</li>
+ *   <li><b>EXTERNALVIEW:</b> Use when filtering by resource, partition, or replica state. 
+ *       ALWAYS specify exact resource names.</li>
+ *   <li><b>INSTANCES:</b> Use for targeting all configured instances based on instance config.</li>
+ *   <li><b>IDEALSTATES:</b> Use for targeting based on ideal state. Less common.</li>
+ * </ul>
+ * 
+ * @see ClusterMessagingService#send(Criteria, org.apache.helix.model.Message)
  */
 public class Criteria {
+  /**
+   * Source of cluster state data for resolving message recipients.
+   */
   public enum DataSource {
     IDEALSTATES,
     EXTERNALVIEW,
@@ -80,8 +114,12 @@ public class Criteria {
   }
 
   /**
-   * Set the current source of truth
-   * @param source ideal state or external view
+   * Set the current source of truth for resolving message recipients.
+   * 
+   * <p>Prefer {@link DataSource#LIVEINSTANCES} when not filtering by resource/partition. 
+   * If using {@link DataSource#EXTERNALVIEW}, specify exact resource names to avoid full scans.
+   * 
+   * @param source ideal state, external view, live instances, or instances
    */
   public void setDataSource(DataSource source) {
     _dataSource = source;
@@ -161,8 +199,12 @@ public class Criteria {
   }
 
   /**
-   * Set the destination resource name
-   * @param resourceName the resource name or % for all resources
+   * Set the destination resource name.
+   * 
+   * <p>Only meaningful for {@link DataSource#EXTERNALVIEW} or {@link DataSource#IDEALSTATES}.
+   * Using wildcard "%" with EXTERNALVIEW reads ALL ExternalView znodes - use exact names instead.
+   * 
+   * @param resourceName the exact resource name, or "%" for all resources
    */
   public void setResource(String resourceName) {
     this.resourceName = resourceName;

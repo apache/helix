@@ -552,6 +552,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<String> swapOutResources = baseAccessor.getChildNames(
         PropertyPathBuilder.instanceCurrentState(clusterName, swapOutInstanceName,
             swapOutLastActiveSession), 0);
+    if (swapOutResources == null) {
+      // No current states found for the swap-out instance, swap is complete
+      return true;
+    }
     for (String swapOutResource : swapOutResources) {
       // Get the topState and secondTopStates for the stateModelDef used by the resource.
       IdealState idealState = accessor.getProperty(keyBuilder.idealStates(swapOutResource));

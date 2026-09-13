@@ -31,6 +31,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -329,7 +330,7 @@ public class TaskStateModel extends StateModel {
     _taskRunner =
         new TaskRunner(task, msg.getResourceName(), taskPartition, msg.getTgtName(), _manager,
             msg.getTgtSessionId(), this);
-    _taskExecutor.submit(_taskRunner);
+    _taskExecutor.submit(ExecutorTaskUtil.wrap(_taskRunner));
     _taskRunner.waitTillStarted();
 
     // Set up a timer to cancel the task when its time out expires.

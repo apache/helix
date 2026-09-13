@@ -35,14 +35,13 @@ import org.apache.helix.controller.rebalancer.util.WagedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.ClusterTopologyConfig;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.MetricCollector;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
+import org.apache.helix.util.ExecutorTaskUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +116,7 @@ class GlobalRebalanceRunner implements AutoCloseable {
     if (clusterChanges.keySet().stream().anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
       final boolean waitForGlobalRebalance = !_asyncGlobalRebalanceEnabled;
       // Calculate the Baseline assignment for global rebalance.
-      Future<Boolean> result = _baselineCalculateExecutor.submit(() -> {
+      Future<Boolean> result = _baselineCalculateExecutor.submit(ExecutorTaskUtil.wrap(() -> {
         try {
           // If the synchronous thread does not wait for the baseline to be calculated, the synchronous thread should
           // be triggered again after baseline is finished.
@@ -132,7 +131,7 @@ class GlobalRebalanceRunner implements AutoCloseable {
           return false;
         }
         return true;
-      });
+      }));
       if (waitForGlobalRebalance) {
         try {
           if (!result.get()) {

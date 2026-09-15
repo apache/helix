@@ -63,15 +63,31 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
     // Check for the maintenance signal
     // If it was entered manually or the signal is null (which shouldn't happen), skip this stage
     MaintenanceSignal maintenanceSignal = cache.getMaintenanceSignal();
-    if (maintenanceSignal == null || maintenanceSignal
-        .getTriggeringEntity() != MaintenanceSignal.TriggeringEntity.CONTROLLER) {
+    if (maintenanceSignal == null) {
       return;
     }
-
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     if (manager == null || !manager.isConnected()) {
       LogUtil.logInfo(LOG, _eventId,
           "MaintenanceRecoveryStage failed due to HelixManager being null or not connected!");
+      return;
+    }
+    // Check if this is a user-triggered maintenance mode with an end time
+    if (maintenanceSignal.getTriggeringEntity() == MaintenanceSignal.TriggeringEntity.USER) {
+      long endTime = maintenanceSignal.getEndTime();
+      // If endTime is set and the current time has passed the end time, exit maintenance mode
+      if (endTime > 0 && System.currentTimeMillis() >= endTime) {
+        String reason = String.format(
+            "Timeout-based exit from maintenance mode for cluster %s; End time %d has passed.",
+            event.getClusterName(), endTime);
+
+        manager.getClusterManagmentTool().manuallyEnableMaintenanceMode(manager.getClusterName(), false,
+            reason, null);
+        cache.setMaintenanceSignalChanged(); // Set the flag so we do not double enable/disable
+        LogUtil.logInfo(LOG, _eventId, reason);
+        return;
+      }
+      // Not yet time to exit, or no end time set
       return;
     }
 

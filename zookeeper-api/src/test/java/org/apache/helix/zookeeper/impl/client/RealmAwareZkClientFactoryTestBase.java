@@ -26,7 +26,9 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
+import org.apache.zookeeper.server.ContainerManager;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -138,7 +140,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
    * Test creating a sequential TTL node.
    */
   @Test(dependsOnMethods = "testRealmAwareZkClientCreateContainer")
-  public void testRealmAwareZkClientCreateSequentialWithTTL() {
+  public void testRealmAwareZkClientCreateSequentialWithTTL() throws InterruptedException {
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // Test writing and reading data
     _realmAwareZkClient.createPersistent(TEST_VALID_PATH, true);
@@ -149,6 +151,12 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
     Assert.assertEquals(DUMMY_RECORD.getSimpleField("Dummy"),
         retrievedRecord.getSimpleField("Dummy"));
 
+    // Check if the TTL znode expires or not.
+    advanceFakeElapsedTime(2000);
+    ContainerManager containerManager = _zkServerContainerManagerMap.get(_zkServerMap.get(ZkTestBase.ZK_ADDR));
+    containerManager.checkContainers();
+    Assert.assertFalse(_realmAwareZkClient.exists(childPath));
+
     // Clean up
     _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
     System.clearProperty("zookeeper.extendedTypesEnabled");
@@ -158,7 +166,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
    * Test creating a TTL node.
    */
   @Test(dependsOnMethods = "testRealmAwareZkClientCreateSequentialWithTTL")
-  public void testRealmAwareZkClientCreateWithTTL() {
+  public void testRealmAwareZkClientCreateWithTTL() throws InterruptedException {
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // Test with createParents = true
     long ttl = 1L;
@@ -171,6 +179,12 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
     ZNRecord retrievedRecord = _realmAwareZkClient.readData(childPath);
     Assert.assertEquals(DUMMY_RECORD.getSimpleField("Dummy"),
         retrievedRecord.getSimpleField("Dummy"));
+
+    // Check if the TTL znode expires or not.
+    advanceFakeElapsedTime(2000);
+    ContainerManager containerManager = _zkServerContainerManagerMap.get(_zkServerMap.get(ZkTestBase.ZK_ADDR));
+    containerManager.checkContainers();
+    Assert.assertFalse(_realmAwareZkClient.exists(childPath));
 
     // Clean up
     _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);

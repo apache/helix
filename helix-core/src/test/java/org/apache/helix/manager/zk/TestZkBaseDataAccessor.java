@@ -243,7 +243,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
-  public void testSyncCreateWithTTL() {
+  public void testSyncCreateWithTTL() throws InterruptedException {
     System.setProperty("zookeeper.extendedTypesEnabled", "true");
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -271,6 +271,10 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
 
+    // Check if the TTL znode expires or not.
+    advanceFakeElapsedTime(2000);
+    _containerManager.checkContainers();
+    Assert.assertFalse(accessor.exists(path, 0));
     System.clearProperty("zookeeper.extendedTypesEnabled");
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -300,7 +304,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     getRecord = _gZkClient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
-
     System.clearProperty("zookeeper.extendedTypesEnabled");
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }

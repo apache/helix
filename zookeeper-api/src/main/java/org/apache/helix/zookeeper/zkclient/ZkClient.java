@@ -3268,7 +3268,9 @@ public class ZkClient implements Watcher {
    * This method performs the following checks:
    * 1. Verifies if SASL client is enabled via ZKClientConfig
    * 2. Reads the JAAS client context name from zookeeper.sasl.clientconfig property
-   * 3. Checks if the JAAS configuration contains Krb5LoginModule
+   * 3. Checks if the JAAS configuration contains Krb5LoginModule or DigestLoginModule.
+   *    ZooKeeper reports SaslAuthenticated (not SyncConnected) as the terminal state for
+   *    both, when the server requires client SASL authentication.
    *
    * @return true if Kerberos authentication is enabled, false otherwise
    */
@@ -3306,10 +3308,11 @@ public class ZkClient implements Watcher {
         return false;
       }
 
-      // Step 4: Check if any login module contains "Krb5LoginModule"
+      // Step 4: Check if any login module is one that authenticates via SASL and leaves
+      // the connection in the SaslAuthenticated state rather than SyncConnected.
       for (AppConfigurationEntry entry : entries) {
-        if (entry.getLoginModuleName().contains("Krb5LoginModule")) {
-          LOG.debug("zkclient {}, Kerberos authentication is enabled with login module: {}", _uid,
+        if (isSaslAuthLoginModule(entry.getLoginModuleName())) {
+          LOG.debug("zkclient {}, SASL authentication is enabled with login module: {}", _uid,
               entry.getLoginModuleName());
           return true;
         }
@@ -3320,5 +3323,10 @@ public class ZkClient implements Watcher {
       LOG.warn("zkclient {}, Failed to determine if Kerberos is enabled, assuming false", _uid, e);
       return false; // Safe default - fall back to non-Kerberos behavior
     }
+  }
+
+  @VisibleForTesting
+  static boolean isSaslAuthLoginModule(String loginModuleName) {
+    return loginModuleName.contains("Krb5LoginModule") || loginModuleName.contains("DigestLoginModule");
   }
 }

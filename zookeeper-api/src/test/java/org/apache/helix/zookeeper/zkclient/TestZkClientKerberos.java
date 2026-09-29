@@ -160,6 +160,24 @@ public class TestZkClientKerberos extends ZkTestBase {
   }
 
   /**
+   * isSaslAuthLoginModule is the pure predicate the connection-based checks above delegate
+   * to. Testing it directly avoids opening a real SASL handshake against the local,
+   * non-SASL test server, which is unreliable for the DIGEST-MD5 module in particular.
+   */
+  @Test
+  public void testIsSaslAuthLoginModule_DetectsKerberosAndDigest() {
+    Assert.assertTrue(
+        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
+            "com.sun.security.auth.module.Krb5LoginModule"));
+    Assert.assertTrue(
+        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
+            "org.apache.zookeeper.server.auth.DigestLoginModule"));
+    Assert.assertFalse(
+        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
+            "com.example.PlainLoginModule"));
+  }
+
+  /**
    * Use reflection to invoke private isKerberosAuthEnabled method
    */
   private boolean invokeIsKerberosAuthEnabled(ZkClient zkClient) throws Exception {

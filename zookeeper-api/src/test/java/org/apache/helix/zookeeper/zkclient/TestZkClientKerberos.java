@@ -35,7 +35,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
- * Integration tests for Kerberos authentication detection in ZkClient
+ * Integration tests for SASL (Kerberos and DIGEST) authentication detection in ZkClient
  */
 public class TestZkClientKerberos extends ZkTestBase {
   
@@ -61,10 +61,10 @@ public class TestZkClientKerberos extends ZkTestBase {
   }
 
   /**
-   * Test isKerberosAuthEnabled returns false when SASL is disabled
+   * Test isSaslAuthEnabled returns false when SASL is disabled
    */
   @Test
-  public void testIsKerberosAuthEnabled_WhenSaslDisabled() throws Exception {
+  public void testIsSaslAuthEnabled_WhenSaslDisabled() throws Exception {
     // Create ZkClient with SASL disabled (default configuration)
     ZkClient.Builder builder = new ZkClient.Builder();
     builder.setZkServer(ZkTestBase.ZK_ADDR)
@@ -72,19 +72,19 @@ public class TestZkClientKerberos extends ZkTestBase {
     _zkClient = builder.build();
     _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
     
-    // Use reflection to call private isKerberosAuthEnabled method
-    boolean result = invokeIsKerberosAuthEnabled(_zkClient);
+    // Use reflection to call private isSaslAuthEnabled method
+    boolean result = invokeIsSaslAuthEnabled(_zkClient);
     
     // Verify
-    Assert.assertFalse(result, "isKerberosAuthEnabled should return false when SASL is disabled");
+    Assert.assertFalse(result, "isSaslAuthEnabled should return false when SASL is disabled");
   }
 
   /**
-   * Test isKerberosAuthEnabled returns false when SASL is enabled but without Kerberos
+   * Test isSaslAuthEnabled returns false when SASL is enabled but no SASL login module is configured
    */
   @Test
-  public void testIsKerberosAuthEnabled_WhenSaslEnabledWithoutKerberos() throws Exception {
-    // Setup JAAS configuration with non-Kerberos module
+  public void testIsSaslAuthEnabled_WhenSaslEnabledWithoutSaslLoginModule() throws Exception {
+    // Setup JAAS configuration with a non-SASL login module
     Configuration jaasConfig = new Configuration() {
       @Override
       public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
@@ -113,11 +113,11 @@ public class TestZkClientKerberos extends ZkTestBase {
       _zkClient = builder.build();
       _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
       
-      // Use reflection to call private isKerberosAuthEnabled method
-      boolean result = invokeIsKerberosAuthEnabled(_zkClient);
+      // Use reflection to call private isSaslAuthEnabled method
+      boolean result = invokeIsSaslAuthEnabled(_zkClient);
       
       // Verify
-      Assert.assertFalse(result, "isKerberosAuthEnabled should return false when Kerberos is not configured");
+      Assert.assertFalse(result, "isSaslAuthEnabled should return false when no SASL login module is configured");
     } finally {
       System.clearProperty("zookeeper.sasl.client");
     }
@@ -125,10 +125,10 @@ public class TestZkClientKerberos extends ZkTestBase {
 
 
   /**
-   * Test isKerberosAuthEnabled returns false when JAAS configuration is null
+   * Test isSaslAuthEnabled returns false when JAAS configuration is null
    */
   @Test
-  public void testIsKerberosAuthEnabled_WhenJaasConfigNull() throws Exception {
+  public void testIsSaslAuthEnabled_WhenJaasConfigNull() throws Exception {
     // Setup JAAS configuration that returns null
     Configuration jaasConfig = new Configuration() {
       @Override
@@ -149,22 +149,40 @@ public class TestZkClientKerberos extends ZkTestBase {
       _zkClient = builder.build();
       _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
       
-      // Use reflection to call private isKerberosAuthEnabled method
-      boolean result = invokeIsKerberosAuthEnabled(_zkClient);
+      // Use reflection to call private isSaslAuthEnabled method
+      boolean result = invokeIsSaslAuthEnabled(_zkClient);
       
       // Verify
-      Assert.assertFalse(result, "isKerberosAuthEnabled should return false when JAAS config is null");
+      Assert.assertFalse(result, "isSaslAuthEnabled should return false when JAAS config is null");
     } finally {
       System.clearProperty("zookeeper.sasl.client");
     }
   }
 
   /**
-   * Use reflection to invoke private isKerberosAuthEnabled method
+   * isSaslAuthLoginModule is the pure predicate the connection-based checks above delegate
+   * to. Testing it directly avoids opening a real SASL handshake against the local,
+   * non-SASL test server, which is unreliable for the DIGEST-MD5 module in particular.
    */
-  private boolean invokeIsKerberosAuthEnabled(ZkClient zkClient) throws Exception {
+  @Test
+  public void testIsSaslAuthLoginModule_DetectsKerberosAndDigest() {
+    Assert.assertTrue(
+        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
+            "com.sun.security.auth.module.Krb5LoginModule"));
+    Assert.assertTrue(
+        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
+            "org.apache.zookeeper.server.auth.DigestLoginModule"));
+    Assert.assertFalse(
+        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
+            "com.example.PlainLoginModule"));
+  }
+
+  /**
+   * Use reflection to invoke private isSaslAuthEnabled method
+   */
+  private boolean invokeIsSaslAuthEnabled(ZkClient zkClient) throws Exception {
     // The method is in the base class org.apache.helix.zookeeper.zkclient.ZkClient
-    Method method = org.apache.helix.zookeeper.zkclient.ZkClient.class.getDeclaredMethod("isKerberosAuthEnabled");
+    Method method = org.apache.helix.zookeeper.zkclient.ZkClient.class.getDeclaredMethod("isSaslAuthEnabled");
     method.setAccessible(true);
     return (Boolean) method.invoke(zkClient);
   }

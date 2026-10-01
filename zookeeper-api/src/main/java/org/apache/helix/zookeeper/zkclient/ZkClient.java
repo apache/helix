@@ -2093,7 +2093,7 @@ public class ZkClient implements Watcher {
   }
 
   public boolean waitUntilConnected(long time, TimeUnit timeUnit) throws ZkInterruptedException {
-    KeeperState expectedState = isKerberosAuthEnabled() ? KeeperState.SaslAuthenticated : KeeperState.SyncConnected;
+    KeeperState expectedState = isSaslAuthEnabled() ? KeeperState.SaslAuthenticated : KeeperState.SyncConnected;
     return waitForKeeperState(expectedState, time, timeUnit);
   }
 
@@ -3264,7 +3264,7 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Checks if Kerberos authentication is enabled for the ZooKeeper connection.
+   * Checks if SASL authentication (Kerberos or DIGEST) is enabled for the ZooKeeper connection.
    * This method performs the following checks:
    * 1. Verifies if SASL client is enabled via ZKClientConfig
    * 2. Reads the JAAS client context name from zookeeper.sasl.clientconfig property
@@ -3272,9 +3272,9 @@ public class ZkClient implements Watcher {
    *    ZooKeeper reports SaslAuthenticated (not SyncConnected) as the terminal state for
    *    both, when the server requires client SASL authentication.
    *
-   * @return true if Kerberos authentication is enabled, false otherwise
+   * @return true if SASL authentication (Kerberos or DIGEST) is enabled, false otherwise
    */
-  private boolean isKerberosAuthEnabled() {
+  private boolean isSaslAuthEnabled() {
     try {
       // Get ZooKeeper instance from connection
       ZkConnection zkConnection = (ZkConnection) getConnection();
@@ -3297,7 +3297,7 @@ public class ZkClient implements Watcher {
       String clientContextName = zkClientConfig.getProperty(ZKClientConfig.LOGIN_CONTEXT_NAME_KEY,
           ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT);
 
-      // Step 3: Check JAAS configuration for Krb5LoginModule
+      // Step 3: Get the login modules from the JAAS configuration
       Configuration jaasConfig = Configuration.getConfiguration();
       if (jaasConfig == null) {
         return false;
@@ -3320,8 +3320,8 @@ public class ZkClient implements Watcher {
 
       return false;
     } catch (Exception e) {
-      LOG.warn("zkclient {}, Failed to determine if Kerberos is enabled, assuming false", _uid, e);
-      return false; // Safe default - fall back to non-Kerberos behavior
+      LOG.warn("zkclient {}, Failed to determine if SASL is enabled, assuming false", _uid, e);
+      return false; // Safe default - fall back to non-SASL behavior
     }
   }
 

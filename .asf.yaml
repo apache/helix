@@ -1,4 +1,8 @@
 github:
+  # Keep vulnerability alerts visible, but stop Dependabot from opening
+  # automated version-bump PRs (hard to verify and they flood the PR queue).
+  dependabot_alerts: true
+  dependabot_updates: false
   rulesets:
     - name: "Default Branch Protection"
       type: branch

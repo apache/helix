@@ -502,8 +502,16 @@ public class AssignableInstanceManager {
       _assignableInstanceMap.get(instanceName).release(taskConfig, quotaType);
     }
 
-    if (_globalThreadBasedQuotaMap.containsKey(quotaType)) {
-      _globalThreadBasedQuotaMap.put(quotaType, _globalThreadBasedQuotaMap.get(quotaType) + 1);
+    // Return global quota to the type that assign() actually deducted from. tryAssign() already
+    // maps an undefined quota type to DEFAULT in the stored TaskAssignResult. A quota type that
+    // was removed while the task was running is no longer in the global map, so nothing is
+    // returned for it (and DEFAULT is not inflated).
+    TaskAssignResult assigned = _taskAssignResultMap.get(taskConfig.getId());
+    String globalQuotaType =
+        assigned != null && assigned.getQuotaType() != null ? assigned.getQuotaType() : quotaType;
+    if (_globalThreadBasedQuotaMap.containsKey(globalQuotaType)) {
+      _globalThreadBasedQuotaMap.put(globalQuotaType,
+          _globalThreadBasedQuotaMap.get(globalQuotaType) + 1);
     }
   }
 

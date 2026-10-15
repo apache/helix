@@ -205,15 +205,17 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     ThreadPoolExecutor executor = (ThreadPoolExecutor) (helixExecutor._batchMessageExecutorService);
     Assert.assertNotNull(executor);
 
-    // Use longer timeout since the state model factory has 500ms delay per transition,
-    // and with 5 DBs x 5 partitions = 25 partitions and only 5 threads in the pool,
-    // it takes significant time for all state transitions to complete
+    // Poll until the external view converges instead of sleeping for a fixed period.
+    // Note: setWaitTillVerify() is an unconditional pre-verify sleep, not a verification
+    // timeout, so it only added a fixed delay without extending the verification window.
+    // Use a generous poll timeout instead: polling returns as soon as the cluster
+    // converges, but still gives slow machines up to 2 minutes to finish all the batch
+    // state transitions.
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
             .setZkClient(_gZkClient)
-            .setWaitTillVerify(120000)
             .build();
-    Assert.assertTrue(verifier.verifyByPolling());
+    Assert.assertTrue(verifier.verifyByPolling(120 * 1000L, 500L));
   }
 
   private void setResourceThreadPoolSize(String resourceName, int threadPoolSize) {

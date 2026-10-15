@@ -168,6 +168,13 @@ public class TestHelixTaskExecutor {
   }
 
   class CancellableHandlerFactory implements MultiTypeMessageHandlerFactory {
+    // Optional per-message overrides for how many 100ms sleep iterations the handler performs on
+    // the first execution (FIRST_SLEEP_TIMES) and on a retry after cancellation (RETRY_SLEEP_TIMES).
+    // They let tests deterministically control whether a handler finishes before, or is
+    // interrupted by, the message execution timeout, instead of relying on tight timing margins
+    // that break on slow machines.
+    static final String FIRST_SLEEP_TIMES = "FirstSleepTimes";
+    static final String RETRY_SLEEP_TIMES = "RetrySleepTimes";
 
     int _handlersCreated = 0;
     ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<String, String>();
@@ -187,6 +194,11 @@ public class TestHelixTaskExecutor {
         int sleepTimes = 15;
         if (_message.getRecord().getSimpleFields().containsKey("Cancelcount")) {
           sleepTimes = 10;
+          if (_message.getRecord().getSimpleFields().containsKey(RETRY_SLEEP_TIMES)) {
+            sleepTimes = Integer.parseInt(_message.getRecord().getSimpleField(RETRY_SLEEP_TIMES));
+          }
+        } else if (_message.getRecord().getSimpleFields().containsKey(FIRST_SLEEP_TIMES)) {
+          sleepTimes = Integer.parseInt(_message.getRecord().getSimpleField(FIRST_SLEEP_TIMES));
         }
         _processingMsgIds.put(_message.getMsgId(), _message.getMsgId());
         try {
@@ -857,7 +869,7 @@ public class TestHelixTaskExecutor {
   }
 
   @Test()
-  public void testNoRetry() throws InterruptedException {
+  public void testNoRetry() throws Exception {
     LOG.info("START testNoRetry");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
@@ -870,13 +882,26 @@ public class TestHelixTaskExecutor {
 
     List<Message> msgList = new ArrayList<Message>();
     int nMsgs2 = 4;
-    // Test the case in which retry = 0
+    // Test the case in which retry = 0.
+    // The first 2 messages are designed to always time out: their handlers sleep much longer
+    // (up to 60s) than their execution timeout, so they are always interrupted. The last 2
+    // messages are designed to always complete: their handlers finish quickly while their
+    // execution timeout is generous. This keeps the outcome deterministic on slow machines,
+    // instead of relying on tight margins between handler execution time and message timeout.
     for (int i = 0; i < nMsgs2; i++) {
       Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
-      msg.setExecutionTimeout((i + 1) * 600);
+      if (i < nMsgs2 - 2) {
+        // Will be interrupted by the execution timeout.
+        msg.setExecutionTimeout(3000);
+        msg.getRecord().setSimpleField(CancellableHandlerFactory.FIRST_SLEEP_TIMES, "600");
+      } else {
+        // Will complete quickly, far before the execution timeout.
+        msg.setExecutionTimeout(60 * 1000);
+        msg.getRecord().setSimpleField(CancellableHandlerFactory.FIRST_SLEEP_TIMES, "1");
+      }
       msgList.add(msg);
       LOG.info("Created message {} with timeout {} ms", msg.getId(), msg.getExecutionTimeout());
     }
@@ -884,35 +909,23 @@ public class TestHelixTaskExecutor {
     executor.onMessage("someInstance", msgList, changeContext);
     LOG.info("Submitted {} messages to executor", nMsgs2);
 
-    // Wait for processing to stabilize with exactly 2 messages timed out
-    // Poll until we see exactly 2 timed out and the count has been stable for 2 consecutive polls
-    int maxWaitTime = 15000;
-    int pollInterval = 300;
-    int expectedTimeoutCount = 2;
-    int stableCount = 0;
-    int lastTimeoutCount = -1;
-
-    LOG.info("Waiting up to {} ms for exactly {} messages to timeout...", maxWaitTime, expectedTimeoutCount);
-    long startTime = System.currentTimeMillis();
-
-    while (System.currentTimeMillis() - startTime < maxWaitTime) {
-      int currentTimeoutCount = factory._timedOutMsgIds.size();
-      if (currentTimeoutCount == expectedTimeoutCount && currentTimeoutCount == lastTimeoutCount) {
-        stableCount++;
-        if (stableCount >= 2) {
-          LOG.info("Timed out count stabilized at {} after {} ms",
-              currentTimeoutCount, System.currentTimeMillis() - startTime);
-          break;
-        }
-      } else {
-        stableCount = 0;
+    // Poll until the 2 short-timeout messages have been cancelled (the handler sets Cancelcount
+    // after it is interrupted) and the 2 long-timeout messages have been processed. All of these
+    // happen asynchronously on the executor threads, so never assert on them without waiting.
+    TestHelper.verify(() -> {
+      if (factory._handlersCreated != nMsgs2 || factory._timedOutMsgIds.size() != 2
+          || factory._processedMsgIds.size() != nMsgs2 - 2) {
+        return false;
       }
-      lastTimeoutCount = currentTimeoutCount;
-      Thread.sleep(pollInterval);
-    }
-
-    // Final wait to ensure all timeout cancellations are fully processed
-    Thread.sleep(1500);
+      for (int i = 0; i < nMsgs2 - 2; i++) {
+        Message msg = msgList.get(i);
+        if (!msg.getRecord().getSimpleFields().containsKey("Cancelcount")
+            || !factory._timedOutMsgIds.containsKey(msg.getId())) {
+          return false;
+        }
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION);
 
     LOG.info("After wait - Handlers created: {}, Processed: {}, TimedOut: {}",
         factory._handlersCreated, factory._processedMsgIds.size(), factory._timedOutMsgIds.size());
@@ -922,21 +935,21 @@ public class TestHelixTaskExecutor {
     AssertJUnit.assertTrue("Expected " + nMsgs2 + " handlers created, but got " + factory._handlersCreated,
         factory._handlersCreated == nMsgs2);
     AssertJUnit.assertEquals("Expected 2 messages to timeout", 2, factory._timedOutMsgIds.size());
+    AssertJUnit.assertEquals("Expected 2 messages to be processed", nMsgs2 - 2,
+        factory._processedMsgIds.size());
 
     // Check first 2 messages (with shorter timeouts) were cancelled
     for (int i = 0; i < nMsgs2 - 2; i++) {
-      if (factory.getMessageTypes().contains(msgList.get(i).getMsgType())) {
-        AssertJUnit.assertTrue("Message " + i + " should have Cancelcount",
-            msgList.get(i).getRecord().getSimpleFields().containsKey("Cancelcount"));
-        AssertJUnit.assertTrue("Message " + i + " should be in timed out map",
-            factory._timedOutMsgIds.containsKey(msgList.get(i).getId()));
-      }
+      AssertJUnit.assertTrue("Message " + i + " should have Cancelcount",
+          msgList.get(i).getRecord().getSimpleFields().containsKey("Cancelcount"));
+      AssertJUnit.assertTrue("Message " + i + " should be in timed out map",
+          factory._timedOutMsgIds.containsKey(msgList.get(i).getId()));
     }
     LOG.info("END testNoRetry - Test passed!");
   }
 
   @Test()
-  public void testRetryOnce() throws InterruptedException {
+  public void testRetryOnce() throws Exception {
     System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
@@ -949,30 +962,50 @@ public class TestHelixTaskExecutor {
 
     List<Message> msgList = new ArrayList<Message>();
 
-    // Test the case that the message are executed for the second time
+    // Test the case that the message are executed for the second time.
+    // The expected final state is made deterministic on slow machines by controlling how long
+    // each handler runs, instead of relying on tight margins between handler execution time and
+    // message timeout:
+    // - Message 0 times out on both the first execution and the retry (the handler sleeps much
+    //   longer than the timeout in both runs) -> Cancelcount == "2", timed out.
+    // - Message 1 times out on the first execution, and the retry completes quickly
+    //   -> Cancelcount == "1", processed.
+    // - Messages 2 and 3 complete quickly on the first execution -> processed.
     int nMsgs2 = 4;
     for (int i = 0; i < nMsgs2; i++) {
       Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
-      msg.setExecutionTimeout((i + 1) * 600);
       msg.setRetryCount(1);
+      if (i == 0) {
+        msg.setExecutionTimeout(3000);
+        msg.getRecord().setSimpleField(CancellableHandlerFactory.FIRST_SLEEP_TIMES, "600");
+        msg.getRecord().setSimpleField(CancellableHandlerFactory.RETRY_SLEEP_TIMES, "600");
+      } else if (i == 1) {
+        msg.setExecutionTimeout(3000);
+        msg.getRecord().setSimpleField(CancellableHandlerFactory.FIRST_SLEEP_TIMES, "600");
+        msg.getRecord().setSimpleField(CancellableHandlerFactory.RETRY_SLEEP_TIMES, "1");
+      } else {
+        msg.setExecutionTimeout(60 * 1000);
+        msg.getRecord().setSimpleField(CancellableHandlerFactory.FIRST_SLEEP_TIMES, "1");
+      }
       msgList.add(msg);
     }
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
-    Thread.sleep(3500);
 
-    // Wait for task map to be empty (all tasks completed or cancelled)
-    long startTime = System.currentTimeMillis();
-    while (executor._taskMap.size() > 0 && (System.currentTimeMillis() - startTime) < 1000) {
-      Thread.sleep(100);
-    }
+    // All processing, timeouts and retries happen asynchronously on the executor threads, so
+    // poll until every message has reached its final state and the task map is drained.
+    TestHelper.verify(() -> factory._processedMsgIds.size() == 3
+        && factory._timedOutMsgIds.size() == 2
+        && "2".equals(msgList.get(0).getRecord().getSimpleField("Cancelcount"))
+        && "1".equals(msgList.get(1).getRecord().getSimpleField("Cancelcount"))
+        && executor._taskMap.isEmpty(), TestHelper.WAIT_DURATION);
 
     AssertJUnit.assertEquals(factory._processedMsgIds.size(), 3);
-    AssertJUnit.assertTrue(msgList.get(0).getRecord().getSimpleField("Cancelcount").equals("2"));
-    AssertJUnit.assertTrue(msgList.get(1).getRecord().getSimpleField("Cancelcount").equals("1"));
+    AssertJUnit.assertEquals("2", msgList.get(0).getRecord().getSimpleField("Cancelcount"));
+    AssertJUnit.assertEquals("1", msgList.get(1).getRecord().getSimpleField("Cancelcount"));
     AssertJUnit.assertEquals(factory._timedOutMsgIds.size(), 2);
     AssertJUnit.assertTrue(executor._taskMap.size() == 0);
     System.out.println("END " + TestHelper.getTestMethodName());

@@ -54,7 +54,11 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   static final String DB_NAME_1 = "TestDB_1";
   static final String DB_NAME_2 = "TestDB_2";
 
-  static final int PARTITION_NUMBER = 200;
+  // Keep the number of partitions small enough that all state transitions (with the delay
+  // configured below) complete well within the relay message expiry
+  // (Message.RELAY_MESSAGE_DEFAULT_EXPIRY, 5 seconds) even on slow machines. Otherwise relay
+  // messages expire and the controller sends the transitions instead, defeating the P2P checks.
+  static final int PARTITION_NUMBER = 50;
   static final int REPLICA_NUMBER = 3;
 
   List<MockParticipantManager> _participants = new ArrayList<>();
@@ -120,7 +124,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   }
 
   @Test
-  public void testP2PStateTransitionDisabled() {
+  public void testP2PStateTransitionDisabled() throws Exception {
     // disable the master instance
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, false);
@@ -144,7 +148,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   @Test(dependsOnMethods = {
       "testP2PStateTransitionDisabled"
   })
-  public void testP2PStateTransitionEnabledInCluster() {
+  public void testP2PStateTransitionEnabledInCluster() throws Exception {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
     enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1, false);
     enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2, false);
@@ -172,7 +176,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   @Test(dependsOnMethods = {
       "testP2PStateTransitionDisabled"
   })
-  public void testP2PStateTransitionEnabledInResource() {
+  public void testP2PStateTransitionEnabledInResource() throws Exception {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, false);
     enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1, true);
     enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2, false);
@@ -198,43 +202,70 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   }
 
   private void verifyP2PMessage(String dbName, String instance, String expectedState,
-      String expectedTriggerHost) {
-    // Use 0.1 as the expected ratio. Here we want to check the presence of P2P messages
-    verifyP2PMessage(dbName, instance, expectedState, expectedTriggerHost, 0.1);
+      String expectedTriggerHost) throws Exception {
+    // Use 0.5 as the expected ratio. Relay messages may occasionally expire on slow machines
+    // (the controller then triggers the transition itself), so only require that the majority
+    // of the transitions were triggered by the expected host via P2P messages.
+    verifyP2PMessage(dbName, instance, expectedState, expectedTriggerHost, 0.5);
   }
 
   private void verifyP2PMessage(String dbName, String instance, String expectedState,
-      String expectedTriggerHost, double expectedRatio) {
-    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
-    dataCache.refresh(_accessor);
+      String expectedTriggerHost, double expectedRatio) throws Exception {
+    final int[] expectedHostCount = new int[1];
+    final int[] totalCount = new int[1];
 
-    Map<String, LiveInstance> liveInstanceMap = dataCache.getAssignableLiveInstances();
-    LiveInstance liveInstance = liveInstanceMap.get(instance);
+    boolean verified = TestHelper.verify(() -> {
+      ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
+      dataCache.refresh(_accessor);
 
-    Map<String, CurrentState> currentStateMap =
-        dataCache.getCurrentState(instance, liveInstance.getEphemeralOwner());
-    Assert.assertNotNull(currentStateMap);
-    CurrentState currentState = currentStateMap.get(dbName);
-    Assert.assertNotNull(currentState);
-    Assert.assertEquals(currentState.getPartitionStateMap().size(), PARTITION_NUMBER);
-
-    int total = 0;
-    int expectedHost = 0;
-    for (String partition : currentState.getPartitionStateMap().keySet()) {
-      String state = currentState.getState(partition);
-      Assert.assertEquals(state, expectedState,
-          dbName + " Partition " + partition + "'s state is different as expected!");
-      String triggerHost = currentState.getTriggerHost(partition);
-      if (triggerHost.equals(expectedTriggerHost)) {
-        expectedHost++;
+      Map<String, LiveInstance> liveInstanceMap = dataCache.getAssignableLiveInstances();
+      LiveInstance liveInstance = liveInstanceMap.get(instance);
+      if (liveInstance == null) {
+        return false;
       }
-      total++;
-    }
 
-    double ratio = ((double) expectedHost) / ((double) total);
-    Assert.assertTrue(ratio >= expectedRatio,
-        String.format(
-            "Only %d out of %d percent transitions to Master were triggered by expected host!",
-            expectedHost, total));
+      Map<String, CurrentState> currentStateMap =
+          dataCache.getCurrentState(instance, liveInstance.getEphemeralOwner());
+      if (currentStateMap == null) {
+        return false;
+      }
+      CurrentState currentState = currentStateMap.get(dbName);
+      if (currentState == null
+          || currentState.getPartitionStateMap().size() != PARTITION_NUMBER) {
+        return false;
+      }
+
+      int total = 0;
+      int expectedHost = 0;
+      for (String partition : currentState.getPartitionStateMap().keySet()) {
+        String state = currentState.getState(partition);
+        if (!expectedState.equals(state)) {
+          // Not all transitions have completed yet, retry before sampling the trigger hosts.
+          return false;
+        }
+        String triggerHost = currentState.getTriggerHost(partition);
+        if (expectedTriggerHost.equals(triggerHost)) {
+          expectedHost++;
+        }
+        total++;
+      }
+
+      expectedHostCount[0] = expectedHost;
+      totalCount[0] = total;
+      return ((double) expectedHost) / ((double) total) >= expectedRatio;
+    }, TestHelper.WAIT_DURATION);
+
+    // totalCount is only populated once all partitions reach the expected state; 0 means the
+    // current states never converged, which is a different failure than a bad trigger ratio.
+    Assert.assertTrue(verified, totalCount[0] == 0
+        ? String.format(
+            "Current states of %s on %s never converged to %s on all %d partitions within the"
+                + " timeout, so the P2P trigger hosts could not be sampled!",
+            dbName, instance, expectedState, PARTITION_NUMBER)
+        : String.format(
+            "Only %d out of %d transitions of %s to %s were triggered by expected host %s,"
+                + " expected ratio is at least %s!",
+            expectedHostCount[0], totalCount[0], dbName, expectedState, expectedTriggerHost,
+            expectedRatio));
   }
 }

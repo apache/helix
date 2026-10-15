@@ -98,8 +98,9 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
   })
   public static class TimeOutStateModel extends MockMSStateModel {
     boolean _sleep = false;
-    StateTransitionError _error;
-    int _errorCallcount = 0;
+    // Written by the message handling thread and read by the test thread.
+    volatile StateTransitionError _error;
+    volatile int _errorCallcount = 0;
 
     public TimeOutStateModel(MockTransition transition, boolean sleep) {
       super(transition);
@@ -167,11 +168,12 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB, true);
     boolean result =
         ClusterStateVerifier
-            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME), 60 * 1000);
     Assert.assertTrue(result);
 
-    TestHelper.verify(() -> verify(TEST_DB), 10000);
-    Assert.assertTrue(verify(TEST_DB));
+    // Keep polling for the expected end state and assert on the polling result, so the test
+    // tolerates slow controller pipelines / message handling on overloaded machines.
+    Assert.assertTrue(TestHelper.verify(() -> verify(TEST_DB), 60 * 1000));
   }
 
   @Test
@@ -192,11 +194,12 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB + 1, true);
     boolean result =
         ClusterStateVerifier
-            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME), 60 * 1000);
     Assert.assertTrue(result);
 
-    TestHelper.verify(() -> verify(TEST_DB + 1), 10000);
-    Assert.assertTrue(verify(TEST_DB + 1));
+    // Keep polling for the expected end state and assert on the polling result, so the test
+    // tolerates slow controller pipelines / message handling on overloaded machines.
+    Assert.assertTrue(TestHelper.verify(() -> verify(TEST_DB + 1), 60 * 1000));
   }
 
   private boolean verify(String dbName) {
@@ -204,14 +207,21 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView(dbName));
+    if (ev == null) {
+      return false;
+    }
     for (String p : idealState.getPartitionSet()) {
       String idealMaster = idealState.getPreferenceList(p).get(0);
-      if(!ev.getStateMap(p).get(idealMaster).equals("ERROR")) {
+      // The external view may not contain the partition / instance state yet; return false
+      // instead of throwing so that the caller can keep polling.
+      Map<String, String> stateMap = ev.getStateMap(p);
+      if (stateMap == null || !"ERROR".equals(stateMap.get(idealMaster))) {
         return false;
       }
 
       TimeOutStateModel model = _factories.get(idealMaster).getStateModel(dbName, p);
-      if (model._errorCallcount != 1 || model._error.getCode() != ErrorCode.TIMEOUT) {
+      if (model == null || model._errorCallcount != 1
+          || model._error.getCode() != ErrorCode.TIMEOUT) {
         return false;
       }
     }
@@ -229,7 +239,11 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
       }
       Thread.sleep(1000);
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      SleepStateModelFactory factory = new SleepStateModelFactory(1000);
+      // Sleep much longer than the transition timeout (300ms) so the timeout always fires
+      // before the transition can finish, even if the timeout timer is delayed on a slow
+      // machine. The sleep is interrupted once the timeout fires, so a larger value does not
+      // slow down the timed-out transitions.
+      SleepStateModelFactory factory = new SleepStateModelFactory(5000);
       _factories.put(instanceName, factory);
       for (String p : idealState.getPartitionSet()) {
         if (idealState.getPreferenceList(p).get(0).equals(instanceName)) {

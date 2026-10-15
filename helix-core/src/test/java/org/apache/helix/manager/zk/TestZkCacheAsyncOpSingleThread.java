@@ -152,7 +152,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // TestHelper.printCache(accessor._zkCache);
     boolean ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using external base accessor
@@ -176,7 +177,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // verify wtCache
     ret = TestHelper.verify(() -> {
       return TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
-      }, 30 * 100);
+      }, 30 * 1000);
 
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
@@ -202,7 +203,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // wait zkEventThread update zkCache using polling
     ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // set 10 external views by external accessor
@@ -222,7 +224,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // wait zkEventThread update zkCache using polling
     ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // remove 10 external views by external accessor
@@ -239,7 +242,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // wait zkEventThread update zkCache using polling
     ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true), 10000);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // clean up

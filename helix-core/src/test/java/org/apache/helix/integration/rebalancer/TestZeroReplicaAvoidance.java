@@ -20,6 +20,7 @@ package org.apache.helix.integration.rebalancer;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -56,13 +57,17 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
 
   private List<MockParticipantManager> _participants = new ArrayList<>();
   private ZkHelixClusterVerifier _clusterVerifier;
-  private boolean _testSuccess = true;
-  private boolean _startListen = false;
+  // The flags are updated by the Helix callback threads and read by the test thread.
+  private volatile boolean _testSuccess = true;
+  private volatile boolean _startListen = false;
+  private final List<String> _validationFailures = Collections.synchronizedList(new ArrayList<>());
 
   private ClusterControllerManager _controller;
 
   @BeforeMethod
   public void beforeMethod() {
+    _testSuccess = true;
+    _validationFailures.clear();
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
@@ -138,7 +143,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       _participants.get(i).syncStart();
     }
     Assert.assertTrue(_clusterVerifier.verify(70000L));
-    Assert.assertTrue(_testSuccess);
+    Assert.assertTrue(_testSuccess, "Zero replica validation failed: " + _validationFailures);
 
     if (manager.isConnected()) {
       manager.disconnect();
@@ -178,18 +183,11 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     for (; i < NUM_NODE; i++) {
       _participants.get(i).syncStart();
     }
-    // Wait for cluster to stabilize and then poll until _testSuccess remains true
+    // Wait for the cluster to fully converge with a generous timeout so that slow or overloaded
+    // machines have enough time to finish all the pending state transitions before the
+    // listener-based validation result is checked.
     Assert.assertTrue(_clusterVerifier.verify(120000L));
-    // Poll to ensure _testSuccess stays true after cluster stabilizes
-    // This accounts for async callbacks that may still be processing
-    // Increased timeout for flaky test stability on slower CI machines
-    System.out.println("Waiting for _testSuccess to remain true after cluster stabilization...");
-    boolean testSuccessResult = TestHelper.verify(() -> {
-      System.out.println("Checking _testSuccess: " + _testSuccess);
-      return _testSuccess;
-    }, 5000);
-    System.out.println("_testSuccess verification result: " + testSuccessResult);
-    Assert.assertTrue(testSuccessResult);
+    Assert.assertTrue(_testSuccess, "Zero replica validation failed: " + _validationFailures);
 
     if (manager.isConnected()) {
       manager.disconnect();
@@ -200,6 +198,9 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
   /**
    * Validate instances for each partition is on different zone and with necessary tagged
    * instances.
+   * Note that only the external view snapshot delivered with the callback is validated. The ideal
+   * state is fetched separately and may already belong to a newer rebalance round on a slow
+   * machine, so it is only used for the static configurations (replica count and state model).
    */
   private void validateNoZeroReplica(IdealState is, ExternalView ev) {
     int replica = is.getReplicaCount(NUM_NODE);
@@ -208,24 +209,36 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
 
     for (String partition : is.getPartitionSet()) {
       Map<String, String> evStateMap = ev.getRecord().getMapField(partition);
-      Map<String, String> isStateMap = is.getInstanceStateMap(partition);
       validateMap(is.getResourceName(), partition, replica, evStateMap, stateModelDef);
-      validateMap(is.getResourceName(), partition, replica, isStateMap, stateModelDef);
+    }
+  }
+
+  /**
+   * Validate the mapping of the ideal state snapshot delivered with the callback.
+   */
+  private void validateNoZeroReplica(IdealState is) {
+    int replica = is.getReplicaCount(NUM_NODE);
+    StateModelDefinition stateModelDef =
+        BuiltInStateModelDefinitions.valueOf(is.getStateModelDefRef()).getStateModelDefinition();
+
+    for (String partition : is.getPartitionSet()) {
+      validateMap(is.getResourceName(), partition, replica, is.getInstanceStateMap(partition),
+          stateModelDef);
     }
   }
 
   private void validateMap(String resource, String partition, int replica,
       Map<String, String> instanceStateMap, StateModelDefinition stateModelDef) {
     if (instanceStateMap == null || instanceStateMap.isEmpty()) {
-      _testSuccess = false;
-      Assert.fail(
+      recordValidationFailure(
           String.format("Resource %s partition %s has no active replica!", resource, partition));
+      return;
     }
     if (instanceStateMap.size() < replica) {
-      _testSuccess = false;
-      Assert.fail(
+      recordValidationFailure(
           String.format("Resource %s partition %s has %d active replica, less than required %d!",
               resource, partition, instanceStateMap.size(), replica));
+      return;
     }
 
     Map<String, Integer> stateCountMap = stateModelDef.getStateCountMap(NUM_NODE, replica);
@@ -238,11 +251,19 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
         }
       }
       if (topCount > 1) {
-        _testSuccess = false;
-        Assert.fail(String.format("Resource %s partition %s has %d replica in %s, more than 1!",
-            resource, partition, topCount, topState));
+        recordValidationFailure(
+            String.format("Resource %s partition %s has %d replica in %s, more than 1!", resource,
+                partition, topCount, topState));
       }
     }
+  }
+
+  private void recordValidationFailure(String message) {
+    // Record the failure instead of calling Assert.fail(). The validation runs on the Helix
+    // callback threads, where a thrown assertion error is swallowed by the callback handler and
+    // would also abort the validation of the remaining resources.
+    _testSuccess = false;
+    _validationFailures.add(message);
   }
 
   @Override
@@ -254,6 +275,10 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     for (ExternalView view : externalViewList) {
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME,
           view.getResourceName());
+      if (is == null) {
+        // The resource may have been removed while the callback was pending; skip it.
+        continue;
+      }
       validateNoZeroReplica(is, view);
     }
   }
@@ -264,9 +289,10 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       return;
     }
     for (IdealState is : idealStates) {
-      ExternalView view = _gSetupTool.getClusterManagementTool()
-          .getResourceExternalView(CLUSTER_NAME, is.getResourceName());
-      validateNoZeroReplica(is, view);
+      // Only validate the ideal state snapshot delivered with this callback. Fetching the
+      // corresponding external view here is racy on a slow machine: the fetched external view may
+      // reflect a different rebalance round than this snapshot and cause false alarms.
+      validateNoZeroReplica(is);
     }
   }
 

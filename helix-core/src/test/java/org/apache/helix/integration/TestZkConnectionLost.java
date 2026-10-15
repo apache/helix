@@ -132,10 +132,12 @@ public class TestZkConnectionLost extends TaskTestBase {
     };
     try {
       testThread.start();
-      // Add timeout to prevent test from hanging forever if disconnect() hangs
-      testThread.join(10000);
+      // Guard against disconnect() hanging indefinitely. Use a generous bound because
+      // disconnect() with a broken ZK connection legitimately takes a while (internal
+      // retries / timeouts), especially on slow or overloaded machines.
+      testThread.join(TestHelper.WAIT_DURATION);
       Assert.assertTrue(disconnected.get(),
-          "disconnect() should complete within 10 seconds");
+          "disconnect() should complete within " + TestHelper.WAIT_DURATION + " ms");
       Assert.assertFalse(controllerManager.isConnected());
     } finally {
       if (testThread.isAlive()) {

@@ -210,10 +210,9 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     LOG.info("Expried distributedController session. oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
 
-    // Wait for session to stabilize after first expiry before triggering second
-    Thread.sleep(500);
-
     // expire zk session again during HelixManager#handleNewSession()
+    // startCountdown is counted down by PreConnectTestCallback once the first reconnect
+    // reaches handleNewSession, so awaiting it guarantees the first expiry has taken effect
     startCountdown.await();
     LOG.info("2nd Expiring distributedController session...");
     oldSessionId = distributedControllers[0].getSessionId();
@@ -225,9 +224,21 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
     endCountdown.countDown();
 
+    // Wait for the distributed controller to fully reconnect with a new session before
+    // verifying cluster state. Recovering from consecutive session expiries can be slow
+    // on overloaded machines.
+    final ClusterDistributedController expiredController = distributedControllers[0];
+    final String expiredSessionId = oldSessionId;
+    Assert.assertTrue(TestHelper.verify(() -> {
+      String currentSessionId = expiredController.getSessionId();
+      return expiredController.isConnected() && currentSessionId != null
+          && !currentSessionId.equals(expiredSessionId);
+    }, TestHelper.WAIT_DURATION),
+        "Distributed controller should reconnect with a new session after consecutive expiries");
+
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            ZK_ADDR, clusterName), 2 * TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // verify leader changes to localhost_12919

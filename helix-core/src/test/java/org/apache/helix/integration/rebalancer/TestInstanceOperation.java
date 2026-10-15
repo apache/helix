@@ -606,52 +606,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Wait for swap to be fully processed and EV to stabilize
     // After completeSwapIfPossible, the controller needs time to update the EV
-    long swapWaitStartTime = System.currentTimeMillis();
-    long maxSwapWaitTime = 30000;
-    boolean swapProcessed = false;
-    while (System.currentTimeMillis() - swapWaitStartTime < maxSwapWaitTime) {
-      if (_clusterVerifier.verifyByPolling()) {
-        Map<String, ExternalView> currentEVs = getEVs();
-        boolean allCorrect = true;
-        for (String resource : originalEVs.keySet()) {
-          ExternalView current = currentEVs.get(resource);
-          ExternalView original = originalEVs.get(resource);
-          if (current == null || original == null) {
-            allCorrect = false;
-            break;
-          }
-          for (String partition : original.getPartitionSet()) {
-            Map<String, String> currentStateMap = current.getStateMap(partition);
-            Map<String, String> originalStateMap = original.getStateMap(partition);
-            // Check if swapOut is still in EV with LEADER state (should be replaced)
-            if (currentStateMap.containsKey(swapOutName)) {
-              String currentState = currentStateMap.get(swapOutName);
-              String originalState = originalStateMap.get(swapOutName);
-              if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
-                allCorrect = false;
-                break;
-              }
-            }
-            // Check if swapIn has the expected assignments
-            if (!currentStateMap.containsKey(swapInName)) {
-              allCorrect = false;
-              break;
-            }
-          }
-          if (!allCorrect) break;
-        }
-        if (allCorrect) {
-          swapProcessed = true;
-          LOG.info("Swap processed and EV stabilized after {} ms",
-              System.currentTimeMillis() - swapWaitStartTime);
-          break;
-        }
-      }
-      Thread.sleep(500);
-    }
-    if (!swapProcessed) {
-      LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime);
-    }
+    waitForSwapProcessed(originalEVs, swapOutName, swapInName);
 
     // Verify swap-in is now in routing tables
     validateRoutingTablesInstance(getEVs(), swapInName, true);
@@ -746,50 +701,7 @@ public class TestInstanceOperation extends ZkTestBase {
         "Swap should complete");
 
     // Wait for swap to be fully processed and EV to stabilize
-    long swapWaitStartTime2 = System.currentTimeMillis();
-    long maxSwapWaitTime2 = 30000;
-    boolean swapProcessed2 = false;
-    while (System.currentTimeMillis() - swapWaitStartTime2 < maxSwapWaitTime2) {
-      if (_clusterVerifier.verifyByPolling()) {
-        Map<String, ExternalView> currentEVs = getEVs();
-        boolean allCorrect = true;
-        for (String resource : originalEVs.keySet()) {
-          ExternalView current = currentEVs.get(resource);
-          ExternalView original = originalEVs.get(resource);
-          if (current == null || original == null) {
-            allCorrect = false;
-            break;
-          }
-          for (String partition : original.getPartitionSet()) {
-            Map<String, String> currentStateMap = current.getStateMap(partition);
-            Map<String, String> originalStateMap = original.getStateMap(partition);
-            if (currentStateMap.containsKey(swapOutName)) {
-              String currentState = currentStateMap.get(swapOutName);
-              String originalState = originalStateMap.get(swapOutName);
-              if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
-                allCorrect = false;
-                break;
-              }
-            }
-            if (!currentStateMap.containsKey(swapInName)) {
-              allCorrect = false;
-              break;
-            }
-          }
-          if (!allCorrect) break;
-        }
-        if (allCorrect) {
-          swapProcessed2 = true;
-          LOG.info("Swap processed and EV stabilized after {} ms",
-              System.currentTimeMillis() - swapWaitStartTime2);
-          break;
-        }
-      }
-      Thread.sleep(500);
-    }
-    if (!swapProcessed2) {
-      LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime2);
-    }
+    waitForSwapProcessed(originalEVs, swapOutName, swapInName);
 
     // Verify swap-out is disabled
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
@@ -1089,55 +1001,12 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Wait for swap to be fully processed and EV to stabilize
     // After completeSwapIfPossible, the controller needs time to update the EV
-    long swapWaitStartTime = System.currentTimeMillis();
-    long maxSwapWaitTime = 30000;
-    boolean swapProcessed = false;
-    while (System.currentTimeMillis() - swapWaitStartTime < maxSwapWaitTime) {
-      if (_clusterVerifier.verifyByPolling()) {
-        Map<String, ExternalView> currentEVs = getEVs();
-        boolean allCorrect = true;
-        for (String resource : originalEVs.keySet()) {
-          ExternalView current = currentEVs.get(resource);
-          ExternalView original = originalEVs.get(resource);
-          if (current == null || original == null) {
-            allCorrect = false;
-            break;
-          }
-          for (String partition : original.getPartitionSet()) {
-            Map<String, String> currentStateMap = current.getStateMap(partition);
-            Map<String, String> originalStateMap = original.getStateMap(partition);
-            // Check if swapOut is still in EV with LEADER state (should be replaced)
-            if (currentStateMap.containsKey(swapOutName)) {
-              String currentState = currentStateMap.get(swapOutName);
-              String originalState = originalStateMap.get(swapOutName);
-              if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
-                allCorrect = false;
-                break;
-              }
-            }
-            // Check if swapIn has the expected assignments
-            if (!currentStateMap.containsKey(swapInName)) {
-              allCorrect = false;
-              break;
-            }
-          }
-          if (!allCorrect) break;
-        }
-        if (allCorrect) {
-          swapProcessed = true;
-          LOG.info("Swap processed and EV stabilized after {} ms",
-              System.currentTimeMillis() - swapWaitStartTime);
-          break;
-        }
-      }
-      Thread.sleep(500);
-    }
-    if (!swapProcessed) {
-      LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime);
-    }
+    waitForSwapProcessed(originalEVs, swapOutName, swapInName);
 
-    // Verify swap-in in routing tables
-    validateRoutingTablesInstance(getEVs(), swapInName, true);
+    // Verify final EV first so the routing tables below are validated against a stable,
+    // converged EV snapshot - use extended timeout for CI stability
+    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
+        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT * 2);
 
     // Verify swap-out is disabled
     boolean isEnabled = _gSetupTool.getClusterManagementTool()
@@ -1145,9 +1014,8 @@ public class TestInstanceOperation extends ZkTestBase {
     LOG.info("Swap-out enabled: {}", isEnabled);
     Assert.assertFalse(isEnabled, "Swap-out should be disabled");
 
-    // Verify final EV - use extended timeout for CI stability
-    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT * 2);
+    // Verify swap-in in routing tables
+    validateRoutingTablesInstance(getEVs(), swapInName, true, VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testSwapWithSwapOutGoesOffline");
   }
@@ -1245,12 +1113,13 @@ public class TestInstanceOperation extends ZkTestBase {
       LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime);
     }
 
-    // Verify swap-in has the same partitions swap-out had
-    boolean swapValid = TestHelper.verify(() ->
-        validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-            Collections.emptySet(), ImmutableSet.of(swapInName)),
-        VERIFICATION_TIMEOUT);
-    Assert.assertTrue(swapValid, "Swap validation failed");
+    // Verify swap-in has the same partitions swap-out had.
+    // Use verifier() instead of TestHelper.verify directly: validateEVsCorrect asserts
+    // internally, and an AssertionError thrown from the lambda escapes TestHelper.verify's
+    // retry loop, failing the test on the first transient mismatch instead of polling
+    // until the cluster converges.
+    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
+        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT * 2);
 
     // Verify evacuation finished - use verifier to handle timing variations
     boolean evacFinished = TestHelper.verify(() ->
@@ -1304,12 +1173,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    // Final validation
-    boolean finalValid = TestHelper.verify(() ->
-        validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-            Collections.emptySet(), ImmutableSet.of(swapInName)),
-        VERIFICATION_TIMEOUT);
-    Assert.assertTrue(finalValid, "Final validation failed");
+    // Final validation. verifier() tolerates AssertionError from validateEVsCorrect and
+    // keeps polling until the cluster converges.
+    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
+        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testEvacuateWithAddDuringMaintenanceMode");
   }
@@ -1578,22 +1445,28 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    // Set large upward delay
-    _stateModelDelay = -10000L;
+    // Block upward (bootstrap) state transitions for much longer than any wait before the
+    // cancellation below (bounded by the 30s verifier plus a few quick checks) so that the
+    // bootstrap deterministically cannot finish before the evacuation is cancelled, even on
+    // a slow machine. The blocked transitions are released by the cancellation triggered
+    // below. Keep the value well under the cluster verifier's 300s default timeout so that
+    // even a transition that misses its cancel message still unblocks with headroom to let
+    // the final convergence checks pass.
+    _stateModelDelay = -120000L;
 
     // Evacuate an instance
     String instanceToEvacuate = _participants.get(0).getInstanceName();
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.EVACUATE);
 
-    // Messages should be pending at other instances
-    for (String participant : _participantNames) {
-      if (!participant.equals(instanceToEvacuate)) {
-        verifier(() -> _dataAccessor.getChildNames(
-            _dataAccessor.keyBuilder().messages(participant)).isEmpty(),
-        30000);
-      }
-    }
+    // Bootstrap messages should be pending at other instances. The upward state
+    // transitions are blocked by the state model delay, so these messages cannot be
+    // fully processed (and the evacuation cannot finish) until the cancellation below.
+    verifier(() -> _participantNames.stream()
+        .filter(participant -> !participant.equals(instanceToEvacuate))
+        .anyMatch(participant -> !_dataAccessor.getChildNames(
+            _dataAccessor.keyBuilder().messages(participant)).isEmpty()),
+    30000);
 
     Assert.assertFalse(_admin.isEvacuateFinished(CLUSTER_NAME, instanceToEvacuate),
         "Evacuation should not be finished yet");
@@ -1612,6 +1485,11 @@ public class TestInstanceOperation extends ZkTestBase {
     // Cancel evacuation
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, instanceToEvacuate, InstanceConstants.InstanceOperation.ENABLE);
+
+    // Restore the default delay so any new state transitions needed for convergence are
+    // fast. The in-flight blocked transitions are released by the cancellation; the
+    // cluster can only converge below if that cancellation works.
+    _stateModelDelay = 3L;
 
     // Verify all instances still have valid assignments
     assignment = getEVs();
@@ -1768,6 +1646,11 @@ public class TestInstanceOperation extends ZkTestBase {
     _participants.get(2).syncStop();
     LOG.info("Stopped participants 1 and 2");
 
+    // Wait for the cluster to converge after losing the two instances so that the
+    // recovery rebalance does not race with the evacuation below on slow machines.
+    Assert.assertTrue(_bestPossibleClusterVerifier.verifyByPolling(),
+        "Cluster did not converge after stopping instances");
+
     String evacuateInstanceName = _participants.get(_participants.size() - 2).getInstanceName();
     _gSetupTool.getClusterManagementTool()
         .setInstanceOperation(CLUSTER_NAME, evacuateInstanceName, InstanceConstants.InstanceOperation.EVACUATE);
@@ -1807,7 +1690,7 @@ public class TestInstanceOperation extends ZkTestBase {
         }
       }
       return true;
-    }, 180000, CLUSTER_NAME);
+    }, 300000, CLUSTER_NAME);
 
     // Cleanup
     removeOfflineOrInactiveInstances();
@@ -2209,6 +2092,71 @@ public class TestInstanceOperation extends ZkTestBase {
     }
   }
 
+  /**
+   * Waits (up to 30s) for a completed swap to be reflected in the external views: the swap-out
+   * instance no longer holds LEADER where it originally did, and the swap-in instance has taken
+   * over every partition the swap-out instance originally hosted. Only logs a warning on timeout;
+   * callers are expected to run their own definitive validations afterwards.
+   */
+  private void waitForSwapProcessed(Map<String, ExternalView> originalEVs, String swapOutName,
+      String swapInName) throws InterruptedException {
+    long swapWaitStartTime = System.currentTimeMillis();
+    long maxSwapWaitTime = 30000;
+    boolean swapProcessed = false;
+    while (System.currentTimeMillis() - swapWaitStartTime < maxSwapWaitTime) {
+      if (_clusterVerifier.verifyByPolling()) {
+        Map<String, ExternalView> currentEVs = getEVs();
+        boolean allCorrect = true;
+        for (String resource : originalEVs.keySet()) {
+          ExternalView current = currentEVs.get(resource);
+          ExternalView original = originalEVs.get(resource);
+          if (current == null || original == null) {
+            allCorrect = false;
+            break;
+          }
+          for (String partition : original.getPartitionSet()) {
+            Map<String, String> currentStateMap = current.getStateMap(partition);
+            Map<String, String> originalStateMap = original.getStateMap(partition);
+            // The partition may be transiently missing from an EV while the controller
+            // rewrites it; keep polling instead of throwing NPE out of the wait loop.
+            if (currentStateMap == null || originalStateMap == null) {
+              allCorrect = false;
+              break;
+            }
+            // Check if swapOut is still in EV with LEADER state (should be replaced)
+            if (currentStateMap.containsKey(swapOutName)) {
+              String currentState = currentStateMap.get(swapOutName);
+              String originalState = originalStateMap.get(swapOutName);
+              if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
+                allCorrect = false;
+                break;
+              }
+            }
+            // Check if swapIn has taken over the replicas swapOut originally had.
+            // Only partitions that were on swapOut are expected on swapIn; requiring
+            // swapIn in every partition made this wait condition unsatisfiable.
+            if (originalStateMap.containsKey(swapOutName)
+                && !currentStateMap.containsKey(swapInName)) {
+              allCorrect = false;
+              break;
+            }
+          }
+          if (!allCorrect) break;
+        }
+        if (allCorrect) {
+          swapProcessed = true;
+          LOG.info("Swap processed and EV stabilized after {} ms",
+              System.currentTimeMillis() - swapWaitStartTime);
+          break;
+        }
+      }
+      Thread.sleep(500);
+    }
+    if (!swapProcessed) {
+      LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime);
+    }
+  }
+
   private boolean validateEVsCorrect(Map<String, ExternalView> actuals,
       Map<String, ExternalView> originals, Map<String, String> swapOutToSwapIn,
       Set<String> inFlightSwapIn, Set<String> completedSwapIn) {
@@ -2358,9 +2306,15 @@ public class TestInstanceOperation extends ZkTestBase {
     }
 
     private void sleepWhileNotCanceled(long sleepTime) throws InterruptedException {
+      // Sleep in small increments so the configured delay is honored closely and
+      // cancellation is detected promptly. Sleeping in VERIFICATION_TIMEOUT (45s) chunks
+      // made every delayed state transition take at least 45 seconds regardless of the
+      // configured delay, which prevented the cluster from converging within the
+      // verifier timeouts on slow machines.
       while (sleepTime > 0 && !isCancelled()) {
-        Thread.sleep(VERIFICATION_TIMEOUT);
-        sleepTime -= VERIFICATION_TIMEOUT;
+        long sleepChunk = Math.min(sleepTime, 1000L);
+        Thread.sleep(sleepChunk);
+        sleepTime -= sleepChunk;
       }
       if (isCancelled()) {
         _cancelled = false;

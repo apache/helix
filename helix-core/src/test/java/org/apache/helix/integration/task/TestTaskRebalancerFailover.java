@@ -19,6 +19,7 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -93,21 +94,39 @@ public class TestTaskRebalancerFailover extends TaskTestBase {
     _participants[0].syncStop();
     _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
 
-    // tasks previously assigned to localhost_12918 should be re-scheduled on new master
-    ctx = _driver.getJobContext(namespacedJob2);
-    ev = accessor.getProperty(keyBuilder.externalView(WorkflowGenerator.DEFAULT_TGT_DB));
-    for (int p = 0; p < _numPartitions; p++) {
-      String partitionName = ctx.getTargetForPartition(p);
-      Assert.assertNotNull(partitionName);
-      if (failOverPartitions.contains(partitionName)) {
-        String instanceName = ctx.getAssignedParticipant(p);
-        Assert.assertNotNull(instanceName);
-        Assert.assertNotSame(instanceName, "localhost_12918");
-        String state = ev.getStateMap(partitionName).get(instanceName);
-        Assert.assertNotNull(state);
-        Assert.assertEquals(state, "MASTER");
+    // tasks previously assigned to localhost_12918 should be re-scheduled on new master.
+    // The job context and external view may not reflect the new assignment immediately on
+    // slow machines, so poll for the condition instead of asserting right away.
+    boolean rescheduled = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        JobContext ctx = _driver.getJobContext(namespacedJob2);
+        ExternalView ev =
+            accessor.getProperty(keyBuilder.externalView(WorkflowGenerator.DEFAULT_TGT_DB));
+        if (ctx == null || ev == null) {
+          return false;
+        }
+        for (int p = 0; p < _numPartitions; p++) {
+          String partitionName = ctx.getTargetForPartition(p);
+          if (partitionName == null) {
+            return false;
+          }
+          if (failOverPartitions.contains(partitionName)) {
+            String instanceName = ctx.getAssignedParticipant(p);
+            if (instanceName == null || instanceName.equals("localhost_12918")) {
+              return false;
+            }
+            Map<String, String> stateMap = ev.getStateMap(partitionName);
+            if (stateMap == null || !"MASTER".equals(stateMap.get(instanceName))) {
+              return false;
+            }
+          }
+        }
+        return true;
       }
-    }
+    }, 30 * 1000);
+    Assert.assertTrue(rescheduled,
+        "Tasks previously assigned to localhost_12918 were not re-scheduled on the new master");
 
     // Flush queue and check cleanup
     _driver.flushQueue(queueName);

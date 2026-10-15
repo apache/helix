@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
@@ -196,7 +197,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
 
     // delete the in-progress job (job 1) and verify it being deleted
-    _driver.deleteJob(queueName, deletedJob1);
+    deleteJobWithRetry(queueName, deletedJob1);
     verifyJobDeleted(queueName, namedSpaceDeletedJob1);
 
     LOG.info("Resuming job-queue: " + queueName);
@@ -219,7 +220,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     TaskTestUtil.pollForEmptyJobState(_driver, queueName, namedSpaceDeletedJob2);
 
     // delete not-started job (job 3) and verify it being deleted
-    _driver.deleteJob(queueName, deletedJob2);
+    deleteJobWithRetry(queueName, deletedJob2);
     verifyJobDeleted(queueName, namedSpaceDeletedJob2);
 
     LOG.info("Resuming job-queue: " + queueName);
@@ -308,7 +309,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.pollForWorkflowState(scheduledQueue, TaskState.STOPPED);
 
     // delete the in-progress job (job 1) and verify it being deleted
-    _driver.deleteJob(queueName, deletedJob1);
+    deleteJobWithRetry(queueName, deletedJob1);
     verifyJobDeleted(queueName, namedSpaceDeletedJob1);
     verifyJobDeleted(scheduledQueue, namedSpaceDeletedJob1);
 
@@ -332,7 +333,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     TaskTestUtil.pollForEmptyJobState(_driver, scheduledQueue, namedSpaceDeletedJob2);
 
     // delete not-started job (job 3) and verify it being deleted
-    _driver.deleteJob(queueName, deletedJob2);
+    deleteJobWithRetry(queueName, deletedJob2);
     verifyJobDeleted(queueName, namedSpaceDeletedJob2);
     verifyJobDeleted(scheduledQueue, namedSpaceDeletedJob2);
 
@@ -513,6 +514,27 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     Assert.assertEquals(
         workflowContext.getJobState(TaskUtil.getNamespacedJobName(workflowName, job1Name)),
         TaskState.STOPPING);
+  }
+
+  private void deleteJobWithRetry(final String queueName, final String jobName) throws Exception {
+    // Deleting a job from a stopped queue may transiently fail on slow machines if the
+    // controller has not fully processed the stop yet, so retry with a timeout instead of
+    // failing on the first attempt.
+    boolean deleted = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        try {
+          _driver.deleteJob(queueName, jobName);
+          return true;
+        } catch (HelixException | IllegalStateException e) {
+          LOG.info("Deleting job " + jobName + " from queue " + queueName
+              + " has not succeeded yet, will retry: " + e.getMessage());
+          return false;
+        }
+      }
+    }, 30 * 1000);
+    Assert.assertTrue(deleted,
+        "Failed to delete job " + jobName + " from queue " + queueName + " within timeout");
   }
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {

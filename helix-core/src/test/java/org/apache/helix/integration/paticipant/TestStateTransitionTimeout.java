@@ -88,8 +88,9 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
   })
   public static class TimeOutStateModel extends MockMSStateModel {
     boolean _sleep = false;
-    StateTransitionError _error;
-    int _errorCallcount = 0;
+    // Written by the message handling thread and read by the test thread.
+    volatile StateTransitionError _error;
+    volatile int _errorCallcount = 0;
 
     public TimeOutStateModel(MockTransition transition, boolean sleep) {
       super(transition);
@@ -143,7 +144,11 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      SleepStateModelFactory factory = new SleepStateModelFactory(1000);
+      // Sleep much longer than the transition timeout (200ms) so the timeout always fires
+      // before the transition can finish, even if the timeout timer is delayed on a slow
+      // machine. The sleep is interrupted once the timeout fires, so a larger value does not
+      // slow down the timed-out transitions.
+      SleepStateModelFactory factory = new SleepStateModelFactory(5000);
       factories.put(instanceName, factory);
       for (String p : idealState.getPartitionSet()) {
         if (idealState.getPreferenceList(p).get(0).equals(instanceName)) {
@@ -162,26 +167,34 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
 
     boolean result =
         ClusterStateVerifier
-            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME), 60 * 1000);
     Assert.assertTrue(result);
     HelixDataAccessor accessor = _participants[0].getHelixDataAccessor();
 
-    TestHelper.verify(() -> verify(accessor, idealState, factories), 20000);
-    Assert.assertTrue(verify(accessor, idealState, factories));
+    // Keep polling for the expected end state and assert on the polling result, so the test
+    // tolerates slow controller pipelines / message handling on overloaded machines.
+    Assert.assertTrue(TestHelper.verify(() -> verify(accessor, idealState, factories), 60 * 1000));
   }
 
   private boolean verify(HelixDataAccessor accessor, IdealState idealState,
       Map<String, SleepStateModelFactory> factoryMap) {
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
+    if (ev == null) {
+      return false;
+    }
     for (String p : idealState.getPartitionSet()) {
       String idealMaster = idealState.getPreferenceList(p).get(0);
-      if (!ev.getStateMap(p).get(idealMaster).equals("ERROR")) {
+      // The external view may not contain the partition / instance state yet; return false
+      // instead of throwing so that the caller can keep polling.
+      Map<String, String> stateMap = ev.getStateMap(p);
+      if (stateMap == null || !"ERROR".equals(stateMap.get(idealMaster))) {
         return false;
       }
 
       TimeOutStateModel model = factoryMap.get(idealMaster).getStateModel(TEST_DB, p);
-      if (model._errorCallcount != 1 || model._error.getCode() != ErrorCode.TIMEOUT) {
+      if (model == null || model._errorCallcount != 1
+          || model._error.getCode() != ErrorCode.TIMEOUT) {
         return false;
       }
     }

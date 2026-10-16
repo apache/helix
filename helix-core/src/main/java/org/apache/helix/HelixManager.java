@@ -409,6 +409,8 @@ public interface HelixManager {
 
   /**
    * Messaging service which can be used to send cluster wide messages.
+   * See {@link ClusterMessagingService#send(Criteria, org.apache.helix.model.Message)} for usage.
+   * 
    * @return messaging service
    */
   ClusterMessagingService getMessagingService();

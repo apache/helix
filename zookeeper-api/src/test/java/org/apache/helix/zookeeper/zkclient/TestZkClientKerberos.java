@@ -80,18 +80,46 @@ public class TestZkClientKerberos extends ZkTestBase {
   }
 
   /**
-   * Test isSaslAuthEnabled returns false when SASL is enabled but no SASL login module is configured
+   * Test isSaslAuthEnabled returns true for a DIGEST login module
    */
   @Test
-  public void testIsSaslAuthEnabled_WhenSaslEnabledWithoutSaslLoginModule() throws Exception {
-    // Setup JAAS configuration with a non-SASL login module
-    Configuration jaasConfig = new Configuration() {
+  public void testIsSaslAuthEnabled_WhenSaslEnabledWithDigestLoginModule() throws Exception {
+    buildClientThenEnableSasl("org.apache.zookeeper.server.auth.DigestLoginModule");
+
+    Assert.assertTrue(invokeIsSaslAuthEnabled(_zkClient),
+        "isSaslAuthEnabled should return true for a DIGEST login module");
+  }
+
+  /**
+   * Test isSaslAuthEnabled returns true for a login module Helix does not know by name,
+   * because ZooKeeper builds its SASL client for any module in the client JAAS context
+   */
+  @Test
+  public void testIsSaslAuthEnabled_WhenSaslEnabledWithCustomLoginModule() throws Exception {
+    buildClientThenEnableSasl("com.example.CustomLoginModule");
+
+    Assert.assertTrue(invokeIsSaslAuthEnabled(_zkClient),
+        "isSaslAuthEnabled should return true for a custom login module");
+  }
+
+  /**
+   * Build the client against the non-SASL test server first, then switch SASL on, so the
+   * connection does not wait for a SaslAuthenticated event the test server never sends
+   */
+  private void buildClientThenEnableSasl(String loginModuleName) {
+    ZkClient.Builder builder = new ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR)
+        .setMonitorRootPathOnly(false);
+    _zkClient = builder.build();
+    _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+
+    Configuration.setConfiguration(new Configuration() {
       @Override
       public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
         if (ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT.equals(name)) {
           return new AppConfigurationEntry[] {
               new AppConfigurationEntry(
-                  "com.example.PlainLoginModule",
+                  loginModuleName,
                   AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
                   new HashMap<>()
               )
@@ -99,28 +127,9 @@ public class TestZkClientKerberos extends ZkTestBase {
         }
         return null;
       }
-    };
-    Configuration.setConfiguration(jaasConfig);
-    
-    // Enable SASL via system property
-    System.setProperty("zookeeper.sasl.client", "true");
-    
-    try {
-      // Create ZkClient
-      ZkClient.Builder builder = new ZkClient.Builder();
-      builder.setZkServer(ZkTestBase.ZK_ADDR)
-          .setMonitorRootPathOnly(false);
-      _zkClient = builder.build();
-      _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
-      
-      // Use reflection to call private isSaslAuthEnabled method
-      boolean result = invokeIsSaslAuthEnabled(_zkClient);
-      
-      // Verify
-      Assert.assertFalse(result, "isSaslAuthEnabled should return false when no SASL login module is configured");
-    } finally {
-      System.clearProperty("zookeeper.sasl.client");
-    }
+    });
+    ((ZkConnection) _zkClient.getConnection()).getZookeeper().getClientConfig()
+        .setProperty(ZKClientConfig.ENABLE_CLIENT_SASL_KEY, "true");
   }
 
 
@@ -157,24 +166,6 @@ public class TestZkClientKerberos extends ZkTestBase {
     } finally {
       System.clearProperty("zookeeper.sasl.client");
     }
-  }
-
-  /**
-   * isSaslAuthLoginModule is the pure predicate the connection-based checks above delegate
-   * to. Testing it directly avoids opening a real SASL handshake against the local,
-   * non-SASL test server, which is unreliable for the DIGEST-MD5 module in particular.
-   */
-  @Test
-  public void testIsSaslAuthLoginModule_DetectsKerberosAndDigest() {
-    Assert.assertTrue(
-        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
-            "com.sun.security.auth.module.Krb5LoginModule"));
-    Assert.assertTrue(
-        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
-            "org.apache.zookeeper.server.auth.DigestLoginModule"));
-    Assert.assertFalse(
-        org.apache.helix.zookeeper.zkclient.ZkClient.isSaslAuthLoginModule(
-            "com.example.PlainLoginModule"));
   }
 
   /**

@@ -3264,15 +3264,16 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Checks if SASL authentication (Kerberos or DIGEST) is enabled for the ZooKeeper connection.
+   * Checks if the ZooKeeper client will authenticate with SASL (Kerberos, DIGEST or any other
+   * mechanism configured through JAAS).
    * This method performs the following checks:
    * 1. Verifies if SASL client is enabled via ZKClientConfig
    * 2. Reads the JAAS client context name from zookeeper.sasl.clientconfig property
-   * 3. Checks if the JAAS configuration contains Krb5LoginModule or DigestLoginModule.
-   *    ZooKeeper reports SaslAuthenticated (not SyncConnected) as the terminal state for
-   *    both, when the server requires client SASL authentication.
+   * 3. Checks the JAAS configuration has an entry for that context. ZooKeeper builds its SASL
+   *    client whenever that entry exists, whatever login module it names, and the connection
+   *    state ends at SaslAuthenticated (not SyncConnected) once SASL completes.
    *
-   * @return true if SASL authentication (Kerberos or DIGEST) is enabled, false otherwise
+   * @return true if SASL authentication is configured, false otherwise
    */
   private boolean isSaslAuthEnabled() {
     try {
@@ -3297,7 +3298,7 @@ public class ZkClient implements Watcher {
       String clientContextName = zkClientConfig.getProperty(ZKClientConfig.LOGIN_CONTEXT_NAME_KEY,
           ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT);
 
-      // Step 3: Get the login modules from the JAAS configuration
+      // Step 3: Check that the JAAS configuration has an entry for the client context
       Configuration jaasConfig = Configuration.getConfiguration();
       if (jaasConfig == null) {
         return false;
@@ -3308,25 +3309,12 @@ public class ZkClient implements Watcher {
         return false;
       }
 
-      // Step 4: Check if any login module is one that authenticates via SASL and leaves
-      // the connection in the SaslAuthenticated state rather than SyncConnected.
-      for (AppConfigurationEntry entry : entries) {
-        if (isSaslAuthLoginModule(entry.getLoginModuleName())) {
-          LOG.debug("zkclient {}, SASL authentication is enabled with login module: {}", _uid,
-              entry.getLoginModuleName());
-          return true;
-        }
-      }
-
-      return false;
+      LOG.debug("zkclient {}, SASL authentication is enabled with JAAS context: {}", _uid,
+          clientContextName);
+      return true;
     } catch (Exception e) {
       LOG.warn("zkclient {}, Failed to determine if SASL is enabled, assuming false", _uid, e);
       return false; // Safe default - fall back to non-SASL behavior
     }
-  }
-
-  @VisibleForTesting
-  static boolean isSaslAuthLoginModule(String loginModuleName) {
-    return loginModuleName.contains("Krb5LoginModule") || loginModuleName.contains("DigestLoginModule");
   }
 }

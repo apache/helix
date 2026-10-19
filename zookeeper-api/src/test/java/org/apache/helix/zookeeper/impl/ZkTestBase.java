@@ -22,9 +22,11 @@ package org.apache.helix.zookeeper.impl;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
 import java.util.Map;
-
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
@@ -32,6 +34,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.zookeeper.server.ContainerManager;
+import org.apache.zookeeper.server.DataNode;
+import org.apache.zookeeper.server.RequestProcessor;
+import org.apache.zookeeper.server.ZooKeeperServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -60,7 +66,17 @@ public class ZkTestBase {
    */
   // The following maps hold ZK connect string as keys
   protected static final Map<String, ZkServer> _zkServerMap = new ConcurrentHashMap<>();
+  protected static final Map<ZkServer, ContainerManager> _zkServerContainerManagerMap = new ConcurrentHashMap<>();
+  protected static AtomicLong _fakeElapsed = new AtomicLong(0);
   protected static int _numZk = 1; // Initial value
+
+  /**
+   * Advances the fake elapsed time used by the ContainerManager
+   * @param additionalTime time to add in milliseconds
+   */
+  public static void advanceFakeElapsedTime(long additionalTime) {
+    _fakeElapsed.addAndGet(additionalTime);
+  }
 
   @BeforeSuite
   public void beforeSuite() throws IOException {
@@ -91,6 +107,9 @@ public class ZkTestBase {
       }
     }
 
+    // Shut down ContainerManagers
+    _zkServerContainerManagerMap.values().forEach(ContainerManager::stop);
+
     // Shut down all ZkServers
     _zkServerMap.values().forEach(ZkServer::shutdown);
   }
@@ -115,6 +134,36 @@ public class ZkTestBase {
     for (int i = 0; i < _numZk; i++) {
       String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
       _zkServerMap.computeIfAbsent(zkAddress, ZkTestBase::startZkServer);
+      _zkServerContainerManagerMap.computeIfAbsent(_zkServerMap.get(zkAddress), ZkTestBase::createContainerManager);
+    }
+  }
+
+  /**
+   * Creates a ContainerManager with custom elapsed time functionality for a ZkServer
+   */
+  private static ContainerManager createContainerManager(ZkServer zkServer) {
+    try {
+      ZooKeeperServer zooKeeperServer = zkServer.getZooKeeperServer();
+
+      Field firstProcessorField = ZooKeeperServer.class.getDeclaredField("firstProcessor");
+      firstProcessorField.setAccessible(true);
+      RequestProcessor firstProcessor = (RequestProcessor) firstProcessorField.get(zooKeeperServer);
+
+      // Create a ContainerManager with a custom elapsed time logic
+      return new ContainerManager(
+          zooKeeperServer.getZKDatabase(),
+          firstProcessor,
+          10, // Check interval in ms
+          100,  // Max containers to check per interval
+          10 // the max time in milliseconds that a container that has never had any children is retained
+      ) {
+        @Override
+        protected long getElapsed(DataNode node) {
+          return _fakeElapsed.get();
+        }
+      };
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException("Failed to access firstProcessor field in ZooKeeperServer", e);
     }
   }
 

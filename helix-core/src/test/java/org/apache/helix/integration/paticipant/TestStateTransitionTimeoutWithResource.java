@@ -60,6 +60,14 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBase {
+  // The transition timeout must be comfortably longer than the time it takes the participant to
+  // merely start executing a state transition task: HelixTaskExecutor arms the timeout timer right
+  // after submitting the task to its thread pool, and if the timer fires before the task has
+  // started, the task is cancelled without ever running, so no ERROR state is produced and the
+  // message is never cleaned up. With a 300ms timeout that happened regularly on slow CI machines.
+  // The handler sleep is much longer than the timeout, so the timeout still always fires first.
+  private static final int TRANSITION_TIMEOUT_MS = 3000;
+  private static final int HANDLER_SLEEP_MS = 60000;
   private static Logger LOG = LoggerFactory.getLogger(TestStateTransitionTimeout.class);
   private Map<String, SleepStateModelFactory> _factories;
   private ConfigAccessor _configAccessor;
@@ -97,13 +105,20 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
       "MASTER", "SLAVE", "ERROR"
   })
   public static class TimeOutStateModel extends MockMSStateModel {
+    // Only the SLAVE->MASTER transition of the selected partitions sleeps. The transition is kept
+    // out of MockMSStateModel's generic handler on purpose: passing it to the super constructor
+    // would make every transition (including the OFFLINE->SLAVE bootstrap of all partitions on
+    // all nodes) sleep for the full duration, which is not what the test exercises and made the
+    // test take a full sleep per stage.
+    private final MockTransition _sleepTransition;
     boolean _sleep = false;
     // Written by the message handling thread and read by the test thread.
     volatile StateTransitionError _error;
     volatile int _errorCallcount = 0;
 
     public TimeOutStateModel(MockTransition transition, boolean sleep) {
-      super(transition);
+      super(null);
+      _sleepTransition = transition;
       _sleep = sleep;
     }
 
@@ -111,8 +126,8 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
     public void onBecomeMasterFromSlave(Message message, NotificationContext context)
         throws InterruptedException {
       LOG.info("Become MASTER from SLAVE");
-      if (_transition != null && _sleep) {
-        _transition.doTransition(message, context);
+      if (_sleepTransition != null && _sleep) {
+        _sleepTransition.doTransition(message, context);
       }
     }
 
@@ -156,7 +171,7 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
     // Set the timeout values
     StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
         new StateTransitionTimeoutConfig(new ZNRecord(TEST_DB));
-    stateTransitionTimeoutConfig.setStateTransitionTimeout("SLAVE", "MASTER", 300);
+    stateTransitionTimeoutConfig.setStateTransitionTimeout("SLAVE", "MASTER", TRANSITION_TIMEOUT_MS);
     ResourceConfig resourceConfig = new ResourceConfig.Builder(TEST_DB)
         .setStateTransitionTimeoutConfig(stateTransitionTimeoutConfig)
         .setRebalanceConfig(new RebalanceConfig(new ZNRecord(TEST_DB)))
@@ -168,12 +183,13 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB, true);
     boolean result =
         ClusterStateVerifier
-            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME), 60 * 1000);
+            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME),
+                2 * TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // Keep polling for the expected end state and assert on the polling result, so the test
     // tolerates slow controller pipelines / message handling on overloaded machines.
-    Assert.assertTrue(TestHelper.verify(() -> verify(TEST_DB), 60 * 1000));
+    Assert.assertTrue(TestHelper.verify(() -> verify(TEST_DB), 2 * TestHelper.WAIT_DURATION));
   }
 
   @Test
@@ -184,7 +200,7 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
 
     StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
         new StateTransitionTimeoutConfig(new ZNRecord(TEST_DB + 1));
-    stateTransitionTimeoutConfig.setStateTransitionTimeout("SLAVE", "MASTER", 300);
+    stateTransitionTimeoutConfig.setStateTransitionTimeout("SLAVE", "MASTER", TRANSITION_TIMEOUT_MS);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setStateTransitionTimeoutConfig(stateTransitionTimeoutConfig);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
@@ -194,12 +210,13 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB + 1, true);
     boolean result =
         ClusterStateVerifier
-            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME), 60 * 1000);
+            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME),
+                2 * TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // Keep polling for the expected end state and assert on the polling result, so the test
     // tolerates slow controller pipelines / message handling on overloaded machines.
-    Assert.assertTrue(TestHelper.verify(() -> verify(TEST_DB + 1), 60 * 1000));
+    Assert.assertTrue(TestHelper.verify(() -> verify(TEST_DB + 1), 2 * TestHelper.WAIT_DURATION));
   }
 
   private boolean verify(String dbName) {
@@ -239,11 +256,11 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
       }
       Thread.sleep(1000);
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      // Sleep much longer than the transition timeout (300ms) so the timeout always fires
-      // before the transition can finish, even if the timeout timer is delayed on a slow
-      // machine. The sleep is interrupted once the timeout fires, so a larger value does not
-      // slow down the timed-out transitions.
-      SleepStateModelFactory factory = new SleepStateModelFactory(5000);
+      // Sleep much longer than the transition timeout so the timeout always fires before the
+      // transition can finish, even if the timeout timer is delayed on a slow machine. The sleep
+      // is interrupted once the timeout fires, so a larger value does not slow down the timed-out
+      // transitions.
+      SleepStateModelFactory factory = new SleepStateModelFactory(HANDLER_SLEEP_MS);
       _factories.put(instanceName, factory);
       for (String p : idealState.getPartitionSet()) {
         if (idealState.getPreferenceList(p).get(0).equals(instanceName)) {

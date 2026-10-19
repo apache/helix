@@ -54,6 +54,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
+  // See beforeClass for why the transition timeout must not be too short.
+  private static final int TRANSITION_TIMEOUT_MS = 3000;
+  private static final int HANDLER_SLEEP_MS = 60000;
   private static Logger LOG = LoggerFactory.getLogger(TestStateTransitionTimeout.class);
 
   @Override
@@ -71,15 +74,17 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     }
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
 
-    // Set the timeout values
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+    // Set the timeout value. It must be comfortably longer than the time it takes the participant
+    // to merely start executing a state transition task: HelixTaskExecutor arms the timeout timer
+    // right after submitting the task to its thread pool, and if the timer fires before the task
+    // has started, the task is cancelled without ever running, so no ERROR state is produced and
+    // the message is never cleaned up. With a 200ms timeout that happened regularly on slow CI
+    // machines (thread creation, GC pauses, ZK latency). The handler sleep in the test is much
+    // longer than this timeout, so the timeout still always fires before the transition finishes.
     String stateTransition = "SLAVE" + "-" + "MASTER" + "_" + Message.Attributes.TIMEOUT;
-    idealState.getRecord().setSimpleField(stateTransition, "300");
-
     String command =
         "-zkSvr " + ZK_ADDR + " -addResourceProperty " + CLUSTER_NAME + " " + TEST_DB + " "
-            + stateTransition + " 200";
+            + stateTransition + " " + TRANSITION_TIMEOUT_MS;
     ClusterSetup.processCommandLineArgs(command.split(" "));
   }
 
@@ -87,13 +92,20 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       "MASTER", "SLAVE", "ERROR"
   })
   public static class TimeOutStateModel extends MockMSStateModel {
+    // Only the SLAVE->MASTER transition of the selected partitions sleeps. The transition is kept
+    // out of MockMSStateModel's generic handler on purpose: passing it to the super constructor
+    // would make every transition (including the OFFLINE->SLAVE bootstrap of all partitions on
+    // all nodes) sleep for the full duration, which is not what the test exercises and made the
+    // test take a full sleep per stage.
+    private final MockTransition _sleepTransition;
     boolean _sleep = false;
     // Written by the message handling thread and read by the test thread.
     volatile StateTransitionError _error;
     volatile int _errorCallcount = 0;
 
     public TimeOutStateModel(MockTransition transition, boolean sleep) {
-      super(transition);
+      super(null);
+      _sleepTransition = transition;
       _sleep = sleep;
     }
 
@@ -101,8 +113,8 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     public void onBecomeMasterFromSlave(Message message, NotificationContext context)
         throws InterruptedException {
       LOG.info("Become MASTER from SLAVE");
-      if (_transition != null && _sleep) {
-        _transition.doTransition(message, context);
+      if (_sleepTransition != null && _sleep) {
+        _sleepTransition.doTransition(message, context);
       }
     }
 
@@ -144,11 +156,11 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      // Sleep much longer than the transition timeout (200ms) so the timeout always fires
-      // before the transition can finish, even if the timeout timer is delayed on a slow
-      // machine. The sleep is interrupted once the timeout fires, so a larger value does not
-      // slow down the timed-out transitions.
-      SleepStateModelFactory factory = new SleepStateModelFactory(5000);
+      // Sleep much longer than the transition timeout so the timeout always fires before the
+      // transition can finish, even if the timeout timer is delayed on a slow machine. The sleep
+      // is interrupted once the timeout fires, so a larger value does not slow down the timed-out
+      // transitions.
+      SleepStateModelFactory factory = new SleepStateModelFactory(HANDLER_SLEEP_MS);
       factories.put(instanceName, factory);
       for (String p : idealState.getPartitionSet()) {
         if (idealState.getPreferenceList(p).get(0).equals(instanceName)) {
@@ -167,13 +179,15 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
 
     boolean result =
         ClusterStateVerifier
-            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME), 60 * 1000);
+            .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME),
+                2 * TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
     HelixDataAccessor accessor = _participants[0].getHelixDataAccessor();
 
     // Keep polling for the expected end state and assert on the polling result, so the test
     // tolerates slow controller pipelines / message handling on overloaded machines.
-    Assert.assertTrue(TestHelper.verify(() -> verify(accessor, idealState, factories), 60 * 1000));
+    Assert.assertTrue(TestHelper.verify(() -> verify(accessor, idealState, factories),
+        2 * TestHelper.WAIT_DURATION));
   }
 
   private boolean verify(HelixDataAccessor accessor, IdealState idealState,

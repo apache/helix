@@ -121,7 +121,8 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     boolean result =
         ClusterStateVerifier
             .verifyByZkCallback(
-                new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+                new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName),
+                TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // expire the session of participant
@@ -145,9 +146,22 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
     endCountdown.countDown();
 
+    // Wait for the participant to fully reconnect with a new session before verifying cluster
+    // state. Recovering from consecutive session expiries (re-joining the cluster and carrying
+    // over the current states) can take a while on overloaded machines, and the default 30s
+    // verifier window was not enough.
+    final MockParticipantManager expiredParticipant = participants[0];
+    final String expiredSessionId = oldSessionId;
+    Assert.assertTrue(TestHelper.verify(() -> {
+      String currentSessionId = expiredParticipant.getSessionId();
+      return expiredParticipant.isConnected() && currentSessionId != null
+          && !currentSessionId.equals(expiredSessionId);
+    }, TestHelper.WAIT_DURATION),
+        "Participant should reconnect with a new session after consecutive expiries");
+
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            ZK_ADDR, clusterName), 2 * TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // clean up
@@ -198,7 +212,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+            clusterName), TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // expire the session of distributedController
@@ -256,7 +270,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     // This is needed because handler cleanup is async and may take time in CI
     List<CallbackHandler> handlers = null;
     int expectedHandlerCount = 1;
-    int maxWaitTime = 30000;
+    long maxWaitTime = TestHelper.WAIT_DURATION;
     int pollInterval = 500;
     long startTime = System.currentTimeMillis();
     while (System.currentTimeMillis() - startTime < maxWaitTime) {

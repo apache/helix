@@ -906,7 +906,11 @@ public class TestHelixTaskExecutor {
       LOG.info("Created message {} with timeout {} ms", msg.getId(), msg.getExecutionTimeout());
     }
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
-    executor.onMessage("someInstance", msgList, changeContext);
+    // Pass a copy: HelixTaskExecutor.onMessage sorts the list it is given in place, newest message
+    // first (Message.CREATE_TIME_COMPARATOR). On a slow machine the 4 messages can straddle a
+    // millisecond boundary, which would reorder msgList and make the index-based assertions below
+    // check the wrong messages.
+    executor.onMessage("someInstance", new ArrayList<>(msgList), changeContext);
     LOG.info("Submitted {} messages to executor", nMsgs2);
 
     // Poll until the 2 short-timeout messages have been cancelled (the handler sets Cancelcount
@@ -993,7 +997,9 @@ public class TestHelixTaskExecutor {
       msgList.add(msg);
     }
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
-    executor.onMessage("someInstance", msgList, changeContext);
+    // Pass a copy: onMessage sorts the given list in place (newest create time first), which would
+    // reorder msgList on a slow machine and break the index-based assertions below.
+    executor.onMessage("someInstance", new ArrayList<>(msgList), changeContext);
 
     // All processing, timeouts and retries happen asynchronously on the executor threads, so
     // poll until every message has reached its final state and the task map is drained.

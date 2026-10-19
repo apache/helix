@@ -1030,7 +1030,6 @@ public class TestInstanceOperation extends ZkTestBase {
     removeOfflineOrInactiveInstances();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    Map<String, String> swapOutToSwapIn = new HashMap<>();
     Map<String, ExternalView> originalEVs = getEVs();
 
     // Enter maintenance mode
@@ -1058,7 +1057,6 @@ public class TestInstanceOperation extends ZkTestBase {
     // Add new instance with ENABLE
     String swapInName = PARTICIPANT_PREFIX + "_" + _nextStartPort;
     LOG.info("Adding new instance: {}", swapInName);
-    swapOutToSwapIn.put(swapOutName, swapInName);
     addParticipant(swapInName, swapOutConfig.getLogicalId(LOGICAL_ID),
         swapOutConfig.getDomainAsMap().get(ZONE),
         InstanceConstants.InstanceOperation.ENABLE, -1);
@@ -1070,56 +1068,17 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    // Ensure swap is fully processed after maintenance mode ends
-    // During maintenance mode, EV updates are deferred. After exiting, we need to wait
-    // for the controller to compute and propagate the new ideal state assignment.
-    long swapWaitStartTime = System.currentTimeMillis();
-    long maxSwapWaitTime = 30000;
-    boolean swapProcessed = false;
-    while (System.currentTimeMillis() - swapWaitStartTime < maxSwapWaitTime) {
-      Map<String, ExternalView> currentEVs = getEVs();
-      boolean allReplaced = true;
-      for (String resource : originalEVs.keySet()) {
-        ExternalView current = currentEVs.get(resource);
-        ExternalView original = originalEVs.get(resource);
-        if (current == null || original == null) {
-          allReplaced = false;
-          break;
-        }
-        for (String partition : original.getPartitionSet()) {
-          Map<String, String> currentStateMap = current.getStateMap(partition);
-          Map<String, String> originalStateMap = original.getStateMap(partition);
-          // Check if swapOut is still in EV with higher state than expected
-          if (currentStateMap.containsKey(swapOutName)) {
-            String currentState = currentStateMap.get(swapOutName);
-            String originalState = originalStateMap.get(swapOutName);
-            if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
-              // swapOut still has its original (higher) state - not yet replaced
-              allReplaced = false;
-              break;
-            }
-          }
-        }
-        if (!allReplaced) break;
-      }
-      if (allReplaced) {
-        swapProcessed = true;
-        LOG.info("Swap processed after {} ms", System.currentTimeMillis() - swapWaitStartTime);
-        break;
-      }
-      Thread.sleep(500);
-    }
-    if (!swapProcessed) {
-      LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime);
-    }
-
-    // Verify swap-in has the same partitions swap-out had.
-    // Use verifier() instead of TestHelper.verify directly: validateEVsCorrect asserts
-    // internally, and an AssertionError thrown from the lambda escapes TestHelper.verify's
-    // retry loop, failing the test on the first transient mismatch instead of polling
-    // until the cluster converges.
-    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT * 2);
+    // The new instance is added with ENABLE, not SWAP_IN, so the controller does not pair it with
+    // the evacuated instance: it is just another assignable node that happens to share the
+    // evacuated node's logicalId (and therefore its position in the CRUSH topology). The product
+    // only guarantees that the evacuated instance ends up with no replicas while every partition
+    // keeps a full, healthy replica set, and that the new instance picks up load. It does not
+    // guarantee an exact in-place copy of the evacuated instance's assignment, since the even
+    // distribution rounds and preference-list order can legitimately differ once the node set
+    // changes (observed on CI as leaders moving on unrelated partitions). Only the SWAP_IN flow
+    // (see the testSwap* tests) mirrors the swap-out assignment onto the swap-in instance.
+    verifier(() -> validateEvacuateReplacement(getEVs(), originalEVs, swapOutName, swapInName),
+        VERIFICATION_TIMEOUT * 2);
 
     // Verify evacuation finished - use verifier to handle timing variations
     boolean evacFinished = TestHelper.verify(() ->
@@ -1173,10 +1132,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    // Final validation. verifier() tolerates AssertionError from validateEVsCorrect and
-    // keeps polling until the cluster converges.
-    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT * 2);
+    // Final validation: the evacuated instance (now UNKNOWN) still holds nothing, every partition
+    // is fully replicated and the new instance keeps its load.
+    verifier(() -> validateEvacuateReplacement(getEVs(), originalEVs, swapOutName, swapInName),
+        VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testEvacuateWithAddDuringMaintenanceMode");
   }
@@ -2155,6 +2114,60 @@ public class TestInstanceOperation extends ZkTestBase {
     if (!swapProcessed) {
       LOG.warn("Swap may not have been fully processed within {} ms", maxSwapWaitTime);
     }
+  }
+
+  /**
+   * Validates the external views after an instance was evacuated and a replacement instance was
+   * added with ENABLE (not SWAP_IN). Unlike {@link #validateEVsCorrect}, this does not expect an
+   * exact in-place copy of the evacuated instance's assignment, because an ENABLE instance is not
+   * paired with the evacuated one by the controller and the rebalancer may legitimately pick a
+   * different (still valid) assignment and preference-list order. It checks what EVACUATE does
+   * guarantee: the evacuated instance holds no replicas, every original partition still has a
+   * full set of healthy replicas with exactly one top-state replica, and the replacement instance
+   * has taken on load.
+   */
+  private boolean validateEvacuateReplacement(Map<String, ExternalView> actuals,
+      Map<String, ExternalView> originals, String evacuatedInstance, String replacementInstance) {
+    Assert.assertEquals(actuals.keySet(), originals.keySet(), "Resource key sets should match");
+
+    boolean replacementHasReplicas = false;
+    for (String resource : originals.keySet()) {
+      ExternalView actual = actuals.get(resource);
+      ExternalView original = originals.get(resource);
+      Assert.assertNotNull(actual, "Missing external view for resource " + resource);
+      Assert.assertEquals(actual.getPartitionSet(), original.getPartitionSet(),
+          "Partition set should match for resource " + resource);
+
+      IdealState is = _gSetupTool.getClusterManagementTool()
+          .getResourceIdealState(CLUSTER_NAME, resource);
+      StateModelDefinition stateModelDef = _gSetupTool.getClusterManagementTool()
+          .getStateModelDef(CLUSTER_NAME, is.getStateModelDefRef());
+      String topState = stateModelDef.getTopState();
+
+      for (String partition : original.getPartitionSet()) {
+        Map<String, String> stateMap = actual.getStateMap(partition);
+        Assert.assertNotNull(stateMap,
+            String.format("Partition %s in resource %s has no state map", partition, resource));
+        Assert.assertFalse(stateMap.containsKey(evacuatedInstance),
+            String.format("Evacuated instance %s still hosts partition %s in resource %s: %s",
+                evacuatedInstance, partition, resource, stateMap));
+        Assert.assertEquals(stateMap.size(), REPLICA,
+            String.format("Partition %s in resource %s should have %d replicas: %s", partition,
+                resource, REPLICA, stateMap));
+        Assert.assertTrue(stateMap.values().stream().allMatch(ACCEPTABLE_STATE_SET::contains),
+            String.format("Partition %s in resource %s has unhealthy replicas: %s", partition,
+                resource, stateMap));
+        Assert.assertEquals(stateMap.values().stream().filter(topState::equals).count(), 1L,
+            String.format("Partition %s in resource %s should have exactly one %s replica: %s",
+                partition, resource, topState, stateMap));
+        if (stateMap.containsKey(replacementInstance)) {
+          replacementHasReplicas = true;
+        }
+      }
+    }
+    Assert.assertTrue(replacementHasReplicas,
+        "Replacement instance " + replacementInstance + " should host some replicas");
+    return true;
   }
 
   private boolean validateEVsCorrect(Map<String, ExternalView> actuals,

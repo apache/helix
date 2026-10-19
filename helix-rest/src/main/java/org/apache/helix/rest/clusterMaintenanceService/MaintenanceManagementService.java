@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -379,14 +380,21 @@ public class MaintenanceManagementService {
 
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent, Set<String> toBeStoppedInstances) throws IOException {
+    return batchGetInstancesStoppableChecks(clusterId, instances, jsonContent, toBeStoppedInstances,
+        false);
+  }
+
+  public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+      List<String> instances, String jsonContent, Set<String> toBeStoppedInstances,
+      boolean preserveOrder) throws IOException {
     Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
     // helix instance check.
     List<String> instancesForCustomInstanceLevelChecks =
         batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks,
-            toBeStoppedInstances);
+            toBeStoppedInstances, preserveOrder);
     // custom check, includes partition check.
     batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
-        toBeStoppedInstances, finalStoppableChecks, getMapFromJsonPayload(jsonContent));
+        toBeStoppedInstances, finalStoppableChecks, getMapFromJsonPayload(jsonContent), preserveOrder);
     return finalStoppableChecks;
   }
 
@@ -476,12 +484,19 @@ public class MaintenanceManagementService {
 
   private List<String> batchHelixInstanceStoppableCheck(String clusterId,
       Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks,
-      Set<String> toBeStoppedInstances) {
+      Set<String> toBeStoppedInstances, boolean preserveOrder) {
 
     // Perform all but min_active replicas check in parallel
     Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(
-        Collectors.toMap(Function.identity(), instance -> POOL.submit(
-            () -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances))));
+        Collectors.toMap(
+            Function.identity(),
+            instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance, toBeStoppedInstances)),
+            (existing, replacement) -> existing,
+            // Use LinkedHashMap when preserveOrder is true as we need to preserve the order of instances.
+            // This is important for addMinActiveReplicaChecks which processes instances sequentially,
+            // and the order of processing can affect which instances pass the min active replica check
+            preserveOrder ? LinkedHashMap::new : HashMap::new
+        ));
 
     // Perform min_active replicas check sequentially
     addMinActiveReplicaChecks(clusterId, helixInstanceChecks, toBeStoppedInstances);
@@ -492,7 +507,7 @@ public class MaintenanceManagementService {
 
   private List<String> batchCustomInstanceStoppableCheck(String clusterId, List<String> instances,
       Set<String> toBeStoppedInstances, Map<String, StoppableCheck> finalStoppableChecks,
-      Map<String, String> customPayLoads) {
+      Map<String, String> customPayLoads, boolean preserveOrder) {
     if (instances.isEmpty()) {
       // if all instances failed at previous checks, then all following checks are not required.
       return instances;
@@ -521,7 +536,7 @@ public class MaintenanceManagementService {
       Map<String, StoppableCheck> clusterLevelCustomCheckResult =
           performAggregatedCustomCheck(clusterId, instanceIdsForCustomCheck,
               restConfig.getCompleteConfiguredHealthUrl().get(), customPayLoads,
-              toBeStoppedInstances);
+              toBeStoppedInstances, preserveOrder);
       List<String> instancesForNextCheck = new ArrayList<>();
       clusterLevelCustomCheckResult.forEach((instance, stoppableCheck) -> {
         addStoppableCheck(finalStoppableChecks, instance, stoppableCheck);
@@ -538,9 +553,13 @@ public class MaintenanceManagementService {
     List<String> instancesForCustomPartitionLevelChecks = instanceIdsForCustomCheck;
     if (!_skipHealthCheckCategories.contains(StoppableCheck.Category.CUSTOM_INSTANCE_CHECK)) {
       Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
-          Collectors.toMap(Function.identity(), instance -> POOL.submit(
-              () -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance),
-                  customPayLoads))));
+          Collectors.toMap(
+              Function.identity(),
+              instance -> POOL.submit(() -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance), customPayLoads)),
+              (existing, replacement) -> existing,
+              // Use LinkedHashMap when preserveOrder is true to maintain the original order of instances
+              preserveOrder ? LinkedHashMap::new : HashMap::new
+          ));
       instancesForCustomPartitionLevelChecks =
           filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);
     }
@@ -618,12 +637,12 @@ public class MaintenanceManagementService {
         // this is helix own check
         instancesForNext =
             batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
-                Collections.emptySet());
+                Collections.emptySet(), false);
       } else if (healthCheck.equals(HELIX_CUSTOM_STOPPABLE_CHECK)) {
         // custom check, includes custom Instance check and partition check.
         instancesForNext =
             batchCustomInstanceStoppableCheck(clusterId, instancesForNext, Collections.emptySet(),
-                finalStoppableChecks, healthCheckConfig);
+                finalStoppableChecks, healthCheckConfig, false);
       } else {
         throw new UnsupportedOperationException(healthCheck + " is not supported yet!");
       }
@@ -770,8 +789,10 @@ public class MaintenanceManagementService {
 
   private Map<String, StoppableCheck> performAggregatedCustomCheck(String clusterId,
       List<String> instances, String url, Map<String, String> customPayLoads,
-      Set<String> toBeStoppedInstances) {
-    Map<String, StoppableCheck> aggregatedStoppableChecks = new HashMap<>();
+      Set<String> toBeStoppedInstances, boolean preserveOrder) {
+    // Use LinkedHashMap when preserveOrder is true to maintain the original order of instances
+    Map<String, StoppableCheck> aggregatedStoppableChecks = preserveOrder ?
+        new LinkedHashMap<>() : new HashMap<>();
     try {
       Map<String, List<String>> customCheckResult =
           _customRestClient.getAggregatedStoppableCheck(url, instances, toBeStoppedInstances,
@@ -784,9 +805,13 @@ public class MaintenanceManagementService {
       }
     } catch (IOException ex) {
       LOG.error("Custom client side aggregated health check for {} failed.", clusterId, ex);
-      return instances.stream().collect(Collectors.toMap(Function.identity(),
+      return instances.stream().collect(Collectors.toMap(
+          Function.identity(),
           instance -> new StoppableCheck(false, Collections.singletonList(instance),
-              StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK)));
+              StoppableCheck.Category.CUSTOM_AGGREGATED_CHECK),
+          (existing, replacement) -> existing,
+          // Use LinkedHashMap when preserveOrder is true to maintain the original order of instances
+          preserveOrder ? LinkedHashMap::new : HashMap::new));
     }
     return aggregatedStoppableChecks;
   }

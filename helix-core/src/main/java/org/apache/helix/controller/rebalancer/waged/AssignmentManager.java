@@ -55,7 +55,7 @@ class AssignmentManager {
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBaseline = new HashMap<>(assignmentMetadataStore.getBaseline());
+        currentBaseline = assignmentMetadataStore.getBaseline();
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(
@@ -88,10 +88,7 @@ class AssignmentManager {
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBestAssignment =
-            assignmentMetadataStore.getBestPossibleAssignment().entrySet().stream().collect(
-                Collectors.toMap(Map.Entry::getKey,
-                    entry -> new ResourceAssignment(entry.getValue().getRecord())));
+        currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
         ;
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {

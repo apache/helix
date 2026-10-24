@@ -19,16 +19,28 @@ package org.apache.helix.zookeeper.zkclient;
  * under the License.
  */
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.server.NIOServerCnxnFactory;
+import org.apache.zookeeper.server.ZooKeeperServer;
+import org.apache.zookeeper.server.auth.ProviderRegistry;
+import org.apache.zookeeper.server.auth.SASLAuthenticationProvider;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -100,6 +112,85 @@ public class TestZkClientKerberos extends ZkTestBase {
 
     Assert.assertTrue(invokeIsSaslAuthEnabled(_zkClient),
         "isSaslAuthEnabled should return true for a custom login module");
+  }
+
+  /**
+   * Connect to a server that requires DIGEST SASL, with SASL configured before the client is
+   * built, so the connection goes through waitUntilConnected() the way a real deployment does
+   */
+  @Test
+  public void testConnectsToDigestSaslServer() throws Exception {
+    File dataDir = Files.createTempDirectory("zk-digest-data").toFile();
+    File logDir = Files.createTempDirectory("zk-digest-log").toFile();
+    int port;
+    try (ServerSocket socket = new ServerSocket(0)) {
+      port = socket.getLocalPort();
+    }
+
+    Configuration.setConfiguration(digestJaasConfiguration());
+    // the registry reads this property only once, so make it read it again
+    System.setProperty("zookeeper.authProvider.1", SASLAuthenticationProvider.class.getName());
+    ProviderRegistry.reset();
+
+    ZooKeeperServer server = new ZooKeeperServer(dataDir, logDir, 2000);
+    NIOServerCnxnFactory factory = new NIOServerCnxnFactory();
+    try {
+      factory.configure(new InetSocketAddress(port), 0);
+      factory.startup(server);
+
+      ZkClient.Builder builder = new ZkClient.Builder();
+      builder.setZkServer("localhost:" + port)
+          .setMonitorRootPathOnly(false);
+      _zkClient = builder.build();
+      _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+
+      Assert.assertTrue(_zkClient.exists("/"),
+          "The client should connect to a DIGEST-enabled server and read the root node");
+
+      // Once SASL completes the state stays at SaslAuthenticated, never going back to SyncConnected,
+      // so waiting for the connection after that point must expect SaslAuthenticated
+      Assert.assertTrue(_zkClient.waitForKeeperState(KeeperState.SaslAuthenticated, 10, TimeUnit.SECONDS),
+          "The client should reach SaslAuthenticated");
+      Assert.assertTrue(_zkClient.waitUntilConnected(2, TimeUnit.SECONDS),
+          "waitUntilConnected should return once SASL authentication has completed");
+    } finally {
+      if (_zkClient != null && !_zkClient.isClosed()) {
+        _zkClient.close();
+      }
+      factory.shutdown();
+      server.shutdown(true);
+      System.clearProperty("zookeeper.authProvider.1");
+      ProviderRegistry.reset();
+      FileUtils.deleteQuietly(dataDir);
+      FileUtils.deleteQuietly(logDir);
+    }
+  }
+
+  /**
+   * JAAS configuration with a DIGEST user on the server side and the same user on the client side
+   */
+  private static Configuration digestJaasConfiguration() {
+    return new Configuration() {
+      @Override
+      public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+        Map<String, String> options = new HashMap<>();
+        if ("Server".equals(name)) {
+          options.put("user_helix", "secret");
+        } else if (ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT.equals(name)) {
+          options.put("username", "helix");
+          options.put("password", "secret");
+        } else {
+          return null;
+        }
+        return new AppConfigurationEntry[] {
+            new AppConfigurationEntry(
+                "org.apache.zookeeper.server.auth.DigestLoginModule",
+                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                options
+            )
+        };
+      }
+    };
   }
 
   /**

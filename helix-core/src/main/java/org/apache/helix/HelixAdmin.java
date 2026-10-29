@@ -423,6 +423,16 @@ public interface HelixAdmin {
       Map<String, String> customFields);
 
   /**
+   * Enable maintenance mode via automation systems (like HelixACM). To be called by automation services.
+   * @param clusterName
+   * @param enabled
+   * @param reason
+   * @param customFields user-specified KV mappings to be stored in the ZNode
+   */
+  void automationEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      Map<String, String> customFields);
+
+  /**
    * Check specific cluster is in maintenance mode or not
    * @param clusterName the cluster name
    * @return true if in maintenance mode, false otherwise

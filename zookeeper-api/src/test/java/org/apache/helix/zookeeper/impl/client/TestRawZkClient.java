@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -52,6 +53,7 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
@@ -782,6 +784,58 @@ public class TestRawZkClient extends ZkTestBase {
 
     // Verify the node is not created.
     Assert.assertFalse(_zkClient.exists(path));
+  }
+
+  /*
+   * Tests that an interrupt arriving while retryUntilConnected() sleeps between two retries aborts
+   * the operation with ZkInterruptedException and preserves the interrupt flag, exactly like an
+   * interrupt that arrives inside the ZK call or inside waitUntilConnected(). Before this was fixed
+   * the interrupt was swallowed, the retry loop kept going and, once the connection was actually
+   * lost, the operation blocked for the whole operation retry timeout with no way to stop it. That
+   * made HelixManager#disconnect() hang on a broken ZK connection.
+   */
+  @Test(timeOut = 60 * 1000L)
+  public void testInterruptDuringRetryBackoff() throws Exception {
+    final ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    final Thread operationThread = Thread.currentThread();
+    final AtomicInteger attempts = new AtomicInteger();
+    // Interrupt the operation thread shortly after the first attempt failed, i.e. while it is in
+    // the backoff sleep (a few hundred milliseconds for the first retries).
+    final Thread interrupter = new Thread(() -> {
+      try {
+        Thread.sleep(100L);
+      } catch (InterruptedException e) {
+        return;
+      }
+      operationThread.interrupt();
+    });
+    try {
+      long start = System.currentTimeMillis();
+      interrupter.start();
+      try {
+        zkClient.retryUntilConnected(() -> {
+          attempts.incrementAndGet();
+          // Simulate a connection loss while the client still reports SyncConnected, which is the
+          // window in which retryUntilConnected() sleeps before retrying.
+          throw new KeeperException.ConnectionLossException();
+        });
+        Assert.fail("The interrupted operation should not be retried until it succeeds.");
+      } catch (ZkInterruptedException expected) {
+        // The interrupt flag must be preserved for the caller. Clear it for the rest of the test.
+        Assert.assertTrue(Thread.interrupted(), "The interrupt flag should be preserved.");
+      }
+      long elapsed = System.currentTimeMillis() - start;
+      Assert.assertTrue(elapsed < 10_000L,
+          "The operation should be aborted promptly after the interrupt but took " + elapsed + "ms");
+      Assert.assertTrue(attempts.get() <= 3,
+          "The operation should not keep retrying after the interrupt, attempts: " + attempts.get());
+    } finally {
+      // Clear the flag first: a pending interrupt would otherwise turn the join below into an
+      // InterruptedException that masks the real failure, and would disturb closing the client.
+      Thread.interrupted();
+      interrupter.join();
+      zkClient.close();
+    }
   }
 
   /*

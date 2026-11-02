@@ -116,6 +116,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static final int FLAPPING_TIME_WINDOW = 300000; // Default to 300 sec
   public static final int DEFAULT_MAX_DISCONNECT_THRESHOLD = 600; // Default to be a large number
   private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
+  // How often disconnect() re-checks the connection while waiting for the callback handler cleanup.
+  private static final long CLEANUP_RECHECK_INTERVAL_MS = 1000L;
 
   protected final String _zkAddress;
   private final String _clusterName;
@@ -975,8 +977,24 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         }
 
         try {
-          cleanupThread.join();
-        } catch (InterruptedException ex) {
+          // Wait for the cleanup to finish. The state listener above interrupts the cleanup thread
+          // once the connection breaks, but a single interrupt can be consumed by the code the
+          // thread is running at that moment (for example a sleep in a retry loop) and never reach
+          // the blocking ZK call. So while the cleanup thread is alive and the connection is not
+          // active, keep interrupting it. This keeps the original behavior for a healthy
+          // connection (no time bound on the cleanup) while guaranteeing that disconnect() cannot
+          // hang forever on a cleanup that can no longer make progress.
+          while (cleanupThread.isAlive()) {
+            cleanupThread.join(CLEANUP_RECHECK_INTERVAL_MS);
+            if (cleanupThread.isAlive() && !_zkclient.waitUntilConnected(0, TimeUnit.MILLISECONDS)) {
+              LOG.warn("ZkClient is not connected. Interrupt the cleanup thread {} of {} again.",
+                  cleanupThread.getName(), _instanceName);
+              cleanupThread.interrupt();
+            }
+          }
+        } catch (InterruptedException | ZkInterruptedException ex) {
+          // The disconnecting thread itself got interrupted (waitUntilConnected() reports this as
+          // ZkInterruptedException). Stop waiting and make sure the cleanup thread stops too.
           cleanupThread.interrupt();
         }
       } finally {

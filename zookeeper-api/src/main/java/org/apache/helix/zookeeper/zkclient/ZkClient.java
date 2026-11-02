@@ -2221,7 +2221,12 @@ public class ZkClient implements Watcher {
         LOG.debug("zkclient {} Wait for {} ms before retrying operation", _uid, maxSleep);
         Thread.sleep(maxSleep);
       } catch (InterruptedException ex) {
-        // we don't need to re-throw.
+        // An interrupt means the caller wants to abort the operation, exactly like an interrupt
+        // received inside waitUntilConnected() or inside the ZK call itself. Swallowing it here
+        // would clear the interrupt flag and let the retry loop continue; if the connection has
+        // been lost in the meantime, the next waitUntilConnected() would then block for the whole
+        // operation retry timeout with no way to stop it (see HelixManager#disconnect cleanup).
+        throw new ZkInterruptedException(ex);
       }
     }
   }

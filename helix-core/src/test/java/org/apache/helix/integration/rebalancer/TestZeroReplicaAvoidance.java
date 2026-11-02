@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceType;
@@ -209,7 +210,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
 
     for (String partition : is.getPartitionSet()) {
       Map<String, String> evStateMap = ev.getRecord().getMapField(partition);
-      validateMap(is.getResourceName(), partition, replica, evStateMap, stateModelDef);
+      validateMap("ExternalView", ev, is, partition, replica, evStateMap, stateModelDef);
     }
   }
 
@@ -222,22 +223,32 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
         BuiltInStateModelDefinitions.valueOf(is.getStateModelDefRef()).getStateModelDefinition();
 
     for (String partition : is.getPartitionSet()) {
-      validateMap(is.getResourceName(), partition, replica, is.getInstanceStateMap(partition),
+      validateMap("IdealState", is, is, partition, replica, is.getInstanceStateMap(partition),
           stateModelDef);
     }
   }
 
-  private void validateMap(String resource, String partition, int replica,
-      Map<String, String> instanceStateMap, StateModelDefinition stateModelDef) {
+  /**
+   * @param source          which snapshot is being validated (external view or ideal state)
+   * @param snapshot        the property delivered with the callback that is being validated
+   * @param is              the ideal state used for the static configurations. For the external
+   *                        view path it is fetched separately and may be newer than the snapshot.
+   * @param instanceStateMap the instance -> state map of the partition to validate
+   */
+  private void validateMap(String source, HelixProperty snapshot, IdealState is, String partition,
+      int replica, Map<String, String> instanceStateMap, StateModelDefinition stateModelDef) {
+    String resource = is.getResourceName();
     if (instanceStateMap == null || instanceStateMap.isEmpty()) {
       recordValidationFailure(
-          String.format("Resource %s partition %s has no active replica!", resource, partition));
+          String.format("Resource %s partition %s has no active replica!%s", resource, partition,
+              describeContext(source, snapshot, is, partition, instanceStateMap)));
       return;
     }
     if (instanceStateMap.size() < replica) {
       recordValidationFailure(
-          String.format("Resource %s partition %s has %d active replica, less than required %d!",
-              resource, partition, instanceStateMap.size(), replica));
+          String.format("Resource %s partition %s has %d active replica, less than required %d!%s",
+              resource, partition, instanceStateMap.size(), replica,
+              describeContext(source, snapshot, is, partition, instanceStateMap)));
       return;
     }
 
@@ -252,10 +263,35 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       }
       if (topCount > 1) {
         recordValidationFailure(
-            String.format("Resource %s partition %s has %d replica in %s, more than 1!", resource,
-                partition, topCount, topState));
+            String.format("Resource %s partition %s has %d replica in %s, more than 1!%s", resource,
+                partition, topCount, topState,
+                describeContext(source, snapshot, is, partition, instanceStateMap)));
       }
     }
+  }
+
+  /**
+   * Describe the snapshot that failed the validation. The failure is observed on a callback thread
+   * and only surfaces later through the recorded message, so the message has to carry the version
+   * of the snapshot that was validated. For the external view path the ideal state is a separate,
+   * possibly newer read; it is labeled as such and reported with its own version so that the two
+   * can be correlated with the controller logs instead of being mistaken for one consistent view.
+   */
+  private String describeContext(String source, HelixProperty snapshot, IdealState is,
+      String partition, Map<String, String> validatedMap) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(String.format(" [source=%s, time=%d, snapshotVersion=%d, snapshotModifiedTime=%d, "
+            + "validatedMap=%s, snapshotPreferenceList=%s", source, System.currentTimeMillis(),
+        snapshot.getRecord().getVersion(), snapshot.getRecord().getModifiedTime(), validatedMap,
+        snapshot.getRecord().getListField(partition)));
+    if (snapshot != is) {
+      sb.append(String.format(", currentIsVersion=%d, currentIsModifiedTime=%d, "
+              + "currentIsPreferenceList=%s, currentIsMap=%s (ideal state read separately, "
+              + "may be newer than the snapshot)", is.getRecord().getVersion(),
+          is.getRecord().getModifiedTime(), is.getPreferenceList(partition),
+          is.getInstanceStateMap(partition)));
+    }
+    return sb.append(']').toString();
   }
 
   private void recordValidationFailure(String message) {

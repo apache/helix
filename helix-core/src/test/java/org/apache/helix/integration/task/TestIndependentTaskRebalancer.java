@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableMap;
@@ -55,12 +56,15 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-import org.testng.collections.Sets;
 
 public class TestIndependentTaskRebalancer extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestIndependentTaskRebalancer.class);
-  private Set<String> _invokedClasses = Sets.newHashSet();
-  private Map<String, Integer> _runCounts = Maps.newHashMap();
+  // Both collections are written by the task threads of several participants concurrently and read
+  // by the test thread, so they must be thread-safe. A plain HashSet can silently lose one of two
+  // concurrent first insertions (both threads allocate the backing table and one allocation wins),
+  // which made the invoked class check flaky.
+  private final Set<String> _invokedClasses = ConcurrentHashMap.newKeySet();
+  private final Map<String, Integer> _runCounts = new ConcurrentHashMap<>();
   private static final AtomicBoolean _failureCtl = new AtomicBoolean(true);
 
   @BeforeClass
@@ -195,19 +199,20 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
 
     LOG.info("Job context after completion: " + (jobCtx != null ? "attempts=" + jobCtx.getPartitionNumAttempts(0) : "null"));
 
-    // Additional wait to ensure all task run() methods have completed
-    // This handles the race between workflow completion and task execution finishing
-    Thread.sleep(500);
+    // Both tasks record themselves at the very beginning of run(), so they must be visible once the
+    // workflow is COMPLETED. Poll briefly anyway to absorb any scheduling slack on a slow machine.
+    boolean bothInvoked = TestHelper.verify(
+        () -> _invokedClasses.contains(TaskOne.class.getName())
+            && _invokedClasses.contains(TaskTwo.class.getName()),
+        TestHelper.WAIT_DURATION);
 
     // Log the invoked classes for debugging
     LOG.info("Invoked classes: " + _invokedClasses);
     LOG.info("Run counts: " + _runCounts);
 
     // Ensure that each class was invoked
-    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()),
-        "TaskOne was not invoked. Invoked classes: " + _invokedClasses);
-    Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()),
-        "TaskTwo was not invoked. Invoked classes: " + _invokedClasses);
+    Assert.assertTrue(bothInvoked,
+        "Both TaskOne and TaskTwo should have been invoked. Invoked classes: " + _invokedClasses);
   }
 
   @Test(dependsOnMethods = "testThresholdFailure", timeOut = 600000)
@@ -335,10 +340,9 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
       }
       _shouldFail = shouldFail;
 
-      // Initialize the count for this instance if not already done
-      if (!_runCounts.containsKey(instanceName)) {
-        _runCounts.put(instanceName, 0);
-      }
+      // Initialize the count for this instance if not already done (atomic, tasks on the same
+      // participant may be constructed concurrently)
+      _runCounts.putIfAbsent(instanceName, 0);
       _instanceName = instanceName;
     }
 
@@ -346,7 +350,9 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     public synchronized TaskResult run() {
       LOG.info("TaskOne.run() invoked on instance: " + _instanceName + ", shouldFail: " + _shouldFail);
       _invokedClasses.add(getClass().getName());
-      _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
+      // run() is synchronized per task object only; different tasks on the same participant run
+      // concurrently, so the increment must be atomic.
+      _runCounts.merge(_instanceName, 1, Integer::sum);
       LOG.info("Current invoked classes: " + _invokedClasses + ", run counts: " + _runCounts);
 
       // Fail the task if it should fail

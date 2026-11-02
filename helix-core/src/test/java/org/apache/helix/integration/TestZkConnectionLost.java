@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -136,8 +137,11 @@ public class TestZkConnectionLost extends TaskTestBase {
       // disconnect() with a broken ZK connection legitimately takes a while (internal
       // retries / timeouts), especially on slow or overloaded machines.
       testThread.join(TestHelper.WAIT_DURATION);
+      // Capture where disconnect() is stuck before failing, otherwise a hang leaves no trace.
+      String stuckAt = disconnected.get() ? "" : ", disconnect thread stack: "
+          + Arrays.toString(testThread.getStackTrace());
       Assert.assertTrue(disconnected.get(),
-          "disconnect() should complete within " + TestHelper.WAIT_DURATION + " ms");
+          "disconnect() should complete within " + TestHelper.WAIT_DURATION + " ms" + stuckAt);
       Assert.assertFalse(controllerManager.isConnected());
     } finally {
       if (testThread.isAlive()) {

@@ -26,6 +26,7 @@ import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -625,6 +626,20 @@ public class TestHelper {
 
   public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat,
       Map<String, ZNode> cache, Map<String, ZNode> zkMap, boolean needVerifyStat) {
+    try {
+      return doVerifyZkCache(pathsExcludeForStat, cache, zkMap, needVerifyStat);
+    } catch (ConcurrentModificationException e) {
+      // The cache passed in is usually the live ZkCallbackCache map. Its ZNode child sets are plain
+      // HashSets that the zk event thread keeps mutating while this method iterates over them, so a
+      // comparison can race with an in-flight update. The cache is simply not stable yet in that
+      // case, so report a mismatch and let the polling caller retry instead of failing the test.
+      System.err.println("zkCache was modified concurrently during verification, will retry: " + e);
+      return false;
+    }
+  }
+
+  private static boolean doVerifyZkCache(List<String> pathsExcludeForStat,
+      Map<String, ZNode> cache, Map<String, ZNode> zkMap, boolean needVerifyStat) {
     // equal size
     if (zkMap.size() != cache.size()) {
       System.err
@@ -642,6 +657,13 @@ public class TestHelper {
     for (String path : cache.keySet()) {
       ZNode cacheNode = cache.get(path);
       ZNode zkNode = zkMap.get(path);
+
+      if (cacheNode == null) {
+        // The live cache map is weakly consistent: the entry was removed between the keySet
+        // iteration and the get, i.e. the cache is still changing. Report a mismatch for retry.
+        System.err.println("path: " + path + " was removed from the cache during verification");
+        return false;
+      }
 
       if (zkNode == null) {
         // in cache but not on zk

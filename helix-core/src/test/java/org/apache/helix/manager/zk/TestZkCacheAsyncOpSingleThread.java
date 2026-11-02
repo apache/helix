@@ -22,10 +22,13 @@ package org.apache.helix.manager.zk;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -38,6 +41,28 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
+
+  /**
+   * Compare the content of the ZkCallbackCache with ZK while holding the cache read lock, like
+   * every production reader of the cache does. The zk event thread mutates the cached ZNodes
+   * (plain HashSet child sets) under the write lock, so comparing without the lock races with
+   * in-flight updates (ConcurrentModificationException or torn reads). ZK is read before taking
+   * the lock to keep the lock hold time short; the polling callers retry on a mismatch.
+   */
+  private boolean verifyZkCacheWithReadLock(List<String> paths,
+      ZkCacheBaseDataAccessor<ZNRecord> accessor, boolean needVerifyStat) {
+    Map<String, ZNode> zkMap = new HashMap<>();
+    for (String path : paths) {
+      TestHelper.readZkRecursive(path, zkMap, _gZkClient);
+    }
+    accessor._zkCache.lockRead();
+    try {
+      return TestHelper.verifyZkCache(paths, null, accessor._zkCache._cache, zkMap, needVerifyStat);
+    } finally {
+      accessor._zkCache.unlockRead();
+    }
+  }
+
   @Test
   public void testSessionExpirationWithSharedZkClient() throws Exception {
     int curstateCnt = 10;
@@ -63,7 +88,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
         new ZkCacheBaseDataAccessor<>(sharedBaseAccessor, null, null, zkCacheInitPaths);
 
     boolean ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+        verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using external base accessor
@@ -152,7 +177,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // TestHelper.printCache(accessor._zkCache);
     boolean ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true),
         30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
@@ -176,7 +201,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // wait zkEventThread update zkCache
     // verify wtCache
     ret = TestHelper.verify(() -> {
-      return TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+      return verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true);
       }, 30 * 1000);
 
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
@@ -203,7 +228,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // wait zkEventThread update zkCache using polling
     ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true),
         30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
@@ -224,7 +249,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // wait zkEventThread update zkCache using polling
     ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true),
         30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
@@ -242,7 +267,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // wait zkEventThread update zkCache using polling
     ret = TestHelper.verify(() ->
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true),
+        verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true),
         30 * 1000);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
@@ -273,7 +298,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // TestHelper.printCache(accessor._zkCache._cache);
     boolean ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+        verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using this accessor
@@ -295,7 +320,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, false);
+    ret = verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, false);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // update each current state 10 times by this accessor
@@ -346,7 +371,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    ret = verifyZkCacheWithReadLock(zkCacheInitPaths, accessor, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 

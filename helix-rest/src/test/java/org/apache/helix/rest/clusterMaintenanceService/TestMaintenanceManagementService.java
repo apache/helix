@@ -353,6 +353,33 @@ public class TestMaintenanceManagementService {
   }
 
   /*
+   * A class that does not implement OperationInterface must be rejected before its constructor
+   * runs, so that arbitrary classpath classes cannot be instantiated through "operation_list".
+   */
+  @Test
+  public void testTakeInstanceRejectsNonOperationClass() throws IOException {
+    Map<String, String> dataMap =
+        ImmutableMap.of("param1", "true", "param2", "faketype", "check1", "false", "check2",
+            "true");
+    String jsonContent = new ObjectMapper().writeValueAsString(dataMap);
+    ZKHelixDataAccessor zkHelixDataAccessor = mock(ZKHelixDataAccessor.class);
+    MockMaintenanceManagementService service =
+        new MockMaintenanceManagementService(zkHelixDataAccessor, _configAccessor,
+            _customRestClient, true, false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+
+    ForbiddenConstructorProbe.invoked = false;
+    MaintenanceManagementInstanceInfo info =
+        service.takeInstance(TEST_CLUSTER, TEST_INSTANCE, Collections.emptyList(),
+            MaintenanceManagementService.getMapFromJsonPayload(jsonContent),
+            Collections.singletonList(ForbiddenConstructorProbe.class.getName()),
+            Collections.EMPTY_MAP, true);
+    Assert.assertFalse(info.isSuccessful(),
+        "Taking an instance with a non-OperationInterface class must fail");
+    Assert.assertFalse(ForbiddenConstructorProbe.invoked,
+        "Constructor of a non-OperationInterface class must not run");
+  }
+
+  /*
    * Tests stoppable check api when all checks query is enabled. After helix own check fails,
    * the subsequent checks should be performed.
    */
@@ -537,5 +564,17 @@ public class TestMaintenanceManagementService {
         any());
     verify(_customRestClient, times(1)).getInstanceStoppableCheck(any(), any());
     verify(_customRestClient, times(0)).getPartitionStoppableCheck(any(), any(), any());
+  }
+
+  /*
+   * A plain class (NOT an OperationInterface) whose constructor records if it ever ran.
+   * Used to prove that rejected operation classes are never instantiated.
+   */
+  public static class ForbiddenConstructorProbe {
+    static volatile boolean invoked = false;
+
+    public ForbiddenConstructorProbe() {
+      invoked = true;
+    }
   }
 }

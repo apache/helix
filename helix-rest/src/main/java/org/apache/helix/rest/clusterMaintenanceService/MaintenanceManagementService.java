@@ -20,6 +20,7 @@ package org.apache.helix.rest.clusterMaintenanceService;
  */
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,6 +57,7 @@ import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
 import org.apache.helix.rest.clusterMaintenanceService.api.OperationInterface;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.common.RestSystemPropertyKeys;
 import org.apache.helix.rest.common.datamodel.RestSnapShot;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
@@ -337,13 +339,39 @@ public class MaintenanceManagementService {
 
   private List<OperationInterface> getAllOperationClasses(List<String> operations) {
     List<OperationInterface> operationAbstractClassList = new ArrayList<>();
-    for (String operationClassName : operations) {
+    Set<String> allowlist = getOperationClassAllowlist();
+    for (String operationClassNameRaw : operations) {
+      String operationClassName =
+          operationClassNameRaw == null ? null : operationClassNameRaw.trim();
       try {
+        if (!allowlist.isEmpty() && !allowlist.contains(operationClassName)) {
+          throw new HelixException(
+              String.format("Operation class is not in the configured allowlist: %s",
+                  operationClassName));
+        }
         LOG.info("Loading class: " + operationClassName);
+        Class<?> operationClass = HelixUtil.loadClass(getClass(), operationClassName);
+        // Validate the type BEFORE instantiating so that a class which does not implement
+        // OperationInterface never has its constructor executed.
+        if (!OperationInterface.class.isAssignableFrom(operationClass)) {
+          throw new HelixException(
+              String.format("Operation class does not implement OperationInterface: %s",
+                  operationClassName));
+        }
         OperationInterface userOperation =
-            (OperationInterface) HelixUtil.loadClass(getClass(), operationClassName)
-                .newInstance();
+            (OperationInterface) operationClass.getDeclaredConstructor().newInstance();
         operationAbstractClassList.add(userOperation);
+      } catch (HelixException e) {
+        LOG.error("Rejected operation class: {}. message: ", operationClassName, e);
+        throw e;
+      } catch (InvocationTargetException e) {
+        // Unwrap so the operation class constructor's real failure reason is surfaced.
+        Throwable cause = e.getCause() == null ? e : e.getCause();
+        LOG.error("Operation class constructor failed for: {}. message: ", operationClassName,
+            cause);
+        throw new HelixException(
+            String.format("Operation class constructor failed for: %s. message: %s",
+                operationClassName, cause));
       } catch (Exception e) {
         LOG.error("No operation class found for: {}. message: ", operationClassName, e);
         throw new HelixException(
@@ -351,6 +379,21 @@ public class MaintenanceManagementService {
       }
     }
     return operationAbstractClassList;
+  }
+
+  private static Set<String> getOperationClassAllowlist() {
+    String raw = System.getProperty(RestSystemPropertyKeys.REST_OPERATION_CLASS_ALLOWLIST);
+    if (raw == null || raw.trim().isEmpty()) {
+      return Collections.emptySet();
+    }
+    Set<String> allowlist = new HashSet<>();
+    for (String entry : raw.split(",")) {
+      String trimmed = entry.trim();
+      if (!trimmed.isEmpty()) {
+        allowlist.add(trimmed);
+      }
+    }
+    return allowlist;
   }
 
   /**

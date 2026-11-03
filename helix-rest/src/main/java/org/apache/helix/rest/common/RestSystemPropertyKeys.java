@@ -22,4 +22,10 @@ package org.apache.helix.rest.common;
 public class RestSystemPropertyKeys {
   // System property for REST HTTP request timeout
   public static final String REST_HTTP_TIMEOUT_MS = "rest.http.timeout.ms";
+
+  // Optional comma-separated allowlist of fully-qualified operation class names that the
+  // take/free instance APIs are permitted to load via "operation_list". When set to a non-empty
+  // value, only classes on this list may be instantiated. When unset or empty, no name-based
+  // restriction is applied, but every operation class must still implement OperationInterface.
+  public static final String REST_OPERATION_CLASS_ALLOWLIST = "rest.operation.class.allowlist";
 }

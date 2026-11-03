@@ -994,7 +994,7 @@ public class TaskDriver {
 
   /**
    * TODO: IdealStates are no longer used by Task Framework. This function deletes IdealStates for
-   * TODO: backward compatability purpose; this behavior will be removed later.
+   * TODO: backward compatibility purpose; this behavior will be removed later.
    * Public synchronized method to wait for a delete operation to fully complete with timeout.
    * When this method returns, it means that a queue (workflow) has been completely deleted, meaning
    * its IdealState, WorkflowConfig, and WorkflowContext have all been deleted.

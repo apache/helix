@@ -21,9 +21,11 @@ package org.apache.helix.integration.manager;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
@@ -34,7 +36,10 @@ import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.slf4j.Logger;
@@ -146,23 +151,12 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
     endCountdown.countDown();
 
-    // Wait for the participant to fully reconnect with a new session before verifying cluster
-    // state. Recovering from consecutive session expiries (re-joining the cluster and carrying
-    // over the current states) can take a while on overloaded machines, and the default 30s
-    // verifier window was not enough.
-    final MockParticipantManager expiredParticipant = participants[0];
-    final String expiredSessionId = oldSessionId;
-    Assert.assertTrue(TestHelper.verify(() -> {
-      String currentSessionId = expiredParticipant.getSessionId();
-      return expiredParticipant.isConnected() && currentSessionId != null
-          && !currentSessionId.equals(expiredSessionId);
-    }, TestHelper.WAIT_DURATION),
-        "Participant should reconnect with a new session after consecutive expiries");
+    // Wait for the participant to fully re-join the cluster under its new session before
+    // verifying cluster state. Recovering from consecutive session expiries (re-joining the
+    // cluster and carrying over the current states) can take a while on overloaded machines.
+    waitForRejoinWithNewSession(participants[0], clusterName, oldSessionId);
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName), 2 * TestHelper.WAIT_DURATION);
-    Assert.assertTrue(result);
+    verifyClusterConverged(clusterName);
 
     // clean up
     controller.syncStop();
@@ -238,22 +232,12 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
     endCountdown.countDown();
 
-    // Wait for the distributed controller to fully reconnect with a new session before
-    // verifying cluster state. Recovering from consecutive session expiries can be slow
+    // Wait for the distributed controller to fully re-join the cluster under its new session
+    // before verifying cluster state. Recovering from consecutive session expiries can be slow
     // on overloaded machines.
-    final ClusterDistributedController expiredController = distributedControllers[0];
-    final String expiredSessionId = oldSessionId;
-    Assert.assertTrue(TestHelper.verify(() -> {
-      String currentSessionId = expiredController.getSessionId();
-      return expiredController.isConnected() && currentSessionId != null
-          && !currentSessionId.equals(expiredSessionId);
-    }, TestHelper.WAIT_DURATION),
-        "Distributed controller should reconnect with a new session after consecutive expiries");
+    waitForRejoinWithNewSession(distributedControllers[0], clusterName, oldSessionId);
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName), 2 * TestHelper.WAIT_DURATION);
-    Assert.assertTrue(result);
+    verifyClusterConverged(clusterName);
 
     // verify leader changes to localhost_12919
     HelixDataAccessor accessor =
@@ -301,4 +285,122 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
+  /**
+   * Waits until the manager has re-joined the cluster under a session other than the expired one:
+   * the ZK client is connected with a new session id AND the LIVEINSTANCE znode has been
+   * re-created by that session. The second condition is what matters for the cluster state
+   * verification that follows: it means HelixManager#handleNewSession() for the surviving session
+   * got past the live instance creation (the point where the handler for the intermediate,
+   * expired-while-being-handled session fails by design in this test). Only checking the client's
+   * session id would let the test proceed while the manager is still (re)initializing.
+   */
+  private void waitForRejoinWithNewSession(final HelixManager manager, String clusterName,
+      final String expiredSessionId) throws Exception {
+    final HelixDataAccessor accessor = accessor(clusterName);
+    final PropertyKey liveInstanceKey =
+        accessor.keyBuilder().liveInstance(manager.getInstanceName());
+    boolean rejoined = TestHelper.verify(() -> {
+      // getSessionId() throws when the manager is (or becomes) disconnected; treat that as
+      // "not re-joined yet" and keep polling instead of aborting the wait.
+      String currentSessionId = currentSessionIdOrNull(manager);
+      if (currentSessionId == null || currentSessionId.equals(expiredSessionId)) {
+        return false;
+      }
+      LiveInstance liveInstance = accessor.getProperty(liveInstanceKey);
+      return liveInstance != null && currentSessionId.equals(liveInstance.getEphemeralOwner());
+    }, TestHelper.WAIT_DURATION);
+    if (!rejoined) {
+      dumpClusterState(clusterName, "instance " + manager.getInstanceName()
+          + " did not re-join with a new session (expired session: " + expiredSessionId
+          + ", current session: " + currentSessionIdOrNull(manager) + ", connected: "
+          + manager.isConnected() + ")");
+    }
+    Assert.assertTrue(rejoined, manager.getInstanceName()
+        + " should re-create its live instance with a new session after consecutive expiries");
+  }
+
+  /**
+   * Verifies that the external views converge to the best possible state. On failure, dumps the
+   * relevant cluster state to stdout (the CI log level is ERROR only, so test logging is not
+   * available there) before failing, so that a non-converging cluster can be diagnosed from the
+   * CI output instead of just "expected:<true> but was:<false>".
+   */
+  private void verifyClusterConverged(String clusterName) {
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, clusterName), 2 * TestHelper.WAIT_DURATION);
+    if (!result) {
+      dumpClusterState(clusterName, "cluster did not converge after consecutive session expiries");
+    }
+    Assert.assertTrue(result,
+        "Cluster should converge to the best possible state after consecutive session expiries");
+  }
+
+  private HelixDataAccessor accessor(String clusterName) {
+    return new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+  }
+
+  private static String currentSessionIdOrNull(HelixManager manager) {
+    try {
+      return manager.isConnected() ? manager.getSessionId() : null;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  /**
+   * Best effort: every read below tolerates znodes disappearing underneath it (which is exactly
+   * what happens around a session expiry) so that one failed section does not hide the others.
+   */
+  private void dumpClusterState(String clusterName, String reason) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("==== ").append(clusterName).append(": ").append(reason).append(" ====\n");
+    try {
+      HelixDataAccessor accessor = accessor(clusterName);
+      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+      LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+      sb.append("LEADER: ").append(leader == null ? "none"
+          : leader.getInstanceName() + " (session " + leader.getEphemeralOwner() + ")")
+          .append('\n');
+
+      Map<String, LiveInstance> liveInstances =
+          accessor.getChildValuesMap(keyBuilder.liveInstances(), false);
+      for (Map.Entry<String, LiveInstance> entry : liveInstances.entrySet()) {
+        sb.append("LIVEINSTANCE ").append(entry.getKey()).append(": session ")
+            .append(entry.getValue().getEphemeralOwner()).append('\n');
+      }
+
+      for (String instance : accessor.getChildNames(keyBuilder.instances())) {
+        for (String session : accessor.getChildNames(keyBuilder.sessions(instance))) {
+          List<CurrentState> currentStates =
+              accessor.getChildValues(keyBuilder.currentStates(instance, session), false);
+          for (CurrentState currentState : currentStates) {
+            sb.append("CURRENTSTATE ").append(instance).append('/').append(session).append('/')
+                .append(currentState.getResourceName()).append(": ")
+                .append(currentState.getPartitionStateMap()).append('\n');
+          }
+        }
+        List<Message> messages = accessor.getChildValues(keyBuilder.messages(instance), false);
+        for (Message message : messages) {
+          sb.append("MESSAGE ").append(instance).append('/').append(message.getMsgId())
+              .append(": ").append(message.getMsgType()).append(' ')
+              .append(message.getResourceName()).append('/').append(message.getPartitionName())
+              .append(' ').append(message.getFromState()).append("->").append(message.getToState())
+              .append(" tgtSession=").append(message.getTgtSessionId()).append(" state=")
+              .append(message.getMsgState()).append('\n');
+        }
+      }
+
+      List<ExternalView> externalViews =
+          accessor.getChildValues(keyBuilder.externalViews(), false);
+      for (ExternalView externalView : externalViews) {
+        sb.append("EXTERNALVIEW ").append(externalView.getResourceName()).append(": ")
+            .append(externalView.getRecord().getMapFields()).append('\n');
+      }
+    } catch (Exception e) {
+      sb.append("failed to dump cluster state: ").append(e).append('\n');
+    }
+    System.out.println(sb);
+  }
 }

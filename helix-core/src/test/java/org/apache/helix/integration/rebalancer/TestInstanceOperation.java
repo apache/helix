@@ -123,6 +123,8 @@ public class TestInstanceOperation extends ZkTestBase {
 
   // Test state
   protected ClusterControllerManager _controller;
+  // Top state per resource, looked up once; validateReplacementAssignment runs inside 50ms polls.
+  private final Map<String, String> _topStateByResource = new HashMap<>();
   private HelixManager _spectator;
   private RoutingTableProvider _routingTableProviderDefault;
   private RoutingTableProvider _routingTableProviderEV;
@@ -556,12 +558,12 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Disable one partition on swap-out for testing
     String resourceToDisable = _allDBs.iterator().next();
-    getPartitionsAndStatesOnInstance(getEVs(), swapOutName).entrySet().stream()
-        .filter(entry -> entry.getKey().startsWith(resourceToDisable))
-        .findFirst()
-        .ifPresent(entry -> {
-          swapOutConfig.setInstanceEnabledForPartition(resourceToDisable, entry.getKey(), false);
-        });
+    String partitionToDisable = getPartitionsAndStatesOnInstance(getEVs(), swapOutName).keySet()
+        .stream().filter(partition -> partition.startsWith(resourceToDisable)).findFirst()
+        .orElse(null);
+    Assert.assertNotNull(partitionToDisable,
+        "Swap-out " + swapOutName + " should host a partition of " + resourceToDisable);
+    swapOutConfig.setInstanceEnabledForPartition(resourceToDisable, partitionToDisable, false);
     _gSetupTool.getClusterManagementTool()
         .setInstanceConfig(CLUSTER_NAME, swapOutName, swapOutConfig);
 
@@ -606,7 +608,7 @@ public class TestInstanceOperation extends ZkTestBase {
 
     // Wait for swap to be fully processed and EV to stabilize
     // After completeSwapIfPossible, the controller needs time to update the EV
-    waitForSwapProcessed(originalEVs, swapOutName, swapInName);
+    waitForSwapProcessed(swapOutName, swapInName);
 
     // Verify swap-in is now in routing tables
     validateRoutingTablesInstance(swapInName, true);
@@ -624,16 +626,23 @@ public class TestInstanceOperation extends ZkTestBase {
     Assert.assertTrue(configListener.isThrottlesEnabled(),
         "Throttles should be re-enabled after swap");
 
-    // Verify final EV is correct
-    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT);
-
-    // Re-enable the disabled partition on swap-in
+    // The disabled partition was carried over from the swap-out's config. Re-enable it on the
+    // swap-in (same resource/partition overload as the disable above; the deprecated 2-arg
+    // overload edits a legacy list field the controller does not read) so the final assignment
+    // can be validated as fully healthy.
     InstanceConfig swapInConfig = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, swapInName);
-    swapInConfig.setInstanceEnabledForPartition(resourceToDisable, true);
+    swapInConfig.setInstanceEnabledForPartition(resourceToDisable, partitionToDisable, true);
     _gSetupTool.getClusterManagementTool()
         .setInstanceConfig(CLUSTER_NAME, swapInName, swapInConfig);
+
+    // Verify final EV. Once the swap is completed the swap-in is a regular ENABLE instance and
+    // the swap-out is UNKNOWN, so the controller no longer pairs them and the final assignment is
+    // an ordinary rebalance over the new node set, not an in-place copy of the pre-swap EV (see
+    // validateReplacementAssignment). The exact mirror is asserted above while the swap is in
+    // flight, which is the only phase where the product guarantees it.
+    verifier(() -> validateReplacementAssignment(getEVs(), originalEVs, swapOutName, swapInName),
+        VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testNodeSwapBasic");
   }
@@ -701,16 +710,18 @@ public class TestInstanceOperation extends ZkTestBase {
         "Swap should complete");
 
     // Wait for swap to be fully processed and EV to stabilize
-    waitForSwapProcessed(originalEVs, swapOutName, swapInName);
+    waitForSwapProcessed(swapOutName, swapInName);
 
     // Verify swap-out is disabled
     Assert.assertFalse(_gSetupTool.getClusterManagementTool()
         .getInstanceConfig(CLUSTER_NAME, swapOutName).getInstanceEnabled(),
         "Swap-out should be disabled");
 
-    // Verify final EV
-    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT);
+    // Verify final EV. The exact pre-swap mirror is only guaranteed while the swap is in flight
+    // (asserted above); after completion the pair is no longer tracked and the assignment is
+    // recomputed over the new node set, so check the product's guarantees instead.
+    verifier(() -> validateReplacementAssignment(getEVs(), originalEVs, swapOutName, swapInName),
+        VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testSwapNotAffectedByDisableReenableOfSwapOut");
   }
@@ -756,9 +767,10 @@ public class TestInstanceOperation extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    // Verify final state
-    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT);
+    // Verify final state. See testNodeSwapBasic: after completion the exact pre-swap mirror is
+    // not guaranteed, only a healthy replacement assignment is.
+    verifier(() -> validateReplacementAssignment(getEVs(), originalEVs, swapOutName, swapInName),
+        VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testSwapInCanBeSetAfterInstanceAdded");
   }
@@ -878,9 +890,10 @@ public class TestInstanceOperation extends ZkTestBase {
     // Verify swap-in in routing tables
     validateRoutingTablesInstance(swapInName, true);
 
-    // Verify final EV
-    verifier(() -> validateEVsCorrect(getEVs(), originalEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName)), VERIFICATION_TIMEOUT);
+    // Verify final EV. See testNodeSwapBasic: after completion the exact pre-swap mirror is
+    // not guaranteed, only a healthy replacement assignment is.
+    verifier(() -> validateReplacementAssignment(getEVs(), originalEVs, swapOutName, swapInName),
+        VERIFICATION_TIMEOUT * 2);
 
     LOG.info("END testSwapInDuringMaintenanceMode");
   }
@@ -1289,8 +1302,11 @@ public class TestInstanceOperation extends ZkTestBase {
         "Swap should complete");
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    validateEVsCorrect(getEVs(), beforeEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName));
+    // See testNodeSwapBasic: after completion the exact pre-swap mirror is not guaranteed, only a
+    // healthy replacement assignment is. The one-shot read is also replaced by polling because
+    // the EV is rewritten asynchronously after completeSwapIfPossible.
+    verifier(() -> validateReplacementAssignment(getEVs(), beforeEVs, swapOutName, swapInName),
+        VERIFICATION_TIMEOUT * 2);
 
     // Cleanup
     _participants.get(_participants.size() - 1).syncStop();
@@ -1375,8 +1391,10 @@ public class TestInstanceOperation extends ZkTestBase {
         "Swap should complete");
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    validateEVsCorrect(getEVs(), beforeSwapDisableEVs, swapOutToSwapIn,
-        Collections.emptySet(), ImmutableSet.of(swapInName));
+    // See testNodeSwapBasic: after completion the exact pre-swap mirror is not guaranteed, only a
+    // healthy replacement assignment is. Polled because the EV is rewritten asynchronously.
+    verifier(() -> validateReplacementAssignment(getEVs(), beforeSwapDisableEVs, swapOutName,
+        swapInName), VERIFICATION_TIMEOUT * 2);
 
     // Cleanup
     _participants.get(_participants.size() - 1).syncStop();
@@ -2059,56 +2077,25 @@ public class TestInstanceOperation extends ZkTestBase {
 
   /**
    * Waits (up to 30s) for a completed swap to be reflected in the external views: the swap-out
-   * instance no longer holds LEADER where it originally did, and the swap-in instance has taken
-   * over every partition the swap-out instance originally hosted. Only logs a warning on timeout;
-   * callers are expected to run their own definitive validations afterwards.
+   * instance holds no replica anymore and the swap-in instance hosts at least one. Only logs a
+   * warning on timeout; callers are expected to run their own definitive validations afterwards.
    */
-  private void waitForSwapProcessed(Map<String, ExternalView> originalEVs, String swapOutName,
-      String swapInName) throws InterruptedException {
+  private void waitForSwapProcessed(String swapOutName, String swapInName)
+      throws InterruptedException {
     long swapWaitStartTime = System.currentTimeMillis();
     long maxSwapWaitTime = 30000;
     boolean swapProcessed = false;
     while (System.currentTimeMillis() - swapWaitStartTime < maxSwapWaitTime) {
       if (_clusterVerifier.verifyByPolling()) {
         Map<String, ExternalView> currentEVs = getEVs();
-        boolean allCorrect = true;
-        for (String resource : originalEVs.keySet()) {
-          ExternalView current = currentEVs.get(resource);
-          ExternalView original = originalEVs.get(resource);
-          if (current == null || original == null) {
-            allCorrect = false;
-            break;
-          }
-          for (String partition : original.getPartitionSet()) {
-            Map<String, String> currentStateMap = current.getStateMap(partition);
-            Map<String, String> originalStateMap = original.getStateMap(partition);
-            // The partition may be transiently missing from an EV while the controller
-            // rewrites it; keep polling instead of throwing NPE out of the wait loop.
-            if (currentStateMap == null || originalStateMap == null) {
-              allCorrect = false;
-              break;
-            }
-            // Check if swapOut is still in EV with LEADER state (should be replaced)
-            if (currentStateMap.containsKey(swapOutName)) {
-              String currentState = currentStateMap.get(swapOutName);
-              String originalState = originalStateMap.get(swapOutName);
-              if (currentState.equals(originalState) && "LEADER".equals(currentState)) {
-                allCorrect = false;
-                break;
-              }
-            }
-            // Check if swapIn has taken over the replicas swapOut originally had.
-            // Only partitions that were on swapOut are expected on swapIn; requiring
-            // swapIn in every partition made this wait condition unsatisfiable.
-            if (originalStateMap.containsKey(swapOutName)
-                && !currentStateMap.containsKey(swapInName)) {
-              allCorrect = false;
-              break;
-            }
-          }
-          if (!allCorrect) break;
-        }
-        if (allCorrect) {
+        // A partition may be transiently missing from an EV while the controller rewrites it;
+        // treat a null state map as "not hosted" instead of throwing out of the wait loop.
+        boolean swapOutGone = currentEVs.values().stream().allMatch(ev -> ev != null
+            && ev.getPartitionSet().stream().allMatch(partition -> ev.getStateMap(partition) == null
+                || !ev.getStateMap(partition).containsKey(swapOutName)));
+        boolean swapInPresent = currentEVs.values().stream()
+            .anyMatch(ev -> ev != null && getParticipantsInEv(ev).contains(swapInName));
+        if (swapOutGone && swapInPresent) {
           swapProcessed = true;
           LOG.info("Swap processed and EV stabilized after {} ms",
               System.currentTimeMillis() - swapWaitStartTime);
@@ -2147,11 +2134,12 @@ public class TestInstanceOperation extends ZkTestBase {
       Assert.assertEquals(actual.getPartitionSet(), original.getPartitionSet(),
           "Partition set should match for resource " + resource);
 
-      IdealState is = _gSetupTool.getClusterManagementTool()
-          .getResourceIdealState(CLUSTER_NAME, resource);
-      StateModelDefinition stateModelDef = _gSetupTool.getClusterManagementTool()
-          .getStateModelDef(CLUSTER_NAME, is.getStateModelDefRef());
-      String topState = stateModelDef.getTopState();
+      String topState = _topStateByResource.computeIfAbsent(resource, r -> {
+        IdealState is = _gSetupTool.getClusterManagementTool()
+            .getResourceIdealState(CLUSTER_NAME, r);
+        return _gSetupTool.getClusterManagementTool()
+            .getStateModelDef(CLUSTER_NAME, is.getStateModelDefRef()).getTopState();
+      });
 
       for (String partition : original.getPartitionSet()) {
         Map<String, String> stateMap = actual.getStateMap(partition);

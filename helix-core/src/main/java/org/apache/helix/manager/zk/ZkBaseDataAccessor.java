@@ -51,6 +51,7 @@ import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
@@ -311,6 +312,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             // if parent node created/exists, retry
             retry = true;
           }
+        } catch (ZkInterruptedException e1) {
+          throw e1;
         } catch (Exception e1) {
           LOG.error("Exception while creating path: " + parentPath, e1);
           result._retCode = RetCode.ERROR;
@@ -320,6 +323,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         LOG.warn("Node already exists. path: " + path);
         result._retCode = RetCode.NODE_EXISTS;
         return result;
+      } catch (ZkInterruptedException e) {
+        // The calling thread was interrupted while the request was in flight, so the outcome is
+        // unknown: ZooKeeper may still have applied it. Returning ERROR would tell the caller the
+        // write definitely did not happen, which it cannot know. Propagate instead so that a
+        // false return value always means "not applied". Same for the other sync operations.
+        throw e;
       } catch (Exception e) {
         LOG.error("Exception while creating path: " + path, e);
         result._retCode = RetCode.ERROR;
@@ -391,12 +400,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               result._retCode = RetCode.ERROR;
               return result;
           }
+        } catch (ZkInterruptedException e1) {
+          throw e1;
         } catch (Exception e1) {
           LOG.error("Exception while setting path by creating: " + path, e1);
           result._retCode = RetCode.ERROR;
           return result;
         }
-      } catch (ZkBadVersionException e) {
+      } catch (ZkBadVersionException | ZkInterruptedException e) {
         LOG.debug("Exception while setting path: " + path, e);
         throw e;
       } catch (Exception e) {
@@ -471,11 +482,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               result._retCode = RetCode.ERROR;
               return result;
           }
+        } catch (ZkInterruptedException e1) {
+          throw e1;
         } catch (Exception e1) {
           LOG.error("Exception while updating path by creating: " + path, e1);
           result._retCode = RetCode.ERROR;
           return result;
         }
+      } catch (ZkInterruptedException e) {
+        throw e;
       } catch (Exception e) {
         LOG.error("Exception while updating path: " + path, e);
         result._retCode = RetCode.ERROR;
@@ -524,6 +539,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         _zkClient.multi(ops);
       } catch (ZkBadVersionException e) {
         retry = true;
+      } catch (ZkInterruptedException e) {
+        throw e;
       } catch (Exception e1) {
         LOG.error("Exception while updating paths: " + updaterByPath.keySet(), e1);
         result._retCode = RetCode.ERROR;
@@ -775,6 +792,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       // despite real error, operation will throw exception when path not empty, and in this
       // case, we try to delete recursively
       _zkClient.delete(path);
+    } catch (ZkInterruptedException e) {
+      throw e;
     } catch (ZkException e) {
       LOG.debug("Failed to delete {} with opts {}, err: {}. Try recursive delete", path, options,
           e.getMessage());
@@ -801,6 +820,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       // despite real error, operation will throw exception when path not empty, and in this
       // case, we do NOT try to delete recursively
       _zkClient.delete(path, expectedVersion);
+    } catch (ZkInterruptedException e) {
+      throw e;
     } catch (ZkException zkException) {
       LOG.error("Failed to delete {} with opts {} and expected version {}.", path, options,
           expectedVersion, zkException);

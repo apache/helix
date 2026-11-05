@@ -100,4 +100,22 @@ public class ZkSystemPropertyKeys {
    */
   public static final String ZK_OPERATION_RETRY_TIMEOUT_MS =
       "zk.operation.retry.timeout.ms";
+
+  /**
+   * This property bounds, in milliseconds, how long a synchronous ZkClient write (create, setData,
+   * delete) keeps waiting for the outcome of a request that was already handed to ZooKeeper when
+   * the calling thread got interrupted.
+   * <p>
+   * ZooKeeper queues a request to its send thread before blocking the caller for the reply, so an
+   * interrupt during that wait does not stop the server from applying the request. Instead of
+   * reporting such a write as failed, ZkClient waits up to this long for the real outcome, which
+   * ZooKeeper guarantees to deliver either as the server reply or as a connection loss, and then
+   * restores the thread's interrupt flag. A second interrupt during the wait aborts it. Only if
+   * the outcome is still unknown when the wait ends is {@code ZkInterruptedException} thrown.
+   * <p>
+   * A value of 0 disables the wait and aborts immediately with an unknown outcome (the behavior
+   * prior to this property). A negative or unset value uses the ZooKeeper session timeout, which
+   * is the longest the client can take to notice a broken connection.
+   */
+  public static final String ZK_INTERRUPTED_WRITE_WAIT_MS = "zk.interrupted.write.wait.ms";
 }

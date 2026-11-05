@@ -41,7 +41,9 @@ public interface BaseDataAccessor<T> {
    * @param path path to the ZNode to create
    * @param record the data to write to the ZNode
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
-   * @return true if creation succeeded, false otherwise (e.g. if the ZNode exists)
+   * @return true if creation succeeded, false otherwise (e.g. if the ZNode exists).
+   *         If the calling thread is interrupted while the operation is in flight, the
+   *         implementation throws instead of returning false, because the outcome is unknown.
    */
   boolean create(String path, T record, int options);
 
@@ -53,7 +55,9 @@ public interface BaseDataAccessor<T> {
    * @param record the data to write to the ZNode
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @param ttl TTL of the node in milliseconds, if options supports it
-   * @return true if creation succeeded, false otherwise (e.g. if the ZNode exists)
+   * @return true if creation succeeded, false otherwise (e.g. if the ZNode exists).
+   *         If the calling thread is interrupted while the operation is in flight, the
+   *         implementation throws instead of returning false, because the outcome is unknown.
    */
   default boolean create(String path, T record, int options, long ttl) {
     throw new UnsupportedOperationException("create with TTL support is not implemented.");
@@ -65,7 +69,9 @@ public interface BaseDataAccessor<T> {
    * @param path path to the ZNode to set
    * @param record the data to write to the ZNode
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
-   * @return true if data was successfully set, false otherwise
+   * @return true if data was successfully set, false otherwise.
+   *         If the calling thread is interrupted while the operation is in flight, the
+   *         implementation throws instead of returning false, because the outcome is unknown.
    */
   boolean set(String path, T record, int options);
 
@@ -78,7 +84,9 @@ public interface BaseDataAccessor<T> {
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @param expectVersion the expected version of the data to be overwritten, -1 means match any
    *          version
-   * @return true if data was successfully set, false otherwise (e.g. if the version mismatches)
+   * @return true if data was successfully set, false otherwise (e.g. if the version mismatches).
+   *         If the calling thread is interrupted while the operation is in flight, the
+   *         implementation throws instead of returning false, because the outcome is unknown.
    */
   boolean set(String path, T record, int expectVersion, int options);
 
@@ -89,7 +97,9 @@ public interface BaseDataAccessor<T> {
    * @param path path to the ZNode to update
    * @param updater an update routine for the data to merge in
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
-   * @return true if data update succeeded, false otherwise
+   * @return true if data update succeeded, false otherwise.
+   *         If the calling thread is interrupted while the operation is in flight, the
+   *         implementation throws instead of returning false, because the outcome is unknown.
    */
   boolean update(String path, DataUpdater<T> updater, int options);
 
@@ -108,7 +118,9 @@ public interface BaseDataAccessor<T> {
    * This will remove the ZNode and all its descendants if any
    * @param path path to the root ZNode to remove
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
-   * @return true if the removal succeeded, false otherwise
+   * @return true if the removal succeeded, false otherwise.
+   *         If the calling thread is interrupted while the operation is in flight, the
+   *         implementation throws instead of returning false, because the outcome is unknown.
    */
   boolean remove(String path, int options);
 
@@ -119,7 +131,9 @@ public interface BaseDataAccessor<T> {
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @param expectedVersion the expected version of the node to be removed, -1 means match any
    * version
-   * @return true if the removal succeeded, false otherwise
+   * @return true if the removal succeeded, false otherwise.
+   *         If the calling thread is interrupted while the operation is in flight, the
+   *         implementation throws instead of returning false, because the outcome is unknown.
    */
   default boolean removeWithExpectedVersion(String path, int options, int expectedVersion) {
     throw new NotImplementedException("removeWithExpectedVersion is not implemented");

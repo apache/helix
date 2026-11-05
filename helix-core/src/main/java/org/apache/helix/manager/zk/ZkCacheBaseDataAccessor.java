@@ -40,6 +40,7 @@ import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.KeeperException.Code;
@@ -278,6 +279,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         // no cache
         success = _baseAccessor.set(serverPath, data, expectVersion, options);
       }
+    } catch (ZkInterruptedException e) {
+      // Outcome unknown, see ZkBaseDataAccessor#doSet. Returning false would misreport it.
+      throw e;
     } catch (Exception e) {
     } finally {
       if (cache != null) {

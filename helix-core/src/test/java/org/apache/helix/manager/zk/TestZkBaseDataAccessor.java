@@ -21,7 +21,9 @@ package org.apache.helix.manager.zk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,9 +44,13 @@ import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -912,4 +918,70 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
         + new Date(System.currentTimeMillis()));
   }
 
+  /*
+   * An interrupt while a request is in flight leaves the outcome unknown (ZooKeeper may still
+   * apply it), so the sync operations must propagate it rather than report a definite failure.
+   */
+  @Test
+  public void testSyncOperationsPropagateInterrupt() {
+    RealmAwareZkClient zkClient = Mockito.mock(RealmAwareZkClient.class);
+    ZkInterruptedException interrupted = new ZkInterruptedException(new InterruptedException());
+    // The constructor above re-asserts the interrupt on the current thread; clear it.
+    Thread.interrupted();
+    Mockito.doThrow(interrupted).when(zkClient).create(ArgumentMatchers.anyString(),
+        ArgumentMatchers.any(), ArgumentMatchers.any(CreateMode.class), ArgumentMatchers.anyLong());
+    Mockito.doThrow(interrupted).when(zkClient).writeDataGetStat(ArgumentMatchers.anyString(),
+        ArgumentMatchers.any(), ArgumentMatchers.anyInt());
+    Mockito.doThrow(interrupted).when(zkClient)
+        .readData(ArgumentMatchers.anyString(), ArgumentMatchers.any(Stat.class));
+    Mockito.doThrow(interrupted).when(zkClient).delete(ArgumentMatchers.anyString());
+    Mockito.doThrow(interrupted).when(zkClient)
+        .delete(ArgumentMatchers.anyString(), ArgumentMatchers.anyInt());
+    Mockito.doThrow(interrupted).when(zkClient).multi(ArgumentMatchers.any());
+
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(zkClient);
+    String path = "/" + _rootPath + "/interrupted";
+    ZNRecord record = new ZNRecord("interrupted");
+    DataUpdater<ZNRecord> updater = current -> record;
+
+    assertThrowsInterrupted(() -> accessor.create(path, record, AccessOption.PERSISTENT));
+    assertThrowsInterrupted(() -> accessor.set(path, record, AccessOption.PERSISTENT));
+    assertThrowsInterrupted(() -> accessor.set(path, record, 3, AccessOption.PERSISTENT));
+    assertThrowsInterrupted(() -> accessor.update(path, updater, AccessOption.PERSISTENT));
+    assertThrowsInterrupted(() -> accessor.remove(path, AccessOption.PERSISTENT));
+    assertThrowsInterrupted(
+        () -> accessor.removeWithExpectedVersion(path, AccessOption.PERSISTENT, 0));
+    Map<String, DataUpdater<ZNRecord>> updaters = new HashMap<>();
+    updaters.put(path, updater);
+    Mockito.doReturn(record).when(zkClient)
+        .readData(ArgumentMatchers.anyString(), ArgumentMatchers.any(Stat.class));
+    assertThrowsInterrupted(() -> accessor.multiSet(updaters));
+
+    // The interrupt must also surface from the create-on-missing-node fallback of set/update.
+    Mockito.doThrow(new ZkNoNodeException()).when(zkClient).writeDataGetStat(
+        ArgumentMatchers.anyString(), ArgumentMatchers.any(), ArgumentMatchers.anyInt());
+    Mockito.doThrow(new ZkNoNodeException()).when(zkClient)
+        .readData(ArgumentMatchers.anyString(), ArgumentMatchers.any(Stat.class));
+    assertThrowsInterrupted(() -> accessor.set(path, record, AccessOption.PERSISTENT));
+    assertThrowsInterrupted(() -> accessor.update(path, updater, AccessOption.PERSISTENT));
+
+    // ... and from remove()'s recursive-delete fallback for a non-empty node.
+    Mockito.doThrow(new ZkException("not empty")).when(zkClient).delete(ArgumentMatchers.anyString());
+    Mockito.doThrow(interrupted).when(zkClient).deleteRecursively(ArgumentMatchers.anyString());
+    assertThrowsInterrupted(() -> accessor.remove(path, AccessOption.PERSISTENT));
+
+    // The cache accessor on top must not swallow it either (property store users).
+    ZkCacheBaseDataAccessor<ZNRecord> cacheAccessor =
+        new ZkCacheBaseDataAccessor<>(accessor, Collections.emptyList());
+    assertThrowsInterrupted(() -> cacheAccessor.set(path, record, AccessOption.PERSISTENT));
+  }
+
+  private static void assertThrowsInterrupted(Runnable operation) {
+    try {
+      operation.run();
+      Assert.fail("Expected ZkInterruptedException");
+    } catch (ZkInterruptedException expected) {
+      // expected
+    }
+  }
 }

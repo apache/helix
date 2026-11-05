@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -71,6 +72,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy;
 import org.apache.helix.zookeeper.zkclient.util.ZkPathRecursiveWatcherTrie;
 import org.apache.zookeeper.AddWatchMode;
+import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
@@ -151,6 +153,9 @@ public class ZkClient implements Watcher {
   // TODO PVo remove this later
   private Thread _zookeeperEventThread;
   private volatile boolean _closed;
+  // How long a sync write waits for its in-flight request after the caller is interrupted.
+  // Negative means "use the session timeout". See ZkSystemPropertyKeys.ZK_INTERRUPTED_WRITE_WAIT_MS.
+  private final long _interruptedWriteWaitMs;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
   // When _usePersistWatcher is true, ZKClient will register itself as persist watcher to Zk Server.
@@ -254,6 +259,7 @@ public class ZkClient implements Watcher {
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
+    _interruptedWriteWaitMs = readInterruptedWriteWaitMs();
     _isNewSessionEventFired = false;
 
     _asyncCallRetryThread = new ZkAsyncRetryThread(zkConnection.getServers());
@@ -1124,11 +1130,17 @@ public class ZkClient implements Watcher {
 
       final String actualPath;
       if (mode.isTTL()) {
-        actualPath = retryUntilConnected(() -> getExpectedZookeeper(expectedSessionId)
-            .create(path, dataBytes, acl, mode, null, ttl));
+        actualPath = retryUntilConnected(
+            () -> this.<String>syncWrite(path, getExpectedZookeeper(expectedSessionId),
+                (zk, write) -> zk.create(path, dataBytes, acl, mode,
+                    (AsyncCallback.Create2Callback) (rc, p, ctx, name, stat) ->
+                        write.complete(rc, name), null, ttl)));
       } else {
-        actualPath = retryUntilConnected(() -> getExpectedZookeeper(expectedSessionId)
-            .create(path, dataBytes, acl, mode));
+        actualPath = retryUntilConnected(
+            () -> this.<String>syncWrite(path, getExpectedZookeeper(expectedSessionId),
+                (zk, write) -> zk.create(path, dataBytes, acl, mode,
+                    (AsyncCallback.StringCallback) (rc, p, ctx, name) -> write.complete(rc, name),
+                    null)));
       }
 
       record(path, dataBytes, startT, ZkClientMonitor.AccessType.WRITE);
@@ -1831,6 +1843,9 @@ public class ZkClient implements Watcher {
     // if there is any other failure case.
     try {
       delete(path);
+    } catch (ZkInterruptedException e) {
+      // Outcome unknown (see awaitInFlightWrite); do not report it as a plain failure.
+      throw e;
     } catch (Exception e) {
       LOG.error("zkclient {}, Failed to delete {}, exception {}", _uid, path, e);
       throw new ZkClientException("Failed to delete " + path, e);
@@ -1865,6 +1880,9 @@ public class ZkClient implements Watcher {
 
     try {
       opResults = multi(ops);
+    } catch (ZkInterruptedException e) {
+      // Outcome unknown (see awaitInFlightWrite); do not report it as a plain failure.
+      throw e;
     } catch (Exception e) {
       LOG.error("zkclient {}, Failed to delete paths {}, exception {}", _uid, paths, e);
       throw new ZkClientException("Failed to delete paths " + paths, e);
@@ -2131,6 +2149,122 @@ public class ZkClient implements Watcher {
   }
 
   /**
+   * Outcome holder for a write submitted through the ZooKeeper async API. Used by the synchronous
+   * write paths so that an interrupt of the calling thread does not lose the outcome of a request
+   * ZooKeeper has already queued. See {@link #awaitInFlightWrite(String, InFlightWrite, long)}.
+   */
+  @VisibleForTesting
+  static class InFlightWrite<T> {
+    private final CountDownLatch _done = new CountDownLatch(1);
+    volatile int _rc = KeeperException.Code.APIERROR.intValue();
+    private volatile T _result;
+
+    void complete(int rc, T result) {
+      _rc = rc;
+      _result = result;
+      _done.countDown();
+    }
+
+    /** The exception to throw for a non-OK result code. Mirrors ZooKeeper's synchronous API. */
+    KeeperException failure(String path) {
+      return KeeperException.create(KeeperException.Code.get(_rc), path);
+    }
+  }
+
+  /** Issues one ZooKeeper write through the async API, completing the given holder. */
+  @FunctionalInterface
+  private interface WriteSubmitter<T> {
+    void submit(ZooKeeper zk, InFlightWrite<T> write);
+  }
+
+  /**
+   * Runs a synchronous write (create, setData, delete, multi) by submitting it through the
+   * ZooKeeper async API and waiting for the outcome, so that an interrupt of the calling thread
+   * does not lose the result of a request ZooKeeper has already queued. Meant to be called inside
+   * {@link #retryUntilConnected(Callable)}, which handles the retryable error codes.
+   */
+  private <T> T syncWrite(final String path, final ZooKeeper zk, final WriteSubmitter<T> submitter)
+      throws KeeperException, InterruptedException {
+    return syncWrite(path, zk, new InFlightWrite<>(), submitter);
+  }
+
+  private <T> T syncWrite(final String path, final ZooKeeper zk, final InFlightWrite<T> write,
+      final WriteSubmitter<T> submitter) throws KeeperException, InterruptedException {
+    submitter.submit(zk, write);
+    long interruptedWaitMs =
+        _interruptedWriteWaitMs < 0 ? zk.getSessionTimeout() : _interruptedWriteWaitMs;
+    return awaitInFlightWrite(path, write, interruptedWaitMs);
+  }
+
+  private ZooKeeper currentZookeeper() {
+    return ((ZkConnection) getConnection()).getZookeeper();
+  }
+
+  /**
+   * Waits for a write that has already been submitted to ZooKeeper and returns its result, or
+   * throws the KeeperException matching its error code.
+   * <p>
+   * ZooKeeper's synchronous API queues the request to the send thread before blocking for the
+   * reply, so an interrupt during that wait surfaces as InterruptedException even though the
+   * server still applies the request. The synchronous write paths therefore submit through the
+   * async API and come here: if the calling thread is interrupted while waiting, we keep waiting
+   * up to {@code interruptedWaitMs} ({@link ZkSystemPropertyKeys#ZK_INTERRUPTED_WRITE_WAIT_MS},
+   * defaulting to the session timeout) because every queued packet is guaranteed to be completed,
+   * either with the server reply or with CONNECTIONLOSS / SESSIONEXPIRED once the connection
+   * drops. A second interrupt during that wait aborts it, so a caller that really wants out (such
+   * as ZKHelixManager#disconnect re-interrupting its cleanup thread while the connection is down)
+   * is not held for the session timeout. The interrupt flag is restored before returning so
+   * callers still observe the interrupt; only if the outcome is still unknown when the wait ends
+   * is the InterruptedException propagated.
+   */
+  @VisibleForTesting
+  static <T> T awaitInFlightWrite(final String path, final InFlightWrite<T> write,
+      final long interruptedWaitMs) throws KeeperException, InterruptedException {
+    try {
+      write._done.await();
+    } catch (InterruptedException e) {
+      boolean done = awaitOutcomeAfterInterrupt(write._done, interruptedWaitMs);
+      // Preserve the interrupt for the caller whether we report the outcome or give up.
+      Thread.currentThread().interrupt();
+      if (!done) {
+        LOG.warn("Caller interrupted while a write to {} was in flight; giving up after at most {}"
+            + " ms with the outcome unknown", path, interruptedWaitMs);
+        throw e;
+      }
+      LOG.info("Caller interrupted while a write to {} was in flight; waited for its outcome: {}",
+          path, KeeperException.Code.get(write._rc));
+    }
+    if (write._rc != KeeperException.Code.OK.intValue()) {
+      throw write.failure(path);
+    }
+    return write._result;
+  }
+
+  private static boolean awaitOutcomeAfterInterrupt(CountDownLatch done, long waitMs) {
+    try {
+      return done.await(waitMs, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      // Interrupted again: the caller wants out now. Report the outcome only if it already arrived.
+      return done.getCount() == 0;
+    }
+  }
+
+  @VisibleForTesting
+  static long readInterruptedWriteWaitMs() {
+    String value = System.getProperty(ZkSystemPropertyKeys.ZK_INTERRUPTED_WRITE_WAIT_MS);
+    if (value == null || value.trim().isEmpty()) {
+      return -1;
+    }
+    try {
+      return Long.parseLong(value.trim());
+    } catch (NumberFormatException e) {
+      LOG.warn("Invalid value {} for {}, falling back to the session timeout", value,
+          ZkSystemPropertyKeys.ZK_INTERRUPTED_WRITE_WAIT_MS);
+      return -1;
+    }
+  }
+
+  /**
    * @param <T>
    * @param callable
    * @return result of Callable
@@ -2276,14 +2410,9 @@ public class ZkClient implements Watcher {
     boolean success;
     try {
       try {
-        retryUntilConnected(new Callable<Object>() {
-
-          @Override
-          public Object call() throws Exception {
-            getConnection().delete(path, expectedVersion);
-            return null;
-          }
-        });
+        retryUntilConnected(() -> this.<Void>syncWrite(path, currentZookeeper(),
+            (zk, write) -> zk.delete(path, expectedVersion,
+                (AsyncCallback.VoidCallback) (rc, p, ctx) -> write.complete(rc, null), null)));
         success = true;
       } catch (ZkNoNodeException e) {
         success = false;
@@ -2436,8 +2565,9 @@ public class ZkClient implements Watcher {
     try {
       final byte[] data = serialize(datat, path);
       checkDataSizeLimit(path, data);
-      final Stat stat = (Stat) retryUntilConnected(
-          (Callable<Object>) () -> getConnection().writeDataReturnStat(path, data, expectedVersion));
+      final Stat stat = retryUntilConnected(() -> this.<Stat>syncWrite(path, currentZookeeper(),
+          (zk, write) -> zk.setData(path, data, expectedVersion,
+              (AsyncCallback.StatCallback) (rc, p, ctx, s) -> write.complete(rc, s), null)));
       record(path, data, startT, ZkClientMonitor.AccessType.WRITE);
       return stat;
     } catch (Exception e) {
@@ -2941,12 +3071,23 @@ public class ZkClient implements Watcher {
       throw new NullPointerException("ops must not be null.");
     }
 
-    return retryUntilConnected(new Callable<List<OpResult>>() {
+    if (!ops.iterator().hasNext()) {
+      // Nothing to do; ZooKeeper's synchronous multi also returns early for an empty transaction.
+      return Collections.emptyList();
+    }
 
-      @Override
-      public List<OpResult> call() throws Exception {
-        return getConnection().multi(ops);
-      }
+    return retryUntilConnected(() -> {
+      // Mirror ZooKeeper's synchronous multi, whose failure exception carries no path. (It also
+      // attaches the per-op results, but KeeperException#setMultiResults is package-private and
+      // nothing in Helix reads them.)
+      InFlightWrite<List<OpResult>> write = new InFlightWrite<List<OpResult>>() {
+        @Override
+        KeeperException failure(String path) {
+          return KeeperException.create(KeeperException.Code.get(_rc));
+        }
+      };
+      return syncWrite(null, currentZookeeper(), write, (zk, w) -> zk.multi(ops,
+          (AsyncCallback.MultiCallback) (rc, p, ctx, results) -> w.complete(rc, results), null));
     });
   }
 

@@ -1341,4 +1341,49 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertFalse(_zkClient.exists(grandParent));
     Assert.assertFalse(_zkClient.exists(newNode));
   }
+
+  /*
+   * ZooKeeper's synchronous API hands a request to the send thread before blocking for the reply,
+   * so a thread interrupted during that wait used to get ZkInterruptedException even though the
+   * server still applied the write. ZkClient now waits out the in-flight request and reports its
+   * real outcome, with the interrupt flag left set for the caller to observe.
+   */
+  @Test
+  public void testSyncWriteOutcomePreservedWhenThreadInterrupted() {
+    String path = TEST_ROOT + "/interruptedWrite";
+    _zkClient.createPersistent(TEST_ROOT, true);
+    _zkClient.delete(path);
+    try {
+      Thread.currentThread().interrupt();
+      _zkClient.createPersistent(path, "v1");
+      Assert.assertTrue(Thread.interrupted(), "Interrupt flag must survive create");
+      Assert.assertEquals(_zkClient.readData(path), "v1");
+
+      Thread.currentThread().interrupt();
+      Stat stat = _zkClient.writeDataGetStat(path, "v2", -1);
+      Assert.assertTrue(Thread.interrupted(), "Interrupt flag must survive setData");
+      Assert.assertNotNull(stat);
+      Assert.assertEquals(stat.getVersion(), 1);
+      Assert.assertEquals(_zkClient.readData(path), "v2");
+
+      Thread.currentThread().interrupt();
+      Assert.assertTrue(_zkClient.delete(path));
+      Assert.assertTrue(Thread.interrupted(), "Interrupt flag must survive delete");
+      Assert.assertFalse(_zkClient.exists(path));
+
+      // A definite failure is still reported as that failure, not as an interrupt.
+      Thread.currentThread().interrupt();
+      try {
+        _zkClient.writeData(path, "v3");
+        Assert.fail("Expected ZkNoNodeException");
+      } catch (ZkNoNodeException expected) {
+        // expected
+      }
+      Assert.assertTrue(Thread.interrupted(), "Interrupt flag must survive a failed setData");
+    } finally {
+      // Never leak an interrupt into the next test.
+      Thread.interrupted();
+      _zkClient.delete(path);
+    }
+  }
 }

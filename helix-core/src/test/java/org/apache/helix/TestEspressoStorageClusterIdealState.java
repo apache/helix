@@ -183,12 +183,12 @@ public class TestEspressoStorageClusterIdealState {
       int minSlaves = Integer.MAX_VALUE, maxSlaves = Integer.MIN_VALUE;
       for (String hostInstance : slaveAssignmentMap.keySet()) {
         List<Integer> slaveAssignment = slaveAssignmentMap.get(hostInstance);
-        Set<Integer> occurenceSet = new HashSet<Integer>();
+        Set<Integer> occurrenceSet = new HashSet<Integer>();
 
         // Each slave should occur only once in the list, since the list is per-node slaves
         for (Integer slavePartition : slaveAssignment) {
-          AssertJUnit.assertTrue(!occurenceSet.contains(slavePartition));
-          occurenceSet.add(slavePartition);
+          AssertJUnit.assertTrue(!occurrenceSet.contains(slavePartition));
+          occurrenceSet.add(slavePartition);
 
           slaveCountMap.put(slavePartition, slaveCountMap.get(slavePartition) + 1);
         }

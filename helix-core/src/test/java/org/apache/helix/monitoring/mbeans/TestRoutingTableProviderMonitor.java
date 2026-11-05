@@ -60,24 +60,26 @@ public class TestRoutingTableProviderMonitor {
   @Test
   public void testMBeanRegisteration() throws JMException {
     Set<RoutingTableProviderMonitor> monitors = new HashSet<>();
-    for (PropertyType type : PropertyType.values()) {
-      monitors.add(new RoutingTableProviderMonitor(type, TEST_CLUSTER).register());
-      Assert.assertTrue(_beanServer.isRegistered(buildObjectName(type, TEST_CLUSTER)));
-    }
+    try {
+      for (PropertyType type : PropertyType.values()) {
+        monitors.add(new RoutingTableProviderMonitor(type, TEST_CLUSTER).register());
+        Assert.assertTrue(_beanServer.isRegistered(buildObjectName(type, TEST_CLUSTER)));
+      }
 
-    for (PropertyType type : PropertyType.values()) {
-      monitors.add(new RoutingTableProviderMonitor(type, TEST_CLUSTER).register());
-      Assert.assertTrue(_beanServer.isRegistered(buildObjectName(type, TEST_CLUSTER, 1)));
-    }
+      for (PropertyType type : PropertyType.values()) {
+        monitors.add(new RoutingTableProviderMonitor(type, TEST_CLUSTER).register());
+        Assert.assertTrue(_beanServer.isRegistered(buildObjectName(type, TEST_CLUSTER, 1)));
+      }
 
-    for (PropertyType type : PropertyType.values()) {
-      monitors.add(new RoutingTableProviderMonitor(type, TEST_CLUSTER).register());
-      Assert.assertTrue(_beanServer.isRegistered(buildObjectName(type, TEST_CLUSTER, 2)));
-    }
-
-    // Un-register all monitors
-    for (RoutingTableProviderMonitor monitor : monitors) {
-      monitor.unregister();
+      for (PropertyType type : PropertyType.values()) {
+        monitors.add(new RoutingTableProviderMonitor(type, TEST_CLUSTER).register());
+        Assert.assertTrue(_beanServer.isRegistered(buildObjectName(type, TEST_CLUSTER, 2)));
+      }
+    } finally {
+      // Un-register all monitors
+      for (RoutingTableProviderMonitor monitor : monitors) {
+        monitor.unregister();
+      }
     }
 
     for (PropertyType type : PropertyType.values()) {
@@ -91,58 +93,63 @@ public class TestRoutingTableProviderMonitor {
   public void testMetrics() throws JMException, InterruptedException {
     PropertyType type = PropertyType.EXTERNALVIEW;
     RoutingTableProviderMonitor monitor = new RoutingTableProviderMonitor(type, TEST_CLUSTER);
-    monitor.register();
-    ObjectName name = buildObjectName(type, TEST_CLUSTER);
-
-    monitor.increaseCallbackCounters(10);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CallbackCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "EventQueueSizeGauge"), 10);
-    monitor.increaseCallbackCounters(15);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CallbackCounter"), 2);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "EventQueueSizeGauge"), 15);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max"), 0);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 0);
-
-    // StatePropagationLatencyGauge only apply for current state
     try {
-      _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
-      Assert.fail();
-    } catch (AttributeNotFoundException ex) {
-      // Expected AttributeNotFoundException because the metric does not exist in
-      // MBean server.
+      monitor.register();
+      ObjectName name = buildObjectName(type, TEST_CLUSTER);
+
+      monitor.increaseCallbackCounters(10);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "CallbackCounter"), 1);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "EventQueueSizeGauge"), 10);
+      monitor.increaseCallbackCounters(15);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "CallbackCounter"), 2);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "EventQueueSizeGauge"), 15);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max"), 0);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 0);
+
+      // StatePropagationLatencyGauge only apply for current state
+      try {
+        _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
+        Assert.fail();
+      } catch (AttributeNotFoundException ex) {
+        // Expected AttributeNotFoundException because the metric does not exist in
+        // MBean server.
+      }
+
+      long startTime = System.currentTimeMillis();
+      Thread.sleep(5);
+      monitor.increaseDataRefreshCounters(startTime);
+      long latency = (long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max");
+      Assert.assertTrue(latency >= 5 && latency <= System.currentTimeMillis() - startTime);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 1);
+
+      monitor.increaseDataRefreshCounters(startTime);
+      long newLatency = (long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max");
+      Assert.assertTrue(newLatency >= latency);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 2);
+    } finally {
+      monitor.unregister();
     }
-
-    long startTime = System.currentTimeMillis();
-    Thread.sleep(5);
-    monitor.increaseDataRefreshCounters(startTime);
-    long latency = (long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max");
-    Assert.assertTrue(latency >= 5 && latency <= System.currentTimeMillis() - startTime);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 1);
-
-    monitor.increaseDataRefreshCounters(startTime);
-    long newLatency = (long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max");
-    Assert.assertTrue(newLatency >= latency);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 2);
-
-    monitor.unregister();
   }
 
+  @Test
   public void testCurrentStateMetrics() throws JMException, InterruptedException {
     PropertyType type = PropertyType.CURRENTSTATES;
     RoutingTableProviderMonitor monitor = new RoutingTableProviderMonitor(type, TEST_CLUSTER);
-    monitor.register();
-    ObjectName name = buildObjectName(type, TEST_CLUSTER);
+    try {
+      monitor.register();
+      ObjectName name = buildObjectName(type, TEST_CLUSTER);
 
-    monitor.increaseCallbackCounters(10);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max"), 0);
+      monitor.increaseCallbackCounters(10);
+      Assert.assertEquals((long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max"), 0);
 
-    monitor.recordStatePropagationLatency(5);
-    long statelatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
-    Assert.assertEquals(statelatency, 5);
-    monitor.recordStatePropagationLatency(10);
-    statelatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
-    Assert.assertEquals(statelatency, 10);
-
-    monitor.unregister();
+      monitor.recordStatePropagationLatency(5);
+      long statelatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
+      Assert.assertEquals(statelatency, 5);
+      monitor.recordStatePropagationLatency(10);
+      statelatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
+      Assert.assertEquals(statelatency, 10);
+    } finally {
+      monitor.unregister();
+    }
   }
 }

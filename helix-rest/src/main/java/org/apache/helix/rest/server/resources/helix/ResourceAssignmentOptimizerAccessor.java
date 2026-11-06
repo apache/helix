@@ -75,7 +75,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   private static class InputFields {
     Set<String> activatedInstances = new HashSet<>(); // active = online + enabled.
     Set<String> deactivatedInstances = new HashSet<>(); // deactivate = offline + disabled.
-    Set<String> instanceConfigs = new HashSet<>(); // instance configs to be overriden.
+    Set<String> instanceConfigs = new HashSet<>(); // instance configs to be overridden.
     Set<String> instanceFilter = new HashSet<>();
     Set<String> resourceFilter = new HashSet<>();
     AssignmentFormat returnFormat = AssignmentFormat.IdealStateFormat;

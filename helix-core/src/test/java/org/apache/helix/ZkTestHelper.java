@@ -399,24 +399,23 @@ public class ZkTestHelper {
     ZkConnection connection = ((ZkConnection) zkClient.getConnection());
     ZooKeeper zk = connection.getZookeeper();
 
-    java.lang.reflect.Field field = getField(zk.getClass(), "watchManager");
-    field.setAccessible(true);
-    Object watchManager = field.get(zk);
+    // Since ZooKeeper 3.7 the client watch manager lives in ClientCnxn and is reached through the
+    // package-private ZooKeeper#getWatchManager() instead of a field.
+    java.lang.reflect.Method getWatchManager = ZooKeeper.class.getDeclaredMethod("getWatchManager");
+    getWatchManager.setAccessible(true);
+    Object watchManager = getWatchManager.invoke(zk);
 
     java.lang.reflect.Field field2 = getField(watchManager.getClass(), "dataWatches");
     field2.setAccessible(true);
-    HashMap<String, Set<Watcher>> dataWatches =
-        (HashMap<String, Set<Watcher>>) field2.get(watchManager);
+    Map<String, Set<Watcher>> dataWatches = (Map<String, Set<Watcher>>) field2.get(watchManager);
 
     field2 = getField(watchManager.getClass(), "existWatches");
     field2.setAccessible(true);
-    HashMap<String, Set<Watcher>> existWatches =
-        (HashMap<String, Set<Watcher>>) field2.get(watchManager);
+    Map<String, Set<Watcher>> existWatches = (Map<String, Set<Watcher>>) field2.get(watchManager);
 
     field2 = getField(watchManager.getClass(), "childWatches");
     field2.setAccessible(true);
-    HashMap<String, Set<Watcher>> childWatches =
-        (HashMap<String, Set<Watcher>>) field2.get(watchManager);
+    Map<String, Set<Watcher>> childWatches = (Map<String, Set<Watcher>>) field2.get(watchManager);
 
     lists.put("dataWatches", new ArrayList<>(dataWatches.keySet()));
     lists.put("existWatches", new ArrayList<>(existWatches.keySet()));

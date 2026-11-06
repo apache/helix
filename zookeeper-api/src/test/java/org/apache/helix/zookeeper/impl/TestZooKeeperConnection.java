@@ -27,6 +27,9 @@ public class TestZooKeeperConnection extends ZkTestBase {
   1. Register a persist watcher on a path and create 100 children Znode, edit the ZNode for 100 times.
   Expecting 200 events.
   2. register a one time listener on the path. Make the same change and count the total number of event.
+  Since ZooKeeper 3.9.0 (ZOOKEEPER-4466) a one time watch on the same path no longer replaces the
+  persistent watch on the server, so the persistent watcher keeps receiving every event. Before that
+  fix it silently missed events, which is why ZkClient refuses one time watches in persist mode.
  */
 
   @Test
@@ -46,18 +49,18 @@ public class TestZooKeeperConnection extends ZkTestBase {
     Assert.assertTrue(countDownLatch.await(50000, TimeUnit.MILLISECONDS));
 
     // register a one time listener on the path. Count the total number of event.
-    // ZK will over write the persist watcher and only trigger event once for child and data change.
+    // The one time watch coexists with the persist watcher (ZOOKEEPER-4466), so the persist
+    // watcher still gets all 200 data change and 200 child change events.
     _zk.readData(path, null, true);
     _zk.getChildren(path, true);
     for (int i=0; i<200; ++i) {
       _zk.writeData(path, ("datat"+i).getBytes(), -1);
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    System.out.println("testPersistWatcher: rafter register one time listener, original listener received event count: " + get_count[0]);
-    // total number of event is 400. We will miss event now
-    Assert.assertTrue(TestHelper.verify(() -> {
-      return (get_count[0].get() >= 202 & get_count[0].get() < 400);
-    }, TestHelper.WAIT_DURATION));
+    System.out.println("testPersistWatcher: after register one time listener, original listener received event count: " + get_count[0]);
+    // total number of events is 200 + 400 = 600 and none of them is missed
+    Assert.assertTrue(TestHelper.verify(() -> get_count[0].get() == 600, TestHelper.WAIT_DURATION),
+        "Persist watcher received " + get_count[0].get() + " events, expected 600");
     zkClient.close();
   }
 
@@ -70,8 +73,9 @@ public class TestZooKeeperConnection extends ZkTestBase {
     IZkConnection _zk = zkClient.getConnection();
     String path="/testRecursivePersistWatcher";
     _zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    // register a persist listener on a path, change the ZNode 100 times, create 100 child ZNode,
-    // and expecting 200 events
+    // register a recursive persist listener on a path, change the ZNode 100 times, create 100 child
+    // ZNode and 100 grandchild ZNode, and expecting 300 events. A recursive persist watcher only gets
+    // NodeDataChanged/NodeCreated/NodeDeleted, no NodeChildrenChanged (ZOOKEEPER-4475).
     _zk.addWatch(path, watcher1, AddWatchMode.PERSISTENT_RECURSIVE);
     for (int i=0; i<count; ++i) {
       _zk.writeData(path, "datat".getBytes(), -1);
@@ -81,7 +85,8 @@ public class TestZooKeeperConnection extends ZkTestBase {
     Assert.assertTrue(countDownLatch2.await(50000, TimeUnit.MILLISECONDS));
 
     // register a one time listener on the path. Count the total number of event.
-    // ZK will over write the persist watcher and only trigger event once for child and data change.
+    // The one time watch coexists with the persist watcher (ZOOKEEPER-4466), so the persist
+    // watcher still gets all 200 data change and 200 child creation events.
     _zk.readData(path, null, true);
     _zk.getChildren(path, true);
     for (int i=0; i<200; ++i) {
@@ -89,10 +94,9 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
     System.out.println("testRecursivePersistWatcherWithOneTimeWatcher: after register one time listener, original listener received event count: " + get_count[0]);
-    // total number of event is 500. We will miss event now
-    Assert.assertTrue(TestHelper.verify(() -> {
-      return (get_count[0].get() >= 302 && get_count[0].get() < 500);
-    }, TestHelper.WAIT_DURATION));
+    // total number of events is 300 + 400 = 700 and none of them is missed
+    Assert.assertTrue(TestHelper.verify(() -> get_count[0].get() == 700, TestHelper.WAIT_DURATION),
+        "Recursive persist watcher received " + get_count[0].get() + " events, expected 700");
     zkClient.close();
   }
 

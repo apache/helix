@@ -45,7 +45,7 @@
   <properties>
     <osgi.import>
       org.slf4j*;version="[1.7,2)",
-      org.apache.zookeeper*;version="[3.6,3.7)",
+      org.apache.zookeeper*;version="[3.9,3.10)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.zookeeper*;version="${project.version};-noimport:=true</osgi.export>
@@ -64,7 +64,7 @@
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
-      <version>3.6.3</version>
+      <version>3.9.3</version>
       <exclusions>
         <exclusion>
           <groupId>junit</groupId>
@@ -77,6 +77,12 @@
         <exclusion>
           <groupId>log4j</groupId>
           <artifactId>log4j</artifactId>
+        </exclusion>
+        <!-- Native OpenSSL binding for all platforms, only used for client/server TLS which Helix
+             does not configure. -->
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative-boringssl-static</artifactId>
         </exclusion>
       </exclusions>
     </dependency>

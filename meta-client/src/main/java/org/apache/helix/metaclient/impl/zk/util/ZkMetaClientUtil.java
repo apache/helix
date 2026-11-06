@@ -277,7 +277,7 @@ public class ZkMetaClientUtil {
 
   /**
    * This function translate and group Zk exception code to metaclient code.
-   * It currently includes all ZK code on 3.6.3.
+   * It currently includes all ZK code on 3.9.3.
    */
   public static MetaClientException.ReturnCode translateZooKeeperCodeToMetaClientCode(
       KeeperException.Code zkCode) {
@@ -341,6 +341,10 @@ public class ZkMetaClientUtil {
       case NOTREADONLY:
       case EPHEMERALONLOCALSESSION:
       case RECONFIGDISABLED:
+      // QUOTAEXCEEDED (the znode quota is exhausted) and THROTTLEDOP (the server is overloaded and did
+      // not execute the operation at all) were added after 3.6; both are API errors in ZK.
+      case QUOTAEXCEEDED:
+      case THROTTLEDOP:
         return MetaClientException.ReturnCode.DB_USER_ERROR;
 
       /*

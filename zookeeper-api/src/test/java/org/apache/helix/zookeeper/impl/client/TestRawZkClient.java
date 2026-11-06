@@ -19,9 +19,13 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -44,6 +48,7 @@ import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.exception.ZkTransactionTooLargeException;
 import org.apache.helix.zookeeper.impl.TestHelper;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.impl.ZkTestHelper;
@@ -59,8 +64,10 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedExceptio
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientPathMonitor;
+import org.apache.jute.BinaryOutputArchive;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.MultiOperationRecord;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -68,6 +75,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.proto.RequestHeader;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -1340,6 +1348,99 @@ public class TestRawZkClient extends ZkTestBase {
     _zkClient.deleteRecursivelyAtomic(Arrays.asList(grandParent, newNode, nonexistentPath));
     Assert.assertFalse(_zkClient.exists(grandParent));
     Assert.assertFalse(_zkClient.exists(newNode));
+  }
+
+  @Test
+  void testGetTransactionSize() throws IOException {
+    // The size is counted without materializing the packet, so it must equal the length of the
+    // request ZooKeeper actually serializes: the request header followed by the transaction record.
+    String path = "/bcd/\u00e9";
+    List<Op> ops = Arrays.asList(Op.delete("/a", -1), Op.delete(path, -1),
+        Op.create("/x", new byte[100], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+        Op.setData("/y", new byte[10], -1));
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    BinaryOutputArchive archive = BinaryOutputArchive.getArchive(bytes);
+    new RequestHeader(0, ZooDefs.OpCode.multi).serialize(archive, "header");
+    new MultiOperationRecord(ops).serialize(archive, "multi");
+    Assert.assertEquals(org.apache.helix.zookeeper.zkclient.ZkClient.getTransactionSize(ops),
+        bytes.size());
+
+    // Each additional delete adds at least the UTF-8 bytes of its path.
+    long oneDelete = org.apache.helix.zookeeper.zkclient.ZkClient
+        .getTransactionSize(Collections.singletonList(Op.delete("/a", -1)));
+    long twoDeletes = org.apache.helix.zookeeper.zkclient.ZkClient
+        .getTransactionSize(Arrays.asList(Op.delete("/a", -1), Op.delete(path, -1)));
+    Assert.assertTrue(twoDeletes > oneDelete + path.getBytes(StandardCharsets.UTF_8).length);
+  }
+
+  /*
+   * A multi larger than jute.maxbuffer is never answered by the server, which just closes the
+   * connection, so ZkClient used to retry it until the operation retry timeout. multi() and
+   * deleteRecursivelyAtomic() must instead fail fast without changing anything.
+   */
+  @Test
+  void testDeleteRecursivelyAtomicTooLargeTransaction() {
+    System.out.println("Start test: " + TestHelper.getTestMethodName());
+    String root = "/" + TestHelper.getTestMethodName();
+    List<String> parents = Arrays.asList(root + "/parent1", root + "/parent2");
+    // Children are spread over two parents so that each getChildren() response stays well below
+    // jute.maxbuffer while the delete transaction for the whole tree (~1.5 MB) exceeds it.
+    int childrenPerParent = 700;
+    String childPrefix = String.join("", Collections.nCopies(1000, "c"));
+    _zkClient.createPersistent(root);
+    for (String parent : parents) {
+      _zkClient.createPersistent(parent);
+      List<Op> creates = new ArrayList<>();
+      for (int i = 0; i < childrenPerParent; i++) {
+        creates.add(Op.create(parent + "/" + childPrefix + i, new byte[0],
+            ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+        if (creates.size() == 50 || i == childrenPerParent - 1) {
+          _zkClient.multi(creates);
+          creates.clear();
+        }
+      }
+      Assert.assertEquals(_zkClient.getChildren(parent).size(), childrenPerParent);
+    }
+
+    try {
+      _zkClient.deleteRecursivelyAtomic(root);
+      Assert.fail("Deleting a tree that does not fit in one transaction should fail");
+    } catch (ZkTransactionTooLargeException expected) {
+      Assert.assertTrue(expected.getMessage().contains("greater than write size limit"),
+          expected.getMessage());
+    }
+    // The multi-path variant builds the same transaction and must fail the same way.
+    try {
+      _zkClient.deleteRecursivelyAtomic(parents);
+      Assert.fail("Deleting paths that do not fit in one transaction should fail");
+    } catch (ZkTransactionTooLargeException expected) {
+      // expected
+    }
+    // So must a plain multi() of the same size.
+    List<Op> deletes = new ArrayList<>();
+    for (String parent : parents) {
+      for (String child : _zkClient.getChildren(parent)) {
+        deletes.add(Op.delete(parent + "/" + child, -1));
+      }
+    }
+    try {
+      _zkClient.multi(deletes);
+      Assert.fail("A multi that does not fit in one packet should fail");
+    } catch (ZkTransactionTooLargeException expected) {
+      // expected
+    }
+
+    // Nothing was deleted.
+    Assert.assertTrue(_zkClient.exists(root));
+    for (String parent : parents) {
+      Assert.assertEquals(_zkClient.getChildren(parent).size(), childrenPerParent);
+    }
+    // A subtree that does fit still gets deleted atomically, and the non-atomic delete still
+    // handles the whole tree.
+    _zkClient.deleteRecursivelyAtomic(parents.get(0));
+    Assert.assertFalse(_zkClient.exists(parents.get(0)));
+    _zkClient.deleteRecursively(root);
+    Assert.assertFalse(_zkClient.exists(root));
   }
 
   /*

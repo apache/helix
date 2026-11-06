@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.zkclient;
  * under the License.
  */
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,11 +46,15 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.CountingOutputStream;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.exception.ZkTransactionTooLargeException;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetchChangedData;
@@ -71,12 +76,14 @@ import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy;
 import org.apache.helix.zookeeper.zkclient.util.ZkPathRecursiveWatcherTrie;
+import org.apache.jute.BinaryOutputArchive;
 import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
+import org.apache.zookeeper.MultiOperationRecord;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
 import org.apache.zookeeper.WatchedEvent;
@@ -88,6 +95,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ZKClientConfig;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.proto.RequestHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +126,9 @@ public class ZkClient implements Watcher {
   private static AtomicLong UID = new AtomicLong(0);
   public final long _uid;
 
-  // ZNode write size limit in bytes:
+  // ZNode write size limit in bytes. This is the client JVM's jute.maxbuffer, or ZNRecord.SIZE_LIMIT
+  // (which leaves a margin under ZooKeeper's 1 MB default) when it is not set. The server is what
+  // rejects an oversized packet, so this assumes the server's jute.maxbuffer is not smaller.
   // TODO: use ZKConfig#JUTE_MAXBUFFER once bumping up ZK to 3.5.2+
   private static final int WRITE_SIZE_LIMIT =
       Integer.getInteger(ZkSystemPropertyKeys.JUTE_MAXBUFFER, ZNRecord.SIZE_LIMIT);
@@ -1864,7 +1874,13 @@ public class ZkClient implements Watcher {
   /**
    * Delete the paths as well as all their children. This operation is atomic and will either delete all nodes or none.
    * This operation may fail if another agent is concurrently creating or deleting nodes under any of the paths.
+   * <p>
+   * All deletes are sent to ZooKeeper in a single transaction, see {@link #multi(Iterable)} for its
+   * size limit. If the paths hold too many znodes for the transaction to fit, this method throws
+   * {@link ZkTransactionTooLargeException} without deleting anything; callers that can accept a
+   * non-atomic delete should then fall back to {@link #deleteRecursively(String)}.
    * @param paths ZK paths to delete
+   * @throws ZkTransactionTooLargeException if the deletes do not fit in one ZooKeeper transaction
    */
   public void deleteRecursivelyAtomic(List<String> paths) {
     List<Op> ops = new ArrayList<>();
@@ -1880,6 +1896,10 @@ public class ZkClient implements Watcher {
 
     try {
       opResults = multi(ops);
+    } catch (ZkTransactionTooLargeException e) {
+      // Nothing was sent to ZooKeeper; let the caller decide whether to delete non-atomically.
+      throw new ZkTransactionTooLargeException(
+          "Cannot atomically delete paths " + paths + ": " + e.getMessage(), e);
     } catch (ZkInterruptedException e) {
       // Outcome unknown (see awaitInFlightWrite); do not report it as a plain failure.
       throw e;
@@ -1931,6 +1951,40 @@ public class ZkClient implements Watcher {
    // Reverse the list so that operations are ordered from children to parent nodes
     Collections.reverse(ops);
     return ops;
+  }
+
+  /**
+   * Fails fast if the transaction packet would be larger than the write size limit. The server
+   * rejects such a packet by closing the connection without replying, which
+   * {@link #retryUntilConnected(Callable)} would treat as a connection loss and answer by re-sending
+   * the same oversized packet until the operation retry timeout.
+   */
+  private void checkTransactionSizeLimit(Iterable<Op> ops) {
+    long transactionSize = getTransactionSize(ops);
+    if (transactionSize > WRITE_SIZE_LIMIT) {
+      throw new ZkTransactionTooLargeException("Transaction of " + Iterables.size(ops)
+          + " operations is " + transactionSize + " bytes, which is greater than write size limit "
+          + WRITE_SIZE_LIMIT + " bytes");
+    }
+  }
+
+  /**
+   * Returns the size in bytes of the request packet ZooKeeper sends for {@code multi(ops)}, which is
+   * what the server compares against {@code jute.maxbuffer}. The packet is serialized into a
+   * counting stream, so no copy of it is kept in memory.
+   */
+  @VisibleForTesting
+  public static long getTransactionSize(Iterable<Op> ops) {
+    CountingOutputStream counter = new CountingOutputStream(ByteStreams.nullOutputStream());
+    BinaryOutputArchive archive = BinaryOutputArchive.getArchive(counter);
+    try {
+      new RequestHeader(0, ZooDefs.OpCode.multi).serialize(archive, "header");
+      new MultiOperationRecord(ops).serialize(archive, "multi");
+    } catch (IOException e) {
+      // The counting stream never throws; keep the checked exception from leaking.
+      throw new ZkMarshallingError("Failed to serialize transaction", e);
+    }
+    return counter.getCount();
   }
 
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {
@@ -3066,6 +3120,14 @@ public class ZkClient implements Watcher {
     return listeners;
   }
 
+  /**
+   * Executes the operations as one ZooKeeper transaction.
+   * <p>
+   * The transaction is sent as a single packet, whose size is bounded by the server's
+   * {@code jute.maxbuffer}. Its size is checked against the write size limit before it is sent.
+   * @throws ZkTransactionTooLargeException if the transaction does not fit in one packet; nothing
+   *         has been sent to ZooKeeper in that case
+   */
   public List<OpResult> multi(final Iterable<Op> ops) throws ZkException {
     if (ops == null) {
       throw new NullPointerException("ops must not be null.");
@@ -3075,6 +3137,8 @@ public class ZkClient implements Watcher {
       // Nothing to do; ZooKeeper's synchronous multi also returns early for an empty transaction.
       return Collections.emptyList();
     }
+
+    checkTransactionSizeLimit(ops);
 
     return retryUntilConnected(() -> {
       // Mirror ZooKeeper's synchronous multi, whose failure exception carries no path. (It also

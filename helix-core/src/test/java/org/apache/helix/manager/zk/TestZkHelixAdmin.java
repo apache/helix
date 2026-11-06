@@ -80,9 +80,13 @@ import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.exception.ZkTransactionTooLargeException;
 import org.apache.helix.zookeeper.zkclient.NetworkUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -1365,6 +1369,70 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     }
     Assert.assertTrue(admin.getInstancesInCluster(clusterName).isEmpty(), "Instances should be removed");
 
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  /*
+   * An instance that accumulated thousands of current/customized states cannot be dropped in one
+   * ZK transaction (jute.maxbuffer). dropInstance must then delete the instance's sub-trees
+   * non-atomically and still remove the instance path and config atomically.
+   */
+  @Test
+  public void testDropInstanceTooLargeForOneTransaction() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    final String clusterName = getShortClassName() + "_" + TestHelper.getTestMethodName();
+    final String instanceName = "localhost_12918";
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    admin.addInstance(clusterName, new InstanceConfig(instanceName));
+    String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
+    String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+
+    // session1 holds 700 long-named current states that each hold one more long-named znode, so
+    // even this single session does not fit in one transaction and has to be deleted znode by
+    // znode. session2 holds 700 long-named current states, which fit in one transaction once
+    // deleted on their own. Together they make the drop of the whole instance (~3 MB) exceed
+    // jute.maxbuffer, while each getChildren() response stays below it.
+    String namePrefix = String.join("", Collections.nCopies(1000, "r"));
+    String session1Path =
+        PropertyPathBuilder.instanceCurrentState(clusterName, instanceName, "session1");
+    String session2Path =
+        PropertyPathBuilder.instanceCurrentState(clusterName, instanceName, "session2");
+    for (String sessionPath : Arrays.asList(session1Path, session2Path)) {
+      _gZkClient.createPersistent(sessionPath, true);
+      List<Op> creates = new ArrayList<>();
+      for (int i = 0; i < 700; i++) {
+        String resourcePath = sessionPath + "/" + namePrefix + i;
+        creates.add(Op.create(resourcePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+            CreateMode.PERSISTENT));
+        if (sessionPath.equals(session1Path)) {
+          creates.add(Op.create(resourcePath + "/" + namePrefix, new byte[0],
+              ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+        }
+        if (creates.size() >= 50 || i == 699) {
+          _gZkClient.multi(creates);
+          creates.clear();
+        }
+      }
+    }
+    // Make sure the test really exercises both fallbacks: neither the whole instance nor session1
+    // alone fits in one transaction.
+    for (String path : Arrays.asList(instancePath, session1Path)) {
+      try {
+        _gZkClient.deleteRecursivelyAtomic(path);
+        Assert.fail(path + " should not fit in one transaction");
+      } catch (ZkTransactionTooLargeException expected) {
+        // expected
+      }
+    }
+    Assert.assertTrue(_gZkClient.exists(instancePath));
+
+    admin.dropInstance(clusterName, new InstanceConfig(instanceName));
+
+    Assert.assertFalse(_gZkClient.exists(instancePath));
+    Assert.assertFalse(_gZkClient.exists(instanceConfigPath));
+    Assert.assertTrue(admin.getInstancesInCluster(clusterName).isEmpty());
+    admin.dropCluster(clusterName);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

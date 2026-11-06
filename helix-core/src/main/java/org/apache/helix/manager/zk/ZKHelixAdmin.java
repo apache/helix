@@ -99,12 +99,14 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.exception.ZkTransactionTooLargeException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.NetworkUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
@@ -281,10 +283,23 @@ public class ZKHelixAdmin implements HelixAdmin {
     String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
     String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
     int retryCnt = 0;
+    boolean subtreesDeleted = false;
     while (true) {
       try {
         _zkClient.deleteRecursivelyAtomic(Arrays.asList(instancePath, instanceConfigPath));
         return;
+      } catch (ZkTransactionTooLargeException e) {
+        if (subtreesDeleted) {
+          String errorMessage = "Failed to drop instance: " + instanceName
+              + ". Its znodes still do not fit in one ZK transaction after deleting its sub-trees";
+          logger.error(errorMessage, e);
+          throw new HelixException(errorMessage, e);
+        }
+        logger.warn("Instance {} has too many znodes to be dropped in one ZK transaction ({}). "
+            + "Deleting its sub-trees non-atomically first, then dropping the remaining paths "
+            + "atomically.", instanceName, e.getMessage());
+        deleteInstanceSubtrees(clusterName, instanceName);
+        subtreesDeleted = true;
       } catch (ZkClientException e) {
         if (retryCnt < 3 && e.getCause() instanceof ZkException && e.getCause()
             .getCause() instanceof KeeperException.NotEmptyException) {
@@ -301,6 +316,63 @@ public class ZKHelixAdmin implements HelixAdmin {
           throw new HelixException(errorMessage, e);
         }
       }
+    }
+  }
+
+  /**
+   * Deletes, non-atomically, everything two or more levels below the instance path, e.g. the
+   * individual current states, customized states and messages, which is where an instance
+   * accumulates thousands of znodes. The instance path itself, its direct children (CURRENTSTATES,
+   * MESSAGES, ...) and the instance config are left in place so that the caller can still remove
+   * them in one atomic transaction afterwards, which keeps the guarantee that an instance is never
+   * left half-dropped (e.g. without its config but with its instance path).
+   * <p>
+   * Removing only these deeper znodes is safe for an instance that is not live, because the
+   * controller reads current states, customized states and messages of live instances only.
+   * Liveness is re-checked here since the deletes below are not atomic and can take a while.
+   */
+  private void deleteInstanceSubtrees(String clusterName, String instanceName) {
+    if (_zkClient.exists(PropertyPathBuilder.liveInstance(clusterName, instanceName))) {
+      throw new HelixException("Node " + instanceName + " is still alive for cluster " + clusterName
+          + ", can't drop.");
+    }
+    String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
+    try {
+      for (String child : getChildrenOrEmpty(instancePath)) {
+        String childPath = instancePath + "/" + child;
+        for (String grandChild : getChildrenOrEmpty(childPath)) {
+          deleteSubtree(childPath + "/" + grandChild);
+        }
+      }
+    } catch (ZkInterruptedException e) {
+      // Outcome of the in-flight delete is unknown; do not report it as a plain failure.
+      throw e;
+    } catch (ZkClientException | ZkException e) {
+      String errorMessage = "Failed to drop instance: " + instanceName
+          + ". Could not delete its sub-trees non-atomically";
+      logger.error(errorMessage, e);
+      throw new HelixException(errorMessage, e);
+    }
+  }
+
+  /**
+   * Deletes a sub-tree in as few ZK round trips as possible: in one transaction when it fits,
+   * otherwise znode by znode.
+   */
+  private void deleteSubtree(String path) {
+    try {
+      _zkClient.deleteRecursivelyAtomic(path);
+    } catch (ZkTransactionTooLargeException e) {
+      _zkClient.deleteRecursively(path);
+    }
+  }
+
+  private List<String> getChildrenOrEmpty(String path) {
+    try {
+      return _zkClient.getChildren(path);
+    } catch (ZkNoNodeException e) {
+      // Deleted concurrently, nothing left to delete under it.
+      return Collections.emptyList();
     }
   }
 

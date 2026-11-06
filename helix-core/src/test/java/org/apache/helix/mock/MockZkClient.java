@@ -27,6 +27,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.zookeeper.KeeperException;
 
 public class MockZkClient extends ZkClient implements HelixZkClient {
   Map<String, byte[]> _dataMap;
@@ -42,7 +43,9 @@ public class MockZkClient extends ZkClient implements HelixZkClient {
       final ZkAsyncCallbacks.GetDataCallbackHandler cb) {
     if (_dataMap.containsKey(path)) {
       if (_dataMap.get(path) == null) {
-        cb.processResult(4, path, null, _dataMap.get(path), null);
+        // Simulate a failed read with a real ZooKeeper error code. ZooKeeper 3.9+ rejects
+        // unknown codes in KeeperException.Code.get() instead of returning null.
+        cb.processResult(KeeperException.Code.CONNECTIONLOSS.intValue(), path, null, null, null);
       } else {
         cb.processResult(0, path, null, _dataMap.get(path), null);
       }

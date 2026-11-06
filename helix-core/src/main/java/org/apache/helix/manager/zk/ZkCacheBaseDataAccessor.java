@@ -483,7 +483,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         boolean[] success = new boolean[size];
         for (int i = 0; i < size; i++) {
           ZkAsyncCallbacks.CreateCallbackHandler cb = createCbList[i];
-          success[i] = (Code.get(cb.getRc()) == Code.OK);
+          success[i] = (ZkAsyncCallbacks.getCode(cb.getRc()) == Code.OK);
 
           updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
               records.get(i), ZNode.ZERO_STAT);

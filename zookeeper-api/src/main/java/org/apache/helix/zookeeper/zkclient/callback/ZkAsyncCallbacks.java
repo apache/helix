@@ -37,6 +37,26 @@ import org.slf4j.LoggerFactory;
 public class ZkAsyncCallbacks {
   private static Logger LOG = LoggerFactory.getLogger(ZkAsyncCallbacks.class);
 
+  /**
+   * Translates an async return code into a {@link Code}. A code this client version does not know
+   * (possible with a newer server; KeeperException.Code#get returned null for it before ZooKeeper
+   * 3.9 and throws IllegalArgumentException since) is reported as {@link Code#SYSTEMERROR}, so
+   * callers treat it as a failed, non-retryable operation instead of failing on the lookup itself.
+   */
+  public static Code getCode(int rc) {
+    Code code = null;
+    try {
+      code = Code.get(rc);
+    } catch (IllegalArgumentException e) {
+      // handled below together with the pre-3.9 null result
+    }
+    if (code == null) {
+      LOG.warn("Unknown ZooKeeper return code {}, treating it as {}", rc, Code.SYSTEMERROR);
+      return Code.SYSTEMERROR;
+    }
+    return code;
+  }
+
   public static class GetDataCallbackHandler extends DefaultCallback implements DataCallback {
     public byte[] _data;
     public Stat _stat;
@@ -173,18 +193,12 @@ public class ZkAsyncCallbacks {
 
     @Override
     protected boolean needRetry(int rc) {
-      try {
-        switch (KeeperException.Code.get(rc)) {
-          /** Connection to the server has been lost */
-          case CONNECTIONLOSS:
-            return true;
-          default:
-            return false;
-        }
-      } catch (ClassCastException | NullPointerException ex) {
-        LOG.error("Session {} failed to handle unknown return code {}. Skip retrying. ex {}",
-            _sessionId, rc, ex);
-        return false;
+      switch (getCode(rc)) {
+        /** Connection to the server has been lost */
+        case CONNECTIONLOSS:
+          return true;
+        default:
+          return false;
       }
     }
   }
@@ -198,7 +212,7 @@ public class ZkAsyncCallbacks {
 
     public void callback(int rc, String path, Object ctx) {
       if (rc != 0) {
-        LOG.debug(" {}, rc:{}, path {}", this, Code.get(rc), path);
+        LOG.debug(" {}, rc:{} ({}), path {}", this, rc, getCode(rc), path);
       }
 
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
@@ -304,8 +318,7 @@ public class ZkAsyncCallbacks {
      * @return true if the error is transient and the operation may succeed when being retried.
      */
     protected boolean needRetry(int rc) {
-      try {
-        switch (Code.get(rc)) {
+      switch (getCode(rc)) {
         /** Connection to the server has been lost */
         case CONNECTIONLOSS:
           /** The session has been expired by the server */
@@ -315,10 +328,6 @@ public class ZkAsyncCallbacks {
           return true;
         default:
           return false;
-        }
-      } catch (ClassCastException | NullPointerException ex) {
-        LOG.error("Failed to handle unknown return code {}. Skip retrying.", rc, ex);
-        return false;
       }
     }
   }

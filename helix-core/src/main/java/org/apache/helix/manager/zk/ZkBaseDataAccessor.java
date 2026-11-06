@@ -639,17 +639,17 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         }
 
         ZkAsyncCallbacks.GetDataCallbackHandler cb = cbList[i];
-        if (Code.get(cb.getRc()) == Code.OK) {
+        if (ZkAsyncCallbacks.getCode(cb.getRc()) == Code.OK) {
           @SuppressWarnings("unchecked")
           T record = (T) _zkClient.deserialize(cb._data, paths.get(i));
           records.set(i, record);
           if (stats != null) {
             stats.set(i, cb._stat);
           }
-        } else if (Code.get(cb.getRc()) != Code.NONODE && throwException) {
+        } else if (ZkAsyncCallbacks.getCode(cb.getRc()) != Code.NONODE && throwException) {
           throw new HelixMetaDataAccessException(String
               .format("Failed to read node %s, return code: %s", paths.get(i),
-                  Code.get(cb.getRc())));
+                  ZkAsyncCallbacks.getCode(cb.getRc())));
         } else {
           pathFailToRead.put(paths.get(i), cb.getRc());
         }
@@ -889,7 +889,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         cb.waitForSuccess();
         String path = paths.get(i);
 
-        if (Code.get(cb.getRc()) == Code.NONODE) {
+        if (ZkAsyncCallbacks.getCode(cb.getRc()) == Code.NONODE) {
           String parentPath = HelixUtil.getZkParentPath(path);
           parentPaths.set(i, parentPath);
           failOnNoNode = true;
@@ -899,7 +899,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           needCreate[i] = false;
 
           // if succeeds, record what paths we've created
-          if (Code.get(cb.getRc()) == Code.OK && pathsCreated != null) {
+          if (ZkAsyncCallbacks.getCode(cb.getRc()) == Code.OK && pathsCreated != null) {
             if (pathsCreated.get(i) == null) {
               pathsCreated.set(i, new ArrayList<String>());
             }
@@ -927,7 +927,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             continue;
           }
 
-          Code rc = Code.get(parentCb.getRc());
+          Code rc = ZkAsyncCallbacks.getCode(parentCb.getRc());
 
           // if parent is created, retry create child
           if (rc == Code.OK || rc == Code.NODEEXISTS) {
@@ -977,7 +977,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
       for (int i = 0; i < cbList.length; i++) {
         ZkAsyncCallbacks.CreateCallbackHandler cb = cbList[i];
-        success[i] = (Code.get(cb.getRc()) == Code.OK);
+        success[i] = (ZkAsyncCallbacks.getCode(cb.getRc()) == Code.OK);
       }
 
       return success;
@@ -1052,7 +1052,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         for (int i = 0; i < cbList.length; i++) {
           ZkAsyncCallbacks.SetDataCallbackHandler cb = cbList[i];
           cb.waitForSuccess();
-          Code rc = Code.get(cb.getRc());
+          Code rc = ZkAsyncCallbacks.getCode(cb.getRc());
           switch (rc) {
             case OK:
               setStats.set(i, cb.getStat());
@@ -1079,7 +1079,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               continue;
             }
 
-            Code rc = Code.get(createCb.getRc());
+            Code rc = ZkAsyncCallbacks.getCode(createCb.getRc());
             switch (rc) {
               case OK:
                 setStats.set(i, ZNode.ZERO_STAT);
@@ -1102,12 +1102,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       for (int i = 0; i < cbList.length; i++) {
         ZkAsyncCallbacks.SetDataCallbackHandler cb = cbList[i];
 
-        Code rc = Code.get(cb.getRc());
+        Code rc = ZkAsyncCallbacks.getCode(cb.getRc());
         if (rc == Code.OK) {
           success[i] = true;
         } else if (rc == Code.NONODE) {
           ZkAsyncCallbacks.CreateCallbackHandler createCb = createCbList[i];
-          if (Code.get(createCb.getRc()) == Code.OK) {
+          if (ZkAsyncCallbacks.getCode(createCb.getRc()) == Code.OK) {
             success[i] = true;
           }
         }
@@ -1229,7 +1229,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
           cb.waitForSuccess();
 
-          switch (Code.get(cb.getRc())) {
+          switch (ZkAsyncCallbacks.getCode(cb.getRc())) {
             case OK:
               updateData.set(i, newDataList.get(i));
               setStats.set(i, cb.getStat());
@@ -1259,7 +1259,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               continue;
             }
 
-            switch (Code.get(createCb.getRc())) {
+            switch (ZkAsyncCallbacks.getCode(createCb.getRc())) {
               case OK:
                 needUpdate[i] = false;
                 updateData.set(i, newDataList.get(i));

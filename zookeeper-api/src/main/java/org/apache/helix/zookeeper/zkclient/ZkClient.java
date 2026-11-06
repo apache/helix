@@ -1730,7 +1730,7 @@ public class ZkClient implements Watcher {
 
     callbackHandler.waitForSuccess();
 
-    KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
+    KeeperException.Code code = ZkAsyncCallbacks.getCode(callbackHandler.getRc());
     if (code == KeeperException.Code.OK) {
       LOG.info("zkclient {}, sycnOnNewSession with sessionID {} async return code: {} and proceeds",
           _uid, sessionId, code);
@@ -1913,7 +1913,7 @@ public class ZkClient implements Watcher {
     for (int i = 0; i < opResults.size(); i++) {
       if (opResults.get(i) instanceof OpResult.ErrorResult) {
         failedPathsMap.put(ops.get(i).getPath(),
-            KeeperException.Code.get(((OpResult.ErrorResult) opResults.get(i)).getErr()));
+            ZkAsyncCallbacks.getCode(((OpResult.ErrorResult) opResults.get(i)).getErr()));
       }
     }
 
@@ -2221,7 +2221,7 @@ public class ZkClient implements Watcher {
 
     /** The exception to throw for a non-OK result code. Mirrors ZooKeeper's synchronous API. */
     KeeperException failure(String path) {
-      return KeeperException.create(KeeperException.Code.get(_rc), path);
+      return KeeperException.create(ZkAsyncCallbacks.getCode(_rc), path);
     }
   }
 
@@ -2286,7 +2286,7 @@ public class ZkClient implements Watcher {
         throw e;
       }
       LOG.info("Caller interrupted while a write to {} was in flight; waited for its outcome: {}",
-          path, KeeperException.Code.get(write._rc));
+          path, ZkAsyncCallbacks.getCode(write._rc));
     }
     if (write._rc != KeeperException.Code.OK.intValue()) {
       throw write.failure(path);
@@ -3147,7 +3147,7 @@ public class ZkClient implements Watcher {
       InFlightWrite<List<OpResult>> write = new InFlightWrite<List<OpResult>>() {
         @Override
         KeeperException failure(String path) {
-          return KeeperException.create(KeeperException.Code.get(_rc));
+          return KeeperException.create(ZkAsyncCallbacks.getCode(_rc));
         }
       };
       return syncWrite(null, currentZookeeper(), write, (zk, w) -> zk.multi(ops,

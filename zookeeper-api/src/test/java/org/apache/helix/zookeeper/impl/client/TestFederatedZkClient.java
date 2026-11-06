@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
@@ -39,10 +40,12 @@ import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -74,6 +77,48 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     // Close it as it is created in before class.
     _realmAwareZkClient.close();
     System.out.println("Ending " + TestFederatedZkClient.class.getSimpleName());
+  }
+
+  /*
+   * The persist watcher mode configured through RealmAwareZkClientConfig must reach the per-realm
+   * ZkClients: listeners are served by persistent watches and explicit one-time watches are refused.
+   */
+  @Test
+  public void testUsePersistWatcherConfig() throws Exception {
+    FederatedZkClient client =
+        new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+            new RealmAwareZkClient.RealmAwareZkClientConfig().setUsePersistWatcher(true));
+    String path = TEST_REALM_ONE_VALID_PATH + "/persistWatcher";
+    try {
+      client.setZkSerializer(new ZNRecordSerializer());
+      client.createPersistent(path, true);
+      try {
+        client.readData(path, new Stat(), true);
+        Assert.fail("One-time watches must be refused in persist watcher mode");
+      } catch (IllegalArgumentException expected) {
+        // expected
+      }
+      int changes = 5;
+      CountDownLatch latch = new CountDownLatch(changes);
+      client.subscribeDataChanges(path, new IZkDataListener() {
+        @Override
+        public void handleDataChange(String dataPath, Object data) {
+          latch.countDown();
+        }
+
+        @Override
+        public void handleDataDeleted(String dataPath) {
+        }
+      });
+      for (int i = 0; i < changes; i++) {
+        client.writeData(path, new ZNRecord("v" + i));
+      }
+      Assert.assertTrue(latch.await(10, TimeUnit.SECONDS),
+          "Expected " + changes + " data change notifications, " + latch.getCount() + " missing");
+    } finally {
+      client.deleteRecursively(TEST_REALM_ONE_VALID_PATH);
+      client.close();
+    }
   }
 
   /*

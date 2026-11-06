@@ -102,6 +102,7 @@ public class SharedZkClient implements RealmAwareZkClient {
     zkClientConfig.setZkSerializer(clientConfig.getZkSerializer())
         .setConnectInitTimeout(clientConfig.getConnectInitTimeout())
         .setOperationRetryTimeout(clientConfig.getOperationRetryTimeout())
+        .setUsePersistWatcher(clientConfig.isUsePersistWatcher())
         .setMonitorInstanceName(clientConfig.getMonitorInstanceName())
         .setMonitorKey(clientConfig.getMonitorKey()).setMonitorType(clientConfig.getMonitorType())
         .setMonitorRootPathOnly(clientConfig.isMonitorRootPathOnly());

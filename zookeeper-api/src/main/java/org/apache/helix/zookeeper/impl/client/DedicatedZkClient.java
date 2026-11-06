@@ -107,7 +107,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
     _rawZkClient = new ZkClient(zkConnection, (int) clientConfig.getConnectInitTimeout(),
         clientConfig.getOperationRetryTimeout(), clientConfig.getZkSerializer(),
         clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
-        clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly());
+        clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly(), true,
+        clientConfig.isUsePersistWatcher());
   }
 
   @Override

@@ -153,5 +153,11 @@ public interface HelixZkClient extends RealmAwareZkClient {
       this._connectInitTimeout = connectInitTimeout;
       return this;
     }
+
+    @Override
+    public ZkClientConfig setUsePersistWatcher(boolean usePersistWatcher) {
+      this._usePersistWatcher = usePersistWatcher;
+      return this;
+    }
   }
 }

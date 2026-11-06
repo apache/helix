@@ -417,9 +417,21 @@ public class ZkTestHelper {
     field2.setAccessible(true);
     Map<String, Set<Watcher>> childWatches = (Map<String, Set<Watcher>>) field2.get(watchManager);
 
+    field2 = getField(watchManager.getClass(), "persistentWatches");
+    field2.setAccessible(true);
+    Map<String, Set<Watcher>> persistentWatches =
+        (Map<String, Set<Watcher>>) field2.get(watchManager);
+
+    field2 = getField(watchManager.getClass(), "persistentRecursiveWatches");
+    field2.setAccessible(true);
+    Map<String, Set<Watcher>> persistentRecursiveWatches =
+        (Map<String, Set<Watcher>>) field2.get(watchManager);
+
     lists.put("dataWatches", new ArrayList<>(dataWatches.keySet()));
     lists.put("existWatches", new ArrayList<>(existWatches.keySet()));
     lists.put("childWatches", new ArrayList<>(childWatches.keySet()));
+    lists.put("persistentWatches", new ArrayList<>(persistentWatches.keySet()));
+    lists.put("persistentRecursiveWatches", new ArrayList<>(persistentRecursiveWatches.keySet()));
 
     return lists;
   }

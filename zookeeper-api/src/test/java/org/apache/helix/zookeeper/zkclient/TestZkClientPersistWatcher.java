@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.helix.zookeeper.impl.TestHelper;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
@@ -168,6 +169,71 @@ public class TestZkClientPersistWatcher extends ZkTestBase {
 
     zkClient.deleteRecursively(path);
     zkClient.close();
+  }
+
+  /*
+   * A listener that implements both IZkChildListener and IZkDataListener (as CallbackHandler does)
+   * must be registered for the kind of change it subscribed to. Registering it by instanceof made
+   * every data subscription a child subscription in persist mode, so data changes were never
+   * delivered.
+   */
+  @Test
+  void testListenerImplementingBothInterfaces() throws Exception {
+    org.apache.helix.zookeeper.impl.client.ZkClient zkClient =
+        new org.apache.helix.zookeeper.impl.client.ZkClient.Builder().setZkServer(ZkTestBase.ZK_ADDR)
+            .setMonitorRootPathOnly(false).setUsePersistWatcher(true).build();
+    zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+    String path = "/testListenerImplementingBothInterfaces";
+    zkClient.create(path, "data", CreateMode.PERSISTENT);
+    try {
+      class BothListener implements IZkChildListener, IZkDataListener {
+        final AtomicInteger _dataChanges = new AtomicInteger();
+        final AtomicInteger _childChanges = new AtomicInteger();
+
+        @Override
+        public void handleChildChange(String parentPath, List<String> currentChilds) {
+          _childChanges.incrementAndGet();
+        }
+
+        @Override
+        public void handleDataChange(String dataPath, Object data) {
+          _dataChanges.incrementAndGet();
+        }
+
+        @Override
+        public void handleDataDeleted(String dataPath) {
+        }
+      }
+      BothListener dataOnly = new BothListener();
+      BothListener childOnly = new BothListener();
+      zkClient.subscribeDataChanges(path, dataOnly);
+      zkClient.subscribeChildChanges(path, childOnly);
+
+      zkClient.writeData(path, "data1", -1);
+      zkClient.create(path + "/child", "c", CreateMode.PERSISTENT);
+
+      Assert.assertTrue(TestHelper.verify(() -> dataOnly._dataChanges.get() == 1, 10_000L),
+          "The data listener should get the data change");
+      Assert.assertTrue(TestHelper.verify(() -> childOnly._childChanges.get() == 1, 10_000L),
+          "The child listener should get the child change");
+      Assert.assertEquals(dataOnly._childChanges.get(), 0,
+          "The data listener must not be registered as a child listener");
+      Assert.assertEquals(childOnly._dataChanges.get(), 0,
+          "The child listener must not be registered as a data listener");
+
+      // Unsubscribing one listener kind keeps the other one, and its watch, working.
+      zkClient.unsubscribeDataChanges(path, dataOnly);
+      zkClient.writeData(path, "data2", -1);
+      zkClient.create(path + "/child2", "c", CreateMode.PERSISTENT);
+      Assert.assertTrue(TestHelper.verify(() -> childOnly._childChanges.get() == 2, 10_000L),
+          "The child listener should still get child changes");
+      Assert.assertEquals(dataOnly._dataChanges.get(), 1,
+          "The unsubscribed data listener must not get further data changes");
+      zkClient.unsubscribeChildChanges(path, childOnly);
+    } finally {
+      zkClient.deleteRecursively(path);
+      zkClient.close();
+    }
   }
 
   @Test

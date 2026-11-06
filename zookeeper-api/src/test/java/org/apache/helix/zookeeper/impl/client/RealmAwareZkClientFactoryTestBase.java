@@ -21,12 +21,17 @@ package org.apache.helix.zookeeper.impl.client;
 
 import java.io.IOException;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.impl.TestHelper;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -107,6 +112,58 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
           _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);
     } catch (Exception e) {
       Assert.fail("All other exceptions not allowed: " + e);
+    }
+  }
+
+  /**
+   * The persist watcher mode configured through RealmAwareZkClientConfig must reach the ZkClient
+   * the factory builds: listeners are served by persistent watches and explicit one-time watches
+   * are refused.
+   */
+  @Test
+  public void testUsePersistWatcherConfig() throws Exception {
+    RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setZkRealmShardingKey(ZK_SHARDING_KEY_PREFIX).build();
+    RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+        new RealmAwareZkClient.RealmAwareZkClientConfig().setUsePersistWatcher(true);
+    RealmAwareZkClient client =
+        _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);
+    String path = ZK_SHARDING_KEY_PREFIX + "/" + TestHelper.getTestMethodName();
+    try {
+      client.setZkSerializer(new ZNRecordSerializer());
+      client.createPersistent(path, true);
+
+      // A one-time watch would take over the persistent watch on older servers, so the client
+      // refuses it in this mode.
+      try {
+        client.readData(path, new Stat(), true);
+        Assert.fail("One-time watches must be refused in persist watcher mode");
+      } catch (IllegalArgumentException expected) {
+        // expected
+      }
+
+      // Listeners are served by a persistent watch: every change is delivered without re-arming.
+      int changes = 5;
+      CountDownLatch latch = new CountDownLatch(changes);
+      client.subscribeDataChanges(path, new IZkDataListener() {
+        @Override
+        public void handleDataChange(String dataPath, Object data) {
+          latch.countDown();
+        }
+
+        @Override
+        public void handleDataDeleted(String dataPath) {
+        }
+      });
+      for (int i = 0; i < changes; i++) {
+        client.writeData(path, new ZNRecord("v" + i));
+      }
+      Assert.assertTrue(latch.await(10, TimeUnit.SECONDS),
+          "Expected " + changes + " data change notifications, " + latch.getCount() + " missing");
+    } finally {
+      client.deleteRecursively(path);
+      client.close();
     }
   }
 

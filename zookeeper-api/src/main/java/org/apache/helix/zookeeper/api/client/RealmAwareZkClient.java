@@ -26,6 +26,7 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -566,6 +567,9 @@ public interface RealmAwareZkClient {
     protected String _monitorKey;
     protected String _monitorInstanceName = null;
     protected boolean _monitorRootPathOnly = true;
+    // Watcher mode, see ZkSystemPropertyKeys#ZK_PERSIST_WATCHER_ENABLED for the default
+    protected boolean _usePersistWatcher =
+        Boolean.getBoolean(ZkSystemPropertyKeys.ZK_PERSIST_WATCHER_ENABLED);
 
     public RealmAwareZkClientConfig setZkSerializer(PathBasedZkSerializer zkSerializer) {
       this._zkSerializer = zkSerializer;
@@ -622,6 +626,17 @@ public interface RealmAwareZkClient {
       return this;
     }
 
+    /**
+     * Whether the client registers persistent ZooKeeper watches for its listeners instead of
+     * one-time watches that are re-armed after every notification. In this mode the client refuses
+     * explicit one-time watches such as {@code readData(path, stat, true)}. Defaults to the
+     * {@link ZkSystemPropertyKeys#ZK_PERSIST_WATCHER_ENABLED} system property.
+     */
+    public RealmAwareZkClientConfig setUsePersistWatcher(boolean usePersistWatcher) {
+      this._usePersistWatcher = usePersistWatcher;
+      return this;
+    }
+
     public PathBasedZkSerializer getZkSerializer() {
       if (_zkSerializer == null) {
         _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
@@ -653,6 +668,10 @@ public interface RealmAwareZkClient {
       return _connectInitTimeout;
     }
 
+    public boolean isUsePersistWatcher() {
+      return _usePersistWatcher;
+    }
+
     /**
      * Create HelixZkClient.ZkClientConfig based on RealmAwareZkClientConfig.
      * @return
@@ -662,7 +681,7 @@ public interface RealmAwareZkClient {
           .setMonitorType(_monitorType).setMonitorKey(_monitorKey)
           .setMonitorInstanceName(_monitorInstanceName).setMonitorRootPathOnly(_monitorRootPathOnly)
           .setOperationRetryTimeout(_operationRetryTimeout)
-          .setConnectInitTimeout(_connectInitTimeout);
+          .setConnectInitTimeout(_connectInitTimeout).setUsePersistWatcher(_usePersistWatcher);
     }
   }
 

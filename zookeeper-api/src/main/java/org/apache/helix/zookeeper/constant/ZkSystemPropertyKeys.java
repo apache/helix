@@ -70,6 +70,21 @@ public class ZkSystemPropertyKeys {
   public static final String ZK_AUTOSYNC_ENABLED =
       "zk.zkclient.autosync.enabled";
 
+  /**
+   * Setting this property to {@code true} makes every ZkClient that is built from a
+   * {@code RealmAwareZkClientConfig} (HelixManager, HelixAdmin, helix-rest, ...) register
+   * <b>persistent</b> ZooKeeper watches ({@code addWatch}) for its listeners instead of one-time
+   * watches that have to be re-armed after every notification. Persistent watches cannot miss a
+   * change between a notification and the re-registration of the watch. In this mode the client
+   * refuses explicit one-time watches such as {@code readData(path, stat, true)}.
+   * <p>
+   * An explicit {@code RealmAwareZkClientConfig#setUsePersistWatcher} overrides this property.
+   * <p>
+   * The default value is {@code false}. Requires a ZooKeeper server that supports persistent
+   * watches (3.6+; 3.9+ recommended, see ZOOKEEPER-4466 and ZOOKEEPER-4475).
+   */
+  public static final String ZK_PERSIST_WATCHER_ENABLED = "zk.zkclient.persistwatcher.enabled";
+
   /** System property key for jute.maxbuffer */
   public static final String JUTE_MAXBUFFER = "jute.maxbuffer";
 

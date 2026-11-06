@@ -1535,6 +1535,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         .setMonitorKey(_clusterName)
         .setMonitorInstanceName(_instanceName)
         .setMonitorRootPathOnly(isMonitorRootPathOnly());
+    // Persistent watches default to the zk.zkclient.persistwatcher.enabled system property; a
+    // RealmAwareZkClientConfig given through HelixManagerProperty overrides it.
+    if (_helixManagerProperty != null && _helixManagerProperty.getZkClientConfig() != null) {
+      clientConfig.setUsePersistWatcher(
+          _helixManagerProperty.getZkClientConfig().isUsePersistWatcher());
+    }
+    LOG.info("Creating ZkClient for {} {} in cluster {} with usePersistWatcher={}", _instanceType,
+        _instanceName, _clusterName, clientConfig.isUsePersistWatcher());
 
     if (_instanceType == InstanceType.ADMINISTRATOR) {
       return resolveZkClient(SharedZkClientFactory.getInstance(), _realmAwareZkConnectionConfig,

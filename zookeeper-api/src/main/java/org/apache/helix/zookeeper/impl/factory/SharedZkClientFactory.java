@@ -159,7 +159,7 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       super(connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
           clientConfig.getZkSerializer(), clientConfig.getMonitorType(),
           clientConfig.getMonitorKey(), clientConfig.getMonitorInstanceName(),
-          clientConfig.isMonitorRootPathOnly());
+          clientConfig.isMonitorRootPathOnly(), true, clientConfig.isUsePersistWatcher());
       _connectionManager = connectionManager;
       // Register to the base dedicated RealmAwareZkClient
       _connectionManager.registerWatcher(this);

@@ -3403,49 +3403,61 @@ public class ZkClient implements Watcher {
     void run() throws KeeperException, InterruptedException;
   }
 
-  // Add a persist listener on the path.
-  // Throws UnsupportedOperationException if there is already a recursive persist listener on the
-  // path because it will overwrite that recursive persist listener.
-  private void addPersistListener(String path, Object listener) {
-    ManipulateListener addListeners = () -> {
-      if (_zkPathRecursiveWatcherTrie.hasListenerOnPath(path)) {
-        throw new UnsupportedOperationException(
-            "Can not subscribe PersistListener when there is an recursive listener on path: "
-                + path);
-      }
-      if (listener instanceof IZkChildListener) {
-        addChildListener(path, (IZkChildListener) listener);
-      } else if (listener instanceof IZkDataListener) {
-        addDataListener(path, (IZkDataListener) listener);
-      }
-    };
-    executeWithInPersistListenerMutex(addListeners);
+  /*
+   * Adds a persist child or data listener on the path. The two overloads exist on purpose: a
+   * listener may implement both IZkChildListener and IZkDataListener (CallbackHandler does), so the
+   * listener type has to come from the subscribe call that was made, not from instanceof checks.
+   * Throws UnsupportedOperationException if there is already a recursive persist listener on the
+   * path because it would overwrite that recursive persist listener.
+   */
+  private void addPersistListener(String path, IZkChildListener listener) {
+    executeWithInPersistListenerMutex(() -> {
+      checkNoRecursivePersistListener(path);
+      addChildListener(path, listener);
+    });
   }
 
+  private void addPersistListener(String path, IZkDataListener listener) {
+    executeWithInPersistListenerMutex(() -> {
+      checkNoRecursivePersistListener(path);
+      addDataListener(path, listener);
+    });
+  }
 
-  // TODO: Consider create an empty interface and let the two listeners interface extend that
-  // interface for code clean.
-  // This function removes persist child or data listener.
-  private void removePersistListener(String path, Object listener) {
+  private void checkNoRecursivePersistListener(String path) {
+    if (_zkPathRecursiveWatcherTrie.hasListenerOnPath(path)) {
+      throw new UnsupportedOperationException(
+          "Can not subscribe PersistListener when there is an recursive listener on path: " + path);
+    }
+  }
 
-    ManipulateListener removeListeners = () -> {
-      try {
-        if (listener instanceof IZkChildListener) {
-          removeChildListener(path, (IZkChildListener) listener);
-        } else if (listener instanceof IZkDataListener) {
-          removeDataListener(path, (IZkDataListener) listener);
-        }
-        if (!hasChildOrDataListeners(path)) {
-          // This will also remove persist recursive watcher on ZK. However, there should not be an
-          // persist recursive watcher installed in the first place.
-          getConnection().removeWatches(path, this, WatcherType.Any);
-        }
-      } catch (KeeperException.NoWatcherException e) {
-        LOG.warn("Persist watcher is already removed");
-      }
-    };
+  // Removes a persist child or data listener, and the persist watch once no listener is left.
+  private void removePersistListener(String path, IZkChildListener listener) {
+    executeWithInPersistListenerMutex(() -> {
+      removeChildListener(path, listener);
+      removePersistWatchIfUnused(path);
+    });
+  }
 
-    executeWithInPersistListenerMutex(removeListeners);
+  private void removePersistListener(String path, IZkDataListener listener) {
+    executeWithInPersistListenerMutex(() -> {
+      removeDataListener(path, listener);
+      removePersistWatchIfUnused(path);
+    });
+  }
+
+  private void removePersistWatchIfUnused(String path)
+      throws KeeperException, InterruptedException {
+    if (hasChildOrDataListeners(path)) {
+      return;
+    }
+    try {
+      // This will also remove persist recursive watcher on ZK. However, there should not be an
+      // persist recursive watcher installed in the first place.
+      getConnection().removeWatches(path, this, WatcherType.Any);
+    } catch (KeeperException.NoWatcherException e) {
+      LOG.warn("Persist watcher is already removed");
+    }
   }
 
   private void executeWithInPersistListenerMutex(ManipulateListener runnable) {

@@ -312,7 +312,9 @@ public class ParticipantManager {
             _clusterName);
 
         Stat stat = new Stat();
-        ZNRecord record = _zkclient.readData(liveInstancePath, stat, true);
+        // No watch is needed here (nobody listens for it, and a client in persist-watcher mode
+        // rejects one-time watches); return null instead of throwing if the node is already gone.
+        ZNRecord record = _zkclient.readDataAndStat(liveInstancePath, stat, true);
         if (record == null) {
           /**
            * live-instance is gone as we check it, retry create live-instance

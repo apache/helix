@@ -26,6 +26,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
@@ -361,14 +362,15 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
       LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
       sb.append("LEADER: ").append(leader == null ? "none"
-          : leader.getInstanceName() + " (session " + leader.getEphemeralOwner() + ")")
-          .append('\n');
+          : leader.getInstanceName() + " (session " + leader.getEphemeralOwner() + ", "
+              + describeStat(leader) + ")").append('\n');
 
       Map<String, LiveInstance> liveInstances =
           accessor.getChildValuesMap(keyBuilder.liveInstances(), false);
       for (Map.Entry<String, LiveInstance> entry : liveInstances.entrySet()) {
         sb.append("LIVEINSTANCE ").append(entry.getKey()).append(": session ")
-            .append(entry.getValue().getEphemeralOwner()).append('\n');
+            .append(entry.getValue().getEphemeralOwner()).append(", ")
+            .append(describeStat(entry.getValue())).append('\n');
       }
 
       for (String instance : accessor.getChildNames(keyBuilder.instances())) {
@@ -377,8 +379,9 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
               accessor.getChildValues(keyBuilder.currentStates(instance, session), false);
           for (CurrentState currentState : currentStates) {
             sb.append("CURRENTSTATE ").append(instance).append('/').append(session).append('/')
-                .append(currentState.getResourceName()).append(": ")
-                .append(currentState.getPartitionStateMap()).append('\n');
+                .append(currentState.getResourceName()).append(" (session field ")
+                .append(currentState.getSessionId()).append(", ").append(describeStat(currentState))
+                .append("): ").append(currentState.getPartitionStateMap()).append('\n');
           }
         }
         List<Message> messages = accessor.getChildValues(keyBuilder.messages(instance), false);
@@ -395,12 +398,23 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
       List<ExternalView> externalViews =
           accessor.getChildValues(keyBuilder.externalViews(), false);
       for (ExternalView externalView : externalViews) {
-        sb.append("EXTERNALVIEW ").append(externalView.getResourceName()).append(": ")
+        sb.append("EXTERNALVIEW ").append(externalView.getResourceName()).append(" (")
+            .append(describeStat(externalView)).append("): ")
             .append(externalView.getRecord().getMapFields()).append('\n');
       }
     } catch (Exception e) {
       sb.append("failed to dump cluster state: ").append(e).append('\n');
     }
     System.out.println(sb);
+  }
+
+  /**
+   * Version and modification time of a znode, so that the order in which the dumped znodes were
+   * last written can be reconstructed (e.g. whether the external view was written before or after
+   * the last current state change).
+   */
+  private static String describeStat(HelixProperty property) {
+    HelixProperty.Stat stat = property.getStat();
+    return "version " + stat.getVersion() + ", modified " + new Date(stat.getModifiedTime());
   }
 }

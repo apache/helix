@@ -69,6 +69,16 @@ public class Pipeline {
       return;
     }
     for (Stage stage : _stages) {
+      // A stage can block for a long time on ZooKeeper reads while the controller's session is
+      // expiring. Re-check the session before every stage so that an event created under a
+      // previous session does not continue into the stages that write cluster-wide state.
+      if (AbstractBaseStage.isEventSessionStale(event)) {
+        throw new StageException(String.format(
+            "Event %s was created in session %s, which is not the controller's current session"
+                + " anymore. Stop %s pipeline for cluster %s before stage %s",
+            event.getEventId(), AbstractBaseStage.describeEventSession(event), _pipelineType,
+            event.getClusterName(), stage.getStageName()));
+      }
       long startTime = System.currentTimeMillis();
 
       stage.preProcess();

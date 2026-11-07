@@ -20,15 +20,22 @@ package org.apache.helix.controller.pipeline;
  */
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AbstractBaseStage implements Stage {
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractBaseStage.class);
+
   protected String _eventId;
 
   @Override
@@ -62,6 +69,51 @@ public class AbstractBaseStage implements Stage {
     // default stage name will be the class name
     String className = this.getClass().getSimpleName();
     return className;
+  }
+
+  /**
+   * Tells whether the controller's ZooKeeper session has changed since the event was created, in
+   * which case the event's data is stale: the session expired while the event was queued or being
+   * processed, and another controller may already lead the cluster. Stages must not act on such an
+   * event, in particular not write cluster-wide state (messages, views, persisted assignments).
+   * <p>
+   * Every event the controller creates in production carries the leader session it was created in
+   * ({@link AttributeName#EVENT_SESSION}); events without that attribute (only built by tests) are
+   * never stale. The check does not wait for a disconnected manager to reconnect: while the manager
+   * is disconnected the session is unknown (it may still be the same one after a reconnect), so the
+   * event is not reported as stale and processing goes on as before, relying on the ZkClient retry
+   * logic and on {@code MessageDispatchStage}'s blocking session check that guards message sending.
+   * The manager's session id is updated when it handles the new session, so an event is recognized
+   * as stale from that point on; that is when the stale pipelines observed in practice resume, as
+   * they were blocked on ZooKeeper reads during the expiry.
+   * @param event the event being processed
+   * @return true if the event's manager is connected and its session differs from the event's
+   *         session
+   */
+  static boolean isEventSessionStale(ClusterEvent event) {
+    Optional<String> eventSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+    if (eventSession == null || !eventSession.isPresent() || manager == null) {
+      // No session recorded: either a test-built event, or the controller was not leader when
+      // the event was created. GenericHelixController#handleEvent already filters the latter.
+      return false;
+    }
+    try {
+      return manager.isConnected() && !eventSession.get().equals(manager.getSessionId());
+    } catch (HelixException e) {
+      // The manager got disconnected in between; the session is unknown, not known to be stale.
+      LOG.debug("Cannot determine the session of event {}: manager is not connected",
+          event.getEventId(), e);
+      return false;
+    }
+  }
+
+  /**
+   * @return the session the event was created in, for log messages
+   */
+  static String describeEventSession(ClusterEvent event) {
+    Optional<String> eventSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
+    return eventSession == null ? "NOT_PRESENT" : eventSession.orElse("NOT_PRESENT");
   }
 
   public static <T> Future asyncExecute(ExecutorService service, Callable<T> task) {

@@ -42,6 +42,15 @@ public abstract class AbstractAsyncBaseStage extends AbstractBaseStage {
       long startTimestamp = System.currentTimeMillis();
       logger.info("START AsyncProcess: {}", taskType);
       try {
+        // The task runs some time after the pipeline queued it. If the controller's session has
+        // changed in between (session expiry, possibly with another controller now leading), the
+        // event's data is stale and must not be written to the cluster.
+        if (isEventSessionStale(event)) {
+          logger.warn("Skip AsyncProcess: {} for event {} of cluster {} because its session {} is "
+                  + "not the controller's current session anymore", taskType, event.getEventId(),
+              event.getClusterName(), describeEventSession(event));
+          return;
+        }
         execute(event);
       } catch (InterruptedException e) {
         logger.warn("Process {} has been interrupted", taskType, e);

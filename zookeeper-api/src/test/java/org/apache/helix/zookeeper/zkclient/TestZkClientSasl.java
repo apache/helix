@@ -22,15 +22,20 @@ package org.apache.helix.zookeeper.zkclient;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginException;
+import javax.security.auth.spi.LoginModule;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.helix.zookeeper.impl.TestHelper;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
@@ -44,13 +49,15 @@ import org.apache.zookeeper.server.auth.SASLAuthenticationProvider;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /**
- * Integration tests for SASL (Kerberos and DIGEST) authentication detection in ZkClient
+ * Integration tests for SASL (Kerberos, DIGEST and other mechanisms) authentication detection in
+ * ZkClient
  */
-public class TestZkClientKerberos extends ZkTestBase {
-  
+public class TestZkClientSasl extends ZkTestBase {
+
   private ZkClient _zkClient;
   private Configuration _originalJaasConfig;
 
@@ -66,52 +73,54 @@ public class TestZkClientKerberos extends ZkTestBase {
     if (_originalJaasConfig != null) {
       Configuration.setConfiguration(_originalJaasConfig);
     }
-    
+
     if (_zkClient != null && !_zkClient.isClosed()) {
       _zkClient.close();
     }
   }
 
   /**
-   * Test isSaslAuthEnabled returns false when SASL is disabled
+   * Test isSaslAuthEnabled returns false when the SASL client is disabled, even though the JAAS
+   * configuration has an entry for the client context
    */
   @Test
   public void testIsSaslAuthEnabled_WhenSaslDisabled() throws Exception {
-    // Create ZkClient with SASL disabled (default configuration)
-    ZkClient.Builder builder = new ZkClient.Builder();
-    builder.setZkServer(ZkTestBase.ZK_ADDR)
-        .setMonitorRootPathOnly(false);
-    _zkClient = builder.build();
-    _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
-    
-    // Use reflection to call private isSaslAuthEnabled method
-    boolean result = invokeIsSaslAuthEnabled(_zkClient);
-    
-    // Verify
-    Assert.assertFalse(result, "isSaslAuthEnabled should return false when SASL is disabled");
+    Configuration.setConfiguration(jaasConfiguration("org.apache.zookeeper.server.auth.DigestLoginModule"));
+    System.setProperty(ZKClientConfig.ENABLE_CLIENT_SASL_KEY, "false");
+
+    try {
+      ZkClient.Builder builder = new ZkClient.Builder();
+      builder.setZkServer(ZkTestBase.ZK_ADDR)
+          .setMonitorRootPathOnly(false);
+      _zkClient = builder.build();
+      _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+
+      Assert.assertFalse(invokeIsSaslAuthEnabled(_zkClient),
+          "isSaslAuthEnabled should return false when the SASL client is disabled");
+    } finally {
+      System.clearProperty(ZKClientConfig.ENABLE_CLIENT_SASL_KEY);
+    }
+  }
+
+  @DataProvider(name = "saslLoginModules")
+  public Object[][] saslLoginModules() {
+    return new Object[][] {
+        {"org.apache.zookeeper.server.auth.DigestLoginModule"},
+        // a login module Helix does not know by name
+        {"com.example.CustomLoginModule"}
+    };
   }
 
   /**
-   * Test isSaslAuthEnabled returns true for a DIGEST login module
+   * Test isSaslAuthEnabled returns true for any login module, because ZooKeeper builds its SASL
+   * client for any module in the client JAAS context
    */
-  @Test
-  public void testIsSaslAuthEnabled_WhenSaslEnabledWithDigestLoginModule() throws Exception {
-    buildClientThenEnableSasl("org.apache.zookeeper.server.auth.DigestLoginModule");
+  @Test(dataProvider = "saslLoginModules")
+  public void testIsSaslAuthEnabled_WhenSaslEnabled(String loginModuleName) throws Exception {
+    buildClientThenEnableSasl(loginModuleName);
 
     Assert.assertTrue(invokeIsSaslAuthEnabled(_zkClient),
-        "isSaslAuthEnabled should return true for a DIGEST login module");
-  }
-
-  /**
-   * Test isSaslAuthEnabled returns true for a login module Helix does not know by name,
-   * because ZooKeeper builds its SASL client for any module in the client JAAS context
-   */
-  @Test
-  public void testIsSaslAuthEnabled_WhenSaslEnabledWithCustomLoginModule() throws Exception {
-    buildClientThenEnableSasl("com.example.CustomLoginModule");
-
-    Assert.assertTrue(invokeIsSaslAuthEnabled(_zkClient),
-        "isSaslAuthEnabled should return true for a custom login module");
+        "isSaslAuthEnabled should return true for the login module " + loginModuleName);
   }
 
   /**
@@ -122,19 +131,19 @@ public class TestZkClientKerberos extends ZkTestBase {
   public void testConnectsToDigestSaslServer() throws Exception {
     File dataDir = Files.createTempDirectory("zk-digest-data").toFile();
     File logDir = Files.createTempDirectory("zk-digest-log").toFile();
-    int port;
-    try (ServerSocket socket = new ServerSocket(0)) {
-      port = socket.getLocalPort();
-    }
-
-    Configuration.setConfiguration(digestJaasConfiguration());
-    // the registry reads this property only once, so make it read it again
-    System.setProperty("zookeeper.authProvider.1", SASLAuthenticationProvider.class.getName());
-    ProviderRegistry.reset();
-
-    ZooKeeperServer server = new ZooKeeperServer(dataDir, logDir, 2000);
-    NIOServerCnxnFactory factory = new NIOServerCnxnFactory();
+    ZooKeeperServer server = null;
+    NIOServerCnxnFactory factory = null;
     try {
+      Configuration.setConfiguration(digestJaasConfiguration());
+      // the registry reads this property only once, so make it read it again
+      System.setProperty("zookeeper.authProvider.1", SASLAuthenticationProvider.class.getName());
+      ProviderRegistry.reset();
+      // the server closes a session that does not authenticate, like in a secured deployment
+      System.setProperty("zookeeper.sessionRequireClientSASLAuth", "true");
+
+      int port = TestHelper.getRandomPort();
+      server = new ZooKeeperServer(dataDir, logDir, 2000);
+      factory = new NIOServerCnxnFactory();
       factory.configure(new InetSocketAddress(port), 0);
       factory.startup(server);
 
@@ -157,13 +166,100 @@ public class TestZkClientKerberos extends ZkTestBase {
       if (_zkClient != null && !_zkClient.isClosed()) {
         _zkClient.close();
       }
-      factory.shutdown();
-      server.shutdown(true);
+      if (factory != null) {
+        factory.shutdown();
+      }
+      if (server != null) {
+        server.shutdown(true);
+      }
       System.clearProperty("zookeeper.authProvider.1");
+      System.clearProperty("zookeeper.sessionRequireClientSASLAuth");
       ProviderRegistry.reset();
       FileUtils.deleteQuietly(dataDir);
       FileUtils.deleteQuietly(logDir);
     }
+  }
+
+  /**
+   * When ZooKeeper cannot set up its SASL client, here because the login fails, it connects
+   * without SASL to a server that allows it, and the session is usable. The connection state then
+   * stays at SyncConnected and never reaches SaslAuthenticated, so waitUntilConnected() must not
+   * wait for SaslAuthenticated.
+   */
+  @Test
+  public void testConnectsWhenSaslLoginFails() throws Exception {
+    FailingLoginModule.LOGIN_ATTEMPTS.set(0);
+    Configuration.setConfiguration(jaasConfiguration(FailingLoginModule.class.getName()));
+
+    ZkClient.Builder builder = new ZkClient.Builder();
+    builder.setZkServer(ZkTestBase.ZK_ADDR)
+        .setConnectionTimeout(10 * 1000)
+        .setMonitorRootPathOnly(false);
+    _zkClient = builder.build();
+    _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
+
+    Assert.assertTrue(FailingLoginModule.LOGIN_ATTEMPTS.get() > 0,
+        "The SASL login should have been attempted");
+    Assert.assertTrue(invokeIsSaslAuthEnabled(_zkClient),
+        "SASL is configured, only its login fails");
+    Assert.assertTrue(_zkClient.exists("/"),
+        "The session should be usable although the SASL login failed");
+    Assert.assertTrue(_zkClient.waitUntilConnected(2, TimeUnit.SECONDS),
+        "waitUntilConnected should return when ZooKeeper connected without SASL");
+  }
+
+  /**
+   * A login module that always fails, like a missing keytab or an expired ticket cache
+   */
+  public static class FailingLoginModule implements LoginModule {
+    static final AtomicInteger LOGIN_ATTEMPTS = new AtomicInteger();
+
+    @Override
+    public void initialize(Subject subject, CallbackHandler callbackHandler,
+        Map<String, ?> sharedState, Map<String, ?> options) {
+    }
+
+    @Override
+    public boolean login() throws LoginException {
+      LOGIN_ATTEMPTS.incrementAndGet();
+      throw new LoginException("The login fails on purpose");
+    }
+
+    @Override
+    public boolean commit() {
+      return false;
+    }
+
+    @Override
+    public boolean abort() {
+      return false;
+    }
+
+    @Override
+    public boolean logout() {
+      return false;
+    }
+  }
+
+  /**
+   * JAAS configuration with the given login module for the client context
+   */
+  private static Configuration jaasConfiguration(String loginModuleName) {
+    return new Configuration() {
+      @Override
+      public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+        if (ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT.equals(name)) {
+          return new AppConfigurationEntry[] {
+              new AppConfigurationEntry(
+                  loginModuleName,
+                  AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                  new HashMap<>()
+              )
+          };
+        }
+        return null;
+      }
+    };
   }
 
   /**
@@ -204,25 +300,10 @@ public class TestZkClientKerberos extends ZkTestBase {
     _zkClient = builder.build();
     _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
 
-    Configuration.setConfiguration(new Configuration() {
-      @Override
-      public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-        if (ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT.equals(name)) {
-          return new AppConfigurationEntry[] {
-              new AppConfigurationEntry(
-                  loginModuleName,
-                  AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                  new HashMap<>()
-              )
-          };
-        }
-        return null;
-      }
-    });
+    Configuration.setConfiguration(jaasConfiguration(loginModuleName));
     ((ZkConnection) _zkClient.getConnection()).getZookeeper().getClientConfig()
         .setProperty(ZKClientConfig.ENABLE_CLIENT_SASL_KEY, "true");
   }
-
 
   /**
    * Test isSaslAuthEnabled returns false when JAAS configuration is null
@@ -237,10 +318,10 @@ public class TestZkClientKerberos extends ZkTestBase {
       }
     };
     Configuration.setConfiguration(jaasConfig);
-    
+
     // Enable SASL via system property
     System.setProperty("zookeeper.sasl.client", "true");
-    
+
     try {
       // Create ZkClient
       ZkClient.Builder builder = new ZkClient.Builder();
@@ -248,10 +329,10 @@ public class TestZkClientKerberos extends ZkTestBase {
           .setMonitorRootPathOnly(false);
       _zkClient = builder.build();
       _zkClient.setZkSerializer(new BasicZkSerializer(new SerializableSerializer()));
-      
+
       // Use reflection to call private isSaslAuthEnabled method
       boolean result = invokeIsSaslAuthEnabled(_zkClient);
-      
+
       // Verify
       Assert.assertFalse(result, "isSaslAuthEnabled should return false when JAAS config is null");
     } finally {

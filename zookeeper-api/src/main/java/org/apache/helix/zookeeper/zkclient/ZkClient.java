@@ -38,6 +38,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Stream;
 import javax.management.JMException;
 import javax.security.auth.login.AppConfigurationEntry;
@@ -84,6 +85,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.client.ZooKeeperSaslClient;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -2093,12 +2095,26 @@ public class ZkClient implements Watcher {
   }
 
   public boolean waitUntilConnected(long time, TimeUnit timeUnit) throws ZkInterruptedException {
-    KeeperState expectedState = isSaslAuthEnabled() ? KeeperState.SaslAuthenticated : KeeperState.SyncConnected;
-    return waitForKeeperState(expectedState, time, timeUnit);
+    if (!isSaslAuthEnabled()) {
+      return waitForKeeperState(KeeperState.SyncConnected, time, timeUnit);
+    }
+
+    // With SASL the state ends at SaslAuthenticated and does not go back to SyncConnected. When
+    // ZooKeeper cannot set up its SASL client (for example the login fails) it keeps connecting
+    // without SASL if the server allows it, and the state then stays at SyncConnected.
+    return waitForKeeperState(KeeperState.SaslAuthenticated,
+        () -> _currentState == KeeperState.SaslAuthenticated
+            || (_currentState == KeeperState.SyncConnected && isSaslSkipped()),
+        time, timeUnit);
   }
 
   public boolean waitForKeeperState(KeeperState keeperState, long time, TimeUnit timeUnit)
       throws ZkInterruptedException {
+    return waitForKeeperState(keeperState, () -> _currentState == keeperState, time, timeUnit);
+  }
+
+  private boolean waitForKeeperState(KeeperState keeperState, BooleanSupplier reached, long time,
+      TimeUnit timeUnit) throws ZkInterruptedException {
     validateCurrentThread();
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
 
@@ -2106,7 +2122,7 @@ public class ZkClient implements Watcher {
     acquireEventLock();
     try {
       boolean stillWaiting = true;
-      while (_currentState != keeperState) {
+      while (!reached.getAsBoolean()) {
         if (!stillWaiting) {
           return false;
         }
@@ -3260,6 +3276,25 @@ public class ZkClient implements Watcher {
     if (_usePersistWatcher && watch) {
       throw new IllegalArgumentException(
           "Can not subscribe one time watcher when ZkClient is using PersistWatcher");
+    }
+  }
+
+  /**
+   * Checks if SASL is configured but ZooKeeper connects without it: its SASL client could not be
+   * created, for example because the login failed, or it failed.
+   */
+  private boolean isSaslSkipped() {
+    try {
+      ZkConnection zkConnection = (ZkConnection) getConnection();
+      ZooKeeper zk = zkConnection == null ? null : zkConnection.getZookeeper();
+      if (zk == null) {
+        return false;
+      }
+      ZooKeeperSaslClient saslClient = zk.getSaslClient();
+      return saslClient == null || saslClient.isFailed();
+    } catch (Exception e) {
+      LOG.warn("zkclient {}, Failed to determine if SASL was skipped, assuming false", _uid, e);
+      return false;
     }
   }
 

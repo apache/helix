@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -402,8 +403,26 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     if (!currentMapWithPreferenceList.containsValue(HelixDefinedState.ERROR.name())
         && bestPossibleStateMap.size() > numReplicas && readyToDrop(currentStateMap,
         bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
-      for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
-        String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
+      int numToDrop = combinedPreferenceList.size() - numReplicas;
+      // The instances that are not in the preference list are sorted to the end of the combined
+      // list. Collect them from the end, i.e. in the order in which they would be dropped.
+      Set<String> preferenceSet = new HashSet<>(preferenceList);
+      List<String> dropCandidates = new ArrayList<>();
+      for (int i = combinedPreferenceList.size() - 1;
+          i >= 0 && !preferenceSet.contains(combinedPreferenceList.get(i)); i--) {
+        dropCandidates.add(combinedPreferenceList.get(i));
+      }
+      // Replicas that are already inactive, or are being brought down by a pending message, are
+      // dropped first. Otherwise, if the preference list changes while such a message is in
+      // flight (or the combined list is not ordered by state, as in a topology aware cluster),
+      // another replica that is still active would be picked on top of the one that is already
+      // leaving, and the partition would end up with fewer active replicas than required.
+      String initialState = stateModelDef.getInitialState();
+      dropCandidates.sort(Comparator.comparingInt(
+          instance -> getDropRank(currentStateMap.get(instance), pendingStates.get(instance),
+              initialState)));
+      for (String instanceToDrop : dropCandidates.subList(0,
+          Math.min(numToDrop, dropCandidates.size()))) {
         bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
       }
     }
@@ -421,6 +440,26 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       }
     }
     return bestPossibleStateMap;
+  }
+
+  /**
+   * Rank a replica that is not in the preference list for dropping; the lower the rank, the
+   * earlier it is dropped.
+   * 0: the replica is already in the initial state.
+   * 1: the replica is being brought down by a pending message. An ERROR replica being reset is
+   *    not leaving, it is kept as ERROR in the best possible state anyway.
+   * 2: any other replica.
+   */
+  private static int getDropRank(String currentState, String pendingState, String initialState) {
+    if (initialState.equals(currentState)) {
+      return 0;
+    }
+    if (!HelixDefinedState.ERROR.name().equals(currentState) && (
+        initialState.equals(pendingState) || HelixDefinedState.DROPPED.name()
+            .equals(pendingState))) {
+      return 1;
+    }
+    return 2;
   }
 
   private boolean readyToDrop(Map<String, String> currentStateMap,

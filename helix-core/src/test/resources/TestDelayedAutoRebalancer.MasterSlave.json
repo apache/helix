@@ -252,8 +252,28 @@
         "localhost_3": "MASTER",
         "localhost_2": "DROPPED"
       }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "SLAVE",
+        "localhost_2": "SLAVE",
+        "localhost_3": "MASTER"
+      },
+      "bestPossibleStates": {
+        "localhost_3": "MASTER",
+        "localhost_1": "SLAVE",
+        "localhost_2": "SLAVE",
+        "localhost_0": "DROPPED"
+      },
+      "pendingMessages": {
+        "localhost_0": "SLAVE:OFFLINE"
+      }
     }
   ]
 }
-
-

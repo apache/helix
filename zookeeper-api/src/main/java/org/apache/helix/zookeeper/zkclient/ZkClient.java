@@ -40,6 +40,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Stream;
 import javax.management.JMException;
 import javax.security.auth.login.AppConfigurationEntry;
@@ -93,6 +94,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.client.ZooKeeperSaslClient;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.proto.RequestHeader;
@@ -2165,12 +2167,26 @@ public class ZkClient implements Watcher {
   }
 
   public boolean waitUntilConnected(long time, TimeUnit timeUnit) throws ZkInterruptedException {
-    KeeperState expectedState = isKerberosAuthEnabled() ? KeeperState.SaslAuthenticated : KeeperState.SyncConnected;
-    return waitForKeeperState(expectedState, time, timeUnit);
+    if (!isSaslAuthEnabled()) {
+      return waitForKeeperState(KeeperState.SyncConnected, time, timeUnit);
+    }
+
+    // With SASL the state ends at SaslAuthenticated and does not go back to SyncConnected. When
+    // ZooKeeper cannot set up its SASL client (for example the login fails) it keeps connecting
+    // without SASL if the server allows it, and the state then stays at SyncConnected.
+    return waitForKeeperState(KeeperState.SaslAuthenticated,
+        () -> _currentState == KeeperState.SaslAuthenticated
+            || (_currentState == KeeperState.SyncConnected && isSaslSkipped()),
+        time, timeUnit);
   }
 
   public boolean waitForKeeperState(KeeperState keeperState, long time, TimeUnit timeUnit)
       throws ZkInterruptedException {
+    return waitForKeeperState(keeperState, () -> _currentState == keeperState, time, timeUnit);
+  }
+
+  private boolean waitForKeeperState(KeeperState keeperState, BooleanSupplier reached, long time,
+      TimeUnit timeUnit) throws ZkInterruptedException {
     validateCurrentThread();
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
 
@@ -2178,7 +2194,7 @@ public class ZkClient implements Watcher {
     acquireEventLock();
     try {
       boolean stillWaiting = true;
-      while (_currentState != keeperState) {
+      while (!reached.getAsBoolean()) {
         if (!stillWaiting) {
           return false;
         }
@@ -3486,15 +3502,37 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Checks if Kerberos authentication is enabled for the ZooKeeper connection.
+   * Checks if SASL is configured but ZooKeeper connects without it: its SASL client could not be
+   * created, for example because the login failed, or it failed.
+   */
+  private boolean isSaslSkipped() {
+    try {
+      ZkConnection zkConnection = (ZkConnection) getConnection();
+      ZooKeeper zk = zkConnection == null ? null : zkConnection.getZookeeper();
+      if (zk == null) {
+        return false;
+      }
+      ZooKeeperSaslClient saslClient = zk.getSaslClient();
+      return saslClient == null || saslClient.isFailed();
+    } catch (Exception e) {
+      LOG.warn("zkclient {}, Failed to determine if SASL was skipped, assuming false", _uid, e);
+      return false;
+    }
+  }
+
+  /**
+   * Checks if the ZooKeeper client will authenticate with SASL (Kerberos, DIGEST or any other
+   * mechanism configured through JAAS).
    * This method performs the following checks:
    * 1. Verifies if SASL client is enabled via ZKClientConfig
    * 2. Reads the JAAS client context name from zookeeper.sasl.clientconfig property
-   * 3. Checks if the JAAS configuration contains Krb5LoginModule
+   * 3. Checks the JAAS configuration has an entry for that context. ZooKeeper builds its SASL
+   *    client whenever that entry exists, whatever login module it names, and the connection
+   *    state ends at SaslAuthenticated (not SyncConnected) once SASL completes.
    *
-   * @return true if Kerberos authentication is enabled, false otherwise
+   * @return true if SASL authentication is configured, false otherwise
    */
-  private boolean isKerberosAuthEnabled() {
+  private boolean isSaslAuthEnabled() {
     try {
       // Get ZooKeeper instance from connection
       ZkConnection zkConnection = (ZkConnection) getConnection();
@@ -3517,7 +3555,7 @@ public class ZkClient implements Watcher {
       String clientContextName = zkClientConfig.getProperty(ZKClientConfig.LOGIN_CONTEXT_NAME_KEY,
           ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT);
 
-      // Step 3: Check JAAS configuration for Krb5LoginModule
+      // Step 3: Check that the JAAS configuration has an entry for the client context
       Configuration jaasConfig = Configuration.getConfiguration();
       if (jaasConfig == null) {
         return false;
@@ -3528,19 +3566,12 @@ public class ZkClient implements Watcher {
         return false;
       }
 
-      // Step 4: Check if any login module contains "Krb5LoginModule"
-      for (AppConfigurationEntry entry : entries) {
-        if (entry.getLoginModuleName().contains("Krb5LoginModule")) {
-          LOG.debug("zkclient {}, Kerberos authentication is enabled with login module: {}", _uid,
-              entry.getLoginModuleName());
-          return true;
-        }
-      }
-
-      return false;
+      LOG.debug("zkclient {}, SASL authentication is enabled with JAAS context: {}", _uid,
+          clientContextName);
+      return true;
     } catch (Exception e) {
-      LOG.warn("zkclient {}, Failed to determine if Kerberos is enabled, assuming false", _uid, e);
-      return false; // Safe default - fall back to non-Kerberos behavior
+      LOG.warn("zkclient {}, Failed to determine if SASL is enabled, assuming false", _uid, e);
+      return false; // Safe default - fall back to non-SASL behavior
     }
   }
 }

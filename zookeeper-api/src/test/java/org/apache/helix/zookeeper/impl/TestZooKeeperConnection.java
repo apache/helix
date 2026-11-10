@@ -17,9 +17,6 @@ import org.testng.annotations.Test;
 
 public class TestZooKeeperConnection extends ZkTestBase {
   final int count = 100;
-  final AtomicInteger[] get_count = {new AtomicInteger(0)};
-  CountDownLatch countDownLatch = new CountDownLatch(count*2);
-  CountDownLatch countDownLatch2 = new CountDownLatch(count*3);
 
 
   /*
@@ -34,7 +31,7 @@ public class TestZooKeeperConnection extends ZkTestBase {
 
   @Test
   void testPersistWatcher() throws Exception {
-    Watcher watcher1 = new PersistWatcher();
+    CountingWatcher watcher1 = new CountingWatcher(count * 2);
     ZkClient zkClient =   new org.apache.helix.zookeeper.impl.client.ZkClient(ZK_ADDR);
     IZkConnection _zk = zkClient.getConnection();
     String path="/testPersistWatcher";
@@ -46,7 +43,7 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.writeData(path, "datat".getBytes(), -1);
       _zk.create(path+"/c1_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    Assert.assertTrue(countDownLatch.await(50000, TimeUnit.MILLISECONDS));
+    Assert.assertTrue(watcher1.awaitInitialEvents(50000));
 
     // register a one time listener on the path. Count the total number of event.
     // The one time watch coexists with the persist watcher (ZOOKEEPER-4466), so the persist
@@ -57,18 +54,16 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.writeData(path, ("datat"+i).getBytes(), -1);
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    System.out.println("testPersistWatcher: after register one time listener, original listener received event count: " + get_count[0]);
+    System.out.println("testPersistWatcher: after register one time listener, original listener received event count: " + watcher1.getCount());
     // total number of events is 200 + 400 = 600 and none of them is missed
-    Assert.assertTrue(TestHelper.verify(() -> get_count[0].get() == 600, TestHelper.WAIT_DURATION),
-        "Persist watcher received " + get_count[0].get() + " events, expected 600");
+    TestHelper.verify(() -> watcher1.getCount() >= 600, TestHelper.WAIT_DURATION);
+    Assert.assertEquals(watcher1.getCount(), 600, "Unexpected number of persist watcher events");
     zkClient.close();
   }
 
   @Test (dependsOnMethods = "testPersistWatcher")
   void testRecursivePersistWatcherWithOneTimeWatcher() throws Exception {
-    // reset counter
-    get_count[0].set(0);
-    Watcher watcher1 = new PersistRecurWatcher();
+    CountingWatcher watcher1 = new CountingWatcher(count * 3);
     ZkClient zkClient =   new org.apache.helix.zookeeper.impl.client.ZkClient(ZK_ADDR);
     IZkConnection _zk = zkClient.getConnection();
     String path="/testRecursivePersistWatcher";
@@ -82,7 +77,7 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.create(path+"/c1_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       _zk.create(path+"/c1_" +i + "/c2", null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    Assert.assertTrue(countDownLatch2.await(50000, TimeUnit.MILLISECONDS));
+    Assert.assertTrue(watcher1.awaitInitialEvents(50000));
 
     // register a one time listener on the path. Count the total number of event.
     // The one time watch coexists with the persist watcher (ZOOKEEPER-4466), so the persist
@@ -93,26 +88,47 @@ public class TestZooKeeperConnection extends ZkTestBase {
       _zk.writeData(path, ("datat"+i).getBytes(), -1);
       _zk.create(path+"/c2_" +i, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
-    System.out.println("testRecursivePersistWatcherWithOneTimeWatcher: after register one time listener, original listener received event count: " + get_count[0]);
+    System.out.println("testRecursivePersistWatcherWithOneTimeWatcher: after register one time listener, original listener received event count: " + watcher1.getCount());
     // total number of events is 300 + 400 = 700 and none of them is missed
-    Assert.assertTrue(TestHelper.verify(() -> get_count[0].get() == 700, TestHelper.WAIT_DURATION),
-        "Recursive persist watcher received " + get_count[0].get() + " events, expected 700");
+    TestHelper.verify(() -> watcher1.getCount() >= 700, TestHelper.WAIT_DURATION);
+    Assert.assertEquals(watcher1.getCount(), 700,
+        "Unexpected number of recursive persist watcher events");
     zkClient.close();
   }
 
-  class PersistWatcher implements Watcher {
-    @Override
-    public void process(WatchedEvent watchedEvent) {
-      get_count[0].incrementAndGet();
-      countDownLatch.countDown();
-    }
-  }
+  /*
+  Counts the node events of one test. Each test has its own instance, so a late callback of one
+  test cannot leak into the count of another one.
+  Persist watchers also receive the session state events, for example the Closed event that is
+  delivered asynchronously when the client is closed. They are not node events and are not
+  counted; anything other than Closed is printed because a lost session may explain missed events.
+  */
+  static class CountingWatcher implements Watcher {
+    private final AtomicInteger _count = new AtomicInteger(0);
+    private final CountDownLatch _initialEvents;
 
-  class PersistRecurWatcher implements Watcher {
+    CountingWatcher(int numInitialEvents) {
+      _initialEvents = new CountDownLatch(numInitialEvents);
+    }
+
+    int getCount() {
+      return _count.get();
+    }
+
+    boolean awaitInitialEvents(long timeoutMs) throws InterruptedException {
+      return _initialEvents.await(timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
     @Override
     public void process(WatchedEvent watchedEvent) {
-      get_count[0].incrementAndGet();
-      countDownLatch2.countDown();
+      if (watchedEvent.getType() == Event.EventType.None) {
+        if (watchedEvent.getState() != Event.KeeperState.Closed) {
+          System.out.println("CountingWatcher received session event: " + watchedEvent);
+        }
+        return;
+      }
+      _count.incrementAndGet();
+      _initialEvents.countDown();
     }
   }
 

@@ -320,9 +320,11 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // For delayed tasks, trigger a rebalance event for the closest upcoming ready time
     scheduleForNextTask(jobResource, jobCtx, currentTime);
 
-    // Make additional task assignments if needed.
+    // Make additional task assignments if needed. A job that is timing out or failing only waits
+    // for its tasks in flight to be aborted; a new task would be aborted on the next pipeline and
+    // would keep the job from finishing until every task has been started once.
     if (jobState != TaskState.TIMING_OUT && jobState != TaskState.TIMED_OUT
-        && jobTgtState == TargetState.START) {
+        && jobState != TaskState.FAILING && jobTgtState == TargetState.START) {
       handleAdditionalTaskAssignment(currentInstanceToTaskAssignments, excludedInstances,
           jobResource, currStateOutput, jobCtx, jobCfg, workflowConfig, workflowCtx, cache,
           assignedPartitions, paMap, skippedPartitions, taskAssignmentCal, allPartitions,

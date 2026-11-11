@@ -175,8 +175,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
       stopParticipant(i);
     }
 
-    Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
-    taskFactoryReg.put(MockTask.TASK_COMMAND, MockTask::new);
+    Map<String, TaskFactory> taskFactoryReg = createTaskFactoryRegistry();
     String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
     _participants[i] = new MockParticipantManager(zkAddr, CLUSTER_NAME, instanceName);
 
@@ -185,6 +184,16 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
     stateMachine.registerStateModelFactory(TaskConstants.STATE_MODEL_NAME,
         new TaskStateModelFactory(_participants[i], taskFactoryReg));
     _participants[i].syncStart();
+  }
+
+  /**
+   * The task factories registered on every participant, keyed by task command. Tests that need
+   * their own task implementation override this.
+   */
+  protected Map<String, TaskFactory> createTaskFactoryRegistry() {
+    Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
+    taskFactoryReg.put(MockTask.TASK_COMMAND, MockTask::new);
+    return taskFactoryReg;
   }
 
   protected void stopParticipants() {

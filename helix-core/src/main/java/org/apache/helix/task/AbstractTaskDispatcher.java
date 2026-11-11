@@ -291,10 +291,10 @@ public abstract class AbstractTaskDispatcher {
           // timing out. In this case, it will be sent back to INIT state to be removed. Here we
           // ensure that this task then goes from INIT to DROPPED so that it will be released from
           // AssignableInstance to prevent resource leak
-          if (jobState == TaskState.TIMED_OUT || jobState == TaskState.TIMING_OUT
+          if (jobState == TaskState.TIMED_OUT || isJobAbortingTasks(jobState)
               || jobTgtState == TargetState.DELETE) {
-            // Job is timed out or timing out or targetState is to be deleted, so its tasks will be
-            // sent back to INIT
+            // Job is timed out, timing out or failing, or targetState is to be deleted, so its
+            // tasks will be sent back to INIT
             // In this case, tasks' IdealState will be removed, and they will be sent to DROPPED
             partitionsToDropFromIs.add(pId);
 
@@ -448,9 +448,10 @@ public abstract class AbstractTaskDispatcher {
       Message pendingMessage, TaskState jobState, TaskPartitionState currState,
       Map<Integer, PartitionAssignment> paMap, Map<String, Set<Integer>> assignedPartitions) {
 
-    if (jobState == TaskState.TIMING_OUT && currState == TaskPartitionState.INIT
+    if (isJobAbortingTasks(jobState) && currState == TaskPartitionState.INIT
         && pendingMessage.getToState().equals(TaskPartitionState.RUNNING.name())) {
-      // While job is timing out, if the task is pending on INIT->RUNNING, set it back to INIT,
+      // While job is timing out or failing, if the task is pending on INIT->RUNNING, set it back
+      // to INIT,
       // so that Helix will cancel the transition.
       paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.INIT.name()));
       assignedPartitions.get(instance).add(pId);
@@ -844,6 +845,15 @@ public abstract class AbstractTaskDispatcher {
       }
     }
     return filteredTasks;
+  }
+
+  /**
+   * Returns whether the job only waits for its tasks in flight to be aborted before it reaches its
+   * terminal state. Such a job must not get new tasks, and its tasks that have not started
+   * running yet are taken back.
+   */
+  protected static boolean isJobAbortingTasks(TaskState jobState) {
+    return jobState == TaskState.TIMING_OUT || jobState == TaskState.FAILING;
   }
 
   /**

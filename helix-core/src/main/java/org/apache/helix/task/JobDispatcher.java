@@ -157,7 +157,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             || TaskState.TIMED_OUT.equals(workflowState))) {
       jobState = TaskState.TIMING_OUT;
       workflowCtx.setJobState(jobName, TaskState.TIMING_OUT);
-    } else if (jobState != TaskState.TIMING_OUT && jobState != TaskState.FAILING) {
+    } else if (!isJobAbortingTasks(jobState)) {
       // TIMING_OUT/FAILING/ABORTING job can't be stopped, because all tasks are being aborted
       // Update running status in workflow context
       if (jobTgtState == TargetState.STOP) {
@@ -264,6 +264,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         || (jobCfg.getTargetResource() != null
             && cache.getIdealState(jobCfg.getTargetResource()) != null
             && !cache.getIdealState(jobCfg.getTargetResource()).isEnabled())) {
+      Map<Integer, PartitionAssignment> dropAssignments =
+          dropTasksInFlightOnUnavailableInstances(jobResource, jobCtx, liveInstances,
+              currStateOutput);
       if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
         failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap(), cache);
         return buildEmptyAssignment(jobResource, currStateOutput);
@@ -284,8 +287,17 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.INIT.name()));
         }
       }
+      // A task on an unavailable instance cannot be aborted, it is dropped instead.
+      paMap.putAll(dropAssignments);
 
       return toResourceAssignment(jobResource, paMap);
+    }
+
+    if (isJobAbortingTasks(jobState)) {
+      // Do not replace an assignment that has already been made for a task, e.g. a drop that was
+      // requested by another instance.
+      dropTasksInFlightOnUnavailableInstances(jobResource, jobCtx, liveInstances, currStateOutput)
+          .forEach(paMap::putIfAbsent);
     }
 
     if (jobState == TaskState.FAILING && isJobFinished(jobCtx, jobResource, currStateOutput)) {
@@ -323,8 +335,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Make additional task assignments if needed. A job that is timing out or failing only waits
     // for its tasks in flight to be aborted; a new task would be aborted on the next pipeline and
     // would keep the job from finishing until every task has been started once.
-    if (jobState != TaskState.TIMING_OUT && jobState != TaskState.TIMED_OUT
-        && jobState != TaskState.FAILING && jobTgtState == TargetState.START) {
+    if (!isJobAbortingTasks(jobState) && jobState != TaskState.TIMED_OUT
+        && jobTgtState == TargetState.START) {
       handleAdditionalTaskAssignment(currentInstanceToTaskAssignments, excludedInstances,
           jobResource, currStateOutput, jobCtx, jobCfg, workflowConfig, workflowCtx, cache,
           assignedPartitions, paMap, skippedPartitions, taskAssignmentCal, allPartitions,
@@ -344,6 +356,38 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           ImmutableMap.of(pa._instance, pa._state));
     }
     return ra;
+  }
+
+  /**
+   * Takes care of the tasks in flight whose instance is not among the live instances of the job
+   * anymore, because it is gone, disabled or no longer eligible. The controller does not go
+   * through the tasks of such an instance, so they would never be aborted, and a job that is
+   * failing or timing out would wait for them forever. Normally this is handled when new tasks are
+   * assigned, which does not happen for such a job.
+   * If the instance still has a current state for the task, it is asked to drop it. Once there
+   * is neither a current state nor a pending message, the task is marked DROPPED in the context.
+   * @return the DROPPED assignments to make, by task partition
+   */
+  private Map<Integer, PartitionAssignment> dropTasksInFlightOnUnavailableInstances(
+      String jobResource, JobContext jobCtx, Collection<String> liveInstances,
+      CurrentStateOutput currStateOutput) {
+    Map<Integer, PartitionAssignment> dropAssignments = new HashMap<>();
+    for (int pId : jobCtx.getPartitionSet()) {
+      TaskPartitionState state = jobCtx.getPartitionState(pId);
+      String instance = jobCtx.getAssignedParticipant(pId);
+      if ((state != TaskPartitionState.RUNNING && state != TaskPartitionState.INIT)
+          || instance == null || liveInstances.contains(instance)) {
+        continue;
+      }
+      Partition partition = new Partition(pName(jobResource, pId));
+      if (currStateOutput.getCurrentState(jobResource, partition, instance) != null) {
+        dropAssignments.put(pId,
+            new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
+      } else if (currStateOutput.getPendingMessage(jobResource, partition, instance) == null) {
+        jobCtx.setPartitionState(pId, TaskPartitionState.DROPPED);
+      }
+    }
+    return dropAssignments;
   }
 
   private boolean isJobFinished(JobContext jobContext, String jobResource,

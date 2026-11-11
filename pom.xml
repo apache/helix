@@ -559,9 +559,13 @@
         <version>3.12.4</version>
       </dependency>
       <dependency>
+        <!-- Keeps all the netty artifacts that come in through ZooKeeper at the same version;
+             netty does not support mixing versions. -->
         <groupId>io.netty</groupId>
-        <artifactId>netty-codec</artifactId>
+        <artifactId>netty-bom</artifactId>
         <version>4.1.136.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

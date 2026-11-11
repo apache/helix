@@ -277,7 +277,7 @@ public class ZkMetaClientUtil {
 
   /**
    * This function translate and group Zk exception code to metaclient code.
-   * It currently includes all ZK code on 3.9.3.
+   * It currently includes all ZK code on 3.9.5.
    */
   public static MetaClientException.ReturnCode translateZooKeeperCodeToMetaClientCode(
       KeeperException.Code zkCode) {

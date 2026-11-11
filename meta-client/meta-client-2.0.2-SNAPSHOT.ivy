@@ -44,5 +44,6 @@ under the License.
         <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
 		<dependency org="org.apache.helix" name="zookeeper-api" rev="2.0.2-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

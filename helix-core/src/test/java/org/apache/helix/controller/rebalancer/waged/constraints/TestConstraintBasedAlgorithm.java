@@ -58,6 +58,7 @@ public class TestConstraintBasedAlgorithm {
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();
     try {
       algorithm.calculate(clusterModel);
+      Assert.fail("Expected a HelixRebalanceException");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
@@ -80,6 +81,7 @@ public class TestConstraintBasedAlgorithm {
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();
     try {
       algorithm.calculate(clusterModel);
+      Assert.fail("Expected a HelixRebalanceException");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }
@@ -154,7 +156,8 @@ public class TestConstraintBasedAlgorithm {
     ClusterModel clusterModel =
         new ClusterModelTestHelper().getMultiNodeClusterModelNegativeSetup();
     try {
-      OptimalAssignment optimalAssignment = algorithm.calculate(clusterModel);
+      algorithm.calculate(clusterModel);
+      Assert.fail("Expected a HelixRebalanceException");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(),
@@ -179,6 +182,7 @@ public class TestConstraintBasedAlgorithm {
 
     try {
       algorithm.calculate(clusterModel);
+      Assert.fail("Expected a HelixRebalanceException");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
     }

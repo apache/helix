@@ -38,7 +38,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,12 +55,7 @@ public class TestConstraintBasedAlgorithm {
         new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
             ImmutableMap.of(mockSoftConstraint, 1f));
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();
-    try {
-      algorithm.calculate(clusterModel);
-      Assert.fail("Expected a HelixRebalanceException");
-    } catch (HelixRebalanceException ex) {
-      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-    }
+    assertFailsToCalculate(algorithm, clusterModel);
 
     verify(mockHardConstraint, times(1)).setEnableLogging(eq(true));
     verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
@@ -79,12 +73,7 @@ public class TestConstraintBasedAlgorithm {
         new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
             ImmutableMap.of(mockSoftConstraint, 1f));
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();
-    try {
-      algorithm.calculate(clusterModel);
-      Assert.fail("Expected a HelixRebalanceException");
-    } catch (HelixRebalanceException ex) {
-      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-    }
+    assertFailsToCalculate(algorithm, clusterModel);
 
     verify(mockHardConstraint, times(1)).setEnableLogging(eq(true));
     verify(mockHardConstraint, times(1)).isAssignmentValid(any(), any(), any());
@@ -146,7 +135,7 @@ public class TestConstraintBasedAlgorithm {
 
   // Add neg test for error handling in ConstraintBasedAlgorithm replica sorting.
   @Test
-  public void testSortingEarlyQuitLackCapacity() throws IOException, HelixRebalanceException {
+  public void testSortingEarlyQuitLackCapacity() throws IOException {
     HardConstraint nodeCapacityConstraint = new NodeCapacityConstraint();
     SoftConstraint soft1 = new MaxCapacityUsageInstanceConstraint();
     SoftConstraint soft2 = new InstancePartitionsCountConstraint();
@@ -155,14 +144,9 @@ public class TestConstraintBasedAlgorithm {
             ImmutableMap.of(soft1, 1f, soft2, 1f));
     ClusterModel clusterModel =
         new ClusterModelTestHelper().getMultiNodeClusterModelNegativeSetup();
-    try {
-      algorithm.calculate(clusterModel);
-      Assert.fail("Expected a HelixRebalanceException");
-    } catch (HelixRebalanceException ex) {
-      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-      Assert.assertEquals(ex.getMessage(),
-          "The cluster does not have enough item1 capacity for all partitions.  Failure Type: FAILED_TO_CALCULATE");
-    }
+    HelixRebalanceException ex = assertFailsToCalculate(algorithm, clusterModel);
+    Assert.assertEquals(ex.getMessage(),
+        "The cluster does not have enough item1 capacity for all partitions.  Failure Type: FAILED_TO_CALCULATE");
   }
 
   @Test
@@ -180,11 +164,19 @@ public class TestConstraintBasedAlgorithm {
     AssignableReplica replica = resourceAssignableReplicas.iterator().next();
     replica.getCapacity().put("item3", 40); // available: 30, requested: 40.
 
+    HelixRebalanceException ex = assertFailsToCalculate(algorithm, clusterModel);
+    Assert.assertTrue(ex.getMessage().contains("Unable to find any available candidate node"),
+        ex.getMessage());
+  }
+
+  private static HelixRebalanceException assertFailsToCalculate(ConstraintBasedAlgorithm algorithm,
+      ClusterModel clusterModel) {
     try {
       algorithm.calculate(clusterModel);
-      Assert.fail("Expected a HelixRebalanceException");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+      return ex;
     }
+    throw new AssertionError("Expected a HelixRebalanceException");
   }
 }

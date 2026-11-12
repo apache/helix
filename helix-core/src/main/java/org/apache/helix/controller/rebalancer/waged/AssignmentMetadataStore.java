@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.stream.Collectors;
+import java.util.Objects;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
@@ -50,8 +50,8 @@ public class AssignmentMetadataStore {
   private final String _baselinePath;
   private final String _bestPossiblePath;
   // volatile for double-checked locking
-  protected volatile Map<String, ResourceAssignment> _globalBaseline;
-  protected volatile Map<String, ResourceAssignment> _bestPossibleAssignment;
+  protected volatile Map<String, ResourceAssignment> _globalBaseline = null;
+  protected volatile Map<String, ResourceAssignment> _bestPossibleAssignment = null;
   protected volatile int _bestPossibleVersion = 0;
   protected volatile int _lastPersistedBestPossibleVersion = 0;
 
@@ -65,6 +65,9 @@ public class AssignmentMetadataStore {
     _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
   }
 
+  /**
+   * @return a deep copy of the best possible assignment that is safe for modification.
+   */
   public Map<String, ResourceAssignment> getBaseline() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_globalBaseline == null) {
@@ -75,7 +78,11 @@ public class AssignmentMetadataStore {
         }
       }
     }
-    return _globalBaseline;
+    Map<String, ResourceAssignment> result = new HashMap<>(_globalBaseline.size());
+    for (Map.Entry<String, ResourceAssignment> entry : _globalBaseline.entrySet()) {
+      result.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
+    return result;
   }
 
   /**
@@ -88,6 +95,9 @@ public class AssignmentMetadataStore {
     return _lastPersistedBestPossibleVersion == _bestPossibleVersion;
   }
 
+  /**
+   * @return a deep copy of the best possible assignment that is safe for modification.
+   */
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_bestPossibleAssignment == null) {
@@ -98,7 +108,12 @@ public class AssignmentMetadataStore {
         }
       }
     }
-    return _bestPossibleAssignment;
+    // Return defensive copy so that the in-memory assignment is not modified by callers
+    Map<String, ResourceAssignment> result = new HashMap<>(_bestPossibleAssignment);
+    for (Map.Entry<String, ResourceAssignment> entry : _bestPossibleAssignment.entrySet()) {
+      result.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
+    return result;
   }
 
   private Map<String, ResourceAssignment> fetchAssignmentOrDefault(String path) {
@@ -135,14 +150,15 @@ public class AssignmentMetadataStore {
    */
   public synchronized void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // Create defensive copy so that the in-memory assignment is not modified after it is persisted
-    Map<String, ResourceAssignment> baselineCopy = globalBaseline.entrySet().stream().collect(
-        Collectors.toMap(Map.Entry::getKey,
-            entry -> new ResourceAssignment(entry.getValue().getRecord())));
+    Map<String, ResourceAssignment> baselineCopy = new HashMap<>(globalBaseline.size());
+    for (Map.Entry<String, ResourceAssignment> entry : globalBaseline.entrySet()) {
+      baselineCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
+
     // write to metadata store
     persistAssignmentToMetadataStore(baselineCopy, _baselinePath, BASELINE_KEY);
     // write to memory
-    getBaseline().clear();
-    getBaseline().putAll(baselineCopy);
+    _globalBaseline = baselineCopy;
   }
 
   /**
@@ -152,14 +168,14 @@ public class AssignmentMetadataStore {
    */
   public synchronized void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
     // Create defensive copy so that the in-memory assignment is not modified after it is persisted
-    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = bestPossibleAssignment.entrySet().stream().collect(
-        Collectors.toMap(Map.Entry::getKey,
-            entry -> new ResourceAssignment(entry.getValue().getRecord())));
+    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = new HashMap<>(bestPossibleAssignment.size());
+    for (Map.Entry<String, ResourceAssignment> entry : bestPossibleAssignment.entrySet()) {
+      bestPossibleAssignmentCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
     // write to metadata store
     persistAssignmentToMetadataStore(bestPossibleAssignmentCopy, _bestPossiblePath, BEST_POSSIBLE_KEY);
     // write to memory
-    getBestPossibleAssignment().clear();
-    getBestPossibleAssignment().putAll(bestPossibleAssignmentCopy);
+    _bestPossibleAssignment = bestPossibleAssignmentCopy;
     _bestPossibleVersion++;
     _lastPersistedBestPossibleVersion = _bestPossibleVersion;
   }
@@ -173,10 +189,13 @@ public class AssignmentMetadataStore {
    */
   public synchronized boolean asyncUpdateBestPossibleAssignmentCache(
       Map<String, ResourceAssignment> bestPossibleAssignment, int newVersion) {
+    Map<String, ResourceAssignment> bestPossibleAssignmentCopy = new HashMap<>(bestPossibleAssignment.size());
+    for (Map.Entry<String, ResourceAssignment> entry : bestPossibleAssignment.entrySet()) {
+      bestPossibleAssignmentCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
     // Check if the version is stale by this point
     if (newVersion > _bestPossibleVersion) {
-      getBestPossibleAssignment().clear();
-      getBestPossibleAssignment().putAll(bestPossibleAssignment);
+      _bestPossibleAssignment = bestPossibleAssignmentCopy;
       _bestPossibleVersion = newVersion;
       return true;
     }
@@ -191,19 +210,13 @@ public class AssignmentMetadataStore {
   public synchronized void clearAssignmentMetadata() {
     persistAssignmentToMetadataStore(Collections.emptyMap(), _baselinePath, BASELINE_KEY);
     persistAssignmentToMetadataStore(Collections.emptyMap(), _bestPossiblePath, BEST_POSSIBLE_KEY);
-    getBaseline().clear();
-    getBestPossibleAssignment().clear();
+    _globalBaseline = new HashMap<>();
+    _bestPossibleAssignment = new HashMap<>();
   }
 
   protected synchronized void reset() {
-    if (_bestPossibleAssignment != null) {
-      _bestPossibleAssignment.clear();
-      _bestPossibleAssignment = null;
-    }
-    if (_globalBaseline != null) {
-      _globalBaseline.clear();
-      _globalBaseline = null;
-    }
+    _bestPossibleAssignment = null;
+    _globalBaseline = null;
   }
 
   protected void finalize() {
@@ -248,10 +261,10 @@ public class AssignmentMetadataStore {
   }
 
   protected boolean isBaselineChanged(Map<String, ResourceAssignment> newBaseline) {
-    return !getBaseline().equals(newBaseline);
+    return !Objects.equals(_globalBaseline, newBaseline);
   }
 
   protected boolean isBestPossibleChanged(Map<String, ResourceAssignment> newBestPossible) {
-    return !getBestPossibleAssignment().equals(newBestPossible);
+    return !Objects.equals(_bestPossibleAssignment, newBestPossible);
   }
 }

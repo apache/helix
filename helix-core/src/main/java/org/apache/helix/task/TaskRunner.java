@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
  */
 public class TaskRunner implements Runnable {
   private static final Logger LOG = LoggerFactory.getLogger(TaskRunner.class);
+  private static final long INITIAL_STATE_UPDATE_RETRY_INTERVAL_MS = 100;
+  private static final long MAX_STATE_UPDATE_RETRY_INTERVAL_MS = 1000;
   private final HelixManager _manager;
   private final String _taskName;
   private final String _taskPartition;
@@ -185,12 +187,54 @@ public class TaskRunner implements Runnable {
    */
   private void updateCurrentState(TaskPartitionState state) {
     synchronized (_stateModel) {
+      HelixDataAccessor accessor = getDataAccessorForCurrentSession();
+      if (accessor == null) {
+        return;
+      }
       _stateModel.updateState(state.name());
-      if (!setZKCurrentState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
-          _taskPartition, state)) {
+      if (!setZKCurrentState(accessor, _instance, _sessionId, _taskName, _taskPartition, state)) {
         LOG.error(String.format(
             "Failed to set the requested state to %s for instance %s, session id %s, task partition %s.",
             state, _instance, _sessionId, _taskPartition));
+      }
+    }
+  }
+
+  /**
+   * Gets an accessor for this task's session, retrying transient connection failures. A task state
+   * update must not be written under a new session: the state model reset for that session will
+   * take over instead.
+   */
+  private HelixDataAccessor getDataAccessorForCurrentSession() {
+    long retryIntervalMs = INITIAL_STATE_UPDATE_RETRY_INTERVAL_MS;
+    while (true) {
+      if (Thread.currentThread().isInterrupted() || _stateModel.isShutdown()) {
+        LOG.warn("Task runner is stopping; skipping state update for task {} "
+            + "in session {}.", _taskPartition, _sessionId);
+        return null;
+      }
+
+      try {
+        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+        String currentSessionId = _manager.getSessionId();
+        if (!_sessionId.equals(currentSessionId)) {
+          LOG.warn("Skipping stale state update for task {} in session {} (current {}).",
+              _taskPartition, _sessionId, currentSessionId);
+          return null;
+        }
+        return accessor;
+      } catch (HelixException e) {
+        LOG.warn("Could not get a connected data accessor for task {} in session {}; "
+            + "retrying in {} ms.", _taskPartition, _sessionId, retryIntervalMs, e);
+        try {
+          Thread.sleep(retryIntervalMs);
+        } catch (InterruptedException interruptedException) {
+          Thread.currentThread().interrupt();
+          LOG.warn("Interrupted while retrying the state update for task {} in session {}.",
+              _taskPartition, _sessionId, interruptedException);
+          return null;
+        }
+        retryIntervalMs = Math.min(retryIntervalMs * 2, MAX_STATE_UPDATE_RETRY_INTERVAL_MS);
       }
     }
   }

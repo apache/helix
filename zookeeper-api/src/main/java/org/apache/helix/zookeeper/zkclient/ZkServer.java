@@ -150,4 +150,20 @@ public class ZkServer {
     public ZkClient getZkClient() {
         return _zkClient;
     }
+
+    /**
+     * Get the ZooKeeper server instance.
+     * @return The ZooKeeper server instance
+     */
+    public ZooKeeperServer getZooKeeperServer() {
+        return _zk;
+    }
+
+    /**
+     * Get the NIOServerCnxnFactory instance.
+     * @return The NIOServerCnxnFactory instance
+     */
+    public NIOServerCnxnFactory getNIOServerCnxnFactory() {
+        return _nioFactory;
+    }
 }

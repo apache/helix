@@ -91,7 +91,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
 
     if (clusterStatusMonitor != null) {
       clusterStatusMonitor.updateAvailableThreadsPerJob(cache.getAssignableInstanceManager()
-          .getGlobalCapacityMap());
+          .getAvailableThreadCapacityMap());
     }
   }
 

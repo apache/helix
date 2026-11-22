@@ -21,6 +21,7 @@ package org.apache.helix.task;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -465,6 +466,30 @@ public class AssignableInstanceManager {
    */
   public Map<String, Integer> getGlobalCapacityMap() {
     return Collections.unmodifiableMap(_globalThreadBasedQuotaMap);
+  }
+
+  /**
+   * Returns a mapping of: jobType -> threads that are not occupied by a task in all instances.
+   * Unlike {@link #getGlobalCapacityMap()}, this is computed from each AssignableInstance's total
+   * and used capacity, so it includes tasks restored from current state.
+   * @return map of quota type to the number of free threads
+   */
+  public Map<String, Integer> getAvailableThreadCapacityMap() {
+    String resourceType = LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name();
+    Map<String, Integer> availableCapacity = new HashMap<>();
+    for (AssignableInstance assignableInstance : _assignableInstanceMap.values()) {
+      Map<String, Integer> totalCapacity = assignableInstance.getTotalCapacity().get(resourceType);
+      if (totalCapacity == null) {
+        continue;
+      }
+      Map<String, Integer> usedCapacity =
+          assignableInstance.getUsedCapacity().getOrDefault(resourceType, Collections.emptyMap());
+      for (Map.Entry<String, Integer> entry : totalCapacity.entrySet()) {
+        int free = Math.max(0, entry.getValue() - usedCapacity.getOrDefault(entry.getKey(), 0));
+        availableCapacity.merge(entry.getKey(), free, Integer::sum);
+      }
+    }
+    return availableCapacity;
   }
 
   /**

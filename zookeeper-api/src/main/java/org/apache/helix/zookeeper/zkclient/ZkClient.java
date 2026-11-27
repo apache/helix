@@ -3281,7 +3281,7 @@ public class ZkClient implements Watcher {
 
   /**
    * Checks if SASL is configured but ZooKeeper connects without it: its SASL client could not be
-   * created, for example because the login failed, or it failed.
+   * created, for example because the login failed.
    */
   private boolean isSaslSkipped() {
     try {
@@ -3291,7 +3291,7 @@ public class ZkClient implements Watcher {
         return false;
       }
       ZooKeeperSaslClient saslClient = zk.getSaslClient();
-      return saslClient == null || saslClient.isFailed();
+      return saslClient == null;
     } catch (Exception e) {
       LOG.warn("zkclient {}, Failed to determine if SASL was skipped, assuming false", _uid, e);
       return false;
